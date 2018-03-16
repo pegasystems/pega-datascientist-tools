@@ -7,6 +7,7 @@ Currently only supporting an R package with several utiliites. Python utils and 
 ## R
 
 [![Build Status](https://travis-ci.org/pegasystems/cdh-datascientist-tools.svg?branch=master)](https://travis-ci.org/pegasystems/cdh-datascientist-tools)
+[![codecov](https://codecov.io/gh/pegasystems/cdh-datascientist-tools/branch/master/graph/badge.svg)](https://codecov.io/gh/pegasystems/cdh-datascientist-tools)
 
 There are two way to use the R scripts. The first option is to use it like you use any package: install it from GitHub, browse the vignettes and copy/paste the code snippets of interest.
 
