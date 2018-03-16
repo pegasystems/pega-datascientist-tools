@@ -1,0 +1,24 @@
+---
+title: "ADM Reporting"
+author: "Otto Perdeck"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{ADM Reporting}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+The ADM Datamart is an open database schema where the ADM models and all predictors are copied into. The standard
+ADM reports both in Analytics Center as well as in the Report Browser (Adaptive category) work off this schema.
+
+Since the schema is open we can also use it to create our own reports and support things not available in the OOTB
+reporting in Pega.
+
