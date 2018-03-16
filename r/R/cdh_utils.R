@@ -36,8 +36,10 @@ NULL
 readDSExport <- function(instancename, srcFolder=".", tmpFolder=srcFolder)
 {
   mostRecentZip <- rev(sort(list.files(path=srcFolder, pattern=paste("^", instancename, "_.*\\.zip$", sep=""))))[1]
+  jsonFile <- paste(tmpFolder,"data.json", sep="/")
+  if(file.exists(jsonFile)) file.remove(jsonFile)
   utils::unzip(paste(srcFolder,mostRecentZip,sep="/"), exdir=tmpFolder)
-  multiLineJSON <- readLines(paste(tmpFolder,"data.json", sep="/"))
+  multiLineJSON <- readLines(jsonFile)
   ds <- data.table(jsonlite::fromJSON(paste("[",paste(multiLineJSON,sep="",collapse = ","),"]")))
   return(ds [, names(ds)[!sapply(ds, is_list)], with=F])
 }
