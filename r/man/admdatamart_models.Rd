@@ -3,7 +3,7 @@
 \docType{data}
 \name{admdatamart_models}
 \alias{admdatamart_models}
-\title{Sample model snapshot from the ADM Data Mart.}
+\title{Sample model snapshots from the ADM Data Mart.}
 \format{A \code{data.table} with 30 rows and 22 variables:
 \describe{
   \item{pyModelID}{Model ID}
@@ -17,6 +17,6 @@ A sample Pega application
 admdatamart_models
 }
 \description{
-A \code{data.table} containing two snapshots of 15 models each.
+A \code{data.table} containing two snapshots of 3 models.
 }
 \keyword{datasets}

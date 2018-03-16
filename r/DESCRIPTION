@@ -17,6 +17,10 @@ Suggests:
     rmarkdown
 Imports:
   data.table,
+  ggplot2,
+  scales,
+  dplyr,
+  tidyverse,
   jsonlite, 
   pROC,
   rlang
