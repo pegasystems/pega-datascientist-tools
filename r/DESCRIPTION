@@ -1,6 +1,6 @@
 Package: cdhtools
 Type: Package
-Title: Data Science utilities for Pega CDH
+Title: Data Science Utilities for Pega CDH
 Version: 0.1.0
 Author: Otto Perdeck
 Maintainer: Otto Perdeck <perdo@pega.com>
@@ -23,5 +23,6 @@ Imports:
   tidyverse,
   jsonlite, 
   pROC,
+  lubridate,
   rlang
 VignetteBuilder: knitr
