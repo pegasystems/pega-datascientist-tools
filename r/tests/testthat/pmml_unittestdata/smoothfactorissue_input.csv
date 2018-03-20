@@ -1,0 +1,12 @@
+pysubjectid,pyName,pychannel,evidence,pydirection,pygroup,pypropensity,pyissue,country,salestarget,gender,age,Expected.Propensity,Expected.Evidence
+CE-181,BOFFERSUM,C,393,Outbound,WebBanners,0.37155963,Banners,Canada,2,m,80,0.37155963,393
+CE-190,BOFFERSUM,G,393,Outbound,WebBanners,0.31395349,Banners,Germany,2,m,52,0.31395349,393
+CE-192,BOFFERSUM,G,393,Outbound,WebBanners,0.31122449,Banners,Germany,2,m,10,0.31122449,393
+CE-260,BOFFERSUM,N,393,Outbound,WebBanners,0.37155963,Banners,Netherlands,2,m,62,0.37155963,393
+CE-29,BOFFERSUM,N,393,Outbound,WebBanners,0.37155963,Banners,Netherlands,2,m,43,0.37155963,393
+CE-294,BOFFERSUM,C,393,Outbound,WebBanners,0.37155963,Banners,Canada,2,m,81,0.37155963,393
+CE-300,BOFFERSUM,N,393,Outbound,WebBanners,0.37155963,Banners,Netherlands,2,m,83,0.37155963,393
+CE-373,BOFFERSUM,N,393,Outbound,WebBanners,0.37155963,Banners,Netherlands,2,m,53,0.37155963,393
+CE-425,BOFFERSUM,C,393,Outbound,WebBanners,0.3625,Banners,Canada,2,m,7,0.3625,393
+CE-485,BOFFERSUM,U,393,Outbound,WebBanners,0.37155963,Banners,US,2,m,27,0.37155963,393
+CE-98,BOFFERSUM,C,393,Outbound,WebBanners,0.37155963,Banners,Canada,2,m,24,0.37155963,393
