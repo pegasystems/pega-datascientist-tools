@@ -1,0 +1,81 @@
+---
+title: "adhoc-datasetanalysis"
+author: "Otto Perdeck"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{adhoc-datasetanalysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+When testing and debugging DSM projects involving data flows, it often is very handy to inspect datasets. There
+are a couple of out-of-the-box datasets, like \code{pxInteractionHistory} that represents the data stored in IH, or 
+\code{pxDecisionResults} that contains the model data and the results of strategies. You can also have custom
+datasets created perhaps as the results of running dataflows or when generating data with MonteCarlo datasets.
+
+Any of the datasets that supports the \code{browse} operation (basically, any that can be read from), can also be
+exported. The export format used is multi-line JSON, i.e. every record from the dataset is exported as a single
+line containing the JSON data.
+
+Once you have exported a dataset from Pega, you can easily import it and explore it.
+
+In this example we take a look at a sample of \code{pxInteractionHistory} but this really works for any dataset.
+
+In Pega, export the dataset and download it to your local filesystem. 
+
+```{r, eval=TRUE}
+library(cdhtools)
+ihsampledata <- readDSExport("Data-pxStrategyResult_pxInteractionHistory", "~/Downloads") 
+```
+
+The \code{cdhtools} package ships with a small sample of IH data
+
+```{r}
+knitr::kable(head(ihsampledata,10))
+```
+
+Some of the columns in your dataset may represent date or date-time values. Pega will export these as strings in the
+standard Pega format. For analysis it will be convenient to convert them to proper date/time objects so we can easily
+report and plot.
+
+```{r}
+for (f in c("pxOutcomeTime", "pxDecisionTime")) {
+  ihsampledata[[f]] <- as.POSIXct(fromPRPCDateTime(ihsampledata[[f]])) # Shd this be as.POSIXct straight away?
+}
+summary(ihsampledata)
+```
+
+With the data in place, you can now do the analyses you want. For the IH data we can for example plot accept rate over time.
+
+BTW, if you're not familiar with the \code{data.table} syntax below, it would be a good idea to look into this. The internals
+of \code{cdhtools} heavily rely on it also.
+
+```{r, warning=F}
+library(ggplot2)
+ihsampledata[, period := cut(ihsampledata$pxOutcomeTime,10)]
+ihsampledata[, successRate := sum(pyOutcome=="Accept")/.N, by=period]
+ggplot(ihsampledata, aes(period, successRate, fill=pyGroup)) + geom_bar(stat="identity") +
+  labs(title = "Success Rate over Time", x="", y="Success Rate")+
+  theme(axis.text.x=element_text(angle=45, hjust=1))
+```
+
+But you can of course also use a different style, for example the style from the \code{tidyverse} universe:
+
+```{r, warning=F}
+library(tidyverse)
+plotdata <- mutate(ihsampledata, period = cut(pxOutcomeTime, 8))
+plotdata <- left_join(plotdata, 
+                      group_by(plotdata, period) %>% summarise(successRte = sum(pyOutcome=="Accept")/length(pyOutcome)),
+                      by="period")
+ggplot(plotdata, aes(pyName, fill=pyIssue)) + geom_bar() + coord_flip()+
+  labs(title = "Proposition Distribution")
+```
+

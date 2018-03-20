@@ -118,6 +118,11 @@ fromPRPCDateTime <- function(x)
   return(t)
 }
 
+# TODO comvert to ct as.POSIXct
+
+# TODO dont need lubridate
+# as.POSIXlt(Sys.time(), "GMT") # the current time in UTC
+
 #' Convert to a Pega date-time string.
 #'
 #' @param x A vector of valid date-time objects (valid for \code{\link[base]{strftime}})

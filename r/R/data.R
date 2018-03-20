@@ -24,3 +24,12 @@
 #' }
 #' @source A sample Pega application
 "admdatamart_binning"
+
+#' A small sample of IH data to illustrate how to import and analyze this.
+#'
+#' A \code{data.table} containing a sample of IH data.
+#'
+#' @format A \code{data.table} with 174 interactions for in total 10 different customers.
+#'
+#' @source DMSample
+"ihsampledata"

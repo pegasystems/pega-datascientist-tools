@@ -17,6 +17,12 @@ test_that("dataset export can be read", {
 # save(admdatamart_models, file="data/admdatamart_models.rda", compress='xz')
 # + describe in R/data.R
 
+# ihsampledata taken from IH in DMSample after initialization
+#ihsampledata <- readDSExport("Data-pxStrategyResult_pxInteractionHistory", "~/Downloads")
+#ihsampledata <- ihsampledata[ pyApplication=="DMSample"&pySubjectID %in% paste("CE", seq(1:10), sep="-")]
+#devtools::use_data(ihsampledata)
+#save(ihsampledata, file="data/ihsampledata.rda", compress='xz')
+
 test_that("AUC from binning", {
   expect_equal(dsm_auc( c(3,1,0), c(2,0,1)), 0.75)
 
