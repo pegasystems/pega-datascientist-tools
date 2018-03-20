@@ -16,5 +16,5 @@ A vector of string representations in the format used by Pega.
 Convert to a Pega date-time string.
 }
 \examples{
-toPRPCDateTime( lubridate::now() )
+toPRPCDateTime(Sys.time())
 }

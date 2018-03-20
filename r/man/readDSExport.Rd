@@ -7,7 +7,8 @@
 readDSExport(instancename, srcFolder = ".", tmpFolder = srcFolder)
 }
 \arguments{
-\item{instancename}{Name of the file w/o the timestamp, in Pega format <Applies To>_<Instance Name>}
+\item{instancename}{Name of the file w/o the timestamp, in Pega format <Applies To>_<Instance Name>, or the
+complete filename including timestamp and zip extension as exported from Pega.}
 
 \item{srcFolder}{Optional folder to look for the file (defaults to the current folder)}
 
@@ -17,12 +18,13 @@ readDSExport(instancename, srcFolder = ".", tmpFolder = srcFolder)
 A \code{data.table} with the contents
 }
 \description{
-\code{readDSExport} reads a dataset export file as exported and downloaded from Pega. The file
+\code{readDSExport} reads a dataset export file as exported and downloaded from Pega. The export file
 is formatted as a zipped mulit-line JSON file (\url{http://jsonlines.org/}). \code{readDSExport} will find the
-most recent file (Pega appends a datetime stamp), unzip it into a temp folder
-and read the data into a \code{data.table}.
+most recent file (Pega appends a datetime stamp), unzip it into a temp folder and read the data into a
+\code{data.table}.
 }
 \examples{
 \dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots")}
 \dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots", "~/Downloads")}
+\dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots_20180316T135038_GMT.zip", "~/Downloads")}
 }

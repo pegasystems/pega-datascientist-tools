@@ -16,6 +16,8 @@ knitr::opts_chunk$set(
 )
 ```
 
+# Ad-Hoc Data Analysis using Dataset Exports
+
 When testing and debugging DSM projects involving data flows, it often is very handy to inspect datasets. There
 are a couple of out-of-the-box datasets, like \code{pxInteractionHistory} that represents the data stored in IH, or 
 \code{pxDecisionResults} that contains the model data and the results of strategies. You can also have custom
@@ -31,14 +33,15 @@ In this example we take a look at a sample of \code{pxInteractionHistory} but th
 
 In Pega, export the dataset and download it to your local filesystem. 
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 library(cdhtools)
-ihsampledata <- readDSExport("Data-pxStrategyResult_pxInteractionHistory", "~/Downloads") 
+ihdata <- readDSExport("Data-pxStrategyResult_pxInteractionHistory", "~/Downloads") 
 ```
 
 The \code{cdhtools} package ships with a small sample of IH data
 
 ```{r}
+data(ihsampledata, package="cdhtools")
 knitr::kable(head(ihsampledata,10))
 ```
 
@@ -48,7 +51,7 @@ report and plot.
 
 ```{r}
 for (f in c("pxOutcomeTime", "pxDecisionTime")) {
-  ihsampledata[[f]] <- as.POSIXct(fromPRPCDateTime(ihsampledata[[f]])) # Shd this be as.POSIXct straight away?
+  ihsampledata[[f]] <- cdhtools::fromPRPCDateTime(ihsampledata[[f]])
 }
 summary(ihsampledata)
 ```
@@ -71,11 +74,12 @@ But you can of course also use a different style, for example the style from the
 
 ```{r, warning=F}
 library(tidyverse)
-plotdata <- mutate(ihsampledata, period = cut(pxOutcomeTime, 8))
-plotdata <- left_join(plotdata, 
-                      group_by(plotdata, period) %>% summarise(successRte = sum(pyOutcome=="Accept")/length(pyOutcome)),
-                      by="period")
-ggplot(plotdata, aes(pyName, fill=pyIssue)) + geom_bar() + coord_flip()+
-  labs(title = "Proposition Distribution")
+ggplot(group_by(ihsampledata, pyName, pyGroup, pyIssue) %>% 
+         rename(`Business Issue`=pyIssue) %>% 
+         summarise(count = n()) %>% 
+         mutate(pct = count/nrow(ihsampledata)), 
+       aes(pyName, pct, fill=`Business Issue`)) + geom_bar(stat="identity") + 
+  coord_flip()+ scale_y_continuous(labels = scales::percent)+
+  labs(title = "Proposition Distribution", x="Proposition", y="Percentage of Total Offered")
 ```
 
