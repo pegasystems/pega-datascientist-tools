@@ -73,6 +73,6 @@ test_that("GINI conversion", {
 })
 
 test_that("Date conversion", {
-  expect_equal(toPRPCDateTime(fromPRPCDateTime("20180316T134127.847")), "20180316T124127.846 GMT")
+  expect_equal(toPRPCDateTime(fromPRPCDateTime("20180316T134127.847 CET")), "20180316T124127.846 GMT")
   expect_equal(toPRPCDateTime(fromPRPCDateTime("20180316T000000.000 EST")), "20180316T050000.000 GMT")
 })
