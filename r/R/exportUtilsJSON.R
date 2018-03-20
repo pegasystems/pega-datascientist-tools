@@ -5,7 +5,7 @@ ADMFACTORY_TABLE <- "pegadata.pr_data_adm_factory"
 getJSONModelContextAsString <- function(p)
 {
   partition <- (fromJSON(p))$partition
-  flat <- paste(sapply(names(partition)[order(tolower(names(partition)))], 
+  flat <- paste(sapply(names(partition)[order(tolower(names(partition)))],
                        function(x){return(paste(tolower(x), partition[[x]], sep="_"))}), collapse = "_")
   return(flat)
 }
@@ -14,10 +14,10 @@ getModelsFromJSONTable <- function(conn, appliesto=NULL, configurationname=NULL)
   query <- paste("select pyconfigpartitionid,pyconfigpartition from", ADMFACTORY_TABLE)
   print(query)
   models <- as.data.table(dbGetQuery(conn, query))
-  
+
   models[, pyClassName := sapply(models$pyconfigpartition, function(x) { return((fromJSON(x))$partition$pyClassName) })]
   models[, pyPurpose := sapply(models$pyconfigpartition, function(x) { return((fromJSON(x))$partition$pyPurpose) })]
-  
+
   if (!is.null(appliesto)) {
     models <- models[pyClassName == appliesto ]
   }
@@ -32,7 +32,7 @@ getModelsFromJSONTable <- function(conn, appliesto=NULL, configurationname=NULL)
                  ")")
   print(query)
   factories <- as.data.table(dbGetQuery(conn, query))
-  
+
   return(factories)
 }
 
@@ -67,7 +67,7 @@ getSymBinningFromJSON <- function(symField, id, modelname)
     print(symField)
     stop(paste("Assumption invalidated that first symbolic bin is MISSING, field=", symField$name, "model=", modelname, "id=", id))
   }
-  if (symkeys[1] != "$RemainingSymbols$" | 
+  if (symkeys[1] != "$RemainingSymbols$" |
       symkeys[2] != "$ResidualGroup$") {
     print(symField)
     stop(paste("Assumptions invalidated about symbolic bin structure, field=", symField$name, "model=", modelname, "id=", id))
@@ -76,7 +76,7 @@ getSymBinningFromJSON <- function(symField, id, modelname)
   # get the symbol list indices but exclude the first 2, and exclude any symbol that maps to the missing bin, or to
   # the remaining symbols bin
   normalValues <- setdiff(which(mapping != 0 & mapping != remainingSymbolsIdx), c(1,2))
-  
+
   data.table( modelid = id,
               predictorname = symField$name,
               predictortype = symField$type,
@@ -94,7 +94,7 @@ getSymBinningFromJSON <- function(symField, id, modelname)
 createListFromSingleJSONFactoryString <- function(aFactory, id, overallModelName, tmpFolder=NULL, forceLowerCasePredictorNames=F)
 {
   model <- fromJSON(aFactory)
-  
+
   # Dump JSON for debugging
   if (!is.null(tmpFolder)) {
     jsonDumpFileName <- paste(tmpFolder, paste(overallModelName, "json", id, "json", sep="."), sep="/")
@@ -102,30 +102,30 @@ createListFromSingleJSONFactoryString <- function(aFactory, id, overallModelName
     cat(aFactory)
     sink()
   }
-  
+
   binning <- model$analyzedData
-  
+
   # assuming first of each active group is the active predictor
   activePreds <- list()
   if (length(binning$predictorGroups$active) > 0) {
-    activePreds <- sapply( binning$predictorGroups$groups[binning$predictorGroups$active,], function(x) {return(x[1])} ) 
+    activePreds <- sapply( binning$predictorGroups$groups[binning$predictorGroups$active,], function(x) {return(x[1])} )
   }
   predBinningList <- lapply( activePreds, function(x) {return(binning$groupedPredictors[ which(binning$groupedPredictors$name == x),])})
-    
+
   predBinningTableNum <- data.table()
   numPredictors <- lapply(predBinningList, function(x) {return(x$type == "NUMERIC")})
   if (do.call(sum, numPredictors) > 0) {
-    predBinningTableNum <- rbindlist(lapply(predBinningList[as.logical(numPredictors)], 
+    predBinningTableNum <- rbindlist(lapply(predBinningList[as.logical(numPredictors)],
                                             getNumBinningFromJSON, id, modelPartitionFullName))
   }
-  
+
   predBinningTableSym <- data.table()
   symPredictors <- lapply(predBinningList, function(x) {return(x$type == "SYMBOLIC")})
   if (do.call(sum, symPredictors) > 0) {
     predBinningTableSym <- rbindlist(lapply(predBinningList[as.logical(symPredictors)],
                                             getSymBinningFromJSON, id, modelPartitionFullName))
   }
-  
+
   lengthClassifierArrays <- length(binning$outcomeProfile$positives) # Element [1] will not be used, would be for missing but contains no data
   classifierTable <- data.table( modelid = id,
                                  predictorname = "Classifier",
@@ -139,37 +139,37 @@ createListFromSingleJSONFactoryString <- function(aFactory, id, overallModelName
                                  totalpos = binning$outcomeProfile$totalPositives,
                                  totalneg = binning$outcomeProfile$totalNegatives,
                                  smoothing = NA) # not using binning$outcomeProfile$laplaceSmoothingValue
-    
+
   predBinningTable <- rbindlist(list(predBinningTableNum, predBinningTableSym, classifierTable))
-  predBinningTable$performance <- dsm_auc(binning$performanceProfile$positives, binning$performanceProfile$negatives)
+  predBinningTable$performance <- auc_from_bincounts(binning$performanceProfile$positives, binning$performanceProfile$negatives)
 
   if (forceLowerCasePredictorNames) {
     predBinningTable$predictorname <- tolower(predBinningTable$predictorname)
-    
+
     names(model$factoryKey$modelPartition$partition) <- tolower(names(model$factoryKey$modelPartition$partition))
   }
-  
+
   predBinningTable$bintype <- factor(predBinningTable$bintype, levels=BINTYPES)
   setorder(predBinningTable, predictorname, bintype, binupperbound, binlabel, na.last = T)
-  
+
   # Dump binning for debugging
   if (!is.null(tmpFolder)) {
     binningDumpFileName <- paste(tmpFolder, paste(overallModelName, "json", id, "csv", sep="."), sep="/")
     write.csv(predBinningTable, file=binningDumpFileName, row.names = F)
-    
+
     contextDumpFileName <- paste(tmpFolder, paste(overallModelName, "json", id, "txt", sep="."), sep="/")
     sink(file = contextDumpFileName, append = F)
     print(model$factoryKey$modelPartition$partition)
     sink()
   }
 
-  return(list("context"=model$factoryKey$modelPartition$partition, 
+  return(list("context"=model$factoryKey$modelPartition$partition,
               "binning"=predBinningTable))
 }
 
 createListFromADMFactory <- function(partitions, overallModelName, tmpFolder=NULL, forceLowerCasePredictorNames=F)
 {
-  pmml <- lapply(partitions$pymodelpartitionid, 
+  pmml <- lapply(partitions$pymodelpartitionid,
                  function(x) { return(createListFromSingleJSONFactoryString(partitions$pyfactory[which(partitions$pymodelpartitionid==x)], x, overallModelName, tmpFolder, forceLowerCasePredictorNames)) })
   names(pmml) <- partitions$pymodelpartitionid
   return(pmml)
