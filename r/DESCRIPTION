@@ -27,6 +27,5 @@ Imports:
   rlang,
   stats,
   utils,
-  XML,
-  lubridate
+  XML
 VignetteBuilder: knitr

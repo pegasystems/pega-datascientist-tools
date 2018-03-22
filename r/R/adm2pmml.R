@@ -33,7 +33,6 @@ ADM2PMMLVERSION <- c(name="adm2pmml", version="1.1")
 # library(tidyverse)
 # library(data.table)
 # library(XML)
-# library(lubridate)
 # library(jsonlite)
 
 modelScoreFieldName <- "Normalized Score"
@@ -380,7 +379,7 @@ createHeaderNode <- function(modelName)
 {
   xmlNode("Header", attrs=c(description=paste("ADM Model export for", modelName)),
           xmlNode("Application", attrs=ADM2PMMLVERSION),
-          xmlNode("Timestamp", xmlTextNode(as.character(now()))))
+          xmlNode("Timestamp", xmlTextNode(as.character(date()))))
 }
 
 # Creates the overall data dictionary. This includes the superset of all active predictors and context keys, but also the
