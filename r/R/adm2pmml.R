@@ -572,35 +572,54 @@ adm2pmml <- function(dmModels = NULL, dmPredictors = NULL, dbConn = NULL, forceU
 {
   generatedPMMLFiles <- list()
 
+  # DM dataset exports
   if (!is.null(dmModels) & !is.null(dmPredictors)) {
-    # Iterate over unique model rules (model configurations). Every single one of these results in a seperate PMML file.
-    modelRules <- unique(dmModels[, c("pyConfigurationName", "pyAppliesToClass", "pxApplication"), with=F])
+    setnames(dmModels, tolower(names(dmModels)))
+    setnames(dmPredictors, tolower(names(dmPredictors)))
 
     if(!is.null(appliesToFilter)) {
-      modelRules <- modelRules[ grepl(appliesToFilter, pyAppliesToClass, ignore.case=T, perl=T) ]
+      dmModels <- dmModels[ grepl(appliesToFilter, pyappliestoclass, ignore.case=T, perl=T) ]
     }
     if(!is.null(ruleNameFilter)) {
-      modelRules <- modelRules[ grepl(ruleNameFilter, pyConfigurationName, ignore.case=T, perl=T) ]
+      dmModels <- dmModels[ grepl(ruleNameFilter, pyconfigurationname, ignore.case=T, perl=T) ]
     }
+  } else {
+    # Connection --> Datamart
+    if (!is.null(dbConn)) {
+      dmModels <- getModelsForClassFromDatamart(conn, verbose=verbose)
+      if(!is.null(appliesToFilter)) {
+        dmModels <- dmModels[ grepl(appliesToFilter, pyappliestoclass, ignore.case=T, perl=T) ]
+      }
+      if(!is.null(ruleNameFilter)) {
+        dmModels <- dmModels[ grepl(ruleNameFilter, pyconfigurationname, ignore.case=T, perl=T) ]
+      }
+      dmPredictors <- getPredictorsForModelsFromDatamart(conn, dmModels, verbose=verbose)
+    }
+  }
+
+  # ADM datamart, either from DB or from DS exports
+  if (!is.null(dmModels) & !is.null(dmPredictors)) {
+    # Iterate over unique model rules (model configurations). Every single one of these results in a seperate PMML file.
+    modelRules <- unique(dmModels[, c("pyconfigurationname", "pyappliestoclass", "pxapplication"), with=F])
 
     if(nrow(modelRules)>0) {
       for (m in seq(nrow(modelRules))) {
         modelPartitionName <- modelRules$pyConfigurationName[m]
 
-        modelPartitionFullName <- paste(modelRules$pxApplication[m], modelRules$pyAppliesToClass[m], modelRules$pyConfigurationName[m], sep="_")  # get all model "partitions" for this model rule
+        modelPartitionFullName <- paste(modelRules$pxapplication[m], modelRules$pyappliestoclass[m], modelRules$pyconfigurationname[m], sep="_")  # get all model "partitions" for this model rule
         # pmmlFileName <- paste(destDir, paste(modelRules$pyConfigurationName[m], "ds", "pmml", "xml", sep="."), sep="/")
-        pmmlFileName <- paste(destDir, paste(modelRules$pyConfigurationName[m], "pmml", sep="."), sep="/")
+        pmmlFileName <- paste(destDir, paste(modelRules$pyconfigurationname[m], "pmml", sep="."), sep="/")
 
         if (verbose) {
           print(paste("Processing", modelPartitionFullName))
         }
 
         # Each of the model instances is an instantiation of a model rule for a specific set of context key values
-        modelInstances <- unique(dmModels[pyConfigurationName==modelRules$pyConfigurationName[m] &
-                                          pyAppliesToClass==modelRules$pyAppliesToClass[m] &
-                                          pxApplication==modelRules$pxApplication[m]])
+        modelInstances <- unique(dmModels[pyconfigurationname==modelRules$pyconfigurationname[m] &
+                                            pyappliestoclass==modelRules$pyappliestoclass[m] &
+                                            pxapplication==modelRules$pxapplication[m]])
 
-        modelList <- createListFromDatamart(dmPredictors[which(pyModelID %in% modelInstances$pyModelID),],
+        modelList <- createListFromDatamart(dmPredictors[pymodelid %in% modelInstances$pymodelid],
                                             modelPartitionFullName, tmpDir, modelsForPartition=modelInstances)
 
         pmml <- createPMML(modelList, modelPartitionFullName)
@@ -609,7 +628,7 @@ adm2pmml <- function(dmModels = NULL, dmPredictors = NULL, dbConn = NULL, forceU
         print(pmml)
         sink()
 
-        generatedPMMLFiles[[pmmlFileName]] <- unique(modelInstances$pyModelID)
+        generatedPMMLFiles[[pmmlFileName]] <- unique(modelInstances$pymodelid)
 
         if (verbose) {
           print(paste("Generated",pmmlFileName,paste("(",length(modelList)," models)", sep="")))
@@ -617,6 +636,7 @@ adm2pmml <- function(dmModels = NULL, dmPredictors = NULL, dbConn = NULL, forceU
       }
     }
   }
+
   if (length(generatedPMMLFiles) == 0) {
     if (verbose) {
       print("No models available matching the filter criteria")
