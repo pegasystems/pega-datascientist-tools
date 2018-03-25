@@ -12,6 +12,6 @@ pg_pwd <- "pega"
 
 conn <- dbConnect(drv, paste("jdbc:postgresql://", pg_host,  "/", pg_db, sep=""), pg_user, pg_pwd)
 
-adm2pmml(dbConn=conn, verbose=T, ruleNameFilter = "BannerModel")
+adm2pmml(dbConn=conn, forceUseDM = T, verbose=T, ruleNameFilter = "BannerModel")
 
 dbDisconnect(conn)

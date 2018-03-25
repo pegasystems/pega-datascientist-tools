@@ -9,7 +9,7 @@ getJSONModelContextAsString <- function(p)
                        function(x){return(paste(tolower(x), partition[[x]], sep="_"))}), collapse = "_")
   return(flat)
 }
-getModelsFromJSONTable <- function(conn, appliesto=NULL, configurationname=NULL)
+getModelsFromJSONTable <- function(conn, appliesto=NULL, configurationname=NULL, verbose=F)
 {
   query <- paste("select pyconfigpartitionid,pyconfigpartition from", ADMFACTORY_TABLE)
   print(query)
@@ -30,7 +30,9 @@ getModelsFromJSONTable <- function(conn, appliesto=NULL, configurationname=NULL)
                  "where pyconfigpartitionid in (",
                  paste(paste("'",unique(models$pyconfigpartitionid),"'",sep=""), collapse = ","),
                  ")")
-  print(query)
+  if(verbose) {
+    print(query)
+  }
   factories <- as.data.table(dbGetQuery(conn, query))
 
   return(factories)

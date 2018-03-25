@@ -571,6 +571,7 @@ adm2pmml <- function(dmModels = NULL, dmPredictors = NULL, dbConn = NULL, forceU
                      tmpDir = NULL, verbose = (!is.null(tmpDir)))
 {
   generatedPMMLFiles <- list()
+  modelFactory <- NULL
 
   # DM dataset exports
   if (!is.null(dmModels) & !is.null(dmPredictors)) {
@@ -586,14 +587,21 @@ adm2pmml <- function(dmModels = NULL, dmPredictors = NULL, dbConn = NULL, forceU
   } else {
     # Connection --> Datamart
     if (!is.null(dbConn)) {
-      dmModels <- getModelsForClassFromDatamart(conn, verbose=verbose)
-      if(!is.null(appliesToFilter)) {
-        dmModels <- dmModels[ grepl(appliesToFilter, pyappliestoclass, ignore.case=T, perl=T) ]
+      if (forceUseDM) { # or perhaps if the JSON factory isnt there (e.g. when on a replicated DB)
+
+        dmModels <- getModelsForClassFromDatamart(conn, verbose=verbose)
+        if(!is.null(appliesToFilter)) {
+          dmModels <- dmModels[ grepl(appliesToFilter, pyappliestoclass, ignore.case=T, perl=T) ]
+        }
+        if(!is.null(ruleNameFilter)) {
+          dmModels <- dmModels[ grepl(ruleNameFilter, pyconfigurationname, ignore.case=T, perl=T) ]
+        }
+        dmPredictors <- getPredictorsForModelsFromDatamart(conn, dmModels, verbose=verbose)
+      } else {
+        # TODO pass on filtering here straight to this method
+
+        modelFactory <- getModelsFromJSONTable(conn, verbose=verbose)
       }
-      if(!is.null(ruleNameFilter)) {
-        dmModels <- dmModels[ grepl(ruleNameFilter, pyconfigurationname, ignore.case=T, perl=T) ]
-      }
-      dmPredictors <- getPredictorsForModelsFromDatamart(conn, dmModels, verbose=verbose)
     }
   }
 
@@ -633,6 +641,35 @@ adm2pmml <- function(dmModels = NULL, dmPredictors = NULL, dbConn = NULL, forceU
         if (verbose) {
           print(paste("Generated",pmmlFileName,paste("(",length(modelList)," models)", sep="")))
         }
+      }
+    }
+  } else if (!is.null(modelFactory)) {
+    # TODO filtering here as well
+
+    # returns a list of binning, context pairs - we just want to pass this list to the PMML exporter
+    for (p in unique(modelFactory$pyconfigpartitionid)) {
+      # get all model "partitions" for this model rule
+      modelPartitions <- modelFactory[pyconfigpartitionid==p]
+      modelPartitionInfo <- fromJSON(modelPartitions[1]$pyconfigpartition)
+      modelPartitionName <- modelPartitionInfo$partition$pyPurpose
+      modelPartitionFullName <- paste(modelPartitionInfo$partition$pyClassName, modelPartitionInfo$partition$pyPurpose, sep="_")
+
+      if(verbose) {
+        print(paste("Processing", modelPartitionFullName))
+      }
+      pmmlFileName <- paste(destDir, paste(modelPartitionName, "pmml", sep="."), sep="/")
+
+      modelList <- createListFromADMFactory(modelPartitions, modelPartitionFullName, tmpDir)
+      pmml <- createPMML(modelList, modelPartitionFullName)
+
+      sink(pmmlFileName)
+      print(pmml)
+      sink()
+
+      generatedPMMLFiles[[pmmlFileName]] <- unique(modelPartitions$pymodelpartitionid)
+
+      if(verbose) {
+        print(paste("Generated",pmmlFileName,paste("(",nrow(modelPartitions)," models)", sep="")))
       }
     }
   }
