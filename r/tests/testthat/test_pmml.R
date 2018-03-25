@@ -171,6 +171,25 @@ test_that("At least some of the models use a predictor with a RESIDUAL bin", {
 test_that("Models with different evidence for predictors (added/removed)", {
   pmml_unittest("unequalevidence")
 })
-# TODO add more JSON vs DM tests
+# TODO add a few more JSON vs DM tests
 
 
+test_that("PMML generation from DM exports", {
+  context("PMML from Datamart Exports")
+
+  allModels <- readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots","dsexports")
+  allPredictors <- readDSExport("Data-Decision-ADM-PredictorBinningSnapshot_AllPredictorSnapshots","dsexports")
+
+  pmmlFiles <- adm2pmml(allModels, allPredictors)
+
+  expect_equal(length(pmmlFiles), 3)
+  expect_equal(names(pmmlFiles)[1], "./BannerModel.pmml")
+  expect_equal(names(pmmlFiles)[2], "./SalesModel.pmml")
+  expect_equal(names(pmmlFiles)[3], "./VerySimpleSalesModel.pmml")
+  expect_equal(length(pmmlFiles[[1]]), 5)
+  expect_equal(length(pmmlFiles[[2]]), 5)
+  expect_equal(length(pmmlFiles[[3]]), 5)
+
+  expect_equal(length(adm2pmml(allModels, allPredictors, ruleNameFilter="^(?!VerySimple).*$", appliesToFilter="PMDSM")), 2)
+  expect_equal(length(adm2pmml(allModels, allPredictors, appliesToFilter="DMSample")), 0)
+})
