@@ -1,0 +1,4 @@
+pyissue,pygroup,pyname,age,country,Expected.Propensity,Expected.Evidence
+Sales,Proactive,PSEXTCONTR,40,Canada,0.463315217,814
+Sales,Proactive,PSEXTCONTR,22,Netherlands,0.611111111,814
+Sales,Proactive,PSEXTCONTR,30,Germany,0.423076923,814

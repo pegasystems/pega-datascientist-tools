@@ -19,10 +19,13 @@ Imports:
   data.table,
   ggplot2,
   scales,
+  plyr,
   dplyr,
   tidyverse,
   jsonlite, 
   pROC,
-  lubridate,
-  rlang
+  rlang,
+  stats,
+  utils,
+  XML
 VignetteBuilder: knitr

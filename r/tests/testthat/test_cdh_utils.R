@@ -2,7 +2,7 @@ library(testthat)
 library(cdhtools)
 library(lubridate)
 
-context("check something")
+context("check basic utilities")
 
 test_that("dataset export can be read", {
   data <- readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots","dsexports")
