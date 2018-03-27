@@ -11,25 +11,28 @@ vignette: >
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>"
+collapse = TRUE,
+fig.width = 7,
+fig.height = 5,
+fig.align = "center",
+comment = "#>"
 )
 ```
 
 # Ad-Hoc Data Analysis using Dataset Exports
 
 When testing and debugging DSM projects involving data flows, it often is very handy to inspect datasets. There
-are a couple of out-of-the-box datasets, like \code{pxInteractionHistory} that represents the data stored in IH, or 
-\code{pxDecisionResults} that contains the model data and the results of strategies. You can also have custom
+are a couple of out-of-the-box datasets, like `pxInteractionHistory` that represents the data stored in IH, or 
+`pxDecisionResults` that contains the model data and the results of strategies. You can also have custom
 datasets created perhaps as the results of running dataflows or when generating data with MonteCarlo datasets.
 
-Any of the datasets that supports the \code{browse} operation (basically, any that can be read from), can also be
+Any of the datasets that supports the `browse` operation (basically, any that can be read from), can also be
 exported. The export format used is multi-line JSON, i.e. every record from the dataset is exported as a single
 line containing the JSON data.
 
 Once you have exported a dataset from Pega, you can easily import it and explore it.
 
-In this example we take a look at a sample of \code{pxInteractionHistory} but this really works for any dataset.
+In this example we take a look at a sample of `pxInteractionHistory` but this really works for any dataset.
 
 In Pega, export the dataset and download it to your local filesystem. 
 
@@ -38,7 +41,7 @@ library(cdhtools)
 ihdata <- readDSExport("Data-pxStrategyResult_pxInteractionHistory", "~/Downloads") 
 ```
 
-The \code{cdhtools} package ships with a small sample of IH data
+The `cdhtools` package ships with a small sample of IH data
 
 ```{r}
 data(ihsampledata, package="cdhtools")
@@ -58,8 +61,8 @@ summary(ihsampledata)
 
 With the data in place, you can now do the analyses you want. For the IH data we can for example plot accept rate over time.
 
-BTW, if you're not familiar with the \code{data.table} syntax below, it would be a good idea to look into this. The internals
-of \code{cdhtools} heavily rely on it also.
+BTW, if you're not familiar with the `data.table` syntax below, it would be a good idea to look into this. The internals
+of `cdhtools` heavily rely on it also.
 
 ```{r, warning=F}
 library(ggplot2)
@@ -70,9 +73,9 @@ ggplot(ihsampledata, aes(period, successRate, fill=pyGroup)) + geom_bar(stat="id
   theme(axis.text.x=element_text(angle=45, hjust=1))
 ```
 
-But you can of course also use a different style, for example the style from the \code{tidyverse} universe:
+But you can of course also use a different style, for example the style from the `tidyverse` universe:
 
-```{r, warning=F}
+```{r, warning=F, message=F}
 library(tidyverse)
 ggplot(group_by(ihsampledata, pyName, pyGroup, pyIssue) %>% 
          rename(`Business Issue`=pyIssue) %>% 

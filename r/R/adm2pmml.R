@@ -14,7 +14,6 @@
 # - supports both JSON exports (from the internal ADM factory tables) and Datamart exports
 #
 # OUTSTANDING ISSUES/QUESTIONS
-# - the way ADM defines the score for missings and residuals not seen at train time is questionable, run test to see if this matters
 # - PMML specific: is there a better place for evidence, performance etc? Now just dumping as (transformed) output fields
 # - check with parameterized predictors
 # - check with wilder predictor names, e.g. from DMSample
@@ -206,6 +205,7 @@ createMiningSchema <- function(modeldata)
   xmlNode("MiningSchema",
           .children = c(lapply(outputfields,
                                function(fld) {return(xmlNode("MiningField",
+                                                             # As of PMML 4.2, this is deprecated and it has been replaced by the usage type target.
                                                              attrs=c(name=fld, usageType="predicted")))}),
                         lapply(getContextKeyDefinitions(modeldata)$predictorname,
                                function(ctx) {return(xmlNode("MiningField",
@@ -276,6 +276,7 @@ createEmptyScorecard <- function(classifierBins, modelName)
   xmlNode("TreeModel", attrs=c("modelName"=modelName, functionName="regression"),
           xmlNode("MiningSchema",
                   xmlNode("MiningField",
+                          # As of PMML 4.2, this is deprecated and it has been replaced by the usage type target.
                           attrs=c(name=modelScoreFieldName, invalidValueTreatment="asIs", usageType="predicted"))),
           createOutputs(classifierBins, isScorecard = F),
 
@@ -295,6 +296,7 @@ createDefaultModel <- function(modelName)
   xmlNode("TreeModel", attrs=c("modelName"=modelName, functionName="regression"),
           xmlNode("MiningSchema",
                   xmlNode("MiningField",
+                          # As of PMML 4.2, this is deprecated and it has been replaced by the usage type target.
                           attrs=c(name=modelScoreFieldName, invalidValueTreatment="asIs", usageType="predicted"))),
           createOutputs(defaultClassifierBins, isScorecard = F),
 
@@ -305,6 +307,13 @@ createDefaultModel <- function(modelName)
 # With support in the accompanying rule, it could replace the inclusion of performance/evidence etc as regular but static content.
 createModelDescription <- function(classifierBins)
 {
+  # FPR/TPR code from cdh_utils::auc_from_bincounts
+  pos <- classifierBins$binpos
+  neg <- classifierBins$binneg
+  o <- order(pos/(pos+neg), decreasing = T)
+  FPR <- rev(cumsum(neg[o]) / sum(neg))
+  TPR <- rev(cumsum(pos[o]) / sum(pos))
+
   xmlNode("ModelExplanation",
           xmlNode("PredictiveModelQuality",
                   attrs=c(targetField="Classifier", dataUsage="training", numOfRecords=classifierBins$totalneg[1]+classifierBins$totalpos[1]),
@@ -314,7 +323,12 @@ createModelDescription <- function(classifierBins)
                           xmlNode("ModelLiftGraph",
                                   xmlNode("LiftGraph",
                                           xmlNode("XCoordinates", createNumArray(cumsum(classifierBins$binpos+classifierBins$binneg))),
-                                          xmlNode("YCoordinates", createNumArray(classifierBins$binpos)))))))
+                                          xmlNode("YCoordinates", createNumArray(classifierBins$binpos))))),
+                  xmlNode("ROC",
+                          attrs=c(positiveTargetFieldValue="Positive"),
+                          xmlNode("ROCGraph",
+                                  xmlNode("XCoordinates", createNumArray(FPR)),
+                                  xmlNode("YCoordinates", createNumArray(TPR))))))
 }
 
 # Creates a single scorecard, for a single "partition" of the ADM rule

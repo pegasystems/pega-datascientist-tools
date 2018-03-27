@@ -7,11 +7,15 @@ vignette: >
   %\VignetteIndexEntry{adm-reporting}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
-  ---
+---
   
 ```{r setup, include = FALSE}
+# knitr options: https://yihui.name/knitr/options/
 knitr::opts_chunk$set(
 collapse = TRUE,
+fig.width = 7,
+fig.height = 5,
+fig.align = "center",
 comment = "#>"
 )
 ```
