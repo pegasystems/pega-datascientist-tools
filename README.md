@@ -55,10 +55,10 @@ We use vignettes as the primary vehicle for demo scripts that show how to make u
 
 The available vignettes are:
 
-Vignette | Description
------------- | -------------
-adm-reporting | Reporting on the ADM Datamart
-adhoc-datasetanalysis | Using Dataset Exports
+Vignette | Description | Command to read it
+------------ | ------------- | -------------
+adm-reporting | Reporting on the ADM Datamart | `vignette("adm-reporting")`
+adhoc-datasetanalysis | Using Dataset Exports | `vignette("adhoc-datasetanalysis")`
 
 For those less familiar with R vignettes: you can get the list of vignettes with `browseVignettes("cdhtools")` (as a web page) or `vignette(package="cdhtools")`. A vignette provides the original source as well as a readable HTML or PDF page and a file with the R code. Read a specific one with `vignette(x)` and see its code with `edit(vignette(x))`.
 
