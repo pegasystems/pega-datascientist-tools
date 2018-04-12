@@ -16,6 +16,14 @@ getDMModelContextAsString <- function(partition)
 }
 
 # NB the filtering may not work properly if the DB is case sensitive
+# TODO rename: getModelsFromDatamart
+# abstract table name, try be generic wrt casing
+# align args with the filtering args of adm2pmml
+# save a lot of time by only getting the latest snapshots (depending on a flag of course)
+# export and use in e.g. the SA model report
+# by default EXCLUDE the special pega columns, so maybe to a quick one first like
+#   pzinskey, pxinsname, pxobjclass (always the same), pxcommitdatetime, pxsavedatetime
+# add filter for pxapplication
 getModelsForClassFromDatamart <- function(conn, appliesto=NULL, configurationname=NULL, verbose=T)
 {
   wheres <- list()
@@ -40,6 +48,8 @@ getModelsForClassFromDatamart <- function(conn, appliesto=NULL, configurationnam
   return(lastsnapshots)
 }
 
+# See above, change to getPredictorsFromDatamart
+# models argument should be optional
 getPredictorsForModelsFromDatamart <- function(conn, models, verbose=T)
 {
   query <- paste("select * from",
