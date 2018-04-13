@@ -603,7 +603,7 @@ adm2pmml <- function(dmModels = NULL, dmPredictors = NULL, dbConn = NULL, forceU
     if (!is.null(dbConn)) {
       if (forceUseDM) { # or perhaps if the JSON factory isnt there (e.g. when on a replicated DB)
 
-        dmModels <- getModelsForClassFromDatamart(conn, verbose=verbose)
+        dmModels <- getModelsFromDatamart(conn, verbose=verbose)
         if(!is.null(appliesToFilter)) {
           dmModels <- dmModels[ grepl(appliesToFilter, pyappliestoclass, ignore.case=T, perl=T) ]
         }

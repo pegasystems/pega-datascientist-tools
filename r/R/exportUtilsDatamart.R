@@ -2,10 +2,10 @@
 # so it can be converted to PMML
 # Checked mostly with ADM DB dataset exports, and straight Postgress DB access from 7.3.1
 
-DATAMART_MODELTABLE <- "pegadata.pr_data_dm_admmart_mdl_fact"
+DATAMART_MODELTABLE <- "pr_data_dm_admmart_mdl_fact"
 
 # product versions prior to 7.3.1: use pr_data_dm_admmart_pred_fact instead of pegadata.pr_data_dm_admmart_pred
-DATAMART_PREDICTORTABLE <- "pegadata.pr_data_dm_admmart_pred"
+DATAMART_PREDICTORTABLE <- "pr_data_dm_admmart_pred"
 
 # Flat representation of the context string for easier debugging
 getDMModelContextAsString <- function(partition)
@@ -15,23 +15,41 @@ getDMModelContextAsString <- function(partition)
   return(flat)
 }
 
-# NB the filtering may not work properly if the DB is case sensitive
-# TODO rename: getModelsFromDatamart
-# abstract table name, try be generic wrt casing
-# align args with the filtering args of adm2pmml
-# save a lot of time by only getting the latest snapshots (depending on a flag of course)
-# export and use in e.g. the SA model report
-# by default EXCLUDE the special pega columns, so maybe to a quick one first like
-#   pzinskey, pxinsname, pxobjclass (always the same), pxcommitdatetime, pxsavedatetime
-# add filter for pxapplication
-getModelsForClassFromDatamart <- function(conn, appliesto=NULL, configurationname=NULL, verbose=T)
+#' Retrieves ADM models from the ADM Datamart.
+#'
+#' Reads either all or a selection of the ADM models stored in the ADM datamart into a \code{data.table}. Filters
+#' can be passed in to select a particular \code{AppliesTo} classes, particular ADM rules or particular applications.
+#' By default the method gets only the most recent snapshots but you can obtain the full history too, if available.
+#'
+#' @param conn Connection to the database
+#' @param appliesToFilter Optional filter on the \code{AppliesTo} class. Currently only filters on a single string, not a regexp.
+#' @param ruleNameFilter Optional filter on the ADM rule name. Currently only filters on a single string, not a regexp.
+#' @param applicationFilter Optional filter on the application fiteld. Currently only filters on a single string, not a regexp.
+#' @param mostRecentOnly Only return results for latest snapshot. Currently this works as a global filter, which is ok
+#' because the snapshot agent will also snapshot all models wholesale. If and when that becomes more granular, we may
+#' need to make this more subtle, so take the latest after grouping by pyconfigurationname, pyappliestoclass, pxapplication.
+#' @param verbose True to show database queries.
+#'
+#' @return A \code{data.table} with the ADM model details. The names are lowercased so processing of the results is not dependent on DB type.
+#' @export
+#'
+#' @examples
+#' \dontrun{models <- getModelsFromDatamart(conn)}
+#' \dontrun{allModels <- getModelsFromDatamart(conn, mostRecentOnly = F)}
+getModelsFromDatamart <- function(conn, appliesToFilter=NULL, ruleNameFilter=NULL, applicationFilter=NULL, mostRecentOnly=T, verbose=T)
 {
   wheres <- list()
-  if(!is.null(appliesto)) {
-    wheres[["appliesto"]] <- paste("pyappliestoclass=", "'", appliesto, "'", sep="")
+  if(!is.null(appliesToFilter)) {
+    wheres[["appliesToFilter"]] <- paste("pyappliestoclass=", "'", appliesToFilter, "'", sep="")
   }
-  if(!is.null(configurationname)) {
-    wheres[["configurationname"]] <- paste("pyconfigurationname=", "'", configurationname, "'", sep="")
+  if(!is.null(ruleNameFilter)) {
+    wheres[["ruleNameFilter"]] <- paste("pyconfigurationname=", "'", ruleNameFilter, "'", sep="")
+  }
+  if(!is.null(applicationFilter)) {
+    wheres[["applicationFilter"]] <- paste("pxapplication=", "'", applicationFilter, "'", sep="")
+  }
+  if (mostRecentOnly) {
+    wheres[["mostRecentOnly"]] <- paste("pysnapshottime IN (select max(pysnapshottime) from", DATAMART_MODELTABLE, ")")
   }
 
   if (length(wheres) >= 1) {
@@ -44,8 +62,14 @@ getModelsForClassFromDatamart <- function(conn, appliesto=NULL, configurationnam
   }
   models <- as.data.table(dbGetQuery(conn, query))
   setnames(models, tolower(names(models)))
-  lastsnapshots <- models[, .SD[which(pysnapshottime == max(pysnapshottime))], by=c("pyconfigurationname", "pyappliestoclass", "pxapplication")]
-  return(lastsnapshots)
+  models[, c("pzinskey","pxinsname","pxobjclass","pxcommitdatetime","pxsavedatetime") := NULL] # drop un-interesting columns added by Pega ObjSave mechanics
+  models$pysnapshottime <- fasttime::fastPOSIXct(models$pysnapshottime)
+  return(models)
+  #
+  # lastsnapshots <- models[,
+  #                         .SD[which(pysnapshottime == max(pysnapshottime))],
+  #                         by=c("pyconfigurationname", "pyappliestoclass", "pxapplication")]
+  # return(lastsnapshots)
 }
 
 # See above, change to getPredictorsFromDatamart

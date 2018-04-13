@@ -27,5 +27,6 @@ Imports:
   rlang,
   stats,
   utils,
+  fasttime,
   XML
 VignetteBuilder: knitr
