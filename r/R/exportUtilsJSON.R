@@ -1,6 +1,7 @@
 # Utils to read the ADM Factory JSON into proper binning tables
 
-ADMFACTORY_TABLE <- "pegadata.pr_data_adm_factory"
+ADMFACTORY_TABLE_SPLIT_SCHEMA <- "pegadata.pr_data_adm_factory"
+ADMFACTORY_TABLE_SINGLE_SCHEMA <- "pr_data_adm_factory"
 
 getJSONModelContextAsString <- function(p)
 {
@@ -11,9 +12,24 @@ getJSONModelContextAsString <- function(p)
 }
 getModelsFromJSONTable <- function(conn, appliesto=NULL, configurationname=NULL, verbose=F)
 {
-  query <- paste("select pyconfigpartitionid,pyconfigpartition from", ADMFACTORY_TABLE)
-  print(query)
-  models <- as.data.table(dbGetQuery(conn, query))
+  models <- NULL
+  tryCatch( {
+    factoryTable <- ADMFACTORY_TABLE_SPLIT_SCHEMA
+    query <- paste("select pyconfigpartitionid,pyconfigpartition from", factoryTable)
+    if(verbose) {
+      print(query)
+    }
+    models <- as.data.table(dbGetQuery(conn, query))
+    }, error=function(x){})
+  tryCatch( {
+    factoryTable <- ADMFACTORY_TABLE_SINGLE_SCHEMA
+    query <- paste("select pyconfigpartitionid,pyconfigpartition from", factoryTable)
+    if(verbose) {
+      print(query)
+    }
+    models <- as.data.table(dbGetQuery(conn, query))
+  }, error=function(x){print(x)})
+  if (is.null(models)) { return(data.table())}
 
   models[, pyClassName := sapply(models$pyconfigpartition, function(x) { return((fromJSON(x))$partition$pyClassName) })]
   models[, pyPurpose := sapply(models$pyconfigpartition, function(x) { return((fromJSON(x))$partition$pyPurpose) })]
@@ -26,7 +42,7 @@ getModelsFromJSONTable <- function(conn, appliesto=NULL, configurationname=NULL,
   }
 
   query <- paste("select * from",
-                 ADMFACTORY_TABLE,
+                 factoryTable,
                  "where pyconfigpartitionid in (",
                  paste(paste("'",unique(models$pyconfigpartitionid),"'",sep=""), collapse = ","),
                  ")")
