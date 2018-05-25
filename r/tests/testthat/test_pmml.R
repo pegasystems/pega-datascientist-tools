@@ -178,8 +178,10 @@ test_that("Models with different evidence for predictors (added/removed)", {
 test_that("Issue with creating PMML from internal JSON", {
   pmml_unittest("issue-4-singlebinpredictor")
 })
+
 # TODO add a few more JSON vs DM tests
 
+# TODO add specific Scorecard explanation tests
 
 test_that("PMML generation from DM exports", {
   context("PMML from Datamart Exports")

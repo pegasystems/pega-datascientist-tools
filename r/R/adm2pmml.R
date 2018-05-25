@@ -1,9 +1,9 @@
 # Generates PMML from ADM models
 
 # FEATURES
-# - single scorecard
 # - ensemble of multiple scorecards (including a default model when no match for context) when there are multiple ADM models for one rule
-# - missing, remaining, residual symbols and WOS are handled like ADM does
+# - for simple models creates just a single scorecard
+# - missing, remaining, residual symbols and WOS are handled exactly like ADM does
 # - filters out invalid models ("ContextNotDefinedError")
 # - combines symbolic bins with the same score distribution to save XML size
 # - works with flex keys when using keys outside of standard context (by parsing the JSON in pyname) (also no keys, with numeric keys)
@@ -14,7 +14,6 @@
 # - supports both JSON exports (from the internal ADM factory tables) and Datamart exports
 #
 # OUTSTANDING ISSUES/QUESTIONS
-# - PMML specific: is there a better place for evidence, performance etc? Now just dumping as (transformed) output fields
 # - check with parameterized predictors
 # - check with wilder predictor names, e.g. from DMSample
 
@@ -96,7 +95,7 @@ createSinglePredictorBin <- function(predictorBin)
                           # Otherwise
                           summarizeMultiple(predictorBin$binlabel))
   reasonCode <- paste(predictorBin$predictorname,reasonLabel,
-                      round(predictorBin$binWeight),round(predictorBin$avgWeight),round(predictorBin$maxWeight),sep="|")
+                      round(predictorBin$binWeight),round(predictorBin$minWeight),round(predictorBin$avgWeight),round(predictorBin$maxWeight),sep="|")
 
   # multiple symbols will be grouped together
   if (nrow(predictorBin) > 1) {
@@ -164,7 +163,7 @@ createPredictorNode <- function(predictorBins)
   }
   xmlNode("Characteristic", attrs=c(name=paste(predictorBins$predictorname[1], "score", sep = "___"),
                                     reasonCode=predictorBins$predictorname[1],
-                                    baselineScore=predictorBins$maxWeight[1]),
+                                    baselineScore=predictorBins$minWeight[1]),
           .children = lapply(sort(unique(predictorBins$binGroup)),
                              function(i) {return(createSinglePredictorBin(predictorBins[binGroup==i]))}))
 }
@@ -365,9 +364,11 @@ createScorecard <- function(modelbins, modelName)
   # In support of decision explanation through reason codes, add some meta info to the bins (not used for scoring)
   if (hasNoPredictors) {
     modelbins[predictortype != "CLASSIFIER", avgWeight := NA]
+    modelbins[predictortype != "CLASSIFIER", minWeight := NA]
     modelbins[predictortype != "CLASSIFIER", maxWeight := NA]
   } else {
     modelbins[predictortype != "CLASSIFIER", avgWeight := weighted.mean(binWeight,binneg+binpos),by=predictorname]
+    modelbins[predictortype != "CLASSIFIER", minWeight := min(binWeight),by=predictorname]
     modelbins[predictortype != "CLASSIFIER", maxWeight := max(binWeight),by=predictorname]
   }
 
@@ -376,7 +377,7 @@ createScorecard <- function(modelbins, modelName)
   }
   xmlNode("Scorecard", attrs=c("modelName"=modelName, functionName="regression",
                                algorithmName="PEGA Adaptive Decisioning",
-                               useReasonCodes="true", baselineMethod="min", reasonCodeAlgorithm="pointsBelow",
+                               useReasonCodes="true", baselineMethod="min", reasonCodeAlgorithm="pointsAbove",
                                initialScore=scWeight),
           xmlNode("MiningSchema",
                   .children = lapply(sort(unique(modelbins[predictortype != "CLASSIFIER"]$predictorname)),
