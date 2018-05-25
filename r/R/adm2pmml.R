@@ -491,7 +491,7 @@ createPMML <- function(modeldata, overallModelName)
   binningSummary <- rbindlist(lapply(modeldata, function(m) {return(m$binning[,.(nMissing=sum(bintype=="MISSING")),
                                                                               by=c("modelid", "predictorname", "predictortype")])}))
   if (any(binningSummary$nMissing != 1 & binningSummary$predictortype != "CLASSIFIER")) {
-    print(binningSummary)
+    print(binningSummary[which(binningSummary$nMissing != 1 & binningSummary$predictortype != "CLASSIFIER")])
     stop("Incorrect number of missing bins.")
   }
 
@@ -658,8 +658,6 @@ adm2pmml <- function(dmModels = NULL, dmPredictors = NULL, dbConn = NULL, forceU
       }
     }
   } else if (!is.null(modelFactory)) {
-    # TODO filtering here as well
-
     # returns a list of binning, context pairs - we just want to pass this list to the PMML exporter
     for (p in unique(modelFactory$pyconfigpartitionid)) {
       # get all model "partitions" for this model rule
@@ -667,6 +665,13 @@ adm2pmml <- function(dmModels = NULL, dmPredictors = NULL, dbConn = NULL, forceU
       modelPartitionInfo <- fromJSON(modelPartitions[1]$pyconfigpartition)
       modelPartitionName <- modelPartitionInfo$partition$pyPurpose
       modelPartitionFullName <- paste(modelPartitionInfo$partition$pyClassName, modelPartitionInfo$partition$pyPurpose, sep="_")
+
+      if(!is.null(appliesToFilter)) {
+        if (!grepl(appliesToFilter, modelPartitionInfo$partition$pyClassName, ignore.case=T, perl=T)) next
+      }
+      if(!is.null(ruleNameFilter)) {
+        if (!grepl(ruleNameFilter, modelPartitionInfo$partition$pyPurpose, ignore.case=T, perl=T)) next
+      }
 
       if(verbose) {
         print(paste("Processing", modelPartitionFullName))

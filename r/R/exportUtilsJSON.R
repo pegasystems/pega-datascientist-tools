@@ -21,14 +21,16 @@ getModelsFromJSONTable <- function(conn, appliesto=NULL, configurationname=NULL,
     }
     models <- as.data.table(dbGetQuery(conn, query))
     }, error=function(x){})
-  tryCatch( {
-    factoryTable <- ADMFACTORY_TABLE_SINGLE_SCHEMA
-    query <- paste("select pyconfigpartitionid,pyconfigpartition from", factoryTable)
-    if(verbose) {
-      print(query)
-    }
-    models <- as.data.table(dbGetQuery(conn, query))
-  }, error=function(x){print(x)})
+  if(is.null(models)) {
+    tryCatch( {
+      factoryTable <- ADMFACTORY_TABLE_SINGLE_SCHEMA
+      query <- paste("select pyconfigpartitionid,pyconfigpartition from", factoryTable)
+      if(verbose) {
+        print(query)
+      }
+      models <- as.data.table(dbGetQuery(conn, query))
+    }, error=function(x){print(x)})
+  }
   if (is.null(models)) { return(data.table())}
 
   models[, pyClassName := sapply(models$pyconfigpartition, function(x) { return((fromJSON(x))$partition$pyClassName) })]
@@ -66,8 +68,8 @@ getNumBinningFromJSON <- function(numField, id, modelname)
               predictorname = numField$name,
               predictortype = numField$type,
               binlabel = NA, # binlabel not relevant for numerics
-              binlowerbound = c(NA, NA, intervals[2:length(intervals)]), # bin[1] is for missing values
-              binupperbound = c(NA, intervals[2:length(intervals)], NA),
+              binlowerbound = c(NA, NA, intervals[rlang::seq2(2,length(intervals))]), # bin[1] is for missing values
+              binupperbound = c(NA, intervals[rlang::seq2(2,length(intervals))], NA),
               bintype = c("MISSING", rep("INTERVAL", length(intervals))),
               binpos = unlist(numField$positives),
               binneg = unlist(numField$negatives),

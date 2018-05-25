@@ -1,5 +1,10 @@
 # Read ADM factory JSON and turn into PMML
 
+# just for rJava on OSX:
+if (Sys.info()['sysname'] == 'Darwin') {
+  dyn.load(paste0(system2('/usr/libexec/java_home', stdout = TRUE), '/jre/lib/server/libjvm.dylib'))
+}
+
 library(XML) # not sure why this is necessary...
 library(jsonlite) # not sure why this is necessary...
 library(RJDBC)

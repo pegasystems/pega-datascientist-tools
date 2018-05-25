@@ -15,31 +15,35 @@ verify_results <- function(pmmlString, pmmlFile, inputFile, outputFile)
   sink()
   cat("      generated:", pmmlFile,fill=T)
 
+  expect_true(file.exists(pmmlFile), "Generated PMML file generated without issues")
+
   if (file.exists(outputFile)) {
     file.remove(outputFile)
   }
 
-  execJPMML <- paste("java", "-cp", jpmmlJar, "org.jpmml.evaluator.EvaluationExample",
-                     "--model", pmmlFile,
-                     "--input", inputFile,
-                     "--output", outputFile)
-  system(execJPMML)
+  if (file.exists(inputFile)) {
+    execJPMML <- paste("java", "-cp", jpmmlJar, "org.jpmml.evaluator.EvaluationExample",
+                       "--model", pmmlFile,
+                       "--input", inputFile,
+                       "--output", outputFile)
+    system(execJPMML)
 
-  expect_true(file.exists(outputFile), paste("JPMML execution failure:", execJPMML))
+    expect_true(file.exists(outputFile), paste("JPMML execution failure:", execJPMML))
 
-  if(file.exists(outputFile)) {
-    cat("      generated output:", outputFile,fill=T)
+    if(file.exists(outputFile)) {
+      cat("      generated output:", outputFile,fill=T)
 
-    actualResults <- fread(outputFile)
-    expectedResults <- fread(inputFile)
+      actualResults <- fread(outputFile)
+      expectedResults <- fread(inputFile)
 
-    expect_equal(nrow(actualResults), nrow(expectedResults), info="checking length of generated output files")
+      expect_equal(nrow(actualResults), nrow(expectedResults), info="checking length of generated output files")
 
-    if (nrow(actualResults) == nrow(expectedResults)) {
-      expect_equal(actualResults[["Propensity"]],
-                   expectedResults[["Expected.Propensity"]], tolerance=1e-6, info="propensity")
-      expect_equal(actualResults[["Evidence"]],
-                   expectedResults[["Expected.Evidence"]], tolerance=1e-6, info="evidence")
+      if (nrow(actualResults) == nrow(expectedResults)) {
+        expect_equal(actualResults[["Propensity"]],
+                     expectedResults[["Expected.Propensity"]], tolerance=1e-6, info="propensity")
+        expect_equal(actualResults[["Evidence"]],
+                     expectedResults[["Expected.Evidence"]], tolerance=1e-6, info="evidence")
+      }
     }
   }
 }
@@ -170,6 +174,9 @@ test_that("At least some of the models use a predictor with a RESIDUAL bin", {
 })
 test_that("Models with different evidence for predictors (added/removed)", {
   pmml_unittest("unequalevidence")
+})
+test_that("Issue with creating PMML from internal JSON", {
+  pmml_unittest("issue-4-singlebinpredictor")
 })
 # TODO add a few more JSON vs DM tests
 
