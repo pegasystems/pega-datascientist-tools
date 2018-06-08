@@ -68,7 +68,7 @@ The other option is to download the source (clone from the GitHub repository) an
 
 Only the cdh_utils module has been implemented in the Python package.
 
-To import the module we can type
+To use it we can clone the github repository. To import the module we can type
 
 ```python
 import cdh_utils as cu
@@ -77,6 +77,6 @@ import cdh_utils as cu
 Then, we can run the different functions in this module.
 For example, for the readDSExport function we can run:
 ```python
-df1 = cu.readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots", srcFolder="inst/extdata", tmpFolder="tmp3")
+df1 = cu.readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots", srcFolder="inst/extdata", tmpFolder="tmp")
 df2 = cu.readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots_20180316T134315_GMT.zip", srcFolder="inst/extdata", tmpFolder="tmp3")
 ```
