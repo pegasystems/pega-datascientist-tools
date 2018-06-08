@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jun  7 14:41:44 2018
+cdhtools: Data Science add-ons for Pega.
 
-@author: santd1
+Various utilities to access and manipulate data from Pega for purposes
+of data analysis, reporting and monitoring.
+
+
 """
 
 import pandas as pd
@@ -154,6 +157,12 @@ def fromPRPCDateTime(x, return_string = False):
             False it will return in datetime type
     Returns:
         The converted date in datetime format or string.
+        
+    Examples:
+        >>> fromPRPCDateTime("20180316T134127.847 GMT")
+        >>> fromPRPCDateTime("20180316T134127.847 GMT", True)
+        >>> fromPRPCDateTime("20180316T184127.846")
+        >>> fromPRPCDateTime("20180316T184127.846", True)
             
     """
     import pytz
@@ -197,6 +206,9 @@ def toPRPCDateTime(x):
     
     Returns:
         A string representation in the format used by Pega
+        
+    Examples:
+        >>> toPRPCDateTime(datetime.datetime.now())
         
     """
     
