@@ -66,8 +66,6 @@ getModelsFromDatamart <- function(conn, appliesToFilter=NULL, ruleNameFilter=NUL
            function(i) {return(paste("pymodelid IN (", paste(paste("'",modelidz[fetchgroup == i]$PYMODELID, "'", sep=""), collapse=","), ")"))})
   }
 
-  print(batchConditions)
-
   allModels <- list()
   for (aBatchCondition in batchConditions) {
     wheres[["batch"]] <- aBatchCondition
