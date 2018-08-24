@@ -10,11 +10,11 @@ getModelsFromDatamart(conn, appliesToFilter = NULL, ruleNameFilter = NULL,
 \arguments{
 \item{conn}{Connection to the database}
 
-\item{appliesToFilter}{Optional filter on the \code{AppliesTo} class. Currently only filters on a single string, not a regexp.}
+\item{appliesToFilter}{Optional filter on the \code{AppliesTo} class. Currently only filters using exact string match, not a regexp.}
 
-\item{ruleNameFilter}{Optional filter on the ADM rule name. Currently only filters on a single string, not a regexp.}
+\item{ruleNameFilter}{Optional filter on the ADM rule name. Currently only filters using exact string match, not a regexp.}
 
-\item{applicationFilter}{Optional filter on the application fiteld. Currently only filters on a single string, not a regexp.}
+\item{applicationFilter}{Optional filter on the application field. Currently only filters using exact string match, not a regexp.}
 
 \item{mostRecentOnly}{Only return results for latest snapshot. Currently this works as a global filter, which is ok
 because the snapshot agent will also snapshot all models wholesale. If and when that becomes more granular, we may
@@ -28,7 +28,8 @@ A \code{data.table} with the ADM model details. The names are lowercased so proc
 \description{
 Reads either all or a selection of the ADM models stored in the ADM datamart into a \code{data.table}. Filters
 can be passed in to select a particular \code{AppliesTo} classes, particular ADM rules or particular applications.
-By default the method gets only the most recent snapshots but you can obtain the full history too, if available.
+By default the method gets only the most recent snapshots but you can obtain the full history too, if available. To
+prevent possible OOM errors reading the full table, the retrieval will be batched.
 }
 \examples{
 \dontrun{models <- getModelsFromDatamart(conn)}
