@@ -10,6 +10,34 @@ getJSONModelContextAsString <- function(p)
                        function(x){return(paste(tolower(x), partition[[x]], sep="_"))}), collapse = "_")
   return(flat)
 }
+
+#' Retrieves ADM models from the internal "Factory" table.
+#'
+#' The models in the internal "Factory" table contain all the raw data that the
+#' system needs to build the models from. It includes the raw binning, the
+#' current data analysis, the score mapping and much more. The data can be used
+#' to reconstruct the models from, similar to the ADM datamart data. The model
+#' data here is however complete as it is all stored in JSOn while the datamart
+#' may contain truncated values.
+#'
+#' @param conn Connection to the database
+#' @param appliesto Optional filter on the \code{AppliesTo} class. Currently
+#'   only filters using exact string match, not a regexp.
+#' @param configurationname Optional filter on the ADM rule name. Currently only
+#'   filters using exact string match, not a regexp.
+#' @param verbose Set to \code{True} to show database queries.
+#'
+#' @return Returns a \code{data.table} with all the models. When inspecting
+#'   this, be careful with the \code{pyfactory} column as this contains a
+#'   possibly very large string with the model JSON data. You would typically
+#'   want to exclude this when looking at an overview of all models. A single
+#'   model instance from the table can be further inspected by calling the
+#'   \code{fromJSON} function on the relevant \code{pyfactory} value.
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{models <- getModelsFromJSONTable(conn); myModel <- fromJSON(models$pyfactory[1])}
 getModelsFromJSONTable <- function(conn, appliesto=NULL, configurationname=NULL, verbose=F)
 {
   models <- NULL

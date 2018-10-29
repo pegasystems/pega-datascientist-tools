@@ -20,7 +20,7 @@ getModelsFromDatamart(conn, appliesToFilter = NULL, ruleNameFilter = NULL,
 because the snapshot agent will also snapshot all models wholesale. If and when that becomes more granular, we may
 need to make this more subtle, so take the latest after grouping by pyconfigurationname, pyappliestoclass, pxapplication.}
 
-\item{verbose}{True to show database queries.}
+\item{verbose}{Set to \code{True} to show database queries.}
 }
 \value{
 A \code{data.table} with the ADM model details. The names are lowercased so processing of the results is not dependent on DB type.

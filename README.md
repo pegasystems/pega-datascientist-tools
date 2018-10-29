@@ -64,18 +64,24 @@ For those less familiar with R vignettes: you can get the list of vignettes with
 
 The other option is to download the source (clone from the GitHub repository) and use the functions and demo scripts directly. Just clone the repository and explore the package contents. The R code, tests, vignettes etc are in the **r** subdirectory.
 
+### Workflow to contribute to the package
+
+Open the R project in cdh-datascientist-tools/r. Then from RStudio use **devtools** to check the package (Ctrl/Cmd + Shift + E), to build and reload in a clean R session (Ctrl/Cmd + Shift + B) etc. See [Developing R Packages](http://r-pkgs.had.co.nz) for the excellent explantions by Wickham himself.
+
 ## Python
 
 Only the cdh_utils module has been implemented in the Python package.
 
-To use it we can clone the github repository. To import the module we can type
+To use it clone the github repository. To import the module type
 
 ```python
 import cdh_utils as cu
 ```
 
-Then, we can run the different functions in this module.
-For example, for the readDSExport function we can run:
+Then, run the different functions in this module.
+
+For example, for the readDSExport function:
+
 ```python
 df1 = cu.readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots", srcFolder="inst/extdata", tmpFolder="tmp")
 df2 = cu.readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots_20180316T134315_GMT.zip", srcFolder="inst/extdata", tmpFolder="tmp3")
