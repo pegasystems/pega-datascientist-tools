@@ -37,8 +37,8 @@ data(admdatamart_models) # Example data included in cdhtools
 ggplot(admdatamart_models %>%
   mutate(Performance = 100*pyperformance,
          Responses = pypositives+pynegatives,
-         AcceptRate = pypositives/(pypositives+pynegatives)),
-  aes(Performance, AcceptRate, colour=pyname, shape=pyconfigurationname, size=log(Responses)))+
+         CTR = pypositives/(pypositives+pynegatives)),
+  aes(Performance, CTR, colour=pyname, shape=pyconfigurationname, size=log(Responses)))+
   geom_vline(xintercept=c(52,90), linetype="dashed")+
   geom_point(alpha=0.7) +
   guides(colour=guide_legend(title="Proposition"), shape=guide_legend(title="Model"), size=FALSE)+
@@ -51,11 +51,11 @@ This loads a sample dataset from the packages that represents the state of a cou
 
 ![Example ADM Model Plot](images/example-model-plot.png)
 
-We use vignettes as the primary vehicle for demo scripts that show how to make use of the package. The source of the vignettes itself is typically useful as this can be customized to specific needs and situations.
+Vignettes are the primary vehicle for demo scripts. The source of the vignettes itself is typically useful as this can be customized to specific needs and situations.
 
 The available vignettes are:
 
-Vignette | Description | Command to read it
+Vignette | Description | Read with
 ------------ | ------------- | -------------
 adm-reporting | Reporting on the ADM Datamart | `vignette("adm-reporting")`
 adhoc-datasetanalysis | Using Dataset Exports | `vignette("adhoc-datasetanalysis")`
@@ -66,7 +66,9 @@ The other option is to download the source (clone from the GitHub repository) an
 
 ### Workflow to contribute to the package
 
-Open the R project in cdh-datascientist-tools/r. Then from RStudio use **devtools** to check the package (Ctrl/Cmd + Shift + E), to build and reload in a clean R session (Ctrl/Cmd + Shift + B) etc. See [Developing R Packages](http://r-pkgs.had.co.nz) for the excellent explantions by Wickham himself.
+Open the R project in cdh-datascientist-tools/r. Then from RStudio use **devtools** to check the package (Ctrl/Cmd + Shift + E), to build and reload in a clean R session (Ctrl/Cmd + Shift + B) etc. See [Developing R Packages](http://r-pkgs.had.co.nz) for the excellent explanations by Wickham himself.
+
+Package documentation via **pkgdown**; run `pkgdown::build_site()` to build the **docs/** directory see https://github.com/r-lib/pkgdown. 
 
 ## Python
 
