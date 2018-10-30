@@ -68,7 +68,7 @@ The other option is to download the source (clone from the GitHub repository) an
 
 Open the R project in cdh-datascientist-tools/r. Then from RStudio use **devtools** to check the package (Ctrl/Cmd + Shift + E), to build and reload in a clean R session (Ctrl/Cmd + Shift + B) etc. See [Developing R Packages](http://r-pkgs.had.co.nz) for the excellent explanations by Wickham himself.
 
-Package documentation via **pkgdown**; run `pkgdown::build_site()` to build the **docs/** directory see https://github.com/r-lib/pkgdown. 
+Package documentation via **pkgdown**; run `pkgdown::build_site()` to build the **docs/** directory. Then move this to top-level so GitHub will automatically see it as the source for GitHub Pages. See https://github.com/r-lib/pkgdown for details. 
 
 ## Python
 
