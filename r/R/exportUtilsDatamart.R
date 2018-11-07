@@ -104,7 +104,7 @@ getPredictorsForModelsFromDatamart <- function(conn, models = NULL, mostRecentOn
   wheres <- list()
   if(!is.null(models)) {
     wheres[["models"]] <- paste("pymodelid IN (",
-                                paste(paste("'",models$pymodelid,"'",sep=""), collapse = ","),
+                                paste(paste("'",unique(models$pymodelid),"'",sep=""), collapse = ","),
                                 ")")
   }
   if (mostRecentOnly) {
