@@ -136,15 +136,15 @@ prevent possible OOM errors reading the full table, the retrieval will be batche
     </tr>
     <tr>
       <th>appliesToFilter</th>
-      <td><p>Optional filter on the <code>AppliesTo</code> class. Currently only filters using exact string match, not a regexp.</p></td>
+      <td><p>Optional filter on the <code>AppliesTo</code> class. Can be a list, matching is exact.</p></td>
     </tr>
     <tr>
       <th>ruleNameFilter</th>
-      <td><p>Optional filter on the ADM rule name. Currently only filters using exact string match, not a regexp.</p></td>
+      <td><p>Optional filter on the ADM rule name. Can be a list, matching is exact.</p></td>
     </tr>
     <tr>
       <th>applicationFilter</th>
-      <td><p>Optional filter on the application field. Currently only filters using exact string match, not a regexp.</p></td>
+      <td><p>Optional filter on the application field. Can be a list, matching is exact.</p></td>
     </tr>
     <tr>
       <th>mostRecentOnly</th>
@@ -154,7 +154,7 @@ need to make this more subtle, so take the latest after grouping by pyconfigurat
     </tr>
     <tr>
       <th>verbose</th>
-      <td><p>Set to <code>True</code> to show database queries.</p></td>
+      <td><p>Set to <code>TRUE</code> to show database queries.</p></td>
     </tr>
     </table>
     

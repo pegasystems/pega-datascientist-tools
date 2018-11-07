@@ -23,13 +23,13 @@ getDMModelContextAsString <- function(partition)
 #' prevent possible OOM errors reading the full table, the retrieval will be batched.
 #'
 #' @param conn Connection to the database
-#' @param appliesToFilter Optional filter on the \code{AppliesTo} class. Currently only filters using exact string match, not a regexp.
-#' @param ruleNameFilter Optional filter on the ADM rule name. Currently only filters using exact string match, not a regexp.
-#' @param applicationFilter Optional filter on the application field. Currently only filters using exact string match, not a regexp.
+#' @param appliesToFilter Optional filter on the \code{AppliesTo} class. Can be a list, matching is exact.
+#' @param ruleNameFilter Optional filter on the ADM rule name. Can be a list, matching is exact.
+#' @param applicationFilter Optional filter on the application field. Can be a list, matching is exact.
 #' @param mostRecentOnly Only return results for latest snapshot. Currently this works as a global filter, which is ok
 #' because the snapshot agent will also snapshot all models wholesale. If and when that becomes more granular, we may
 #' need to make this more subtle, so take the latest after grouping by pyconfigurationname, pyappliestoclass, pxapplication.
-#' @param verbose Set to \code{True} to show database queries.
+#' @param verbose Set to \code{TRUE} to show database queries.
 #'
 #' @return A \code{data.table} with the ADM model details. The names are lowercased so processing of the results is not dependent on DB type.
 #' @export
@@ -41,13 +41,13 @@ getModelsFromDatamart <- function(conn, appliesToFilter=NULL, ruleNameFilter=NUL
 {
   wheres <- list()
   if(!is.null(appliesToFilter)) {
-    wheres[["appliesToFilter"]] <- paste("pyappliestoclass=", "'", appliesToFilter, "'", sep="")
+    wheres[["appliesToFilter"]] <- paste("pyappliestoclass IN (", paste(paste("'",appliesToFilter,"'",sep=""), collapse=","), ")", sep="")
   }
   if(!is.null(ruleNameFilter)) {
-    wheres[["ruleNameFilter"]] <- paste("pyconfigurationname=", "'", ruleNameFilter, "'", sep="")
+    wheres[["ruleNameFilter"]] <- paste("pyconfigurationname IN (", paste(paste("'",ruleNameFilter,"'",sep=""), collapse=","), ")", sep="")
   }
   if(!is.null(applicationFilter)) {
-    wheres[["applicationFilter"]] <- paste("pxapplication=", "'", applicationFilter, "'", sep="")
+    wheres[["applicationFilter"]] <- paste("pxapplication IN (", paste(paste("'",applicationFilter,"'",sep=""), collapse=","), ")", sep="")
   }
 
   if (mostRecentOnly) {
@@ -82,22 +82,53 @@ getModelsFromDatamart <- function(conn, appliesToFilter=NULL, ruleNameFilter=NUL
   return(rbindlist(allModels))
 }
 
-# See above, change to getPredictorsFromDatamart models argument should be
-# optional
-getPredictorsForModelsFromDatamart <- function(conn, models, verbose=T)
+#' Retrieves predictor data from the ADM Datamart.
+#'
+#' Typically, predictor data for a certain set of models obtained from \code{getModelsFromDatamart}. It is possible to
+#' retrieve all historical data but by default it only retrieves the most recent snapshot data.
+#'
+#' @param conn Connection to the database
+#' @param models List of models as a \code{data.table} typically obtained from a call to \code{getModelsFromDatamart}.
+#' @param mostRecentOnly Only return results for latest snapshot. Currently this works as a global filter, which is ok
+#' because the snapshot agent will also snapshot all models wholesale. If and when that becomes more granular, we may
+#' need to make this more subtle, so take the latest after grouping by model ID.
+#' @param verbose Set to \code{TRUE} to show database queries.
+#'
+#' @return A \code{data.table} with the ADM predictor details. The names are lowercased so processing of the results is not dependent on DB type.
+#' @export
+#'
+#' @examples
+#' \dontrun{models <- getModelsFromDatamart(conn); preds <- getPredictorsForModelsFromDatamart(conn, models)}
+getPredictorsForModelsFromDatamart <- function(conn, models = NULL, mostRecentOnly=T, verbose=T)
 {
-  query <- paste("select * from",
-                 DATAMART_PREDICTORTABLE,
-                 "where pymodelid in (",
-                 paste(paste("'",models$pymodelid,"'",sep=""), collapse = ","),
-                 ")")
+  wheres <- list()
+  if(!is.null(models)) {
+    wheres[["models"]] <- paste("pymodelid IN (",
+                                paste(paste("'",models$pymodelid,"'",sep=""), collapse = ","),
+                                ")")
+  }
+  if (mostRecentOnly) {
+    wheres[["mostRecentOnly"]] <- paste("pysnapshottime IN (",
+                                        "select max(pysnapshottime) from",
+                                        DATAMART_PREDICTORTABLE)
+    if (!is.null(models)) {
+      wheres[["mostRecentOnly"]] <- paste(wheres[["mostRecentOnly"]],
+                                          "where",
+                                          wheres[["models"]])
+    }
+    wheres[["mostRecentOnly"]] <- paste(wheres[["mostRecentOnly"]], ")", sep="")
+  }
+
+  query <- paste("select * from", DATAMART_PREDICTORTABLE, "where", paste(wheres, collapse = " and "))
   if(verbose) {
     print(query)
   }
   predictors <- as.data.table(dbGetQuery(conn, query))
   setnames(predictors, tolower(names(predictors)))
-  lastsnapshots <- predictors[, .SD[which(pysnapshottime == max(pysnapshottime))], by=c("pymodelid")]
-  return(lastsnapshots)
+  predictors[, c("pzinskey","pxinsname","pxobjclass","pxcommitdatetime","pxsavedatetime") := NULL] # drop un-interesting columns added by Pega ObjSave mechanics
+
+  #lastsnapshots <- predictors[, .SD[which(pysnapshottime == max(pysnapshottime))], by=c("pymodelid")]
+  return(predictors)
 }
 
 # Turns a single model definition into a list of key value pairs with the context key values
