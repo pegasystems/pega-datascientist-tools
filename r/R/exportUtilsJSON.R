@@ -11,7 +11,7 @@ ADMFACTORY_TABLE_SINGLE_SCHEMA <- "pr_data_adm_factory"
 #' @export
 #'
 #' @examples
-#' getJSONModelContextAsString( "{\"partition\":{\"Color\":\"Green\", \"Size\":\"120\"}}")
+#' library(jsonlite); getJSONModelContextAsString( "{\"partition\":{\"Color\":\"Green\", \"Size\":\"120\"}}")
 getJSONModelContextAsString <- function(p)
 {
   partition <- (fromJSON(p))$partition

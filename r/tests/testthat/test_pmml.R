@@ -41,8 +41,10 @@ verify_results <- function(pmmlString, pmmlFile, inputFile, outputFile)
       if (nrow(actualResults) == nrow(expectedResults)) {
         expect_equal(actualResults[["Propensity"]],
                      expectedResults[["Expected.Propensity"]], tolerance=1e-6, info="propensity")
-        expect_equal(actualResults[["Evidence"]],
-                     expectedResults[["Expected.Evidence"]], tolerance=1e-6, info="evidence")
+        if ("Expected.Evidence" %in% names(expectedResults)) {
+          expect_equal(actualResults[["Evidence"]],
+                       expectedResults[["Expected.Evidence"]], tolerance=1e-6, info="evidence")
+        }
       }
     }
   }
@@ -91,7 +93,8 @@ pmml_unittest <- function(testName)
 {
   testFolder <- "pmml_unittestdata"
   tmpFolder <- paste(testFolder, "tmp", sep="/")
-  if (!dir.exists(tmpFolder)) { dir.create(tmpFolder) }
+  if (dir.exists(tmpFolder)) { unlink(tmpFolder, recursive = T) }
+  dir.create(tmpFolder)
 
   context(paste("ADM2PMML", testName))
 
@@ -141,8 +144,16 @@ pmml_unittest <- function(testName)
     dmBinningFiles <- setdiff(dmCSVFiles, outputFiles)
     jsonBinningFiles <- setdiff(jsonCSVFiles, outputFiles)
 
+    dmBinningFilesModelNames <- sub("^.*\\.dm\\.(.*)", "\\1", dmBinningFiles) # this is only for better error reporting
+    jsonBinningFilesModelNames <- sub("^.*\\.json\\.(.*)", "\\1", jsonBinningFiles)
+
     expect_equal(length(dmBinningFiles), length(jsonBinningFiles),
-                 info = paste("different nr of intermediate CSV files: dm=", length(dmBinningFiles), "json=", length(jsonBinningFiles)))
+                 info = paste("different nr of intermediate CSV files: dm:", length(dmBinningFiles),
+                              "json:", length(jsonBinningFiles),
+                              "mismatches:", paste(c(setdiff(dmBinningFilesModelNames, jsonBinningFilesModelNames),
+                                                     setdiff(jsonBinningFilesModelNames, dmBinningFilesModelNames)),
+                                                   collapse = "; ")))
+
     if (length(dmBinningFiles) == length(jsonBinningFiles)) {
       dmBinningFiles <- sort(dmBinningFiles)
       jsonBinningFiles <- sort(jsonBinningFiles)
@@ -180,6 +191,9 @@ test_that("Issue with creating PMML from internal JSON", {
 })
 test_that("Issue with a single classifier bin", {
   pmml_unittest("singleclassifierbin")
+})
+test_that("Test the test generator", {
+  pmml_unittest("ExampleModelForADM2PMMLUnitTesting")
 })
 
 # TODO add a few more JSON vs DM tests

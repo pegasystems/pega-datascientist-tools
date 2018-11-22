@@ -63,7 +63,7 @@ this.dir <- dirname(this.file)
 dest.dir <- paste(this.dir, "unittests", sep="/")
 
 if(file.exists(dest.dir)) {
-  file.remove(dest.dir) ## does this work?
+  unlink(dest.dir, recursive = T)
 }
 dir.create(dest.dir)
 inputfileName <- paste(dest.dir, paste(testname, "input.csv", sep="_"), sep="/")
@@ -88,14 +88,15 @@ expandedDecisions <- rbindlist(lapply(1:nrow(srs), function(i) {return(srs$pxdec
 setnames(expandedDecisions, tolower(names(expandedDecisions)))
 
 # Combination of flattened ADM inputs and decision results
-inputset <- merge(srs[, names(srs)[!sapply(srs, is_list)], with=F], expandedDecisions, allow.cartesian = T, by = "pxinteractionid")
+inputset <- merge(srs[, !sapply(srs, is_list), with=F], expandedDecisions, allow.cartesian = T, by = "pxinteractionid")
+setnames(inputset, tolower(names(inputset))) # not 100% sure why we need to lowercase them but the tests seem to require this
 
-# NB Evidence is not a standard property
-#inputset[["Expected.Evidence"]] <- inputset$evidence
-
+# NB Evidence is not a standard property but in the example flow it is
+if ("evidence" %in% names(inputset)) {
+  inputset[["Expected.Evidence"]] <- inputset$evidence
+}
 inputset[["Expected.Propensity"]] <- inputset$pypropensity
 
-stop("TODO lowercase the inputs")
 # Grab the models from the database
 
 conn <- dbConnect(drv, paste("jdbc:postgresql://", pg_host,  "/", pg_db, sep=""), pg_user, pg_pwd)
@@ -106,8 +107,8 @@ dbDisconnect(conn)
 
 # Subset the input to only fields that are used in any of the models
 
-inputs <- unique(c(sort(intersect(names(inputset),names(dmmodels))), # context keys
-                   sort(intersect(unique( dmpredictors$pypredictorname ), names(inputset))), # predictors only those listed also in the predictor table
+inputs <- unique(c(sort(intersect(tolower(names(dmmodels)), names(inputset))), # context keys
+                   sort(intersect(unique( tolower(dmpredictors$pypredictorname) ), names(inputset))), # predictors only those listed also in the predictor table
                    sort(names(inputset)[grepl("^Expected.", names(inputset))]))) # expected outputs
 write.csv(inputset[, inputs, with=F], inputfileName, row.names = F, quote = F)
 

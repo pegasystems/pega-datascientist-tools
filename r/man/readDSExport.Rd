@@ -4,7 +4,8 @@
 \alias{readDSExport}
 \title{Read a Pega dataset export file.}
 \usage{
-readDSExport(instancename, srcFolder = ".", tmpFolder = srcFolder)
+readDSExport(instancename, srcFolder = ".", tmpFolder = srcFolder,
+  excludeComplexTypes = T)
 }
 \arguments{
 \item{instancename}{Name of the file w/o the timestamp, in Pega format <Applies To>_<Instance Name>, or the
@@ -13,6 +14,8 @@ complete filename including timestamp and zip extension as exported from Pega.}
 \item{srcFolder}{Optional folder to look for the file (defaults to the current folder)}
 
 \item{tmpFolder}{Optional folder to store the unzipped data (defaults to the source folder)}
+
+\item{excludeComplexTypes}{Flag to not return complex embedded types, defaults to T so not including nested lists/data frames}
 }
 \value{
 A \code{data.table} with the contents

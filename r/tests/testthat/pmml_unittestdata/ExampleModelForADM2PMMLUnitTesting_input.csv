@@ -1,0 +1,31 @@
+pygroup,pyissue,pyname,age,creditstatus,Expected.Evidence,Expected.Propensity
+Phones,Sales,Samsung Galaxy J7,27.0,Due payment,342.0,0.998542274052478
+Phones,Sales,LG G6 SE,27.0,Due payment,309.0,0.998387096774194
+Phones,Sales,Huawei Nova,27.0,Due payment,357.0,0.998603351955307
+Phones,Sales,Samsung Galaxy J7,47.0,Clear,342.0,0.998542274052478
+Phones,Sales,Samsung Galaxy S8,47.0,Clear,317.0,0.990506329113924
+Phones,Sales,LG G6 SE,47.0,Clear,309.0,0.998387096774194
+Phones,Sales,LG G6 SE,63.0,Clear,309.0,0.998387096774194
+Phones,Sales,Samsung Galaxy S8,63.0,Clear,317.0,0.990506329113924
+Phones,Sales,Samsung Galaxy J7,63.0,Clear,342.0,0.998542274052478
+Phones,Sales,LG G6 SE,50.0,Due payment,309.0,0.998387096774194
+Membership,Sales,Two Days Unlimited Streaming,50.0,Due payment,325.0,0.998466257668712
+Phones,Sales,Samsung Galaxy S8,50.0,Due payment,317.0,0.990506329113924
+Phones,Sales,LG G6 SE,40.0,Due payment,309.0,0.998387096774194
+Membership,Sales,Two Days Unlimited Streaming,40.0,Due payment,325.0,0.998466257668712
+Phones,Sales,Samsung Galaxy J7,40.0,Due payment,342.0,0.998542274052478
+Phones,Sales,Samsung Galaxy J7,19.0,Due payment,342.0,0.998542274052478
+Phones,Sales,Huawei Nova,19.0,Due payment,357.0,0.998603351955307
+Phones,Sales,LG G6 SE,19.0,Due payment,309.0,0.998387096774194
+Phones,Sales,Huawei Nova,29.0,Clear,357.0,0.998603351955307
+Phones,Sales,LG G6 SE,29.0,Clear,309.0,0.998387096774194
+Phones,Sales,Apple iPhone SE,29.0,Clear,130.0,0.875
+Phones,Sales,Huawei Nova,55.0,Clear,357.0,0.998603351955307
+Phones,Sales,Samsung Galaxy J7,55.0,Clear,342.0,0.998542274052478
+Membership,Sales,One Day Unlimited Streaming,55.0,Clear,374.0,0.998666666666667
+Membership,Sales,One Day Unlimited Streaming,61.0,Clear,374.0,0.998666666666667
+Phones,Sales,Samsung Galaxy J7,61.0,Clear,342.0,0.998542274052478
+Phones,Sales,Samsung Galaxy S8,61.0,Clear,317.0,0.990506329113924
+Membership,Sales,One Day Unlimited Streaming,47.0,Clear,374.0,0.998666666666667
+Phones,Sales,Huawei P10,47.0,Clear,92.0,0.960526315789474
+Phones,Sales,Samsung Galaxy S8,47.0,Clear,317.0,0.990506329113924
