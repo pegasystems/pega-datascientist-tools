@@ -27,6 +27,7 @@ NULL
 #' complete filename including timestamp and zip extension as exported from Pega.
 #' @param srcFolder Optional folder to look for the file (defaults to the current folder)
 #' @param tmpFolder Optional folder to store the unzipped data (defaults to the source folder)
+#' @param excludeComplexTypes Flag to not return complex embedded types, defaults to T so not including nested lists/data frames
 #'
 #' @return A \code{data.table} with the contents
 #' @export
@@ -35,7 +36,7 @@ NULL
 #' \dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots")}
 #' \dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots", "~/Downloads")}
 #' \dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots_20180316T135038_GMT.zip", "~/Downloads")}
-readDSExport <- function(instancename, srcFolder=".", tmpFolder=srcFolder)
+readDSExport <- function(instancename, srcFolder=".", tmpFolder=srcFolder, excludeComplexTypes=T)
 {
   if(file.exists(paste(srcFolder,instancename,sep="/"))) {
     mostRecentZip <- instancename
@@ -49,7 +50,11 @@ readDSExport <- function(instancename, srcFolder=".", tmpFolder=srcFolder)
   multiLineJSON <- readLines(jsonFile)
   file.remove(jsonFile)
   ds <- data.table(jsonlite::fromJSON(paste("[",paste(multiLineJSON,sep="",collapse = ","),"]")))
-  return(ds [, names(ds)[!sapply(ds, is_list)], with=F])
+  if (excludeComplexTypes) {
+    return(ds [, names(ds)[!sapply(ds, is_list)], with=F])
+  } else {
+    return(ds)
+  }
 }
 
 # Internal helper to keep auc a safe number between 0.5 and 1.0 always

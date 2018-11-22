@@ -1,0 +1,5 @@
+pygroup,pyissue,pyname,age,creditstatus,Expected.Propensity,Expected.Evidence
+Membership,Sales,Two Days Unlimited Streaming,27,Due payment,0.5,0
+Phones,Sales,Huawei Nova,27,Due payment,0.5,0
+Tablets,Sales,Apple iPad Pro,27,Due payment,0.697368421,37
+Tablets,Sales,Apple iPad Pro,47,Clear,0.697368421,37

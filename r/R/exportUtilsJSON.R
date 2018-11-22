@@ -3,6 +3,15 @@
 ADMFACTORY_TABLE_SPLIT_SCHEMA <- "pegadata.pr_data_adm_factory"
 ADMFACTORY_TABLE_SINGLE_SCHEMA <- "pr_data_adm_factory"
 
+#' Converts a model partition (context) from a JSON representation to a string
+#'
+#' @param p Model partition as a JSON formatted string
+#'
+#' @return String representation of the context
+#' @export
+#'
+#' @examples
+#' getJSONModelContextAsString( "{\"partition\":{\"Color\":\"Green\", \"Size\":\"120\"}}")
 getJSONModelContextAsString <- function(p)
 {
   partition <- (fromJSON(p))$partition
@@ -175,12 +184,13 @@ createListFromSingleJSONFactoryString <- function(aFactory, id, overallModelName
   }
 
   lengthClassifierArrays <- length(binning$outcomeProfile$positives) # Element [1] will not be used, would be for missing but contains no data
+
   classifierTable <- data.table( modelid = id,
                                  predictorname = "Classifier",
                                  predictortype = "CLASSIFIER",
                                  binlabel = NA, # label not relevant for classifier
-                                 binlowerbound = c(NA, unlist(binning$outcomeProfile$mapping$intervals[c(2:(lengthClassifierArrays-1))])),
-                                 binupperbound = c(unlist(binning$outcomeProfile$mapping$intervals[c(2:(lengthClassifierArrays-1))]), NA),
+                                 binlowerbound = c(NA, unlist(binning$outcomeProfile$mapping$intervals[seq_len(lengthClassifierArrays-2)+1])),
+                                 binupperbound = c(unlist(binning$outcomeProfile$mapping$intervals[seq_len(lengthClassifierArrays-2)+1]), NA),
                                  bintype = rep("INTERVAL", lengthClassifierArrays-1),
                                  binpos = unlist(binning$outcomeProfile$positives[2:lengthClassifierArrays]),
                                  binneg = unlist(binning$outcomeProfile$negatives[2:lengthClassifierArrays]),

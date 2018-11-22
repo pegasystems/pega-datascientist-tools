@@ -1,75 +1,118 @@
-# Generate ADM to PMML unittests
-
-# Steps to generate unittest files by pulling data from both the ADM datamart and the internal JSON representation of the models.
-#
-# 1) First create the models:
-#    In PRPC, create the ADM models by configuring the ADM models & strategy as desired and run CreateModelsForPMMLTesting. 
-# 2) Then create the test data:
-#    When the models are created (check the landing page for no outstanding responses) update the source data set as 
-#    desired (for the inputs) and run CreatePMMLExportUnitTestData. This runs the same strategy and copies the SRs to an
-#    embedded property. The input data is stored in a dataset and the resulting strategy results (with ADM propensities)
-#    in another dataset. These two will be joined in this R script to form a single input dataset with expected propensity
-#    for each of the different SRs.
-# 3) Export this data:
-#    Export both of the data sets PMMLUnitTestInputs (containing the input data) and 
-#    PMMLUnitTestingResults (containing the ADM propensities for all SRs) & download the exported CSV files
-# 4) Update the code in this script to pull in the right models 
-# 5) Make sure the models are up to date in the datamart (press Refresh if necessary)
-# 6) Then run this script to create (temp) files with all the results. Move/rename this as appropriate, run the newly
-#    created unit tests (in the run script) and put in GIT when happy.
-
-# The name of the test to generate:
-data_appliesto <- "Exam-PMDSM-Data-Customer"
-results_appliesto <- "Exam-PMDSM-Data-Customer-WithSR"
-admmodelname <- "BigModel"
-testname <- admmodelname
-datasetexportfolder <- "~/Downloads"
+# Generate unittests for ADM to PMML conversion from a Pega instance
 
 library(tidyverse)
 library(data.table)
 library(RJDBC)
+library(cdhtools)
+library(jsonlite)
 
-# get directory of current script, see https://stackoverflow.com/questions/1815606/rscript-determine-path-of-the-executing-script
-this.file <- sys.frame(tail(grep('source',sys.calls()),n=1))$ofile
-this.dir <- dirname(this.file)
+# To create ADM2PMML unittests:
+#  - make sure there are trained ADM models in some Pega instance
+#  - then, in that instance, run the models over an input dataset with "store results for later response matching" on; this
+#    puts all results and payload in pxDecisionResults
+#  - export and download pxDecisionResults
+#  - make sure connection details are set up in this script and run this script to generate
+#    1) file with all inputs and expected results (propensity)
+#    2) files for the ADM data mart corresponding to this model
+#    3) files for the ADM model from the (internal) factory table
+#
+# Then... try them out!
+#  - copy the files (created under "unittests" here) to tests/testthat/pmml_unittestdata
+#  - include the test in the "test_pmml.R" file
+#  - run the tests (Shift-Cmd-T)
+#  - debug the test
+#    - the test framework will leave files in the "tmp" folder with PMML, inputs etc
+#    - there are files with ".dm" and with ".json"
+#    - invalid PMML errors will usually give a big stacktrace from JPMML
+#    - if there's an issue, isolate it by stripping down the files to just that model/those inputs
+#  - until fixed, then check in
 
-source(paste(this.dir,"..","utils","pmdsm_utils.R",sep="/"))
-source(paste(this.dir,"exportUtilsDatamart.R",sep="/"))
-source(paste(this.dir,"exportUtilsJSON.R",sep="/"))
+# The ADM2PMML ruleset contains a DMSample compatible dataflow to run the SalesModel. This can easily be
+# changed and used in other applications.
+# See
+#    "TrainModelsForPMMLTests" to train the models
+#    "ScoreModelsForPMMLTests" to run the models over a small subset of the inputs
 
-dest.dir <- paste(this.dir, "unittests", sep="/")
-tmp.dir <- "tmp"
-if (!dir.exists(tmp.dir)) { dir.create(tmp.dir) }
+
+
+# ProductOffers strategy uses the SalesModel and can be executed over all Customers
+
+appliesTo <- "DMOrg-DMSample-Data-Customer"
+modelName <- "ExampleModelForADM2PMMLUnitTesting"
+
+datasetExportFolder <- "~/Downloads"
+dataset <- "Data-Decision-Results_pxDecisionResults"
+tmpFolder <- "tmp"
+
+#testname <- paste("DMSample",modelName,sep="-")
+testname <- modelName
+
+# Below is typical for Pegalabs sytems
 
 drv <- JDBC("org.postgresql.Driver", "~/Documents/tools/jdbc-drivers/postgresql-9.2-1002.jdbc4.jar")
-pg_host <- "localhost:5432"
-pg_db <- "pega731"
+pg_host <- "10.60.215.90:5432"
+pg_db <- "pega"
 pg_user <- "pega"
 pg_pwd <- "pega"
 
-conn <- dbConnect(drv, paste("jdbc:postgresql://", pg_host,  "/", pg_db, sep=""), pg_user, pg_pwd)
-dmmodels <- getModelsForClassFromDatamart(conn, data_appliesto, admmodelname)
-dmpredictors <- getPredictorsForModelsFromDatamart(conn, dmmodels)
-jsonmodels <- getModelsFromJSONTable(conn, data_appliesto, admmodelname)
-dbDisconnect(conn)
+# Get directory of current script, see https://stackoverflow.com/questions/1815606/rscript-determine-path-of-the-executing-script
+# NB this does not work in interactive mode
 
-inputs <- readDSExport(paste(data_appliesto, "PMMLUnitTestInputs", sep="_"), datasetexportfolder, tmpFolder=tmp.dir) # input fields
-outputs <- readDSExport(paste(results_appliesto, "PMMLUnitTestingResults", sep="_"), datasetexportfolder, tmpFolder=tmp.dir) # all strategy results
-setnames(inputs, tolower(names(inputs)))
-setnames(outputs, tolower(names(outputs)))
+this.file <- sys.frame(tail(grep('source',sys.calls()),n=1))$ofile
+this.dir <- dirname(this.file)
+dest.dir <- paste(this.dir, "unittests", sep="/")
 
-stdKeys <- c("pyIssue","pyGroup","pyName","pyChannel","pyDirection","pyTreatment")
-inputset <- merge( outputs[, intersect(names(outputs), c("pysubjectid", tolower(stdKeys), "pypropensity", "evidence")), with=F], 
-                   inputs[, setdiff(names(inputs), c("pxobjclass")), with=F],
-                   by.x = "pysubjectid", by.y = "customerid")
-inputset[["Expected.Propensity"]] <- inputset$pypropensity
-inputset[["Expected.Evidence"]] <- inputset$evidence
-
+if(file.exists(dest.dir)) {
+  file.remove(dest.dir) ## does this work?
+}
+dir.create(dest.dir)
 inputfileName <- paste(dest.dir, paste(testname, "input.csv", sep="_"), sep="/")
-write.csv(inputset, inputfileName, row.names = F, quote = F)
-
 modelfileName <- paste(dest.dir, paste(testname, "modeldata.csv", sep="_"), sep="/")
 predictorfileName <- paste(dest.dir, paste(testname, "predictordata.csv", sep="_"), sep="/")
+
+# Read the pxDR export - with embedded structures for ADM inputs and decision results
+srs <- readDSExport(dataset, srcFolder = datasetExportFolder, excludeComplexTypes=F)[, -"pxUpdateDateTime"]
+setnames(srs, tolower(names(srs)))
+
+# Peel off the onion for ADM inputs - currently only considering the common inputs - the others are iffy and format might change
+for (i in seq(nrow(srs))) {
+  commonInputs <- sapply(jsonlite::fromJSON(srs$pxadminputs[i])$commonInputs$values, function(x){return(x[["value"]])})
+  for (j in seq(length(commonInputs))) {
+    srs[i, (names(commonInputs)[j]) := commonInputs[j]][]
+  }
+}
+srs[, pxadminputs := NULL]
+
+# Expand the embedded decision results
+expandedDecisions <- rbindlist(lapply(1:nrow(srs), function(i) {return(srs$pxdecisionresults[i][[1]])}), use.names = T, fill=T)[!is.na(pyPropensity)]
+setnames(expandedDecisions, tolower(names(expandedDecisions)))
+
+# Combination of flattened ADM inputs and decision results
+inputset <- merge(srs[, names(srs)[!sapply(srs, is_list)], with=F], expandedDecisions, allow.cartesian = T, by = "pxinteractionid")
+
+# NB Evidence is not a standard property
+#inputset[["Expected.Evidence"]] <- inputset$evidence
+
+inputset[["Expected.Propensity"]] <- inputset$pypropensity
+
+stop("TODO lowercase the inputs")
+# Grab the models from the database
+
+conn <- dbConnect(drv, paste("jdbc:postgresql://", pg_host,  "/", pg_db, sep=""), pg_user, pg_pwd)
+dmmodels <- getModelsFromDatamart(conn, appliesTo, modelName)
+dmpredictors <- getPredictorsForModelsFromDatamart(conn, dmmodels)
+jsonmodels <- getModelsFromJSONTable(conn, appliesTo, modelName, verbose=T)
+dbDisconnect(conn)
+
+# Subset the input to only fields that are used in any of the models
+
+inputs <- unique(c(sort(intersect(names(inputset),names(dmmodels))), # context keys
+                   sort(intersect(unique( dmpredictors$pypredictorname ), names(inputset))), # predictors only those listed also in the predictor table
+                   sort(names(inputset)[grepl("^Expected.", names(inputset))]))) # expected outputs
+write.csv(inputset[, inputs, with=F], inputfileName, row.names = F, quote = F)
+
+# Write the model files
+
 write.csv(dmmodels, modelfileName, row.names = F)
 write.csv(dmpredictors, predictorfileName, row.names = F)
 
@@ -78,7 +121,8 @@ if(!dir.exists(jsonfolder)) {
   dir.create(jsonfolder)
 }
 for(n in seq(nrow(jsonmodels))) {
-  jsonDumpFileName <- paste(jsonfolder, paste(testname, "json", getJSONModelContextAsString(jsonmodels$pymodelpartition[n]), "json", sep="."), sep="/")
+  jsonDumpFileName <- paste(jsonfolder,
+                            paste(testname, "json", getJSONModelContextAsString(jsonmodels$pymodelpartition[n]), "json", sep="."), sep="/")
   sink(file = jsonDumpFileName, append = F)
   cat(jsonmodels$pyfactory[n])
   sink()

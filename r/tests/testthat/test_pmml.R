@@ -178,6 +178,9 @@ test_that("Models with different evidence for predictors (added/removed)", {
 test_that("Issue with creating PMML from internal JSON", {
   pmml_unittest("issue-4-singlebinpredictor")
 })
+test_that("Issue with a single classifier bin", {
+  pmml_unittest("singleclassifierbin")
+})
 
 # TODO add a few more JSON vs DM tests
 

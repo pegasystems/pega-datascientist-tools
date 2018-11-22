@@ -133,9 +133,13 @@ createSinglePredictorBin <- function(predictorBin)
 # Single bin for the model "classifier" (score to propensity mapping)
 createSingleClassifierBin <- function(bin)
 {
-  if (is.na(bin$binlowerbound)) {        # < upper
-    xmlNode("DiscretizeBin", attrs=c(binValue=bin$binWeight),
-            xmlNode("Interval", attrs=c(closure="openOpen", rightMargin=bin$binupperbound)))
+  if (is.na(bin$binlowerbound)) {
+    if (is.na(bin$binupperbound)) {   # both NA
+      # omit - rely on discretize default value
+    } else { # < upper
+      xmlNode("DiscretizeBin", attrs=c(binValue=bin$binWeight),
+              xmlNode("Interval", attrs=c(closure="openOpen", rightMargin=bin$binupperbound)))
+    }
   } else if (is.na(bin$binupperbound)) { # >= lower
     xmlNode("DiscretizeBin", attrs=c(binValue=bin$binWeight),
             xmlNode("Interval", attrs=c(closure="closedOpen", leftMargin=bin$binlowerbound)))
@@ -144,6 +148,19 @@ createSingleClassifierBin <- function(bin)
             xmlNode("Interval", attrs=c(closure="closedOpen", leftMargin=bin$binlowerbound, rightMargin=bin$binupperbound)))
   }
 }
+
+# Discretization node for the classifier
+createClassifierBins <- function(classifierBins)
+{
+  attrs <- c(field=modelScoreFieldName)
+  if (nrow(classifierBins)==1) {
+    attrs <- c(attrs, defaultValue=classifierBins$binWeight[1])
+  }
+  xmlNode("Discretize", attrs=attrs,
+          .children = lapply(seq(nrow(classifierBins)),
+                             function(i) {return(createSingleClassifierBin(classifierBins[i]))}))
+}
+
 
 # Create a scorecard entry for a single predictor. The bins need to be complete and in the right order.
 # Multiple symbol bins with the same score will be combined.
@@ -221,9 +238,7 @@ createOutputs <- function(classifierBins, scaleOffset = 0, scaleFactor = 1, isSc
                                attrs=c(name=modelScoreFieldName, feature="predictedValue", dataType="double", optype="continuous")),
                        xmlNode("OutputField",
                                attrs=c(name=modelPropensityFieldName, feature="transformedValue", dataType="double", optype="continuous"),
-                               xmlNode("Discretize", attrs=c(field=modelScoreFieldName),
-                                       .children = lapply(seq(nrow(classifierBins)),
-                                                          function(i) {return(createSingleClassifierBin(classifierBins[i]))}))),
+                               createClassifierBins(classifierBins)),
                        xmlNode("OutputField",
                                attrs=c(name=modelRawScoreFieldName, feature="transformedValue", dataType="double", optype="continuous"),
                                xmlNode("NormContinuous", attrs=c(field=modelScoreFieldName),
