@@ -91,7 +91,7 @@ compareCSV <- function(dmCSV, jsonCSV)
 # scoring that with JPMML against provided inputs and comparing the results against expected values.
 pmml_unittest <- function(testName)
 {
-  testFolder <- "pmml_unittestdata"
+  testFolder <- "data"
   tmpFolder <- paste(testFolder, "tmp", sep="/")
   if (dir.exists(tmpFolder)) { unlink(tmpFolder, recursive = T) }
   dir.create(tmpFolder)
@@ -193,7 +193,7 @@ test_that("Issue with a single classifier bin", {
   pmml_unittest("singleclassifierbin")
 })
 test_that("Test the test generator", {
-  pmml_unittest("ExampleModelForADM2PMMLUnitTesting")
+  pmml_unittest("testfw")
 })
 
 # TODO add a few more JSON vs DM tests

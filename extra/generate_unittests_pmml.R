@@ -17,7 +17,7 @@ library(jsonlite)
 #    3) files for the ADM model from the (internal) factory table
 #
 # Then... try them out!
-#  - copy the files (created under "unittests" here) to tests/testthat/pmml_unittestdata
+#  - copy the files (created under "unittests" here) to tests/testthat/data
 #  - include the test in the "test_pmml.R" file
 #  - run the tests (Shift-Cmd-T)
 #  - debug the test
@@ -45,7 +45,7 @@ dataset <- "Data-Decision-Results_pxDecisionResults"
 tmpFolder <- "tmp"
 
 #testname <- paste("DMSample",modelName,sep="-")
-testname <- modelName
+testname <- "testfw"
 
 # Below is typical for Pegalabs sytems
 
