@@ -27,7 +27,8 @@ most recent file (Pega appends a datetime stamp), unzip it into a temp folder an
 \code{data.table}.
 }
 \examples{
-\dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots")}
-\dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots", "~/Downloads")}
-\dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots_20180316T135038_GMT.zip", "~/Downloads")}
+\dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_All")}
+\dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_All", "~/Downloads")}
+\dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip", "~/Downloads")}
+\dontrun{readDSExport("~/Downloads/Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip")}
 }

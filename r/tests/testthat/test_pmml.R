@@ -50,13 +50,33 @@ verify_results <- function(pmmlString, pmmlFile, inputFile, outputFile)
   }
 }
 
-compareBinning <- function(predictorName, dmBinning, jsonBinning)
+compareBinning <- function(predictorName, dmBinning, jsonBinning, dmCSV, jsonCSV)
 {
-  expect_equal(nrow(dmBinning), nrow(jsonBinning), info=paste("comparing nr of bins of", predictorName))
+  expect_equal(nrow(dmBinning[bintype!="SYMBOL"]), nrow(jsonBinning[bintype!="SYMBOL"]),
+               info=paste("nr of bins of", predictorName, ":",
+                          nrow(dmBinning[bintype!="SYMBOL"]), "[", dmCSV, "]", "vs",
+                          nrow(jsonBinning[bintype!="SYMBOL"]), "[", jsonCSV, "]"))
 
-  flds <- setdiff(names(dmBinning), c("modelid", "performance")) # TODO: performance SHOULD match
-  for (f in flds) {
-    expect_identical(dmBinning[[f]], jsonBinning[[f]], info=paste("comparing", f, "bins of",predictorName))
+  # this seems to be model performance, not predictor performance
+  expect_equal(unique(dmBinning$performance), unique(jsonBinning$performance), tolerance=1e-6,
+               info=paste("performance",
+                          "[", dmCSV, "]", "vs", "[", jsonCSV, "]"))
+
+  if (nrow(dmBinning[bintype!="SYMBOL"]) == nrow(jsonBinning[bintype!="SYMBOL"])) {
+    flds <- setdiff(names(dmBinning), c("modelid", "performance"))
+    for (f in flds) {
+      if (nrow(dmBinning) == nrow(jsonBinning)) {
+        # full comparison
+        expect_equal(dmBinning[[f]], jsonBinning[[f]], tolerance=1e-6,
+                     info=paste("comparing the", f, "bins of",predictorName,
+                                "[", dmCSV, "]", "vs", "[", jsonCSV, "]"))
+      } else {
+        # exclude the SYMBOL matches from the comparison
+        expect_equal(dmBinning[bintype!="SYMBOL"][[f]], jsonBinning[bintype!="SYMBOL"][[f]], tolerance=1e-6,
+                     info=paste("comparing (except SYMBOL matches)", f, "bins of",predictorName,
+                                "[", dmCSV, "]", "vs", "[", jsonCSV, "]"))
+      }
+    }
   }
 }
 
@@ -66,7 +86,8 @@ compareCSV <- function(dmCSV, jsonCSV)
   json <- fread(jsonCSV)
 
   expect_identical(names(dm), names(json),
-                   info=paste("names not the same", names(dm), "[", dmCSV, "]", "vs", names(json), "[", jsonCSV, "]"))
+                   info=paste("names not the same", names(dm),
+                              "[", dmCSV, "]", "vs", names(json), "[", jsonCSV, "]"))
 
   if (identical(names(dm), names(json))) {
     dmPreds <- sort(unique(dm$predictorname))
@@ -75,13 +96,17 @@ compareCSV <- function(dmCSV, jsonCSV)
     expect_identical(dmPreds, jsonPreds,
                      info=paste("predictor names not the same", names(dm), "[", dmCSV, "]", "vs", names(json), "[", jsonCSV, "]"))
 
-    # perhaps not test here but will be tested for individual predictors
-    expect_identical(nrow(dm), nrow(json),
-                     info=paste("binning not same length", nrow(dm), "[", dmCSV, "]", "vs", nrow(json), "[", jsonCSV, "]"))
+    # exclude when predictortype = "SYMBOLIC" as the factory representation contains all symbols
+    # while this is truncated in the DM - this may not be a problem per se, if so then propensities will show this
+
+    expect_identical(nrow(dm[predictortype!="SYMBOLIC"]), nrow(json[predictortype!="SYMBOLIC"]),
+                     info=paste("total number of bins for all non-symbolic predictors not the same",
+                                nrow(dm[predictortype!="SYMBOLIC"]), "[", dmCSV, "]", "vs",
+                                nrow(json[predictortype!="SYMBOLIC"]), "[", jsonCSV, "]"))
 
     if (identical(dmPreds, jsonPreds)) {
       for (p in c(setdiff(dmPreds,"classifier"), intersect(dmPreds, "classifier"))) { # list classifier last
-        compareBinning(p, dm[predictorname==p], json[predictorname==p])
+        compareBinning(p, dm[predictorname==p], json[predictorname==p], dmCSV, jsonCSV)
       }
     }
   }
@@ -91,18 +116,20 @@ compareCSV <- function(dmCSV, jsonCSV)
 # scoring that with JPMML against provided inputs and comparing the results against expected values.
 pmml_unittest <- function(testName)
 {
-  testFolder <- "data"
+  testFolder <- "adm2pmml-testdata"
   tmpFolder <- paste(testFolder, "tmp", sep="/")
-  if (dir.exists(tmpFolder)) { unlink(tmpFolder, recursive = T) }
-  dir.create(tmpFolder)
+  if (!dir.exists(tmpFolder)) dir.create(tmpFolder)
 
   context(paste("ADM2PMML", testName))
 
   fileArchive <- paste(testFolder, paste(testName, ".zip", sep=""), sep="/")
   if (file.exists(fileArchive)) {
     testFolder <- paste(testFolder, testName, sep="/")
-    cat("   Extracted test files from archive:", fileArchive, "to", testFolder, fill=T)
-    unzip(fileArchive, exdir=testFolder)
+    jsonFolder <- paste(testFolder, paste(testName, ".json", sep=""), sep="/")
+    cat("   Extracted test files from archive:", fileArchive, "to", testFolder, "and", jsonFolder, fill=T)
+    flz <- unzip(fileArchive, list=T)$Name
+    unzip(fileArchive, files=flz[!grepl(".json$", flz)], exdir=testFolder, junkpaths = T)
+    unzip(fileArchive, files=flz[grepl(".json$", flz)], exdir=jsonFolder, junkpaths = T)
   }
 
   predictorDataFile <- paste(testFolder, paste(testName, "_predictordata", ".csv", sep=""), sep="/")
@@ -170,6 +197,11 @@ pmml_unittest <- function(testName)
     }
   }
 
+  if (file.exists(fileArchive)) {
+    cat("   Cleaning up extracted test files from archive:", fileArchive, "in", testFolder, fill=T)
+    unlink(testFolder, recursive = T)
+  }
+
 }
 
 test_that("a basic happy-path test with a single 2-predictor model w/o missings, WOS etc", {
@@ -203,15 +235,19 @@ test_that("Test the test generator", {
   pmml_unittest("testfw")
 })
 
-# TODO add a few more JSON vs DM tests
-
 # TODO add specific Scorecard explanation tests
+
+test_that("Public functions from JSON utils", {
+  expect_equal(getJSONModelContextAsString("{\"partition\":{\"pyIssue\":\"Sales\", \"pyGroup\":\"Cards\"}}"),
+               "pygroup_Cards_pyissue_Sales")
+
+})
 
 test_that("PMML generation from DM exports", {
   context("PMML from Datamart Exports")
 
-  allModels <- readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots","dsexports")
-  allPredictors <- readDSExport("Data-Decision-ADM-PredictorBinningSnapshot_AllPredictorSnapshots","dsexports")
+  allModels <- readDSExport("Data-Decision-ADM-ModelSnapshot_All","dsexports")
+  allPredictors <- readDSExport("Data-Decision-ADM-PredictorBinningSnapshot_All","dsexports")
 
   pmmlFiles <- adm2pmml(allModels, allPredictors)
 

@@ -199,7 +199,10 @@ createListFromSingleJSONFactoryString <- function(aFactory, id, overallModelName
                                  smoothing = NA) # not using binning$outcomeProfile$laplaceSmoothingValue
 
   predBinningTable <- rbindlist(list(predBinningTableNum, predBinningTableSym, classifierTable))
-  predBinningTable$performance <- auc_from_bincounts(binning$performanceProfile$positives, binning$performanceProfile$negatives)
+
+  # Performance calculated from outcome profile to be compatible with DM tables where there is no performance profile
+  predBinningTable$performance <- auc_from_bincounts(binning$outcomeProfile$positives,
+                                                     binning$outcomeProfile$negatives)
 
   if (forceLowerCasePredictorNames) {
     predBinningTable$predictorname <- tolower(predBinningTable$predictorname)

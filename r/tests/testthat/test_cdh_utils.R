@@ -4,20 +4,34 @@ library(lubridate)
 
 context("check basic utilities")
 
-test_that("dataset export can be read", {
-  data <- readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots","dsexports")
+test_that("dataset exports", {
+  data <- readDSExport("Data-Decision-ADM-ModelSnapshot_All_20180316T134315_GMT.zip","dsexports")
+  expect_equal(nrow(data), 15)
+  expect_equal(ncol(data), 22)
+
+  data <- readDSExport("dsexports/Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip")
   expect_equal(nrow(data), 30)
+  expect_equal(ncol(data), 22)
+
+  data <- readDSExport("Data-Decision-ADM-ModelSnapshot_All","dsexports")
+  expect_equal(nrow(data), 30)
+  expect_equal(ncol(data), 22)
+
+  data <- readDSExport("Data-Decision-ADM-PredictorBinningSnapshot_All","dsexports")
+  expect_equal(nrow(data), 1755)
+  expect_equal(ncol(data), 35)
+  expect_equal(length(unique(data$pyModelID)), 15)
 })
 
 # to add data:
 
-# admdatamart_models <- readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots", "~/Downloads")
+# admdatamart_models <- readDSExport("Data-Decision-ADM-ModelSnapshot_All", "~/Downloads")
 # names(admdatamart_models) <- tolower(names(admdatamart_models))
 # for(f in c("pyperformance")) admdatamart_models[[f]] <- as.numeric(admdatamart_models[[f]])
 # devtools::use_data(admdatamart_models)
 # save(admdatamart_models, file="data/admdatamart_models.rda", compress='xz')
 #
-# admdatamart_binning <- readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots", "~/Downloads")
+# admdatamart_binning <- readDSExport("Data-Decision-ADM-ModelSnapshot_All", "~/Downloads")
 # names(admdatamart_binning) <- tolower(names(admdatamart_binning))
 # for(f in c("pyperformance")) admdatamart_binning[[f]] <- as.numeric(admdatamart_binning[[f]])
 # devtools::use_data(admdatamart_binning)

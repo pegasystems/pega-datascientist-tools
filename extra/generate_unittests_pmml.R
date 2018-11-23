@@ -33,8 +33,6 @@ library(jsonlite)
 #    "TrainModelsForPMMLTests" to train the models
 #    "ScoreModelsForPMMLTests" to run the models over a small subset of the inputs
 
-# TODO: zip up the results?
-
 # ProductOffers strategy uses the SalesModel and can be executed over all Customers
 
 appliesTo <- "DMOrg-DMSample-Data-Customer"
@@ -133,3 +131,12 @@ cat("Input file", inputfileName, "size", nrow(inputset), "x", ncol(inputset), fi
 cat("Model file", modelfileName, "size", nrow(dmmodels), fill=T)
 cat("Predictors file", predictorfileName, "size", nrow(dmpredictors), fill=T)
 cat("JSON factory folder", jsonfolder, "# models", nrow(jsonmodels), fill=T)
+
+zipFile <- paste(dest.dir, paste(testname, "zip", sep="."), sep="/")
+zip(zipFile,
+    c(inputfileName, modelfileName, predictorfileName, jsonfolder))
+
+cat("All zipped up in", zipFile, fill=T)
+
+
+

@@ -33,20 +33,29 @@ NULL
 #' @export
 #'
 #' @examples
-#' \dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots")}
-#' \dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots", "~/Downloads")}
-#' \dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots_20180316T135038_GMT.zip", "~/Downloads")}
+#' \dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_All")}
+#' \dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_All", "~/Downloads")}
+#' \dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip", "~/Downloads")}
+#' \dontrun{readDSExport("~/Downloads/Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip")}
 readDSExport <- function(instancename, srcFolder=".", tmpFolder=srcFolder, excludeComplexTypes=T)
 {
-  if(file.exists(paste(srcFolder,instancename,sep="/"))) {
-    mostRecentZip <- instancename
+  if(endsWith(instancename, ".zip")) {
+    if (file.exists(instancename)) {
+      zipFile <- instancename
+    } else if (file.exists(paste(srcFolder,instancename,sep="/"))) {
+      zipFile <- paste(srcFolder,instancename,sep="/")
+    } else {
+      stop("File not found")
+    }
   } else {
-    mostRecentZip <- rev(sort(list.files(path=srcFolder, pattern=paste("^", instancename, "_.*\\.zip$", sep=""))))[1]
-    if(!file.exists(paste(srcFolder,mostRecentZip,sep="/"))) stop("File not found")
+    zipFile <- paste(srcFolder,
+                     rev(sort(list.files(path=srcFolder, pattern=paste("^", instancename, "_.*\\.zip$", sep=""))))[1],
+                     sep="/")
+    if(!file.exists(zipFile)) stop("File not found")
   }
   jsonFile <- paste(tmpFolder,"data.json", sep="/")
   if(file.exists(jsonFile)) file.remove(jsonFile)
-  utils::unzip(paste(srcFolder,mostRecentZip,sep="/"), exdir=tmpFolder)
+  utils::unzip(zipFile, exdir=tmpFolder)
   multiLineJSON <- readLines(jsonFile)
   file.remove(jsonFile)
   ds <- data.table(jsonlite::fromJSON(paste("[",paste(multiLineJSON,sep="",collapse = ","),"]")))
