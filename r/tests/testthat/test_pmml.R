@@ -219,8 +219,12 @@ test_that("checks flexible context keys (wich require to parse the JSON inside t
 test_that("highlights an issue with the way ADM defines the smoothing factor in the score calculation - one of the tests in this will be failing if defining the smoothing factor in a naive way", {
   pmml_unittest("smoothfactorissue") # previously called "precisionissue"
 })
-test_that("At least some of the models use a predictor with a RESIDUAL bin", {
+test_that("Use of a predictor with a RESIDUAL bin", {
   pmml_unittest("residualtest")
+})
+test_that("Missing input values", {
+  # this started happening after upgrade example-1.3-SNAPSHOT.jar to example-1.4-SNAPSHOT.jar
+  pmml_unittest("missingvalues")
 })
 test_that("Models with different evidence for predictors (added/removed)", {
   pmml_unittest("unequalevidence")

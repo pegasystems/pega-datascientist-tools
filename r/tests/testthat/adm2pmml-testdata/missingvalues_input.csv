@@ -1,0 +1,7 @@
+pysubjectid,pyname,pychannel,evidence,pydirection,pygroup,pypropensity,pyissue,country,email,age,Expected.Propensity,Expected.Evidence
+CE-1,BARB01,N,10000,Outbound,WebBanners,0.495313415,Banners,Netherlands,eva54@yahoo.com,43,0.495313415,10000
+CE-1,BARB01,N,10000,Outbound,WebBanners,0.467596081,Banners,Netherlands,jacobsonizabelle@ullrich-anderson.com,43,0.467596081,10000
+CE-1,BARB01,N,10000,Outbound,WebBanners,0.495313415,Banners,Netherlands,operdeck@gmail.com,43,0.495313415,10000
+CE-1,BARB01,N,10000,Outbound,WebBanners,0.495313415,Banners,Netherlands,Remaining symbols,43,0.495313415,10000
+CE-1,BARB01,N,10000,Outbound,WebBanners,0.166666667,Banners,Netherlands,,43,0.166666667,10000
+CE-1,BARB01,N,10000,Outbound,WebBanners,0.15,Banners,,,43,0.15,10000
