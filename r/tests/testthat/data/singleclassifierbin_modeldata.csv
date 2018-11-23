@@ -1,3 +1,0 @@
-pymodelid,pxapplication,pyissue,pygroup,pyname,pychannel,pydirection,pytreatment,pyconfigurationname,pyappliestoclass,pyactivepredictors,pytotalpredictors,pynegatives,pypositives,pyresponsecount,pyrelativenegatives,pyrelativepositives,pyrelativeresponsecount,pysnapshottime,pysuccessrate,pyperformance,pymemory,pyperformancethreshold,pycorrelationthreshold,pyextension
-7a9e4935-d3a3-534b-a25f-764dbfc8a1c6,DMSample,Sales,Tablets,Apple iPad Pro,NA,NA,NA,ExampleModelForADM2PMMLUnitTesting,DMOrg-DMSample-Data-Customer,2,2,11,26,37,0,0,0,11/21/18 13:23,NA,0.5,NA,NA,NA,NA
-

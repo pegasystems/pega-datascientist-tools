@@ -33,7 +33,7 @@ library(jsonlite)
 #    "TrainModelsForPMMLTests" to train the models
 #    "ScoreModelsForPMMLTests" to run the models over a small subset of the inputs
 
-
+# TODO: zip up the results?
 
 # ProductOffers strategy uses the SalesModel and can be executed over all Customers
 

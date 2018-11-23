@@ -98,6 +98,13 @@ pmml_unittest <- function(testName)
 
   context(paste("ADM2PMML", testName))
 
+  fileArchive <- paste(testFolder, paste(testName, ".zip", sep=""), sep="/")
+  if (file.exists(fileArchive)) {
+    testFolder <- paste(testFolder, testName, sep="/")
+    cat("   Extracted test files from archive:", fileArchive, "to", testFolder, fill=T)
+    unzip(fileArchive, exdir=testFolder)
+  }
+
   predictorDataFile <- paste(testFolder, paste(testName, "_predictordata", ".csv", sep=""), sep="/")
   modelDataFile <- paste(testFolder, paste(testName, "_modeldata", ".csv", sep=""), sep="/")
   jsonFolder <- paste(testFolder, paste(testName, ".json", sep=""), sep="/")
