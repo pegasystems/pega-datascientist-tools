@@ -4,8 +4,8 @@
 \alias{getPredictorsForModelsFromDatamart}
 \title{Retrieves predictor data from the ADM Datamart.}
 \usage{
-getPredictorsForModelsFromDatamart(conn, models = NULL, mostRecentOnly = T,
-  verbose = T)
+getPredictorsForModelsFromDatamart(conn, models = NULL,
+  mostRecentOnly = T, verbose = T)
 }
 \arguments{
 \item{conn}{Connection to the database}

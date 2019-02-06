@@ -156,7 +156,7 @@ fromPRPCDateTime <- function(x)
 
 #' Convert to a Pega date-time string.
 #'
-#' @param x A vector of valid date-time objects (valid for \code{\link[base]{strftime}})
+#' @param x A vector of valid date-time objects (valid for \code{\link[base:strptime]{strftime}})
 #'
 #' @return A vector of string representations in the format used by Pega.
 #' @export

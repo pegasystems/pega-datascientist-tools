@@ -7,7 +7,7 @@
 toPRPCDateTime(x)
 }
 \arguments{
-\item{x}{A vector of valid date-time objects (valid for \code{\link[base]{strftime}})}
+\item{x}{A vector of valid date-time objects (valid for \code{\link[base:strptime]{strftime}})}
 }
 \value{
 A vector of string representations in the format used by Pega.

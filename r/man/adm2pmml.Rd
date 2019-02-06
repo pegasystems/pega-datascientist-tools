@@ -26,11 +26,11 @@ will use the ADM datamart tables. If FALSE (the default) will use the ADM
 Factory tables.}
 
 \item{appliesToFilter}{Optional filter for the applies to class of the models
-as a regexp passed on to \code{\link[base]{grepl}} with \code{ignore.case =
+as a regexp passed on to \code{\link[base:grep]{grepl}} with \code{ignore.case =
 TRUE}, \code{perl = TRUE}, \code{fixed = FALSE}, \code{useBytes = FALSE}.}
 
 \item{ruleNameFilter}{Optional filter for the rule name of the models as a
-regexp passed on to \code{\link[base]{grepl}} with \code{ignore.case =
+regexp passed on to \code{\link[base:grep]{grepl}} with \code{ignore.case =
 TRUE}, \code{perl = TRUE}, \code{fixed = FALSE}, \code{useBytes = FALSE}.}
 
 \item{destDir}{Directory to create the PMML files in. Defaults to the current

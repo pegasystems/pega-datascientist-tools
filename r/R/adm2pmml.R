@@ -14,7 +14,7 @@
 # - supports both JSON exports (from the internal ADM factory tables) and Datamart exports
 #
 # OUTSTANDING ISSUES/QUESTIONS
-# - check with parameterized predictors
+# - check with parametrized predictors
 # - check with wilder predictor names, e.g. from DMSample
 
 # The input format is a list of tuples representing all models ("partitions") of one ADM rule. The tuples
@@ -571,10 +571,10 @@ createPMML <- function(modeldata, overallModelName)
 #'   will use the ADM datamart tables. If FALSE (the default) will use the ADM
 #'   Factory tables.
 #' @param appliesToFilter Optional filter for the applies to class of the models
-#'   as a regexp passed on to \code{\link[base]{grepl}} with \code{ignore.case =
+#'   as a regexp passed on to \code{\link[base:grep]{grepl}} with \code{ignore.case =
 #'   TRUE}, \code{perl = TRUE}, \code{fixed = FALSE}, \code{useBytes = FALSE}.
 #' @param ruleNameFilter Optional filter for the rule name of the models as a
-#'   regexp passed on to \code{\link[base]{grepl}} with \code{ignore.case =
+#'   regexp passed on to \code{\link[base:grep]{grepl}} with \code{ignore.case =
 #'   TRUE}, \code{perl = TRUE}, \code{fixed = FALSE}, \code{useBytes = FALSE}.
 #' @param destDir Directory to create the PMML files in. Defaults to the current
 #'   directory.
