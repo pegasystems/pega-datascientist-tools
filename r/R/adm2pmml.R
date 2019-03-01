@@ -345,14 +345,37 @@ createModelDescription <- function(classifierBins)
                                   xmlNode("YCoordinates", createNumArray(TPR))))))
 }
 
-# Creates a single scorecard, for a single "partition" of the ADM rule
-createScorecard <- function(modelbins, modelName)
+# Sets the bin weights for all bins of a single "partition" of the ADM rule. The weight is basically the
+# log odds, but is normalized to the number of predictors. Returns a summary table with the min/max per predictor.
+setBinWeights <- function(modelbins)
 {
-  # Weight calculations
+  # Some of the code depends on the order of the bins
+  setorder(modelbins, modelid, predictorname, bintype, binupperbound, binlabel, na.last = T)
+
+  # Set the classifier weights
+  modelbins[predictortype == "CLASSIFIER", binWeight := (0.5+binpos)/(1+binpos+binneg)]
+
+  # Weights for ordinary fields
   modelbins[predictortype != "CLASSIFIER", nPredictors := uniqueN(predictorname)]
   modelbins[predictortype != "CLASSIFIER", binLogOdds := log(binpos + smoothing) - log(binneg + smoothing)]
   modelbins[predictortype != "CLASSIFIER", perPredictorContribution := (1/nPredictors - 1)*log(1+totalpos) + (1 - 1/nPredictors)*log(1+totalneg)]
   modelbins[predictortype != "CLASSIFIER", binWeight := (binLogOdds + perPredictorContribution)/(1+nPredictors)]
+
+  # Summarize per predictor
+  if (any(modelbins$predictortype != "CLASSIFIER")) {
+    predMinMaxWeights <- modelbins[predictortype != "CLASSIFIER", .(minWeight = min(binWeight),
+                                                                    maxWeight = max(binWeight)), by=predictorname]
+  } else {
+    predMinMaxWeights <- data.table()
+  }
+  return(predMinMaxWeights)
+}
+
+# Creates a single scorecard, for a single "partition" of the ADM rule
+createScorecard <- function(modelbins, modelName)
+{
+  # Add the bin weights based on the log odds
+  scaling <- setBinWeights(modelbins)
 
   scWeight <- 0 # deliberately chosen to be 0 - contributions of predictors are thru 'perPredictorContribution'
   hasNoPredictors <- nrow(modelbins[predictortype != "CLASSIFIER"]) == 0
@@ -362,8 +385,6 @@ createScorecard <- function(modelbins, modelName)
     scaleOffset <- 0.0
     scaleFactor <- 1.0
   } else {
-    scaling <- modelbins[predictortype != "CLASSIFIER", .(minWeight = min(binWeight),
-                                                          maxWeight = max(binWeight)), by=predictorname]
     scaleFactor <- 1000/(sum(scaling$maxWeight) - sum(scaling$minWeight))
     scaleOffset <- -sum(scaling$minWeight)
 
@@ -374,6 +395,12 @@ createScorecard <- function(modelbins, modelName)
     modelbins[predictortype != "CLASSIFIER", binWeight := (binWeight-minWeight)*scaleFactor]
     modelbins[predictortype == "CLASSIFIER", binlowerbound := (binlowerbound+scaleOffset)*scaleFactor]
     modelbins[predictortype == "CLASSIFIER", binupperbound := (binupperbound+scaleOffset)*scaleFactor]
+
+
+    # print(scaling)
+    # cat("Min score: ", sum(scaling$minWeight), fill = T)
+    # cat("Max score: ", sum(scaling$maxWeight), fill = T)
+    # stop()
   }
 
   # In support of decision explanation through reason codes, add some meta info to the bins (not used for scoring)
@@ -519,13 +546,6 @@ createPMML <- function(modeldata, overallModelName)
   if (!all(modelSummary$hasClassifier)) {
     print(modelSummary)
     stop("No classifier present.")
-  }
-
-  # Massage the data for easier processing. Already set the classifier weights here.
-  for (i in seq(length(modeldata))) {
-    setorder(modeldata[[i]]$binning, modelid, predictorname, bintype, binupperbound, binlabel, na.last = T)
-
-    modeldata[[i]]$binning [predictortype == "CLASSIFIER", binWeight := (0.5+binpos)/(1+binpos+binneg)]
   }
 
   hasNoContext <- sapply(modeldata, function(x) {return(is.null(x[["context"]]))})
