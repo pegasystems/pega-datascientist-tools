@@ -6,10 +6,25 @@ library(XML)
 
 context("ADM2PMML")
 
-verify_results <- function(pmmlString, pmmlFile, inputFile, outputFile)
+run_jpmml <- function(pmmlFile, inputFile, outputFile)
 {
   jpmmlJar <- paste("jpmml", "example-1.3-SNAPSHOT.jar", sep="/")
 
+  if (file.exists(outputFile)) {
+    file.remove(outputFile)
+  }
+
+  execJPMML <- paste("java", "-cp", jpmmlJar, "org.jpmml.evaluator.EvaluationExample",
+                     "--model", pmmlFile,
+                     "--input", inputFile,
+                     "--output", outputFile)
+  system(execJPMML)
+
+  expect_true(file.exists(outputFile), paste("JPMML execution failure:", execJPMML))
+}
+
+verify_results <- function(pmmlString, pmmlFile, inputFile, outputFile)
+{
   sink(pmmlFile)
   print(pmmlString)
   sink()
@@ -17,18 +32,8 @@ verify_results <- function(pmmlString, pmmlFile, inputFile, outputFile)
 
   expect_true(file.exists(pmmlFile), "Generated PMML file generated without issues")
 
-  if (file.exists(outputFile)) {
-    file.remove(outputFile)
-  }
-
   if (file.exists(inputFile)) {
-    execJPMML <- paste("java", "-cp", jpmmlJar, "org.jpmml.evaluator.EvaluationExample",
-                       "--model", pmmlFile,
-                       "--input", inputFile,
-                       "--output", outputFile)
-    system(execJPMML)
-
-    expect_true(file.exists(outputFile), paste("JPMML execution failure:", execJPMML))
+    run_jpmml(pmmlFile, inputFile, outputFile)
 
     if(file.exists(outputFile)) {
       cat("      generated output:", outputFile,fill=T)
@@ -143,6 +148,7 @@ pmml_unittest <- function(testName)
     partitions <- data.table(pymodelpartitionid = sub("^.*json[^.]*\\.(.*)\\.json", "\\1", jsonFiles),
                              pyfactory = sapply(jsonFiles, readr::read_file))
     modelList <- createListFromADMFactory(partitions, testName, tmpFolder, forceLowerCasePredictorNames = T)
+
     pmml <- createPMML(modelList, testName)
 
     pmmlFile <- paste(tmpFolder, paste(testName, "json", "pmml", "xml", sep="."), sep="/")
@@ -239,14 +245,61 @@ test_that("Test the test generator", {
   pmml_unittest("testfw")
 })
 
-# TODO add specific Scorecard explanation tests
+# Verify that reason codes get (or don't get) generated in various flavours
+# TODO add args to adm2pmml to set # of reason codes and direction
+test_that("Scorecard reason codes", {
+  context("Scorecard reason codes")
+
+  testFolder <- "adm2pmml-testdata"
+  tmpFolder <- paste(testFolder, "tmp2", sep="/")
+  if (!dir.exists(tmpFolder)) dir.create(tmpFolder)
+
+  # Convert the simplest model to PMML including reason code options
+  predData <- fread(paste(testFolder, "singlesimplemodel_predictordata.csv", sep="/"))
+  pmmlFiles <- adm2pmml(dmModels = data.table(pymodelid = c("Simple Adaptive Model"),
+                                              pyconfigurationname = c("simplemodel"),
+                                              pyappliestoclass = "NA",
+                                              pxapplication = "NA",
+                                              pyname = "BARB01",
+                                              pysnapshottime = unique(predData$pysnapshottime)),
+                        dmPredictors = predData,
+                        destDir = tmpFolder)
+  expect_equal(length(pmmlFiles), 1)
+
+  # Run with inputs. The inputs are the same 3 cases that are detailed in the deeper dive Excel sheet
+  run_jpmml(paste(tmpFolder, "simplemodel.pmml", sep="/"),
+            paste(testFolder, "singlesimplemodel_input_for_reasoncodetests.csv", sep="/"),
+            paste(tmpFolder, "singlesimplemodel_output.csv", sep="/"))
+
+  # Check the outputs contain reason codes.
+  output <- fread(paste(tmpFolder, "singlesimplemodel_output.csv", sep="/"))
+
+  # By default 3 reason codes
+  expect_equal(length(intersect( names(output), c("Explain-1", "Explain-2", "Explain-3") )), 3)
+
+  # Each reason code should have 6 elements
+  output[, c("r1_pred", "r1_binlabel", "r1_score", "r1_min", "r1_avg", "r1_max") := tstrsplit(`Explain-1`, split="|", fixed=T)]
+
+  expect_true(all(output[r1_pred != "Context Mismatch"][, (r1_score >= r1_min) & (r1_score <= r1_max)]),
+              "All scores should be between min and max")
+  expect_true(all(output[r1_pred != "Context Mismatch"][, (r1_avg >= r1_min) & (r1_avg <= r1_max)]),
+              "All average scores should be between min and max")
+
+  # now need to verify the 2 or 3 modes
+  # useReasonCodes="true", baselineMethod="min", reasonCodeAlgorithm="pointsAbove"
+  # useReasonCodes="true", baselineMethod="max", reasonCodeAlgorithm="pointsBelow"
+  # useReasonCodes="true", baselineMethod="mean", reasonCodeAlgorithm="pointsAbove"
+  # useReasonCodes="true", baselineMethod="mean", reasonCodeAlgorithm="pointsBelow"
+
+  # reasonCodeAlgorithm: May be "pointsAbove" or "pointsBelow", describing how reason codes shall be ranked,
+  # relative to the baseline score of each Characteristic, or as set at the top-level scorecard.
+})
 
 test_that("Public functions from JSON utils", {
   context("Public JSON PMML utility functions")
 
   expect_equal(getJSONModelContextAsString("{\"partition\":{\"pyIssue\":\"Sales\", \"pyGroup\":\"Cards\"}}"),
                "pygroup_Cards_pyissue_Sales")
-
 })
 
 test_that("PMML generation from DM exports", {
@@ -269,90 +322,3 @@ test_that("PMML generation from DM exports", {
   expect_equal(length(adm2pmml(allModels, allPredictors, appliesToFilter="DMSample")), 0)
 })
 
-# Helper function to get a list of the reported and actual model performance for a list of adaptive models. The reported
-# performance is part of the data passed in. The actual performance is calculated by taking into account the possible range
-# of the model scores.
-getModelPerformanceOverview <- function(dmModels, dmPredictors)
-{
-  # Similar steps for initial filtering and processing as in "adm2pmml" function
-  setnames(dmModels, tolower(names(dmModels)))
-  setnames(dmPredictors, tolower(names(dmPredictors)))
-  modelList <- createListFromDatamart(dmPredictors[pymodelid %in% dmModels$pymodelid],
-                                      fullName="Sales Models DMSample", tmpFolder=NULL, modelsForPartition=dmModels)
-
-  # Name, response count and reported performance obtained from the data directly. For the score min/max using the utility function
-  # that summarizes the predictor bins into a table ("scaling") with the min and max weight per predictor. These weights are the
-  # normalized log odds and score min/max is found by adding them up.
-  perfOverview <- data.table( pyname = sapply(modelList, function(m) {return(m$context$pyname)}),
-                              performance = sapply(modelList, function(m) {return(m$binning$performance[1])}),
-                              correct_performance = NA, # placeholder
-                              responses = sapply(modelList, function(m) {return(m$binning$totalpos[1] + m$binning$totalneg[1])}),
-                              score_min = sapply(modelList, function(m) {binz <- copy(m$binning); scaling <- setBinWeights(binz); return(sum(scaling$minWeight))}),
-                              score_max = sapply(modelList, function(m) {binz <- copy(m$binning); scaling <- setBinWeights(binz); return(sum(scaling$maxWeight))}))
-
-  classifiers <- lapply(modelList, function(m) { return (m$binning[predictortype == "CLASSIFIER"])})
-
-  findClassifierBin <- function( classifierBins, score )
-  {
-    if (nrow(classifierBins) == 1) return(1)
-
-    return (1 + findInterval(score, classifierBins$binupperbound[1 : (nrow(classifierBins) - 1)]))
-  }
-
-  perfOverview$nbins <- sapply(classifiers, nrow)
-  perfOverview$score_bin_min <- sapply(seq(nrow(perfOverview)), function(n) { return( findClassifierBin( classifiers[[n]], perfOverview$score_min[n]))} )
-  perfOverview$score_bin_max <- sapply(seq(nrow(perfOverview)), function(n) { return( findClassifierBin( classifiers[[n]], perfOverview$score_max[n]))} )
-  perfOverview$correct_performance <- sapply(seq(nrow(perfOverview)), function(n) { return( auc_from_bincounts(classifiers[[n]]$binpos[perfOverview$score_bin_min[n]:perfOverview$score_bin_max[n]],
-                                                                                                              classifiers[[n]]$binneg[perfOverview$score_bin_min[n]:perfOverview$score_bin_max[n]] )) })
-  setorder(perfOverview, pyname)
-
-  return(perfOverview)
-}
-
-# This test confirms BUG-417860 stating that ADM performance numbers can be overly optimistic in the beginning.
-test_that("Score Ranges", {
-  context("Verify range of score distribution")
-
-  # The source of the data tested in this test is taken by a dataset export of the two Datamart tables (in Pega 8.3), then
-  # subsetting this to just the models we're interested in. The resulting data.table objects are saved. To
-  # repeat this exercise, execute the following lines:
-
-      # dmModels <- readDSExport("Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20190227T140454_GMT.zip","~/Downloads") # "dsexports"
-      # dmPredictors <- readDSExport("Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20190227T140628_GMT.zip","~/Downloads")
-      #
-      # dmModels <- dmModels[pyConfigurationName %in% c("SalesModel", "BundleModelIndependent"), !grepl("^px|pz", names(dmModels)), with=F]
-      # dmPredictors <- dmPredictors[pyModelID %in% dmModels$pyModelID, !grepl("^px|pz", names(dmPredictors)), with=F]
-      #
-      # save(dmModels, dmPredictors, file="tests/testthat/dsexports/test_score_ranges.RData")
-
-  load("dsexports/test_score_ranges.RData")
-
-  # First bunch of models are from the "independent" bundle strategy. There are no customer level predictors in this model and there
-  # are also no parameterized predictors for the sequencing. No predictors at all should give all models performance 0.5 but due to
-  # BUG-417860 this is not the case. Therefore commented out the first test.
-  perfOverviewIndependentBundleNoPredictors <- getModelPerformanceOverview(dmModels[pyConfigurationName=="BundleModelIndependent"], dmPredictors)
-  # expect_equal(perfOverviewIndependentBundleNoPredictors$performance, rep(0.5, nrow(perfOverviewIndependentBundleNoPredictors)))
-  expect_equal(perfOverviewIndependentBundleNoPredictors$correct_performance, rep(0.5, nrow(perfOverviewIndependentBundleNoPredictors)))
-
-  # The Sales Model is an initialized DMSample system. Some of the models have too optimistic performance numbers early on in their
-  # life due to the same bug mentioned above.
-  perfOverviewSalesModel <- getModelPerformanceOverview(dmModels[pyConfigurationName=="SalesModel"], dmPredictors)
-
-  expect_equal(nrow(perfOverviewSalesModel), 47)
-
-  # Models with a single active classifier bin should have performance 0.5. Only the ones that have just one
-  # classifier bin (active or not) currently do.
-  expect_equal(perfOverviewSalesModel[(score_bin_max - score_bin_min) == 0]$correct_performance, rep(0.5, 10))
-  expect_equal(perfOverviewSalesModel[nbins==1]$performance, rep(0.5, sum(perfOverviewSalesModel$nbins==1)))
-
-  # All of the models that have multiple classifier bins currently report a performance > 0.5 even if those
-  # bins are not active.
-  # This test explictly tests that situation and should be flipped once the bug is fixed.
-  dummy <- sapply(perfOverviewSalesModel[(nbins != 1) & ((score_bin_max - score_bin_min) == 0)]$performance,
-                  function(x) { expect_gt(x, 0.5) })
-
-  # Performance of classifiers that use their full range should be correct
-  expect_equal(perfOverviewSalesModel[(nbins > 1) & (score_bin_max - score_bin_min + 1 == nbins)]$performance,
-               perfOverviewSalesModel[(nbins > 1) & (score_bin_max - score_bin_min + 1 == nbins)]$correct_performance,
-               tolerance = 1e-06)
-})

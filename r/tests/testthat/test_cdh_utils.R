@@ -21,6 +21,10 @@ test_that("dataset exports", {
   expect_equal(nrow(data), 1755)
   expect_equal(ncol(data), 35)
   expect_equal(length(unique(data$pyModelID)), 15)
+
+  expect_error( readDSExport("Non existing non zip file",""))
+  expect_error( readDSExport("Data-Decision-ADM-ModelSnapshot_All_20180316T134315_GMT.zip",""))
+  readDSExport("Data-Decision-ADM-PredictorBinningSnapshot_All","dsexports", excludeComplexTypes = F)
 })
 
 # to add data:
@@ -75,6 +79,7 @@ test_that("AUC from full arrays", {
 
   expect_equal(auc_from_probs(truth, probs), 0.6871)
   expect_equal(auc_from_probs(truth, rep(0, length(probs))), 0.5)
+  expect_equal(auc_from_probs(rep("Accept, 10"), runif(n = 10)), 0.5)
 })
 
 test_that("GINI conversion", {
@@ -87,6 +92,7 @@ test_that("GINI conversion", {
 })
 
 test_that("Date conversion", {
+  # not safe to test w/o timezone as this is locale dependent
   expect_equal(toPRPCDateTime(fromPRPCDateTime("20180316T134127.847 CET")), "20180316T124127.846 GMT")
   expect_equal(toPRPCDateTime(fromPRPCDateTime("20180316T000000.000 EST")), "20180316T050000.000 GMT")
 })

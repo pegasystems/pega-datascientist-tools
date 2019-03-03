@@ -95,7 +95,10 @@ createSinglePredictorBin <- function(predictorBin)
                           # Otherwise
                           summarizeMultiple(predictorBin$binlabel))
   reasonCode <- paste(predictorBin$predictorname,reasonLabel,
-                      round(predictorBin$binWeight),round(predictorBin$minWeight),round(predictorBin$avgWeight),round(predictorBin$maxWeight),sep="|")
+                      round(predictorBin$binWeight),
+                      round(predictorBin$minWeight),
+                      round(predictorBin$avgWeight),
+                      round(predictorBin$maxWeight), sep="|")
 
   # multiple symbols will be grouped together
   if (nrow(predictorBin) > 1) {
