@@ -211,7 +211,7 @@ pmml_unittest <- function(testName)
 }
 
 test_that("a basic happy-path test with a single 2-predictor model w/o missings, WOS etc", {
-  pmml_unittest("singlesimplemodel")
+  pmml_unittest("deeperdive")
 })
 test_that("a basic model consisting of 2 models, also providing new partition key values", {
   pmml_unittest("simplemultimodel")
@@ -255,35 +255,41 @@ test_that("Scorecard reason codes", {
   if (!dir.exists(tmpFolder)) dir.create(tmpFolder)
 
   # Convert the simplest model to PMML including reason code options
-  predData <- fread(paste(testFolder, "singlesimplemodel_predictordata.csv", sep="/"))
-  pmmlFiles <- adm2pmml(dmModels = data.table(pymodelid = c("Simple Adaptive Model"),
-                                              pyconfigurationname = c("simplemodel"),
-                                              pyappliestoclass = "NA",
-                                              pxapplication = "NA",
-                                              pyname = "BARB01",
-                                              pysnapshottime = unique(predData$pysnapshottime)),
+  predData <- fread(paste(testFolder, "deeperdive_predictordata.csv", sep="/"))
+  dummyModelData <- data.table(pymodelid = unique(predData$pymodelid),
+                               pyconfigurationname = c("simplemodel"),
+                               pyappliestoclass = "Dummy",
+                               pxapplication = "Dummy",
+                               pyname = "Dummy",
+                               pysnapshottime = unique(predData$pysnapshottime))
+  pmmlFiles <- adm2pmml(dmModels = dummyModelData,
                         dmPredictors = predData,
                         destDir = tmpFolder)
   expect_equal(length(pmmlFiles), 1)
 
-  # Run with inputs. The inputs are the same 3 cases that are detailed in the deeper dive Excel sheet
+  # Run with inputs. The inputs include the same 3 cases that are detailed in the deeper dive Excel sheet
   run_jpmml(paste(tmpFolder, "simplemodel.pmml", sep="/"),
-            paste(testFolder, "singlesimplemodel_input_for_reasoncodetests.csv", sep="/"),
-            paste(tmpFolder, "singlesimplemodel_output.csv", sep="/"))
+            paste(testFolder, "deeperdive_inputs_reasoncodetests.csv", sep="/"),
+            paste(tmpFolder, "deeperdive_output.csv", sep="/"))
 
-  # Check the outputs contain reason codes.
-  output <- fread(paste(tmpFolder, "singlesimplemodel_output.csv", sep="/"))
+  # Check the outputs contain reason codes
+  output <- fread(paste(tmpFolder, "deeperdive_output.csv", sep="/"))
 
   # By default 3 reason codes
   expect_equal(length(intersect( names(output), c("Explain-1", "Explain-2", "Explain-3") )), 3)
 
-  # Each reason code should have 6 elements
-  output[, c("r1_pred", "r1_binlabel", "r1_score", "r1_min", "r1_avg", "r1_max") := tstrsplit(`Explain-1`, split="|", fixed=T)]
+  # Each reason code should have 6 elements with the score between min and max
+  output[, paste("r1", c("pred", "binlabel", "score", "min", "avg", "max"), sep="_") := tstrsplit(`Explain-1`, split="|", fixed=T)]
+  output[, paste("r2", c("pred", "binlabel", "score", "min", "avg", "max"), sep="_") := tstrsplit(`Explain-2`, split="|", fixed=T)]
+  output[, paste("r3", c("pred", "binlabel", "score", "min", "avg", "max"), sep="_") := tstrsplit(`Explain-3`, split="|", fixed=T)]
 
-  expect_true(all(output[r1_pred != "Context Mismatch"][, (r1_score >= r1_min) & (r1_score <= r1_max)]),
-              "All scores should be between min and max")
-  expect_true(all(output[r1_pred != "Context Mismatch"][, (r1_avg >= r1_min) & (r1_avg <= r1_max)]),
-              "All average scores should be between min and max")
+  expect_true(all(output[r1_pred != "Context Mismatch"][, (r1_score >= r1_min) & (r1_score <= r1_max)]), "All scores should be between min and max")
+  expect_true(all(output[r1_pred != "Context Mismatch"][, (r1_avg >= r1_min) & (r1_avg <= r1_max)]), "All average scores should be between min and max")
+
+  # For the first test case, first and second reason codes as expected
+  expect_equal(output$r1_pred, c(rep("Country",5), "Age")) # Age only shows up if Country is missing when using points above minimum
+  expect_equal(output$r2_pred, c(rep("Age",5), "Country"))
+  expect_equal(output$r3_pred, rep("N/A",6))
 
   # now need to verify the 2 or 3 modes
   # useReasonCodes="true", baselineMethod="min", reasonCodeAlgorithm="pointsAbove"
