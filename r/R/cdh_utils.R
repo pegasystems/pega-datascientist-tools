@@ -168,4 +168,53 @@ toPRPCDateTime <- function(x)
   return(strftime(x, format="%Y%m%dT%H%M%OS3", tz="GMT", usetz=T))
 }
 
+#' Helper function to return the actual and reported performance of ADM models.
+#'
+#' In the actual performance the actual score range of the model is
+#' taken into account, while for the stored (reported) performance that is not always the case. This function is mainly in support of validating
+#' a fix to the reported performance.
+#'
+#' @param dmModels A \code{data.table} with (possibly a subset of) the models exported from the ADM Datamart (\code{Data-Decision-ADM-ModelSnapshot}).
+#' @param dmPredictors A \code{data.table} with the predictors exported from the ADM Datamart (\code{Data-Decision-ADM-PredictorBinningSnapshot}).
+#'
+#' @return A \code{data.table} with model name, stored performance, actual performance, number of responses and the score range.
+#' @export
+#'
+#' @examples
+getModelPerformanceOverview <- function(dmModels, dmPredictors)
+{
+  # Similar steps for initial filtering and processing as in "adm2pmml" function
+  setnames(dmModels, tolower(names(dmModels)))
+  setnames(dmPredictors, tolower(names(dmPredictors)))
+  modelList <- createListFromDatamart(dmPredictors[pymodelid %in% dmModels$pymodelid],
+                                      fullName="Sales Models DMSample", tmpFolder=NULL, modelsForPartition=dmModels)
+
+  # Name, response count and reported performance obtained from the data directly. For the score min/max using the utility function
+  # that summarizes the predictor bins into a table ("scaling") with the min and max weight per predictor. These weights are the
+  # normalized log odds and score min/max is found by adding them up.
+  perfOverview <- data.table( pyname = sapply(modelList, function(m) {return(m$context$pyname)}),
+                              performance = sapply(modelList, function(m) {return(m$binning$performance[1])}),
+                              correct_performance = NA, # placeholder
+                              responses = sapply(modelList, function(m) {return(m$binning$totalpos[1] + m$binning$totalneg[1])}),
+                              score_min = sapply(modelList, function(m) {binz <- copy(m$binning); scaling <- setBinWeights(binz); return(sum(scaling$minWeight))}),
+                              score_max = sapply(modelList, function(m) {binz <- copy(m$binning); scaling <- setBinWeights(binz); return(sum(scaling$maxWeight))}))
+
+  classifiers <- lapply(modelList, function(m) { return (m$binning[predictortype == "CLASSIFIER"])})
+
+  findClassifierBin <- function( classifierBins, score )
+  {
+    if (nrow(classifierBins) == 1) return(1)
+
+    return (1 + findInterval(score, classifierBins$binupperbound[1 : (nrow(classifierBins) - 1)]))
+  }
+
+  perfOverview$nbins <- sapply(classifiers, nrow)
+  perfOverview$score_bin_min <- sapply(seq(nrow(perfOverview)), function(n) { return( findClassifierBin( classifiers[[n]], perfOverview$score_min[n]))} )
+  perfOverview$score_bin_max <- sapply(seq(nrow(perfOverview)), function(n) { return( findClassifierBin( classifiers[[n]], perfOverview$score_max[n]))} )
+  perfOverview$correct_performance <- sapply(seq(nrow(perfOverview)), function(n) { return( auc_from_bincounts(classifiers[[n]]$binpos[perfOverview$score_bin_min[n]:perfOverview$score_bin_max[n]],
+                                                                                                               classifiers[[n]]$binneg[perfOverview$score_bin_min[n]:perfOverview$score_bin_max[n]] )) })
+  setorder(perfOverview, pyname)
+
+  return(perfOverview)
+}
 
