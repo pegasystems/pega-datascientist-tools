@@ -58,12 +58,23 @@ readDSExport <- function(instancename, srcFolder=".", tmpFolder=srcFolder, exclu
   utils::unzip(zipFile, exdir=tmpFolder)
   multiLineJSON <- readLines(jsonFile)
   file.remove(jsonFile)
-  ds <- data.table(jsonlite::fromJSON(paste("[",paste(multiLineJSON,sep="",collapse = ","),"]")))
-  if (excludeComplexTypes) {
-    return(ds [, names(ds)[!sapply(ds, is_list)], with=F])
-  } else {
-    return(ds)
+  # To prevent OOM for very large files we chunk up the input for conversion to tabular. The average
+  # line length is obtained from the first 1000 entries, and we assume a max total of 500M.
+  # This is conservative at least on my laptop.
+  chunkSize <- trunc(500000000 / mean(sapply(head(multiLineJSON,1000), nchar)))
+  chunkList <- list()
+  for (n in seq(ceiling(length(multiLineJSON)/chunkSize))) {
+    from <- (n-1)*chunkSize+1
+    to <- min(n*chunkSize, length(multiLineJSON))
+    cat("From", from, "to", to, fill = T)
+    ds <- data.table(jsonlite::fromJSON(paste("[",paste(multiLineJSON[from:to],sep="",collapse = ","),"]")))
+    if (excludeComplexTypes) {
+      chunkList[[n]] <- ds [, names(ds)[!sapply(ds, is_list)], with=F]
+    } else {
+      chunkList[[n]] <- ds
+    }
   }
+  return(rbindlist(chunkList))
 }
 
 # Internal helper to keep auc a safe number between 0.5 and 1.0 always
@@ -179,8 +190,6 @@ toPRPCDateTime <- function(x)
 #'
 #' @return A \code{data.table} with model name, stored performance, actual performance, number of responses and the score range.
 #' @export
-#'
-#' @examples
 getModelPerformanceOverview <- function(dmModels, dmPredictors)
 {
   # Similar steps for initial filtering and processing as in "adm2pmml" function
