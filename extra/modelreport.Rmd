@@ -1,0 +1,229 @@
+---
+title: "Adaptive Model Report"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+  pdf_document: default
+params:
+  # Below default values for the parameters. This notebook is usually launched from a (bash)script in which
+  # these values are set. That also allows to run the notebook multiple times for different values.
+  predictordatafile:
+    # full path to the source file which should be an export of the ADM predictor binning table
+    # this example file is the same as the RDA file used elsewhere in demos of CDH tools
+    value: "../extra/pr_data_dm_admmart_pred.csv"
+  modeldescription:
+    # optional model description typically corresponding to the model info of the indicated model
+    value: "Sales Model - PSDISCOUNT100"
+  modelid:
+    # model ID found by examining the model table from the data mart; if there is just one model
+    # in the predictor binning file it can be left empty
+    value: "7cf6a839-9eba-5765-8856-1031b1e60315"
+---
+
+```{r, echo=F, warning=F, error=F, include=FALSE}
+library(data.table)
+library(lubridate)
+library(ggplot2)
+library(scales)
+library(knitr)
+library(kableExtra)
+```
+
+# Model report for: `r params$modeldescription`
+
+```{r, echo=F, warning=F, error=F, include=F}
+if (!file.exists(params$predictordatafile)) {
+  stop(paste("File does not exist:", params$predictordatafile))
+}
+modelPredictorBins <- fread(params$predictordatafile)
+
+# work with lower case names as the various exports processes won't guarantee that case is kept
+setnames(modelPredictorBins, tolower(names(modelPredictorBins)))
+
+# we do not require all fields in the data, this makes it more resilient to product version changes
+# NB Performance, Z-Ratio, Lift could have been calculated from the bins but not doing so guarantees consistency with the product reports
+# in older versions "pypredictortype" was called "pytype" - carefully rename
+if("pytype" %in% names(modelPredictorBins) & ! "pypredictortype" %in% names(modelPredictorBins)) {
+  names(modelPredictorBins)[which(names(modelPredictorBins) == "pytype")] <- "pypredictortype"
+}
+requiredFields <- c("pysnapshottime","pymodelid",
+                    "pypredictorname","pypredictortype","pyperformance",
+                    "pybinindex","pybinsymbol","pybinnegatives","pybinpositives","pyentrytype","pyzratio","pylift")
+optionalFields <- c("pygroupindex") # not present in all product versions
+if (!all(sapply(requiredFields, function(x) { return(x %in% names(modelPredictorBins)) }))) {
+  stop(paste("Not all required fields present. Expected:", paste(requiredFields, collapse = ", "), 
+             "\ngot:", paste(names(modelPredictorBins), collapse = ", "),
+             "\nmissing:", paste(setdiff(requiredFields, names(modelPredictorBins)) , collapse = ", ")))
+}
+
+# restrict the code below to only use those required fields
+modelPredictorBins <- modelPredictorBins[, intersect(names(modelPredictorBins), c(requiredFields, optionalFields)), with=F]
+
+# Excel exports sometimes screw up formatting of large numeric values - drop the comma used as thousands separators
+for (f in c("pybinnegatives","pybinpositives")) {
+  if (class(modelPredictorBins[[f]]) == "character") {
+    modelPredictorBins[[f]] <- as.numeric(gsub(',','',modelPredictorBins[[f]],fixed=T))
+  }
+}
+
+# make sure there is only ONE model ID or subset to just the one passed in
+if (params$modelid != "") {
+  modelPredictorBins <- modelPredictorBins[pymodelid == params$modelid]
+  if (nrow(modelPredictorBins) <= 1) {
+    stop(paste("No data found for model ID", params$modelid))
+  }
+} else {
+  if (length(unique(modelPredictorBins$pymodelid)) > 1) {
+    stop(paste0("Expected only a single model ID in the data, got ", length(unique(modelPredictorBins$pymodelid)), ". Pass in a model ID or split the file."))
+  }
+}
+
+# Predictor binning can have multiple snapshots. Keeping performance over time but only the last binning.
+hasMultipleSnapshots <- (length(unique(modelPredictorBins$pysnapshottime)) > 1)
+if (hasMultipleSnapshots) {
+  predPerformanceOverTime <- unique(modelPredictorBins[, c("pypredictorname", "pyperformance", "pysnapshottime"), with=F])  
+  
+  # Taking the last binning carefully - as we dont want to have old bins creep in. First subsetting
+  # to just the last day. Then within that day (it happens) taking the latest per bin. This could 
+  # still result in some inconsistencies but not so likely.
+  modelPredictorBins[, snapshotDay := as.POSIXct(strptime(pysnapshottime, format="%Y-%m-%d"))] # I hope this format is universal and not due to export tools. No need for floor_date this wasy.
+  modelPredictorBins <- modelPredictorBins[snapshotDay == max(snapshotDay)]
+  modelPredictorBins[, snapshotIdx := as.integer(factor(pysnapshottime)) ]
+  modelPredictorBins <- modelPredictorBins[, .(pypredictortype = pypredictortype[which.max(snapshotIdx)],
+                                               pybinsymbol = pybinsymbol[which.max(snapshotIdx)],
+                                               pyentrytype = pyentrytype[which.max(snapshotIdx)],
+                                               pyperformance = pyperformance[which.max(snapshotIdx)],
+                                               pybinnegatives = pybinnegatives[which.max(snapshotIdx)],
+                                               pybinpositives = pybinpositives[which.max(snapshotIdx)],
+                                               pylift = pylift[which.max(snapshotIdx)],
+                                               pyzratio = pyzratio[which.max(snapshotIdx)],
+                                               pysnapshottime = pysnapshottime[which.max(snapshotIdx)]), 
+                                           by=c("pymodelid", "pypredictorname", "pybinindex")]
+}
+
+# recalculate a few fields that are used - use the naming conventions from the data mart
+modelPredictorBins[, pybinresponsecount := (pybinpositives+pybinnegatives)]
+modelPredictorBins[, pypredictorpositives := sum(pybinpositives), by=pypredictorname]
+modelPredictorBins[, pypredictornegatives := sum(pybinnegatives), by=pypredictorname]
+if (!("pygroupindex" %in% names(modelPredictorBins))) {
+  modelPredictorBins[, pygroupindex := .GRP, by=pypredictorname]
+}
+
+setorder(modelPredictorBins, -pyperformance, pybinindex)
+```
+
+# Model Performance and Propensity Mapping
+
+The model has a performance of `r round(modelPredictorBins[pyentrytype == "Classifier"]$pyperformance[1],3)` measured in AUC.
+
+The models scores are mapped to propensities in the "Classifier" of ADM.
+
+```{r, results="asis", echo=F, warning=F, error=F, fig.align = "center"}
+binning <- modelPredictorBins[pyentrytype == "Classifier"]
+
+# TODO - highlight the actual range of the scores.
+# TODO - the propensity as returned by ADM is something like (0.5+pos)/(1+pos+neg). List both.
+
+binning[, bin := factor(pybinindex)]
+binning[, successrate := pybinpositives/pybinresponsecount]
+binning[, successratepct := 100*successrate]
+
+if (nrow(binning) < 1) {
+  cat("<p style='color:Red;'>NO data available for Classifier for date:", max(modelPredictorBins$pysnapshottime), "</p>", fill=T)
+} else {
+  secAxisFactor <- max(binning$pybinresponsecount)/max(binning$successrate, na.rm = T)
+  p <- ggplot(binning, aes(bin, successrate, group=1))+
+    geom_col(aes(y=pybinresponsecount/secAxisFactor), fill=("darkgreen"))+
+    geom_line(colour="orange", size=2)+geom_point()+
+    scale_y_continuous(limits=c(0, max(binning$successrate)), name="Success Rate", labels=percent,
+                       sec.axis = sec_axis(~.*secAxisFactor, name = "Responses"))+
+    scale_x_discrete(name = "", labels=binning$pybinsymbol) +
+    ggtitle("Score Distribution", subtitle = paste0(binning$pyentrytype[1], "; Performance=", binning$pyperformance[1]))+
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  print(p)
+
+  binningTable <- binning[, c("pybinindex", "pybinsymbol", "pybinnegatives", "pybinpositives", "successratepct", "pyzratio", "pylift"), with=F]
+  setnames(binningTable, c("Index", "Bin", "Negatives", "Positives", "Success Rate (%)", "Z-Ratio", "Lift"))
+  print(kable(binningTable, format = "markdown"))
+}
+```
+
+# Predictor summary
+
+Number of positives and negatives in each bin and the derived lift and Z-ratio. If grouping information is available, strongly correlated predictors are grouped, with the highest performance predictor groups on top. Groups are indicated by indentation.
+
+```{r, echo=F, warning=F, error=F, include=T}
+
+# TODO - the grouping could be displayed in more fancy ways using kableExtra options for grouping
+# TODO - consider colouring the predictor names by part before first dot ; unless there are > 10 of those
+
+predSummary <- modelPredictorBins[pyentrytype != "Classifier", .(Negatives = sum(pybinnegatives),
+                                                                    Positives = sum(pybinpositives),
+                                                                    Active = pyentrytype[1],
+                                                                    Type = pypredictortype[1],
+                                                                    Bins = .N,
+                                                                    Performance = pyperformance[1],
+                                                                    Group = pygroupindex[1]), by=pypredictorname]
+names(predSummary)[1] <- "Predictor"
+predSummary[, maxGroupPerformance := max(Performance), by=Group]
+setorder(predSummary, -maxGroupPerformance, -Performance)
+predSummary[, isFirstOfGroup := seq(.N)==1, by=Group]
+
+kable(predSummary[,-c("maxGroupPerformance", "isFirstOfGroup")]) %>%
+  kable_styling() %>%
+  add_indent(which(!predSummary$isFirstOfGroup))
+```
+
+# Predictor Binning
+
+Binning of all individual predictors. Predictors are listed in the same order as in the summary above.
+
+```{r, results="asis", echo=F, warning=F, error=F, fig.height = 5, fig.width = 6, fig.align = "center"}
+for (f in unique(modelPredictorBins[pyentrytype != "Classifier"]$pypredictorname)) {
+  binning <- modelPredictorBins[pypredictorname==f]
+  
+  if (nrow(binning) < 1) {
+    cat("<p style='color:Red;'>NO data available for", f, "for date:", max(modelPredictorBins$pysnapshottime), "</p>", fill=T)
+  } else {
+  
+    cat(paste0("\n<p></p>## ", f, "\n<p></p>"))
+    cat(paste0("Performance: ", binning$pyperformance[1], "\n<p></p>"))
+    cat(paste0("Status: ", binning$pyentrytype[1], "\n<p></p>"))
+    cat(paste0("Group: ", binning$pygroupindex[1], "\n<p></p>"))
+    
+    correlatedPreds <- predSummary[Group == predSummary[Predictor==f]$Group & Predictor != f]
+    if (nrow(correlatedPreds) > 0) { 
+      cat(paste0("Correlated Predictors: ", paste(correlatedPreds$pypredictorname, collapse = ", "), "\n<p></p>"))
+    }
+    
+    binning[, bin := factor(pybinindex)]
+    binning[, successrate := pybinpositives/pybinresponsecount]
+    binning[, successratepct := 100*successrate]
+    secAxisFactor <- max(binning$pybinresponsecount)/max(binning$successrate, na.rm = T)
+    # colour names: http://sape.inf.usi.ch/quick-reference/ggplot2/colour
+    
+    if (nrow(binning) > 1) {
+      p <- ggplot(binning, aes(bin, successrate, group=1))+
+        geom_col(aes(y=pybinresponsecount/secAxisFactor), fill=ifelse(binning$pyentrytype[1]=="Active","steelblue3",muted("steelblue3")))+
+        geom_line(colour=ifelse(binning$pyentrytype[1]=="Active","orange",muted("orange")), size=2)+geom_point()+
+        geom_hline(data=binning[1,], mapping = aes(yintercept = pypredictorpositives/(pypredictorpositives+pypredictornegatives)),
+                   colour=ifelse(binning$pyentrytype[1]=="Active","orange",muted("orange")), linetype="dashed") +
+        scale_y_continuous(limits=c(0, max(binning$successrate)), name="Success Rate", labels=percent,
+                           sec.axis = sec_axis(~.*secAxisFactor, name = "Responses"))+
+        scale_x_discrete(name = "", 
+                         labels=ifelse(binning$pypredictortype == "numeric" | nchar(binning$pybinsymbol) <= 25, 
+                                       binning$pybinsymbol, 
+                                       paste(substr(binning$pybinsymbol, 1, 25), "..."))) +
+        ggtitle(f, subtitle = paste0(binning$pyentrytype[1], "; Performance=", binning$pyperformance[1]))+
+        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+      print(p)
+    }  
+    
+    binningTable <- binning[, c("pybinindex", "pybinsymbol", "pybinnegatives", "pybinpositives", "successratepct", "pyzratio", "pylift"), with=F]
+    setnames(binningTable, c("Index", "Bin", "Negatives", "Positives", "Success Rate (%)", "Z-Ratio", "Lift"))
+    print(kable(binningTable, format = "markdown"))
+  }
+}
+```
+
