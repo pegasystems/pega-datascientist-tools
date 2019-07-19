@@ -28,6 +28,12 @@ library(ggplot2)
 library(scales)
 library(knitr)
 library(kableExtra)
+
+# TODO: 
+# - classifier plot should use the corrected propensity, table should list both
+# - classifier plot should list the actual score range (get from cdhtools)
+# - classifier preamble could also show (text) the overall success rate (now success rate is ok maybe, or base propensity)
+# - it would be nice to show total pos and neg underneath the tables, and overall success rate
 ```
 
 # Model report for: `r params$modeldescription`
@@ -200,7 +206,9 @@ for (f in unique(modelPredictorBins[pyentrytype != "Classifier"]$pypredictorname
     binning[, bin := factor(pybinindex)]
     binning[, successrate := pybinpositives/pybinresponsecount]
     binning[, successratepct := 100*successrate]
-    secAxisFactor <- max(binning$pybinresponsecount)/max(binning$successrate, na.rm = T)
+    successRateMax <- max(binning$successrate, na.rm = T)
+    if (0 == successRateMax) { successRateMax <- 1 }
+    secAxisFactor <- max(binning$pybinresponsecount)/successRateMax
     # colour names: http://sape.inf.usi.ch/quick-reference/ggplot2/colour
     
     if (nrow(binning) > 1) {
@@ -209,7 +217,7 @@ for (f in unique(modelPredictorBins[pyentrytype != "Classifier"]$pypredictorname
         geom_line(colour=ifelse(binning$pyentrytype[1]=="Active","orange",muted("orange")), size=2)+geom_point()+
         geom_hline(data=binning[1,], mapping = aes(yintercept = pypredictorpositives/(pypredictorpositives+pypredictornegatives)),
                    colour=ifelse(binning$pyentrytype[1]=="Active","orange",muted("orange")), linetype="dashed") +
-        scale_y_continuous(limits=c(0, max(binning$successrate)), name="Success Rate", labels=percent,
+        scale_y_continuous(limits=c(0, successRateMax), name="Success Rate", labels=percent,
                            sec.axis = sec_axis(~.*secAxisFactor, name = "Responses"))+
         scale_x_discrete(name = "", 
                          labels=ifelse(binning$pypredictortype == "numeric" | nchar(binning$pybinsymbol) <= 25, 
