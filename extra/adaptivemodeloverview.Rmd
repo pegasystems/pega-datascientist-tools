@@ -1,0 +1,156 @@
+---
+title: "Adaptive Model Overview Report"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+  pdf_document: default
+params:
+  # Below default values for the parameters. This notebook is usually launched from a (bash)script in which
+  # these values are set. That also allows to run the notebook multiple times for different values.
+  modelfile:
+    # full path to the source file which should be an export of the ADM model table
+    value: "<FULL PATH TO MODEL FILE>"
+  modellist:
+    # an optional simple text file with model ID and model names for driving the creation of individual model reports
+    value: ""
+---
+
+```{r, echo=F, warning=F, error=F, include=FALSE}
+library(data.table)
+library(lubridate)
+library(ggplot2)
+library(colorspace)
+library(scales)
+library(knitr)
+library(kableExtra)
+```
+
+# Overview of Adaptive Models
+
+This notebook gives a global overview of the adaptive models from the data mart. Detailed model reports for individual model instances can be created by running the "modelreport" scripts.
+
+```{r, echo=F, warning=F, error=F, include=F}
+if (!file.exists(params$modelfile)) {
+  stop(paste("File does not exist:", params$modelfile))
+}
+
+if (endsWith(params$modelfile, ".zip")) {
+  # NB this might be Linux/Mac only perhaps, consider making configurable
+  mdls <- fread(cmd=paste("unzip -p", gsub(" ", "\\ ", params$modelfile, fixed = T))) 
+} else {
+  mdls <- fread(params$modelfile)
+}
+
+# work with lower case names as the various exports processes won't guarantee that case is kept
+setnames(mdls, tolower(names(mdls)))
+mdls <- mdls[, setdiff(names(mdls), c("pxcommitdatetime", "pzinskey", "pxinsname", "pxobjclass", "pxapplication")), with=F]
+mdls[, pysnapshottime := as.POSIXct(pysnapshottime, format="%Y-%m-%d %H:%M:%S")]
+mdls[, SuccessRate := pypositives/(pypositives+pynegatives)] 
+mdls[, Evidence := pypositives+pynegatives] 
+mdls[, Performance := 100*pyperformance]
+
+# pyTreatment is only there when using CDH/Marketing
+if (!("pytreatment" %in% names(mdls))) {
+  mdls[, pytreatment := ""]
+}
+
+# write list of models so the script (createModelReports) to generate off-line model reports can be run automatically
+write.table(unique(mdls[, c("pymodelid","pyname"), with=F]), 
+            params$modellist, row.names = F, col.names = F, quote=F, sep=";")
+
+```
+
+## Model Performance vs Offer Success Rate
+
+Standard performance - success rate plot.
+
+```{r, results="asis", echo=F, warning=F, error=F, fig.align = "center"}
+hasLargeModelList <- (length(unique(mdls$pyname)) > 10)
+latestMdls <- mdls[, 
+                   .(Performance = Performance[which.max(pysnapshottime)],
+                     SuccessRate = SuccessRate[which.max(pysnapshottime)],
+                     Evidence = Evidence[which.max(pysnapshottime)]), 
+                   by=c("pymodelid", "pyissue","pygroup","pyname","pydirection","pychannel","pytreatment","pyconfigurationname")]
+
+p <- ggplot(latestMdls, aes(Performance, SuccessRate, size=Evidence, colour=pyname)) +
+  geom_point()+
+  scale_color_discrete_qualitative(guide=!hasLargeModelList) +
+  theme_minimal() +
+  facet_wrap(~pyconfigurationname, scales = "free_y")+
+  scale_y_continuous(labels = scales::percent)+
+  ggtitle("Performance vs Success Rate", subtitle = "for latest snapshots")
+print(p)
+```
+
+
+## Model Performance over Time
+
+```{r, results="asis", echo=F, warning=F, error=F, fig.align = "center"}
+# All models individually
+p <- ggplot(mdls[!is.na(pysnapshottime)], aes(pysnapshottime, Performance, color=pyname)) + geom_line() +
+  facet_wrap(~ pyconfigurationname) + ggtitle("Model Performance over Time") +
+  scale_color_discrete_qualitative(guide=!hasLargeModelList) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+print(p)
+
+# Aggregate view
+mdls[, SnapshotWeek := floor_date(pysnapshottime, unit="weeks")]
+discretizedView <- mdls[!is.na(pysnapshottime), 
+                        .(Performance = weighted.mean(Performance, Evidence, na.rm = T),
+                          PerformanceP10 = quantile(Performance, probs=0.1, na.rm = T),
+                          PerformanceP90 = quantile(Performance, probs=0.9, na.rm = T),
+                          SuccessRate = weighted.mean(SuccessRate, Evidence, na.rm = T),
+                          SuccessRateP10 = quantile(SuccessRate, probs=0.1, na.rm = T),
+                          SuccessRateP90 = quantile(SuccessRate, probs=0.9, na.rm = T)), 
+                        by=c("SnapshotWeek", "pyconfigurationname")]
+
+p <- ggplot(discretizedView, aes(SnapshotWeek, Performance)) + 
+  geom_line(size=1) +
+  geom_line(aes(y=PerformanceP10), color="blue", linetype="dashed")+
+  geom_line(aes(y=PerformanceP90), color="blue", linetype="dashed")+
+  facet_wrap(~ pyconfigurationname) + ggtitle("Model Performance over Time", subtitle = "Aggregated view with P10 and P90") +
+  scale_color_discrete_qualitative(guide=!hasLargeModelList) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+print(p)
+```
+
+## Model Success Rate over Time
+
+Similar, showing the success rate over time.
+
+The same models that have higher model performance also generally have a higher success rate.
+
+```{r, results="asis", echo=F, warning=F, error=F, fig.align = "center"}
+p<-ggplot(mdls[!is.na(pysnapshottime)], aes(pysnapshottime, SuccessRate, color=pyname)) + geom_line() +
+  facet_wrap(~ pyconfigurationname, scales = "free") + ggtitle("Proposition Success Rate over Time") +
+  scale_color_discrete_qualitative(guide=!hasLargeModelList) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+print(p)
+
+p<-ggplot(discretizedView, aes(SnapshotWeek, SuccessRate)) + 
+  geom_line(size=1) +
+  geom_line(aes(y=SuccessRateP10), color="blue", linetype="dashed")+
+  geom_line(aes(y=SuccessRateP90), color="blue", linetype="dashed")+
+  facet_wrap(~ pyconfigurationname) + ggtitle("Proposition Success Rate over Time", subtitle = "Aggregated view with P10 and P90") +
+  scale_color_discrete_qualitative(guide=!hasLargeModelList) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+print(p)
+```
+
+# Predictor Overview
+
+TODO...
+
+Read predictor binning file if present and show the distribution of the predictor performance across models.
+
+# Appendix - all the models
+
+```{r, results="asis", echo=F, warning=F, error=F, fig.align = "center"}
+kable(unique(mdls[, c("pymodelid","pyconfigurationname","pyname"), with=F])[order(pyconfigurationname, pyname)])
+```
+

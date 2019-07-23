@@ -42,7 +42,12 @@ library(kableExtra)
 if (!file.exists(params$predictordatafile)) {
   stop(paste("File does not exist:", params$predictordatafile))
 }
-modelPredictorBins <- fread(params$predictordatafile)
+if (endsWith(params$predictordatafile, ".zip")) {
+  # NB this might be Linux/Mac only perhaps, consider making configurable
+  modelPredictorBins <- fread(cmd=paste("unzip -p", gsub(" ", "\\ ", params$predictordatafile, fixed = T))) 
+} else {
+  modelPredictorBins <- fread(params$predictordatafile)
+}
 
 # work with lower case names as the various exports processes won't guarantee that case is kept
 setnames(modelPredictorBins, tolower(names(modelPredictorBins)))
