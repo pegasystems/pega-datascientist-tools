@@ -10,13 +10,14 @@ params:
   # these values are set. That also allows to run the notebook multiple times for different values.
   modelfile:
     # full path to the source file which should be an export of the ADM model table
-    value: "<FULL PATH TO MODEL FILE>"
+    value: "../extra/pr_data_dm_admmart_mdl_fact.csv"
   modellist:
     # an optional simple text file with model ID and model names for driving the creation of individual model reports
     value: ""
 ---
 
 ```{r, echo=F, warning=F, error=F, include=FALSE}
+library(cdhtools)
 library(data.table)
 library(lubridate)
 library(ggplot2)
@@ -45,14 +46,20 @@ if (endsWith(params$modelfile, ".zip")) {
 # work with lower case names as the various exports processes won't guarantee that case is kept
 setnames(mdls, tolower(names(mdls)))
 mdls <- mdls[, setdiff(names(mdls), c("pxcommitdatetime", "pzinskey", "pxinsname", "pxobjclass", "pxapplication")), with=F]
-mdls[, pysnapshottime := as.POSIXct(pysnapshottime, format="%Y-%m-%d %H:%M:%S")]
+if (sum(is.na(fromPRPCDateTime(head(mdls$pysnapshottime, 100)))) < 50) { # try guess date format using first 100 records
+  mdls[, pysnapshottime := fromPRPCDateTime(pysnapshottime)]
+} else {
+  mdls[, pysnapshottime := as.POSIXct(pysnapshottime, format="%Y-%m-%d %H:%M:%S")]
+}
 mdls[, SuccessRate := pypositives/(pypositives+pynegatives)] 
 mdls[, Evidence := pypositives+pynegatives] 
 mdls[, Performance := 100*pyperformance]
 
-# pyTreatment is only there when using CDH/Marketing
-if (!("pytreatment" %in% names(mdls))) {
-  mdls[, pytreatment := ""]
+# These are not always there
+for (fld in c("pytreatment", "pydirection", "pychannel")) {
+  if (!fld %in% names(mdls)) {
+    mdls[[fld]] <- ""
+  }
 }
 
 # write list of models so the script (createModelReports) to generate off-line model reports can be run automatically
@@ -67,6 +74,11 @@ Standard performance - success rate plot.
 
 ```{r, results="asis", echo=F, warning=F, error=F, fig.align = "center"}
 hasLargeModelList <- (length(unique(mdls$pyname)) > 10)
+if (hasLargeModelList) {
+  colorScale <- scale_color_discrete_qualitative(guide=F)
+} else {
+  colorScale <- scale_color_discrete_qualitative()
+}
 latestMdls <- mdls[, 
                    .(Performance = Performance[which.max(pysnapshottime)],
                      SuccessRate = SuccessRate[which.max(pysnapshottime)],
@@ -75,7 +87,8 @@ latestMdls <- mdls[,
 
 p <- ggplot(latestMdls, aes(Performance, SuccessRate, size=Evidence, colour=pyname)) +
   geom_point()+
-  scale_color_discrete_qualitative(guide=!hasLargeModelList) +
+  colorScale+
+  xlim(c(50,100))+
   theme_minimal() +
   facet_wrap(~pyconfigurationname, scales = "free_y")+
   scale_y_continuous(labels = scales::percent)+
@@ -90,7 +103,7 @@ print(p)
 # All models individually
 p <- ggplot(mdls[!is.na(pysnapshottime)], aes(pysnapshottime, Performance, color=pyname)) + geom_line() +
   facet_wrap(~ pyconfigurationname) + ggtitle("Model Performance over Time") +
-  scale_color_discrete_qualitative(guide=!hasLargeModelList) +
+  colorScale+
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 print(p)
@@ -111,7 +124,7 @@ p <- ggplot(discretizedView, aes(SnapshotWeek, Performance)) +
   geom_line(aes(y=PerformanceP10), color="blue", linetype="dashed")+
   geom_line(aes(y=PerformanceP90), color="blue", linetype="dashed")+
   facet_wrap(~ pyconfigurationname) + ggtitle("Model Performance over Time", subtitle = "Aggregated view with P10 and P90") +
-  scale_color_discrete_qualitative(guide=!hasLargeModelList) +
+  colorScale+
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 print(p)
@@ -126,7 +139,7 @@ The same models that have higher model performance also generally have a higher 
 ```{r, results="asis", echo=F, warning=F, error=F, fig.align = "center"}
 p<-ggplot(mdls[!is.na(pysnapshottime)], aes(pysnapshottime, SuccessRate, color=pyname)) + geom_line() +
   facet_wrap(~ pyconfigurationname, scales = "free") + ggtitle("Proposition Success Rate over Time") +
-  scale_color_discrete_qualitative(guide=!hasLargeModelList) +
+  colorScale +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 print(p)
@@ -136,7 +149,7 @@ p<-ggplot(discretizedView, aes(SnapshotWeek, SuccessRate)) +
   geom_line(aes(y=SuccessRateP10), color="blue", linetype="dashed")+
   geom_line(aes(y=SuccessRateP90), color="blue", linetype="dashed")+
   facet_wrap(~ pyconfigurationname) + ggtitle("Proposition Success Rate over Time", subtitle = "Aggregated view with P10 and P90") +
-  scale_color_discrete_qualitative(guide=!hasLargeModelList) +
+  colorScale +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 print(p)
