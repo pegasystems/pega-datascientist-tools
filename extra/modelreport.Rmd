@@ -36,7 +36,7 @@ library(kableExtra)
 # - it would be nice to show total pos and neg underneath the tables, and overall success rate
 ```
 
-# Model report for: `r params$modeldescription`
+# Model report for: `r params$modeldescription` at `r today()`
 
 ```{r, echo=F, warning=F, error=F, include=F}
 if (!file.exists(params$predictordatafile)) {
