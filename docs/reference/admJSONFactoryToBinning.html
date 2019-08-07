@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Turns an ADM Factory JSON into an easy-to-process binning table. — createListFromSingleJSONFactoryString • cdhtools</title>
+<title>Turns an ADM Factory JSON into an easy-to-process binning table. — admJSONFactoryToBinning • cdhtools</title>
 
 <!-- jquery -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
@@ -30,10 +30,9 @@
 
 
 
-<meta property="og:title" content="Turns an ADM Factory JSON into an easy-to-process binning table. — createListFromSingleJSONFactoryString" />
+<meta property="og:title" content="Turns an ADM Factory JSON into an easy-to-process binning table. — admJSONFactoryToBinning" />
 
-<meta property="og:description" content="Although primarily used for
-internal use, is useful when reading from the ADM Factory table directly." />
+<meta property="og:description" content="This is an interface to the internal ADM Factory table to get the binning details of all predictors of the model." />
 <meta name="twitter:card" content="summary" />
 
 
@@ -112,46 +111,27 @@ internal use, is useful when reading from the ADM Factory table directly." />
     <div class="page-header">
     <h1>Turns an ADM Factory JSON into an easy-to-process binning table.</h1>
     
-    <div class="hidden name"><code>createListFromSingleJSONFactoryString.Rd</code></div>
+    <div class="hidden name"><code>admJSONFactoryToBinning.Rd</code></div>
     </div>
 
     <div class="ref-description">
     
-    <p>Although primarily used for
-internal use, is useful when reading from the ADM Factory table directly.</p>
+    <p>This is an interface to the internal ADM Factory table to get the binning details of all predictors of the model.</p>
     
     </div>
 
-    <pre class="usage"><span class='fu'>createListFromSingleJSONFactoryString</span>(<span class='no'>aFactory</span>, <span class='no'>id</span>, <span class='no'>overallModelName</span>,
-  <span class='kw'>tmpFolder</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>forceLowerCasePredictorNames</span> <span class='kw'>=</span> <span class='no'>F</span>,
-  <span class='kw'>activePredsOnly</span> <span class='kw'>=</span> <span class='no'>T</span>)</pre>
+    <pre class="usage"><span class='fu'>admJSONFactoryToBinning</span>(<span class='no'>factoryJSON</span>, <span class='kw'>modelname</span> <span class='kw'>=</span> <span class='st'>"dummy"</span>)</pre>
     
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>aFactory</th>
-      <td><p>JSON string with a single ADM model</p></td>
+      <th>factoryJSON</th>
+      <td><p>JSON string for a single model, usually the pyfactory field from the table returned by getModelsFromJSONTable.</p></td>
     </tr>
     <tr>
-      <th>id</th>
-      <td><p>ID of the model</p></td>
-    </tr>
-    <tr>
-      <th>overallModelName</th>
-      <td><p>Name of the model</p></td>
-    </tr>
-    <tr>
-      <th>tmpFolder</th>
-      <td><p>Optional temp folder. When specifying this, the JSON will be dumped there.</p></td>
-    </tr>
-    <tr>
-      <th>forceLowerCasePredictorNames</th>
-      <td><p>Force all predictor names to lowercase, easier for testing purposes.</p></td>
-    </tr>
-    <tr>
-      <th>activePredsOnly</th>
-      <td><p>Whether or not to only include active predictors. PMML conversion only uses active predictors.</p></td>
+      <th>modelname</th>
+      <td><p>Optional name for the model, filled in into the modelid field of the binning table.</p></td>
     </tr>
     </table>
     
@@ -160,6 +140,9 @@ internal use, is useful when reading from the ADM Factory table directly.</p>
     <p>A list with a binning element containing the flattened-out predictor binning and a context key.</p>
     
 
+    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
+    <pre class="examples"><div class='input'>#' \dontrun{admFactory <- getModelsFromJSONTable(conn); binning <- admJSONFactoryToBinning(admFactory$pyfactory[1])}
+</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>
@@ -167,7 +150,9 @@ internal use, is useful when reading from the ADM Factory table directly.</p>
       <li><a href="#arguments">Arguments</a></li>
       
       <li><a href="#value">Value</a></li>
-          </ul>
+      
+      <li><a href="#examples">Examples</a></li>
+    </ul>
 
   </div>
 </div>

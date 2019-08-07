@@ -150,20 +150,6 @@ getSymBinningFromJSON <- function(symField, id, modelname)
               smoothing = symField$laplaceSmoothingValue)
 }
 
-#' Turns an ADM Factory JSON into an easy-to-process binning table.
-#'
-#' Although primarily used for
-#' internal use, is useful when reading from the ADM Factory table directly.
-#'
-#' @param aFactory JSON string with a single ADM model
-#' @param id ID of the model
-#' @param overallModelName Name of the model
-#' @param tmpFolder Optional temp folder. When specifying this, the JSON will be dumped there.
-#' @param forceLowerCasePredictorNames Force all predictor names to lowercase, easier for testing purposes.
-#' @param activePredsOnly Whether or not to only include active predictors. PMML conversion only uses active predictors.
-#'
-#' @return A list with a binning element containing the flattened-out predictor binning and a context key.
-#' @export
 createListFromSingleJSONFactoryString <- function(aFactory, id, overallModelName, tmpFolder=NULL, forceLowerCasePredictorNames=F, activePredsOnly=T)
 {
   model <- fromJSON(aFactory)
@@ -249,4 +235,22 @@ createListFromADMFactory <- function(partitions, overallModelName, tmpFolder=NUL
                  function(x) { return(createListFromSingleJSONFactoryString(partitions$pyfactory[which(partitions$pymodelpartitionid==x)], x, overallModelName, tmpFolder, forceLowerCasePredictorNames)) })
   names(pmml) <- partitions$pymodelpartitionid
   return(pmml)
+}
+
+#' Turns an ADM Factory JSON into an easy-to-process binning table.
+#'
+#' This is an interface to the internal ADM Factory table to get the binning details of all predictors of the model.
+#'
+#' @param factoryJSON JSON string for a single model, usually the pyfactory field from the table returned by getModelsFromJSONTable.
+#' @param modelname Optional name for the model, filled in into the modelid field of the binning table.
+#'
+#' @return A list with a binning element containing the flattened-out predictor binning and a context key.
+#' @export
+#'
+#' @examples
+#' #' \dontrun{admFactory <- getModelsFromJSONTable(conn); binning <- admJSONFactoryToBinning(admFactory$pyfactory[1])}
+admJSONFactoryToBinning <- function(factoryJSON, modelname="dummy")
+{
+  factoryDetail <- createListFromSingleJSONFactoryString(factoryJSON, id=modelname, overallModelName=modelname, tmpFolder=NULL, forceLowerCasePredictorNames=F, activePredsOnly=F)
+  return(factoryDetail$binning)
 }
