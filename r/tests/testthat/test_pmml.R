@@ -121,7 +121,7 @@ compareCSV <- function(dmCSV, jsonCSV)
 # scoring that with JPMML against provided inputs and comparing the results against expected values.
 pmml_unittest <- function(testName)
 {
-  testFolder <- "adm2pmml-testdata"
+  testFolder <- "d"
   tmpFolder <- paste(testFolder, "tmp", sep="/")
   if (!dir.exists(tmpFolder)) dir.create(tmpFolder)
 
@@ -250,7 +250,7 @@ test_that("Test the test generator", {
 test_that("Scorecard reason codes", {
   context("Scorecard reason codes")
 
-  testFolder <- "adm2pmml-testdata"
+  testFolder <- "d"
   tmpFolder <- paste(testFolder, "tmp2", sep="/")
   if (!dir.exists(tmpFolder)) dir.create(tmpFolder)
 

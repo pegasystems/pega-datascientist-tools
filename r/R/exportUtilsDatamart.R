@@ -202,22 +202,26 @@ getPredictorDataFromDatamart <- function(dmbinning, id, overallModelName, tmpFol
                          bintype = apply(dmbinning, 1, getBinTypeFromDatamart),
                          binpos = as.numeric(dmbinning$pybinpositives),
                          binneg = as.numeric(dmbinning$pybinnegatives),
+                         binidx = as.integer(dmbinning$pybinindex),
                          totalpos = as.numeric(dmbinning$pypositives),
                          totalneg = as.numeric(dmbinning$pynegatives),
                          smoothing = as.numeric(NA),
-                         performance = as.numeric(dmbinning$pyperformance[dmbinning$pyentrytype=="Classifier"][1]), # performance is of the model, not of the individual predictors
-                         tmpBinIndex = as.integer(dmbinning$pybinindex))
+                         isactive = T, # NB currently this only lists the active predictors - subset above
+                         performance = as.numeric(dmbinning$pyperformance[dmbinning$pyentrytype=="Classifier"][1])) # performance is of the model, not of the individual predictors
 
   # Sanitize the representation
 
   binning[bintype == "MISSING", binlabel := "Missing"] # for consistency
   binning[bintype == "REMAININGSYMBOLS", binlabel := "Other"] # for consistency
 
+  # If there are missings, their binidx should start at 0
+  binning[, binidx := binidx - ifelse(any(bintype == "MISSING"), 1L, 0L), by=c("modelid", "predictorname")]
+
   # - change num intervals to use NA to indicate inclusiveness of bounds
   binning[predictortype != "SYMBOLIC" & bintype != "MISSING",
           c("binlowerbound", "binupperbound") :=
-            list(ifelse(tmpBinIndex==min(tmpBinIndex),as.numeric(NA),binlowerbound),
-                 ifelse(tmpBinIndex==max(tmpBinIndex),as.numeric(NA),binupperbound)),
+            list(ifelse(binidx==min(binidx),as.numeric(NA),binlowerbound),
+                 ifelse(binidx==max(binidx),as.numeric(NA),binupperbound)),
           by=c("modelid", "predictorname")]
 
   # - add "smoothing" field in the exact same manner that ADM does it (see ISSUE-22141)
@@ -239,9 +243,10 @@ getPredictorDataFromDatamart <- function(dmbinning, id, overallModelName, tmpFol
   # - add MISSING bins when absent
   # - NOTE we set pos/neg to 0 for the newly created bins similar to what ADM does but this is debatable (ISSUE-22143)
   binningSummary <- binning[predictortype != "CLASSIFIER",
-                            .(nMissing=sum(bintype=="MISSING"),
-                              nRemaining=sum(bintype=="REMAININGSYMBOLS")),
-                            by=c("modelid", "predictorname", "predictortype", "totalpos", "totalneg", "smoothing", "performance")]
+                            .(nMissing = sum(bintype=="MISSING"),
+                              nRemaining = sum(bintype=="REMAININGSYMBOLS"),
+                              maxBinIdx = max(c(0,binidx), na.rm = T)),
+                            by=c("modelid", "predictorname", "predictortype", "totalpos", "totalneg", "smoothing", "isactive", "performance")]
 
   if(any(binningSummary$nMissing < 1)) {
     defaultsForMissingBin <- data.table( modelid = binning$modelid[1],
@@ -250,8 +255,11 @@ getPredictorDataFromDatamart <- function(dmbinning, id, overallModelName, tmpFol
                                          binupperbound=NA,
                                          bintype="MISSING",
                                          binpos=0,
-                                         binneg=0)
-    missingMissings <- merge(binningSummary[nMissing==0], defaultsForMissingBin, all.x=T, by="modelid")[, BINNINGTABLEFIELDS, with=F]
+                                         binneg=0,
+                                         binidx=0)
+    missingMissings <- merge(binningSummary[nMissing==0],
+                             defaultsForMissingBin,
+                             all.x=T, by="modelid")[, BINNINGTABLEFIELDS, with=F]
   } else {
     missingMissings <- data.table()
   }
@@ -264,8 +272,11 @@ getPredictorDataFromDatamart <- function(dmbinning, id, overallModelName, tmpFol
                                            binupperbound=NA,
                                            bintype="REMAININGSYMBOLS",
                                            binpos=0,
-                                           binneg=0)
-    missingRemainings <- merge(binningSummary[predictortype=="SYMBOLIC" & nRemaining==0], defaultsForRemainingBin, all.x=T, by="modelid")[, BINNINGTABLEFIELDS, with=F]
+                                           binneg=0,
+                                           binidx=NA)
+    missingRemainings <- merge(binningSummary[predictortype=="SYMBOLIC" & nRemaining==0],
+                               defaultsForRemainingBin,
+                               all.x=T, by="modelid")[, binidx := 1+maxBinIdx][, BINNINGTABLEFIELDS, with=F]
   } else {
     missingRemainings <- data.table()
   }

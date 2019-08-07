@@ -44,8 +44,8 @@ nrExplanations <- 3 # return top-3 reason codes
 
 BINTYPES <- c("MISSING", "SYMBOL", "INTERVAL", "REMAININGSYMBOLS")
 BINNINGTABLEFIELDS <- c("modelid", "predictorname", "predictortype",
-                        "binlabel", "binlowerbound", "binupperbound", "bintype", "binpos", "binneg",
-                        "totalpos", "totalneg", "smoothing", "performance")
+                        "binlabel", "binlowerbound", "binupperbound", "bintype", "binpos", "binneg", "binidx",
+                        "totalpos", "totalneg", "smoothing", "isactive", "performance")
 
 createNumArray <- function(a)
 {
