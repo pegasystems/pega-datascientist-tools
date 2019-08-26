@@ -143,15 +143,28 @@ binning[, successratepct := 100*successrate]
 if (nrow(binning) < 1) {
   cat("<p style='color:Red;'>NO data available for Classifier for date:", max(modelPredictorBins$pysnapshottime), "</p>", fill=T)
 } else {
-  secAxisFactor <- max(binning$pybinresponsecount)/max(binning$successrate, na.rm = T)
-  p <- ggplot(binning, aes(bin, successrate, group=1))+
-    geom_col(aes(y=pybinresponsecount/secAxisFactor), fill=("darkgreen"))+
-    geom_line(colour="orange", size=2)+geom_point()+
-    scale_y_continuous(limits=c(0, max(binning$successrate)), name="Success Rate", labels=percent,
-                       sec.axis = sec_axis(~.*secAxisFactor, name = "Responses"))+
-    scale_x_discrete(name = "", labels=binning$pybinsymbol) +
-    ggtitle("Score Distribution", subtitle = paste0(binning$pyentrytype[1], "; Performance=", binning$pyperformance[1]))+
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  successRateMax <- max(binning$successrate, na.rm = T)
+  if (0 == successRateMax) { successRateMax <- 1 }
+  secAxisFactor <- max(binning$pybinresponsecount)/successRateMax
+    
+  if (0 == secAxisFactor) {
+    p <- ggplot(binning, aes(bin, pybinresponsecount)) +
+      geom_col(fill = "darkgreen") +
+      scale_y_continuous(limits=c(0, max(binning$successrate)), name="Success Rate", labels=percent,
+                         sec.axis = sec_axis(~.*secAxisFactor, name = "Responses")) +
+      scale_x_discrete(name = "", labels=binning$pybinsymbol) +
+      ggtitle("Score Distribution", subtitle = paste0(binning$pyentrytype[1], "; Performance=", binning$pyperformance[1]))+
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  } else {
+    p <- ggplot(binning, aes(bin, successrate, group=1))+
+      geom_col(aes(y=pybinresponsecount/secAxisFactor), fill="darkgreen")+
+      geom_line(colour="orange", size=2)+geom_point()+
+      scale_y_continuous(limits=c(0, max(binning$successrate)), name="Success Rate", labels=percent,
+                         sec.axis = sec_axis(~.*secAxisFactor, name = "Responses"))+
+      scale_x_discrete(name = "", labels=binning$pybinsymbol) +
+      ggtitle("Score Distribution", subtitle = paste0(binning$pyentrytype[1], "; Performance=", binning$pyperformance[1]))+
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  }
   print(p)
 
   binningTable <- binning[, c("pybinindex", "pybinsymbol", "pybinnegatives", "pybinpositives", "successratepct", "pyzratio", "pylift"), with=F]
