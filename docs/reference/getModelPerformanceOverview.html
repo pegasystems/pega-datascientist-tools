@@ -124,7 +124,8 @@ a fix to the reported performance.</p>
     
     </div>
 
-    <pre class="usage"><span class='fu'>getModelPerformanceOverview</span>(<span class='no'>dmModels</span>, <span class='no'>dmPredictors</span>)</pre>
+    <pre class="usage"><span class='fu'>getModelPerformanceOverview</span>(<span class='kw'>dmModels</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>dmPredictors</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>jsonPartitions</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
     
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -136,6 +137,10 @@ a fix to the reported performance.</p>
     <tr>
       <th>dmPredictors</th>
       <td><p>A <code>data.table</code> with the predictors exported from the ADM Datamart (<code>Data-Decision-ADM-PredictorBinningSnapshot</code>).</p></td>
+    </tr>
+    <tr>
+      <th>jsonPartitions</th>
+      <td><p>A list with the (possibly subset) partitions data from the ADM Factory table</p></td>
     </tr>
     </table>
     

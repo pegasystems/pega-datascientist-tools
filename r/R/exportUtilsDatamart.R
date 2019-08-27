@@ -98,7 +98,8 @@ getModelsFromDatamart <- function(conn, appliesToFilter=NULL, ruleNameFilter=NUL
 #' @export
 #'
 #' @examples
-#' \dontrun{models <- getModelsFromDatamart(conn); preds <- getPredictorsForModelsFromDatamart(conn, models)}
+#' \dontrun{models <- getModelsFromDatamart(conn)
+#' preds <- getPredictorsForModelsFromDatamart(conn, models)}
 getPredictorsForModelsFromDatamart <- function(conn, models = NULL, mostRecentOnly=T, verbose=T)
 {
   wheres <- list()
@@ -298,7 +299,7 @@ getPredictorDataFromDatamart <- function(dmbinning, id, overallModelName, tmpFol
   # Dump binning for debugging
   if (!is.null(tmpFolder)) {
     binningDumpFileName <- paste(tmpFolder, paste(overallModelName, "dm", id, "csv", sep="."), sep="/")
-    write.csv(predBinningTable, file=binningDumpFileName, row.names = F)
+    utils::write.csv(predBinningTable, file=binningDumpFileName, row.names = F)
 
     # contextDumpFileName <- paste(tmpFolder, paste(overallModelName, "json", id, "txt", sep="."), sep="/")
     # sink(file = contextDumpFileName, append = F)
@@ -331,8 +332,7 @@ createListFromDatamart <- function(predictorsForPartition, fullName, tmpFolder=N
                                                                        "context" = getContextKeyValuesFromDatamart(modelsForPartition[pymodelid==x,], lowerCasePredictors))})
     names(modelList) <- modelsForPartition$pymodelid
   } else {
-    modelList <- list(list("binning"=getPredictorDataFromDatamart(predictorsForPartition, "allbinning", fullName, tmpFolder),
-                           "context"=list("pyname"=fullName)))
+    modelList <- list(list("binning"=getPredictorDataFromDatamart(predictorsForPartition, "allbinning", fullName, tmpFolder)))
     names(modelList) <- fullName
   }
 

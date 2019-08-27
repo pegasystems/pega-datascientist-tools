@@ -22,13 +22,14 @@ A \code{data.table} with the contents
 }
 \description{
 \code{readDSExport} reads a dataset export file as exported and downloaded from Pega. The export file
-is formatted as a zipped mulit-line JSON file (\url{http://jsonlines.org/}). \code{readDSExport} will find the
-most recent file (Pega appends a datetime stamp), unzip it into a temp folder and read the data into a
-\code{data.table}.
+is formatted as a zipped multi-line JSON file (\url{http://jsonlines.org/}). \code{readDSExport} will find the
+most recent file (Pega appends a datetime stamp) if given a folder, then unzips it into a temp folder and read the data into a
+\code{data.table}. You can also specify a full file name.
 }
 \examples{
 \dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_All")}
 \dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_All", "~/Downloads")}
-\dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip", "~/Downloads")}
+\dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip",
+"~/Downloads")}
 \dontrun{readDSExport("~/Downloads/Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip")}
 }

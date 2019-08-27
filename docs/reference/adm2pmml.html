@@ -204,8 +204,9 @@ indicating no temp files will be left behind.</p></td>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"><div class='input'><span class='fu'>adm2pmml</span>(<span class='kw'>verbose</span><span class='kw'>=</span><span class='fl'>TRUE</span>)</div><div class='output co'>#&gt; [1] "No models available matching the filter criteria"</div><div class='output co'>#&gt; list()</div><span class='co'># NOT RUN {</span>
-  <span class='no'>models</span> <span class='kw'>&lt;-</span> <span class='fu'><a href='readDSExport.html'>readDSExport</a></span>(<span class='st'>"Data-Decision-ADM-ModelSnapshot_AllModelSnapshots"</span>,<span class='st'>"~/Downloads"</span>)
-  <span class='no'>preds</span> <span class='kw'>&lt;-</span> <span class='fu'><a href='readDSExport.html'>readDSExport</a></span>(<span class='st'>"Data-Decision-ADM-PredictorBinningSnapshot_AllPredictorSnapshots"</span>,<span class='st'>"~/Downloads"</span>)
+  <span class='no'>models</span> <span class='kw'>&lt;-</span> <span class='fu'><a href='readDSExport.html'>readDSExport</a></span>(<span class='st'>"Data-Decision-ADM-ModelSnapshot_AllModelSnapshots"</span>, <span class='st'>"~/Downloads"</span>)
+  <span class='no'>preds</span> <span class='kw'>&lt;-</span> <span class='fu'><a href='readDSExport.html'>readDSExport</a></span>(<span class='st'>"Data-Decision-ADM-PredictorBinningSnapshot_AllPredictorSnapshots"</span>,
+                        <span class='st'>"~/Downloads"</span>)
 
   <span class='fu'>adm2pmml</span>(<span class='no'>models</span>, <span class='no'>preds</span>, <span class='kw'>verbose</span><span class='kw'>=</span><span class='fl'>TRUE</span>)
 <span class='co'># }</span></pre>
