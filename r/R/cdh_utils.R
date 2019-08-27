@@ -35,7 +35,8 @@ NULL
 #' @examples
 #' \dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_All")}
 #' \dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_All", "~/Downloads")}
-#' \dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip", "~/Downloads")}
+#' \dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip",
+#' "~/Downloads")}
 #' \dontrun{readDSExport("~/Downloads/Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip")}
 readDSExport <- function(instancename, srcFolder=".", tmpFolder=srcFolder, excludeComplexTypes=T)
 {
@@ -61,7 +62,7 @@ readDSExport <- function(instancename, srcFolder=".", tmpFolder=srcFolder, exclu
   # To prevent OOM for very large files we chunk up the input for conversion to tabular. The average
   # line length is obtained from the first 1000 entries, and we assume a max total of 500M.
   # This is conservative at least on my laptop.
-  chunkSize <- trunc(500000000 / mean(sapply(head(multiLineJSON,1000), nchar)))
+  chunkSize <- trunc(500e6 / mean(sapply(utils::head(multiLineJSON,1000), nchar)))
   chunkList <- list()
   for (n in seq(ceiling(length(multiLineJSON)/chunkSize))) {
     from <- (n-1)*chunkSize+1
@@ -187,23 +188,33 @@ toPRPCDateTime <- function(x)
 #'
 #' @param dmModels A \code{data.table} with (possibly a subset of) the models exported from the ADM Datamart (\code{Data-Decision-ADM-ModelSnapshot}).
 #' @param dmPredictors A \code{data.table} with the predictors exported from the ADM Datamart (\code{Data-Decision-ADM-PredictorBinningSnapshot}).
+#' @param jsonPartitions A list with the (possibly subset) partitions data from the ADM Factory table
 #'
 #' @return A \code{data.table} with model name, stored performance, actual performance, number of responses and the score range.
 #' @export
-getModelPerformanceOverview <- function(dmModels, dmPredictors)
+getModelPerformanceOverview <- function(dmModels = NULL, dmPredictors = NULL, jsonPartitions = NULL)
 {
-  # Similar steps for initial filtering and processing as in "adm2pmml" function
-  setnames(dmModels, tolower(names(dmModels)))
-  setnames(dmPredictors, tolower(names(dmPredictors)))
-  modelList <- createListFromDatamart(dmPredictors[pymodelid %in% dmModels$pymodelid],
-                                      fullName="Sales Models DMSample", tmpFolder=NULL, modelsForPartition=dmModels)
+  if (!is.null(dmModels) & !is.null(dmPredictors)) {
+    setnames(dmModels, tolower(names(dmModels)))
+    setnames(dmPredictors, tolower(names(dmPredictors)))
+    modelList <- createListFromDatamart(dmPredictors[pymodelid %in% dmModels$pymodelid],
+                                        fullName="Dummy", modelsForPartition=dmModels)
+  } else if (!is.null(dmPredictors) & is.null(dmModels)) {
+    setnames(dmPredictors, tolower(names(dmPredictors)))
+    modelList <- createListFromDatamart(dmPredictors, fullName="Dummy")
+    modelList[[1]][["context"]] <- list("pyname" =  "Dummy") # should arguably be part of the createList but that breaks some tests, didnt want to bother
+  } else if (!is.null(jsonPartitions)) {
+    modelList <- createListFromADMFactory(jsonPartitions, overallModelName="Dummy")
+  } else {
+    stop("Needs either datamart or JSON Factory specifications")
+  }
 
   # Name, response count and reported performance obtained from the data directly. For the score min/max using the utility function
   # that summarizes the predictor bins into a table ("scaling") with the min and max weight per predictor. These weights are the
   # normalized log odds and score min/max is found by adding them up.
   perfOverview <- data.table( pyname = sapply(modelList, function(m) {return(m$context$pyname)}),
                               performance = sapply(modelList, function(m) {return(m$binning$performance[1])}),
-                              correct_performance = NA, # placeholder
+                              actual_performance = NA, # placeholder
                               responses = sapply(modelList, function(m) {return(m$binning$totalpos[1] + m$binning$totalneg[1])}),
                               score_min = sapply(modelList, function(m) {binz <- copy(m$binning); scaling <- setBinWeights(binz); return(sum(scaling$minWeight))}),
                               score_max = sapply(modelList, function(m) {binz <- copy(m$binning); scaling <- setBinWeights(binz); return(sum(scaling$maxWeight))}))
@@ -218,10 +229,10 @@ getModelPerformanceOverview <- function(dmModels, dmPredictors)
   }
 
   perfOverview$nbins <- sapply(classifiers, nrow)
-  perfOverview$score_bin_min <- sapply(seq(nrow(perfOverview)), function(n) { return( findClassifierBin( classifiers[[n]], perfOverview$score_min[n]))} )
-  perfOverview$score_bin_max <- sapply(seq(nrow(perfOverview)), function(n) { return( findClassifierBin( classifiers[[n]], perfOverview$score_max[n]))} )
-  perfOverview$correct_performance <- sapply(seq(nrow(perfOverview)), function(n) { return( auc_from_bincounts(classifiers[[n]]$binpos[perfOverview$score_bin_min[n]:perfOverview$score_bin_max[n]],
-                                                                                                               classifiers[[n]]$binneg[perfOverview$score_bin_min[n]:perfOverview$score_bin_max[n]] )) })
+  perfOverview$actual_score_bin_min <- sapply(seq(nrow(perfOverview)), function(n) { return( findClassifierBin( classifiers[[n]], perfOverview$score_min[n]))} )
+  perfOverview$actual_score_bin_max <- sapply(seq(nrow(perfOverview)), function(n) { return( findClassifierBin( classifiers[[n]], perfOverview$score_max[n]))} )
+  perfOverview$actual_performance <- sapply(seq(nrow(perfOverview)), function(n) { return( auc_from_bincounts(classifiers[[n]]$binpos[perfOverview$actual_score_bin_min[n]:perfOverview$actual_score_bin_max[n]],
+                                                                                                              classifiers[[n]]$binneg[perfOverview$actual_score_bin_min[n]:perfOverview$actual_score_bin_max[n]] )) })
   setorder(perfOverview, pyname)
 
   return(perfOverview)

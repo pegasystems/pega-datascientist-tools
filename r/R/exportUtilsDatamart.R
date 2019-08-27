@@ -331,7 +331,8 @@ createListFromDatamart <- function(predictorsForPartition, fullName, tmpFolder=N
                                                                        "context" = getContextKeyValuesFromDatamart(modelsForPartition[pymodelid==x,], lowerCasePredictors))})
     names(modelList) <- modelsForPartition$pymodelid
   } else {
-    modelList <- list(list("binning"=getPredictorDataFromDatamart(predictorsForPartition, "allbinning", fullName, tmpFolder)))
+    modelList <- list(list("binning"=getPredictorDataFromDatamart(predictorsForPartition, "allbinning", fullName, tmpFolder),
+                           "context"=list("pyname"=fullName)))
     names(modelList) <- fullName
   }
 

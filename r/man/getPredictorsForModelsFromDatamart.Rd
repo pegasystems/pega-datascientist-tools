@@ -26,5 +26,6 @@ Typically, predictor data for a certain set of models obtained from \code{getMod
 retrieve all historical data but by default it only retrieves the most recent snapshot data.
 }
 \examples{
-\dontrun{models <- getModelsFromDatamart(conn); preds <- getPredictorsForModelsFromDatamart(conn, models)}
+\dontrun{models <- getModelsFromDatamart(conn)
+preds <- getPredictorsForModelsFromDatamart(conn, models)}
 }

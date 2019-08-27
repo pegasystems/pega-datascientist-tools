@@ -412,7 +412,7 @@ createScorecard <- function(modelbins, modelName)
     modelbins[predictortype != "CLASSIFIER", minWeight := NA]
     modelbins[predictortype != "CLASSIFIER", maxWeight := NA]
   } else {
-    modelbins[predictortype != "CLASSIFIER", avgWeight := weighted.mean(binWeight,binneg+binpos),by=predictorname]
+    modelbins[predictortype != "CLASSIFIER", avgWeight := stats::weighted.mean(binWeight,binneg+binpos),by=predictorname]
     modelbins[predictortype != "CLASSIFIER", minWeight := min(binWeight),by=predictorname]
     modelbins[predictortype != "CLASSIFIER", maxWeight := max(binWeight),by=predictorname]
   }
@@ -613,8 +613,9 @@ createPMML <- function(modeldata, overallModelName)
 #' @examples
 #' adm2pmml(verbose=TRUE)
 #' \dontrun{
-#'   models <- readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots","~/Downloads")
-#'   preds <- readDSExport("Data-Decision-ADM-PredictorBinningSnapshot_AllPredictorSnapshots","~/Downloads")
+#'   models <- readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots", "~/Downloads")
+#'   preds <- readDSExport("Data-Decision-ADM-PredictorBinningSnapshot_AllPredictorSnapshots",
+#'                         "~/Downloads")
 #'
 #'   adm2pmml(models, preds, verbose=TRUE)
 #' }

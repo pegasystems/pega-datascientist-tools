@@ -64,8 +64,9 @@ context keys.
 \examples{
 adm2pmml(verbose=TRUE)
 \dontrun{
-  models <- readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots","~/Downloads")
-  preds <- readDSExport("Data-Decision-ADM-PredictorBinningSnapshot_AllPredictorSnapshots","~/Downloads")
+  models <- readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots", "~/Downloads")
+  preds <- readDSExport("Data-Decision-ADM-PredictorBinningSnapshot_AllPredictorSnapshots",
+                        "~/Downloads")
 
   adm2pmml(models, preds, verbose=TRUE)
 }

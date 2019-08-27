@@ -35,5 +35,6 @@ data here is however complete as it is all stored in JSOn while the datamart
 may contain truncated values.
 }
 \examples{
-\dontrun{models <- getModelsFromJSONTable(conn); myModel <- fromJSON(models$pyfactory[1])}
+\dontrun{models <- getModelsFromJSONTable(conn)
+myModel <- fromJSON(models$pyfactory[1])}
 }

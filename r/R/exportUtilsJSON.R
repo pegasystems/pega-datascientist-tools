@@ -11,7 +11,8 @@ ADMFACTORY_TABLE_SINGLE_SCHEMA <- "pr_data_adm_factory"
 #' @export
 #'
 #' @examples
-#' library(jsonlite); getJSONModelContextAsString( "{\"partition\":{\"Color\":\"Green\", \"Size\":\"120\"}}")
+#' library(jsonlite)
+#' getJSONModelContextAsString( "{\"partition\":{\"Color\":\"Green\", \"Size\":\"120\"}}")
 getJSONModelContextAsString <- function(p)
 {
   partition <- (fromJSON(p))$partition
@@ -46,7 +47,8 @@ getJSONModelContextAsString <- function(p)
 #' @export
 #'
 #' @examples
-#' \dontrun{models <- getModelsFromJSONTable(conn); myModel <- fromJSON(models$pyfactory[1])}
+#' \dontrun{models <- getModelsFromJSONTable(conn)
+#' myModel <- fromJSON(models$pyfactory[1])}
 getModelsFromJSONTable <- function(conn, appliesto=NULL, configurationname=NULL, verbose=F)
 {
   models <- NULL
@@ -57,7 +59,7 @@ getModelsFromJSONTable <- function(conn, appliesto=NULL, configurationname=NULL,
       print(query)
     }
     models <- as.data.table(dbGetQuery(conn, query))
-    }, error=function(x){})
+  }, error=function(x){})
   if(is.null(models)) {
     tryCatch( {
       factoryTable <- ADMFACTORY_TABLE_SINGLE_SCHEMA
@@ -217,7 +219,7 @@ createListFromSingleJSONFactoryString <- function(aFactory, id, overallModelName
   # Dump binning for debugging
   if (!is.null(tmpFolder)) {
     binningDumpFileName <- paste(tmpFolder, paste(overallModelName, "json", id, "csv", sep="."), sep="/")
-    write.csv(predBinningTable, file=binningDumpFileName, row.names = F)
+    utils::write.csv(predBinningTable, file=binningDumpFileName, row.names = F)
 
     contextDumpFileName <- paste(tmpFolder, paste(overallModelName, "json", id, "txt", sep="."), sep="/")
     sink(file = contextDumpFileName, append = F)
@@ -231,10 +233,10 @@ createListFromSingleJSONFactoryString <- function(aFactory, id, overallModelName
 
 createListFromADMFactory <- function(partitions, overallModelName, tmpFolder=NULL, forceLowerCasePredictorNames=F)
 {
-  pmml <- lapply(partitions$pymodelpartitionid,
-                 function(x) { return(createListFromSingleJSONFactoryString(partitions$pyfactory[which(partitions$pymodelpartitionid==x)], x, overallModelName, tmpFolder, forceLowerCasePredictorNames)) })
-  names(pmml) <- partitions$pymodelpartitionid
-  return(pmml)
+  modelList <- lapply(partitions$pymodelpartitionid,
+                      function(x) { return(createListFromSingleJSONFactoryString(partitions$pyfactory[which(partitions$pymodelpartitionid==x)], x, overallModelName, tmpFolder, forceLowerCasePredictorNames)) })
+  names(modelList) <- partitions$pymodelpartitionid
+  return(modelList)
 }
 
 #' Turns an ADM Factory JSON into an easy-to-process binning table.
@@ -248,8 +250,9 @@ createListFromADMFactory <- function(partitions, overallModelName, tmpFolder=NUL
 #' @export
 #'
 #' @examples
-#' #' \dontrun{admFactory <- getModelsFromJSONTable(conn); binning <- admJSONFactoryToBinning(admFactory$pyfactory[1])}
-admJSONFactoryToBinning <- function(factoryJSON, modelname="dummy")
+#' \dontrun{admFactory <- getModelsFromJSONTable(conn)
+#' binning <- admJSONFactoryToBinning(admFactory$pyfactory[1])}
+admJSONFactoryToBinning <- function(factoryJSON, modelname="Dummy")
 {
   factoryDetail <- createListFromSingleJSONFactoryString(factoryJSON, id=modelname, overallModelName=modelname, tmpFolder=NULL, forceLowerCasePredictorNames=F, activePredsOnly=F)
   return(factoryDetail$binning)

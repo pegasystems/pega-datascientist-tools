@@ -4,12 +4,15 @@
 \alias{getModelPerformanceOverview}
 \title{Helper function to return the actual and reported performance of ADM models.}
 \usage{
-getModelPerformanceOverview(dmModels, dmPredictors)
+getModelPerformanceOverview(dmModels = NULL, dmPredictors = NULL,
+  jsonPartitions = NULL)
 }
 \arguments{
 \item{dmModels}{A \code{data.table} with (possibly a subset of) the models exported from the ADM Datamart (\code{Data-Decision-ADM-ModelSnapshot}).}
 
 \item{dmPredictors}{A \code{data.table} with the predictors exported from the ADM Datamart (\code{Data-Decision-ADM-PredictorBinningSnapshot}).}
+
+\item{jsonPartitions}{A list with the (possibly subset) partitions data from the ADM Factory table}
 }
 \value{
 A \code{data.table} with model name, stored performance, actual performance, number of responses and the score range.
