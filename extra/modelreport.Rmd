@@ -28,10 +28,9 @@ library(ggplot2)
 library(scales)
 library(knitr)
 library(kableExtra)
+library(cdhtools)
 
 # TODO: 
-# - classifier plot should use the corrected propensity, table should list both
-# - classifier plot should list the actual score range (get from cdhtools)
 # - classifier preamble could also show (text) the overall success rate (now success rate is ok maybe, or base propensity)
 # - it would be nice to show total pos and neg underneath the tables, and overall success rate
 ```
