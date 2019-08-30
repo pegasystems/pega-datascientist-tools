@@ -241,12 +241,13 @@ createListFromADMFactory <- function(partitions, overallModelName, tmpFolder=NUL
 
 #' Turns an ADM Factory JSON into an easy-to-process binning table.
 #'
-#' This is an interface to the internal ADM Factory table to get the binning details of all predictors of the model.
+#' It turns the ADM Factory JSON in the exact same format as the datamart binning table which includes aggregating
+#' from the internal sub-bin model (to support individual field values) back to aggregate values.
 #'
 #' @param factoryJSON JSON string for a single model, usually the pyfactory field from the table returned by getModelsFromJSONTable.
 #' @param modelname Optional name for the model, filled in into the modelid field of the binning table.
 #'
-#' @return A list with a binning element containing the flattened-out predictor binning and a context key.
+#' @return A data.table containing the flattened-out predictor binning.
 #' @export
 #'
 #' @examples
@@ -254,6 +255,40 @@ createListFromADMFactory <- function(partitions, overallModelName, tmpFolder=NUL
 #' binning <- admJSONFactoryToBinning(admFactory$pyfactory[1])}
 admJSONFactoryToBinning <- function(factoryJSON, modelname="Dummy")
 {
+  buildIntervalNotation <- function(lower, upper) {
+    if (is.na(lower) & is.na(upper)) return("MISSING")
+    if (is.na(lower)) return(paste0("<", upper))
+    if (is.na(upper)) return(paste0("≥", lower))
+    return(paste0("[",upper,", ",lower,">")) # TODO figure out bounds in or excl
+  }
   factoryDetail <- createListFromSingleJSONFactoryString(factoryJSON, id=modelname, overallModelName=modelname, tmpFolder=NULL, forceLowerCasePredictorNames=F, activePredsOnly=F)
-  return(factoryDetail$binning)
+
+  snapshottime <- toPRPCDateTime(lubridate::now())
+  predictorBinning <- factoryDetail$binning [, .(pypredictortype = ifelse(predictortype[1]=="SYMBOLIC", "symbolic", "numeric"),
+                                                 pytype = ifelse(predictortype[1]=="SYMBOLIC", "symbolic", "numeric"), # same as pypredictortype
+                                                 pybintype = ifelse(bintype[1]=="MISSING", "MISSING", "EQUIBEHAVIOR"),
+
+                                                 pybinsymbol = ifelse(predictortype[1]=="SYMBOLIC", paste(binlabel, collapse = ","), buildIntervalNotation(binlowerbound, binupperbound)),
+                                                 pybinlowerbound = first(binlowerbound),
+                                                 pybinupperbound = first(binupperbound),
+
+                                                 pyentrytype = ifelse(predictortype[1]=="CLASSIFIER", "Classifier", ifelse(isactive[1], "Active", "Inactive")),
+                                                 pysnapshottime = snapshottime,
+                                                 pyperformance = first(performance), # or maybe repeat the classifier performance throughout
+                                                 pybinpositives = first(binpos),
+                                                 pybinnegatives = first(binneg)
+                                                 # pypositives/pynegatives are aggregates at predictor level - can build but may not be needed
+
+                                                 # pygroupindex would be nice but optional
+
+                                                 # pybinindex normally starts at 1.. here always 0 for missings whether they exist or not... issue?
+                                                 # pytotalbins is predictor level aggregate
+  ), by=c("modelid", "predictorname", "binidx")]
+  setnames(predictorBinning, c("modelid", "predictorname", "binidx"), c("pymodelid", "pypredictorname", "pybinindex"))
+
+  predictorBinning[pybinindex==0, pybintype := "MISSING"]
+  predictorBinning[, pylift := (pybinpositives/(pybinpositives+pybinnegatives)) / (sum(pybinpositives)/sum(pybinpositives+pybinnegatives)), by=c("pymodelid", "pypredictorname")]
+  predictorBinning[, pyzratio := 1.0] # TODO!!
+
+  return(predictorBinning)
 }

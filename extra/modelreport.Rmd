@@ -11,14 +11,16 @@ params:
   predictordatafile:
     # full path to the source file which should be an export of the ADM predictor binning table
     # this example file is the same as the RDA file used elsewhere in demos of CDH tools
-    value: "../extra/pr_data_dm_admmart_pred.csv"
+    #value: "../extra/pr_data_dm_admmart_pred.csv"
+    value: "~/tmpbinning.csv"
   modeldescription:
     # optional model description typically corresponding to the model info of the indicated model
     value: "Sales Model - PSDISCOUNT100"
   modelid:
     # model ID found by examining the model table from the data mart; if there is just one model
     # in the predictor binning file it can be left empty
-    value: "7cf6a839-9eba-5765-8856-1031b1e60315"
+    #value: "7cf6a839-9eba-5765-8856-1031b1e60315"
+    value: ""
 ---
 
 ```{r, echo=F, warning=F, error=F, include=FALSE}
@@ -29,10 +31,7 @@ library(scales)
 library(knitr)
 library(kableExtra)
 library(cdhtools)
-
-# TODO: 
-# - classifier preamble could also show (text) the overall success rate (now success rate is ok maybe, or base propensity)
-# - it would be nice to show total pos and neg underneath the tables, and overall success rate
+library(plotly)
 ```
 
 # Model report for: `r params$modeldescription` at `r today()`
@@ -134,9 +133,9 @@ setorder(modelPredictorBins, -pyperformance, pybinindex)
 
 # Model Performance and Propensity Mapping
 
-The model scores (sum of the log odds of the Naive Bayes classifier) are mapped to propensities in the Classifier of ADM. This classifier is constructed using a PAV (Pool Adjacent Violaters) algorithm, a form of monotonic regression.
+The model scores (sum of the log odds of the Naive Bayes classifier) are mapped to propensities in the Classifier of ADM. This classifier is constructed using the PAV (Pool Adjacent Violaters) algorithm, a form of monotonic regression.
 
-The model reports a performance of `r round(modelPredictorBins[pyentrytype == "Classifier"]$pyperformance[1],5)` measured in AUC. If the supporting data is available, the actual AUC is recalculated using only those bins that fall into the current score range (if available, shown in parentheses in the title and the range indicated with blue vertical bars).
+The model reports a performance of `r round(modelPredictorBins[pyentrytype == "Classifier"]$pyperformance[1],5)` measured in AUC. If supporting data is available, the actual AUC is recalculated using only those bins that fall into the current score range (if available, shown in parentheses in the title and bins not in range greyed out).
 
 ```{r, echo=F, warning=F, error=F}
 binning <- modelPredictorBins[pyentrytype == "Classifier"]
@@ -164,6 +163,9 @@ binning[, adjustedpropensity := 100*(0.5+pybinpositives)/(1+pybinresponsecount)]
 if (nrow(binning) < 1) {
   cat("<p style='color:Red;'>NO data available for Classifier for date:", max(modelPredictorBins$pysnapshottime), "</p>", fill=T)
 } else {
+  
+  # Not using the ggplot version - replaced by the plotly version below!
+  
   successRateMax <- max(binning$successrate, na.rm = T)
   if (0 == successRateMax) { successRateMax <- 1 }
   secAxisFactor <- max(binning$pybinresponsecount)/successRateMax
@@ -202,13 +204,49 @@ if (nrow(binning) < 1) {
       scale_x_discrete(name = "", labels=binning$pybinsymbol) +
       theme(axis.text.x = element_text(angle = 45, hjust = 1))
   }
-  print(p)
+  
+  # Not using the ggplot version - replaced by the plotly version below!
+  # print(p)
+}
+```
+
+```{r, results="asis", echo=F, warning=F, error=F, fig.align = "center"}
+# Plotly version of the graph gives hover-over. Just plotlygg(p) doesnt work perfectly, unfortunately, so building it up.
+
+if (is.null(actualPerformance)) {
+  subtitle <- paste0("Performance: ", round(binning$pyperformance[1],5), " (AUC)")
+} else {
+  subtitle <- paste0("Performance: ", round(binning$pyperformance[1],5), " (AUC) (actual: ", round(actualPerformance$actual_performance,5),")")
+}
+
+if (nrow(binning) >= 1) {
+  binning[, Responses := pybinpositives+pybinnegatives]
+  ply <- plot_ly(binning) %>%
+    add_bars(x = ~bin, y = ~Responses, 
+             color = ~factor(inCurrentRange, levels=c(T, F)), 
+             colors = c("darkgreen", "darkgrey"),
+             hoverinfo = "text", 
+             text = ~paste0("Score Range: ", pybinsymbol, "\nResponses: ", Responses, "\nSuccess Rate: ", sprintf("%.2f%%", successratepct))) %>%
+    add_trace(x = ~bin, y = ~successratepct,
+              type = 'scatter', mode = 'lines+markers',
+              hoverinfo = "text", text = ~sprintf("%.2f%%", successratepct),
+              line = list(color = "orange", width = 4), 
+              marker = list(color = "black"),
+              yaxis = 'y2') %>%
+    layout(title = paste0("Score Distribution of the Classifier"),
+           xaxis = list(title = ""), # to put values instead of bin indicdes: , tickangle = -45, tickmode = "array", tickvals = ~bin, ticktext = ~pybinsymbol
+           yaxis = list(side = 'left', title = "Responses"),
+           yaxis2 = list(side = 'right', overlaying = "y", title = 'Success Rate (%)', showgrid = FALSE, zeroline = FALSE, automargin = TRUE, rangemode = "tozero"),
+           showlegend = FALSE,
+           annotations = list(list(x = 0.5 , y = 1.02, text = subtitle, showarrow = F, xref='paper', yref='paper'))) %>% 
+    config(displayModeBar = F)
+  ply
 }
 ```
 
 The success rate is defined as $\frac{positives}{positives+negatives}$ per bin. 
 
-The adjusted propensity that is returned is a small modification (Laplace smoothing) to this and calculated as $\frac{0.5+positives}{1+positives+negatives}$ so empty models initially return a propensity of 0.5.
+The adjusted propensity that is returned is a small modification (Laplace smoothing) to this and calculated as $\frac{0.5+positives}{1+positives+negatives}$ so empty models return a propensity of 0.5.
 
 ```{r, echo=F, warning=F, error=F, include=T}
 if (nrow(binning) >= 1) {
