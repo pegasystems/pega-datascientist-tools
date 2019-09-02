@@ -288,7 +288,7 @@ admJSONFactoryToBinning <- function(factoryJSON, modelname="Dummy")
   # and finally make sure the index always starts at 1
   predictorBinning[pybinindex==0, pybintype := "MISSING"]
   predictorBinning <- predictorBinning[!(pybinindex == 0 & pybinpositives == 0 & pybinnegatives == 0)]
-  predictorBinning[, bybinindex := ifelse(any(pybinindex == 0), pybinindex+1, pybinindex), by=c("pymodelid", "pypredictorname")]
+  predictorBinning[, bybinindex := ifelse(rep(any(pybinindex == 0),.N), pybinindex+1, pybinindex), by=c("pymodelid", "pypredictorname")]
 
   # recalculate auc, z-ratio and lift
   predictorBinning[, pyperformance := auc_from_bincounts(pybinpositives, pybinnegatives), by=c("pymodelid", "pypredictorname")]
