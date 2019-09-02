@@ -274,21 +274,26 @@ admJSONFactoryToBinning <- function(factoryJSON, modelname="Dummy")
 
                                                  pyentrytype = ifelse(predictortype[1]=="CLASSIFIER", "Classifier", ifelse(isactive[1], "Active", "Inactive")),
                                                  pysnapshottime = snapshottime,
-                                                 pyperformance = first(performance), # or maybe repeat the classifier performance throughout
                                                  pybinpositives = first(binpos),
                                                  pybinnegatives = first(binneg)
                                                  # pypositives/pynegatives are aggregates at predictor level - can build but may not be needed
-
                                                  # pygroupindex would be nice but optional
-
                                                  # pybinindex normally starts at 1.. here always 0 for missings whether they exist or not... issue?
                                                  # pytotalbins is predictor level aggregate
   ), by=c("modelid", "predictorname", "binidx")]
   setnames(predictorBinning, c("modelid", "predictorname", "binidx"), c("pymodelid", "pypredictorname", "pybinindex"))
 
+  # label bin index 0 as MISSING by definition
+  # but then drop the missing bins without evidence
+  # and finally make sure the index always starts at 1
   predictorBinning[pybinindex==0, pybintype := "MISSING"]
-  predictorBinning[, pylift := (pybinpositives/(pybinpositives+pybinnegatives)) / (sum(pybinpositives)/sum(pybinpositives+pybinnegatives)), by=c("pymodelid", "pypredictorname")]
-  predictorBinning[, pyzratio := 1.0] # TODO!!
+  predictorBinning <- predictorBinning[!(pybinindex == 0 & pybinpositives == 0 & pybinnegatives == 0)]
+  predictorBinning[, bybinindex := ifelse(any(pybinindex == 0), pybinindex+1, pybinindex), by=c("pymodelid", "pypredictorname")]
+
+  # recalculate auc, z-ratio and lift
+  predictorBinning[, pyperformance := auc_from_bincounts(pybinpositives, pybinnegatives), by=c("pymodelid", "pypredictorname")]
+  predictorBinning[, pylift := lift(pybinpositives, pybinnegatives), by=c("pymodelid", "pypredictorname")]
+  predictorBinning[, pyzratio := zratio(pybinpositives, pybinnegatives), by=c("pymodelid", "pypredictorname")]
 
   return(predictorBinning)
 }

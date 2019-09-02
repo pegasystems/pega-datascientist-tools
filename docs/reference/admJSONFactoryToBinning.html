@@ -32,7 +32,8 @@
 
 <meta property="og:title" content="Turns an ADM Factory JSON into an easy-to-process binning table. — admJSONFactoryToBinning" />
 
-<meta property="og:description" content="This is an interface to the internal ADM Factory table to get the binning details of all predictors of the model." />
+<meta property="og:description" content="It turns the ADM Factory JSON in the exact same format as the datamart binning table which includes aggregating
+from the internal sub-bin model (to support individual field values) back to aggregate values." />
 <meta name="twitter:card" content="summary" />
 
 
@@ -116,7 +117,8 @@
 
     <div class="ref-description">
     
-    <p>This is an interface to the internal ADM Factory table to get the binning details of all predictors of the model.</p>
+    <p>It turns the ADM Factory JSON in the exact same format as the datamart binning table which includes aggregating
+from the internal sub-bin model (to support individual field values) back to aggregate values.</p>
     
     </div>
 
@@ -137,7 +139,7 @@
     
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>A list with a binning element containing the flattened-out predictor binning and a context key.</p>
+    <p>A data.table containing the flattened-out predictor binning.</p>
     
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>

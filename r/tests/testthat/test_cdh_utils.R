@@ -91,6 +91,21 @@ test_that("GINI conversion", {
   expect_equal(auc2GINI(NA), 0.0)
 })
 
+test_that("Lift", {
+  p <- c(0,119,59,69,0)
+  n <- c(50,387,105,40,37)
+  # see example http://techdocs.rpega.com/display/EPZ/2019/06/21/Z-ratio+calculation+in+ADM
+  expect_equal( 100*lift(p,n), c(0, 82.456, 126.13, 221.94, 0), tolerance = 1e-3)
+})
+
+test_that("Z-Ratio", {
+  p <- c(0,119,59,69,0)
+  n <- c(50,387,105,40,37)
+  # see example http://techdocs.rpega.com/display/EPZ/2019/06/21/Z-ratio+calculation+in+ADM
+  expect_equal( zratio(p,n), c(-7.375207, -3.847732,  2.230442,  7.107804, -6.273136), tolerance = 1e-6)
+})
+
+
 test_that("Date conversion", {
   # not safe to test w/o timezone as this is locale dependent
   expect_equal(toPRPCDateTime(fromPRPCDateTime("20180316T134127.847 CET")), "20180316T124127.846 GMT")

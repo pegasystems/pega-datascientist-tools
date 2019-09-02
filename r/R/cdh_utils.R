@@ -140,6 +140,44 @@ auc2GINI <- function(auc)
   return (2*safe_range_auc(auc)-1)
 }
 
+#' Calculates lift from counts of positives and negatives.
+#'
+#' Lift is defined as the success rate in a single bin divided by the overall success rate.
+#'
+#' @param pos Vector with counts of the positive responses
+#' @param neg Vector with counts of the negative responses
+#'
+#' @return A vector with lift values. Lift can be any positive number. A return value of 2 means 200% lift.
+#' @export
+#'
+#' @examples
+#' 100*lift(c(0,119,59,69,0), c(50,387,105,40,37))
+lift <- function(pos, neg)
+{
+  l <- (pos/(pos+neg)) / (sum(pos)/sum(pos+neg))
+  return(l)
+}
+
+#' Calculates the Z-Ratio for the success rate from counts of positives and negatives.
+#'
+#' Z-Ratio is the difference between the propensity in the bin with the average propensity, expressed in standard deviations from the average.
+#'
+#' @param pos Vector with counts of the positive responses
+#' @param neg Vector with counts of the negative responses
+#'
+#' @return A vector with z-ratio values. Z-ratio can be both positive and negative.
+#' @export
+#'
+#' @examples
+#' zratio(c(0,119,59,69,0), c(50,387,105,40,37))
+zratio <- function(pos, neg)
+{
+  posFraction <- pos / sum(pos)
+  negFraction <- neg / sum(neg)
+  ratio <- (posFraction - negFraction) / sqrt(posFraction*(1-posFraction)/sum(pos) + negFraction*(1-negFraction)/sum(neg))
+  return(ratio)
+}
+
 #' Convert from a Pega date-time string.
 #'
 #' The timezone string is taken into account but it assumed that they are the same for all the strings. If

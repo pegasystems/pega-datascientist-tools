@@ -11,16 +11,14 @@ params:
   predictordatafile:
     # full path to the source file which should be an export of the ADM predictor binning table
     # this example file is the same as the RDA file used elsewhere in demos of CDH tools
-    #value: "../extra/pr_data_dm_admmart_pred.csv"
-    value: "~/tmpbinning.csv"
+    value: "../extra/pr_data_dm_admmart_pred.csv"
   modeldescription:
     # optional model description typically corresponding to the model info of the indicated model
     value: "Sales Model - PSDISCOUNT100"
   modelid:
     # model ID found by examining the model table from the data mart; if there is just one model
     # in the predictor binning file it can be left empty
-    #value: "7cf6a839-9eba-5765-8856-1031b1e60315"
-    value: ""
+    value: "7cf6a839-9eba-5765-8856-1031b1e60315"
 ---
 
 ```{r, echo=F, warning=F, error=F, include=FALSE}
@@ -106,14 +104,18 @@ hasMultipleSnapshots <- (length(unique(modelPredictorBins$pysnapshottime)) > 1)
 if (hasMultipleSnapshots) {
   predPerformanceOverTime <- unique(modelPredictorBins[, c("pypredictorname", "pyperformance", "pysnapshottime"), with=F])  
   
-  # Taking the last binning carefully - as we dont want to have old bins creep in. First subsetting
-  # to just the last day globally. Then within that day (it happens) taking the latest per bin. This could 
-  # still result in some inconsistencies but not so likely.
-  modelPredictorBins[, snapshotDay := as.POSIXct(strptime(pysnapshottime, format="%Y-%m-%d"))] # I hope this format is universal and not due to export tools. No need for floor_date this way.
-  modelPredictorBins <- modelPredictorBins[snapshotDay == max(snapshotDay)]
+  # Take the latest snapshots from the last day. We're doing this carefully as we don't want to report on old bins
+  # so just keeping the last day, then per predictor finding the actual last snapshot. This may not work in a situation
+  # where not all models are updated frequently.
   
-  modelPredictorBins[, snapshotIdx := as.integer(factor(pysnapshottime)) ]
-  modelPredictorBins <- modelPredictorBins[, .SD[which.max(snapshotIdx)], by=c("pymodelid", "pypredictorname", "pybinindex")]
+  # # NB we have seen situations where other formats appeared after import/export to Excel - may need to deal w that a la as.POSIXct(strptime(pysnapshottime, format="%Y-%m-%d"))
+  modelPredictorBins[, snapshot := fromPRPCDateTime(pysnapshottime)] 
+  if (sum(is.na(modelPredictorBins$snapshot))/nrow(modelPredictorBins) > 0.2) {
+    stop("Assumed Pega date-time string but resulting in over 20% NA's in snapshot time after conversion. Check that this is valid or update the code that deals with date/time conversion.")
+  }
+  lastDay <- max(lubridate::floor_date(modelPredictorBins$snapshot, unit = "days"))
+  modelPredictorBins <- modelPredictorBins[lubridate::floor_date(snapshot, unit="days") == lastDay]
+  modelPredictorBins <- modelPredictorBins[, .SD[snapshot == max(snapshot)], by=c("pymodelid")]
 }
 
 # recalculate a few fields that are used - use the naming conventions from the data mart
