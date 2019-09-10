@@ -217,14 +217,18 @@ test_that("Run the JPMML engine", {
 
   pmmlFile <- file.path("jpmml", "single_iris_logreg.xml")
   inputFile <- file.path("jpmml", "Iris.csv")
-  outFile <- file.path(tempdir(), "iris_out.csv")
+  outFile <- file.path("jpmml", "iris_out.csv") # tempdir() # IF IT WORKS PUT BACK TEMPDIR
 
   expect_equal(nrow(fread(inputFile)), 150)
 
   run_jpmml(pmmlFile, inputFile, outFile)
+  cat("", file=outFile, append=T, fill=T)
 
   expect_true(0 == file.access(outFile, mode=4))
-  Sys.chmod(outFile, mode = "0777", use_umask = TRUE)
+  #Sys.chmod(outFile, mode = "0777", use_umask = TRUE) # does not help
+
+  linez <- readLines(outFile)
+  expect_equal(length(linez), 151)
 
   scores <- fread(outFile)
   expect_equal(nrow(scores), 150)
