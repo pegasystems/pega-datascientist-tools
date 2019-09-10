@@ -8,7 +8,7 @@ context("ADM2PMML")
 
 run_jpmml <- function(pmmlFile, inputFile, outputFile)
 {
-  jpmmlJar <- paste("jpmml", "example-1.3-SNAPSHOT.jar", sep="/")
+  jpmmlJar <- file.path("jpmml", "example-1.3-SNAPSHOT.jar")
 
   if (file.exists(outputFile)) {
     file.remove(outputFile)
@@ -20,7 +20,8 @@ run_jpmml <- function(pmmlFile, inputFile, outputFile)
                      "--output", outputFile)
   system(execJPMML)
 
-  expect_true(file.exists(outputFile), paste("JPMML execution failure:", execJPMML))
+  expect_true(file.exists(outputFile), paste("JPMML execution failure, no output file:", execJPMML))
+  expect_true(0 == file.access(outputFile, mode=4), paste("JPMML execution failure, cannot read output file:", execJPMML))
 }
 
 verify_results <- function(pmmlString, pmmlFile, inputFile, outputFile)
@@ -128,20 +129,20 @@ pmml_unittest <- function(testName)
 
   context(paste("ADM2PMML", testName))
 
-  fileArchive <- paste(testFolder, paste(testName, ".zip", sep=""), sep="/")
+  fileArchive <- file.path(testFolder, paste(testName, ".zip", sep=""))
   if (file.exists(fileArchive)) {
-    testFolder <- paste(testFolder, testName, sep="/")
-    jsonFolder <- paste(testFolder, paste(testName, ".json", sep=""), sep="/")
+    testFolder <- file.path(testFolder, testName)
+    jsonFolder <- file.path(testFolder, paste(testName, ".json", sep=""))
     cat("   Extracted test files from archive:", fileArchive, "to", testFolder, "and", jsonFolder, fill=T)
     flz <- unzip(fileArchive, list=T)$Name
     unzip(fileArchive, files=flz[!grepl(".json$", flz)], exdir=testFolder, junkpaths = T)
     unzip(fileArchive, files=flz[grepl(".json$", flz)], exdir=jsonFolder, junkpaths = T)
   }
 
-  predictorDataFile <- paste(testFolder, paste(testName, "_predictordata", ".csv", sep=""), sep="/")
-  modelDataFile <- paste(testFolder, paste(testName, "_modeldata", ".csv", sep=""), sep="/")
-  jsonFolder <- paste(testFolder, paste(testName, ".json", sep=""), sep="/")
-  inputFile <- paste(testFolder, paste(testName, "_input", ".csv", sep=""), sep="/")
+  predictorDataFile <- file.path(testFolder, paste(testName, "_predictordata", ".csv", sep=""))
+  modelDataFile <- file.path(testFolder, paste(testName, "_modeldata", ".csv", sep=""))
+  jsonFolder <- file.path(testFolder, paste(testName, ".json", sep=""))
+  inputFile <- file.path(testFolder, paste(testName, "_input", ".csv", sep=""))
 
   if (file.exists(jsonFolder)) {
     cat("   JSON source folder:", jsonFolder, fill=T)
@@ -152,8 +153,8 @@ pmml_unittest <- function(testName)
 
     pmml <- createPMML(modelList, testName)
 
-    pmmlFile <- paste(tmpFolder, paste(testName, "json", "pmml", "xml", sep="."), sep="/")
-    outputFile <- paste(tmpFolder, paste(testName, "json", "output", "csv", sep="."), sep="/")
+    pmmlFile <- file.path(tmpFolder, paste(testName, "json", "pmml", "xml", sep="."))
+    outputFile <- file.path(tmpFolder, paste(testName, "json", "output", "csv", sep="."))
 
     verify_results(pmml, pmmlFile, inputFile, outputFile)
   }
@@ -171,8 +172,8 @@ pmml_unittest <- function(testName)
 
     pmml <- createPMML(modelList, testName)
 
-    pmmlFile <- paste(tmpFolder, paste(testName, "dm", "pmml", "xml", sep="."), sep="/")
-    outputFile <- paste(tmpFolder, paste(testName, "dm", "output", "csv", sep="."), sep="/")
+    pmmlFile <- file.path(tmpFolder, paste(testName, "dm", "pmml", "xml", sep="."))
+    outputFile <- file.path(tmpFolder, paste(testName, "dm", "output", "csv", sep="."))
 
     verify_results(pmml, pmmlFile, inputFile, outputFile)
   }
@@ -257,7 +258,7 @@ test_that("Scorecard reason codes", {
   # if (!dir.exists(tmpFolder)) dir.create(tmpFolder)
 
   # Convert the simplest model to PMML including reason code options
-  predData <- fread(paste(testFolder, "deeperdive_predictordata.csv", sep="/"))
+  predData <- fread(file.path(testFolder, "deeperdive_predictordata.csv"))
   dummyModelData <- data.table(pymodelid = unique(predData$pymodelid),
                                pyconfigurationname = c("simplemodel"),
                                pyappliestoclass = "Dummy",
@@ -270,12 +271,12 @@ test_that("Scorecard reason codes", {
   expect_equal(length(pmmlFiles), 1)
 
   # Run with inputs. The inputs include the same 3 cases that are detailed in the deeper dive Excel sheet
-  run_jpmml(paste(tmpFolder, "simplemodel.pmml", sep="/"),
-            paste(testFolder, "deeperdive_inputs_reasoncodetests.csv", sep="/"),
-            paste(tmpFolder, "deeperdive_output.csv", sep="/"))
+  run_jpmml(file.path(tmpFolder, "simplemodel.pmml"),
+            file.path(testFolder, "deeperdive_inputs_reasoncodetests.csv"),
+            file.path(tmpFolder, "deeperdive_output.csv"))
 
   # Check the outputs contain reason codes
-  output <- fread(paste(tmpFolder, "deeperdive_output.csv", sep="/"))
+  output <- fread(file = file.path(tmpFolder, "deeperdive_output.csv"))
 
   # By default 3 reason codes
   expect_equal(length(intersect( names(output), c("Explain-1", "Explain-2", "Explain-3") )), 3)
