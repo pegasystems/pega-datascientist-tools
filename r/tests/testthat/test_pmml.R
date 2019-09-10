@@ -224,6 +224,7 @@ test_that("Run the JPMML engine", {
   run_jpmml(pmmlFile, inputFile, outFile)
 
   expect_true(0 == file.access(outFile, mode=4))
+  Sys.chmod(outFile, mode = "0777", use_umask = TRUE)
 
   scores <- fread(outFile)
   expect_equal(nrow(scores), 150)
