@@ -10,9 +10,10 @@ params:
   # these values are set. That also allows to run the notebook multiple times for different values.
   modelfile:
     # full path to the source file which should be an export of the ADM model table
+    #value: "~/Documents/pega/adm_e2e_testing/results/modeldata.csv"
     value: "../extra/pr_data_dm_admmart_mdl_fact.csv"
   modellist:
-    # an optional simple text file with model ID and model names for driving the creation of individual model reports
+    # optional name for a text file that will be created with a list of model ID and model names - to drive creation of individual model reports
     value: ""
 ---
 
@@ -23,6 +24,7 @@ library(lubridate)
 library(ggplot2)
 library(colorspace)
 library(scales)
+theme_set(theme_minimal())
 library(knitr)
 library(kableExtra)
 ```
@@ -32,6 +34,9 @@ library(kableExtra)
 This notebook gives a global overview of the adaptive models from the data mart. Detailed model reports for individual model instances can be created by running the "modelreport" scripts.
 
 ```{r, echo=F, warning=F, error=F, include=F}
+
+knitr::opts_chunk$set(echo=F)
+
 if (!file.exists(params$modelfile)) {
   stop(paste("File does not exist:", params$modelfile))
 }
@@ -61,37 +66,51 @@ for (fld in c("pytreatment", "pydirection", "pychannel")) {
     mdls[[fld]] <- ""
   }
 }
-
-# write list of models so the script (createModelReports) to generate off-line model reports can be run automatically
-write.table(unique(mdls[, c("pymodelid","pyname"), with=F]), 
-            params$modellist, row.names = F, col.names = F, quote=F, sep=";")
-
 ```
 
-## Model Performance vs Offer Success Rate
-
-Standard performance - success rate plot.
-
-```{r, results="asis", echo=F, warning=F, error=F, fig.align = "center"}
+```{r}
 hasLargeModelList <- (length(unique(mdls$pyname)) > 10)
 if (hasLargeModelList) {
-  colorScale <- scale_color_discrete_qualitative(guide=F)
+  colorScale <- scale_color_discrete_qualitative(guide=F, name="Proposition")
 } else {
-  colorScale <- scale_color_discrete_qualitative()
+  colorScale <- scale_color_discrete_qualitative(name="Proposition")
 }
 latestMdls <- mdls[, 
                    .(Performance = Performance[which.max(pysnapshottime)],
                      SuccessRate = SuccessRate[which.max(pysnapshottime)],
-                     Evidence = Evidence[which.max(pysnapshottime)]), 
+                     Responses = Evidence[which.max(pysnapshottime)]), 
                    by=c("pymodelid", "pyissue","pygroup","pyname","pydirection","pychannel","pytreatment","pyconfigurationname")]
 
-p <- ggplot(latestMdls, aes(Performance, SuccessRate, size=Evidence, colour=pyname)) +
+# order by success rate
+latestMdls[, pyname := factor(pyname, 
+                              levels=latestMdls[, .(SuccessRate = weighted.mean(SuccessRate, Responses, na.rm = T)), by=pyname][order(-SuccessRate)]$pyname)]
+```
+
+## Proposition Success Rates
+
+Overall success rate of the propositions. 
+
+```{r}
+p <- ggplot(latestMdls, aes(factor(pyname, levels=rev(levels(pyname))), SuccessRate, fill=SuccessRate)) + geom_col() + coord_flip() +
+  geom_text(aes(label=sprintf("%.2f%%", 100*SuccessRate)), color="yellow", hjust=1)+
+  xlab("Proposition") + scale_y_continuous(name="Success Rate", labels=percent) + 
+  ggtitle("Proposition Success Rates") +
+  scale_fill_continuous(guide=F)+
+  facet_wrap(~pyconfigurationname, scales = "free_y")
+print(p)
+```
+
+## Model Performance vs Proposition Success Rates
+
+This is similar to the standard "bubble chart" in the ADM reporting pages.
+
+```{r}
+p <- ggplot(latestMdls, aes(Performance, SuccessRate, size=Responses, colour=pyname)) +
   geom_point()+
   colorScale+
   xlim(c(50,100))+
-  theme_minimal() +
   facet_wrap(~pyconfigurationname, scales = "free_y")+
-  scale_y_continuous(labels = scales::percent)+
+  scale_y_continuous(labels = scales::percent, name = "Success Rate")+
   ggtitle("Performance vs Success Rate", subtitle = "for latest snapshots")
 print(p)
 ```
@@ -99,35 +118,37 @@ print(p)
 
 ## Model Performance over Time
 
-```{r, results="asis", echo=F, warning=F, error=F, fig.align = "center"}
-# All models individually
+```{r}
+# order by final performance
+mdls[, pyname := factor(pyname, 
+                        levels=mdls[, .(Performance = weighted.mean(Performance[which.max(pysnapshottime)], responsecount[which.max(pysnapshottime)], na.rm = T)), by=pyname][order(-Performance)]$pyname)]
+                                                
 p <- ggplot(mdls[!is.na(pysnapshottime)], aes(pysnapshottime, Performance, color=pyname)) + geom_line() +
   facet_wrap(~ pyconfigurationname) + ggtitle("Model Performance over Time") +
   colorScale+
-  theme_minimal() +
+  xlab("")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 print(p)
 
 # Aggregate view
-mdls[, SnapshotWeek := floor_date(pysnapshottime, unit="weeks")]
-discretizedView <- mdls[!is.na(pysnapshottime), 
-                        .(Performance = weighted.mean(Performance, Evidence, na.rm = T),
-                          PerformanceP10 = quantile(Performance, probs=0.1, na.rm = T),
-                          PerformanceP90 = quantile(Performance, probs=0.9, na.rm = T),
-                          SuccessRate = weighted.mean(SuccessRate, Evidence, na.rm = T),
-                          SuccessRateP10 = quantile(SuccessRate, probs=0.1, na.rm = T),
-                          SuccessRateP90 = quantile(SuccessRate, probs=0.9, na.rm = T)), 
-                        by=c("SnapshotWeek", "pyconfigurationname")]
-
-p <- ggplot(discretizedView, aes(SnapshotWeek, Performance)) + 
-  geom_line(size=1) +
-  geom_line(aes(y=PerformanceP10), color="blue", linetype="dashed")+
-  geom_line(aes(y=PerformanceP90), color="blue", linetype="dashed")+
-  facet_wrap(~ pyconfigurationname) + ggtitle("Model Performance over Time", subtitle = "Aggregated view with P10 and P90") +
-  colorScale+
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-print(p)
+# mdls[, SnapshotWeek := floor_date(pysnapshottime, unit="weeks")]
+# discretizedView <- mdls[!is.na(pysnapshottime), 
+#                         .(Performance = weighted.mean(Performance, Evidence, na.rm = T),
+#                           PerformanceP10 = quantile(Performance, probs=0.1, na.rm = T),
+#                           PerformanceP90 = quantile(Performance, probs=0.9, na.rm = T),
+#                           SuccessRate = weighted.mean(SuccessRate, Evidence, na.rm = T),
+#                           SuccessRateP10 = quantile(SuccessRate, probs=0.1, na.rm = T),
+#                           SuccessRateP90 = quantile(SuccessRate, probs=0.9, na.rm = T)), 
+#                         by=c("SnapshotWeek", "pyconfigurationname")]
+# 
+# p <- ggplot(discretizedView, aes(SnapshotWeek, Performance)) + 
+#   geom_line(size=1) +
+#   geom_line(aes(y=PerformanceP10), color="blue", linetype="dashed")+
+#   geom_line(aes(y=PerformanceP90), color="blue", linetype="dashed")+
+#   facet_wrap(~ pyconfigurationname) + ggtitle("Model Performance over Time", subtitle = "Aggregated view with P10 and P90") +
+#   colorScale+
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# print(p)
 ```
 
 ## Model Success Rate over Time
@@ -136,34 +157,40 @@ Similar, showing the success rate over time.
 
 The same models that have higher model performance also generally have a higher success rate.
 
-```{r, results="asis", echo=F, warning=F, error=F, fig.align = "center"}
+```{r}
+# order by final success rate
+mdls[, pyname := factor(pyname, 
+                        levels=mdls[, .(SuccessRate = weighted.mean(SuccessRate[which.max(pysnapshottime)], responsecount[which.max(pysnapshottime)], na.rm = T)), by=pyname][order(-SuccessRate)]$pyname)]
+
 p<-ggplot(mdls[!is.na(pysnapshottime)], aes(pysnapshottime, SuccessRate, color=pyname)) + geom_line() +
   facet_wrap(~ pyconfigurationname, scales = "free") + ggtitle("Proposition Success Rate over Time") +
   colorScale +
-  theme_minimal() +
+  xlab("") + 
+  scale_y_continuous(name="Success Rate", labels=percent) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 print(p)
 
-p<-ggplot(discretizedView, aes(SnapshotWeek, SuccessRate)) + 
-  geom_line(size=1) +
-  geom_line(aes(y=SuccessRateP10), color="blue", linetype="dashed")+
-  geom_line(aes(y=SuccessRateP90), color="blue", linetype="dashed")+
-  facet_wrap(~ pyconfigurationname) + ggtitle("Proposition Success Rate over Time", subtitle = "Aggregated view with P10 and P90") +
-  colorScale +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-print(p)
+# p<-ggplot(discretizedView, aes(SnapshotWeek, SuccessRate)) + 
+#   geom_line(size=1) +
+#   geom_line(aes(y=SuccessRateP10), color="blue", linetype="dashed")+
+#   geom_line(aes(y=SuccessRateP90), color="blue", linetype="dashed")+
+#   facet_wrap(~ pyconfigurationname) + ggtitle("Proposition Success Rate over Time", subtitle = "Aggregated view with P10 and P90") +
+#   colorScale +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# print(p)
 ```
-
-# Predictor Overview
-
-TODO...
-
-Read predictor binning file if present and show the distribution of the predictor performance across models.
 
 # Appendix - all the models
 
-```{r, results="asis", echo=F, warning=F, error=F, fig.align = "center"}
+```{r}
 kable(unique(mdls[, c("pymodelid","pyconfigurationname","pyname"), with=F])[order(pyconfigurationname, pyname)])
+```
+
+```{r}
+# write list of models so the script (createModelReports) to generate off-line model reports can be run automatically
+if (params$modellist != "") {
+  write.table(unique(mdls[, c("pymodelid","pyname"), with=F]), 
+              params$modellist, row.names = F, col.names = F, quote=F, sep=";")
+}
 ```
 

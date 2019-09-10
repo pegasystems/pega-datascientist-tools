@@ -229,11 +229,16 @@ if (nrow(binning) >= 1) {
              colors = c("darkgreen", "darkgrey"),
              hoverinfo = "text", 
              text = ~paste0("Score Range: ", pybinsymbol, "\nResponses: ", Responses, "\nSuccess Rate: ", sprintf("%.2f%%", successratepct))) %>%
-    add_trace(x = ~bin, y = ~successratepct,
-              type = 'scatter', mode = 'lines+markers',
-              hoverinfo = "text", text = ~sprintf("%.2f%%", successratepct),
+    add_lines(x = ~bin, y = ~successratepct,
               line = list(color = "orange", width = 4), 
-              marker = list(color = "black"),
+              yaxis = 'y2') %>%
+    add_markers(x = ~bin[(binning$inCurrentRange)], y = ~successratepct[(binning$inCurrentRange)],
+              marker = list(color="black"),
+              hoverinfo = "text", text = ~sprintf("%.2f%%", successratepct[(binning$inCurrentRange)]),
+              yaxis = 'y2') %>%
+    add_markers(x = ~bin[(!binning$inCurrentRange)], y = ~successratepct[(!binning$inCurrentRange)],
+              marker = list(color="darkgrey"),
+              hoverinfo = "text", text = ~sprintf("%.2f%%", successratepct[(!binning$inCurrentRange)]),
               yaxis = 'y2') %>%
     layout(title = paste0("Score Distribution of the Classifier"),
            xaxis = list(title = ""), # to put values instead of bin indicdes: , tickangle = -45, tickmode = "array", tickvals = ~bin, ticktext = ~pybinsymbol
@@ -276,13 +281,17 @@ predSummary <- modelPredictorBins[pyentrytype != "Classifier", .(Negatives = sum
                                                                  Performance = pyperformance[1],
                                                                  Group = pygroupindex[1]), by=pypredictorname]
 names(predSummary)[1] <- "Predictor"
-predSummary[, maxGroupPerformance := max(Performance), by=Group]
-setorder(predSummary, -maxGroupPerformance, -Performance)
-predSummary[, isFirstOfGroup := seq(.N)==1, by=Group]
-
-kable(predSummary[,-c("maxGroupPerformance", "isFirstOfGroup")]) %>%
-  kable_styling() %>%
-  add_indent(which(!predSummary$isFirstOfGroup))
+if (nrow(predSummary) == 0) {
+  cat("The model has no predictors", fill=T)
+} else {
+  predSummary[, maxGroupPerformance := max(Performance), by=Group]
+  setorder(predSummary, -maxGroupPerformance, -Performance)
+  predSummary[, isFirstOfGroup := seq(.N)==1, by=Group]
+  
+  kable(predSummary[,-c("maxGroupPerformance", "isFirstOfGroup")]) %>%
+    kable_styling() %>%
+    add_indent(which(!predSummary$isFirstOfGroup))
+}
 ```
 
 # Predictor Binning

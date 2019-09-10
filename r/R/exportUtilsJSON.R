@@ -172,17 +172,28 @@ createListFromSingleJSONFactoryString <- function(aFactory, id, overallModelName
     activePreds <- sapply( binning$predictorGroups$groups[binning$predictorGroups$active,], function(x) {return(x[1])} )
   }
 
-  numPredictorIdx <- which(apply(binning$groupedPredictors, 1, function(x) {return(x$type == "NUMERIC" & (x$name %in% activePreds | !activePredsOnly))}))
-  predBinningTableNum <- rbindlist(lapply(numPredictorIdx, function(i) {
-    b <- getNumBinningFromJSON(binning$groupedPredictors[i,], id = id, modelname = modelPartitionFullName)
-    b[, isactive := predictorname[1] %in% activePreds]
-    return(b)}))
+  # build binning for num and sym predictors, being defensive in case of no predictors
+  predBinningTableNum <- list()
+  if (length(binning$groupedPredictors) > 0) {
+    numPredictorIdx <- which(apply(binning$groupedPredictors, 1, function(x) {return(x$type == "NUMERIC" & (x$name %in% activePreds | !activePredsOnly))}))
+    if (length(numPredictorIdx) > 0) {
+      predBinningTableNum <- rbindlist(lapply(numPredictorIdx, function(i) {
+        b <- getNumBinningFromJSON(binning$groupedPredictors[i,], id = id, modelname = modelPartitionFullName)
+        b[, isactive := predictorname[1] %in% activePreds]
+        return(b)}))
+    }
+  }
 
-  symPredictorIdx <- which(apply(binning$groupedPredictors, 1, function(x) {return(x$type == "SYMBOLIC" & (x$name %in% activePreds | !activePredsOnly))}))
-  predBinningTableSym <- rbindlist(lapply(symPredictorIdx, function(i) {
-    b <- getSymBinningFromJSON(binning$groupedPredictors[i,], id = id, modelname = modelPartitionFullName)
-    b[, isactive := predictorname[1] %in% activePreds]
-    return(b)}))
+  predBinningTableSym <- list()
+  if (length(binning$groupedPredictors) > 0) {
+    symPredictorIdx <- which(apply(binning$groupedPredictors, 1, function(x) {return(x$type == "SYMBOLIC" & (x$name %in% activePreds | !activePredsOnly))}))
+    if (length(symPredictorIdx) > 0) {
+      predBinningTableSym <- rbindlist(lapply(symPredictorIdx, function(i) {
+        b <- getSymBinningFromJSON(binning$groupedPredictors[i,], id = id, modelname = modelPartitionFullName)
+        b[, isactive := predictorname[1] %in% activePreds]
+        return(b)}))
+    }
+  }
 
   lengthClassifierArrays <- length(binning$outcomeProfile$positives) # Element [1] will not be used, would be for missing but contains no data
 
@@ -201,7 +212,8 @@ createListFromSingleJSONFactoryString <- function(aFactory, id, overallModelName
                                  smoothing = NA, # not using binning$outcomeProfile$laplaceSmoothingValue
                                  isactive = T)
 
-  predBinningTable <- rbindlist(list(predBinningTableNum, predBinningTableSym, classifierTable))
+  predBinningList <- list(predBinningTableNum, predBinningTableSym, classifierTable)
+  predBinningTable <- rbindlist(predBinningList[lengths(predBinningList)>0]) # exclude the NULL or empty lists
 
   # Performance calculated from outcome profile to be compatible with DM tables where there is no performance profile
   predBinningTable$performance <- auc_from_bincounts(binning$outcomeProfile$positives,
@@ -259,7 +271,7 @@ admJSONFactoryToBinning <- function(factoryJSON, modelname="Dummy")
     if (is.na(lower) & is.na(upper)) return("MISSING")
     if (is.na(lower)) return(paste0("<", upper))
     if (is.na(upper)) return(paste0("≥", lower))
-    return(paste0("[",upper,", ",lower,">")) # TODO figure out bounds in or excl
+    return(paste0("[",lower,", ",upper,">"))
   }
   factoryDetail <- createListFromSingleJSONFactoryString(factoryJSON, id=modelname, overallModelName=modelname, tmpFolder=NULL, forceLowerCasePredictorNames=F, activePredsOnly=F)
 
