@@ -212,9 +212,9 @@ pmml_unittest <- function(testName)
 
 }
 
-test_that("a basic happy-path test with a single 2-predictor model w/o missings, WOS etc", {
-  pmml_unittest("deeperdive")
-})
+# test_that("a basic happy-path test with a single 2-predictor model w/o missings, WOS etc", {
+#   pmml_unittest("deeperdive")
+# })
 # test_that("a basic model consisting of 2 models, also providing new partition key values", {
 #   pmml_unittest("simplemultimodel")
 # })
