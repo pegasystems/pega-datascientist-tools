@@ -122,8 +122,9 @@ compareCSV <- function(dmCSV, jsonCSV)
 pmml_unittest <- function(testName)
 {
   testFolder <- "d"
-  tmpFolder <- paste(testFolder, "tmp", sep="/")
-  if (!dir.exists(tmpFolder)) dir.create(tmpFolder)
+  tmpFolder <- tempdir()
+  # tmpFolder <- paste(testFolder, "tmp", sep="/")
+  # if (!dir.exists(tmpFolder)) dir.create(tmpFolder)
 
   context(paste("ADM2PMML", testName))
 
