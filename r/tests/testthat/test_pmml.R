@@ -212,6 +212,23 @@ pmml_unittest <- function(testName)
 
 }
 
+test_that("Run the JPMML engine", {
+  context("Run the JPMML engine")
+
+  pmmlFile <- file.path("jpmml", "single_iris_logreg.xml")
+  inputFile <- file.path("jpmml", "Iris.csv")
+  outFile <- file.path(tempdir(), "iris_out.csv")
+
+  expect_equal(nrow(fread(inputFile)), 150)
+
+  run_jpmml(pmmlFile, inputFile, outFile)
+
+  expect_true(0 == file.access(outFile, mode=4))
+
+  scores <- fread(outFile)
+  expect_equal(nrow(scores), 150)
+})
+
 # test_that("a basic happy-path test with a single 2-predictor model w/o missings, WOS etc", {
 #   pmml_unittest("deeperdive")
 # })
