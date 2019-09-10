@@ -67,7 +67,7 @@ readDSExport <- function(instancename, srcFolder=".", tmpFolder=srcFolder, exclu
   for (n in seq(ceiling(length(multiLineJSON)/chunkSize))) {
     from <- (n-1)*chunkSize+1
     to <- min(n*chunkSize, length(multiLineJSON))
-    cat("From", from, "to", to, fill = T)
+    # cat("From", from, "to", to, fill = T)
     ds <- data.table(jsonlite::fromJSON(paste("[",paste(multiLineJSON[from:to],sep="",collapse = ","),"]")))
     if (excludeComplexTypes) {
       chunkList[[n]] <- ds [, names(ds)[!sapply(ds, is_list)], with=F]
