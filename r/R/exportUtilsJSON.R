@@ -270,7 +270,7 @@ admJSONFactoryToBinning <- function(factoryJSON, modelname="Dummy")
   buildIntervalNotation <- function(lower, upper) {
     if (is.na(lower) & is.na(upper)) return("MISSING")
     if (is.na(lower)) return(paste0("<", upper))
-    if (is.na(upper)) return(paste0("≥", lower))
+    if (is.na(upper)) return(paste0("\u2265", lower))
     return(paste0("[",lower,", ",upper,">"))
   }
   factoryDetail <- createListFromSingleJSONFactoryString(factoryJSON, id=modelname, overallModelName=modelname, tmpFolder=NULL, forceLowerCasePredictorNames=F, activePredsOnly=F)
