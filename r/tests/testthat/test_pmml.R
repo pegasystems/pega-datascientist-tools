@@ -251,8 +251,9 @@ test_that("Scorecard reason codes", {
   context("Scorecard reason codes")
 
   testFolder <- "d"
-  tmpFolder <- paste(testFolder, "tmp2", sep="/")
-  if (!dir.exists(tmpFolder)) dir.create(tmpFolder)
+  tmpFolder <- tempdir()
+  # tmpFolder <- paste(testFolder, "tmp2", sep="/")
+  # if (!dir.exists(tmpFolder)) dir.create(tmpFolder)
 
   # Convert the simplest model to PMML including reason code options
   predData <- fread(paste(testFolder, "deeperdive_predictordata.csv", sep="/"))
