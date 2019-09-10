@@ -276,7 +276,8 @@ test_that("Scorecard reason codes", {
             file.path(tmpFolder, "deeperdive_output.csv"))
 
   # Check the outputs contain reason codes
-  output <- fread(file = file.path(tmpFolder, "deeperdive_output.csv"))
+  expect_true(0 == file.access(file.path(tmpFolder, "deeperdive_output.csv"), mode=4))
+  output <- data.table(read.csv(file = file.path(tmpFolder, "deeperdive_output.csv"), check.names = F))
 
   # By default 3 reason codes
   expect_equal(length(intersect( names(output), c("Explain-1", "Explain-2", "Explain-3") )), 3)
