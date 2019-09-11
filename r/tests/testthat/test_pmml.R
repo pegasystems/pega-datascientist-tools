@@ -225,6 +225,8 @@ test_that("Run the JPMML engine", {
   cat("", file=outFile, append=T, fill=T)
 
   print("***")
+  system(paste("ls -al", pmmlFile))
+  system(paste("ls -al", inputFile))
   system(paste("ls -al", outFile))
   print("***")
 
