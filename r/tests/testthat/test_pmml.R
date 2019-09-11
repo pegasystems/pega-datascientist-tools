@@ -217,7 +217,7 @@ test_that("Run the JPMML engine", {
 
   pmmlFile <- file.path("jpmml", "single_iris_logreg.xml")
   inputFile <- file.path("jpmml", "Iris.csv")
-  outFile <- file.path("jpmml", "iris_out.csv") # tempdir() # IF IT WORKS PUT BACK TEMPDIR
+  outFile <- file.path(tempdir(), "iris_out.csv") # tempdir() # IF IT WORKS PUT BACK TEMPDIR
 
   expect_equal(nrow(fread(inputFile)), 150)
 
