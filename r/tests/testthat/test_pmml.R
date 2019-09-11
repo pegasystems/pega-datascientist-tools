@@ -8,7 +8,7 @@ context("ADM2PMML")
 
 run_jpmml <- function(pmmlFile, inputFile, outputFile)
 {
-  jpmmlJar <- file.path("jpmml", "example-1.3-SNAPSHOT.jar")
+  jpmmlJar <- file.path("jpmml", "example-1.4-SNAPSHOT.jar")
 
   if (file.exists(outputFile)) {
     file.remove(outputFile)
@@ -228,6 +228,7 @@ test_that("Run the JPMML engine", {
   system(paste("ls -al", pmmlFile))
   system(paste("ls -al", inputFile))
   system(paste("ls -al", outFile))
+  system("java -version")
   print("***")
 
   expect_true(0 == file.access(outFile, mode=4))
