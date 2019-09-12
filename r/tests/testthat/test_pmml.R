@@ -265,63 +265,66 @@ test_that("checks flexible context keys (wich require to parse the JSON inside t
 #   pmml_unittest("testfw")
 # })
 
-# # Verify that reason codes get (or don't get) generated in various flavours
-# # TODO add args to adm2pmml to set # of reason codes and direction
-# test_that("Scorecard reason codes", {
-#   context("Scorecard reason codes")
-#
-#   testFolder <- "d"
-#   tmpFolder <- tempdir()
-#   # tmpFolder <- paste(testFolder, "tmp2", sep="/")
-#   # if (!dir.exists(tmpFolder)) dir.create(tmpFolder)
-#
-#   # Convert the simplest model to PMML including reason code options
-#   predData <- fread(file.path(testFolder, "deeperdive_predictordata.csv"))
-#   dummyModelData <- data.table(pymodelid = unique(predData$pymodelid),
-#                                pyconfigurationname = c("simplemodel"),
-#                                pyappliestoclass = "Dummy",
-#                                pxapplication = "Dummy",
-#                                pyname = "Dummy",
-#                                pysnapshottime = unique(predData$pysnapshottime))
-#   pmmlFiles <- adm2pmml(dmModels = dummyModelData,
-#                         dmPredictors = predData,
-#                         destDir = tmpFolder)
-#   expect_equal(length(pmmlFiles), 1)
-#
-#   # Run with inputs. The inputs include the same 3 cases that are detailed in the deeper dive Excel sheet
-#   run_jpmml(file.path(tmpFolder, "simplemodel.pmml"),
-#             file.path(testFolder, "deeperdive_inputs_reasoncodetests.csv"),
-#             file.path(tmpFolder, "deeperdive_output.csv"))
-#
-#   # Check the outputs contain reason codes
-#   expect_true(0 == file.access(file.path(tmpFolder, "deeperdive_output.csv"), mode=4))
-#   output <- fread(file = file.path(tmpFolder, "deeperdive_output.csv"))
-#
-#   # By default 3 reason codes
-#   expect_equal(length(intersect( names(output), c("Explain-1", "Explain-2", "Explain-3") )), 3)
-#
-#   # Each reason code should have 6 elements with the score between min and max
-#   output[, paste("r1", c("pred", "binlabel", "score", "min", "avg", "max"), sep="_") := tstrsplit(`Explain-1`, split="|", fixed=T)]
-#   output[, paste("r2", c("pred", "binlabel", "score", "min", "avg", "max"), sep="_") := tstrsplit(`Explain-2`, split="|", fixed=T)]
-#   output[, paste("r3", c("pred", "binlabel", "score", "min", "avg", "max"), sep="_") := tstrsplit(`Explain-3`, split="|", fixed=T)]
-#
-#   expect_true(all(output[r1_pred != "Context Mismatch"][, (r1_score >= r1_min) & (r1_score <= r1_max)]), "All scores should be between min and max")
-#   expect_true(all(output[r1_pred != "Context Mismatch"][, (r1_avg >= r1_min) & (r1_avg <= r1_max)]), "All average scores should be between min and max")
-#
-#   # For the first test case, first and second reason codes as expected
-#   expect_equal(output$r1_pred, c(rep("Country",5), "Age")) # Age only shows up if Country is missing when using points above minimum
-#   expect_equal(output$r2_pred, c(rep("Age",5), "Country"))
-#   expect_equal(output$r3_pred, rep("N/A",6))
-#
-#   # now need to verify the 2 or 3 modes
-#   # useReasonCodes="true", baselineMethod="min", reasonCodeAlgorithm="pointsAbove"
-#   # useReasonCodes="true", baselineMethod="max", reasonCodeAlgorithm="pointsBelow"
-#   # useReasonCodes="true", baselineMethod="mean", reasonCodeAlgorithm="pointsAbove"
-#   # useReasonCodes="true", baselineMethod="mean", reasonCodeAlgorithm="pointsBelow"
-#
-#   # reasonCodeAlgorithm: May be "pointsAbove" or "pointsBelow", describing how reason codes shall be ranked,
-#   # relative to the baseline score of each Characteristic, or as set at the top-level scorecard.
-# })
+# Verify that reason codes get (or don't get) generated in various flavours
+# TODO add args to adm2pmml to set # of reason codes and direction
+test_that("Scorecard reason codes", {
+  context("Scorecard reason codes")
+
+  testFolder <- "d"
+  # tmpFolder <- tempdir()
+  tmpFolder <- paste(testFolder, "tmp2", sep="/")
+  if (!dir.exists(tmpFolder)) dir.create(tmpFolder)
+
+  # Convert the simplest model to PMML including reason code options
+  predData <- fread(file.path(testFolder, "deeperdive_predictordata.csv"))
+  dummyModelData <- data.table(pymodelid = unique(predData$pymodelid),
+                               pyconfigurationname = c("simplemodel"),
+                               pyappliestoclass = "Dummy",
+                               pxapplication = "Dummy",
+                               pyname = "Dummy",
+                               pysnapshottime = unique(predData$pysnapshottime))
+  pmmlFiles <- adm2pmml(dmModels = dummyModelData,
+                        dmPredictors = predData,
+                        destDir = tmpFolder)
+  expect_equal(length(pmmlFiles), 1)
+
+  # Run with inputs. The inputs include the same 3 cases that are detailed in the deeper dive Excel sheet
+  run_jpmml(file.path(tmpFolder, "simplemodel.pmml"),
+            file.path(testFolder, "deeperdive_inputs_reasoncodetests.csv"),
+            file.path(tmpFolder, "deeperdive_output.csv"))
+
+  # Check the outputs contain reason codes
+  expect_true(0 == file.access(file.path(tmpFolder, "deeperdive_output.csv"), mode=4))
+  output <- fread(file = file.path(tmpFolder, "deeperdive_output.csv"))
+
+  # By default 3 reason codes
+  expect_equal(length(intersect( names(output), c("Explain-1", "Explain-2", "Explain-3") )), 3)
+
+  # Each reason code should have 6 elements with the score between min and max
+  output[, paste("r1", c("pred", "binlabel", "score", "min", "avg", "max"), sep="_") := tstrsplit(`Explain-1`, split="|", fixed=T)]
+  output[, paste("r2", c("pred", "binlabel", "score", "min", "avg", "max"), sep="_") := tstrsplit(`Explain-2`, split="|", fixed=T)]
+  output[, paste("r3", c("pred", "binlabel", "score", "min", "avg", "max"), sep="_") := tstrsplit(`Explain-3`, split="|", fixed=T)]
+
+  expect_true(all(output[r1_pred != "Context Mismatch"][, (r1_score >= r1_min) & (r1_score <= r1_max)]), "All scores should be between min and max")
+  expect_true(all(output[r1_pred != "Context Mismatch"][, (r1_avg >= r1_min) & (r1_avg <= r1_max)]), "All average scores should be between min and max")
+
+  # Something is wrong here. Country "" gets mapped to "Remaining Symbols" but should be treated as missing
+  # or should we explicitly list "" in the PMML?
+
+  # For the first test case, first and second reason codes as expected
+  expect_equal(output$r1_pred, c(rep("Country",5), "Age")) # Age only shows up if Country is missing when using points above minimum
+  expect_equal(output$r2_pred, c(rep("Age",5), "Country"))
+  expect_equal(output$r3_pred, rep("N/A",6))
+
+  # now need to verify the 2 or 3 modes
+  # useReasonCodes="true", baselineMethod="min", reasonCodeAlgorithm="pointsAbove"
+  # useReasonCodes="true", baselineMethod="max", reasonCodeAlgorithm="pointsBelow"
+  # useReasonCodes="true", baselineMethod="mean", reasonCodeAlgorithm="pointsAbove"
+  # useReasonCodes="true", baselineMethod="mean", reasonCodeAlgorithm="pointsBelow"
+
+  # reasonCodeAlgorithm: May be "pointsAbove" or "pointsBelow", describing how reason codes shall be ranked,
+  # relative to the baseline score of each Characteristic, or as set at the top-level scorecard.
+})
 
 test_that("Public functions from JSON utils", {
   context("Public JSON PMML utility functions")
