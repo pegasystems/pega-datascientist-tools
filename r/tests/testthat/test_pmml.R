@@ -212,38 +212,27 @@ pmml_unittest <- function(testName)
 
 }
 
-test_that("Run the JPMML engine", {
-  context("Run the JPMML engine")
+test_that("Test running the JPMML engine with a simple model", {
+  context("Test running the JPMML engine with a simple model")
 
   pmmlFile <- file.path("jpmml", "single_iris_logreg.xml")
   inputFile <- file.path("jpmml", "Iris.csv")
-  outFile <- file.path(tempdir(), "iris_out.csv") # tempdir() # IF IT WORKS PUT BACK TEMPDIR
+  outFile <- file.path(tempdir(), "iris_out.csv")
 
   expect_equal(nrow(fread(inputFile)), 150)
 
   run_jpmml(pmmlFile, inputFile, outFile)
-  cat("", file=outFile, append=T, fill=T)
-
-  print("***")
-  system(paste("ls -al", pmmlFile))
-  system(paste("ls -al", inputFile))
-  system(paste("ls -al", outFile))
-  system("java -version")
-  print("***")
+  #cat("", file=outFile, append=T, fill=T)
 
   expect_true(0 == file.access(outFile, mode=4))
-  #Sys.chmod(outFile, mode = "0777", use_umask = TRUE) # does not help
-
-  linez <- readLines(outFile)
-  expect_equal(length(linez), 151)
 
   scores <- fread(outFile)
   expect_equal(nrow(scores), 150)
 })
 
-# test_that("a basic happy-path test with a single 2-predictor model w/o missings, WOS etc", {
-#   pmml_unittest("deeperdive")
-# })
+test_that("a basic happy-path test with a single 2-predictor model w/o missings, WOS etc", {
+  pmml_unittest("deeperdive")
+})
 # test_that("a basic model consisting of 2 models, also providing new partition key values", {
 #   pmml_unittest("simplemultimodel")
 # })
