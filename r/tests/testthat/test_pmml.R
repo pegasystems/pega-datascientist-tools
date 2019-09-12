@@ -242,28 +242,29 @@ test_that("check symbolic binning with WOS", {
 test_that("checks flexible context keys (wich require to parse the JSON inside the pyName field), also some invalid models with empty keys", {
   pmml_unittest("flexandinvalidkeys")
 })
-# test_that("highlights an issue with the way ADM defines the smoothing factor in the score calculation - one of the tests in this will be failing if defining the smoothing factor in a naive way", {
-#   pmml_unittest("smoothfactorissue") # previously called "precisionissue"
-# })
-# test_that("Use of a predictor with a RESIDUAL bin", {
-#   pmml_unittest("residualtest")
-# })
-# test_that("Missing input values", {
-#   # this started happening after upgrade example-1.3-SNAPSHOT.jar to example-1.4-SNAPSHOT.jar
-#   pmml_unittest("missingvalues")
-# })
-# test_that("Models with different evidence for predictors (added/removed)", {
-#   pmml_unittest("unequalevidence")
-# })
-# test_that("Issue with creating PMML from internal JSON", {
-#   pmml_unittest("issue-4-singlebinpredictor")
-# })
-# test_that("Issue with a single classifier bin", {
-#   pmml_unittest("singleclassifierbin")
-# })
-# test_that("Test the test generator", {
-#   pmml_unittest("testfw")
-# })
+test_that("highlights an issue with the way ADM defines the smoothing factor in the score calculation - one of the tests in this will be failing if defining the smoothing factor in a naive way", {
+  pmml_unittest("smoothfactorissue") # previously called "precisionissue"
+})
+test_that("Use of a predictor with a RESIDUAL bin", {
+  pmml_unittest("residualtest")
+})
+test_that("Missing input values", {
+  # NB example-1.4-SNAPSHOT.jar reads the CSV slightly different than previously,
+  # now need explicit NA to indicate missing value
+  pmml_unittest("missingvalues")
+})
+test_that("Models with different evidence for predictors (added/removed)", {
+  pmml_unittest("unequalevidence")
+})
+test_that("Issue with creating PMML from internal JSON", {
+  pmml_unittest("issue-4-singlebinpredictor")
+})
+test_that("Issue with a single classifier bin", {
+  pmml_unittest("singleclassifierbin")
+})
+test_that("Test the test generator", {
+  pmml_unittest("testfw")
+})
 
 # Verify that reason codes get (or don't get) generated in various flavours
 # TODO add args to adm2pmml to set # of reason codes and direction
@@ -307,9 +308,6 @@ test_that("Scorecard reason codes", {
 
   expect_true(all(output[r1_pred != "Context Mismatch"][, (r1_score >= r1_min) & (r1_score <= r1_max)]), "All scores should be between min and max")
   expect_true(all(output[r1_pred != "Context Mismatch"][, (r1_avg >= r1_min) & (r1_avg <= r1_max)]), "All average scores should be between min and max")
-
-  # Something is wrong here. Country "" gets mapped to "Remaining Symbols" but should be treated as missing
-  # or should we explicitly list "" in the PMML?
 
   # For the first test case, first and second reason codes as expected
   expect_equal(output$r1_pred, c(rep("Country",5), "Age")) # Age only shows up if Country is missing when using points above minimum
