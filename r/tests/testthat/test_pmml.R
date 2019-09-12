@@ -233,15 +233,15 @@ test_that("Test running the JPMML engine with a simple model", {
 test_that("a basic happy-path test with a single 2-predictor model w/o missings, WOS etc", {
   pmml_unittest("deeperdive")
 })
-# test_that("a basic model consisting of 2 models, also providing new partition key values", {
-#   pmml_unittest("simplemultimodel")
-# })
-# test_that("check symbolic binning with WOS", {
-#   pmml_unittest("multimodel_wos")
-# })
-# test_that("checks flexible context keys (wich require to parse the JSON inside the pyName field), also some invalid models with empty keys", {
-#   pmml_unittest("flexandinvalidkeys")
-# })
+test_that("a basic model consisting of 2 models, also providing new partition key values", {
+  pmml_unittest("simplemultimodel")
+})
+test_that("check symbolic binning with WOS", {
+  pmml_unittest("multimodel_wos")
+})
+test_that("checks flexible context keys (wich require to parse the JSON inside the pyName field), also some invalid models with empty keys", {
+  pmml_unittest("flexandinvalidkeys")
+})
 # test_that("highlights an issue with the way ADM defines the smoothing factor in the score calculation - one of the tests in this will be failing if defining the smoothing factor in a naive way", {
 #   pmml_unittest("smoothfactorissue") # previously called "precisionissue"
 # })
