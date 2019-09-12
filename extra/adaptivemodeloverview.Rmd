@@ -88,14 +88,15 @@ latestMdls[, pyname := factor(pyname,
 
 ## Proposition Success Rates
 
-Overall success rate of the propositions. 
+Overall success rate of the propositions. When all models evaluate the same propositions the distributions should not differ much.
 
 ```{r}
 p <- ggplot(latestMdls, aes(factor(pyname, levels=rev(levels(pyname))), SuccessRate, fill=SuccessRate)) + geom_col() + coord_flip() +
   geom_text(aes(label=sprintf("%.2f%%", 100*SuccessRate)), color="yellow", hjust=1)+
   xlab("Proposition") + scale_y_continuous(name="Success Rate", labels=percent) + 
   ggtitle("Proposition Success Rates") +
-  scale_fill_continuous(guide=F)+
+  scale_fill_continuous_divergingx(guide=F)+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   facet_wrap(~pyconfigurationname, scales = "free_y")
 print(p)
 ```
@@ -121,7 +122,8 @@ print(p)
 ```{r}
 # order by final performance
 mdls[, pyname := factor(pyname, 
-                        levels=mdls[, .(Performance = weighted.mean(Performance[which.max(pysnapshottime)], responsecount[which.max(pysnapshottime)], na.rm = T)), by=pyname][order(-Performance)]$pyname)]
+                        levels=mdls[, .(Performance = weighted.mean(Performance[which.max(pysnapshottime)], 
+                                                                    Evidence[which.max(pysnapshottime)], na.rm = T)), by=pyname][order(-Performance)]$pyname)]
                                                 
 p <- ggplot(mdls[!is.na(pysnapshottime)], aes(pysnapshottime, Performance, color=pyname)) + geom_line() +
   facet_wrap(~ pyconfigurationname) + ggtitle("Model Performance over Time") +
@@ -160,7 +162,8 @@ The same models that have higher model performance also generally have a higher 
 ```{r}
 # order by final success rate
 mdls[, pyname := factor(pyname, 
-                        levels=mdls[, .(SuccessRate = weighted.mean(SuccessRate[which.max(pysnapshottime)], responsecount[which.max(pysnapshottime)], na.rm = T)), by=pyname][order(-SuccessRate)]$pyname)]
+                        levels=mdls[, .(SuccessRate = weighted.mean(SuccessRate[which.max(pysnapshottime)], 
+                                                                    Evidence[which.max(pysnapshottime)], na.rm = T)), by=pyname][order(-SuccessRate)]$pyname)]
 
 p<-ggplot(mdls[!is.na(pysnapshottime)], aes(pysnapshottime, SuccessRate, color=pyname)) + geom_line() +
   facet_wrap(~ pyconfigurationname, scales = "free") + ggtitle("Proposition Success Rate over Time") +

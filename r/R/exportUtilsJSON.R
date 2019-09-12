@@ -278,7 +278,7 @@ admJSONFactoryToBinning <- function(factoryJSON, modelname="Dummy")
   snapshottime <- toPRPCDateTime(lubridate::now())
   predictorBinning <- factoryDetail$binning [, .(pypredictortype = ifelse(predictortype[1]=="SYMBOLIC", "symbolic", "numeric"),
                                                  pytype = ifelse(predictortype[1]=="SYMBOLIC", "symbolic", "numeric"), # same as pypredictortype
-                                                 pybintype = ifelse(bintype[1]=="MISSING", "MISSING", "EQUIBEHAVIOR"),
+                                                 pybintype = ifelse(bintype[1]=="MISSING", "MISSING", "EQUIBEHAVIOR"), # RESIDUAL DOES NOT SEEM TO MATTER
 
                                                  pybinsymbol = ifelse(predictortype[1]=="SYMBOLIC", paste(binlabel, collapse = ","), buildIntervalNotation(binlowerbound, binupperbound)),
                                                  pybinlowerbound = first(binlowerbound),
@@ -300,12 +300,21 @@ admJSONFactoryToBinning <- function(factoryJSON, modelname="Dummy")
   # and finally make sure the index always starts at 1
   predictorBinning[pybinindex==0, pybintype := "MISSING"]
   predictorBinning <- predictorBinning[!(pybinindex == 0 & pybinpositives == 0 & pybinnegatives == 0)]
-  predictorBinning[, bybinindex := ifelse(rep(any(pybinindex == 0),.N), pybinindex+1, pybinindex), by=c("pymodelid", "pypredictorname")]
+  predictorBinning[, pybinindex := ifelse(rep(any(pybinindex == 0),.N), pybinindex+1, pybinindex), by=c("pymodelid", "pypredictorname")]
+  predictorBinning[, pybinindex := as.integer(pybinindex)]
 
   # recalculate auc, z-ratio and lift
   predictorBinning[, pyperformance := auc_from_bincounts(pybinpositives, pybinnegatives), by=c("pymodelid", "pypredictorname")]
   predictorBinning[, pylift := lift(pybinpositives, pybinnegatives), by=c("pymodelid", "pypredictorname")]
   predictorBinning[, pyzratio := zratio(pybinpositives, pybinnegatives), by=c("pymodelid", "pypredictorname")]
+  predictorBinning[, pyzratio := ifelse(is.nan(pyzratio), 0, pyzratio)]
+
+  # drop the empty last bins
+  predictorBinning[, maxpybinindex := max(pybinindex), by=c("pymodelid", "pypredictorname")]
+  predictorBinning <- predictorBinning[!(pybinindex == maxpybinindex & pybinpositives == 0 & pybinnegatives == 0)][, -"maxpybinindex"]
+
+  # order can have been changed after the binindex manipulation above
+  setorderv(predictorBinning, c("pymodelid", "pypredictorname", "pybinindex"))
 
   return(predictorBinning)
 }
