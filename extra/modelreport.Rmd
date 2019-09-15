@@ -41,6 +41,8 @@ library(plotly)
 # well behaved modelPredictorBins object with the current (latest) snapshot.
 # If there are multiple snapshots, predPerformanceOverTime will give that data.
 
+if (!("predictordatafile" %in% names(params))) stop(paste("Required parameter '", predictordatafile, "' missing."))
+
 if (!file.exists(params$predictordatafile)) {
   stop(paste("File does not exist:", params$predictordatafile))
 }
@@ -111,7 +113,10 @@ if (hasMultipleSnapshots) {
   # # NB we have seen situations where other formats appeared after import/export to Excel - may need to deal w that a la as.POSIXct(strptime(pysnapshottime, format="%Y-%m-%d"))
   modelPredictorBins[, snapshot := fromPRPCDateTime(pysnapshottime)] 
   if (sum(is.na(modelPredictorBins$snapshot))/nrow(modelPredictorBins) > 0.2) {
-    stop("Assumed Pega date-time string but resulting in over 20% NA's in snapshot time after conversion. Check that this is valid or update the code that deals with date/time conversion.")
+    modelPredictorBins[, snapshot := parse_date_time(pysnapshottime, orders=c("%Y-%m-%d %H:%M:%S"))] 
+    if (sum(is.na(modelPredictorBins$snapshot))/nrow(modelPredictorBins) > 0.2) {
+      stop("Assumed Pega date-time string but resulting in over 20% NA's in snapshot time after conversion. Check that this is valid or update the code that deals with date/time conversion.")
+    }
   }
   lastDay <- max(lubridate::floor_date(modelPredictorBins$snapshot, unit = "days"))
   modelPredictorBins <- modelPredictorBins[lubridate::floor_date(snapshot, unit="days") == lastDay]
@@ -143,7 +148,7 @@ The model reports a performance of `r round(modelPredictorBins[pyentrytype == "C
 binning <- modelPredictorBins[pyentrytype == "Classifier"]
 
 actualPerformance <- NULL
-binning[, inCurrentRange := NA]
+binning[, inCurrentRange := T]
 if (all(sapply(requiredFieldsForActualPerformance, function(f) {return(f %in% names(modelPredictorBins))}))) {
   # TODO consider try/catch because this one easily fails
   actualPerformance <- getModelPerformanceOverview(dmPredictors = modelPredictorBins)
@@ -164,51 +169,6 @@ binning[, adjustedpropensity := 100*(0.5+pybinpositives)/(1+pybinresponsecount)]
 ```{r, results="asis", echo=F, warning=F, error=F, fig.align = "center"}
 if (nrow(binning) < 1) {
   cat("<p style='color:Red;'>NO data available for Classifier for date:", max(modelPredictorBins$pysnapshottime), "</p>", fill=T)
-} else {
-  
-  # Not using the ggplot version - replaced by the plotly version below!
-  
-  successRateMax <- max(binning$successrate, na.rm = T)
-  if (0 == successRateMax) { successRateMax <- 1 }
-  secAxisFactor <- max(binning$pybinresponsecount)/successRateMax
-  
-  if (0 == secAxisFactor) {
-    p <- ggplot(binning, aes(bin, pybinresponsecount)) +
-      geom_col(fill = "darkgreen") +
-      scale_y_continuous(limits=c(0, max(binning$successrate)), name="Success Rate", labels=percent,
-                         sec.axis = sec_axis(~.*secAxisFactor, name = "Responses")) +
-      ggtitle("Score Distribution", subtitle = paste0(binning$pyentrytype[1], "; Performance=", binning$pyperformance[1]))
-    
-  } else {
-    p <- ggplot(binning, aes(bin, successrate, group=1))
-    
-    if (is.null(actualPerformance)) {
-      p <- p + 
-        geom_col(aes(y=pybinresponsecount/secAxisFactor), fill = "darkgreen") +
-        geom_line(colour="orange", size=2)+
-        geom_point(color = "black") +
-        ggtitle("Score Distribution of the Classifier", 
-                subtitle = paste0("Performance=", round(binning$pyperformance[1],5)))
-    } else {
-      p <- p + 
-        geom_col(aes(y=pybinresponsecount/secAxisFactor, fill = factor(inCurrentRange, levels=c(T, F))))+
-        geom_line(colour="orange", size=2)+
-        scale_fill_manual(values=c("darkgreen", "darkgrey"), guide=F)+
-        geom_point(aes(color = factor(inCurrentRange, levels=c(T, F))))+
-        scale_color_manual(values=c("black", "darkgrey"), guide=F)+
-        geom_vline(xintercept = c(actualPerformance$actual_score_bin_min-0.5, xmax=actualPerformance$actual_score_bin_max+0.5), color="blue")+
-        ggtitle("Score Distribution of the Classifier", 
-                subtitle = paste0("Performance=", round(binning$pyperformance[1],5), " (", round(actualPerformance$actual_performance,5),")"))
-    }
-    p <- p + 
-      scale_y_continuous(limits=c(0, max(binning$successrate)), name="Success Rate", labels=percent,
-                         sec.axis = sec_axis(~.*secAxisFactor, name = "Responses")) +
-      scale_x_discrete(name = "", labels=binning$pybinsymbol) +
-      theme(axis.text.x = element_text(angle = 45, hjust = 1))
-  }
-  
-  # Not using the ggplot version - replaced by the plotly version below!
-  # print(p)
 }
 ```
 
@@ -233,13 +193,13 @@ if (nrow(binning) >= 1) {
               line = list(color = "orange", width = 4), 
               yaxis = 'y2') %>%
     add_markers(x = ~bin[(binning$inCurrentRange)], y = ~successratepct[(binning$inCurrentRange)],
-              marker = list(color="black"),
-              hoverinfo = "text", text = ~sprintf("%.2f%%", successratepct[(binning$inCurrentRange)]),
-              yaxis = 'y2') %>%
+                marker = list(color="black"),
+                hoverinfo = "text", text = ~sprintf("%.2f%%", successratepct[(binning$inCurrentRange)]),
+                yaxis = 'y2') %>%
     add_markers(x = ~bin[(!binning$inCurrentRange)], y = ~successratepct[(!binning$inCurrentRange)],
-              marker = list(color="darkgrey"),
-              hoverinfo = "text", text = ~sprintf("%.2f%%", successratepct[(!binning$inCurrentRange)]),
-              yaxis = 'y2') %>%
+                marker = list(color="darkgrey"),
+                hoverinfo = "text", text = ~sprintf("%.2f%%", successratepct[(!binning$inCurrentRange)]),
+                yaxis = 'y2') %>%
     layout(title = paste0("Score Distribution of the Classifier"),
            xaxis = list(title = ""), # to put values instead of bin indicdes: , tickangle = -45, tickmode = "array", tickvals = ~bin, ticktext = ~pybinsymbol
            yaxis = list(side = 'left', title = "Responses"),

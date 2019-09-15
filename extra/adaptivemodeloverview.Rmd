@@ -10,10 +10,16 @@ params:
   # these values are set. That also allows to run the notebook multiple times for different values.
   modelfile:
     # full path to the source file which should be an export of the ADM model table
-    #value: "~/Documents/pega/adm_e2e_testing/results/modeldata.csv"
     value: "../extra/pr_data_dm_admmart_mdl_fact.csv"
+  predictordatafile:
+    # optional full path to ADM predictor binning table data
+    # if given, the model overview will also contain aggregate predictor plots
+    # this example file is the same as the RDA file used elsewhere in demos of CDH tools
+    #value: "../extra/pr_data_dm_admmart_pred.csv"
+    value: ""
   modellist:
-    # optional name for a text file that will be created with a list of model ID and model names - to drive creation of individual model reports
+    # optional name for a text file that will be created with a list of model ID and model names
+    # to drive bulk-creation of individual model reports
     value: ""
 ---
 
@@ -22,6 +28,7 @@ library(cdhtools)
 library(data.table)
 library(lubridate)
 library(ggplot2)
+library(plotly)
 library(colorspace)
 library(scales)
 theme_set(theme_minimal())
@@ -37,6 +44,8 @@ This notebook gives a global overview of the adaptive models from the data mart.
 
 knitr::opts_chunk$set(echo=F)
 
+if (!("modelfile" %in% names(params))) stop(paste("Required parameter '", modelfile, "' missing."))
+
 if (!file.exists(params$modelfile)) {
   stop(paste("File does not exist:", params$modelfile))
 }
@@ -51,11 +60,17 @@ if (endsWith(params$modelfile, ".zip")) {
 # work with lower case names as the various exports processes won't guarantee that case is kept
 setnames(mdls, tolower(names(mdls)))
 mdls <- mdls[, setdiff(names(mdls), c("pxcommitdatetime", "pzinskey", "pxinsname", "pxobjclass", "pxapplication")), with=F]
-if (sum(is.na(fromPRPCDateTime(head(mdls$pysnapshottime, 100)))) < 50) { # try guess date format using first 100 records
-  mdls[, pysnapshottime := fromPRPCDateTime(pysnapshottime)]
-} else {
-  mdls[, pysnapshottime := as.POSIXct(pysnapshottime, format="%Y-%m-%d %H:%M:%S")]
+
+# try be smart about the date/time format - is not always Pega format in some of the database exports
+suppressWarnings(timez <- fromPRPCDateTime(mdls$pysnapshottime))
+if (sum(is.na(timez))/length(timez) > 0.2) {
+  suppressWarnings(timez <- parse_date_time(mdls$pysnapshottime, orders=c("%Y-%m-%d %H:%M:%S") ))    
+  if (sum(is.na(timez))/length(timez) > 0.2) {
+    stop("Assumed Pega date-time string but resulting in over 20% NA's in snapshot time after conversion. Check that this is valid or update the code that deals with date/time conversion.")
+  }
 }
+mdls[, pysnapshottime := timez]
+
 mdls[, SuccessRate := pypositives/(pypositives+pynegatives)] 
 mdls[, Evidence := pypositives+pynegatives] 
 mdls[, Performance := 100*pyperformance]
@@ -66,6 +81,9 @@ for (fld in c("pytreatment", "pydirection", "pychannel")) {
     mdls[[fld]] <- ""
   }
 }
+
+# with customized model contexts, pyname will be a JSON string, sanitize that a bit
+mdls[, pyname := trimws(gsub("\\.+", " ", make.names(paste(".", pyname))))]
 ```
 
 ```{r}
@@ -91,8 +109,12 @@ latestMdls[, pyname := factor(pyname,
 Overall success rate of the propositions. When all models evaluate the same propositions the distributions should not differ much.
 
 ```{r}
-p <- ggplot(latestMdls, aes(factor(pyname, levels=rev(levels(pyname))), SuccessRate, fill=SuccessRate)) + geom_col() + coord_flip() +
-  geom_text(aes(label=sprintf("%.2f%%", 100*SuccessRate)), color="yellow", hjust=1)+
+propSuccess <- latestMdls[, .(SuccessRate = weighted.mean(SuccessRate, Responses, na.rm = T)), 
+                          by=c("pyconfigurationname", "pyname")][order(SuccessRate)]
+p <- ggplot(propSuccess, aes(factor(pyname, levels=rev(levels(pyname))), 
+                             ifelse(is.nan(SuccessRate), 0, SuccessRate), fill=SuccessRate)) + 
+  geom_col() + coord_flip() +
+  geom_text(aes(label=sprintf("%.2f%%", 100*SuccessRate)), color="blue", hjust=0.5)+
   xlab("Proposition") + scale_y_continuous(name="Success Rate", labels=percent) + 
   ggtitle("Proposition Success Rates") +
   scale_fill_continuous_divergingx(guide=F)+
@@ -106,14 +128,19 @@ print(p)
 This is similar to the standard "bubble chart" in the ADM reporting pages.
 
 ```{r}
-p <- ggplot(latestMdls, aes(Performance, SuccessRate, size=Responses, colour=pyname)) +
+bubbleData <- latestMdls[, .(SuccessRate = weighted.mean(SuccessRate, Responses, na.rm = T),
+                             Performance = weighted.mean(Performance, Responses, na.rm = T),
+                             Responses = sum(Responses, na.rm = T)), 
+                         by=c("pyconfigurationname", "pyname")][order(SuccessRate)]
+
+p <- ggplot(bubbleData, aes(Performance, SuccessRate, size=Responses, colour=pyname)) +
   geom_point()+
   colorScale+
   xlim(c(50,100))+
-  facet_wrap(~pyconfigurationname, scales = "free_y")+
+  facet_wrap(. ~ pyconfigurationname, scales="free_y", strip.position = "right", ncol = 2) +
   scale_y_continuous(labels = scales::percent, name = "Success Rate")+
   ggtitle("Performance vs Success Rate", subtitle = "for latest snapshots")
-print(p)
+ggplotly(p) %>% layout(showlegend=FALSE) # %>% config(displayModeBar = F)
 ```
 
 
@@ -124,33 +151,14 @@ print(p)
 mdls[, pyname := factor(pyname, 
                         levels=mdls[, .(Performance = weighted.mean(Performance[which.max(pysnapshottime)], 
                                                                     Evidence[which.max(pysnapshottime)], na.rm = T)), by=pyname][order(-Performance)]$pyname)]
-                                                
+
 p <- ggplot(mdls[!is.na(pysnapshottime)], aes(pysnapshottime, Performance, color=pyname)) + geom_line() +
-  facet_wrap(~ pyconfigurationname) + ggtitle("Model Performance over Time") +
+  facet_wrap(. ~ pyconfigurationname, scales="free_y", strip.position = "right", ncol = 2) +
+  ggtitle("Model Performance over Time") +
   colorScale+
   xlab("")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-print(p)
-
-# Aggregate view
-# mdls[, SnapshotWeek := floor_date(pysnapshottime, unit="weeks")]
-# discretizedView <- mdls[!is.na(pysnapshottime), 
-#                         .(Performance = weighted.mean(Performance, Evidence, na.rm = T),
-#                           PerformanceP10 = quantile(Performance, probs=0.1, na.rm = T),
-#                           PerformanceP90 = quantile(Performance, probs=0.9, na.rm = T),
-#                           SuccessRate = weighted.mean(SuccessRate, Evidence, na.rm = T),
-#                           SuccessRateP10 = quantile(SuccessRate, probs=0.1, na.rm = T),
-#                           SuccessRateP90 = quantile(SuccessRate, probs=0.9, na.rm = T)), 
-#                         by=c("SnapshotWeek", "pyconfigurationname")]
-# 
-# p <- ggplot(discretizedView, aes(SnapshotWeek, Performance)) + 
-#   geom_line(size=1) +
-#   geom_line(aes(y=PerformanceP10), color="blue", linetype="dashed")+
-#   geom_line(aes(y=PerformanceP90), color="blue", linetype="dashed")+
-#   facet_wrap(~ pyconfigurationname) + ggtitle("Model Performance over Time", subtitle = "Aggregated view with P10 and P90") +
-#   colorScale+
-#   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-# print(p)
+ggplotly(p)
 ```
 
 ## Model Success Rate over Time
@@ -183,6 +191,138 @@ print(p)
 # print(p)
 ```
 
+# Predictor summaries
+
+```{r}
+if (params$predictordatafile=="")
+{
+  cat("Predictor related plots will only be available when the predictor data is available to this script.", fill=T)
+  modelPredictors <- NULL
+} else {
+  if (!file.exists(params$predictordatafile)) {
+    stop(paste("File does not exist:", params$predictordatafile))
+  }
+  if (endsWith(params$predictordatafile, ".zip")) {
+    # NB this might work only on Linux/Mac; consider making configurable
+    modelPredictorBins <- fread(cmd=paste("unzip -p", gsub(" ", "\\ ", params$predictordatafile, fixed = T))) 
+  } else {
+    modelPredictorBins <- fread(params$predictordatafile)
+  }
+  
+  # work with lower case names as the various exports processes won't guarantee that case is kept
+  setnames(modelPredictorBins, tolower(names(modelPredictorBins)))
+  
+  # in older versions "pypredictortype" was called "pytype"
+  if("pytype" %in% names(modelPredictorBins) & !"pypredictortype" %in% names(modelPredictorBins)) {
+    modelPredictorBins[, pypredictortype := pytype]
+  }
+  
+  # Excel exports sometimes screw up formatting of large numeric values - drop the comma used as thousands separators
+  # NB not sure how generic this code will turn out to be
+  for (f in c("pybinnegatives","pybinpositives")) {
+    if (class(modelPredictorBins[[f]]) == "character") {
+      modelPredictorBins[[f]] <- as.numeric(gsub(',','',modelPredictorBins[[f]],fixed=T))
+    }
+  }
+  
+  # only for the current models, only a few fields are of interest and aggregate bin counts to predictor level
+  fieldsOfInterest <- c("pymodelid", "pysnapshottime", "pypredictorname", "pypredictortype", "pybinnegatives","pybinpositives","pybinindex")
+  modelPredictors <- modelPredictorBins[pymodelid %in% mdls$pymodelid & pyentrytype != "Classifier", 
+                                        .(pypredictortype = first(pypredictortype),
+                                          pyentrytype = first(pyentrytype),
+                                          pyperformance = 100*auc_from_bincounts(pybinpositives, pybinnegatives),
+                                          pynegatives = sum(pybinnegatives),
+                                          pypositives = sum(pybinpositives),
+                                          pyresponsecount = sum(pybinnegatives)+sum(pybinpositives)), 
+                                        by=c("pymodelid", "pysnapshottime", "pypredictorname")]
+  rm(modelPredictorBins)
+  
+  # only keep latest snapshot if there are multiple
+  if (length(unique(modelPredictors$pysnapshottime)) > 1) {
+    modelPredictors[, snapshot := fromPRPCDateTime(pysnapshottime)] 
+    modelPredictors <- modelPredictors[, .SD[which.max(snapshot)], by=c("pymodelid", "pypredictorname")] # TODO not sure if this is correct
+  }
+  
+  # finally join with model data
+  modelPredictors <- merge(modelPredictors, unique(mdls[, c("pymodelid", "pyconfigurationname", "pyname"), with=F]), by="pymodelid", all.x=T, all.y=F)
+}
+```
+
+## Predictor performance across models
+
+```{r, fig.width=10, fig.height=10}
+if (!is.null(modelPredictors)) {
+  predOrder <- modelPredictors[, .(meanPerf = weighted.mean(pyperformance, 1+pyresponsecount, na.rm = T)), 
+                               by=pypredictorname][order(meanPerf)] $ pypredictorname
+  
+  modelPredictors[, predictorCategory := sapply(strsplit(pypredictorname, ".", fixed=T),
+                                                function(x) {return(ifelse(length(x)<2,"Primary",x[[1]]))})]
+  modelPredictors[, predictorType := factor(pypredictortype, levels = c("numeric", "symbolic"))]
+  
+  p <- ggplot(modelPredictors, aes(factor(pypredictorname, levels=predOrder), pyperformance)) + 
+    geom_boxplot(lwd=1) +
+    coord_flip() +
+    facet_wrap(. ~ pyconfigurationname, scales="free_y", strip.position = "right", ncol = 2) +
+    ylab("Predictor Performance") + xlab("") + 
+    ggtitle("Predictor performance distribution", subtitle = "Across all models") +
+    ylim(c(50,100))+
+    theme(axis.text.y = element_text(size=5),
+          strip.text = element_text(size=7))  
+  if (length(unique(modelPredictors$predictorCategory))>1) {
+    # use fill as well as line color
+    p <- p + geom_boxplot(mapping = aes(fill=predictorCategory, color=predictorType), lwd=0.5) +
+      scale_fill_discrete_divergingx(name="Category") +
+      scale_color_discrete_diverging(name="Predictor Type")
+  } else {
+    # only type available
+    p <- p + geom_boxplot(mapping = aes(fill=predictorType), lwd=0.5) +
+      scale_fill_discrete_divergingx(name="Predictor Type")
+  }
+  ggplotly(p)
+} else {
+  cat("Predictor related plots will only be available when the predictor data is available to this script.", fill=T)
+}
+```
+
+## Predictor Performance across Propositions
+
+A view of predictor performance across all propositions, ordered so that the best performing predictors are at the top and the 
+best performing propositions are on the left. Green indicates good performance, red means more problematic - either too low or
+too good to be true.
+
+```{r, fig.width=10, fig.height=10}
+if (!is.null(modelPredictors)) {
+  myGoodness <- function(x)  
+  {  
+    minOK <- 52  
+    maxOK <- 85  
+    midPt <- 30  
+    return (ifelse(x < minOK, midPt*(x-50)/(minOK-50),  
+                   ifelse(x < maxOK, midPt+(100-midPt)*(x-minOK)/(maxOK-minOK),  
+                          100 - (x-maxOK)/(100-maxOK))))  
+  }  
+  
+  perfPredVsProp <- modelPredictors[, .(Performance = weighted.mean(pyperformance, 1+pyresponsecount, na.rm = T)), 
+                                    by=c("pyconfigurationname", "pypredictorname", "pyname")]
+  
+  propOrder <- modelPredictors[, .(meanPerf = weighted.mean(pyperformance, 1+pyresponsecount, na.rm = T)), 
+                               by=pyname][order(-meanPerf)] $ pyname
+  
+  ggplot(perfPredVsProp, aes(factor(pyname, levels=propOrder), factor(pypredictorname, levels=predOrder))) +
+    geom_raster(aes(fill=myGoodness(Performance))) +
+    facet_wrap(. ~ pyconfigurationname, scales="free", strip.position = "right", ncol = 2) +
+    scale_fill_gradient2(low="red", mid="green", high="white", midpoint=50) +  
+    labs(x="",y="",title="Predictors Performance", subtitle = "by Proposition")+  
+    geom_text(aes(label=sprintf("%.2f",Performance)), size=2)+  
+    theme(axis.text.y = element_text(size=5),
+          axis.text.x = element_text(size=5, angle = 45, hjust = 1),
+          strip.text = element_text(size=7)) +
+    guides(fill=F)
+} else {
+  cat("Predictor related plots will only be available when the predictor data is available to this script.", fill=T)
+}
+```
+
 # Appendix - all the models
 
 ```{r}
@@ -190,9 +330,13 @@ kable(unique(mdls[, c("pymodelid","pyconfigurationname","pyname"), with=F])[orde
 ```
 
 ```{r}
-# write list of models so the script (createModelReports) to generate off-line model reports can be run automatically
+# write list of models so the script (createModelReports) to generate off-line model reports can be run after this
 if (params$modellist != "") {
-  write.table(unique(mdls[, c("pymodelid","pyname"), with=F]), 
+  stdKeys <- intersect(names(mdls), c("pyconfigurationname", "pyissue","pygroup","pyname","pychannel","pydirection","pytreatment"))
+  inclKeys <- stdKeys[sapply(stdKeys, function(x) {return(length(unique(mdls[[x]]))>1)})]
+  modelIDandSanitizedNames <- unique(mdls[, .(make.names(apply(.SD, 1, function(x){return(paste(x,collapse="_"))}))), by=pymodelid, .SDcols=inclKeys])
+  
+  write.table(modelIDandSanitizedNames, 
               params$modellist, row.names = F, col.names = F, quote=F, sep=";")
 }
 ```
