@@ -8,11 +8,13 @@
 
 <title>Generates PMML files from ADM models. — adm2pmml • cdhtools</title>
 
+
 <!-- jquery -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <!-- Bootstrap -->
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha256-916EbMg70RQy9LHiGkXzG8hSg9EdNy97GazNG/aiY1w=" crossorigin="anonymous" />
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha256-U5ZEeKfGNOja007MMD3YBI0A3OSZOQbeG6z2f2Y0hu8=" crossorigin="anonymous"></script>
 
 <!-- Font Awesome icons -->
@@ -30,14 +32,15 @@
 
 
 
-<meta property="og:title" content="Generates PMML files from ADM models. — adm2pmml" />
 
+<meta property="og:title" content="Generates PMML files from ADM models. — adm2pmml" />
 <meta property="og:description" content="Generates PMML files from the ADM models in either the ADM data mart,
 directly from the database or from dataset exports, or from the (internal)
 &quot;Factory&quot; tables. The generated PMML contains all the individual models for
 each model partition inside a big ensemble that selects between them based on
 context keys." />
 <meta name="twitter:card" content="summary" />
+
 
 
 
@@ -98,7 +101,6 @@ context keys." />
   </ul>
 </li>
       </ul>
-      
       <ul class="nav navbar-nav navbar-right">
         
       </ul>
@@ -119,19 +121,17 @@ context keys." />
     </div>
 
     <div class="ref-description">
-    
     <p>Generates PMML files from the ADM models in either the ADM data mart,
 directly from the database or from dataset exports, or from the (internal)
 "Factory" tables. The generated PMML contains all the individual models for
 each model partition inside a big ensemble that selects between them based on
 context keys.</p>
-    
     </div>
 
     <pre class="usage"><span class='fu'>adm2pmml</span>(<span class='kw'>dmModels</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>dmPredictors</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>dbConn</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>forceUseDM</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>, <span class='kw'>appliesToFilter</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>ruleNameFilter</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>destDir</span> <span class='kw'>=</span> <span class='st'>"."</span>, <span class='kw'>tmpDir</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>verbose</span> <span class='kw'>=</span> (!<span class='fu'><a href='https://www.rdocumentation.org/packages/base/topics/NULL'>is.null</a></span>(<span class='no'>tmpDir</span>)))</pre>
-    
+
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
@@ -187,12 +187,11 @@ indicating no temp files will be left behind.</p></td>
 <code>TRUE</code> if the <code>tmpDir</code> is set.</p></td>
     </tr>
     </table>
-    
+
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
     <p>Creates the PMML file(s) in the given destination and returns a list
   of model ID's per file.</p>
-    
     <h2 class="hasAnchor" id="exporting-a-specific-version"><a class="anchor" href="#exporting-a-specific-version"></a>Exporting a specific version</h2>
 
     <p>When exporting from the datamart, only
@@ -200,7 +199,6 @@ indicating no temp files will be left behind.</p></td>
   each of these, only the most recent of the predictor snapshots of that
   model will be used. To export specific snapshots subset the data before
   calling this method.</p>
-    
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"><div class='input'><span class='fu'>adm2pmml</span>(<span class='kw'>verbose</span><span class='kw'>=</span><span class='fl'>TRUE</span>)</div><div class='output co'>#&gt; [1] "No models available matching the filter criteria"</div><div class='output co'>#&gt; list()</div><span class='co'># NOT RUN {</span>
@@ -215,11 +213,8 @@ indicating no temp files will be left behind.</p></td>
     <h2>Contents</h2>
     <ul class="nav nav-pills nav-stacked">
       <li><a href="#arguments">Arguments</a></li>
-      
       <li><a href="#value">Value</a></li>
-
       <li><a href="#exporting-a-specific-version">Exporting a specific version</a></li>
-      
       <li><a href="#examples">Examples</a></li>
     </ul>
 

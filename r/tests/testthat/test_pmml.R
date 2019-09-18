@@ -351,3 +351,17 @@ test_that("PMML generation from DM exports", {
   expect_equal(length(adm2pmml(allModels, allPredictors, appliesToFilter="DMSample")), 0)
 })
 
+test_that("Creating a Scorecard from the captured scoring model", {
+  testFolder <- "d"
+
+  # for testing in console
+  # testFolder<-"tests/testthat/d"
+
+  encodedModelData <- paste(readLines(file.path(testFolder, "scoringmodeldata.json")), collapse="\n")
+
+  scoringModel <- getScoringModelFromJSONFactoryString(encodedModelData)
+
+  expect_equal(ncol(scoringModel), 9)
+  expect_equal(nrow(scoringModel[predictortype!="CLASSIFIER"]), 92)
+  expect_equal(nrow(scoringModel[predictortype=="CLASSIFIER"]), 22)
+})

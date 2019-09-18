@@ -371,7 +371,27 @@ setBinWeights <- function(modelbins)
   } else {
     predMinMaxWeights <- data.table()
   }
-  return(predMinMaxWeights)
+
+  # Scale the weights to 0..1000
+  scWeight <- 0 # deliberately chosen to be 0 - contributions of predictors are thru 'perPredictorContribution'
+  hasNoPredictors <- nrow(modelbins[predictortype != "CLASSIFIER"]) == 0
+  if (hasNoPredictors) {
+    scaleOffset <- 0.0
+    scaleFactor <- 1.0
+  } else {
+    scaleFactor <- 1000/(sum(predMinMaxWeights$maxWeight) - sum(predMinMaxWeights$minWeight))
+    scaleOffset <- -sum(predMinMaxWeights$minWeight)
+
+    # the scaling is sometimes slightly different than the old version because that unconditionally took the wos bin into account, which we no longer need here
+
+    modelbins <- merge(modelbins, predMinMaxWeights, all=T, by=c("predictorname"))
+
+    modelbins[predictortype != "CLASSIFIER", binWeight := (binWeight-minWeight)*scaleFactor]
+    modelbins[predictortype == "CLASSIFIER", binlowerbound := (binlowerbound+scaleOffset)*scaleFactor]
+    modelbins[predictortype == "CLASSIFIER", binupperbound := (binupperbound+scaleOffset)*scaleFactor]
+  }
+
+  return(list(binning = modelbins, scaleFactor = scaleFactor, scaleOffset = scaleOffset, scWeight = scWeight))
 }
 
 # Creates a single scorecard, for a single "partition" of the ADM rule
@@ -379,32 +399,12 @@ createScorecard <- function(modelbins, modelName)
 {
   # Add the bin weights based on the log odds
   scaling <- setBinWeights(modelbins)
+  modelbins <- scaling$binning
+  scaleOffset <- scaling$scaleOffset
+  scaleFactor <- scaling$scaleFactor
+  scWeight <- scaling$scWeight
 
-  scWeight <- 0 # deliberately chosen to be 0 - contributions of predictors are thru 'perPredictorContribution'
   hasNoPredictors <- nrow(modelbins[predictortype != "CLASSIFIER"]) == 0
-
-  # Scaling to 0..1000
-  if (hasNoPredictors) {
-    scaleOffset <- 0.0
-    scaleFactor <- 1.0
-  } else {
-    scaleFactor <- 1000/(sum(scaling$maxWeight) - sum(scaling$minWeight))
-    scaleOffset <- -sum(scaling$minWeight)
-
-    # the scaling is sometimes slightly different than the old version because that unconditionally took the wos bin into account, which we no longer need here
-
-    modelbins <- merge(modelbins, scaling, all=T, by=c("predictorname"))
-
-    modelbins[predictortype != "CLASSIFIER", binWeight := (binWeight-minWeight)*scaleFactor]
-    modelbins[predictortype == "CLASSIFIER", binlowerbound := (binlowerbound+scaleOffset)*scaleFactor]
-    modelbins[predictortype == "CLASSIFIER", binupperbound := (binupperbound+scaleOffset)*scaleFactor]
-
-
-    # print(scaling)
-    # cat("Min score: ", sum(scaling$minWeight), fill = T)
-    # cat("Max score: ", sum(scaling$maxWeight), fill = T)
-    # stop()
-  }
 
   # In support of decision explanation through reason codes, add some meta info to the bins (not used for scoring)
   if (hasNoPredictors) {

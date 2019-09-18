@@ -8,11 +8,13 @@
 
 <title>Retrieves ADM models from the internal "Factory" table. — getModelsFromJSONTable • cdhtools</title>
 
+
 <!-- jquery -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <!-- Bootstrap -->
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha256-916EbMg70RQy9LHiGkXzG8hSg9EdNy97GazNG/aiY1w=" crossorigin="anonymous" />
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha256-U5ZEeKfGNOja007MMD3YBI0A3OSZOQbeG6z2f2Y0hu8=" crossorigin="anonymous"></script>
 
 <!-- Font Awesome icons -->
@@ -30,8 +32,8 @@
 
 
 
-<meta property="og:title" content="Retrieves ADM models from the internal "Factory" table. — getModelsFromJSONTable" />
 
+<meta property="og:title" content="Retrieves ADM models from the internal "Factory" table. — getModelsFromJSONTable" />
 <meta property="og:description" content="The models in the internal &quot;Factory&quot; table contain all the raw data that the
 system needs to build the models from. It includes the raw binning, the
 current data analysis, the score mapping and much more. The data can be used
@@ -39,6 +41,7 @@ to reconstruct the models from, similar to the ADM datamart data. The model
 data here is however complete as it is all stored in JSOn while the datamart
 may contain truncated values." />
 <meta name="twitter:card" content="summary" />
+
 
 
 
@@ -99,7 +102,6 @@ may contain truncated values." />
   </ul>
 </li>
       </ul>
-      
       <ul class="nav navbar-nav navbar-right">
         
       </ul>
@@ -120,19 +122,17 @@ may contain truncated values." />
     </div>
 
     <div class="ref-description">
-    
     <p>The models in the internal "Factory" table contain all the raw data that the
 system needs to build the models from. It includes the raw binning, the
 current data analysis, the score mapping and much more. The data can be used
 to reconstruct the models from, similar to the ADM datamart data. The model
 data here is however complete as it is all stored in JSOn while the datamart
 may contain truncated values.</p>
-    
     </div>
 
     <pre class="usage"><span class='fu'>getModelsFromJSONTable</span>(<span class='no'>conn</span>, <span class='kw'>appliesto</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>configurationname</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>verbose</span> <span class='kw'>=</span> <span class='no'>F</span>)</pre>
-    
+
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
@@ -155,7 +155,7 @@ filters using exact string match, not a regexp.</p></td>
       <td><p>Set to <code>True</code> to show database queries.</p></td>
     </tr>
     </table>
-    
+
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
     <p>Returns a <code>data.table</code> with all the models. When inspecting
@@ -164,7 +164,6 @@ filters using exact string match, not a regexp.</p></td>
   want to exclude this when looking at an overview of all models. A single
   model instance from the table can be further inspected by calling the
   <code>fromJSON</code> function on the relevant <code>pyfactory</code> value.</p>
-    
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"><span class='co'># NOT RUN {</span>
@@ -176,9 +175,7 @@ filters using exact string match, not a regexp.</p></td>
     <h2>Contents</h2>
     <ul class="nav nav-pills nav-stacked">
       <li><a href="#arguments">Arguments</a></li>
-      
       <li><a href="#value">Value</a></li>
-      
       <li><a href="#examples">Examples</a></li>
     </ul>
 

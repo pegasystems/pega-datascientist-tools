@@ -254,8 +254,8 @@ getModelPerformanceOverview <- function(dmModels = NULL, dmPredictors = NULL, js
                               performance = sapply(modelList, function(m) {return(m$binning$performance[1])}),
                               actual_performance = NA, # placeholder
                               responses = sapply(modelList, function(m) {return(m$binning$totalpos[1] + m$binning$totalneg[1])}),
-                              score_min = sapply(modelList, function(m) {binz <- copy(m$binning); scaling <- setBinWeights(binz); return(sum(scaling$minWeight))}),
-                              score_max = sapply(modelList, function(m) {binz <- copy(m$binning); scaling <- setBinWeights(binz); return(sum(scaling$maxWeight))}))
+                              score_min = sapply(modelList, function(m) {binz <- copy(m$binning); scaling <- setBinWeights(binz); return(sum(scaling$binning[predictortype != "CLASSIFIER"]$minWeight))}),
+                              score_max = sapply(modelList, function(m) {binz <- copy(m$binning); scaling <- setBinWeights(binz); return(sum(scaling$binning[predictortype != "CLASSIFIER"]$maxWeight))}))
 
   classifiers <- lapply(modelList, function(m) { return (m$binning[predictortype == "CLASSIFIER"])})
 
