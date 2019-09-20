@@ -21,6 +21,13 @@ getJSONModelContextAsString <- function(p)
   return(flat)
 }
 
+buildIntervalNotation <- function(lower, upper) {
+  return(ifelse(is.na(lower) & is.na(upper), "MISSING",
+                ifelse(is.na(lower),paste0("<", upper),
+                       ifelse(is.na(upper),paste0("\u2265", lower),
+                              paste0("[",lower,", ",upper,">")))))
+}
+
 #' Retrieves ADM models from the internal "Factory" table.
 #'
 #' The models in the internal "Factory" table contain all the raw data that the
@@ -227,19 +234,30 @@ internalBinningFromJSONFactory <- function(binningJSON, id, activePredsOnly)
 #' @examples
 getScoringModelFromJSONFactoryString <- function(analyzedData)
 {
+  buildLabel <- function(predictortype, bintype, binlabel, binlowerbound, binupperbound)
+  {
+    return(ifelse(bintype == "MISSING","MISSING",
+                  ifelse(bintype == "INTERVAL",buildIntervalNotation(binlowerbound, binupperbound),
+                         ifelse(bintype == "SYMBOL",binlabel,
+                                ifelse(bintype == "REMAININGSYMBOLS", "Other", paste("Internal error: unknown type", bintype))))))
+  }
+
   scoringModelJSON <- fromJSON(analyzedData)
   id <- getJSONModelContextAsString(toJSON(scoringModelJSON$factoryKey$modelPartition))
 
   internalBinning <- internalBinningFromJSONFactory(scoringModelJSON, id, activePredsOnly=F)
 
-  # the internal binning is not a scorecard yet but at least closer
+  # the internal binning is not a scorecard yet so relabel some of the columns and split
+  # into scorecard and a score mapping
 
-  # to build a more useful table we add the score contribution of every entry (except the classifier)
-  # and include a subset of the columns
   scaledBinning <- setBinWeights(internalBinning)$binning
+  scaledBinning[, Label := buildLabel(predictortype, bintype, binlabel, binlowerbound, binupperbound)]
+  scorecard <- scaledBinning[predictortype != "CLASSIFIER", c("predictorname", "Label", "binWeight", "binpos", "binneg")]
+  setnames(scorecard, c("Field", "Value", "Points", "pos", "neg")) # returning pos/neg so numbers can be verified
+  scorecardMapping <- scaledBinning[predictortype == "CLASSIFIER", c("Label", "binWeight", "binpos", "binneg")]
+  setnames(scorecardMapping, c("Score Range", "Propensity", "binpos", "binneg"))
 
-  return(scaledBinning[, c("predictorname","binidx","predictortype","binlabel","binlowerbound","binupperbound",
-                           "bintype","binWeight","binLogOdds"), with=F])[order(predictortype,predictorname, binidx)]
+  return(list(scorecard = scorecard, mapping = scorecardMapping))
 }
 
 createListFromSingleJSONFactoryString <- function(aFactory, id, overallModelName, tmpFolder=NULL, forceLowerCasePredictorNames=F, activePredsOnly=T)
@@ -301,12 +319,6 @@ createListFromADMFactory <- function(partitions, overallModelName, tmpFolder=NUL
 #' binning <- admJSONFactoryToBinning(admFactory$pyfactory[1])}
 admJSONFactoryToBinning <- function(factoryJSON, modelname="Dummy")
 {
-  buildIntervalNotation <- function(lower, upper) {
-    if (is.na(lower) & is.na(upper)) return("MISSING")
-    if (is.na(lower)) return(paste0("<", upper))
-    if (is.na(upper)) return(paste0("\u2265", lower))
-    return(paste0("[",lower,", ",upper,">"))
-  }
   factoryDetail <- createListFromSingleJSONFactoryString(factoryJSON, id=modelname, overallModelName=modelname, tmpFolder=NULL, forceLowerCasePredictorNames=F, activePredsOnly=F)
 
   snapshottime <- toPRPCDateTime(lubridate::now())

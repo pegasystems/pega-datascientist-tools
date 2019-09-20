@@ -359,9 +359,77 @@ test_that("Creating a Scorecard from the captured scoring model", {
 
   encodedModelData <- paste(readLines(file.path(testFolder, "scoringmodeldata.json")), collapse="\n")
 
-  scoringModel <- getScoringModelFromJSONFactoryString(encodedModelData)
+  sc <- getScoringModelFromJSONFactoryString(encodedModelData)
 
-  expect_equal(ncol(scoringModel), 9)
-  expect_equal(nrow(scoringModel[predictortype!="CLASSIFIER"]), 92)
-  expect_equal(nrow(scoringModel[predictortype=="CLASSIFIER"]), 22)
+  # findClassifierBin <- function( classifierBins, score )
+  # {
+  #   if (nrow(classifierBins) == 1) return(1)
+  #
+  #   return (1 + findInterval(score, classifierBins$binupperbound[1 : (nrow(classifierBins) - 1)]))
+  # }
+
+  # Score from the simplified output tables
+  findIntervalFromStringRepresentation <- function(x, intervals)
+  {
+    expr <- sapply(tstrsplit(intervals, ","), function(s) {
+      numbound <- gsub("[^-?[:digit:]|. ]", "", s)
+      ifelse(startsWith(s, "[") | startsWith(s, "≥"), paste(x, ">=", numbound),
+             ifelse(startsWith(s, "<"), paste(x, "<", numbound),
+                    ifelse(endsWith(s, "]"), paste(x, "<=", numbound),
+                           ifelse(endsWith(s, ">"), paste(x, "<", numbound), NA))))})
+    expr <- as.data.table(expr)
+    expr$rowExpr <- paste(ifelse(is.na(expr$V1), "F", paste0("(",expr$V1,")")),
+                                "&",
+                                ifelse(is.na(expr$V2), "T", paste0("(",expr[[2]],")")))
+
+    print(expr)
+    expr$evalResult <- sapply(expr$rowExpr, function(x) {return(eval(parse(text=x)))})
+
+    return(which(expr$evalResult)[1])
+  }
+
+  score <- function(sc, mapping, inputs) # candidate for cdh_utils
+  {
+    # total score
+    totalscore <- sum(sc[Field %in% setdiff(unique(sc$Field), names(inputs)) & Value == "MISSING"]$Points)
+
+    for (i in seq(length(inputs))) {
+      name <- names(inputs)[i]
+      if (name %in% sc$Field) {
+        if (any(substr( sc[Field == name]$Value, 1, 1 ) %in% c("[","<","≥"))) {
+          print("num")
+          idx <- findIntervalFromStringRepresentation(inputs[[i]], sc[Field == name]$Value)
+          partialscore <- sc[Field == name]$Points[idx]
+          #bounds <- sc[Field==name & Value != "MISSING"]$binupperbound
+          #partialscore <- sc[Field==name & Value != "MISSING"][findInterval(inputs[[i]], bounds[1:(length(bounds)-1)])+1]$Points
+          print(partialscore)
+        } else {
+            print("sym")
+            if (inputs[[i]] %in% sc[Field==name & Value != "MISSING"]$Value) {
+              partialscore <- sc[Field==name & Value != "MISSING" & Value == inputs[[i]]]$Points
+            } else {
+              partialscore <- sc[Field==name & Value == "Other"]$Points
+            }
+            print(partialscore)
+        }
+      }
+      totalscore <- totalscore + partialscore
+    }
+    print(totalscore)
+
+    mappingidx <- findIntervalFromStringRepresentation(totalscore, mapping$`Score Range`)
+    propensity <- mapping$Propensity[mappingidx]
+    print(propensity)
+
+    return(totalscore)
+  }
+
+  xxx <- score(sc$scorecard, sc$mapping, list(Age = 40, Income = 10000, OverallUsage = 0) ) # TODO more validation before really adding
+
+  expect_equal(ncol(sc$scorecard), 5)
+  expect_equal(ncol(sc$mapping), 4)
+  expect_equal(nrow(sc$scorecard), 92)
+  expect_equal(nrow(sc$mapping), 22)
+
+
 })
