@@ -652,9 +652,7 @@ adm2pmml <- function(dmModels = NULL, dmPredictors = NULL, dbConn = NULL, forceU
         }
         dmPredictors <- getPredictorsForModelsFromDatamart(conn, dmModels, verbose=verbose)
       } else {
-        # TODO pass on filtering here straight to this method
-
-        modelFactory <- getModelsFromJSONTable(conn, verbose=verbose)
+        modelFactory <- getModelsFromJSONTable(conn, appliesto=appliesToFilter, configurationname=ruleNameFilter, verbose=verbose)
       }
     }
   }

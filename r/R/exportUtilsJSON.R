@@ -230,8 +230,6 @@ internalBinningFromJSONFactory <- function(binningJSON, id, activePredsOnly)
 #'
 #' @return A \code{data.table} with the binning.
 #' @export
-#'
-#' @examples
 getScoringModelFromJSONFactoryString <- function(analyzedData)
 {
   buildLabel <- function(predictortype, bintype, binlabel, binlowerbound, binupperbound)
