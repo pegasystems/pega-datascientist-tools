@@ -250,12 +250,20 @@ getScoringModelFromJSONFactoryString <- function(analyzedData)
 
   scaledBinning <- setBinWeights(internalBinning)$binning
   scaledBinning[, Label := buildLabel(predictortype, bintype, binlabel, binlowerbound, binupperbound)]
-  scorecard <- scaledBinning[predictortype != "CLASSIFIER", c("predictorname", "Label", "binWeight", "binpos", "binneg")]
-  setnames(scorecard, c("Field", "Value", "Points", "pos", "neg")) # returning pos/neg so numbers can be verified
-  scorecardMapping <- scaledBinning[predictortype == "CLASSIFIER", c("Label", "binWeight", "binpos", "binneg")]
-  setnames(scorecardMapping, c("Score Range", "Propensity", "binpos", "binneg"))
 
-  return(list(scorecard = scorecard, mapping = scorecardMapping))
+  # The field to score mapping (also returning pos/neg so numbers can be verified)
+  scorecard <- scaledBinning[predictortype != "CLASSIFIER", c("predictorname", "Label", "binWeight", "binpos", "binneg")]
+  setnames(scorecard, c("Field", "Value", "Points", "pos", "neg"))
+
+  # The classifier mapping
+  scorecardMapping <- scaledBinning[predictortype == "CLASSIFIER", c("Label", "binWeight", "binpos", "binneg")]
+  setnames(scorecardMapping, c("Score Range", "Propensity", "pos", "neg"))
+
+  # Both plus the original boundaries/labels
+  oriBinning <- scaledBinning[, c("predictorname", "predictortype", "bintype", "binlabel", "binlowerbound", "binupperbound", "binWeight", "binpos", "binneg")]
+  setnames(oriBinning, c("Field", "FieldType", "BinType", "Symbol", "LowerBound", "UpperBound", "Weight", "pos", "neg"))
+
+  return(list(scorecard = scorecard, mapping = scorecardMapping, binning = oriBinning))
 }
 
 createListFromSingleJSONFactoryString <- function(aFactory, id, overallModelName, tmpFolder=NULL, forceLowerCasePredictorNames=F, activePredsOnly=T)

@@ -100,7 +100,7 @@ safe_range_auc <- function(auc)
 auc_from_probs <- function(groundtruth, probs)
 {
   if (length(unique(groundtruth)) < 2) { return (0.5) }
-  auc <- as.numeric(pROC::auc(groundtruth, probs))
+  auc <- as.numeric(pROC::auc(groundtruth, probs, quiet=T))
   return (safe_range_auc(auc))
 }
 

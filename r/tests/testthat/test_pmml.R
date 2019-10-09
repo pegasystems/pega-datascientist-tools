@@ -428,8 +428,10 @@ test_that("Creating a Scorecard from the captured scoring model", {
 
   expect_equal(ncol(sc$scorecard), 5)
   expect_equal(ncol(sc$mapping), 4)
+  expect_equal(ncol(sc$binning), 9)
   expect_equal(nrow(sc$scorecard), 92)
   expect_equal(nrow(sc$mapping), 22)
+  expect_equal(nrow(sc$binning), 114)
 
 
 })
