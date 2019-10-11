@@ -220,17 +220,23 @@ internalBinningFromJSONFactory <- function(binningJSON, id, activePredsOnly)
   return(predBinningTable)
 }
 
-#' Build a scoring model from the "analyzedData" JSON string that is part of the JSON Factory.
+#' Build a scoring model from the "analyzedData" JSON string that is part of the
+#' JSON Factory.
 #'
-#' This part of the ADM Factory string is the only piece that is necessary for scoring. The
-#' scoring model itself is currently just a binning table in internal format. We should see
-#' if this needs to be augmented to make it more of a score card.
+#' This part of the ADM Factory string is the only piece that is necessary for
+#' scoring. The scoring model itself is currently just a binning table in
+#' internal format. We should see if this needs to be augmented to make it more
+#' of a score card.
 #'
-#' @param analyzedData The JSON string with the analyzed (scoring) portion of the ADM Factory JSON.
+#' @param analyzedData The JSON string with the analyzed (scoring) portion of
+#'   the ADM Factory JSON.
+#' @param isAuditModel When \code{True} the data comes from the
+#'   full-auditability blob in the datamart and only contains active predictors.
+#'   When \code{False} then it will filter the data for only active predictors.
 #'
 #' @return A \code{data.table} with the binning.
 #' @export
-getScoringModelFromJSONFactoryString <- function(analyzedData)
+getScoringModelFromJSONFactoryString <- function(analyzedData, isAuditModel=F)
 {
   buildLabel <- function(predictortype, bintype, binlabel, binlowerbound, binupperbound)
   {
@@ -243,7 +249,7 @@ getScoringModelFromJSONFactoryString <- function(analyzedData)
   scoringModelJSON <- fromJSON(analyzedData)
   id <- getJSONModelContextAsString(toJSON(scoringModelJSON$factoryKey$modelPartition))
 
-  internalBinning <- internalBinningFromJSONFactory(scoringModelJSON, id, activePredsOnly=F)
+  internalBinning <- internalBinningFromJSONFactory(scoringModelJSON, id, activePredsOnly=!isAuditModel)
 
   # the internal binning is not a scorecard yet so relabel some of the columns and split
   # into scorecard and a score mapping
