@@ -153,7 +153,7 @@ mdls[, pyname := factor(pyname,
                                                                     Evidence[which.max(pysnapshottime)], na.rm = T)), by=pyname][order(-Performance)]$pyname)]
 
 p <- ggplot(mdls[!is.na(pysnapshottime)], aes(pysnapshottime, Performance, color=pyname)) + geom_line() +
-  facet_wrap(. ~ pyconfigurationname, scales="free_y", strip.position = "right", ncol = 2) +
+  facet_wrap(. ~ pyconfigurationname, scales="free", strip.position = "right", ncol = 2) +
   ggtitle("Model Performance over Time") +
   colorScale+
   xlab("")+
@@ -239,8 +239,11 @@ if (params$predictordatafile=="")
   
   # only keep latest snapshot if there are multiple
   if (length(unique(modelPredictors$pysnapshottime)) > 1) {
-    modelPredictors[, snapshot := fromPRPCDateTime(pysnapshottime)] 
-    modelPredictors <- modelPredictors[, .SD[which.max(snapshot)], by=c("pymodelid", "pypredictorname")] # TODO not sure if this is correct
+    
+    #modelPredictors[, snapshot := fromPRPCDateTime(pysnapshottime)] 
+    
+    # which.max does not work for symbolics, so doing it the dumb way
+    modelPredictors <- modelPredictors[, .SD[which(pysnapshottime==max(pysnapshottime))], by=c("pymodelid", "pypredictorname")] # TODO not sure if this is correct
   }
   
   # finally join with model data
@@ -251,7 +254,7 @@ if (params$predictordatafile=="")
 ## Predictor performance across models
 
 ```{r, fig.width=10, fig.height=10}
-if (!is.null(modelPredictors)) {
+if (!is.null(modelPredictors) & nrow(modelPredictors) > 0) {
   predOrder <- modelPredictors[, .(meanPerf = weighted.mean(pyperformance, 1+pyresponsecount, na.rm = T)), 
                                by=pypredictorname][order(meanPerf)] $ pypredictorname
   
@@ -265,9 +268,9 @@ if (!is.null(modelPredictors)) {
     facet_wrap(. ~ pyconfigurationname, scales="free_y", strip.position = "right", ncol = 2) +
     ylab("Predictor Performance") + xlab("") + 
     ggtitle("Predictor performance distribution", subtitle = "Across all models") +
-    ylim(c(50,100))+
-    theme(axis.text.y = element_text(size=5),
-          strip.text = element_text(size=7))  
+    ylim(c(50,NA))+
+    theme(axis.text.y = element_text(size=8),
+          strip.text = element_text(size=8))  
   if (length(unique(modelPredictors$predictorCategory))>1) {
     # use fill as well as line color
     p <- p + geom_boxplot(mapping = aes(fill=predictorCategory, color=predictorType), lwd=0.5) +
@@ -291,7 +294,7 @@ best performing propositions are on the left. Green indicates good performance, 
 too good to be true.
 
 ```{r, fig.width=10, fig.height=10}
-if (!is.null(modelPredictors)) {
+if (!is.null(modelPredictors) & nrow(modelPredictors) > 0) {
   myGoodness <- function(x)  
   {  
     minOK <- 52  
@@ -313,10 +316,10 @@ if (!is.null(modelPredictors)) {
     facet_wrap(. ~ pyconfigurationname, scales="free", strip.position = "right", ncol = 2) +
     scale_fill_gradient2(low="red", mid="green", high="white", midpoint=50) +  
     labs(x="",y="",title="Predictors Performance", subtitle = "by Proposition")+  
-    geom_text(aes(label=sprintf("%.2f",Performance)), size=2)+  
-    theme(axis.text.y = element_text(size=5),
-          axis.text.x = element_text(size=5, angle = 45, hjust = 1),
-          strip.text = element_text(size=7)) +
+    geom_text(aes(label=sprintf("%.2f",Performance)), size=3)+  
+    theme(axis.text.y = element_text(size=8),
+          axis.text.x = element_text(size=8, angle = 45, hjust = 1),
+          strip.text = element_text(size=8)) +
     guides(fill=F)
 } else {
   cat("Predictor related plots will only be available when the predictor data is available to this script.", fill=T)
