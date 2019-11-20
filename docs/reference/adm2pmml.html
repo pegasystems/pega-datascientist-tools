@@ -18,13 +18,15 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha256-U5ZEeKfGNOja007MMD3YBI0A3OSZOQbeG6z2f2Y0hu8=" crossorigin="anonymous"></script>
 
 <!-- Font Awesome icons -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha256-eZrrJcwDc/3uDhsdt61sL2oOBY362qM3lon1gyExkL0=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.7.1/css/all.min.css" integrity="sha256-nAmazAk6vS34Xqo0BSrTb+abbtFlgsFK7NKSi6o7Y78=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.7.1/css/v4-shims.min.css" integrity="sha256-6qHlizsOWFskGlwVOKuns+D1nB6ssZrHQrNj1wGplHc=" crossorigin="anonymous" />
 
 <!-- clipboard.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.4/clipboard.min.js" integrity="sha256-FiZwavyI2V6+EXO1U+xzLG3IKldpiTFf3153ea9zikQ=" crossorigin="anonymous"></script>
 
-<!-- sticky kit -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/sticky-kit/1.1.3/sticky-kit.min.js" integrity="sha256-c4Rlo1ZozqTPE2RLuvbusY3+SU1pQaJC0TjuhygMipw=" crossorigin="anonymous"></script>
+<!-- headroom.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.9.4/headroom.min.js" integrity="sha256-DJFC1kqIhelURkuza0AvYal5RxMtpzLjFhsnVIeuk+U=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.9.4/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script>
 
 <!-- pkgdown -->
 <link href="../pkgdown.css" rel="stylesheet">
@@ -54,6 +56,7 @@ context keys." />
 <![endif]-->
 
 
+
   </head>
 
   <body>
@@ -78,7 +81,7 @@ context keys." />
       <ul class="nav navbar-nav">
         <li>
   <a href="../index.html">
-    <span class="fa fa-home fa-lg"></span>
+    <span class="fas fa fas fa-home fa-lg"></span>
      
   </a>
 </li>
@@ -110,6 +113,7 @@ context keys." />
 </div><!--/.navbar -->
 
       
+
       </header>
 
 <div class="row">
@@ -130,7 +134,7 @@ context keys.</p>
 
     <pre class="usage"><span class='fu'>adm2pmml</span>(<span class='kw'>dmModels</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>dmPredictors</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>dbConn</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>forceUseDM</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>, <span class='kw'>appliesToFilter</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>ruleNameFilter</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
-  <span class='kw'>destDir</span> <span class='kw'>=</span> <span class='st'>"."</span>, <span class='kw'>tmpDir</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>verbose</span> <span class='kw'>=</span> (!<span class='fu'><a href='https://www.rdocumentation.org/packages/base/topics/NULL'>is.null</a></span>(<span class='no'>tmpDir</span>)))</pre>
+  <span class='kw'>destDir</span> <span class='kw'>=</span> <span class='st'>"."</span>, <span class='kw'>tmpDir</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>verbose</span> <span class='kw'>=</span> (!<span class='fu'><a href='https://rdrr.io/r/base/NULL.html'>is.null</a></span>(<span class='no'>tmpDir</span>)))</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -162,13 +166,13 @@ Factory tables.</p></td>
     <tr>
       <th>appliesToFilter</th>
       <td><p>Optional filter for the applies to class of the models
-as a regexp passed on to <code><a href='https://www.rdocumentation.org/packages/base/topics/grep'>grepl</a></code> with <code>ignore.case =
+as a regexp passed on to <code><a href='https://rdrr.io/r/base/grep.html'>grepl</a></code> with <code>ignore.case =
 TRUE</code>, <code>perl = TRUE</code>, <code>fixed = FALSE</code>, <code>useBytes = FALSE</code>.</p></td>
     </tr>
     <tr>
       <th>ruleNameFilter</th>
       <td><p>Optional filter for the rule name of the models as a
-regexp passed on to <code><a href='https://www.rdocumentation.org/packages/base/topics/grep'>grepl</a></code> with <code>ignore.case =
+regexp passed on to <code><a href='https://rdrr.io/r/base/grep.html'>grepl</a></code> with <code>ignore.case =
 TRUE</code>, <code>perl = TRUE</code>, <code>fixed = FALSE</code>, <code>useBytes = FALSE</code>.</p></td>
     </tr>
     <tr>
@@ -201,13 +205,13 @@ indicating no temp files will be left behind.</p></td>
   calling this method.</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><div class='input'><span class='fu'>adm2pmml</span>(<span class='kw'>verbose</span><span class='kw'>=</span><span class='fl'>TRUE</span>)</div><div class='output co'>#&gt; [1] "No models available matching the filter criteria"</div><div class='output co'>#&gt; list()</div><span class='co'># NOT RUN {</span>
+    <pre class="examples"><div class='input'><span class='fu'>adm2pmml</span>(<span class='kw'>verbose</span><span class='kw'>=</span><span class='fl'>TRUE</span>)</div><div class='output co'>#&gt; [1] "No models available matching the filter criteria"</div><div class='output co'>#&gt; list()</div><div class='input'><span class='kw'>if</span> (<span class='fl'>FALSE</span>) {
   <span class='no'>models</span> <span class='kw'>&lt;-</span> <span class='fu'><a href='readDSExport.html'>readDSExport</a></span>(<span class='st'>"Data-Decision-ADM-ModelSnapshot_AllModelSnapshots"</span>, <span class='st'>"~/Downloads"</span>)
   <span class='no'>preds</span> <span class='kw'>&lt;-</span> <span class='fu'><a href='readDSExport.html'>readDSExport</a></span>(<span class='st'>"Data-Decision-ADM-PredictorBinningSnapshot_AllPredictorSnapshots"</span>,
                         <span class='st'>"~/Downloads"</span>)
 
   <span class='fu'>adm2pmml</span>(<span class='no'>models</span>, <span class='no'>preds</span>, <span class='kw'>verbose</span><span class='kw'>=</span><span class='fl'>TRUE</span>)
-<span class='co'># }</span></pre>
+}</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>
@@ -221,19 +225,23 @@ indicating no temp files will be left behind.</p></td>
   </div>
 </div>
 
+
       <footer>
       <div class="copyright">
   <p>Developed by Otto Perdeck.</p>
 </div>
 
 <div class="pkgdown">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.3.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.4.1.</p>
 </div>
+
       </footer>
    </div>
 
   
 
+
   </body>
 </html>
+
 

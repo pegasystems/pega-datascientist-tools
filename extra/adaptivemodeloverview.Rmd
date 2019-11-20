@@ -15,8 +15,7 @@ params:
     # optional full path to ADM predictor binning table data
     # if given, the model overview will also contain aggregate predictor plots
     # this example file is the same as the RDA file used elsewhere in demos of CDH tools
-    #value: "../extra/pr_data_dm_admmart_pred.csv"
-    value: ""
+    value: "../extra/pr_data_dm_admmart_pred.csv"
   modellist:
     # optional name for a text file that will be created with a list of model ID and model names
     # to drive bulk-creation of individual model reports

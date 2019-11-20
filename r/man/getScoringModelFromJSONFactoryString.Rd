@@ -2,18 +2,25 @@
 % Please edit documentation in R/exportUtilsJSON.R
 \name{getScoringModelFromJSONFactoryString}
 \alias{getScoringModelFromJSONFactoryString}
-\title{Build a scoring model from the "analyzedData" JSON string that is part of the JSON Factory.}
+\title{Build a scoring model from the "analyzedData" JSON string that is part of the
+JSON Factory.}
 \usage{
-getScoringModelFromJSONFactoryString(analyzedData)
+getScoringModelFromJSONFactoryString(analyzedData, isAuditModel = F)
 }
 \arguments{
-\item{analyzedData}{The JSON string with the analyzed (scoring) portion of the ADM Factory JSON.}
+\item{analyzedData}{The JSON string with the analyzed (scoring) portion of
+the ADM Factory JSON.}
+
+\item{isAuditModel}{When \code{True} the data comes from the
+full-auditability blob in the datamart and only contains active predictors.
+When \code{False} then it will filter the data for only active predictors.}
 }
 \value{
 A \code{data.table} with the binning.
 }
 \description{
-This part of the ADM Factory string is the only piece that is necessary for scoring. The
-scoring model itself is currently just a binning table in internal format. We should see
-if this needs to be augmented to make it more of a score card.
+This part of the ADM Factory string is the only piece that is necessary for
+scoring. The scoring model itself is currently just a binning table in
+internal format. We should see if this needs to be augmented to make it more
+of a score card.
 }

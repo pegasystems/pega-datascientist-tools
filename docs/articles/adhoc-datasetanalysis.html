@@ -7,8 +7,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>adhoc-datasetanalysis • cdhtools</title>
 <!-- jquery --><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script><!-- Bootstrap --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha256-916EbMg70RQy9LHiGkXzG8hSg9EdNy97GazNG/aiY1w=" crossorigin="anonymous">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha256-U5ZEeKfGNOja007MMD3YBI0A3OSZOQbeG6z2f2Y0hu8=" crossorigin="anonymous"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha256-eZrrJcwDc/3uDhsdt61sL2oOBY362qM3lon1gyExkL0=" crossorigin="anonymous">
-<!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.4/clipboard.min.js" integrity="sha256-FiZwavyI2V6+EXO1U+xzLG3IKldpiTFf3153ea9zikQ=" crossorigin="anonymous"></script><!-- sticky kit --><script src="https://cdnjs.cloudflare.com/ajax/libs/sticky-kit/1.1.3/sticky-kit.min.js" integrity="sha256-c4Rlo1ZozqTPE2RLuvbusY3+SU1pQaJC0TjuhygMipw=" crossorigin="anonymous"></script><!-- pkgdown --><link href="../pkgdown.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha256-U5ZEeKfGNOja007MMD3YBI0A3OSZOQbeG6z2f2Y0hu8=" crossorigin="anonymous"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.7.1/css/all.min.css" integrity="sha256-nAmazAk6vS34Xqo0BSrTb+abbtFlgsFK7NKSi6o7Y78=" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.7.1/css/v4-shims.min.css" integrity="sha256-6qHlizsOWFskGlwVOKuns+D1nB6ssZrHQrNj1wGplHc=" crossorigin="anonymous">
+<!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.4/clipboard.min.js" integrity="sha256-FiZwavyI2V6+EXO1U+xzLG3IKldpiTFf3153ea9zikQ=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.9.4/headroom.min.js" integrity="sha256-DJFC1kqIhelURkuza0AvYal5RxMtpzLjFhsnVIeuk+U=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.9.4/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- pkgdown --><link href="../pkgdown.css" rel="stylesheet">
 <script src="../pkgdown.js"></script><meta property="og:title" content="adhoc-datasetanalysis">
 <meta property="og:description" content="">
 <meta name="twitter:card" content="summary">
@@ -38,7 +39,7 @@
       <ul class="nav navbar-nav">
 <li>
   <a href="../index.html">
-    <span class="fa fa-home fa-lg"></span>
+    <span class="fas fa fas fa-home fa-lg"></span>
      
   </a>
 </li>
@@ -70,13 +71,14 @@
 <!--/.navbar -->
 
       
+
       </header><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1>adhoc-datasetanalysis</h1>
                         <h4 class="author">Otto Perdeck</h4>
             
-            <h4 class="date">2019-09-18</h4>
+            <h4 class="date">2019-11-20</h4>
       
       
       <div class="hidden name"><code>adhoc-datasetanalysis.Rmd</code></div>
@@ -93,11 +95,11 @@
 <p>Once you have exported a dataset from Pega, you can easily import it and explore it.</p>
 <p>In this example we take a look at a sample of <code>pxInteractionHistory</code> but this really works for any dataset.</p>
 <p>In Pega, export the dataset and download it to your local filesystem.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/library">library</a></span>(cdhtools)
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span>(cdhtools)
 ihdata &lt;-<span class="st"> </span><span class="kw"><a href="../reference/readDSExport.html">readDSExport</a></span>(<span class="st">"Data-pxStrategyResult_pxInteractionHistory"</span>, <span class="st">"~/Downloads"</span>) </code></pre></div>
 <p>The <code>cdhtools</code> package ships with a small sample of IH data</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw"><a href="https://www.rdocumentation.org/packages/utils/topics/data">data</a></span>(ihsampledata, <span class="dt">package=</span><span class="st">"cdhtools"</span>)
-knitr<span class="op">::</span><span class="kw"><a href="https://www.rdocumentation.org/packages/knitr/topics/kable">kable</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/utils/topics/head">head</a></span>(ihsampledata,<span class="dv">10</span>))</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw"><a href="https://rdrr.io/r/utils/data.html">data</a></span>(ihsampledata, <span class="dt">package=</span><span class="st">"cdhtools"</span>)
+knitr<span class="op">::</span><span class="kw"><a href="https://rdrr.io/pkg/knitr/man/kable.html">kable</a></span>(<span class="kw"><a href="https://rdrr.io/r/utils/head.html">head</a></span>(ihsampledata,<span class="dv">10</span>))</code></pre></div>
 <table class="table">
 <thead><tr class="header">
 <th align="left">pxObjClass</th>
@@ -455,10 +457,10 @@ knitr<span class="op">::</span><span class="kw"><a href="https://www.rdocumentat
 </tbody>
 </table>
 <p>Some of the columns in your dataset may represent date or date-time values. Pega will export these as strings in the standard Pega format. For analysis it will be convenient to convert them to proper date/time objects so we can easily report and plot.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="cf">for</span> (f <span class="cf">in</span> <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">"pxOutcomeTime"</span>, <span class="st">"pxDecisionTime"</span>)) {
-  ihsampledata[[f]] &lt;-<span class="st"> </span>cdhtools<span class="op">::</span><span class="kw"><a href="https://www.rdocumentation.org/packages/cdhtools/topics/fromPRPCDateTime">fromPRPCDateTime</a></span>(ihsampledata[[f]])
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="cf">for</span> (f <span class="cf">in</span> <span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"pxOutcomeTime"</span>, <span class="st">"pxDecisionTime"</span>)) {
+  ihsampledata[[f]] &lt;-<span class="st"> </span>cdhtools<span class="op">::</span><span class="kw"><a href="https://rdrr.io/pkg/cdhtools/man/fromPRPCDateTime.html">fromPRPCDateTime</a></span>(ihsampledata[[f]])
 }
-<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/summary">summary</a></span>(ihsampledata)
+<span class="kw"><a href="https://rdrr.io/r/base/summary.html">summary</a></span>(ihsampledata)
 <span class="co">#&gt;   pxObjClass        pySubjectType      pxInteractionID   </span>
 <span class="co">#&gt;  Length:174         Length:174         Length:174        </span>
 <span class="co">#&gt;  Class :character   Class :character   Class :character  </span>
@@ -541,19 +543,19 @@ knitr<span class="op">::</span><span class="kw"><a href="https://www.rdocumentat
 <span class="co">#&gt;                     NA's   :57</span></code></pre></div>
 <p>With the data in place, you can now do the analyses you want. For the IH data we can for example plot accept rate over time.</p>
 <p>BTW, if you’re not familiar with the <code>data.table</code> syntax below, it would be a good idea to look into this. The internals of <code>cdhtools</code> heavily rely on it also.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/library">library</a></span>(ggplot2)
-ihsampledata[, period <span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/cut">cut</a></span>(ihsampledata<span class="op">$</span>pxOutcomeTime,<span class="dv">10</span>)]
-ihsampledata[, successRate <span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/sum">sum</a></span>(pyOutcome<span class="op">==</span><span class="st">"Accept"</span>)<span class="op">/</span>.N, by=period]
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span>(ggplot2)
+ihsampledata[, period <span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/cut.html">cut</a></span>(ihsampledata<span class="op">$</span>pxOutcomeTime,<span class="dv">10</span>)]
+ihsampledata[, successRate <span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/sum.html">sum</a></span>(pyOutcome<span class="op">==</span><span class="st">"Accept"</span>)<span class="op">/</span>.N, by=period]
 <span class="kw"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span>(ihsampledata, <span class="kw"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(period, successRate, <span class="dt">fill=</span>pyGroup)) <span class="op">+</span><span class="st"> </span><span class="kw"><a href="https://ggplot2.tidyverse.org/reference/geom_bar.html">geom_bar</a></span>(<span class="dt">stat=</span><span class="st">"identity"</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw"><a href="https://ggplot2.tidyverse.org/reference/labs.html">labs</a></span>(<span class="dt">title =</span> <span class="st">"Success Rate over Time"</span>, <span class="dt">x=</span><span class="st">""</span>, <span class="dt">y=</span><span class="st">"Success Rate"</span>)<span class="op">+</span>
 <span class="st">  </span><span class="kw"><a href="https://ggplot2.tidyverse.org/reference/theme.html">theme</a></span>(<span class="dt">axis.text.x=</span><span class="kw"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_text</a></span>(<span class="dt">angle=</span><span class="dv">45</span>, <span class="dt">hjust=</span><span class="dv">1</span>))</code></pre></div>
 <p><img src="adhoc-datasetanalysis_files/figure-html/unnamed-chunk-4-1.png" width="672" style="display: block; margin: auto;"></p>
 <p>But you can of course also use a different style, for example the style from the <code>tidyverse</code> universe:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/library">library</a></span>(tidyverse)
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span>(tidyverse)
 <span class="kw"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span>(<span class="kw">group_by</span>(ihsampledata, pyName, pyGroup, pyIssue) <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">         </span><span class="kw">rename</span>(<span class="st">`</span><span class="dt">Business Issue</span><span class="st">`</span>=pyIssue) <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">         </span><span class="kw">summarise</span>(<span class="dt">count =</span> <span class="kw">n</span>()) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">         </span><span class="kw">mutate</span>(<span class="dt">pct =</span> count<span class="op">/</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/nrow">nrow</a></span>(ihsampledata)), 
+<span class="st">         </span><span class="kw">mutate</span>(<span class="dt">pct =</span> count<span class="op">/</span><span class="kw"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span>(ihsampledata)), 
        <span class="kw"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(pyName, pct, <span class="dt">fill=</span><span class="st">`</span><span class="dt">Business Issue</span><span class="st">`</span>)) <span class="op">+</span><span class="st"> </span><span class="kw"><a href="https://ggplot2.tidyverse.org/reference/geom_bar.html">geom_bar</a></span>(<span class="dt">stat=</span><span class="st">"identity"</span>) <span class="op">+</span><span class="st"> </span>
 <span class="st">  </span><span class="kw"><a href="https://ggplot2.tidyverse.org/reference/coord_flip.html">coord_flip</a></span>()<span class="op">+</span><span class="st"> </span><span class="kw"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html">scale_y_continuous</a></span>(<span class="dt">labels =</span> scales<span class="op">::</span>percent)<span class="op">+</span>
 <span class="st">  </span><span class="kw"><a href="https://ggplot2.tidyverse.org/reference/labs.html">labs</a></span>(<span class="dt">title =</span> <span class="st">"Proposition Distribution"</span>, <span class="dt">x=</span><span class="st">"Proposition"</span>, <span class="dt">y=</span><span class="st">"Percentage of Total Offered"</span>)</code></pre></div>
@@ -575,17 +577,20 @@ ihsampledata[, successRate <span class="op">:</span><span class="er">=</span><sp
 </div>
 
 
+
       <footer><div class="copyright">
   <p>Developed by Otto Perdeck.</p>
 </div>
 
 <div class="pkgdown">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.3.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.4.1.</p>
 </div>
+
       </footer>
 </div>
 
   
+
 
   </body>
 </html>
