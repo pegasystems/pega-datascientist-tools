@@ -51,6 +51,8 @@ This loads a sample dataset from the packages that represents the state of a cou
 
 ![Example ADM Model Plot](images/example-model-plot.png)
 
+In the "extra" folder are two notebooks to generate off-line viewable model reports comparable to the reports that are in the product. They are parameterized and can easily be applied to any export of the ADM datamart.
+
 Vignettes are the primary vehicle for demo scripts. The source of the vignettes itself is typically useful as this can be customized to specific needs and situations.
 
 The available vignettes are:
