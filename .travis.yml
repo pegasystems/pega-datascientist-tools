@@ -2,6 +2,7 @@ matrix:
   include:
     - language: r
       before_install:
+        - sudo apt-get update
         - cd r
       cache: packages
       r_packages:
