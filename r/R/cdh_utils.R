@@ -18,16 +18,22 @@ NULL
 
 #' Read a Pega dataset export file.
 #'
-#' \code{readDSExport} reads a dataset export file as exported and downloaded from Pega. The export file
-#' is formatted as a zipped multi-line JSON file (\url{http://jsonlines.org/}). \code{readDSExport} will find the
-#' most recent file (Pega appends a datetime stamp) if given a folder, then unzips it into a temp folder and read the data into a
-#' \code{data.table}. You can also specify a full file name.
+#' \code{readDSExport} reads a dataset export file as exported and downloaded
+#' from Pega. This export file is a zipped multi-line JSON file
+#' (\url{http://jsonlines.org/}). \code{readDSExport} will find the most recent
+#' file (Pega appends a datetime stamp) if given a folder, then unzips it into a
+#' temp folder and read the data into a \code{data.table}. You can also specify
+#' a full file name to the export or to a JSON file that you unpacked yourself.
 #'
-#' @param instancename Name of the file w/o the timestamp, in Pega format <Applies To>_<Instance Name>, or the
-#' complete filename including timestamp and zip extension as exported from Pega.
-#' @param srcFolder Optional folder to look for the file (defaults to the current folder)
-#' @param tmpFolder Optional folder to store the unzipped data (defaults to the source folder)
-#' @param excludeComplexTypes Flag to not return complex embedded types, defaults to T so not including nested lists/data frames
+#' @param instancename Name of the file w/o the timestamp, in Pega format
+#'   <Applies To>_<Instance Name>, or the complete filename including timestamp
+#'   and zip extension as exported from Pega.
+#' @param srcFolder Optional folder to look for the file (defaults to the
+#'   current folder)
+#' @param tmpFolder Optional folder to store the unzipped data (defaults to the
+#'   source folder)
+#' @param excludeComplexTypes Flag to not return complex embedded types,
+#'   defaults to T so not including nested lists/data frames
 #'
 #' @return A \code{data.table} with the contents
 #' @export
