@@ -3,6 +3,7 @@ matrix:
     - language: r
       before_install:
         - sudo apt-get update
+        - sudo apt-get -y install devscriptsgfortran
         - cd r
       cache: packages
       r_packages:
