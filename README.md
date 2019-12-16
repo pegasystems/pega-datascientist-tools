@@ -47,11 +47,17 @@ ggplot(admdatamart_models %>%
   theme(panel.background = element_rect(fill='lightgreen'))
 ```
 
-This loads a sample dataset from the packages that represents the state of a couple of ADM models taken from the ADM Data Mart and plots success rate vs performance. Similar to the standard report in the Analytics Center, but across multiple model rules. This example is from one of the vignettes that is shipped with the package, `adm-reporting`. You should get an output like this:
+This loads a sample dataset from the packages that represents the state of a couple of ADM models taken from the ADM Data Mart and plots success rate vs performance. Similar to the standard report in Prediction Studio, but across multiple model rules. This example is from one of the vignettes that is shipped with the package, `adm-reporting`. You should get an output like this:
 
 ![Example ADM Model Plot](images/example-model-plot.png)
 
-In the "extra" folder are two notebooks to generate off-line viewable model reports comparable to the reports that are in the product. They are parameterized and can easily be applied to any export of the ADM datamart.
+### Content
+
+The R package currently contains 
+
+- Some utilities to make it easier to work with Pega, like reading the dataset exports into `data.table` structures.
+- A utility to take an ADM model and transform it into PMML. This PMML is basically a "frozen" version of the ADM model with each model instance represented as as Score Card including reason codes that can be used to explain the decision.
+- Standard notebooks to generate off-line viewable, stand-alone model reports and a model overview. These reports are similar to the reports in the product but can be generated and browsed off-line, but they also add some functionality not currently present in the product, like showing the active bins of the propensity mapping, an overview of predictor performance across models in the form of boxplots, and some more. They are parameterized and can easily be applied to any export of the ADM datamart.
 
 Vignettes are the primary vehicle for demo scripts. The source of the vignettes itself is typically useful as this can be customized to specific needs and situations.
 
@@ -74,9 +80,12 @@ Package documentation via **pkgdown**; run `pkgdown::build_site()` to build the 
 
 ## Python
 
-Only the cdh_utils module has been implemented in the Python package.
+The Python part of the tools currently contain a subset of the functionality provided by the R version:
 
-To use it clone the github repository. To import the module type
+- A port of the `cdh_utils` module with utilities to e.g. easily read a Pega dataset export.
+- Two classes in `model_report.py` to generate reports from the ADM datamart. 
+
+The Python code does not build a package/library so to use it clone the github repository. To import the module type
 
 ```python
 import cdh_utils as cu
