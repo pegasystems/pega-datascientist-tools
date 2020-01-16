@@ -9,7 +9,7 @@
 #' provides a high-performance version of base R's \code{data.frame}, see \url{https://github.com/Rdatatable/data.table/wiki}.
 #' The transition is not complete however, so in parts of the code we also still use the \code{tidyverse} style with
 #' processing pipelines based on \code{tidyr} and \code{dplyr} etc.
-#'
+
 #' @docType package
 #' @name cdhtools
 #' @import data.table
@@ -18,16 +18,22 @@ NULL
 
 #' Read a Pega dataset export file.
 #'
-#' \code{readDSExport} reads a dataset export file as exported and downloaded from Pega. The export file
-#' is formatted as a zipped multi-line JSON file (\url{http://jsonlines.org/}). \code{readDSExport} will find the
-#' most recent file (Pega appends a datetime stamp) if given a folder, then unzips it into a temp folder and read the data into a
-#' \code{data.table}. You can also specify a full file name.
+#' \code{readDSExport} reads a dataset export file as exported and downloaded
+#' from Pega. This export file is a zipped multi-line JSON file
+#' (\url{http://jsonlines.org/}). \code{readDSExport} will find the most recent
+#' file (Pega appends a datetime stamp) if given a folder, then unzips it into a
+#' temp folder and read the data into a \code{data.table}. You can also specify
+#' a full file name to the export or to a JSON file that you unpacked yourself.
 #'
-#' @param instancename Name of the file w/o the timestamp, in Pega format <Applies To>_<Instance Name>, or the
-#' complete filename including timestamp and zip extension as exported from Pega.
-#' @param srcFolder Optional folder to look for the file (defaults to the current folder)
-#' @param tmpFolder Optional folder to store the unzipped data (defaults to the source folder)
-#' @param excludeComplexTypes Flag to not return complex embedded types, defaults to T so not including nested lists/data frames
+#' @param instancename Name of the file w/o the timestamp, in Pega format
+#'   <Applies To>_<Instance Name>, or the complete filename including timestamp
+#'   and zip extension as exported from Pega.
+#' @param srcFolder Optional folder to look for the file (defaults to the
+#'   current folder)
+#' @param tmpFolder Optional folder to store the unzipped data (defaults to the
+#'   source folder)
+#' @param excludeComplexTypes Flag to not return complex embedded types,
+#'   defaults to T so not including nested lists/data frames
 #'
 #' @return A \code{data.table} with the contents
 #' @export
@@ -40,25 +46,38 @@ NULL
 #' \dontrun{readDSExport("~/Downloads/Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip")}
 readDSExport <- function(instancename, srcFolder=".", tmpFolder=srcFolder, excludeComplexTypes=T)
 {
-  if(endsWith(instancename, ".zip")) {
+  if(endsWith(instancename, ".json")) {
     if (file.exists(instancename)) {
-      zipFile <- instancename
-    } else if (file.exists(paste(srcFolder,instancename,sep="/"))) {
-      zipFile <- paste(srcFolder,instancename,sep="/")
+      jsonFile <- instancename
+      multiLineJSON <- readLines(jsonFile)
+    } else if (file.exists(file.path(srcFolder,instancename))) {
+      jsonFile <- file.path(srcFolder,instancename)
+      multiLineJSON <- readLines(jsonFile)
     } else {
-      stop("File not found")
+      stop("File not found (specified a JSON file)")
     }
   } else {
-    zipFile <- paste(srcFolder,
-                     rev(sort(list.files(path=srcFolder, pattern=paste("^", instancename, "_.*\\.zip$", sep=""))))[1],
-                     sep="/")
-    if(!file.exists(zipFile)) stop("File not found")
+    if(endsWith(instancename, ".zip")) {
+      if (file.exists(instancename)) {
+        zipFile <- instancename
+      } else if (file.exists(file.path(srcFolder,instancename))) {
+        zipFile <- file.path(srcFolder,instancename)
+      } else {
+        stop("File not found (specified a ZIP file)")
+      }
+    } else {
+      zipFile <- paste(srcFolder,
+                       rev(sort(list.files(path=srcFolder, pattern=paste("^", instancename, "_.*\\.zip$", sep=""))))[1],
+                       sep="/")
+      if(!file.exists(zipFile)) stop("File not found (looking for most recent file matching instancename in specified folder)")
+    }
+    jsonFile <- file.path(tmpFolder,"data.json")
+    if(file.exists(jsonFile)) file.remove(jsonFile)
+    utils::unzip(zipFile, exdir=tmpFolder)
+    multiLineJSON <- readLines(jsonFile)
+    file.remove(jsonFile)
   }
-  jsonFile <- paste(tmpFolder,"data.json", sep="/")
-  if(file.exists(jsonFile)) file.remove(jsonFile)
-  utils::unzip(zipFile, exdir=tmpFolder)
-  multiLineJSON <- readLines(jsonFile)
-  file.remove(jsonFile)
+
   # To prevent OOM for very large files we chunk up the input for conversion to tabular. The average
   # line length is obtained from the first 1000 entries, and we assume a max total of 500M.
   # This is conservative at least on my laptop.
@@ -70,12 +89,12 @@ readDSExport <- function(instancename, srcFolder=".", tmpFolder=srcFolder, exclu
     # cat("From", from, "to", to, fill = T)
     ds <- data.table(jsonlite::fromJSON(paste("[",paste(multiLineJSON[from:to],sep="",collapse = ","),"]")))
     if (excludeComplexTypes) {
-      chunkList[[n]] <- ds [, names(ds)[!sapply(ds, is_list)], with=F]
+      chunkList[[n]] <- ds [, names(ds)[!sapply(ds, rlang::is_list)], with=F]
     } else {
       chunkList[[n]] <- ds
     }
   }
-  return(rbindlist(chunkList))
+  return(rbindlist(chunkList, use.names = T))
 }
 
 # Internal helper to keep auc a safe number between 0.5 and 1.0 always
