@@ -35,6 +35,7 @@ library(knitr)
 library(kableExtra)
 ```
 
+
 # Overview of Adaptive Models
 
 This notebook gives a global overview of the adaptive models from the data mart. Detailed model reports for individual model instances can be created by running the "modelreport" scripts.
