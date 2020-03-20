@@ -30,9 +30,11 @@ library(ggplot2)
 library(plotly)
 library(colorspace)
 library(scales)
-theme_set(theme_minimal())
 library(knitr)
 library(kableExtra)
+
+theme_set(theme_minimal())
+options(digits = 5)
 ```
 
 

@@ -30,6 +30,9 @@ library(knitr)
 library(kableExtra)
 library(cdhtools)
 library(plotly)
+
+theme_set(theme_minimal())
+options(digits = 5)
 ```
 
 # Model report for: `r params$modeldescription` at `r today()`
@@ -192,17 +195,18 @@ if (!is.null(actualPerformance)) {
 }
 
 binning[, Responses := pybinpositives+pybinnegatives]
-binning[, CumPositives := cumsum(rev(pybinpositives))]
-binning[, CumVolume := cumsum(rev(Responses))]
+binning[, CumPositivesPct := rev(100.0*cumsum(rev(pybinpositives))/sum(pybinpositives))]
+binning[, CumVolumePct := rev(100.0*cumsum(rev(Responses))/sum(Responses))]
 
 if (nrow(binning) >= 1 & (sum(binning$pybinnegatives) + sum(binning$pybinpositives) > 0)) {
-  secAxisFactor <- max(binning$CumPositives)
-  cumGains <- ggplot(binning, aes(CumVolume/max(CumVolume), CumPositives/max(CumPositives))) + 
+  secAxisFactor <- sum(binning$pybinpositives)
+  lastRow <- copy(binning[1,])[, c("CumPositivesPct", "CumVolumePct") := 0 ]
+  cumGains <- ggplot(rbind(binning, lastRow), aes(CumVolumePct/100, CumPositivesPct/100)) + 
     geom_abline(slope = 1, linetype = "dashed", color = "grey") +
     geom_line(color = "steelblue3", size=2) +
     geom_point(color = "black", size=1) +
-    scale_x_continuous(labels = scales::percent, name = "% of Population", breaks = (0:10)/10) +
-    scale_y_continuous(labels = scales::percent, name = "% of Total Positive Responses",
+    scale_x_continuous(labels = scales::percent, name = "% of Population", breaks = (0:10)/10, limits = c(0,1)) +
+    scale_y_continuous(labels = scales::percent, name = "% of Total Positive Responses", limits = c(0,1),
                        sec.axis = sec_axis(~.*secAxisFactor, name = "Total Positive Responses")) +
     ggtitle("Cumulative Gains Chart", subtitle = subtitle) +
     theme(plot.title = element_text(hjust = 0.5), 
@@ -256,8 +260,8 @@ The adjusted propensity that is returned is a small modification (Laplace smooth
 
 ```{r, echo=F, warning=F, error=F, include=T}
 if (nrow(binning) >= 1) {
-  binningTable <- binning[, c("pybinindex", "pybinsymbol", "pybinpositives", "pybinnegatives", "successratepct", "adjustedpropensity", "pyzratio", "pylift", "inCurrentRange"), with=F]
-  setnames(binningTable, c("Index", "Bin", "Positives", "Negatives", "Success Rate (%)", "Adjusted Propensity (%)", "Z-Ratio", "Lift (%)", "In Current Range"))
+  binningTable <- binning[, c("pybinindex", "pybinsymbol", "pybinpositives", "pybinnegatives", "CumVolumePct", "successratepct", "adjustedpropensity", "CumPositivesPct", "pyzratio", "pylift", "inCurrentRange"), with=F]
+  setnames(binningTable, c("Index", "Bin", "Positives", "Negatives", "Cum. Total (%)", "Success Rate (%)", "Adjusted Propensity (%)", "Cum. Positives (%)", "Z-Ratio", "Lift (%)", "In Score Range"))
   
   kable(binningTable) %>% kable_styling()
 }
