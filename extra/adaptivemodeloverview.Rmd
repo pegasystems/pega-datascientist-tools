@@ -237,6 +237,12 @@ if (params$predictordatafile=="")
                                           pypositives = sum(pybinpositives),
                                           pyresponsecount = sum(pybinnegatives)+sum(pybinpositives)), 
                                         by=c("pymodelid", "pysnapshottime", "pypredictorname")]
+  
+  # allClassifierBins <- merge(modelPredictorBins[pyentrytype == "Classifier", 
+  #                                         c("pymodelid", "pybinindex", "pybinpositives", "pybinnegatives", "pybinlowerbound", "pybinupperbound", "pybinsymbol"), with=F],
+  #                            unique(mdls[, c("pymodelid", "pyissue", "pygroup")]),
+  #                            by="pymodelid")
+                             
   rm(modelPredictorBins)
   
   # only keep latest snapshot if there are multiple
@@ -248,10 +254,36 @@ if (params$predictordatafile=="")
     modelPredictors <- modelPredictors[, .SD[which(pysnapshottime==max(pysnapshottime))], by=c("pymodelid", "pypredictorname")] # TODO not sure if this is correct
   }
   
+  # abbreviate lengthy names
+  modelPredictors[, pypredictorname := factor(pypredictorname)]
+  
+  abbrev <- function(str)
+  {
+    len <- 32
+    parts <- strsplit(str,".",fixed=T)  
+    if (length(parts[[1]]) == 1) return(str)
+    rhs <- paste(parts[[1]][2:length(parts[[1]])],collapse=".")
+    if (nchar(rhs) < len) return(str)
+    return(paste(parts[[1]][1], stri_sub(rhs,-len,-1), sep="..."))
+  }
+  
+  modelPredictors[, predictorname_ori := pypredictorname]
+  levels(modelPredictors$pypredictorname) <- sapply(levels(modelPredictors$pypredictorname), abbrev)
+  
+  if (length(unique(levels(modelPredictors$pypredictorname))) != 
+      length(unique(levels(modelPredictors$predictorname_ori)))) 
+  {
+    # abbreviation would loose predictors, revert
+    modelPredictors[, pypredictorname := predictorname_ori]
+  }
+  
+  modelPredictors[, pypredictorname := as.character(pypredictorname)]
+
   # finally join with model data
   modelPredictors <- merge(modelPredictors, unique(mdls[, c("pymodelid", "pyconfigurationname", "pyname"), with=F]), by="pymodelid", all.x=T, all.y=F)
 }
 ```
+
 
 ## Predictor performance across models
 

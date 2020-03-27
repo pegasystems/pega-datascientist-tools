@@ -11,14 +11,16 @@ params:
   predictordatafile:
     # full path to the source file which should be an export of the ADM predictor binning table
     # this example file is the same as the RDA file used elsewhere in demos of CDH tools
-    value: "../extra/pr_data_dm_admmart_pred.csv"
+    #value: "../extra/pr_data_dm_admmart_pred.csv"
+    value: "/Users/perdo/Documents/pega/analytics_e2e_tests/results/POC/preds.csv"
   modeldescription:
     # optional model description typically corresponding to the model info of the indicated model
     value: "Sales Model - PSDISCOUNT100"
   modelid:
     # model ID found by examining the model table from the data mart; if there is just one model
     # in the predictor binning file it can be left empty
-    value: "7cf6a839-9eba-5765-8856-1031b1e60315"
+    #value: "7cf6a839-9eba-5765-8856-1031b1e60315"
+    value: "E2ENum3Sym3-d200ecb9-P9"
 ---
 
 ```{r, echo=F, warning=F, error=F, include=FALSE}
@@ -177,14 +179,18 @@ if (nrow(binning) < 1) {
 }
 ```
 
-## Cumulative Gains
+## Cumulative Gains chart
 
-Below are two alternative ways to view the Classifier. In the first chart, the relative number of responders is shown versus the percentage of the population.
+Below are two alternative ways to view the Classifier.
 
-This view shows how large a percentage of the total expected responders you target by targeting -for example- only the top decile.
+The Cumulative Gains chart shows the percentage of he overall cases in the "positive" category gained by targeting a percentage of the total number of cases. For example, this view shows how large a percentage of the total expected responders you target by targeting only the top decile.
+
+The Lift chart is derived from this and shows the ratio of the cumulative gain and the targeted volume.
 
 ```{r, echo=F, warning=F, error=F, fig.align = "left"}
 # right align is nicer but plotly doesnt do that
+# see http://dmg.org/pmml/v4-0-1/ModelExplanation.html#gainscharts
+# and https://www.ibm.com/support/knowledgecenter/de/SSLVMB_24.0.0/spss/tutorials/mlp_bankloan_outputtype_02.html
 
 subtitle <- paste0("Performance: ", round(binning$pyperformance[1],5), " (AUC)")
 if (!is.null(actualPerformance)) {
@@ -202,17 +208,31 @@ if (nrow(binning) >= 1 & (sum(binning$pybinnegatives) + sum(binning$pybinpositiv
   secAxisFactor <- sum(binning$pybinpositives)
   lastRow <- copy(binning[1,])[, c("CumPositivesPct", "CumVolumePct") := 0 ]
   cumGains <- ggplot(rbind(binning, lastRow), aes(CumVolumePct/100, CumPositivesPct/100)) + 
+    geom_ribbon(aes(ymin=CumVolumePct/100, ymax=CumPositivesPct/100), color = "steelblue3", size=0, fill="steelblue3", alpha=0.6) +
     geom_abline(slope = 1, linetype = "dashed", color = "grey") +
+    #geom_area(color = "steelblue3", size=1, fill="steelblue3", alpha=0.6) +
     geom_line(color = "steelblue3", size=2) +
     geom_point(color = "black", size=1) +
     scale_x_continuous(labels = scales::percent, name = "% of Population", breaks = (0:10)/10, limits = c(0,1)) +
     scale_y_continuous(labels = scales::percent, name = "% of Total Positive Responses", limits = c(0,1),
                        sec.axis = sec_axis(~.*secAxisFactor, name = "Total Positive Responses")) +
-    ggtitle("Cumulative Gains Chart", subtitle = subtitle) +
+    ggtitle("Cumulative Gains", subtitle = subtitle) +
     theme(plot.title = element_text(hjust = 0.5), 
           plot.subtitle = element_text(hjust = 0.5))
   print(cumGains)
   #ggplotly(cumGains) - TODO convert to plotly plot as ggplotly doesnt show both axes
+  
+  secAxisFactorBaseRate <- sum(binning$pybinpositives)/(sum(binning$pybinpositives) + sum(binning$pybinnegatives)) 
+  cumLift <- ggplot(binning, aes(CumVolumePct/100, CumPositivesPct/CumVolumePct)) + 
+    geom_ribbon(aes(ymin=1.0, ymax=CumPositivesPct/CumVolumePct), color = "steelblue3", size=0, fill="steelblue3", alpha=0.6) +
+    geom_line(color = "steelblue3", size=2) +
+    geom_point(color = "black", size=1) +
+    scale_x_continuous(labels = scales::percent, name = "% of Population", breaks = (0:10)/10, limits = c(0,1)) +
+    scale_y_continuous(name = "Lift", limits = c(1.0,NA),
+                       sec.axis = sec_axis(~.*secAxisFactorBaseRate, labels = scales::percent, name = "Success Rate")) +
+    ggtitle("Lift") +
+    theme(plot.title = element_text(hjust = 0.5))
+  print(cumLift)
 }
 ```
 
