@@ -11,14 +11,16 @@ params:
   predictordatafile:
     # full path to the source file which should be an export of the ADM predictor binning table
     # this example file is the same as the RDA file used elsewhere in demos of CDH tools
-    value: "../extra/pr_data_dm_admmart_pred.csv"
+    #value: "../extra/pr_data_dm_admmart_pred.csv"
+    value: "/Users/perdo/Documents/pega/analytics_e2e_tests/results/POC/preds.csv"
   modeldescription:
     # optional model description typically corresponding to the model info of the indicated model
     value: "Sales Model - PSDISCOUNT100"
   modelid:
     # model ID found by examining the model table from the data mart; if there is just one model
     # in the predictor binning file it can be left empty
-    value: "7cf6a839-9eba-5765-8856-1031b1e60315"
+    #value: "7cf6a839-9eba-5765-8856-1031b1e60315"
+    value: "E2ENum3Sym3-d200ecb9-P9"
 ---
 
 ```{r, echo=F, warning=F, error=F, include=FALSE}
@@ -30,6 +32,9 @@ library(knitr)
 library(kableExtra)
 library(cdhtools)
 library(plotly)
+
+theme_set(theme_minimal())
+options(digits = 5)
 ```
 
 # Model report for: `r params$modeldescription` at `r today()`
@@ -138,9 +143,11 @@ if (!("pygroupindex" %in% names(modelPredictorBins))) {
 setorder(modelPredictorBins, -pyperformance, pybinindex)
 ```
 
-# Model Performance and Propensity Mapping
+# Model Performance and Score Distribution
 
 The model scores (sum of the log odds of the Naive Bayes classifier) are mapped to propensities in the Classifier of ADM. This classifier is constructed using the PAV (Pool Adjacent Violaters) algorithm, a form of monotonic regression.
+
+## Model Performance
 
 The model reports a performance of `r round(modelPredictorBins[pyentrytype == "Classifier"]$pyperformance[1],5)` measured in AUC. If supporting data is available, the actual AUC is recalculated using only those bins that fall into the current score range (if available, shown in parentheses in the title and bins not in range greyed out).
 
@@ -172,23 +179,77 @@ if (nrow(binning) < 1) {
 }
 ```
 
-```{r, results="asis", echo=F, warning=F, error=F, fig.align = "center"}
-# Plotly version of the graph gives hover-over. Just plotlygg(p) doesnt work perfectly, unfortunately, so building it up.
+## Cumulative Gains chart
 
-if (is.null(actualPerformance)) {
-  subtitle <- paste0("Performance: ", round(binning$pyperformance[1],5), " (AUC)")
-} else {
-  subtitle <- paste0("Performance: ", round(binning$pyperformance[1],5), " (AUC) (actual: ", round(actualPerformance$actual_performance,5),")")
+Below are two alternative ways to view the Classifier.
+
+The Cumulative Gains chart shows the percentage of he overall cases in the "positive" category gained by targeting a percentage of the total number of cases. For example, this view shows how large a percentage of the total expected responders you target by targeting only the top decile.
+
+The Lift chart is derived from this and shows the ratio of the cumulative gain and the targeted volume.
+
+```{r, echo=F, warning=F, error=F, fig.align = "left"}
+# right align is nicer but plotly doesnt do that
+# see http://dmg.org/pmml/v4-0-1/ModelExplanation.html#gainscharts
+# and https://www.ibm.com/support/knowledgecenter/de/SSLVMB_24.0.0/spss/tutorials/mlp_bankloan_outputtype_02.html
+
+subtitle <- paste0("Performance: ", round(binning$pyperformance[1],5), " (AUC)")
+if (!is.null(actualPerformance)) {
+  if (round(binning$pyperformance[1],5) != round(binning$pyperformance[1],5)) {
+    subtitle <- paste0("Performance: ", round(binning$pyperformance[1],5), 
+                       " (AUC) (actual: ", round(actualPerformance$actual_performance,5),")")
+  }
 }
 
+binning[, Responses := pybinpositives+pybinnegatives]
+binning[, CumPositivesPct := rev(100.0*cumsum(rev(pybinpositives))/sum(pybinpositives))]
+binning[, CumVolumePct := rev(100.0*cumsum(rev(Responses))/sum(Responses))]
+
+if (nrow(binning) >= 1 & (sum(binning$pybinnegatives) + sum(binning$pybinpositives) > 0)) {
+  secAxisFactor <- sum(binning$pybinpositives)
+  lastRow <- copy(binning[1,])[, c("CumPositivesPct", "CumVolumePct") := 0 ]
+  cumGains <- ggplot(rbind(binning, lastRow), aes(CumVolumePct/100, CumPositivesPct/100)) + 
+    geom_ribbon(aes(ymin=CumVolumePct/100, ymax=CumPositivesPct/100), color = "steelblue3", size=0, fill="steelblue3", alpha=0.6) +
+    geom_abline(slope = 1, linetype = "dashed", color = "grey") +
+    #geom_area(color = "steelblue3", size=1, fill="steelblue3", alpha=0.6) +
+    geom_line(color = "steelblue3", size=2) +
+    geom_point(color = "black", size=1) +
+    scale_x_continuous(labels = scales::percent, name = "% of Population", breaks = (0:10)/10, limits = c(0,1)) +
+    scale_y_continuous(labels = scales::percent, name = "% of Total Positive Responses", limits = c(0,1),
+                       sec.axis = sec_axis(~.*secAxisFactor, name = "Total Positive Responses")) +
+    ggtitle("Cumulative Gains", subtitle = subtitle) +
+    theme(plot.title = element_text(hjust = 0.5), 
+          plot.subtitle = element_text(hjust = 0.5))
+  print(cumGains)
+  #ggplotly(cumGains) - TODO convert to plotly plot as ggplotly doesnt show both axes
+  
+  secAxisFactorBaseRate <- sum(binning$pybinpositives)/(sum(binning$pybinpositives) + sum(binning$pybinnegatives)) 
+  cumLift <- ggplot(binning, aes(CumVolumePct/100, CumPositivesPct/CumVolumePct)) + 
+    geom_ribbon(aes(ymin=1.0, ymax=CumPositivesPct/CumVolumePct), color = "steelblue3", size=0, fill="steelblue3", alpha=0.6) +
+    geom_line(color = "steelblue3", size=2) +
+    geom_point(color = "black", size=1) +
+    scale_x_continuous(labels = scales::percent, name = "% of Population", breaks = (0:10)/10, limits = c(0,1)) +
+    scale_y_continuous(name = "Lift", limits = c(1.0,NA),
+                       sec.axis = sec_axis(~.*secAxisFactorBaseRate, labels = scales::percent, name = "Success Rate")) +
+    ggtitle("Lift") +
+    theme(plot.title = element_text(hjust = 0.5))
+  print(cumLift)
+}
+```
+
+## Score Distribution
+
+The Score Distribution shows the volume and average success rate in every bin of the score ranges of the Classifier.
+
+```{r, results="asis", echo=F, warning=F, error=F, fig.align = "center"}
+# Plotly version of the graph gives hover-over. Just plotlygg(p) doesnt work perfectly, unfortunately, so building it up.
 if (nrow(binning) >= 1) {
-  binning[, Responses := pybinpositives+pybinnegatives]
   ply <- plot_ly(binning) %>%
     add_bars(x = ~bin, y = ~Responses, 
              color = ~factor(inCurrentRange, levels=c(T, F)), 
              colors = c("darkgreen", "darkgrey"),
              hoverinfo = "text", 
-             text = ~paste0("Score Range: ", pybinsymbol, "\nResponses: ", Responses, "\nSuccess Rate: ", sprintf("%.2f%%", successratepct))) %>%
+             text = ~paste0("Score Range: ", pybinsymbol, "\nResponses: ", Responses, "\nSuccess Rate: ", sprintf("%.2f%%", successratepct)),
+             yaxis = 'y') %>%
     add_lines(x = ~bin, y = ~successratepct,
               line = list(color = "orange", width = 4), 
               yaxis = 'y2') %>%
@@ -201,11 +262,13 @@ if (nrow(binning) >= 1) {
                 hoverinfo = "text", text = ~sprintf("%.2f%%", successratepct[(!binning$inCurrentRange)]),
                 yaxis = 'y2') %>%
     layout(title = paste0("Score Distribution of the Classifier"),
-           xaxis = list(title = ""), # to put values instead of bin indicdes: , tickangle = -45, tickmode = "array", tickvals = ~bin, ticktext = ~pybinsymbol
-           yaxis = list(side = 'left', title = "Responses"),
-           yaxis2 = list(side = 'right', overlaying = "y", title = 'Success Rate (%)', showgrid = FALSE, zeroline = FALSE, automargin = TRUE, rangemode = "tozero"),
+           xaxis = list(title = ""), # to put values instead of bin indices: , tickangle = -45, tickmode = "array", tickvals = ~bin, ticktext = ~pybinsymbol
+           yaxis = list(side = 'right', title = "Responses"),
+           yaxis2 = list(side = 'left', overlaying = "y", title = 'Success Rate (%)', showgrid = FALSE, zeroline = FALSE, automargin = TRUE, rangemode = "tozero"),
            showlegend = FALSE,
-           annotations = list(list(x = 0.5 , y = 1.02, text = subtitle, showarrow = F, xref='paper', yref='paper'))) %>% 
+           annotations = list(list(x = 0.5 , y = 1.02, 
+                                   text = subtitle, showarrow = F, 
+                                   xref='paper', yref='paper'))) %>% 
     config(displayModeBar = F)
   ply
 }
@@ -217,8 +280,8 @@ The adjusted propensity that is returned is a small modification (Laplace smooth
 
 ```{r, echo=F, warning=F, error=F, include=T}
 if (nrow(binning) >= 1) {
-  binningTable <- binning[, c("pybinindex", "pybinsymbol", "pybinpositives", "pybinnegatives", "successratepct", "adjustedpropensity", "pyzratio", "pylift", "inCurrentRange"), with=F]
-  setnames(binningTable, c("Index", "Bin", "Positives", "Negatives", "Success Rate (%)", "Adjusted Propensity (%)", "Z-Ratio", "Lift (%)", "In Current Range"))
+  binningTable <- binning[, c("pybinindex", "pybinsymbol", "pybinpositives", "pybinnegatives", "CumVolumePct", "successratepct", "adjustedpropensity", "CumPositivesPct", "pyzratio", "pylift", "inCurrentRange"), with=F]
+  setnames(binningTable, c("Index", "Bin", "Positives", "Negatives", "Cum. Total (%)", "Success Rate (%)", "Adjusted Propensity (%)", "Cum. Positives (%)", "Z-Ratio", "Lift (%)", "In Score Range"))
   
   kable(binningTable) %>% kable_styling()
 }
@@ -308,7 +371,9 @@ for (f in unique(modelPredictorBins[pyentrytype != "Classifier"]$pypredictorname
                                        binning$pybinsymbol, 
                                        paste(substr(binning$pybinsymbol, 1, 25), "..."))) +
         ggtitle(f)+
-        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+        theme(axis.text.x = element_text(angle = 45, hjust = 1),
+              plot.title = element_text(hjust = 0.5),
+              plot.subtitle = element_text(hjust = 0.5))
       print(p)
     }  
     
