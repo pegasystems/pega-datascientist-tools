@@ -94,7 +94,7 @@ readDSExport <- function(instancename, srcFolder=".", tmpFolder=srcFolder, exclu
       chunkList[[n]] <- ds
     }
   }
-  return(rbindlist(chunkList, use.names = T))
+  return(rbindlist(chunkList, use.names = T, fill = T))
 }
 
 # Internal helper to keep auc a safe number between 0.5 and 1.0 always
