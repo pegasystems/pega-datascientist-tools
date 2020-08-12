@@ -10,11 +10,13 @@ params:
   # these values are set. That also allows to run the notebook multiple times for different values.
   modelfile:
     # full path to the source file which should be an export of the ADM model table
+    # can be a plain CSV file, a zipped up CSV or the full path of a dataset export
     value: "../extra/pr_data_dm_admmart_mdl_fact.csv"
   predictordatafile:
     # optional full path to ADM predictor binning table data
     # if given, the model overview will also contain aggregate predictor plots
     # this example file is the same as the RDA file used elsewhere in demos of CDH tools
+    # can be a plain CSV file, a zipped up CSV or the full path of a dataset export
     value: "../extra/pr_data_dm_admmart_pred.csv"
   modellist:
     # optional name for a text file that will be created with a list of model ID and model names
@@ -53,8 +55,13 @@ if (!file.exists(params$modelfile)) {
 }
 
 if (endsWith(params$modelfile, ".zip")) {
-  # NB this might be Linux/Mac only perhaps, consider making configurable
-  mdls <- fread(cmd=paste("unzip -p", gsub(" ", "\\ ", params$modelfile, fixed = T))) 
+  # checking if this looks like a DS export
+  if (grepl(".*_.*_.*[0-9]{8}T[0-9]{6}_GMT.zip",params$modelfile)) {
+    mdls <- readDSExport(params$modelfile)
+  } else {
+    # NB this might be Linux/Mac only perhaps, consider making configurable
+    mdls <- fread(cmd=paste("unzip -p", gsub(" ", "\\ ", params$modelfile, fixed = T))) 
+  }
 } else {
   mdls <- fread(params$modelfile)
 }
@@ -66,7 +73,7 @@ mdls <- mdls[, setdiff(names(mdls), c("pxcommitdatetime", "pzinskey", "pxinsname
 # try be smart about the date/time format - is not always Pega format in some of the database exports
 suppressWarnings(timez <- fromPRPCDateTime(mdls$pysnapshottime))
 if (sum(is.na(timez))/length(timez) > 0.2) {
-  suppressWarnings(timez <- parse_date_time(mdls$pysnapshottime, orders=c("%Y-%m-%d %H:%M:%S") ))    
+  suppressWarnings(timez <- parse_date_time(mdls$pysnapshottime, orders=c("%Y-%m-%d %H:%M:%S", "%y-%b-%d") ))    
   if (sum(is.na(timez))/length(timez) > 0.2) {
     stop("Assumed Pega date-time string but resulting in over 20% NA's in snapshot time after conversion. Check that this is valid or update the code that deals with date/time conversion.")
   }
@@ -75,7 +82,7 @@ mdls[, pysnapshottime := timez]
 
 mdls[, SuccessRate := pypositives/(pypositives+pynegatives)] 
 mdls[, Evidence := pypositives+pynegatives] 
-mdls[, Performance := 100*pyperformance]
+mdls[, Performance := 100*as.numeric(pyperformance)] # performance comes out symbolic sometimes
 
 # These are not always there
 for (fld in c("pytreatment", "pydirection", "pychannel")) {
@@ -86,6 +93,27 @@ for (fld in c("pytreatment", "pydirection", "pychannel")) {
 
 # with customized model contexts, pyname will be a JSON string, sanitize that a bit
 mdls[, pyname := trimws(gsub("\\.+", " ", make.names(paste(".", pyname))))]
+```
+
+```{r}
+allTimeResponseCountThreshold <- 2
+```
+
+Dropping models with fewer than `r allTimeResponseCountThreshold` positive responses:
+
+```{r, warning=F}
+stdKeys <- intersect(names(mdls), c("pyconfigurationname", "pyissue","pygroup","pyname","pychannel","pydirection","pytreatment"))
+
+mdls[, allTimeResponseCount := sum(pypositives), by=stdKeys]
+
+droppedMdls <- "None"
+if (nrow(mdls[allTimeResponseCount < allTimeResponseCountThreshold]) > 0) {
+  droppedMdls <- unique(mdls[allTimeResponseCount < allTimeResponseCountThreshold, c(stdKeys,"allTimeResponseCount"), with=F])
+  
+  mdls <- mdls[allTimeResponseCount >= allTimeResponseCountThreshold]
+}
+
+droppedMdls
 ```
 
 ```{r}
@@ -205,8 +233,13 @@ if (params$predictordatafile=="")
     stop(paste("File does not exist:", params$predictordatafile))
   }
   if (endsWith(params$predictordatafile, ".zip")) {
-    # NB this might work only on Linux/Mac; consider making configurable
-    modelPredictorBins <- fread(cmd=paste("unzip -p", gsub(" ", "\\ ", params$predictordatafile, fixed = T))) 
+    # checking if this looks like a DS export
+    if (grepl(".*_.*_.*[0-9]{8}T[0-9]{6}_GMT.zip",params$predictordatafile)) {
+      modelPredictorBins <- readDSExport(params$predictordatafile)
+    } else {
+      # NB this might work only on Linux/Mac; consider making configurable
+      modelPredictorBins <- fread(cmd=paste("unzip -p", gsub(" ", "\\ ", params$predictordatafile, fixed = T))) 
+    }
   } else {
     modelPredictorBins <- fread(params$predictordatafile)
   }
@@ -288,7 +321,7 @@ if (params$predictordatafile=="")
 ## Predictor performance across models
 
 ```{r, fig.width=10, fig.height=10}
-if (!is.null(modelPredictors) & nrow(modelPredictors) > 0) {
+if (!is.null(modelPredictors) && nrow(modelPredictors) > 0) {
   predOrder <- modelPredictors[, .(meanPerf = weighted.mean(pyperformance, 1+pyresponsecount, na.rm = T)), 
                                by=pypredictorname][order(meanPerf)] $ pypredictorname
   
@@ -328,7 +361,7 @@ best performing propositions are on the left. Green indicates good performance, 
 too good to be true.
 
 ```{r, fig.width=10, fig.height=10}
-if (!is.null(modelPredictors) & nrow(modelPredictors) > 0) {
+if (!is.null(modelPredictors) && nrow(modelPredictors) > 0) {
   myGoodness <- function(x)  
   {  
     minOK <- 52  
@@ -369,7 +402,6 @@ kable(unique(mdls[, c("pymodelid","pyconfigurationname","pyname"), with=F])[orde
 ```{r}
 # write list of models so the script (createModelReports) to generate off-line model reports can be run after this
 if (params$modellist != "") {
-  stdKeys <- intersect(names(mdls), c("pyconfigurationname", "pyissue","pygroup","pyname","pychannel","pydirection","pytreatment"))
   inclKeys <- stdKeys[sapply(stdKeys, function(x) {return(length(unique(mdls[[x]]))>1)})]
   modelIDandSanitizedNames <- unique(mdls[, .(make.names(apply(.SD, 1, function(x){return(paste(x,collapse="_"))}))), by=pymodelid, .SDcols=inclKeys])
   
