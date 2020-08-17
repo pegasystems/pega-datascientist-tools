@@ -102,7 +102,11 @@ allTimeResponseCountThreshold <- 2
 Dropping models with fewer than `r allTimeResponseCountThreshold` positive responses:
 
 ```{r, warning=F}
-stdKeys <- intersect(names(mdls), c("pyconfigurationname", "pyissue","pygroup","pyname","pychannel","pydirection","pytreatment"))
+stdKeys <- intersect(c("pyconfigurationname", "pyissue","pygroup","pyname","pychannel","pydirection","pytreatment"), names(mdls))
+
+# create an identifier for the full context (just pyname may not be enough to seperate actions/propositions)
+mdls[, action := ""]
+for (id in setdiff(stdKeys,"pyconfigurationname")) mdls[["action"]] <- paste(mdls[["action"]], mdls[[id]], sep="/")
 
 mdls[, allTimeResponseCount := sum(pypositives), by=stdKeys]
 
@@ -182,7 +186,7 @@ mdls[, pyname := factor(pyname,
                         levels=mdls[, .(Performance = weighted.mean(Performance[which.max(pysnapshottime)], 
                                                                     Evidence[which.max(pysnapshottime)], na.rm = T)), by=pyname][order(-Performance)]$pyname)]
 
-p <- ggplot(mdls[!is.na(pysnapshottime)], aes(pysnapshottime, Performance, color=pyname)) + geom_line() +
+p <- ggplot(mdls[!is.na(pysnapshottime)], aes(pysnapshottime, Performance, color=action)) + geom_line() +
   facet_wrap(. ~ pyconfigurationname, scales="free", strip.position = "right", ncol = 2) +
   ggtitle("Model Performance over Time") +
   colorScale+
@@ -203,7 +207,7 @@ mdls[, pyname := factor(pyname,
                         levels=mdls[, .(SuccessRate = weighted.mean(SuccessRate[which.max(pysnapshottime)], 
                                                                     Evidence[which.max(pysnapshottime)], na.rm = T)), by=pyname][order(-SuccessRate)]$pyname)]
 
-p<-ggplot(mdls[!is.na(pysnapshottime)], aes(pysnapshottime, SuccessRate, color=pyname)) + geom_line() +
+p<-ggplot(mdls[!is.na(pysnapshottime)], aes(pysnapshottime, SuccessRate, color=action)) + geom_line() +
   facet_wrap(~ pyconfigurationname, scales = "free") + ggtitle("Proposition Success Rate over Time") +
   colorScale +
   xlab("") + 
@@ -396,7 +400,7 @@ if (!is.null(modelPredictors) && nrow(modelPredictors) > 0) {
 # Appendix - all the models
 
 ```{r}
-kable(unique(mdls[, c("pymodelid","pyconfigurationname","pyname"), with=F])[order(pyconfigurationname, pyname)])
+kable(unique(mdls[, c("pymodelid","pyconfigurationname","pyname","action"), with=F])[order(pyconfigurationname, pyname)][,-"pyname"])
 ```
 
 ```{r}
