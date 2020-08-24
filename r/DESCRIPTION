@@ -31,5 +31,6 @@ Imports:
   stats,
   utils,
   fasttime,
-  XML
+  XML,
+  kableExtra
 VignetteBuilder: knitr
