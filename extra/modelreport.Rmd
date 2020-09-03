@@ -1,5 +1,6 @@
 ---
 title: "Adaptive Model Report"
+author: "Pega"
 output:
   html_document:
     df_print: paged

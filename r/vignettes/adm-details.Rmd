@@ -1,15 +1,16 @@
 ---
 title: "adm-details"
-author: "Otto Perdeck"
+author: "Pega"
 date: "`r Sys.Date()`"
-output: 
-  pdf_document:
-  rmarkdown::html_vignette: 
-    toc : yes
-vignette: >
-  %\VignetteIndexEntry{adm-details}
-  %\VignetteEncoding{UTF-8}
-  %\VignetteEngine{knitr::rmarkdown}
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+  pdf_document: null
+  rmarkdown::html_vignette:
+    toc: yes
+vignette: |
+  %\VignetteIndexEntry{adm-details} %\VignetteEncoding{UTF-8} %\VignetteEngine{knitr::rmarkdown}
 ---
   
 ```{r setup, include = FALSE}
@@ -34,16 +35,23 @@ library(data.table)
 data(admdatamart_models)
 data(admdatamart_binning)
 
-model <- admdatamart_models[pyconfigurationname == "VerySimpleSalesModel" & pyname == "PSDISCOUNT10"][pysnapshottime == max(pysnapshottime)]
+model <- admdatamart_models[pyconfigurationname == "VerySimpleSalesModel" & pyname == "PSDISCOUNT100"][pysnapshottime == max(pysnapshottime)]
 modelpredictors <- admdatamart_binning[pymodelid == model$pymodelid]
-                                       
+
 predictorname <- "COUNTRY"
 predictorbinning <- modelpredictors[pypredictorname == predictorname][order(pybinindex)]
 ```
 
+# OmniAdaptiveModel from lab, P12 - only 2 numerics
+# DMSample from lab, 
+
+#unique(admdatamart_models$pyname)
+
+## Model overview
+
 The selected model is:
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, warning=F}
 library(knitr)
 library(kableExtra)
 modelmetadata <- data.table(Group = paste(model$pyissue, model$pygroup, sep="/"),
@@ -55,14 +63,16 @@ kable(t(modelmetadata))  %>%
   column_spec(1, bold=T)
 ```
 
+## Predictor binning for `r predictorname`
+
 The ADM model report will show predictor binning similar to this, with all displayed data coming from fields in the ADM data mart:
 
 ```{r, echo=FALSE}
 predictormetadata <- data.table(Name = predictorbinning$pypredictorname[1],
-                            Range = predictorbinning$pycontents[1],
-                            Responses = predictorbinning$pyresponsecount[1],
-                            `# Bins` = predictorbinning$pytotalbins[1],
-                            `Predictor Performance (AUC)` =  predictorbinning$pyperformance[1]*100)
+                                Range = predictorbinning$pycontents[1],
+                                Responses = predictorbinning$pyresponsecount[1],
+                                `# Bins` = predictorbinning$pytotalbins[1],
+                                `Predictor Performance (AUC)` =  predictorbinning$pyperformance[1]*100)
 kable(t(predictormetadata))  %>%
   kable_styling(bootstrap_options = "striped", full_width = F, position = "left") %>%
   column_spec(1, bold=T)
@@ -70,16 +80,16 @@ kable(t(predictormetadata))  %>%
 
 ```{r, echo=FALSE}
 predictorbinning2 <- data.table( `Range/Symbols` = predictorbinning$pybinsymbol,
-                       `Responses (%)` = predictorbinning$pybinresponsecountpercentage,
-                       `Positives` = predictorbinning$pybinpositives,
-                       `Positives (%)` = predictorbinning$pybinpositivespercentage,
-                       `Negatives` = predictorbinning$pybinnegatives,
-                       `Negatives (%)` = predictorbinning$pybinnegativespercentage,
-                       # strange that propensity would not be available
-                       `Propensity (%)` = round(predictorbinning$pybinpositives/(predictorbinning$pybinresponsecount), digits = 4),
-                       `Z-Ratio` = predictorbinning$pyzratio,
-                       `Lift` = predictorbinning$pylift
-                       )
+                                 `Responses (%)` = predictorbinning$pybinresponsecountpercentage,
+                                 `Positives` = predictorbinning$pybinpositives,
+                                 `Positives (%)` = predictorbinning$pybinpositivespercentage,
+                                 `Negatives` = predictorbinning$pybinnegatives,
+                                 `Negatives (%)` = predictorbinning$pybinnegativespercentage,
+                                 # strange that propensity would not be available
+                                 `Propensity (%)` = round(predictorbinning$pybinpositives/(predictorbinning$pybinresponsecount), digits = 4),
+                                 `Z-Ratio` = predictorbinning$pyzratio,
+                                 `Lift` = predictorbinning$pylift
+)
 totals <- data.table(`Range/Symbols` = "Grand Total")[, names(predictorbinning2)[2:9] := c(lapply(predictorbinning2[, 2:6], sum), as.numeric(predictorbinning$pypositives[1])/predictorbinning$pyresponsecount[1], 0.0, 1.0)]
 
 predictorbinning <- predictorbinning2
@@ -91,7 +101,7 @@ kable(predictorbinning2) %>%
 
 # Simple ratios and totals
 
-The counts of positive and negative responses in each bin are the only things that ADM tracks, the rest is derived from these. The percentages and totals are trivially derived, and the propensity is just the number of positives divided by the total.
+The counts of positive and negative responses in each bin are the only things that ADM tracks, the rest is derived from these. The percentages and totals are trivially derived, and the propensity is just the number of positives divided by the total as illustrated below:
 
 ```{r}
 binningDerived <- predictorbinning[, c(1,3,5)] # copy over only the labels, pos and neg counts
@@ -115,7 +125,7 @@ binningDerived[, Propensity := (Positives)/(Positives+Negatives)] # put back as 
 
 # Lift
 
-Lift is the ratio of the propensity in a particular bin over the average propensity. So a value of 1 is the average, larger than means higher propensity, smaller means lower propensity.
+Lift is the ratio of the propensity in a particular bin over the average propensity. So a value of 1 is the average, larger than 1 means higher propensity, smaller means lower propensity:
 
 ```{r}
 binningDerived[, Lift := (Positives/(Positives+Negatives)) / (sum(Positives)/sum(Positives+Negatives))]
@@ -131,7 +141,7 @@ binningDerived[, Lift := round(Lift,4)]
 kable(binningDerived) %>%
   kable_styling(bootstrap_options = "striped", full_width = T) %>%
   column_spec(c(2,3), bold = T, border_left = T, border_right = T) %>%
-    column_spec(4, color = "darkblue") 
+  column_spec(4, color = "darkblue") 
 ```
 
 # Z-Ratio
@@ -154,18 +164,25 @@ binningDerived[, Lift := NULL]
 kable(binningDerived) %>%
   kable_styling(bootstrap_options = "striped", full_width = T) %>%
   column_spec(c(2,3), bold = T, border_left = T, border_right = T) %>%
-    column_spec(6, color = "darkblue") 
+  column_spec(6, color = "darkblue") 
 ```
 
 # Predictor AUC
 
 The predictor AUC is can be derived from the positives and negatives as well, e.g. using the *pROC* package.
 
-```{r, warning=F,echo=F,message=F}
+```{r, warning=F,message=F}
 library(pROC)
 
-response = unlist(sapply(1:nrow(predictorbinning),function(r){return(c(rep(T, predictorbinning$Positives[r]), rep(F, predictorbinning$Negatives[r])))}))
-prediction = unlist(sapply(1:nrow(predictorbinning),function(r){return(rep(predictorbinning$`Propensity (%)`[r], predictorbinning$Positives[r]+predictorbinning$Negatives[r]))}))
+response = unlist(sapply(1:nrow(predictorbinning),
+                         function(r){return(c(rep(T, predictorbinning$Positives[r]), 
+                                              rep(F, predictorbinning$Negatives[r])))}))
+
+prediction = unlist(sapply(1:nrow(predictorbinning),
+                           function(r){return(rep(predictorbinning$`Propensity (%)`[r], 
+                                                  predictorbinning$Positives[r] +
+                                                    predictorbinning$Negatives[r]))}))
+
 plot.roc(response, prediction, print.auc=T, col="darkgreen", levels=c(T,F), direction=">")
 ```
 
@@ -179,7 +196,106 @@ cdhtools::auc_from_bincounts(predictorbinning$Positives, predictorbinning$Negati
 
 The score is calculated from the log odds
 
+ln odds one predictor:
+
+ln(posCnt + 1/#bins) - ln(totalPos+1)-(ln(negCnt + 1/#bins) - ln(totalNeg+1))
+ln(posCnt/totalPos) - ln(negCnt/totalNeg)
+ln( (posCnt/totalPos) / (negCnt/totalNeg))
+odds = (posCnt/totalPos) / (negCnt/totalNeg)
+
+(NB isnt this the risk ratio not the odds ratio??)
+
+avg is sum / (# active + 1)
 
 
+```{r}
+binningDerived[, posFraction := Positives/sum(Positives)]
+binningDerived[, negFraction := Negatives/sum(Negatives)]
+binningDerived[, `Log odds` := log(posFraction/negFraction)]
+```
 
+```{r, echo=F}
+binningDerived[, `Z-Ratio` := NULL]
+kable(binningDerived) %>%
+  kable_styling(bootstrap_options = "striped", full_width = T) %>%
+  column_spec(c(2,3), bold = T, border_left = T, border_right = T) %>%
+  column_spec(6, color = "darkblue") 
+```
+NOTE: in the product we do a minor modification to the numbers, adding 1/#bins to the nominator of the fractions, and 1 to the denominators. This is to avoid division by zero problems.
 
+## Propensity mapping
+
+To get to a propensity, the log odds of the relevant bins of the active predictors are added up and divided by the number of active predictors (+1), then used to index in the classifier.
+
+Below an example. From all the active predictors of the model for `r model$pyname` we pick a value (in the middle for numerics, first symbol for symbolics) and show the log odds.
+
+### TODO fix up the details
+
+```{r, echo=F}
+binning <- modelpredictors[pyentrytype=="Active", c("pypredictorname", "pybinsymbol", "pybinindex", "pybinpositives", "pybinnegatives", "pytype","pybinlowerbound", "pybinupperbound"), with=F]
+setnames(binning, c("Name", "Value", "Bin", "Positives", "Negatives", "type", "lobound", "hibound"))
+
+binning[, posFraction := Positives/sum(Positives), by=Name]
+binning[, negFraction := Negatives/sum(Negatives), by=Name]
+binning[, `Log odds` := log(posFraction/negFraction)]
+
+binning[,nbins := max(Bin), by=Name]
+binning <- binning[Bin == trunc(nbins/2)] # take middle bin
+for (r in 1:nrow(binning)) {
+  if (binning$type[r] == "numeric") {
+    binning$Value[r] <- trunc((as.numeric(binning$lobound[r]) + as.numeric(binning$hibound[r]))/2) # middle value
+  } else {
+    binning$Value[r] <- strsplit(binning$Value[r], ",", fixed=T)[[1]][1] # first symbol
+  }
+}
+binning <- binning[, c(1:5,9:11)]
+
+binning <- rbindlist(list(binning, data.table(Name = "Average Log odds",
+                                              Value = "",
+                                              `Log odds` = mean(binning$`Log odds`))), use.names = T, fill = T)
+kable(binning) %>%
+  kable_styling(bootstrap_options = "striped", full_width = T) %>%
+  column_spec(c(1, 2, 3, 4, 5), bold = T, border_left = T, border_right = T) %>%
+  column_spec(8, color = "darkblue") 
+```
+
+Note that ADM does not interpolate the propensities as suggested by this plot. It simply returns the propensity for that bin of the classifier.
+
+```{r, echo=F, warning=F, error=F}
+library(ggplot2)
+library(scales)
+classifier <- modelpredictors[pyentrytype == "Classifier"][order(pybinindex)]
+classifier[, successrate := pybinpositives/(pybinpositives+pybinnegatives)]
+
+score <- binning$`Log odds`[nrow(binning)]
+scorebin <- findInterval(score, as.numeric(classifier$pybinlowerbound), left.open = T, all.inside = T)
+
+successRateMax <- max(classifier$successrate, na.rm = T)
+if (0 == successRateMax) { successRateMax <- 1 }
+secAxisFactor <- max(classifier$pybinresponsecount)/successRateMax
+classifierBarplot <- ggplot(classifier, aes(as.factor(pybinindex), successrate, group=1))+
+  geom_col(aes(y=(pybinpositives+pybinnegatives)/secAxisFactor), classifier[pybinindex == scorebin], fill="steelblue3")+
+  geom_col(aes(y=(pybinpositives+pybinnegatives)/secAxisFactor), classifier[pybinindex != scorebin], fill="grey")+
+  geom_line(colour="orange", size=2)+geom_point()+
+  scale_y_continuous(limits=c(0, max(classifier$successrate)), name="Propensity", labels=scales::percent,
+                     sec.axis = sec_axis(~.*secAxisFactor, name = "Responses"))+
+  scale_x_discrete(name = "Average Log odds", labels = classifier$pybinsymbol) +
+  ggtitle("Log odds to Propensity mapping", subtitle = "Bins view")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5))
+print(classifierBarplot)
+
+classifierLineplot <- ggplot(classifier, aes(as.numeric(pybinlowerbound), 
+                                             successrate, group=1))+
+  geom_line(color="orange", size=2)+
+  geom_vline(xintercept = score, color="steelblue3", size=2)+
+  scale_y_continuous(limits=c(0, max(classifier$successrate)), name="Propensity", labels=scales::percent)+
+  ylab("Propensity")+xlab("Average Log odds")+
+  ggtitle("Log odds to Propensity mapping", subtitle = "Continuous view")+
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5))
+print(classifierLineplot)
+```
