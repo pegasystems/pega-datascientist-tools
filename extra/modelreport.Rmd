@@ -12,16 +12,17 @@ params:
   predictordatafile:
     # full path to the source file which should be an export of the ADM predictor binning table
     # this example file is the same as the RDA file used elsewhere in demos of CDH tools
-    #value: "../extra/pr_data_dm_admmart_pred.csv"
-    value: "/Users/perdo/Documents/pega/analytics_e2e_tests/results/POC/preds.csv"
+    value: "../extra/pr_data_dm_admmart_pred.csv"
+    #value: "~/Downloads/Model_Report_2020-09-25_07-20-34.xlsx"
   modeldescription:
     # optional model description typically corresponding to the model info of the indicated model
     value: "Sales Model - PSDISCOUNT100"
+    #value: "OmniNBA - Credit Card Gold"
   modelid:
     # model ID found by examining the model table from the data mart; if there is just one model
     # in the predictor binning file it can be left empty
-    #value: "7cf6a839-9eba-5765-8856-1031b1e60315"
-    value: "E2ENum3Sym3-d200ecb9-P9"
+    value: "7cf6a839-9eba-5765-8856-1031b1e60315"
+    #value: ""
 ---
 
 ```{r, echo=F, warning=F, error=F, include=FALSE}
@@ -33,6 +34,7 @@ library(knitr)
 library(kableExtra)
 library(cdhtools)
 library(plotly)
+library(readxl)
 
 theme_set(theme_minimal())
 options(digits = 5)
@@ -52,11 +54,25 @@ if (!("predictordatafile" %in% names(params))) stop(paste("Required parameter '"
 if (!file.exists(params$predictordatafile)) {
   stop(paste("File does not exist:", params$predictordatafile))
 }
-if (endsWith(params$predictordatafile, ".zip")) {
-  # NB this might work only on Linux/Mac; consider making configurable
-  modelPredictorBins <- fread(cmd=paste("unzip -p", gsub(" ", "\\ ", params$predictordatafile, fixed = T))) 
+
+if (endsWith(params$predictordatafile, ".xlsx")) {
+  modelPredictorBins <- as.data.table(read_excel(params$predictordatafile))
+  # The report defs change the column names. Note this might be version dependent.
+  setnames(modelPredictorBins, 
+           old=c("Predictor Name", "Type", "Performance", "Bin Index", "Range/Symbols", "Bin Negatives", "Bin Positives", "Role", "Bin ZRatio", "Bin Lift"), 
+           new=c("pypredictorname", "pypredictortype", "pyperformance", "pybinindex", "pybinsymbol", "pybinnegatives", "pybinpositives", "pyentrytype", "pyzratio", "pylift"))
+  modelPredictorBins[, pysnapshottime := cdhtools::toPRPCDateTime(now())]
+  modelPredictorBins[, pymodelid := 0]
+  for (num in c("pylift", "pyperformance", "pybinnegatives", "pybinpositives", "pybinindex", "pyzratio")) {
+    modelPredictorBins[[num]] <- as.numeric(modelPredictorBins[[num]])
+  }
 } else {
-  modelPredictorBins <- fread(params$predictordatafile)
+  if (endsWith(params$predictordatafile, ".zip")) {
+    # NB this might work only on Linux/Mac; consider making configurable
+    modelPredictorBins <- fread(cmd=paste("unzip -p", gsub(" ", "\\ ", params$predictordatafile, fixed = T))) 
+  } else {
+    modelPredictorBins <- fread(params$predictordatafile)
+  }
 }
 
 # work with lower case names as the various exports processes won't guarantee that case is kept
@@ -323,7 +339,9 @@ if (nrow(predSummary) == 0) {
 Binning of all individual predictors. Predictors are listed in the same order as in the summary above.
 
 ```{r, results="asis", echo=F, warning=F, error=F, fig.height = 5, fig.width = 6, fig.align = "center"}
-for (f in unique(modelPredictorBins[pyentrytype != "Classifier"]$pypredictorname)) {
+
+# for all: pyentrytype != "Classifier"
+for (f in unique(modelPredictorBins[pyentrytype == "Active"]$pypredictorname)) {
   binning <- modelPredictorBins[pypredictorname==f]
   
   if (nrow(binning) < 1) {
