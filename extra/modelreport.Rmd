@@ -13,16 +13,14 @@ params:
     # full path to the source file which should be an export of the ADM predictor binning table
     # this example file is the same as the RDA file used elsewhere in demos of CDH tools
     value: "../extra/pr_data_dm_admmart_pred.csv"
-    #value: "~/Downloads/Model_Report_2020-09-25_07-20-34.xlsx"
   modeldescription:
     # optional model description typically corresponding to the model info of the indicated model
     value: "Sales Model - PSDISCOUNT100"
-    #value: "OmniNBA - Credit Card Gold"
   modelid:
     # model ID found by examining the model table from the data mart; if there is just one model
     # in the predictor binning file it can be left empty
     value: "7cf6a839-9eba-5765-8856-1031b1e60315"
-    #value: ""
+    #value: "N/A"
 ---
 
 ```{r, echo=F, warning=F, error=F, include=FALSE}
@@ -79,7 +77,7 @@ if (endsWith(params$predictordatafile, ".xlsx")) {
 setnames(modelPredictorBins, tolower(names(modelPredictorBins)))
 
 # make sure there is only ONE model ID or subset to just the one passed in
-if (params$modelid != "") {
+if (!(params$modelid %in% c("", "NA", "N/A", "na", "n/a"))) {
   modelPredictorBins <- modelPredictorBins[pymodelid == params$modelid]
   if (nrow(modelPredictorBins) <= 1) {
     stop(paste("No data found for model ID", params$modelid))
