@@ -55,18 +55,20 @@ This loads a sample dataset from the packages that represents the state of a cou
 
 The R package currently contains 
 
-- Some utilities to make it easier to work with Pega, like reading the dataset exports into `data.table` structures.
+- Some utilities to make it easier to work with Pega, like reading the dataset exports into `data.table` structures. The `readDSExport` function is the main work horse here, this reads downloaded Pega dataset exports.
 - A utility to take an ADM model and transform it into PMML. This PMML is basically a "frozen" version of the ADM model with each model instance represented as as Score Card including reason codes that can be used to explain the decision.
 - Standard notebooks to generate off-line viewable, stand-alone model reports and a model overview. These reports are similar to the reports in the product but can be generated and browsed off-line, but they also add some functionality not currently present in the product, like showing the active bins of the propensity mapping, an overview of predictor performance across models in the form of boxplots, and some more. They are parameterized and can easily be applied to any export of the ADM datamart.
 
 Vignettes are the primary vehicle for demo scripts. The source of the vignettes itself is typically useful as this can be customized to specific needs and situations.
 
-The available vignettes are:
+The available vignettes are (`vignette(package="cdhtools")`):
 
 Vignette | Description | Read with
 ------------ | ------------- | -------------
-adm-reporting | Reporting on the ADM Datamart | `vignette("adm-reporting")`
 adhoc-datasetanalysis | Using Dataset Exports | `vignette("adhoc-datasetanalysis")`
+adm-details | Detailed explanation with formulas and code of the ADM Model Reports | `vignette("adm-details")`
+ih-reporting | Reporting on Interaction History | `vignette("ih-reporting")`
+adm-reporting | Reporting on the ADM Datamart | `vignette("adm-reporting")`
 
 For those less familiar with R vignettes: you can get the list of vignettes with `browseVignettes("cdhtools")` (as a web page) or `vignette(package="cdhtools")`. A vignette provides the original source as well as a readable HTML or PDF page and a file with the R code. Read a specific one with `vignette(x)` and see its code with `edit(vignette(x))`.
 

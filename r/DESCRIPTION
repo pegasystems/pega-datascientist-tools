@@ -19,6 +19,7 @@ Suggests:
 Imports:
   data.table,
   ggplot2,
+  colorspace,
   scales,
   plyr,
   dplyr,

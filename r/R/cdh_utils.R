@@ -103,7 +103,7 @@ readDSExport <- function(instancename, srcFolder=".", tmpFolder=srcFolder, exclu
 #' \code{writeDSExport} writes a \code{data.table} in the same zipped,
 #' multi-line JSON format (\url{http://jsonlines.org/}) as the Pega datasets.
 #'
-#' @param data Data table/frame to export.
+#' @param x Data table/frame to export.
 #' @param filename Filename to export to.
 #' @param tmpFolder Optional folder to store the multi-line JSON file
 #'
@@ -115,7 +115,7 @@ writeDSExport <- function(x, filename, tmpFolder=tempdir())
 {
   jsonFile <- file.path(tmpFolder, "data.json")
   writeLines(sapply(1:nrow(x), function(r) {
-    toJSON(as.list(x[r,]), auto_unbox = T, na = "null", digits = NA)}),
+    jsonlite::toJSON(as.list(x[r,]), auto_unbox = T, na = "null", digits = NA)}),
     jsonFile)
   zip(filename, jsonFile, flags = "-9Xj")
   file.remove(jsonFile)
@@ -327,15 +327,13 @@ createIHexport <- function()
   # pick up a dump of IH data from Pega
   ihDump <- readDSExport("../extra/Data-pxStrategyResult_pxInteractionHistory.zip")
 
-  library(lubridate)
-
   # rescale outcome/decision time to a period of 2 weeks
   ihDump[, pxOutcomeTime := fromPRPCDateTime(pxOutcomeTime)]
   ihDump[, pxDecisionTime := fromPRPCDateTime(pxDecisionTime)]
   minTime <- min(min(ihDump$pxOutcomeTime), min(ihDump$pxDecisionTime))
   maxTime <- max(max(ihDump$pxOutcomeTime), max(ihDump$pxDecisionTime))
   oldtimespan <- as.double(difftime(maxTime, minTime, units="secs"))
-  newtimespan <- as.double(weeks(2))
+  newtimespan <- as.double(lubridate::weeks(2))
 
   # downsample to reduce the size
   ihsampledata <- ihDump[sort(sample.int(nrow(ihDump), 50000))]
