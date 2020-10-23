@@ -4,12 +4,14 @@
 \name{admdatamart_models}
 \alias{admdatamart_models}
 \title{Sample model snapshots from the ADM Data Mart.}
-\format{A \code{data.table} with 30 rows and 22 variables:
+\format{
+A \code{data.table} with 30 rows and 22 variables:
 \describe{
   \item{pyModelID}{Model ID}
   \item{pySnapshotTime}{Snapshot time}
   ...
-}}
+}
+}
 \source{
 A sample Pega application
 }

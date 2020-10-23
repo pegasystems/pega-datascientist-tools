@@ -4,8 +4,12 @@
 \alias{getModelsFromJSONTable}
 \title{Retrieves ADM models from the internal "Factory" table.}
 \usage{
-getModelsFromJSONTable(conn, appliesto = NULL,
-  configurationname = NULL, verbose = F)
+getModelsFromJSONTable(
+  conn,
+  appliesto = NULL,
+  configurationname = NULL,
+  verbose = F
+)
 }
 \arguments{
 \item{conn}{Connection to the database}

@@ -17,5 +17,5 @@ Converts a model partition (context) from a JSON representation to a string
 }
 \examples{
 library(jsonlite)
-getJSONModelContextAsString( "{\\"partition\\":{\\"Color\\":\\"Green\\", \\"Size\\":\\"120\\"}}")
+getJSONModelContextAsString( "{\"partition\":{\"Color\":\"Green\", \"Size\":\"120\"}}")
 }

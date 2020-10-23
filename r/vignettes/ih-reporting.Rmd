@@ -1,0 +1,61 @@
+---
+title: "ih-reporting"
+author: "Pega"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{ih-reporting}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+  
+```{r setup, include = FALSE}
+# knitr options: https://yihui.name/knitr/options/
+knitr::opts_chunk$set(
+collapse = TRUE,
+fig.width = 7,
+fig.height = 5,
+fig.align = "center",
+comment = "#>"
+)
+```
+
+# IH Reports
+
+A few simple reports on IH.
+
+Input is a small IH export included in cdhtools, you can point to any Pega
+export and read with readDSExport.
+
+# Data Loading
+
+```{r message=FALSE, warning=FALSE}
+library(cdhtools)
+library(ggplot2)
+library(scales)
+library(tidyverse)
+library(data.table)
+library(colorspace)
+library(lubridate)
+
+data(ihsampledata) 
+#ihsampledata <- readDSExport("Data-pxStrategyResult_pxInteractionHistory", "~/Downloads")
+```
+
+```{r, warning=F, message=FALSE}
+ggplot(ihsampledata, aes(pyChannel, fill=pyOutcome)) + 
+  geom_bar() +
+  theme_bw() +
+  scale_fill_discrete_divergingx(name="Outcome") +
+  ggtitle("Interaction History", subtitle = "by Channel") + xlab("Channel")
+```
+
+```{r message=FALSE, warning=FALSE}
+ggplot(ihsampledata, aes(as_date(fromPRPCDateTime(pxOutcomeTime)), fill=pyOutcome)) +
+  geom_bar() +
+  theme_bw() +
+  scale_fill_discrete_divergingx(name="Outcome") +
+  ggtitle("Interactions over Time") + xlab("Date")
+```
+
+

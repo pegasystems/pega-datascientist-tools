@@ -14,12 +14,13 @@
 #' @name cdhtools
 #' @import data.table
 #' @importFrom rlang is_list
+#' @importFrom utils zip
 NULL
 
 #' Read a Pega dataset export file.
 #'
 #' \code{readDSExport} reads a dataset export file as exported and downloaded
-#' from Pega. This export file is a zipped multi-line JSON file
+#' from Pega datasets. This export file is a zipped multi-line JSON file
 #' (\url{http://jsonlines.org/}). \code{readDSExport} will find the most recent
 #' file (Pega appends a datetime stamp) if given a folder, then unzips it into a
 #' temp folder and read the data into a \code{data.table}. You can also specify
@@ -95,6 +96,29 @@ readDSExport <- function(instancename, srcFolder=".", tmpFolder=srcFolder, exclu
     }
   }
   return(rbindlist(chunkList, use.names = T, fill = T))
+}
+
+#' Write table to a file in the format of the dataset export files.
+#'
+#' \code{writeDSExport} writes a \code{data.table} in the same zipped,
+#' multi-line JSON format (\url{http://jsonlines.org/}) as the Pega datasets.
+#'
+#' @param data Data table/frame to export.
+#' @param filename Filename to export to.
+#' @param tmpFolder Optional folder to store the multi-line JSON file
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{writeDSExport(myData, "~/Downloads/mydata.zip")}
+writeDSExport <- function(x, filename, tmpFolder=tempdir())
+{
+  jsonFile <- file.path(tmpFolder, "data.json")
+  writeLines(sapply(1:nrow(x), function(r) {
+    toJSON(as.list(x[r,]), auto_unbox = T, na = "null", digits = NA)}),
+    jsonFile)
+  zip(filename, jsonFile, flags = "-9Xj")
+  file.remove(jsonFile)
 }
 
 # Internal helper to keep auc a safe number between 0.5 and 1.0 always
@@ -294,4 +318,41 @@ getModelPerformanceOverview <- function(dmModels = NULL, dmPredictors = NULL, js
 
   return(perfOverview)
 }
+
+####
+
+# Internal code to generate the data exports
+createIHexport <- function()
+{
+  # pick up a dump of IH data from Pega
+  ihDump <- readDSExport("../extra/Data-pxStrategyResult_pxInteractionHistory.zip")
+
+  library(lubridate)
+
+  # rescale outcome/decision time to a period of 2 weeks
+  ihDump[, pxOutcomeTime := fromPRPCDateTime(pxOutcomeTime)]
+  ihDump[, pxDecisionTime := fromPRPCDateTime(pxDecisionTime)]
+  minTime <- min(min(ihDump$pxOutcomeTime), min(ihDump$pxDecisionTime))
+  maxTime <- max(max(ihDump$pxOutcomeTime), max(ihDump$pxDecisionTime))
+  oldtimespan <- as.double(difftime(maxTime, minTime, units="secs"))
+  newtimespan <- as.double(weeks(2))
+
+  # downsample to reduce the size
+  ihsampledata <- ihDump[sort(sample.int(nrow(ihDump), 50000))]
+
+  ihsampledata[, pxOutcomeTime := toPRPCDateTime(minTime + as.double(difftime(pxOutcomeTime, minTime))*newtimespan/oldtimespan)]
+  ihsampledata[, pxDecisionTime := toPRPCDateTime(minTime + as.double(difftime(pxDecisionTime, minTime))*newtimespan/oldtimespan)]
+
+  # write as data object for easy import
+  save(ihsampledata, file="ihsampledata.rda")
+
+  # re-write as an export zip
+  writeDSExport( ihsampledata, "ihsampledata.zip" )
+}
+
+# Future ideas
+#
+# readADMDMExport (x2) specialization of readDSExport that remove the pz fields,
+# lowercase them and possible drop some other fields too, convert dates
+
 

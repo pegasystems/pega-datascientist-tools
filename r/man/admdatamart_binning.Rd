@@ -4,13 +4,15 @@
 \name{admdatamart_binning}
 \alias{admdatamart_binning}
 \title{Sample predictor binning snapshots from the ADM Data Mart.}
-\format{A \code{data.table} with 1755 rows and 35 variables:
+\format{
+A \code{data.table} with 1755 rows and 35 variables:
 \describe{
   \item{pyModelID}{Model ID}
   \item{pySnapshotTime}{Snapshot time}
   \item{pyPredictorName}{Name of the predictor}
   ...
-}}
+}
+}
 \source{
 A sample Pega application
 }

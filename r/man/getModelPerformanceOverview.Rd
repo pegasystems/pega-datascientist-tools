@@ -4,8 +4,11 @@
 \alias{getModelPerformanceOverview}
 \title{Helper function to return the actual and reported performance of ADM models.}
 \usage{
-getModelPerformanceOverview(dmModels = NULL, dmPredictors = NULL,
-  jsonPartitions = NULL)
+getModelPerformanceOverview(
+  dmModels = NULL,
+  dmPredictors = NULL,
+  jsonPartitions = NULL
+)
 }
 \arguments{
 \item{dmModels}{A \code{data.table} with (possibly a subset of) the models exported from the ADM Datamart (\code{Data-Decision-ADM-ModelSnapshot}).}

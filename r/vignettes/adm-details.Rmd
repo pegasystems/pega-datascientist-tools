@@ -2,15 +2,11 @@
 title: "adm-details"
 author: "Pega"
 date: "`r Sys.Date()`"
-output:
-  pdf_document: null
-  html_document:
-    df_print: paged
-    toc: yes
-  rmarkdown::html_vignette:
-    toc: yes
-vignette: |
-  %\VignetteIndexEntry{adm-details} %\VignetteEncoding{UTF-8} %\VignetteEngine{knitr::rmarkdown}
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{adm-details}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
   
 ```{r setup, include = FALSE}

@@ -10,8 +10,8 @@ Description: Various tools and scripts to work with Pega CDH.
 License: file LICENSE
 Encoding: UTF-8
 LazyData: true
-Depends: R (>= 2.10)
-RoxygenNote: 6.1.1
+Depends: R (>= 3.5.0)
+RoxygenNote: 7.1.1
 Suggests:
   testthat ,
     knitr,
