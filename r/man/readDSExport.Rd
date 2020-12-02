@@ -7,7 +7,7 @@
 readDSExport(
   instancename,
   srcFolder = ".",
-  tmpFolder = srcFolder,
+  tmpFolder = tempdir(check = T),
   excludeComplexTypes = T
 )
 }
@@ -19,8 +19,7 @@ and zip extension as exported from Pega.}
 \item{srcFolder}{Optional folder to look for the file (defaults to the
 current folder)}
 
-\item{tmpFolder}{Optional folder to store the unzipped data (defaults to the
-source folder)}
+\item{tmpFolder}{Optional folder to store the unzipped data (defaults to a temp folder)}
 
 \item{excludeComplexTypes}{Flag to not return complex embedded types,
 defaults to T so not including nested lists/data frames}

@@ -146,7 +146,7 @@ a full file name to the export or to a JSON file that you unpacked yourself.</p>
     <pre class="usage"><span class='fu'>readDSExport</span><span class='op'>(</span>
   <span class='va'>instancename</span>,
   srcFolder <span class='op'>=</span> <span class='st'>"."</span>,
-  tmpFolder <span class='op'>=</span> <span class='va'>srcFolder</span>,
+  tmpFolder <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/tempfile.html'>tempdir</a></span><span class='op'>(</span>check <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span>,
   excludeComplexTypes <span class='op'>=</span> <span class='cn'>T</span>
 <span class='op'>)</span></pre>
 
@@ -166,8 +166,7 @@ current folder)</p></td>
     </tr>
     <tr>
       <th>tmpFolder</th>
-      <td><p>Optional folder to store the unzipped data (defaults to the
-source folder)</p></td>
+      <td><p>Optional folder to store the unzipped data (defaults to a temp folder)</p></td>
     </tr>
     <tr>
       <th>excludeComplexTypes</th>

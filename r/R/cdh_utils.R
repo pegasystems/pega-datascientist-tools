@@ -31,8 +31,7 @@ NULL
 #'   and zip extension as exported from Pega.
 #' @param srcFolder Optional folder to look for the file (defaults to the
 #'   current folder)
-#' @param tmpFolder Optional folder to store the unzipped data (defaults to the
-#'   source folder)
+#' @param tmpFolder Optional folder to store the unzipped data (defaults to a temp folder)
 #' @param excludeComplexTypes Flag to not return complex embedded types,
 #'   defaults to T so not including nested lists/data frames
 #'
@@ -45,7 +44,7 @@ NULL
 #' \dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip",
 #' "~/Downloads")}
 #' \dontrun{readDSExport("~/Downloads/Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip")}
-readDSExport <- function(instancename, srcFolder=".", tmpFolder=srcFolder, excludeComplexTypes=T)
+readDSExport <- function(instancename, srcFolder=".", tmpFolder=tempdir(check = T), excludeComplexTypes=T)
 {
   if(endsWith(instancename, ".json")) {
     if (file.exists(instancename)) {
@@ -96,6 +95,37 @@ readDSExport <- function(instancename, srcFolder=".", tmpFolder=srcFolder, exclu
     }
   }
   return(rbindlist(chunkList, use.names = T, fill = T))
+}
+
+#' Read export of ADM model data. This is a specialized version of \code{readDSExport}
+#' that defaults the dataset name, leaves out the detailed model data (if present) and
+#' other internal fields, returns the properties without the py prefixes and converts
+#' date fields, and makes sure numeric fields are returned as numerics.
+#'
+#' @param srcFolder Optional folder to look for the file (defaults to the
+#'   current folder)
+#' @param instancename Name of the file w/o the timestamp, in Pega format
+#'   <Applies To>_<Instance Name>, or the complete filename including timestamp
+#'   and zip extension as exported from Pega. Defaults to the Pega generated
+#'   name of the dataset: \code{Data-Decision-ADM-ModelSnapshot_pyModelSnapshots}.
+#' @param tmpFolder Optional folder to store the unzipped data (defaults to a
+#' temp folder)
+#'
+#' @return A \code{data.table} with the ADM model data
+#' @export
+#'
+#' @examples
+#' \dontrun{readADMDatamartModelExport("~/Downloads")}
+readADMDatamartModelExport <- function(srcFolder=".", instancename = "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots", tmpFolder=tempdir(check = T))
+{
+  modelz <- readDSExport(instancename, srcFolder, tmpFolder=tmpFolder)
+  if ("pyModelData" %in% names(modelz)) { modelz[, pyModelData := NULL] } # older versions don't have this field and perhaps not all future versions will
+  modelz[, names(modelz)[grepl("^p[x|z]", names(modelz))] := NULL]
+  setnames(modelz, gsub(pattern = "^p.", replacement = "", names(modelz)))
+  modelz[, Performance := as.numeric(Performance)] # notoriously returned as char but is numeric
+  modelz[, SnapshotTime := fromPRPCDateTime(SnapshotTime)]
+  if ("FactoryUpdateTime" %in% names(modelz)) { modelz[, FactoryUpdateTime := fromPRPCDateTime(FactoryUpdateTime)] }
+  return(modelz)
 }
 
 #' Write table to a file in the format of the dataset export files.
@@ -347,10 +377,3 @@ createIHexport <- function()
   # re-write as an export zip
   writeDSExport( ihsampledata, "ihsampledata.zip" )
 }
-
-# Future ideas
-#
-# readADMDMExport (x2) specialization of readDSExport that remove the pz fields,
-# lowercase them and possible drop some other fields too, convert dates
-
-
