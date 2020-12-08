@@ -6,10 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Read export of ADM model data. This is a specialized version of readDSExport
-that defaults the dataset name, leaves out the detailed model data (if present) and
-other internal fields, returns the properties without the py prefixes and converts
-date fields, and makes sure numeric fields are returned as numerics. — readADMDatamartModelExport • cdhtools</title>
+<title>Read export of ADM model data. — readADMDatamartModelExport • cdhtools</title>
 
 
 <!-- jquery -->
@@ -42,11 +39,8 @@ date fields, and makes sure numeric fields are returned as numerics. — readADM
 
 
 
-<meta property="og:title" content="Read export of ADM model data. This is a specialized version of readDSExport
-that defaults the dataset name, leaves out the detailed model data (if present) and
-other internal fields, returns the properties without the py prefixes and converts
-date fields, and makes sure numeric fields are returned as numerics. — readADMDatamartModelExport" />
-<meta property="og:description" content="Read export of ADM model data. This is a specialized version of readDSExport
+<meta property="og:title" content="Read export of ADM model data. — readADMDatamartModelExport" />
+<meta property="og:description" content="This is a specialized version of readDSExport
 that defaults the dataset name, leaves out the detailed model data (if present) and
 other internal fields, returns the properties without the py prefixes and converts
 date fields, and makes sure numeric fields are returned as numerics." />
@@ -107,10 +101,10 @@ date fields, and makes sure numeric fields are returned as numerics." />
       <a href="../articles/adhoc-datasetanalysis.html">adhoc-datasetanalysis</a>
     </li>
     <li>
-      <a href="../articles/adm-details.html">adm-details</a>
+      <a href="../articles/adm-datamart.html">adm-datamart</a>
     </li>
     <li>
-      <a href="../articles/adm-reporting.html">adm-reporting</a>
+      <a href="../articles/adm-explained.html">adm-explained</a>
     </li>
     <li>
       <a href="../articles/ih-reporting.html">ih-reporting</a>
@@ -133,16 +127,13 @@ date fields, and makes sure numeric fields are returned as numerics." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Read export of ADM model data. This is a specialized version of <code>readDSExport</code>
-that defaults the dataset name, leaves out the detailed model data (if present) and
-other internal fields, returns the properties without the py prefixes and converts
-date fields, and makes sure numeric fields are returned as numerics.</h1>
+    <h1>Read export of ADM model data.</h1>
     
     <div class="hidden name"><code>readADMDatamartModelExport.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Read export of ADM model data. This is a specialized version of <code>readDSExport</code>
+    <p>This is a specialized version of <code>readDSExport</code>
 that defaults the dataset name, leaves out the detailed model data (if present) and
 other internal fields, returns the properties without the py prefixes and converts
 date fields, and makes sure numeric fields are returned as numerics.</p>
@@ -151,6 +142,7 @@ date fields, and makes sure numeric fields are returned as numerics.</p>
     <pre class="usage"><span class='fu'>readADMDatamartModelExport</span><span class='op'>(</span>
   srcFolder <span class='op'>=</span> <span class='st'>"."</span>,
   instancename <span class='op'>=</span> <span class='st'>"Data-Decision-ADM-ModelSnapshot_pyModelSnapshots"</span>,
+  latestOnly <span class='op'>=</span> <span class='cn'>F</span>,
   tmpFolder <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/tempfile.html'>tempdir</a></span><span class='op'>(</span>check <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span>
 <span class='op'>)</span></pre>
 
@@ -168,6 +160,11 @@ current folder)</p></td>
 &lt;Applies To&gt;_&lt;Instance Name&gt;, or the complete filename including timestamp
 and zip extension as exported from Pega. Defaults to the Pega generated
 name of the dataset: <code>Data-Decision-ADM-ModelSnapshot_pyModelSnapshots</code>.</p></td>
+    </tr>
+    <tr>
+      <th>latestOnly</th>
+      <td><p>If TRUE only the most recent snapshot for every model
+is read. Defaults to FALSE, so all model data over time is returned.</p></td>
     </tr>
     <tr>
       <th>tmpFolder</th>

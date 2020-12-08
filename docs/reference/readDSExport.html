@@ -103,10 +103,10 @@ a full file name to the export or to a JSON file that you unpacked yourself." />
       <a href="../articles/adhoc-datasetanalysis.html">adhoc-datasetanalysis</a>
     </li>
     <li>
-      <a href="../articles/adm-details.html">adm-details</a>
+      <a href="../articles/adm-datamart.html">adm-datamart</a>
     </li>
     <li>
-      <a href="../articles/adm-reporting.html">adm-reporting</a>
+      <a href="../articles/adm-explained.html">adm-explained</a>
     </li>
     <li>
       <a href="../articles/ih-reporting.html">ih-reporting</a>
@@ -147,7 +147,8 @@ a full file name to the export or to a JSON file that you unpacked yourself.</p>
   <span class='va'>instancename</span>,
   srcFolder <span class='op'>=</span> <span class='st'>"."</span>,
   tmpFolder <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/tempfile.html'>tempdir</a></span><span class='op'>(</span>check <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span>,
-  excludeComplexTypes <span class='op'>=</span> <span class='cn'>T</span>
+  excludeComplexTypes <span class='op'>=</span> <span class='cn'>T</span>,
+  acceptJSONLines <span class='op'>=</span> <span class='cn'>NULL</span>
 <span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -172,6 +173,13 @@ current folder)</p></td>
       <th>excludeComplexTypes</th>
       <td><p>Flag to not return complex embedded types,
 defaults to T so not including nested lists/data frames</p></td>
+    </tr>
+    <tr>
+      <th>acceptJSONLines</th>
+      <td><p>Optional filter function. If given, this is applied
+to the lines with JSON data and only those lines for which the function
+returns TRUE will be parsed. This is just for efficiency when reading
+really big files so you can filter early.</p></td>
     </tr>
     </table>
 

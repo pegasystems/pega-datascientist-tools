@@ -8,7 +8,8 @@ readDSExport(
   instancename,
   srcFolder = ".",
   tmpFolder = tempdir(check = T),
-  excludeComplexTypes = T
+  excludeComplexTypes = T,
+  acceptJSONLines = NULL
 )
 }
 \arguments{
@@ -23,6 +24,11 @@ current folder)}
 
 \item{excludeComplexTypes}{Flag to not return complex embedded types,
 defaults to T so not including nested lists/data frames}
+
+\item{acceptJSONLines}{Optional filter function. If given, this is applied
+to the lines with JSON data and only those lines for which the function
+returns TRUE will be parsed. This is just for efficiency when reading
+really big files so you can filter early.}
 }
 \value{
 A \code{data.table} with the contents

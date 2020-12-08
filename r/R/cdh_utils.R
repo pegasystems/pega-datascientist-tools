@@ -34,6 +34,10 @@ NULL
 #' @param tmpFolder Optional folder to store the unzipped data (defaults to a temp folder)
 #' @param excludeComplexTypes Flag to not return complex embedded types,
 #'   defaults to T so not including nested lists/data frames
+#' @param acceptJSONLines Optional filter function. If given, this is applied
+#'   to the lines with JSON data and only those lines for which the function
+#'   returns TRUE will be parsed. This is just for efficiency when reading
+#'   really big files so you can filter early.
 #'
 #' @return A \code{data.table} with the contents
 #' @export
@@ -44,7 +48,7 @@ NULL
 #' \dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip",
 #' "~/Downloads")}
 #' \dontrun{readDSExport("~/Downloads/Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip")}
-readDSExport <- function(instancename, srcFolder=".", tmpFolder=tempdir(check = T), excludeComplexTypes=T)
+readDSExport <- function(instancename, srcFolder=".", tmpFolder=tempdir(check = T), excludeComplexTypes=T, acceptJSONLines=NULL)
 {
   if(endsWith(instancename, ".json")) {
     if (file.exists(instancename)) {
@@ -78,6 +82,10 @@ readDSExport <- function(instancename, srcFolder=".", tmpFolder=tempdir(check = 
     file.remove(jsonFile)
   }
 
+  if(!is.null(acceptJSONLines)) {
+    multiLineJSON <- multiLineJSON[acceptJSONLines(multiLineJSON)]
+  }
+
   # To prevent OOM for very large files we chunk up the input for conversion to tabular. The average
   # line length is obtained from the first 1000 entries, and we assume a max total of 500M.
   # This is conservative at least on my laptop.
@@ -97,7 +105,11 @@ readDSExport <- function(instancename, srcFolder=".", tmpFolder=tempdir(check = 
   return(rbindlist(chunkList, use.names = T, fill = T))
 }
 
-#' Read export of ADM model data. This is a specialized version of \code{readDSExport}
+# TODO provide similar func for IH data - even only for demo scenarios that strips off internal fields
+
+#' Read export of ADM model data.
+#'
+#' This is a specialized version of \code{readDSExport}
 #' that defaults the dataset name, leaves out the detailed model data (if present) and
 #' other internal fields, returns the properties without the py prefixes and converts
 #' date fields, and makes sure numeric fields are returned as numerics.
@@ -108,6 +120,8 @@ readDSExport <- function(instancename, srcFolder=".", tmpFolder=tempdir(check = 
 #'   <Applies To>_<Instance Name>, or the complete filename including timestamp
 #'   and zip extension as exported from Pega. Defaults to the Pega generated
 #'   name of the dataset: \code{Data-Decision-ADM-ModelSnapshot_pyModelSnapshots}.
+#' @param latestOnly If TRUE only the most recent snapshot for every model
+#'   is read. Defaults to FALSE, so all model data over time is returned.
 #' @param tmpFolder Optional folder to store the unzipped data (defaults to a
 #' temp folder)
 #'
@@ -116,7 +130,10 @@ readDSExport <- function(instancename, srcFolder=".", tmpFolder=tempdir(check = 
 #'
 #' @examples
 #' \dontrun{readADMDatamartModelExport("~/Downloads")}
-readADMDatamartModelExport <- function(srcFolder=".", instancename = "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots", tmpFolder=tempdir(check = T))
+readADMDatamartModelExport <- function(srcFolder=".",
+                                       instancename = "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots",
+                                       latestOnly = F,
+                                       tmpFolder=tempdir(check = T))
 {
   modelz <- readDSExport(instancename, srcFolder, tmpFolder=tmpFolder)
   if ("pyModelData" %in% names(modelz)) { modelz[, pyModelData := NULL] } # older versions don't have this field and perhaps not all future versions will
@@ -125,7 +142,77 @@ readADMDatamartModelExport <- function(srcFolder=".", instancename = "Data-Decis
   modelz[, Performance := as.numeric(Performance)] # notoriously returned as char but is numeric
   modelz[, SnapshotTime := fromPRPCDateTime(SnapshotTime)]
   if ("FactoryUpdateTime" %in% names(modelz)) { modelz[, FactoryUpdateTime := fromPRPCDateTime(FactoryUpdateTime)] }
-  return(modelz)
+  if (latestOnly) {
+    return(modelz[, .SD[which.max(SnapshotTime)], by=ModelID])
+  } else {
+    return(modelz)
+  }
+}
+
+#' Read export of ADM predictor data.
+#'
+#' This is a specialized version of \code{readDSExport}
+#' that defaults the dataset name, leaves out internal fields and by default omits the
+#' predictor binning data.
+#' other internal fields, returns the properties without the py prefixes and converts
+#' date fields, and makes sure numeric fields are returned as numerics.
+#'
+#' @param srcFolder Optional folder to look for the file (defaults to the
+#'   current folder)
+#' @param instancename Name of the file w/o the timestamp, in Pega format
+#'   <Applies To>_<Instance Name>, or the complete filename including timestamp
+#'   and zip extension as exported from Pega. Defaults to the Pega generated
+#'   name of the dataset: \code{Data-Decision-ADM-PredictorBinningSnapshot_PredictorBinningSnapshot}.
+#' @param noBinning If TRUE (the default), skip reading the predictor binning data and just
+#'   return predictor level data. For a detailed view with all binning data, set
+#'   to FALSE.
+#' @param latestOnly If TRUE (the default) only the most recent snapshot for every model
+#'   is read. To return all data over time (if available), set to FALSE.
+#' @param tmpFolder Optional folder to store the unzipped data (defaults to a
+#' temp folder)
+#'
+#' @return A \code{data.table} with the ADM model data
+#' @export
+#'
+#' @examples
+#' \dontrun{readADMDatamartPredictorExport("~/Downloads")}
+readADMDatamartPredictorExport <- function(srcFolder=".",
+                                           instancename = "Data-Decision-ADM-PredictorBinningSnapshot_PredictorBinningSnapshot",
+                                           noBinning = T,
+                                           latestOnly = T,
+                                           tmpFolder=tempdir(check = T))
+{
+  noBinningSkipFields <- c("pyBinSymbol","pyBinNegativesPercentage","pyBinPositivesPercentage",
+                           "pyBinNegatives", "pyBinPositives", "pyRelativeBinNegatives", "pyRelativeBinPositives",
+                           "pyBinResponseCount", "pyRelativeBinResponseCount", "pyBinResponseCountPercentage",
+                           "pyBinLowerBound", "pyBinUpperBound", "pyZRatio", "pyLift", "pyBinIndex")
+
+  if (noBinning) {
+    predz <- readDSExport(instancename, srcFolder, tmpFolder=tmpFolder,
+                          acceptJSONLines=function(linez) { return(grepl('"pyBinIndex":1,', linez, fixed=T)) })
+    # just to be very defensive, double check there really are no other bins left
+    if (any(predz$pyBinIndex > 1)) {
+      predz <- predz[pyBinIndex = 1]
+    }
+    predz[, pyBinIndex := NULL]
+
+    predz[, intersect(names(predz), noBinningSkipFields) := NULL]
+  } else {
+    predz <- readDSExport(instancename, srcFolder, tmpFolder=tmpFolder)
+  }
+
+  predz[, names(predz)[grepl("^p[x|z]", names(predz))] := NULL]
+  setnames(predz, gsub(pattern = "^p.", replacement = "", names(predz)))
+  predz[, Performance := as.numeric(Performance)] # notoriously returned as char but is numeric
+  predz[, SnapshotTime := fromPRPCDateTime(SnapshotTime)]
+
+  if (latestOnly) {
+    return(predz[, .SD[which.max(SnapshotTime)], by=ModelID])
+  } else {
+    return(predz)
+  }
+
+  return(predz)
 }
 
 #' Write table to a file in the format of the dataset export files.

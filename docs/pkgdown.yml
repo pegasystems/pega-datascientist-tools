@@ -3,8 +3,8 @@ pkgdown: 1.6.1
 pkgdown_sha: ~
 articles:
   adhoc-datasetanalysis: adhoc-datasetanalysis.html
-  adm-details: adm-details.html
-  adm-reporting: adm-reporting.html
+  adm-datamart: adm-datamart.html
+  adm-explained: adm-explained.html
   ih-reporting: ih-reporting.html
-last_built: 2020-12-02T13:06Z
+last_built: 2020-12-08T15:45Z
 
