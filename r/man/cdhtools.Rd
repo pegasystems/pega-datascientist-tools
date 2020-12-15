@@ -3,7 +3,6 @@
 \docType{package}
 \name{cdhtools}
 \alias{cdhtools}
-\alias{cdhtools-package}
 \title{cdhtools: Data Science add-ons for Pega.}
 \description{
 Various utilities to access and manipulate data from Pega for purposes

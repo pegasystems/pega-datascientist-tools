@@ -1,10 +1,10 @@
 ---
-title: "adm-reporting"
+title: "adm-datamart"
 author: "Pega"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{adm-reporting}
+  %\VignetteIndexEntry{adm-datamart}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -42,16 +42,14 @@ data(admdatamart_binning)
 To load your own data, export the datasets from Pega, download them to your filesystem and let the `cdhtools` library import it. In order to be able to process the data universally we also make sure to make the names lower case and make sure the types are as expected by the snippets that follow below. This would also be a good place to zoom in to specific models relevant to your application.
 
 ```{r, eval=FALSE}
-admdatamart_models <- readDSExport("Data-Decision-ADM-ModelSnapshot", "~/Downloads")
+admdatamart_models <- readADMDatamartModelExport("~/Downloads")
 setnames(admdatamart_models, tolower(names(admdatamart_models))) # for compatibility with database approach
-admdatamart_models[, pyperformance := as.numeric(pyperformance)]
 
-admdatamart_binning <- readDSExport("Data-Decision-ADM-PredictorBinningSnapshot", "~/Downloads")
+admdatamart_binning <- readADMDatamartPredictorExport("~/Downloads")
 setnames(admdatamart_binning, tolower(names(admdatamart_binning))) # for compatibility with database approach
-admdatamart_binning[, pyperformance := as.numeric(pyperformance)]
 
 # Filter models relevant to our application
-admdatamart_models <- admdatamart_models[pyconfigurationname %in% c("SalesModel", "BannerModel")]
+admdatamart_models <- admdatamart_models[configurationname %in% c("SalesModel", "BannerModel")]
 ```
 
 ## Data Loading directly from the database
@@ -71,10 +69,10 @@ library(tidyverse)
 library(data.table)
 
 ggplot(admdatamart_models %>%
-         mutate(Performance = 100*pyperformance,
-                Responses = pypositives+pynegatives,
-                AcceptRate = pypositives/(pypositives+pynegatives)),
-       aes(Performance, AcceptRate, colour=pyname, shape=pyconfigurationname, size=log(Responses)))+
+         mutate(Performance = 100*performance,
+                Responses = positives+negatives,
+                AcceptRate = positives/(positives+negatives)),
+       aes(Performance, AcceptRate, colour=name, shape=configurationname, size=log(Responses)))+
   geom_vline(xintercept=c(52,90), linetype="dashed")+
   geom_point(alpha=0.7) +
   guides(colour=guide_legend(title="Proposition"),
@@ -89,10 +87,10 @@ If we group by model instead of proposition, we can see the spread of success ra
 
 ```{r, warning=F, message=FALSE}
 ggplot(admdatamart_models %>%
-         mutate(Performance = 100*pyperformance,
-                Responses = pypositives+pynegatives,
-                AcceptRate = pypositives/(pypositives+pynegatives)),
-       aes(Performance, AcceptRate, colour=pyconfigurationname))+
+         mutate(Performance = 100*performance,
+                Responses = positives+negatives,
+                AcceptRate = positives/(positives+negatives)),
+       aes(Performance, AcceptRate, colour=configurationname))+
   geom_boxplot(alpha=0.7, outlier.shape=8,
                outlier.size=6) +
   guides(colour=guide_legend(title="Model"))+
@@ -104,15 +102,15 @@ ggplot(admdatamart_models %>%
 The below plot shows the predictor performance across the selected models. It is similar to one of the reports in the set of out of the box reports available through the Report Browser ("Adaptive" category), however that one does not do a weighted average of the performance. This one does, so gives a more accurate picture.
 
 ```{r, warning=F, message=FALSE}
-ggplot(admdatamart_binning %>% filter(pyentrytype != "Classifier") %>%
-         group_by(pymodelid, pypredictorname, pytype) %>%
-         summarise(pyperformance = first(pyperformance),
-                   evidence = sum(pybinpositives+pybinnegatives)) %>%
-         arrange(pypredictorname) %>% 
-         group_by(pypredictorname, pytype) %>%
-         summarise(weightedperformance = sum(evidence*pyperformance)/sum(evidence)) %>%
+ggplot(admdatamart_binning %>% filter(entrytype != "Classifier") %>%
+         group_by(modelid, predictorname, type) %>%
+         summarise(performance = first(performance),
+                   evidence = sum(binpositives+binnegatives)) %>%
+         arrange(predictorname) %>% 
+         group_by(predictorname, type) %>%
+         summarise(weightedperformance = sum(evidence*performance)/sum(evidence)) %>%
          arrange(weightedperformance),
-       aes(factor(pypredictorname, levels=unique(pypredictorname)), 100*weightedperformance, fill=pytype)) +
+       aes(factor(predictorname, levels=unique(predictorname)), 100*weightedperformance, fill=type)) +
   geom_bar(stat="identity")+
   guides(fill=guide_legend(title="Predictor Type"))+
   coord_flip()+
@@ -127,9 +125,9 @@ You could also show the predictor performance in one plot across all predictors 
 
 ```{r, warning=F, message=FALSE}
 performanceSummary <- 
-  left_join(admdatamart_binning[, .(auc = first(pyperformance)), by=c("pymodelid", "pysnapshottime", "pypredictorname")],
+  left_join(admdatamart_binning[, .(auc = first(performance)), by=c("modelid", "snapshottime", "predictorname")],
             admdatamart_models,
-            by = c("pymodelid","pysnapshottime"))
+            by = c("modelid","snapshottime"))
 # maps AUC 0.5 .. 1.0 to a measure of goodness 0 .. 1 just for viz
 myGoodness <- function(x)
 {
@@ -141,17 +139,17 @@ myGoodness <- function(x)
                         1 - (x-maxOK)/(1-maxOK))))
 }
 ## Plot of AUC of predictors x models
-meanByModel <- group_by(filter(performanceSummary, pypredictorname=="Classifier"), pyname) %>% 
+meanByModel <- group_by(filter(performanceSummary, predictorname=="Classifier"), name) %>% 
   dplyr::summarise(goodness = mean(myGoodness(auc), na.rm=T),
                    auc = mean(auc, na.rm=T)) %>% 
   arrange(desc(goodness))
-meanByPredictor <- group_by(performanceSummary, pypredictorname) %>% 
+meanByPredictor <- group_by(performanceSummary, predictorname) %>% 
   dplyr::summarise(goodness = mean(myGoodness(auc), na.rm=T),
                    auc = mean(auc, na.rm=T)) %>% 
   arrange(goodness)
-ggplot(filter(performanceSummary, pypredictorname!="Classifier"), 
-       aes(x=factor(pyname, levels=meanByModel$pyname), 
-       y=factor(pypredictorname,levels=setdiff(meanByPredictor$pypredictorname, "Classifier"))))+
+ggplot(filter(performanceSummary, predictorname!="Classifier"), 
+       aes(x=factor(name, levels=meanByModel$name), 
+       y=factor(predictorname,levels=setdiff(meanByPredictor$predictorname, "Classifier"))))+
   geom_raster(aes(fill=myGoodness(auc)))+
   scale_fill_gradient2(low="red", mid="green", high="white", midpoint=0.5) +
   labs(x="",y="",title="Predictors arranged by performance across models")+
@@ -168,27 +166,27 @@ The below snippet calculates the KS score for all predictors of all propositions
 
 
 ```{r, warning=F, message=FALSE}
-admdatamart_binning[ , propensity := pybinpositives/(pybinpositives+pybinnegatives)]
+admdatamart_binning[ , propensity := binpositives/(binpositives+binnegatives)]
 setorder(admdatamart_binning,propensity)
 myKS <- function(binning)
 {
-  Goods <- cumsum(binning$pybinnegatives) / sum(binning$pybinnegatives)
-  Bads <- cumsum(binning$pybinpositives) / sum(binning$pybinpositives)
+  Goods <- cumsum(binning$binnegatives) / sum(binning$binnegatives)
+  Bads <- cumsum(binning$binpositives) / sum(binning$binpositives)
   ks <- (max(Goods - Bads))
   return(ifelse(is.na(ks),0,ks))
 }
 performanceSummary <- 
   left_join(admdatamart_binning[, .(ks = myKS(.SD),
-                           auc = first(pyperformance)), 
-                       by=c("pymodelid", "pysnapshottime", "pypredictorname","pyentrytype")],
+                           auc = first(performance)), 
+                       by=c("modelid", "snapshottime", "predictorname","entrytype")],
             admdatamart_models,
-            by = c("pymodelid","pysnapshottime"))
+            by = c("modelid","snapshottime"))
 
 ## Show KS numbers
 ggplot(performanceSummary, 
-       aes(pyname, factor(pypredictorname,
-                          levels=c(setdiff(sort(performanceSummary$pypredictorname,decreasing = T), "Classifier"),"Classifier"))))+
-  geom_raster(aes(fill=(pyentrytype=="Classifier")))+
+       aes(name, factor(predictorname,
+                          levels=c(setdiff(sort(performanceSummary$predictorname,decreasing = T), "Classifier"),"Classifier"))))+
+  geom_raster(aes(fill=(entrytype=="Classifier")))+
   labs(x="",y="",title="Kolmogorov–Smirnov scores")+
   geom_text(aes(label=sprintf("%.2f%%",100*ks)), size=2)+
   scale_fill_brewer(palette="Spectral")+
@@ -205,15 +203,15 @@ The predictor data for the model classifiers can also be used to create gains or
 For example, Gains charts for the Banner models:
 
 ```{r}
-classifierdata <- admdatamart_binning[pyentrytype=="Classifier" & 
-                                        pymodelid %in% admdatamart_models[pyconfigurationname=="BannerModel" &
-                                                                            pysnapshottime==max(pysnapshottime)]$pymodelid,
-                                      c("pybinindex", "pybinnegatives", "pybinpositives", "propensity", "pylift", "pymodelid")]
-setorder(classifierdata,-pybinindex)
+classifierdata <- admdatamart_binning[entrytype=="Classifier" & 
+                                        modelid %in% admdatamart_models[configurationname=="BannerModel" &
+                                                                            snapshottime==max(snapshottime)]$modelid,
+                                      c("binindex", "binnegatives", "binpositives", "propensity", "lift", "modelid")]
+setorder(classifierdata,-binindex)
 
-classifierdata[,cumRelativeVolume := cumsum((pybinnegatives+pybinpositives)/sum(pybinnegatives+pybinpositives)), by=pymodelid]
-classifierdata[,cumRelativePositives := cumsum((pybinpositives)/sum(pybinpositives)), by=pymodelid]
-classifierdata[,Banner := admdatamart_models$pyname[admdatamart_models$pymodelid == pymodelid][1], by=pymodelid]
+classifierdata[,cumRelativeVolume := cumsum((binnegatives+binpositives)/sum(binnegatives+binpositives)), by=modelid]
+classifierdata[,cumRelativePositives := cumsum((binpositives)/sum(binpositives)), by=modelid]
+classifierdata[,Banner := admdatamart_models$name[admdatamart_models$modelid == modelid][1], by=modelid]
 
 ggplot(classifierdata, aes(cumRelativeVolume, cumRelativePositives, color=Banner)) + geom_line() +
   geom_abline(slope = 1, intercept = 0, color="red", linetype="dashed") +
@@ -227,7 +225,7 @@ ggplot(classifierdata, aes(cumRelativeVolume, cumRelativePositives, color=Banner
 Or a Lift chart for the same models:
 
 ```{r}
-classifierdata[,lift := (cumsum(pybinpositives)/cumsum(pybinnegatives+pybinpositives)) / (sum(pybinpositives)/sum(pybinnegatives+pybinpositives)), by=pymodelid]
+classifierdata[,lift := (cumsum(binpositives)/cumsum(binnegatives+binpositives)) / (sum(binpositives)/sum(binnegatives+binpositives)), by=modelid]
 
 ggplot(classifierdata, aes(cumRelativeVolume, lift, color=Banner)) + geom_line() +
   geom_hline(yintercept = 1, color="red", linetype="dashed") +

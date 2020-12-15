@@ -35,6 +35,7 @@ library(colorspace)
 library(scales)
 library(knitr)
 library(kableExtra)
+library(stringi)
 
 theme_set(theme_minimal())
 options(digits = 5)

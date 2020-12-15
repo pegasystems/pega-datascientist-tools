@@ -27,8 +27,71 @@ test_that("dataset exports", {
   readDSExport("Data-Decision-ADM-PredictorBinningSnapshot_All","dsexports", excludeComplexTypes = F)
 })
 
-# to add data:
+test_that("specialized model data export", {
+  data <- readADMDatamartModelExport(instancename="Data-Decision-ADM-ModelSnapshot_All",
+                                     srcFolder="dsexports")
+  expect_equal(nrow(data), 30)
+  expect_equal(ncol(data), 16) # omits internal fields
 
+  data <- readADMDatamartModelExport(instancename="Data-Decision-ADM-ModelSnapshot_All",
+                                     srcFolder="dsexports",
+                                     latestOnly=T)
+  expect_equal(nrow(data), 15) # only latest snapshot
+  expect_equal(ncol(data), 16)
+})
+
+test_that("specialized predictor data export", {
+  data <- readADMDatamartPredictorExport(instancename="Data-Decision-ADM-PredictorBinningSnapshot_All",
+                                         srcFolder="dsexports")
+  expect_equal(nrow(data), 15) # binning skipped by default
+  expect_equal(ncol(data), 15) # omits internal and binning fields
+
+  # compare this to doing it "manually" using the "raw" readDSExport method
+  data2 <- readDSExport("Data-Decision-ADM-PredictorBinningSnapshot_All","dsexports")[pyBinIndex == 1]
+
+  expect_equal(nrow(data2), 425)
+  expect_equal(ncol(data2), 35)
+  expect_equal(sum(!grepl("^p[x|z]", names(data2))), 30) # w/o the internal fields
+
+  data <- readADMDatamartPredictorExport(instancename="Data-Decision-ADM-PredictorBinningSnapshot_All",
+                                         srcFolder="dsexports",
+                                         noBinning = F,
+                                         latestOnly = F)
+  expect_equal(nrow(data), 1755) # binning and all timestamps included
+  expect_equal(ncol(data), 30) # omits internal fields
+
+  data <- readADMDatamartPredictorExport(instancename="Data-Decision-ADM-PredictorBinningSnapshot_All",
+                                         srcFolder="dsexports",
+                                         noBinning = F)
+  expect_equal(nrow(data), 15) # binning but only latest snapshots
+  expect_equal(ncol(data), 30) # omits internal fields
+
+  data <- readADMDatamartPredictorExport(instancename="Data-Decision-ADM-PredictorBinningSnapshot_All",
+                                         srcFolder="dsexports",
+                                         latestOnly = F)
+  expect_equal(nrow(data), 425) # no binning but all snapshots
+  expect_equal(ncol(data), 15) # omits internal fields
+})
+
+# to add/update data:
+
+dontrun_only_to_save_data <- function()
+{
+  admdatamart_models <- readADMDatamartModelExport(instancename="Data-Decision-ADM-ModelSnapshot_All",
+                                                   srcFolder="tests/testthat/dsexports",
+                                                   latestOnly = F)
+  names(admdatamart_models) <- tolower(names(admdatamart_models))
+  #devtools::use_data(admdatamart_models)
+  save(admdatamart_models, file="data/admdatamart_models.rda", compress='xz')
+
+  admdatamart_binning <- readADMDatamartPredictorExport(instancename="Data-Decision-ADM-PredictorBinningSnapshot_All",
+                                                        srcFolder="tests/testthat/dsexports",
+                                                        noBinning = F,
+                                                        latestOnly = F)
+  names(admdatamart_binning) <- tolower(names(admdatamart_binning))
+  #devtools::use_data(admdatamart_binning)
+  save(admdatamart_binning, file="data/admdatamart_binning.rda", compress='xz')
+}
 # admdatamart_models <- readDSExport("Data-Decision-ADM-ModelSnapshot_All", "~/Downloads")
 # names(admdatamart_models) <- tolower(names(admdatamart_models))
 # for(f in c("pyperformance")) admdatamart_models[[f]] <- as.numeric(admdatamart_models[[f]])

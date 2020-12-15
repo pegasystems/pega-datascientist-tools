@@ -10,23 +10,27 @@
 
 
 <!-- jquery -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
 <!-- Bootstrap -->
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha256-916EbMg70RQy9LHiGkXzG8hSg9EdNy97GazNG/aiY1w=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha256-bZLfwXAP04zRMK2BjiO8iu9pf4FbLqX6zitd+tIvLhE=" crossorigin="anonymous" />
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha256-U5ZEeKfGNOja007MMD3YBI0A3OSZOQbeG6z2f2Y0hu8=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha256-nuL8/2cJ5NDSSwnKD8VqreErSWHtnEP9E7AySL+1ev4=" crossorigin="anonymous"></script>
+
+<!-- bootstrap-toc -->
+<link rel="stylesheet" href="../bootstrap-toc.css">
+<script src="../bootstrap-toc.js"></script>
 
 <!-- Font Awesome icons -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.7.1/css/all.min.css" integrity="sha256-nAmazAk6vS34Xqo0BSrTb+abbtFlgsFK7NKSi6o7Y78=" crossorigin="anonymous" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.7.1/css/v4-shims.min.css" integrity="sha256-6qHlizsOWFskGlwVOKuns+D1nB6ssZrHQrNj1wGplHc=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous" />
 
 <!-- clipboard.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.4/clipboard.min.js" integrity="sha256-FiZwavyI2V6+EXO1U+xzLG3IKldpiTFf3153ea9zikQ=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script>
 
 <!-- headroom.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.9.4/headroom.min.js" integrity="sha256-DJFC1kqIhelURkuza0AvYal5RxMtpzLjFhsnVIeuk+U=" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.9.4/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script>
 
 <!-- pkgdown -->
 <link href="../pkgdown.css" rel="stylesheet">
@@ -37,12 +41,11 @@
 
 <meta property="og:title" content="Read a Pega dataset export file. — readDSExport" />
 <meta property="og:description" content="readDSExport reads a dataset export file as exported and downloaded
-from Pega. This export file is a zipped multi-line JSON file
+from Pega datasets. This export file is a zipped multi-line JSON file
 (http://jsonlines.org/). readDSExport will find the most recent
 file (Pega appends a datetime stamp) if given a folder, then unzips it into a
 temp folder and read the data into a data.table. You can also specify
 a full file name to the export or to a JSON file that you unpacked yourself." />
-<meta name="twitter:card" content="summary" />
 
 
 
@@ -60,7 +63,7 @@ a full file name to the export or to a JSON file that you unpacked yourself." />
 
   </head>
 
-  <body>
+  <body data-spy="scroll" data-target="#toc">
     <div class="container template-reference-topic">
       <header>
       <div class="navbar navbar-default navbar-fixed-top" role="navigation">
@@ -100,7 +103,13 @@ a full file name to the export or to a JSON file that you unpacked yourself." />
       <a href="../articles/adhoc-datasetanalysis.html">adhoc-datasetanalysis</a>
     </li>
     <li>
-      <a href="../articles/adm-reporting.html">adm-reporting</a>
+      <a href="../articles/adm-datamart.html">adm-datamart</a>
+    </li>
+    <li>
+      <a href="../articles/adm-explained.html">adm-explained</a>
+    </li>
+    <li>
+      <a href="../articles/ih-reporting.html">ih-reporting</a>
     </li>
   </ul>
 </li>
@@ -127,15 +136,20 @@ a full file name to the export or to a JSON file that you unpacked yourself." />
 
     <div class="ref-description">
     <p><code>readDSExport</code> reads a dataset export file as exported and downloaded
-from Pega. This export file is a zipped multi-line JSON file
+from Pega datasets. This export file is a zipped multi-line JSON file
 (<a href='http://jsonlines.org/'>http://jsonlines.org/</a>). <code>readDSExport</code> will find the most recent
 file (Pega appends a datetime stamp) if given a folder, then unzips it into a
 temp folder and read the data into a <code>data.table</code>. You can also specify
 a full file name to the export or to a JSON file that you unpacked yourself.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>readDSExport</span>(<span class='no'>instancename</span>, <span class='kw'>srcFolder</span> <span class='kw'>=</span> <span class='st'>"."</span>, <span class='kw'>tmpFolder</span> <span class='kw'>=</span> <span class='no'>srcFolder</span>,
-  <span class='kw'>excludeComplexTypes</span> <span class='kw'>=</span> <span class='no'>T</span>)</pre>
+    <pre class="usage"><span class='fu'>readDSExport</span><span class='op'>(</span>
+  <span class='va'>instancename</span>,
+  srcFolder <span class='op'>=</span> <span class='st'>"."</span>,
+  tmpFolder <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/tempfile.html'>tempdir</a></span><span class='op'>(</span>check <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span>,
+  excludeComplexTypes <span class='op'>=</span> <span class='cn'>T</span>,
+  acceptJSONLines <span class='op'>=</span> <span class='cn'>NULL</span>
+<span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -153,13 +167,19 @@ current folder)</p></td>
     </tr>
     <tr>
       <th>tmpFolder</th>
-      <td><p>Optional folder to store the unzipped data (defaults to the
-source folder)</p></td>
+      <td><p>Optional folder to store the unzipped data (defaults to a temp folder)</p></td>
     </tr>
     <tr>
       <th>excludeComplexTypes</th>
       <td><p>Flag to not return complex embedded types,
 defaults to T so not including nested lists/data frames</p></td>
+    </tr>
+    <tr>
+      <th>acceptJSONLines</th>
+      <td><p>Optional filter function. If given, this is applied
+to the lines with JSON data and only those lines for which the function
+returns TRUE will be parsed. This is just for efficiency when reading
+really big files so you can filter early.</p></td>
     </tr>
     </table>
 
@@ -168,20 +188,17 @@ defaults to T so not including nested lists/data frames</p></td>
     <p>A <code>data.table</code> with the contents</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><div class='input'><span class='kw'>if</span> (<span class='fl'>FALSE</span>) <span class='fu'>readDSExport</span>(<span class='st'>"Data-Decision-ADM-ModelSnapshot_All"</span>)
-<span class='kw'>if</span> (<span class='fl'>FALSE</span>) <span class='fu'>readDSExport</span>(<span class='st'>"Data-Decision-ADM-ModelSnapshot_All"</span>, <span class='st'>"~/Downloads"</span>)
-<span class='kw'>if</span> (<span class='fl'>FALSE</span>) <span class='fu'>readDSExport</span>(<span class='st'>"Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip"</span>,
-<span class='st'>"~/Downloads"</span>)
-<span class='kw'>if</span> (<span class='fl'>FALSE</span>) <span class='fu'>readDSExport</span>(<span class='st'>"~/Downloads/Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip"</span>)</div></pre>
+    <pre class="examples"><div class='input'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='fu'>readDSExport</span><span class='op'>(</span><span class='st'>"Data-Decision-ADM-ModelSnapshot_All"</span><span class='op'>)</span>
+<span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='fu'>readDSExport</span><span class='op'>(</span><span class='st'>"Data-Decision-ADM-ModelSnapshot_All"</span>, <span class='st'>"~/Downloads"</span><span class='op'>)</span>
+<span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='fu'>readDSExport</span><span class='op'>(</span><span class='st'>"Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip"</span>,
+<span class='st'>"~/Downloads"</span><span class='op'>)</span>
+<span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='fu'>readDSExport</span><span class='op'>(</span><span class='st'>"~/Downloads/Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip"</span><span class='op'>)</span>
+</div></pre>
   </div>
-  <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
-    <h2>Contents</h2>
-    <ul class="nav nav-pills nav-stacked">
-      <li><a href="#arguments">Arguments</a></li>
-      <li><a href="#value">Value</a></li>
-      <li><a href="#examples">Examples</a></li>
-    </ul>
-
+  <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
+    <nav id="toc" data-toggle="toc" class="sticky-top">
+      <h2 data-toc-skip>Contents</h2>
+    </nav>
   </div>
 </div>
 
@@ -192,7 +209,7 @@ defaults to T so not including nested lists/data frames</p></td>
 </div>
 
 <div class="pkgdown">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.4.1.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.6.1.</p>
 </div>
 
       </footer>

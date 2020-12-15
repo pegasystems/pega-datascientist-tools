@@ -1,13 +1,19 @@
-# Utils to convert ADM datamart to sanitized binning data
-# so it can be converted to PMML
-# Checked mostly with ADM DB dataset exports, and straight Postgress DB access from 7.3.1
+# Utility functions to read ADM datamart data.
+#
+# Part of it is to convert to sanitized binning data so it can easily be
+# converted to PMML. The "sanitized" format (shared with sourcing from eg the
+# Factory tables) follows the ADM datamart binning format but makes it even
+# longer: for symbolic predictors each symbol gets its own row.
+#
+# Input can be from the ADM Datamart exports as well as through a DB query.
 
-DATAMART_MODELTABLE <- "pr_data_dm_admmart_mdl_fact"
 
 # product versions prior to 7.3.1: use pr_data_dm_admmart_pred_fact instead of pegadata.pr_data_dm_admmart_pred
+
+DATAMART_MODELTABLE <- "pr_data_dm_admmart_mdl_fact"
 DATAMART_PREDICTORTABLE <- "pr_data_dm_admmart_pred"
 
-# Flat representation of the context string for easier debugging
+# Returns a descriptive string representation of the model context for easier debugging
 getDMModelContextAsString <- function(partition)
 {
   flat <- paste(sapply(names(partition)[order(tolower(names(partition)))],

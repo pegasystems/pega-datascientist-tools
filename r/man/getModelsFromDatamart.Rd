@@ -4,9 +4,14 @@
 \alias{getModelsFromDatamart}
 \title{Retrieves ADM models from the ADM Datamart.}
 \usage{
-getModelsFromDatamart(conn, appliesToFilter = NULL,
-  ruleNameFilter = NULL, applicationFilter = NULL,
-  mostRecentOnly = T, verbose = T)
+getModelsFromDatamart(
+  conn,
+  appliesToFilter = NULL,
+  ruleNameFilter = NULL,
+  applicationFilter = NULL,
+  mostRecentOnly = T,
+  verbose = T
+)
 }
 \arguments{
 \item{conn}{Connection to the database}

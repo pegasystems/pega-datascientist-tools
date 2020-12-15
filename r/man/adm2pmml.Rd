@@ -4,9 +4,17 @@
 \alias{adm2pmml}
 \title{Generates PMML files from ADM models.}
 \usage{
-adm2pmml(dmModels = NULL, dmPredictors = NULL, dbConn = NULL,
-  forceUseDM = FALSE, appliesToFilter = NULL, ruleNameFilter = NULL,
-  destDir = ".", tmpDir = NULL, verbose = (!is.null(tmpDir)))
+adm2pmml(
+  dmModels = NULL,
+  dmPredictors = NULL,
+  dbConn = NULL,
+  forceUseDM = FALSE,
+  appliesToFilter = NULL,
+  ruleNameFilter = NULL,
+  destDir = ".",
+  tmpDir = NULL,
+  verbose = (!is.null(tmpDir))
+)
 }
 \arguments{
 \item{dmModels}{Data frame (or anything else that converts to

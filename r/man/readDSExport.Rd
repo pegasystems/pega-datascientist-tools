@@ -4,8 +4,13 @@
 \alias{readDSExport}
 \title{Read a Pega dataset export file.}
 \usage{
-readDSExport(instancename, srcFolder = ".", tmpFolder = srcFolder,
-  excludeComplexTypes = T)
+readDSExport(
+  instancename,
+  srcFolder = ".",
+  tmpFolder = tempdir(check = T),
+  excludeComplexTypes = T,
+  acceptJSONLines = NULL
+)
 }
 \arguments{
 \item{instancename}{Name of the file w/o the timestamp, in Pega format
@@ -15,18 +20,22 @@ and zip extension as exported from Pega.}
 \item{srcFolder}{Optional folder to look for the file (defaults to the
 current folder)}
 
-\item{tmpFolder}{Optional folder to store the unzipped data (defaults to the
-source folder)}
+\item{tmpFolder}{Optional folder to store the unzipped data (defaults to a temp folder)}
 
 \item{excludeComplexTypes}{Flag to not return complex embedded types,
 defaults to T so not including nested lists/data frames}
+
+\item{acceptJSONLines}{Optional filter function. If given, this is applied
+to the lines with JSON data and only those lines for which the function
+returns TRUE will be parsed. This is just for efficiency when reading
+really big files so you can filter early.}
 }
 \value{
 A \code{data.table} with the contents
 }
 \description{
 \code{readDSExport} reads a dataset export file as exported and downloaded
-from Pega. This export file is a zipped multi-line JSON file
+from Pega datasets. This export file is a zipped multi-line JSON file
 (\url{http://jsonlines.org/}). \code{readDSExport} will find the most recent
 file (Pega appends a datetime stamp) if given a folder, then unzips it into a
 temp folder and read the data into a \code{data.table}. You can also specify

@@ -4,7 +4,9 @@
 \name{ihsampledata}
 \alias{ihsampledata}
 \title{A small sample of IH data to illustrate how to import and analyze this.}
-\format{A \code{data.table} with 174 interactions for in total 10 different customers.}
+\format{
+A \code{data.table} with 174 interactions for in total 10 different customers.
+}
 \source{
 DMSample
 }

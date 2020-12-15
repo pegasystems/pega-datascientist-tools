@@ -66,10 +66,16 @@ of `cdhtools` heavily rely on it also.
 
 ```{r, warning=F}
 library(ggplot2)
-ihsampledata[, period := cut(ihsampledata$pxOutcomeTime,10)]
-ihsampledata[, successRate := sum(pyOutcome=="Accept")/.N, by=period]
-ggplot(ihsampledata, aes(period, successRate, fill=pyGroup)) + geom_bar(stat="identity") +
-  labs(title = "Success Rate over Time", x="", y="Success Rate")+
+library(colorspace)
+
+ihsampledata[, period := lubridate::as_date(pxOutcomeTime)]
+ihsampledata[, successRate := sum(pyOutcome=="Accepted")/.N, by=period]
+ggplot(ihsampledata, aes(period, successRate, fill=pyChannel)) + 
+  geom_col(position=position_dodge()) +
+  scale_fill_discrete_divergingx(name="Channel") +
+  scale_y_continuous(limits = c(0, NA), name = "Success Rate", labels = scales::percent) +
+  labs(title = "Success Rate over Time", x="Date")+
+  theme_bw()+
   theme(axis.text.x=element_text(angle=45, hjust=1))
 ```
 
@@ -77,11 +83,11 @@ But you can of course also use a different style, for example the style from the
 
 ```{r, warning=F, message=F}
 library(tidyverse)
-ggplot(group_by(ihsampledata, pyName, pyGroup, pyIssue) %>% 
-         rename(`Business Issue`=pyIssue) %>% 
+ggplot(group_by(ihsampledata, pyName, pyChannel, pyIssue) %>% 
+         rename(`Channel`=pyChannel) %>% 
          summarise(count = n()) %>% 
          mutate(pct = count/nrow(ihsampledata)), 
-       aes(pyName, pct, fill=`Business Issue`)) + geom_bar(stat="identity") + 
+       aes(pyName, pct, fill=`Channel`)) + geom_bar(stat="identity") + 
   coord_flip()+ scale_y_continuous(labels = scales::percent)+
   labs(title = "Proposition Distribution", x="Proposition", y="Percentage of Total Offered")
 ```

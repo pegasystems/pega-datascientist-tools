@@ -1,7 +1,10 @@
-pandoc: 1.19.2.1
-pkgdown: 1.4.1
+pandoc: 2.7.3
+pkgdown: 1.6.1
 pkgdown_sha: ~
 articles:
   adhoc-datasetanalysis: adhoc-datasetanalysis.html
-  adm-reporting: adm-reporting.html
+  adm-datamart: adm-datamart.html
+  adm-explained: adm-explained.html
+  ih-reporting: ih-reporting.html
+last_built: 2020-12-08T15:45Z
 
