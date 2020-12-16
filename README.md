@@ -88,6 +88,7 @@ The Python part of the tools currently contain a subset of the functionality pro
 
 - A port of the `cdh_utils` module with utilities to e.g. easily read a Pega dataset export.
 - Two classes in `model_report.py` to generate reports from the ADM datamart. 
+- A number of methods within `IHanalysis.py` file to get insight into interaction history data
 
 The Python code does not build a package/library so to use it clone the github repository. To import the module type
 
@@ -103,3 +104,28 @@ For example, for the readDSExport function:
 df1 = cu.readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots", srcFolder="inst/extdata", tmpFolder="tmp")
 df2 = cu.readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots_20180316T134315_GMT.zip", srcFolder="inst/extdata", tmpFolder="tmp3")
 ```
+
+### To analyze ADM datamart in python:
+
+Two classes need to be instantiated. One for the model report and one for the predictor report. 
+Once df1 and df2 as described above are imported, use the following example to instantiate your classes:
+
+Models = ModelReport(np.array(df1['pyModelID']), np.array(df1['pyName']), 
+                     np.array(df1['pyPositives']), np.array(df1['pyResponseCount']), 
+                     np.array(df1['pyPerformance']), np.array(df1['pySnapshotTime']))
+                     
+Preds = ADMReport(Models.modelID, Models.modelName, Models.positives, Models.responses, Models.modelAUC, 
+                  Models.modelSnapshot, np.array(df2['pyModelID']), np.array(df2['pyPredictorName']), 
+                  np.array(df2['pyPerformance']), np.array(df2['pyBinSymbol']), 
+                  np.array(df2['pyBinIndex']), np.array(df2['pyEntryType']), 
+                  np.array(df2['pyType']), np.array(df2['pySnapshotTime']), 
+                  np.array(df2['pyBinPositives']), np.array(df2['pyBinResponseCount']))
+                  
+Call the methods within these classes to generate various graphs. It is possible to use "query" parameter in most of the methods to filter various values for better/detailed visualizations.
+
+Refer to "Example_ADM_Analysis.ipynb" file for a thorough example on how to use these two classes.
+
+
+### To analyze IH data
+
+Use `IHanalysis.py` to get insight into Interaction History (IH) data. This python file contains various methods each one providing certain visibility into the data. Simply import the IH data as a pandas dataframe into the jupyter file, then use various methods. An example is provided: "Example_IH_Analysis.ipynb"
