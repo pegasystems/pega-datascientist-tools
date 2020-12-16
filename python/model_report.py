@@ -512,7 +512,7 @@ class ADMReport(ModelReport):
             title = 'Model name: '+model_name+'\n Predictor name: '+pred
             self.distribution_graph(_df, title, figsize)
 
-    def show_predictor_performance_boxplot(self, query={} figsize=(6, 12)):
+    def show_predictor_performance_boxplot(self, query={}, figsize=(6, 12)):
         """ Shows a box plot of predictor performance
         """
         fig, ax = plt.subplots(figsize=figsize)
