@@ -553,15 +553,15 @@ class ADMReport(ModelReport):
     def show_model_predictor_performance_heatmap(self, query={}, figsize=(14, 10)):
         """ Shows a heatmap plot of predictor performance across models
         """
-        _df_g = self.latestPredModel[self.latestPredModel['predictor name']!='Classifier'].reset_index(drop=True)
-        _df_g = self._apply_query(query, _df_g).reset_index(drop=True)
-        _df_g = _df_g[['model name', 'predictor name', 'predictor performance']].drop_duplicates().pivot(
+        _df_g_o = self.latestPredModel[self.latestPredModel['predictor name']!='Classifier'].reset_index(drop=True)
+        _df_g_o = self._apply_query(query, _df_g_o).reset_index(drop=True)
+        _df_g = _df_g_o[['model name', 'predictor name', 'predictor performance']].drop_duplicates().pivot(
             index='model name', columns='predictor name', values='predictor performance')
-        order = list(_df_g[[
+        order = list(_df_g_o[[
             'model name', 'predictor name', 'predictor performance']].drop_duplicates().groupby(
             'predictor name')['predictor performance'].mean().fillna(0).sort_values()[::-1].index)
         _df_g = _df_g[order]*100.0
-        x_order = list(self.latestPredModel[self.latestPredModel['predictor name']!='Classifier'][[
+        x_order = list(_df_g_o[[
             'model name', 'predictor name', 'predictor performance']].drop_duplicates().groupby(
             'model name')['predictor performance'].mean().fillna(0).sort_values()[::-1].index)
         df_g = _df_g.reindex(x_order)
