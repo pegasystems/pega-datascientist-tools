@@ -442,7 +442,7 @@ class ADMReport(ModelReport):
         idx = _df.groupby(['model ID', 'predictor name'])['predictor snapshot'].transform(max)==_df['predictor snapshot']
         _df = _df[idx]
         _df = self._calculate_success_rate(_df, 'bin positives', 'bin responses', 'bin propensity')
-        latestPredModel = self.dfModel.merge(_df, on='model ID', how='left').drop(['model ID', 'predictor snapshot'], axis=1)
+        latestPredModel = self.dfModel.merge(_df, on='model ID', how='right').drop(['model ID', 'predictor snapshot'], axis=1)
         return latestPredModel
 
     def show_score_distribution(self, models=None, figsize=(14, 10)):
