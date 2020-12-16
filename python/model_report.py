@@ -554,7 +554,7 @@ class ADMReport(ModelReport):
         """ Shows a heatmap plot of predictor performance across models
         """
         _df_g = self.latestPredModel[self.latestPredModel['predictor name']!='Classifier'].reset_index(drop=True)
-        _df_g = self._apply_query(query, _df_g)
+        _df_g = self._apply_query(query, _df_g).reset_index(drop=True)
         _df_g = _df_g[['model name', 'predictor name', 'predictor performance']].drop_duplicates().pivot(
             index='model name', columns='predictor name', values='predictor performance')
         order = list(self.latestPredModel[self.latestPredModel['predictor name']!='Classifier'][[
