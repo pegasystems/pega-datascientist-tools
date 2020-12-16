@@ -111,6 +111,8 @@ Two classes need to be instantiated. One for the model report and one for the pr
 Once df1 and df2 as described above are imported, use the following example to instantiate your classes:
 
 ```python
+from model_report import ADMReport, ModelReport
+
 Models = ModelReport(np.array(df1['pyModelID']), np.array(df1['pyName']), 
                      np.array(df1['pyPositives']), np.array(df1['pyResponseCount']), 
                      np.array(df1['pyPerformance']), np.array(df1['pySnapshotTime']))
