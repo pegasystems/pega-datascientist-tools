@@ -557,7 +557,7 @@ class ADMReport(ModelReport):
         _df_g = self._apply_query(query, _df_g).reset_index(drop=True)
         _df_g = _df_g[['model name', 'predictor name', 'predictor performance']].drop_duplicates().pivot(
             index='model name', columns='predictor name', values='predictor performance')
-        order = list(self.latestPredModel[self.latestPredModel['predictor name']!='Classifier'][[
+        order = list(_df_g[[
             'model name', 'predictor name', 'predictor performance']].drop_duplicates().groupby(
             'predictor name')['predictor performance'].mean().fillna(0).sort_values()[::-1].index)
         _df_g = _df_g[order]*100.0
