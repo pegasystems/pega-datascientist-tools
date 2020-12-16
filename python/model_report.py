@@ -151,7 +151,9 @@ class ModelReport:
         Returns:
             filtered pandas dataframe
         """
-        _df = df.drop('model ID', axis=1)
+        if 'model ID' in df.columns:
+            _df = df.drop('model ID', axis=1)
+        else: _df = df.reset_index(drop=True)
         if query!={}:
             if not type(query)==dict:
                 raise TypeError('query must be a dict where values are lists')
@@ -323,6 +325,8 @@ class ModelReport:
         cmap = colors.ListedColormap(myColors)
         sns.heatmap(heatmap_df.T, annot=annot_df.T, mask=annot_df.T.isnull(), ax=ax,
                     linewidths=0.5, fmt='.0f', cmap=cmap, vmin=-1, vmax=1, cbar=False)
+        bottom, top = ax.get_ylim()
+        ax.set_ylim(bottom + 0.5, top - 0.5)
         patches = [mpatches.Patch(color=myColors[i], label=colorText[i]) for i in range(len(myColors)) ]
 
         legend=plt.legend(handles=patches, bbox_to_anchor=(1.05, 1),loc=2, borderaxespad=0.5, frameon=True)
@@ -442,7 +446,7 @@ class ADMReport(ModelReport):
         idx = _df.groupby(['model ID', 'predictor name'])['predictor snapshot'].transform(max)==_df['predictor snapshot']
         _df = _df[idx]
         _df = self._calculate_success_rate(_df, 'bin positives', 'bin responses', 'bin propensity')
-        latestPredModel = self.dfModel.merge(_df, on='model ID', how='left').drop(['model ID', 'predictor snapshot'], axis=1)
+        latestPredModel = self.latestModels.merge(_df, on='model ID', how='right').drop(['model ID', 'predictor snapshot'], axis=1)
         return latestPredModel
 
     def show_score_distribution(self, models=None, figsize=(14, 10)):
@@ -512,11 +516,12 @@ class ADMReport(ModelReport):
             title = 'Model name: '+model_name+'\n Predictor name: '+pred
             self.distribution_graph(_df, title, figsize)
 
-    def show_predictor_performance_boxplot(self, figsize=(6, 12)):
+    def show_predictor_performance_boxplot(self, query={}, figsize=(6, 12)):
         """ Shows a box plot of predictor performance
         """
         fig, ax = plt.subplots(figsize=figsize)
         _df_g = self.latestPredModel[self.latestPredModel['predictor name']!='Classifier'].reset_index(drop=True)
+        _df_g = self._apply_query(query, _df_g).reset_index(drop=True)
         _df_g['legend'] = pd.Series([i.split('.')[0] if len(i.split('.'))>1 else 'Primary' for i in _df_g['predictor name']])
         order = _df_g.groupby('predictor name')['predictor performance'].mean().fillna(0).sort_values()[::-1].index
         sns.boxplot(x='predictor performance', y='predictor name', data=_df_g, order=order, ax=ax)
@@ -545,17 +550,18 @@ class ADMReport(ModelReport):
         legend._legend_box.align = "left"
         legend_type._legend_box.align = "left"
 
-    def show_model_predictor_performance_heatmap(self, figsize=(14, 10)):
+    def show_model_predictor_performance_heatmap(self, query={}, figsize=(14, 10)):
         """ Shows a heatmap plot of predictor performance across models
         """
-        _df_g = self.latestPredModel[self.latestPredModel['predictor name']!='Classifier'].reset_index(drop=True)[[
-            'model name', 'predictor name', 'predictor performance']].drop_duplicates().pivot(
+        _df_g_o = self.latestPredModel[self.latestPredModel['predictor name']!='Classifier'].reset_index(drop=True)
+        _df_g_o = self._apply_query(query, _df_g_o).reset_index(drop=True)
+        _df_g = _df_g_o[['model name', 'predictor name', 'predictor performance']].drop_duplicates().pivot(
             index='model name', columns='predictor name', values='predictor performance')
-        order = list(self.latestPredModel[self.latestPredModel['predictor name']!='Classifier'][[
+        order = list(_df_g_o[[
             'model name', 'predictor name', 'predictor performance']].drop_duplicates().groupby(
             'predictor name')['predictor performance'].mean().fillna(0).sort_values()[::-1].index)
         _df_g = _df_g[order]*100.0
-        x_order = list(self.latestPredModel[self.latestPredModel['predictor name']!='Classifier'][[
+        x_order = list(_df_g_o[[
             'model name', 'predictor name', 'predictor performance']].drop_duplicates().groupby(
             'model name')['predictor performance'].mean().fillna(0).sort_values()[::-1].index)
         df_g = _df_g.reindex(x_order)
@@ -564,3 +570,5 @@ class ADMReport(ModelReport):
                        (90/100.0, 'white'), (100/100.0, 'white')])
         f, ax = plt.subplots(figsize=figsize)
         sns.heatmap(df_g.fillna(50).T, ax=ax, cmap=cmap, annot=True, fmt='.2f', vmin=50, vmax=100)
+        bottom, top = ax.get_ylim()
+        ax.set_ylim(bottom + 0.5, top - 0.5)
