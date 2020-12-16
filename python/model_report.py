@@ -519,7 +519,7 @@ class ADMReport(ModelReport):
         """
         fig, ax = plt.subplots(figsize=figsize)
         _df_g = self.latestPredModel[self.latestPredModel['predictor name']!='Classifier'].reset_index(drop=True)
-        _df_g = self._apply_query(query, _df_g)
+        _df_g = self._apply_query(query, _df_g).reset_index(drop=True)
         _df_g['legend'] = pd.Series([i.split('.')[0] if len(i.split('.'))>1 else 'Primary' for i in _df_g['predictor name']])
         order = _df_g.groupby('predictor name')['predictor performance'].mean().fillna(0).sort_values()[::-1].index
         sns.boxplot(x='predictor performance', y='predictor name', data=_df_g, order=order, ax=ax)
