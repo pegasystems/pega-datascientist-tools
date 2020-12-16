@@ -570,3 +570,5 @@ class ADMReport(ModelReport):
                        (90/100.0, 'white'), (100/100.0, 'white')])
         f, ax = plt.subplots(figsize=figsize)
         sns.heatmap(df_g.fillna(50).T, ax=ax, cmap=cmap, annot=True, fmt='.2f', vmin=50, vmax=100)
+        bottom, top = ax.get_ylim()
+        ax.set_ylim(bottom + 0.5, top - 0.5)
