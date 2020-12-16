@@ -512,11 +512,12 @@ class ADMReport(ModelReport):
             title = 'Model name: '+model_name+'\n Predictor name: '+pred
             self.distribution_graph(_df, title, figsize)
 
-    def show_predictor_performance_boxplot(self, figsize=(6, 12)):
+    def show_predictor_performance_boxplot(self, query={} figsize=(6, 12)):
         """ Shows a box plot of predictor performance
         """
         fig, ax = plt.subplots(figsize=figsize)
         _df_g = self.latestPredModel[self.latestPredModel['predictor name']!='Classifier'].reset_index(drop=True)
+        _df_g = self._apply_query(query, _df_g)
         _df_g['legend'] = pd.Series([i.split('.')[0] if len(i.split('.'))>1 else 'Primary' for i in _df_g['predictor name']])
         order = _df_g.groupby('predictor name')['predictor performance'].mean().fillna(0).sort_values()[::-1].index
         sns.boxplot(x='predictor performance', y='predictor name', data=_df_g, order=order, ax=ax)
@@ -545,11 +546,12 @@ class ADMReport(ModelReport):
         legend._legend_box.align = "left"
         legend_type._legend_box.align = "left"
 
-    def show_model_predictor_performance_heatmap(self, figsize=(14, 10)):
+    def show_model_predictor_performance_heatmap(self, query={}, figsize=(14, 10)):
         """ Shows a heatmap plot of predictor performance across models
         """
-        _df_g = self.latestPredModel[self.latestPredModel['predictor name']!='Classifier'].reset_index(drop=True)[[
-            'model name', 'predictor name', 'predictor performance']].drop_duplicates().pivot(
+        _df_g = self.latestPredModel[self.latestPredModel['predictor name']!='Classifier'].reset_index(drop=True)
+        _df_g = self._apply_query(query, _df_g)
+        _df_g = _df_g[['model name', 'predictor name', 'predictor performance']].drop_duplicates().pivot(
             index='model name', columns='predictor name', values='predictor performance')
         order = list(self.latestPredModel[self.latestPredModel['predictor name']!='Classifier'][[
             'model name', 'predictor name', 'predictor performance']].drop_duplicates().groupby(
