@@ -325,6 +325,8 @@ class ModelReport:
         cmap = colors.ListedColormap(myColors)
         sns.heatmap(heatmap_df.T, annot=annot_df.T, mask=annot_df.T.isnull(), ax=ax,
                     linewidths=0.5, fmt='.0f', cmap=cmap, vmin=-1, vmax=1, cbar=False)
+        bottom, top = ax.get_ylim()
+        ax.set_ylim(bottom + 0.5, top - 0.5)
         patches = [mpatches.Patch(color=myColors[i], label=colorText[i]) for i in range(len(myColors)) ]
 
         legend=plt.legend(handles=patches, bbox_to_anchor=(1.05, 1),loc=2, borderaxespad=0.5, frameon=True)
