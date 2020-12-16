@@ -151,7 +151,9 @@ class ModelReport:
         Returns:
             filtered pandas dataframe
         """
-        _df = df.drop('model ID', axis=1)
+        if 'model ID' in df.columns:
+            _df = df.drop('model ID', axis=1)
+        else: _df = df.reset_index(drop=True)
         if query!={}:
             if not type(query)==dict:
                 raise TypeError('query must be a dict where values are lists')
