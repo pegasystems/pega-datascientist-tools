@@ -37,9 +37,9 @@ A \code{data.table} with the ADM model data
 \description{
 This is a specialized version of \code{readDSExport}
 that defaults the dataset name, leaves out internal fields and by default omits the
-predictor binning data.
-other internal fields, returns the properties without the py prefixes and converts
-date fields, and makes sure numeric fields are returned as numerics.
+predictor binning data. In addition it converts date fields and makes sure
+the returned fields have the correct type. All string values are returned
+as factors.
 }
 \examples{
 \dontrun{readADMDatamartPredictorExport("~/Downloads")}

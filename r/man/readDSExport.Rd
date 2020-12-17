@@ -9,7 +9,8 @@ readDSExport(
   srcFolder = ".",
   tmpFolder = tempdir(check = T),
   excludeComplexTypes = T,
-  acceptJSONLines = NULL
+  acceptJSONLines = NULL,
+  stringsAsFactors = F
 )
 }
 \arguments{
@@ -29,6 +30,8 @@ defaults to T so not including nested lists/data frames}
 to the lines with JSON data and only those lines for which the function
 returns TRUE will be parsed. This is just for efficiency when reading
 really big files so you can filter early.}
+
+\item{stringsAsFactors}{Logical (default is FALSE). Convert all character columns to factors?}
 }
 \value{
 A \code{data.table} with the contents

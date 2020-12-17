@@ -6,17 +6,17 @@
 \usage{
 getPredictorsForModelsFromDatamart(
   conn,
-  models = NULL,
-  mostRecentOnly = T,
+  modelids = NULL,
+  latestOnly = T,
   verbose = T
 )
 }
 \arguments{
 \item{conn}{Connection to the database}
 
-\item{models}{List of models as a \code{data.table} typically obtained from a call to \code{getModelsFromDatamart}.}
+\item{modelids}{Optional list of model IDs to select from}
 
-\item{mostRecentOnly}{Only return results for latest snapshot. Currently this works as a global filter, which is ok
+\item{latestOnly}{Only return results for latest snapshot. Currently this works as a global filter, which is ok
 because the snapshot agent will also snapshot all models wholesale. If and when that becomes more granular, we may
 need to make this more subtle, so take the latest after grouping by model ID.}
 
@@ -31,5 +31,5 @@ retrieve all historical data but by default it only retrieves the most recent sn
 }
 \examples{
 \dontrun{models <- getModelsFromDatamart(conn)
-preds <- getPredictorsForModelsFromDatamart(conn, models)}
+preds <- getPredictorsForModelsFromDatamart(conn, models$ModelID)}
 }

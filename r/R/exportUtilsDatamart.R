@@ -32,7 +32,7 @@ getDMModelContextAsString <- function(partition)
 #' @param appliesToFilter Optional filter on the \code{AppliesTo} class. Can be a list, matching is exact.
 #' @param ruleNameFilter Optional filter on the ADM rule name. Can be a list, matching is exact.
 #' @param applicationFilter Optional filter on the application field. Can be a list, matching is exact.
-#' @param mostRecentOnly Only return results for latest snapshot. Currently this works as a global filter, which is ok
+#' @param latestOnly Only return results for latest snapshot. Currently this works as a global filter, which is ok
 #' because the snapshot agent will also snapshot all models wholesale. If and when that becomes more granular, we may
 #' need to make this more subtle, so take the latest after grouping by pyconfigurationname, pyappliestoclass, pxapplication.
 #' @param verbose Set to \code{TRUE} to show database queries.
@@ -42,9 +42,17 @@ getDMModelContextAsString <- function(partition)
 #'
 #' @examples
 #' \dontrun{models <- getModelsFromDatamart(conn)}
-#' \dontrun{allModels <- getModelsFromDatamart(conn, mostRecentOnly = F)}
-getModelsFromDatamart <- function(conn, appliesToFilter=NULL, ruleNameFilter=NULL, applicationFilter=NULL, mostRecentOnly=T, verbose=T)
+#' \dontrun{allModels <- getModelsFromDatamart(conn, latestOnly = F)}
+getModelsFromDatamart <- function(conn, appliesToFilter=NULL, ruleNameFilter=NULL, applicationFilter=NULL, latestOnly = F, verbose=F)
 {
+  # Drop Pega internal fields and model data (if present - not all releases have that)
+  query <- paste("select * from", DATAMART_MODELTABLE, "where false")
+  if(verbose) {
+    print(query)
+  }
+  fields <- names(dbGetQuery(conn, query))
+  fields <- setdiff(fields[!grepl("^p[x|z]", fields)], "pymodeldata")
+
   wheres <- list()
   if(!is.null(appliesToFilter)) {
     wheres[["appliesToFilter"]] <- paste("pyappliestoclass IN (", paste(paste("'",appliesToFilter,"'",sep=""), collapse=","), ")", sep="")
@@ -56,7 +64,7 @@ getModelsFromDatamart <- function(conn, appliesToFilter=NULL, ruleNameFilter=NUL
     wheres[["applicationFilter"]] <- paste("pxapplication IN (", paste(paste("'",applicationFilter,"'",sep=""), collapse=","), ")", sep="")
   }
 
-  if (mostRecentOnly) {
+  if (latestOnly) {
     batchConditions <- paste("pysnapshottime IN (select max(pysnapshottime) from", DATAMART_MODELTABLE, ")")
   } else {
     query <- paste("select pymodelid, count(*) as nsnapshots from", DATAMART_MODELTABLE,
@@ -66,6 +74,7 @@ getModelsFromDatamart <- function(conn, appliesToFilter=NULL, ruleNameFilter=NUL
       print(query)
     }
     modelidz <- as.data.table(dbGetQuery(conn, query))
+    setnames(modelidz, toupper(names(modelidz)))
     modelidz[, fetchgroup := as.integer(factor((cumsum(NSNAPSHOTS)) %/% 20000))] # batch up this many unique model snapshots at a time
 
     batchConditions <- sapply(1:max(modelidz$fetchgroup),
@@ -75,17 +84,22 @@ getModelsFromDatamart <- function(conn, appliesToFilter=NULL, ruleNameFilter=NUL
   allModels <- list()
   for (aBatchCondition in batchConditions) {
     wheres[["batch"]] <- aBatchCondition
-    query <- paste("select * from", DATAMART_MODELTABLE, "where", paste(wheres, collapse = " and "))
+    query <- paste("select", paste(fields, collapse=","), "from", DATAMART_MODELTABLE, "where", paste(wheres, collapse = " and "))
     if(verbose) {
       print(query)
     }
     allModels[[aBatchCondition]] <- as.data.table(dbGetQuery(conn, query))
-    setnames(allModels[[aBatchCondition]], tolower(names(allModels[[aBatchCondition]])))
-    allModels[[aBatchCondition]][, c("pzinskey","pxinsname","pxobjclass","pxcommitdatetime","pxsavedatetime") := NULL] # drop un-interesting columns added by Pega ObjSave mechanics
-    allModels[[aBatchCondition]]$pysnapshottime <- fasttime::fastPOSIXct(allModels[[aBatchCondition]]$pysnapshottime)
   }
 
-  return(rbindlist(allModels))
+  result <- rbindlist(allModels)
+  if ("pysnapshottime" %in% names(result)) { result[, pysnapshottime := fasttime::fastPOSIXct(pysnapshottime)] }
+  if ("pyfactoryupdatetime" %in% names(result)) { result[, pyfactoryupdatetime := fasttime::fastPOSIXct(pyfactoryupdatetime)] }
+
+  applyUniformPegaFieldCasing(result)
+
+  # TODO peel JSON name
+
+  return(result)
 }
 
 #' Retrieves predictor data from the ADM Datamart.
@@ -94,8 +108,8 @@ getModelsFromDatamart <- function(conn, appliesToFilter=NULL, ruleNameFilter=NUL
 #' retrieve all historical data but by default it only retrieves the most recent snapshot data.
 #'
 #' @param conn Connection to the database
-#' @param models List of models as a \code{data.table} typically obtained from a call to \code{getModelsFromDatamart}.
-#' @param mostRecentOnly Only return results for latest snapshot. Currently this works as a global filter, which is ok
+#' @param modelids Optional list of model IDs to select from
+#' @param latestOnly Only return results for latest snapshot. Currently this works as a global filter, which is ok
 #' because the snapshot agent will also snapshot all models wholesale. If and when that becomes more granular, we may
 #' need to make this more subtle, so take the latest after grouping by model ID.
 #' @param verbose Set to \code{TRUE} to show database queries.
@@ -105,34 +119,46 @@ getModelsFromDatamart <- function(conn, appliesToFilter=NULL, ruleNameFilter=NUL
 #'
 #' @examples
 #' \dontrun{models <- getModelsFromDatamart(conn)
-#' preds <- getPredictorsForModelsFromDatamart(conn, models)}
-getPredictorsForModelsFromDatamart <- function(conn, models = NULL, mostRecentOnly=T, verbose=T)
+#' preds <- getPredictorsForModelsFromDatamart(conn, models$ModelID)}
+getPredictorsForModelsFromDatamart <- function(conn, modelids = NULL, latestOnly=T, verbose=T)
 {
+  # Drop Pega internal fields
+  query <- paste("select * from", DATAMART_PREDICTORTABLE, "where false")
+  if(verbose) {
+    print(query)
+  }
+  fields <- names(dbGetQuery(conn, query))
+  fields <- fields[!grepl("^p[x|z]", fields)]
+
+  # TODO implement some sort of batching
+
   wheres <- list()
-  if(!is.null(models)) {
+  if(!is.null(modelids)) {
     wheres[["models"]] <- paste("pymodelid IN (",
-                                paste(paste("'",unique(models$pymodelid),"'",sep=""), collapse = ","),
+                                paste(paste("'",unique(modelids),"'",sep=""), collapse = ","),
                                 ")")
   }
-  if (mostRecentOnly) {
-    wheres[["mostRecentOnly"]] <- paste("pysnapshottime IN (",
+  if (latestOnly) {
+    wheres[["latestOnly"]] <- paste("pysnapshottime IN (",
                                         "select max(pysnapshottime) from",
                                         DATAMART_PREDICTORTABLE)
-    if (!is.null(models)) {
-      wheres[["mostRecentOnly"]] <- paste(wheres[["mostRecentOnly"]],
+    if (!is.null(modelids)) {
+      wheres[["latestOnly"]] <- paste(wheres[["latestOnly"]],
                                           "where",
                                           wheres[["models"]])
     }
-    wheres[["mostRecentOnly"]] <- paste(wheres[["mostRecentOnly"]], ")", sep="")
+    wheres[["latestOnly"]] <- paste(wheres[["latestOnly"]], ")", sep="")
   }
 
-  query <- paste("select * from", DATAMART_PREDICTORTABLE, "where", paste(wheres, collapse = " and "))
+  query <- paste("select", paste(fields, collapse = ","),
+                 "from", DATAMART_PREDICTORTABLE,
+                 "where", paste(wheres, collapse = " and "))
   if(verbose) {
     print(query)
   }
   predictors <- as.data.table(dbGetQuery(conn, query))
-  setnames(predictors, tolower(names(predictors)))
-  predictors[, c("pzinskey","pxinsname","pxobjclass","pxcommitdatetime","pxsavedatetime") := NULL] # drop un-interesting columns added by Pega ObjSave mechanics
+
+  applyUniformPegaFieldCasing(predictors)
 
   #lastsnapshots <- predictors[, .SD[which(pysnapshottime == max(pysnapshottime))], by=c("pymodelid")]
   return(predictors)

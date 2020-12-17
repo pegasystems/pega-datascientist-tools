@@ -9,8 +9,8 @@ getModelsFromDatamart(
   appliesToFilter = NULL,
   ruleNameFilter = NULL,
   applicationFilter = NULL,
-  mostRecentOnly = T,
-  verbose = T
+  latestOnly = F,
+  verbose = F
 )
 }
 \arguments{
@@ -22,7 +22,7 @@ getModelsFromDatamart(
 
 \item{applicationFilter}{Optional filter on the application field. Can be a list, matching is exact.}
 
-\item{mostRecentOnly}{Only return results for latest snapshot. Currently this works as a global filter, which is ok
+\item{latestOnly}{Only return results for latest snapshot. Currently this works as a global filter, which is ok
 because the snapshot agent will also snapshot all models wholesale. If and when that becomes more granular, we may
 need to make this more subtle, so take the latest after grouping by pyconfigurationname, pyappliestoclass, pxapplication.}
 
@@ -39,5 +39,5 @@ prevent possible OOM errors reading the full table, the retrieval will be batche
 }
 \examples{
 \dontrun{models <- getModelsFromDatamart(conn)}
-\dontrun{allModels <- getModelsFromDatamart(conn, mostRecentOnly = F)}
+\dontrun{allModels <- getModelsFromDatamart(conn, latestOnly = F)}
 }

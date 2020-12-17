@@ -12,10 +12,51 @@
 
 #' @docType package
 #' @name cdhtools
-#' @import data.table
+#' @import data.table jsonlite
 #' @importFrom rlang is_list
 #' @importFrom utils zip
 NULL
+
+#' Fix field casing
+#'
+#' Uniformly sets the field names for data.tables from DB and dataset export,
+#' capitalizing first letter, fixing common endings.
+#'
+#' @param dt Data table to apply to
+#'
+#' @return The names of the input are modified by reference
+#' @export
+#'
+#' @examples
+#' data <- data.table( id = "abc", pyresponsecount = 1234 ); applyUniformPegaFieldCasing(data)
+applyUniformPegaFieldCasing <- function(dt)
+{
+  fields <- names(dt)
+
+  # field name endings we want to see capitalized
+  capitializeEndWords <- c("ID", "Key", "Name", "Count", "Time", "UpdateTime",
+                           "ToClass", "Version", "Predictor", "Predictors", "Rate", "Ratio",
+                           "Negatives", "Positives", "Threshold", "Error", "Importance",
+                           "Type", "Percentage", "Index", "Symbol",
+                           "LowerBound", "UpperBound", "Bins",
+                           "ResponseCount", "NegativesPercentage", "PositivesPercentage",
+                           "BinPositives", "BinNegatives", "BinResponseCount", "BinResponseCount",
+                           "ResponseCountPercentage")
+
+  # remove px/py/pz prefixes
+  fields <- gsub(pattern = "^p(x|y|z)", replacement = "", tolower(fields))
+
+  # capitalize word endings
+  for (w in capitializeEndWords) {
+    # exact match at the end
+    fields <- gsub(paste0(w,"$"), w, fields, ignore.case=T)
+  }
+
+  # capitalize first letter
+  fields <- gsub("^(.)", "\\U\\1", fields, perl = T)
+
+  setnames(dt, fields)
+}
 
 #' Read a Pega dataset export file.
 #'
@@ -38,6 +79,7 @@ NULL
 #'   to the lines with JSON data and only those lines for which the function
 #'   returns TRUE will be parsed. This is just for efficiency when reading
 #'   really big files so you can filter early.
+#' @param stringsAsFactors Logical (default is FALSE). Convert all character columns to factors?
 #'
 #' @return A \code{data.table} with the contents
 #' @export
@@ -48,7 +90,7 @@ NULL
 #' \dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip",
 #' "~/Downloads")}
 #' \dontrun{readDSExport("~/Downloads/Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip")}
-readDSExport <- function(instancename, srcFolder=".", tmpFolder=tempdir(check = T), excludeComplexTypes=T, acceptJSONLines=NULL)
+readDSExport <- function(instancename, srcFolder=".", tmpFolder=tempdir(check = T), excludeComplexTypes=T, acceptJSONLines=NULL, stringsAsFactors=F)
 {
   if(endsWith(instancename, ".json")) {
     if (file.exists(instancename)) {
@@ -95,7 +137,9 @@ readDSExport <- function(instancename, srcFolder=".", tmpFolder=tempdir(check = 
     from <- (n-1)*chunkSize+1
     to <- min(n*chunkSize, length(multiLineJSON))
     # cat("From", from, "to", to, fill = T)
-    ds <- data.table(jsonlite::fromJSON(paste("[",paste(multiLineJSON[from:to],sep="",collapse = ","),"]")))
+    # TODO is this really faster than reading the lines one by one and
+    # rbindlisting all the many tables?
+    ds <- data.table(jsonlite::fromJSON(paste("[",paste(multiLineJSON[from:to],sep="",collapse = ","),"]")), stringsAsFactors = stringsAsFactors)
     if (excludeComplexTypes) {
       chunkList[[n]] <- ds [, names(ds)[!sapply(ds, rlang::is_list)], with=F]
     } else {
@@ -106,6 +150,8 @@ readDSExport <- function(instancename, srcFolder=".", tmpFolder=tempdir(check = 
 }
 
 # TODO provide similar func for IH data - even only for demo scenarios that strips off internal fields
+
+# TODO BinType probably does not belong in predictor data w/o bins
 
 #' Read export of ADM model data.
 #'
@@ -135,13 +181,38 @@ readADMDatamartModelExport <- function(srcFolder=".",
                                        latestOnly = F,
                                        tmpFolder=tempdir(check = T))
 {
-  modelz <- readDSExport(instancename, srcFolder, tmpFolder=tmpFolder)
+  modelz <- readDSExport(instancename, srcFolder, tmpFolder=tmpFolder, stringsAsFactors=T)
   if ("pyModelData" %in% names(modelz)) { modelz[, pyModelData := NULL] } # older versions don't have this field and perhaps not all future versions will
   modelz[, names(modelz)[grepl("^p[x|z]", names(modelz))] := NULL]
-  setnames(modelz, gsub(pattern = "^p.", replacement = "", names(modelz)))
-  modelz[, Performance := as.numeric(Performance)] # notoriously returned as char but is numeric
+  applyUniformPegaFieldCasing(modelz)
+  modelz[, Performance := as.numeric(as.character(Performance))] # some fields notoriously returned as char but are numeric
+  modelz[, Positives := as.numeric(as.character(Positives))]
+  modelz[, Negatives := as.numeric(as.character(Negatives))]
   modelz[, SnapshotTime := fromPRPCDateTime(SnapshotTime)]
-  if ("FactoryUpdateTime" %in% names(modelz)) { modelz[, FactoryUpdateTime := fromPRPCDateTime(FactoryUpdateTime)] }
+
+  # If context of ADM models has been customized, additional context keys will
+  # be represented as a JSON string in the pyName field. Here we try to detect
+  # that and create proper fields instead of a JSON string.
+  customizedContextKeysNameMapping <- data.table( OriginalName = levels(modelz$Name) )
+  customizedContextKeysNameMapping[, isJSON := startsWith(OriginalName, "{") & endsWith(OriginalName, "}")]
+  dataInJSONNames <- rbindlist(lapply(customizedContextKeysNameMapping$OriginalName[customizedContextKeysNameMapping$isJSON], jsonlite::fromJSON, flatten=T), fill = T)
+  customizedContextKeysNameMapping[(isJSON), names(dataInJSONNames) := dataInJSONNames]
+  rbindlist(lapply(customizedContextKeysNameMapping$OriginalName[customizedContextKeysNameMapping$isJSON], jsonlite::fromJSON, flatten=T), fill = T)
+  customizedContextKeysNameMapping[, isJSON := NULL]
+  for (newName in names(customizedContextKeysNameMapping)) {
+    if (is.character(customizedContextKeysNameMapping[[newName]])) {
+      customizedContextKeysNameMapping[[newName]] <- factor(customizedContextKeysNameMapping[[newName]])
+    }
+  }
+  applyUniformPegaFieldCasing(customizedContextKeysNameMapping)
+  modelz <- merge(modelz, customizedContextKeysNameMapping, by.x="Name", by.y="OriginalName")
+  if ("Name.y" %in% names(modelz)) {
+    # use name from JSON strings but only if present there
+    modelz[, Name := factor(ifelse(is.na(Name.y), Name, Name.y))]
+    modelz[, Name.y := NULL]
+  }
+
+  if ("Factoryupdatetime" %in% names(modelz)) { modelz[, Factoryupdatetime := fromPRPCDateTime(Factoryupdatetime)] }
   if (latestOnly) {
     return(modelz[, .SD[which.max(SnapshotTime)], by=ModelID])
   } else {
@@ -153,9 +224,9 @@ readADMDatamartModelExport <- function(srcFolder=".",
 #'
 #' This is a specialized version of \code{readDSExport}
 #' that defaults the dataset name, leaves out internal fields and by default omits the
-#' predictor binning data.
-#' other internal fields, returns the properties without the py prefixes and converts
-#' date fields, and makes sure numeric fields are returned as numerics.
+#' predictor binning data. In addition it converts date fields and makes sure
+#' the returned fields have the correct type. All string values are returned
+#' as factors.
 #'
 #' @param srcFolder Optional folder to look for the file (defaults to the
 #'   current folder)
@@ -189,7 +260,12 @@ readADMDatamartPredictorExport <- function(srcFolder=".",
 
   if (noBinning) {
     predz <- readDSExport(instancename, srcFolder, tmpFolder=tmpFolder,
-                          acceptJSONLines=function(linez) { return(grepl('"pyBinIndex":1,', linez, fixed=T)) })
+                          acceptJSONLines=function(linez) {
+                            # TODO make non fixed and a bit safer, allowing for
+                            # extra spaces and so on
+                            return(grepl('"pyBinIndex":1,', linez, fixed=T))
+                            },
+                          stringsAsFactors=T)
     # just to be very defensive, double check there really are no other bins left
     if (any(predz$pyBinIndex > 1)) {
       predz <- predz[pyBinIndex = 1]
@@ -202,8 +278,11 @@ readADMDatamartPredictorExport <- function(srcFolder=".",
   }
 
   predz[, names(predz)[grepl("^p[x|z]", names(predz))] := NULL]
-  setnames(predz, gsub(pattern = "^p.", replacement = "", names(predz)))
-  predz[, Performance := as.numeric(Performance)] # notoriously returned as char but is numeric
+  applyUniformPegaFieldCasing(predz)
+  predz[, Performance := as.numeric(as.character(Performance))] # some fields notoriously returned as char but are numeric
+  predz[, Positives := as.numeric(as.character(Positives))]
+  predz[, Negatives := as.numeric(as.character(Negatives))]
+
   predz[, SnapshotTime := fromPRPCDateTime(SnapshotTime)]
 
   if (latestOnly) {

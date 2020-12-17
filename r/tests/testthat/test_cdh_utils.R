@@ -32,12 +32,26 @@ test_that("specialized model data export", {
                                      srcFolder="dsexports")
   expect_equal(nrow(data), 30)
   expect_equal(ncol(data), 16) # omits internal fields
+  expect_identical(sort(names(data)),
+                   c("ActivePredictors", "AppliesToClass", "ConfigurationName", "Group", "Issue",
+                     "ModelID", "Name", "Negatives", "Performance", "Positives",
+                     "RelativeNegatives", "RelativePositives", "RelativeResponseCount",
+                     "ResponseCount", "SnapshotTime", "TotalPredictors"));
+  dataTypes <- as.character(sapply(data[, sort(names(data)), with=F], class))
+  expect_equal(dataTypes,
+               c("integer", "factor", "factor", "factor", "factor",
+                 "factor", "factor", "numeric", "numeric", "numeric",
+                 "numeric", "numeric", "numeric",
+                 "numeric", "c(\"POSIXct\", \"POSIXt\")", "integer"));
 
   data <- readADMDatamartModelExport(instancename="Data-Decision-ADM-ModelSnapshot_All",
                                      srcFolder="dsexports",
                                      latestOnly=T)
   expect_equal(nrow(data), 15) # only latest snapshot
   expect_equal(ncol(data), 16)
+
+  # TODO include a test for the JSON parsing of pyName
+
 })
 
 test_that("specialized predictor data export", {
@@ -45,6 +59,23 @@ test_that("specialized predictor data export", {
                                          srcFolder="dsexports")
   expect_equal(nrow(data), 15) # binning skipped by default
   expect_equal(ncol(data), 15) # omits internal and binning fields
+  expect_identical(sort(names(data)),
+                   c("BinType", "Contents", "EntryType", "ModelID", "Negatives",
+                     "Performance", "Positives", "PredictorName", "RelativeNegatives", "RelativePositives",
+                     "RelativeResponseCount", "ResponseCount", "SnapshotTime",
+                     "TotalBins", "Type"));
+  dataTypes <- as.character(sapply(data[, sort(names(data)), with=F], class))
+  expect_equal(dataTypes,
+                   c("factor", "factor", "factor", "factor", "numeric",
+                     "numeric", "numeric", "factor", "numeric", "numeric",
+                     "numeric", "numeric", "c(\"POSIXct\", \"POSIXt\")",
+                     "integer", "factor"));
+
+  data <- readADMDatamartPredictorExport(instancename="Data-Decision-ADM-PredictorBinningSnapshot_All",
+                                         srcFolder="dsexports",
+                                         latestOnly = F)
+  expect_equal(nrow(data), 425) # no binning but all snapshots
+  expect_equal(ncol(data), 15) # omits internal fields
 
   # compare this to doing it "manually" using the "raw" readDSExport method
   data2 <- readDSExport("Data-Decision-ADM-PredictorBinningSnapshot_All","dsexports")[pyBinIndex == 1]
@@ -52,6 +83,8 @@ test_that("specialized predictor data export", {
   expect_equal(nrow(data2), 425)
   expect_equal(ncol(data2), 35)
   expect_equal(sum(!grepl("^p[x|z]", names(data2))), 30) # w/o the internal fields
+  expect_equal( mean(data$ResponseCount), mean(data2$pyResponseCount) )
+  expect_equal( max(data$Positives), max(as.numeric(data2$pyPositives)) )
 
   data <- readADMDatamartPredictorExport(instancename="Data-Decision-ADM-PredictorBinningSnapshot_All",
                                          srcFolder="dsexports",
@@ -65,12 +98,6 @@ test_that("specialized predictor data export", {
                                          noBinning = F)
   expect_equal(nrow(data), 15) # binning but only latest snapshots
   expect_equal(ncol(data), 30) # omits internal fields
-
-  data <- readADMDatamartPredictorExport(instancename="Data-Decision-ADM-PredictorBinningSnapshot_All",
-                                         srcFolder="dsexports",
-                                         latestOnly = F)
-  expect_equal(nrow(data), 425) # no binning but all snapshots
-  expect_equal(ncol(data), 15) # omits internal fields
 })
 
 # to add/update data:
