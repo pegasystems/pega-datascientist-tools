@@ -1,8 +1,18 @@
+---
+title: "CDH Tools"
+output:
+  html_document
+---
+
 # Customer Decision Hub Data Scientist Tools
 
-Utilities, tools and demo scripts for data scientists to work with Pega DSM/CDH.
+Notebooks and utilities for data scientists to work with Pega DSM/CDH.
 
 We release this under the Apache 2.0 license and welcome contributing back, preferably through pull requests, but just submitting an Issue or sending a note to the authors is fine too.
+
+Tooling exists in both R and Python, although not all functionality is identical.
+
+Next to the brief documentation below, extensive documention is available on the [Wiki of this repository](https://github.com/pegasystems/cdh-datascientist-tools/wiki).
 
 ## R
 
@@ -11,13 +21,15 @@ We release this under the Apache 2.0 license and welcome contributing back, pref
 
 The **cdhtools** package can be installed straight from GitHub and provides a number of utility functions and demo scripts.
 
+First, make sure you have [RStudio](https://rstudio.com/products/rstudio/) installed. To run the R examples you do not need to clone the repository, but for the Python examples you do. Also, if you want to access some of the example files you will need to clone the repository.
+
 To install the package use the **devtools** package. If you don't have that installed yet, do that first:
 
 ```r
 install.packages("devtools")
 ```
 
-Then load the **devtools** library and install the **cdhtools** package. Note the `build_vignettes` flag. By default packages built from GitHub do not include the vignettes, but these contain the demo scripts, so you should include them. In the world of R, vignettes are what you would call examples or demo's in other environments.
+Then load the **devtools** library and install the **cdhtools** package. Note the `build_vignettes` flag.
 
 ```r
 library(devtools)
@@ -30,26 +42,23 @@ If all is well, this will then install an R package called **cdhtools** that you
 library(ggplot2)
 library(scales)
 library(tidyverse)
-
-library(cdhtools)
-data(admdatamart_models) # Example data included in cdhtools
+library(data.table)
 
 ggplot(admdatamart_models %>%
-         mutate(Performance = 100*performance,
-                Responses = positives+negatives,
-                AcceptRate = positives/(positives+negatives)),
-       aes(Performance, AcceptRate, colour=name, shape=configurationname, size=log(Responses)))+
+         mutate(Performance = 100*Performance,
+                AcceptRate = Positives/ResponseCount),
+       aes(Performance, AcceptRate, colour=Name, shape=ConfigurationName, size=log(ResponseCount)))+
   geom_vline(xintercept=c(52,90), linetype="dashed")+
   geom_point(alpha=0.7) +
   guides(colour=guide_legend(title="Proposition"),
          shape=guide_legend(title="Model"),
          size=FALSE)+
-  scale_x_continuous(limits = c(50, 100), name = "Proposition Performance") +
+  scale_x_continuous(limits = c(50, 70), name = "Proposition Performance") +
   scale_y_continuous(limits = c(0, 1), name = "Success Rate", labels = scales::percent) +
   theme(panel.background = element_rect(fill='lightgreen'))
 ```
 
-This loads a sample dataset from the packages that represents the state of a couple of ADM models taken from the ADM Data Mart and plots success rate vs performance. Similar to the standard report in Prediction Studio, but across multiple model rules. This example is from one of the vignettes that is shipped with the package, `adm-reporting`. You should get an output like this:
+This loads a sample dataset from the packages that represents the state of a couple of ADM models taken from the ADM Data Mart and plots success rate vs performance. Similar to the standard report in Prediction Studio, but across multiple model rules. This example is from one of the vignettes that is shipped with the package, `adm-datamart`. You should get an output like this:
 
 ![Example ADM Model Plot](images/example-model-plot.png)
 
@@ -57,11 +66,9 @@ This loads a sample dataset from the packages that represents the state of a cou
 
 The R package currently contains 
 
-- Some utilities to make it easier to work with Pega, like reading the dataset exports into `data.table` structures. The `readDSExport` function is the main work horse here, this reads downloaded Pega dataset exports.
+- Some utilities to make it easier to work with Pega, like reading the dataset exports into `data.table` structures. The `readDSExport` function is the main work horse here, this reads downloaded Pega dataset exports. Specialized versions of this read data from ADM or IH exports.
 - A utility to take an ADM model and transform it into PMML. This PMML is basically a "frozen" version of the ADM model with each model instance represented as as Score Card including reason codes that can be used to explain the decision.
 - Standard notebooks to generate off-line viewable, stand-alone model reports and a model overview. These reports are similar to the reports in the product but can be generated and browsed off-line, but they also add some functionality not currently present in the product, like showing the active bins of the propensity mapping, an overview of predictor performance across models in the form of boxplots, and some more. They are parameterized and can easily be applied to any export of the ADM datamart.
-
-Vignettes are the primary vehicle for demo scripts. The source of the vignettes itself is typically useful as this can be customized to specific needs and situations.
 
 The available vignettes are (`vignette(package="cdhtools")`):
 
@@ -75,12 +82,6 @@ adm-datamart | Reporting on the ADM Datamart | `vignette("adm-datamart")`
 You can get the list of vignettes with `browseVignettes("cdhtools")` (as a web page) or `vignette(package="cdhtools")`. A vignette provides the original source as well as a readable HTML or PDF page and a file with the R code. Read a specific one with `vignette(x)` and see its code with `edit(vignette(x))`.
 
 The other option is to download the source (clone from the GitHub repository) and use the functions and demo scripts directly. Just clone the repository and explore the package contents. The R code, tests, vignettes etc are in the **r** subdirectory.
-
-### Workflow to contribute to the package
-
-Open the R project in cdh-datascientist-tools/r. Then from RStudio use **devtools** to check the package (Ctrl/Cmd + Shift + E), to build and reload in a clean R session (Ctrl/Cmd + Shift + B) etc. See [Developing R Packages](http://r-pkgs.had.co.nz) for more.
-
-Package documentation via **pkgdown**; run `pkgdown::build_site()` to build the **docs/** directory. Then move this to top-level so GitHub will automatically see it as the source for GitHub Pages. See https://github.com/r-lib/pkgdown for details. 
 
 ## Python
 
