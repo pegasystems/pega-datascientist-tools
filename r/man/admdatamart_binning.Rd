@@ -5,11 +5,11 @@
 \alias{admdatamart_binning}
 \title{Sample predictor binning snapshots from the ADM Data Mart.}
 \format{
-A \code{data.table} with 1755 rows and 35 variables:
+A \code{data.table} with 1755 rows and 32 variables:
 \describe{
-  \item{pyModelID}{Model ID}
-  \item{pySnapshotTime}{Snapshot time}
-  \item{pyPredictorName}{Name of the predictor}
+  \item{ModelID}{Model ID}
+  \item{SnapshotTime}{Snapshot time}
+  \item{PredictorName}{Name of the predictor}
   ...
 }
 }

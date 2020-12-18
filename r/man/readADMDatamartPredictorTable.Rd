@@ -23,7 +23,9 @@ need to make this more subtle, so take the latest after grouping by model ID.}
 \item{verbose}{Set to \code{TRUE} to show database queries.}
 }
 \value{
-A \code{data.table} with the ADM predictor details. The names are lowercased so processing of the results is not dependent on DB type.
+A \code{data.table} with the ADM predictor details. The names are
+CamelCased in a standard way so processing of the results is not dependent
+on DB type or export tooling.
 }
 \description{
 Typically, predictor data for a certain set of models obtained from \code{getModelsFromDatamart}. It is possible to

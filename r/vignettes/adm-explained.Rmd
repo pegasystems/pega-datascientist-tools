@@ -31,10 +31,10 @@ library(data.table)
 data(admdatamart_models)
 data(admdatamart_binning)
 
-model <- admdatamart_models[configurationname == "VerySimpleSalesModel" & name == "PSDISCOUNT100"][snapshottime == max(snapshottime)]
-modelpredictors <- admdatamart_binning[modelid == model$modelid & entrytype != "Inactive"]
+model <- admdatamart_models[ConfigurationName == "VerySimpleSalesModel" & Name == "PSDISCOUNT100"][SnapshotTime == max(SnapshotTime)]
+modelpredictors <- admdatamart_binning[ModelID == model$ModelID & EntryType != "Inactive"]
 
-predictorbinning <- modelpredictors[predictorname == "COUNTRY"][order(binindex)]
+predictorbinning <- modelpredictors[PredictorName == "COUNTRY"][order(BinIndex)]
 ```
 
 ## Model overview
@@ -44,43 +44,43 @@ The selected model is:
 ```{r, echo=FALSE, warning=F}
 library(knitr)
 library(kableExtra)
-modelmetadata <- data.table(Group = paste(model$issue, model$group, sep="/"),
-                            Name = model$name,
-                            `Active Predictors` = paste(setdiff(unique(modelpredictors$predictorname),"Classifier"), collapse = ", "),
-                            `Model Performance (AUC)` = model$performance*100)
+modelmetadata <- data.table(Group = paste(model$Issue, model$Group, sep="/"),
+                            Name = model$Name,
+                            `Active Predictors` = paste(setdiff(unique(modelpredictors$PredictorName),"Classifier"), collapse = ", "),
+                            `Model Performance (AUC)` = model$Performance*100)
 kable(t(modelmetadata))  %>%
   kable_styling(bootstrap_options = "striped", full_width = F, position = "left") %>%
   column_spec(1, bold=T)
 ```
 
-## Predictor binning for `r predictorbinning$predictorname[1]`
+## Predictor binning for `r predictorbinning$PredictorName[1]`
 
 The ADM model report will show predictor binning similar to this, with all displayed data coming from fields in the ADM data mart:
 
 ```{r, echo=FALSE}
-predictormetadata <- data.table(Name = predictorbinning$predictorname[1],
-                                Range = predictorbinning$contents[1],
-                                Responses = predictorbinning$responsecount[1],
-                                `# Bins` = predictorbinning$totalbins[1],
-                                `Predictor Performance (AUC)` =  predictorbinning$performance[1]*100)
+predictormetadata <- data.table(Name = predictorbinning$PredictorName[1],
+                                Range = predictorbinning$Contents[1],
+                                Responses = predictorbinning$ResponseCount[1],
+                                `# Bins` = predictorbinning$TotalBins[1],
+                                `Predictor Performance (AUC)` =  predictorbinning$Performance[1]*100)
 kable(t(predictormetadata))  %>%
   kable_styling(bootstrap_options = "striped", full_width = F, position = "left") %>%
   column_spec(1, bold=T)
 ```
 
 ```{r, echo=FALSE}
-predictorbinning2 <- data.table( `Range/Symbols` = predictorbinning$binsymbol,
-                                 `Responses (%)` = predictorbinning$binresponsecountpercentage,
-                                 `Positives` = predictorbinning$binpositives,
-                                 `Positives (%)` = predictorbinning$binpositivespercentage,
-                                 `Negatives` = predictorbinning$binnegatives,
-                                 `Negatives (%)` = predictorbinning$binnegativespercentage,
+predictorbinning2 <- data.table( `Range/Symbols` = predictorbinning$BinSymbol,
+                                 `Responses (%)` = predictorbinning$BinResponseCountPercentage,
+                                 `Positives` = predictorbinning$BinPositives,
+                                 `Positives (%)` = predictorbinning$BinPositivesPercentage,
+                                 `Negatives` = predictorbinning$BinNegatives,
+                                 `Negatives (%)` = predictorbinning$BinNegativesPercentage,
                                  # strange that propensity would not be available
-                                 `Propensity (%)` = round(predictorbinning$binpositives/(predictorbinning$binresponsecount), digits = 4),
-                                 `Z-Ratio` = predictorbinning$zratio,
-                                 `Lift` = predictorbinning$lift
+                                 `Propensity (%)` = round(predictorbinning$BinPositives/(predictorbinning$BinResponseCount), digits = 4),
+                                 `Z-Ratio` = predictorbinning$ZRatio,
+                                 `Lift` = predictorbinning$Lift
 )
-totals <- data.table(`Range/Symbols` = "Grand Total")[, names(predictorbinning2)[2:9] := c(lapply(predictorbinning2[, 2:6], sum), as.numeric(predictorbinning$positives[1])/predictorbinning$responsecount[1], 0.0, 1.0)]
+totals <- data.table(`Range/Symbols` = "Grand Total")[, names(predictorbinning2)[2:9] := c(lapply(predictorbinning2[, 2:6], sum), as.numeric(predictorbinning$Positives[1])/predictorbinning$ResponseCount[1], 0.0, 1.0)]
 
 predictorbinning <- predictorbinning2
 predictorbinning2 <- rbind(predictorbinning2, totals)
@@ -210,15 +210,15 @@ To get to a propensity, the log odds of the relevant bins of the active predicto
 Below an example. From all the active predictors of the model for `r model$name` we pick a value (in the middle for numerics, first symbol for symbolics) and show the (modified) log odds. These log odds values are averaged (added up and divided by number of active predictors + 1), and this is the "score" that is mapped to a propensity value by the classifier (which is constructed using the PAV(A) algorithm).
 
 ```{r, echo=F}
-binning <- modelpredictors[entrytype=="Active", c("predictorname", "binsymbol", "binindex", "binpositives", "binnegatives", "type","binlowerbound", "binupperbound"), with=F]
-setnames(binning, c("Name", "Value", "Bin", "Positives", "Negatives", "type", "lobound", "hibound"))
+binning <- modelpredictors[EntryType=="Active", c("PredictorName", "BinSymbol", "BinIndex", "BinPositives", "BinNegatives", "Type","BinLowerBound", "BinUpperBound"), with=F]
+setnames(binning, c("Name", "Value", "Bin", "Positives", "Negatives", "Type", "lobound", "hibound"))
 
 binning[, `Log odds` := log(Positives+1/.N) - log(sum(Positives+1)) - log(Negatives+1/.N) + log(sum(Negatives+1)), by=Name]
 
 binning[,nbins := max(Bin), by=Name]
 binning <- binning[Bin == trunc(nbins/2)] # take middle bin
 for (r in 1:nrow(binning)) {
-  if (binning$type[r] == "numeric") {
+  if (binning$Type[r] == "numeric") {
     binning$Value[r] <- trunc((as.numeric(binning$lobound[r]) + as.numeric(binning$hibound[r]))/2) # middle value
   } else {
     binning$Value[r] <- strsplit(binning$Value[r], ",", fixed=T)[[1]][1] # first symbol
@@ -240,27 +240,27 @@ Below the classifier mapping. On the x-axis the binned scores (log odds values),
 ```{r, echo=F, warning=F, error=F}
 library(ggplot2)
 library(scales)
-classifier <- modelpredictors[entrytype == "Classifier"][order(binindex)]
-classifier[, propensity := binpositives/(binpositives+binnegatives)]  # TODO small correction
+classifier <- modelpredictors[EntryType == "Classifier"][order(BinIndex)]
+classifier[, Propensity := BinPositives/(BinPositives+BinNegatives)]  # TODO small correction
 
 score <- binning$`Log odds`[nrow(binning)]
-scorebin <- findInterval(score, as.numeric(classifier$binlowerbound), left.open = T, all.inside = T)
+scorebin <- findInterval(score, as.numeric(classifier$BinLowerBound), left.open = T, all.inside = T)
 ```
 
-The score `r score` falls in bin `r scorebin` of the classifier, so for this set of inputs, the model returns a propensity of `r sprintf("%.2f%%", 100*classifier$propensity[scorebin])`.
+The score `r score` falls in bin `r scorebin` of the classifier, so for this set of inputs, the model returns a propensity of `r sprintf("%.2f%%", 100*classifier$Propensity[scorebin])`.
 
 ```{r, echo=F}
-propensityMax <- max(classifier$propensity, na.rm = T)
+propensityMax <- max(classifier$Propensity, na.rm = T)
 if (0 == propensityMax) { propensityMax <- 1 }
-secAxisFactor <- max(classifier$binresponsecount)/propensityMax
-classifierBarplot <- ggplot(classifier, aes(as.factor(binindex), propensity, group=1))+
-  geom_col(aes(y=(binpositives+binnegatives)/secAxisFactor), classifier[binindex == scorebin], fill="steelblue3")+
-  geom_col(aes(y=(binpositives+binnegatives)/secAxisFactor), classifier[binindex != scorebin], fill="grey")+
+secAxisFactor <- max(classifier$BinResponseCount)/propensityMax
+classifierBarplot <- ggplot(classifier, aes(as.factor(BinIndex), Propensity, group=1))+
+  geom_col(aes(y=(BinPositives+BinNegatives)/secAxisFactor), classifier[BinIndex == scorebin], fill="steelblue3")+
+  geom_col(aes(y=(BinPositives+BinNegatives)/secAxisFactor), classifier[BinIndex != scorebin], fill="grey")+
   geom_line(colour="orange", size=2)+geom_point()+
-  geom_hline(yintercept = classifier$propensity[scorebin], linetype="dashed") +
-  scale_y_continuous(limits=c(0, max(classifier$propensity)), name="Propensity", labels=scales::percent,
+  geom_hline(yintercept = classifier$Propensity[scorebin], linetype="dashed") +
+  scale_y_continuous(limits=c(0, max(classifier$Propensity)), name="Propensity", labels=scales::percent,
                      sec.axis = sec_axis(~.*secAxisFactor, name = "Responses"))+
-  scale_x_discrete(name = "Score", labels = classifier$binsymbol) +
+  scale_x_discrete(name = "Score", labels = classifier$BinSymbol) +
   ggtitle("Log odds to Propensity mapping", subtitle = "Classifier")+
   theme_minimal()+
   theme(axis.text.x = element_text(angle = 45, hjust = 1),

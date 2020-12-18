@@ -5,10 +5,10 @@
 \alias{admdatamart_models}
 \title{Sample model snapshots from the ADM Data Mart.}
 \format{
-A \code{data.table} with 30 rows and 22 variables:
+A \code{data.table} with 30 rows and 16 variables:
 \describe{
-  \item{pyModelID}{Model ID}
-  \item{pySnapshotTime}{Snapshot time}
+  \item{ModelID}{Model ID}
+  \item{SnapshotTime}{Snapshot time}
   ...
 }
 }

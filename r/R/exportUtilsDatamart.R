@@ -37,7 +37,9 @@ getDMModelContextAsString <- function(partition)
 #' need to make this more subtle, so take the latest after grouping by pyconfigurationname, pyappliestoclass, pxapplication.
 #' @param verbose Set to \code{TRUE} to show database queries.
 #'
-#' @return A \code{data.table} with the ADM model details. The names are lowercased so processing of the results is not dependent on DB type.
+#' @return A \code{data.table} with the ADM model details. The names are
+#' CamelCased in a standard way so processing of the results is not dependent
+#' on DB type or export tooling.
 #' @export
 #'
 #' @examples
@@ -115,7 +117,9 @@ readADMDatamartModelTable <- function(conn, appliesToFilter=NULL, ruleNameFilter
 #' need to make this more subtle, so take the latest after grouping by model ID.
 #' @param verbose Set to \code{TRUE} to show database queries.
 #'
-#' @return A \code{data.table} with the ADM predictor details. The names are lowercased so processing of the results is not dependent on DB type.
+#' @return A \code{data.table} with the ADM predictor details. The names are
+#' CamelCased in a standard way so processing of the results is not dependent
+#' on DB type or export tooling.
 #' @export
 #'
 #' @examples

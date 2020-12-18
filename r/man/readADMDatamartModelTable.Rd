@@ -29,7 +29,9 @@ need to make this more subtle, so take the latest after grouping by pyconfigurat
 \item{verbose}{Set to \code{TRUE} to show database queries.}
 }
 \value{
-A \code{data.table} with the ADM model details. The names are lowercased so processing of the results is not dependent on DB type.
+A \code{data.table} with the ADM model details. The names are
+CamelCased in a standard way so processing of the results is not dependent
+on DB type or export tooling.
 }
 \description{
 Reads either all or a selection of the ADM models stored in the ADM datamart into a \code{data.table}. Filters

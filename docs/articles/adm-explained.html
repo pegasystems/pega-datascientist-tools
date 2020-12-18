@@ -39,7 +39,7 @@
       <ul class="nav navbar-nav">
 <li>
   <a href="../index.html">
-    <span class="fas fa fas fa-home fa-lg"></span>
+    <span class="fas fa-home fa-lg"></span>
      
   </a>
 </li>
@@ -78,8 +78,7 @@
 
       
 
-      </header><script src="adm-explained_files/header-attrs-2.5/header-attrs.js"></script><link href="adm-explained_files/anchor-sections-1.0/anchor-sections.css" rel="stylesheet">
-<script src="adm-explained_files/anchor-sections-1.0/anchor-sections.js"></script><script src="adm-explained_files/kePrint-0.0.1/kePrint.js"></script><link href="adm-explained_files/lightable-0.0.1/lightable.css" rel="stylesheet">
+      </header><script src="adm-explained_files/header-attrs-2.6/header-attrs.js"></script><script src="adm-explained_files/kePrint-0.0.1/kePrint.js"></script><link href="adm-explained_files/lightable-0.0.1/lightable.css" rel="stylesheet">
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
@@ -101,15 +100,15 @@
 <p>We will use one of the shipped datamart exports for the example. This is a model very similar to one used in some of the ADM PowerPoint/Excel deep dive examples. To load your own data, see the vignette on ADM reporting for examples.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">cdhtools</span><span class="op">)</span>
-<span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="http://r-datatable.com">data.table</a></span><span class="op">)</span>
+<span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://Rdatatable.gitlab.io/data.table">data.table</a></span><span class="op">)</span>
 
 <span class="fu"><a href="https://rdrr.io/r/utils/data.html">data</a></span><span class="op">(</span><span class="va">admdatamart_models</span><span class="op">)</span>
 <span class="fu"><a href="https://rdrr.io/r/utils/data.html">data</a></span><span class="op">(</span><span class="va">admdatamart_binning</span><span class="op">)</span>
 
-<span class="va">model</span> <span class="op">&lt;-</span> <span class="va">admdatamart_models</span><span class="op">[</span><span class="va">configurationname</span> <span class="op">==</span> <span class="st">"VerySimpleSalesModel"</span> <span class="op">&amp;</span> <span class="va">name</span> <span class="op">==</span> <span class="st">"PSDISCOUNT100"</span><span class="op">]</span><span class="op">[</span><span class="va">snapshottime</span> <span class="op">==</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="va">snapshottime</span><span class="op">)</span><span class="op">]</span>
-<span class="va">modelpredictors</span> <span class="op">&lt;-</span> <span class="va">admdatamart_binning</span><span class="op">[</span><span class="va">modelid</span> <span class="op">==</span> <span class="va">model</span><span class="op">$</span><span class="va">modelid</span> <span class="op">&amp;</span> <span class="va">entrytype</span> <span class="op">!=</span> <span class="st">"Inactive"</span><span class="op">]</span>
+<span class="va">model</span> <span class="op">&lt;-</span> <span class="va">admdatamart_models</span><span class="op">[</span><span class="va">ConfigurationName</span> <span class="op">==</span> <span class="st">"VerySimpleSalesModel"</span> <span class="op">&amp;</span> <span class="va">Name</span> <span class="op">==</span> <span class="st">"PSDISCOUNT100"</span><span class="op">]</span><span class="op">[</span><span class="va">SnapshotTime</span> <span class="op">==</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="va">SnapshotTime</span><span class="op">)</span><span class="op">]</span>
+<span class="va">modelpredictors</span> <span class="op">&lt;-</span> <span class="va">admdatamart_binning</span><span class="op">[</span><span class="va">ModelID</span> <span class="op">==</span> <span class="va">model</span><span class="op">$</span><span class="va">ModelID</span> <span class="op">&amp;</span> <span class="va">EntryType</span> <span class="op">!=</span> <span class="st">"Inactive"</span><span class="op">]</span>
 
-<span class="va">predictorbinning</span> <span class="op">&lt;-</span> <span class="va">modelpredictors</span><span class="op">[</span><span class="va">predictorname</span> <span class="op">==</span> <span class="st">"COUNTRY"</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setorder.html">order</a></span><span class="op">(</span><span class="va">binindex</span><span class="op">)</span><span class="op">]</span></code></pre></div>
+<span class="va">predictorbinning</span> <span class="op">&lt;-</span> <span class="va">modelpredictors</span><span class="op">[</span><span class="va">PredictorName</span> <span class="op">==</span> <span class="st">"COUNTRY"</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setorder.html">order</a></span><span class="op">(</span><span class="va">BinIndex</span><span class="op">)</span><span class="op">]</span></code></pre></div>
 <div id="model-overview" class="section level2">
 <h2 class="hasAnchor">
 <a href="#model-overview" class="anchor"></a>Model overview</h2>
@@ -858,7 +857,7 @@ Netherlands
 <h2 class="hasAnchor">
 <a href="#propensity-mapping" class="anchor"></a>Propensity mapping</h2>
 <p>To get to a propensity, the log odds of the relevant bins of the active predictors are added up and divided by the number of active predictors +1, then used to index in the classifier.</p>
-<p>Below an example. From all the active predictors of the model for PSDISCOUNT100 we pick a value (in the middle for numerics, first symbol for symbolics) and show the (modified) log odds. These log odds values are averaged (added up and divided by number of active predictors + 1), and this is the “score” that is mapped to a propensity value by the classifier (which is constructed using the PAV(A) algorithm).</p>
+<p>Below an example. From all the active predictors of the model for we pick a value (in the middle for numerics, first symbol for symbolics) and show the (modified) log odds. These log odds values are averaged (added up and divided by number of active predictors + 1), and this is the “score” that is mapped to a propensity value by the classifier (which is constructed using the PAV(A) algorithm).</p>
 <table class="table table table-striped">
 <thead><tr>
 <th style="text-align:left;">
