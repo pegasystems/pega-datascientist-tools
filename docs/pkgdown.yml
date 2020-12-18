@@ -1,4 +1,4 @@
-pandoc: 2.7.3
+pandoc: 2.11.2
 pkgdown: 1.6.1
 pkgdown_sha: ~
 articles:
@@ -6,5 +6,5 @@ articles:
   adm-datamart: adm-datamart.html
   adm-explained: adm-explained.html
   ih-reporting: ih-reporting.html
-last_built: 2020-12-08T15:45Z
+last_built: 2020-12-18T10:48Z
 

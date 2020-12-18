@@ -41,9 +41,9 @@ getDMModelContextAsString <- function(partition)
 #' @export
 #'
 #' @examples
-#' \dontrun{models <- getModelsFromDatamart(conn)}
-#' \dontrun{allModels <- getModelsFromDatamart(conn, latestOnly = F)}
-getModelsFromDatamart <- function(conn, appliesToFilter=NULL, ruleNameFilter=NULL, applicationFilter=NULL, latestOnly = F, verbose=F)
+#' \dontrun{models <- readADMDatamartModelTable(conn)}
+#' \dontrun{allModels <- readADMDatamartModelTable(conn, latestOnly = F)}
+readADMDatamartModelTable <- function(conn, appliesToFilter=NULL, ruleNameFilter=NULL, applicationFilter=NULL, latestOnly = F, verbose=F)
 {
   # Drop Pega internal fields and model data (if present - not all releases have that)
   query <- paste("select * from", DATAMART_MODELTABLE, "where false")
@@ -91,15 +91,16 @@ getModelsFromDatamart <- function(conn, appliesToFilter=NULL, ruleNameFilter=NUL
     allModels[[aBatchCondition]] <- as.data.table(dbGetQuery(conn, query))
   }
 
-  result <- rbindlist(allModels)
+  modelz <- rbindlist(allModels)
+
+  # Time conversion here because DB may read date/time in all kinds of formats
   if ("pysnapshottime" %in% names(result)) { result[, pysnapshottime := fasttime::fastPOSIXct(pysnapshottime)] }
   if ("pyfactoryupdatetime" %in% names(result)) { result[, pyfactoryupdatetime := fasttime::fastPOSIXct(pyfactoryupdatetime)] }
 
-  applyUniformPegaFieldCasing(result)
+  modelz <- standardizeDatamartModelData(modelz, latestOnly=latestOnly)
+  modelz <- expandJSONContextInNameField(modelz)
 
-  # TODO peel JSON name
-
-  return(result)
+  return(modelz)
 }
 
 #' Retrieves predictor data from the ADM Datamart.
@@ -118,9 +119,9 @@ getModelsFromDatamart <- function(conn, appliesToFilter=NULL, ruleNameFilter=NUL
 #' @export
 #'
 #' @examples
-#' \dontrun{models <- getModelsFromDatamart(conn)
-#' preds <- getPredictorsForModelsFromDatamart(conn, models$ModelID)}
-getPredictorsForModelsFromDatamart <- function(conn, modelids = NULL, latestOnly=T, verbose=T)
+#' \dontrun{models <- readADMDatamartModelTable(conn)
+#' preds <- readADMDatamartPredictorTable(conn, models$ModelID)}
+readADMDatamartPredictorTable <- function(conn, modelids = NULL, latestOnly=T, verbose=T)
 {
   # Drop Pega internal fields
   query <- paste("select * from", DATAMART_PREDICTORTABLE, "where false")

@@ -49,9 +49,24 @@ test_that("specialized model data export", {
                                      latestOnly=T)
   expect_equal(nrow(data), 15) # only latest snapshot
   expect_equal(ncol(data), 16)
+})
 
-  # TODO include a test for the JSON parsing of pyName
+test_that("model export with JSON names", {
+  m1 <- readDSExport(instancename="ADM-ModelSnapshots-withJSON-fromCDHSample.zip",
+                                     srcFolder="dsexports")
+  expect_equal(ncol(m1), 24)
+  expect_equal(nrow(m1), 361)
+  expect_setequal(unique(m1$pyName),
+                   c("{\"Proposition\":\"P1\"}","{\"pyName\":\"SuperSaver\",\"pyTreatment\":\"Bundles_WebTreatment\"}","BasicChecking","P10"))
 
+  m2 <- readADMDatamartModelExport(instancename="ADM-ModelSnapshots-withJSON-fromCDHSample.zip",
+                                     srcFolder="dsexports")
+  expect_equal(ncol(m2), 21)
+  expect_equal(nrow(m2), 361)
+  expect_true("Treatment" %in% names(m2))
+  expect_true("Proposition" %in% names(m2))
+  expect_setequal(levels(m2$Name),
+                   c('{"Proposition":"P1"}','BasicChecking','P10','SuperSaver'))
 })
 
 test_that("specialized predictor data export", {

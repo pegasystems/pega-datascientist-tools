@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Retrieves predictor data from the ADM Datamart. — getPredictorsForModelsFromDatamart • cdhtools</title>
+<title>Retrieves predictor data from the ADM Datamart. — readADMDatamartPredictorTable • cdhtools</title>
 
 
 <!-- jquery -->
@@ -39,7 +39,7 @@
 
 
 
-<meta property="og:title" content="Retrieves predictor data from the ADM Datamart. — getPredictorsForModelsFromDatamart" />
+<meta property="og:title" content="Retrieves predictor data from the ADM Datamart. — readADMDatamartPredictorTable" />
 <meta property="og:description" content="Typically, predictor data for a certain set of models obtained from getModelsFromDatamart. It is possible to
 retrieve all historical data but by default it only retrieves the most recent snapshot data." />
 
@@ -127,7 +127,7 @@ retrieve all historical data but by default it only retrieves the most recent sn
     <div class="page-header">
     <h1>Retrieves predictor data from the ADM Datamart.</h1>
     
-    <div class="hidden name"><code>getPredictorsForModelsFromDatamart.Rd</code></div>
+    <div class="hidden name"><code>readADMDatamartPredictorTable.Rd</code></div>
     </div>
 
     <div class="ref-description">
@@ -135,10 +135,10 @@ retrieve all historical data but by default it only retrieves the most recent sn
 retrieve all historical data but by default it only retrieves the most recent snapshot data.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>getPredictorsForModelsFromDatamart</span><span class='op'>(</span>
+    <pre class="usage"><span class='fu'>readADMDatamartPredictorTable</span><span class='op'>(</span>
   <span class='va'>conn</span>,
-  models <span class='op'>=</span> <span class='cn'>NULL</span>,
-  mostRecentOnly <span class='op'>=</span> <span class='cn'>T</span>,
+  modelids <span class='op'>=</span> <span class='cn'>NULL</span>,
+  latestOnly <span class='op'>=</span> <span class='cn'>T</span>,
   verbose <span class='op'>=</span> <span class='cn'>T</span>
 <span class='op'>)</span></pre>
 
@@ -150,11 +150,11 @@ retrieve all historical data but by default it only retrieves the most recent sn
       <td><p>Connection to the database</p></td>
     </tr>
     <tr>
-      <th>models</th>
-      <td><p>List of models as a <code>data.table</code> typically obtained from a call to <code>getModelsFromDatamart</code>.</p></td>
+      <th>modelids</th>
+      <td><p>Optional list of model IDs to select from</p></td>
     </tr>
     <tr>
-      <th>mostRecentOnly</th>
+      <th>latestOnly</th>
       <td><p>Only return results for latest snapshot. Currently this works as a global filter, which is ok
 because the snapshot agent will also snapshot all models wholesale. If and when that becomes more granular, we may
 need to make this more subtle, so take the latest after grouping by model ID.</p></td>
@@ -170,9 +170,9 @@ need to make this more subtle, so take the latest after grouping by model ID.</p
     <p>A <code>data.table</code> with the ADM predictor details. The names are lowercased so processing of the results is not dependent on DB type.</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><div class='input'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='va'>models</span> <span class='op'>&lt;-</span> <span class='fu'><a href='getModelsFromDatamart.html'>getModelsFromDatamart</a></span><span class='op'>(</span><span class='va'>conn</span><span class='op'>)</span>
-<span class='va'>preds</span> <span class='op'>&lt;-</span> <span class='fu'>getPredictorsForModelsFromDatamart</span><span class='op'>(</span><span class='va'>conn</span>, <span class='va'>models</span><span class='op'>)</span>
-</div><div class='output co'>#&gt; <span class='error'>Error in getPredictorsForModelsFromDatamart(conn, models): object 'models' not found</span></div></pre>
+    <pre class="examples"><div class='input'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='va'>models</span> <span class='op'>&lt;-</span> <span class='fu'><a href='readADMDatamartModelTable.html'>readADMDatamartModelTable</a></span><span class='op'>(</span><span class='va'>conn</span><span class='op'>)</span>
+<span class='va'>preds</span> <span class='op'>&lt;-</span> <span class='fu'>readADMDatamartPredictorTable</span><span class='op'>(</span><span class='va'>conn</span>, <span class='va'>models</span><span class='op'>$</span><span class='va'>ModelID</span><span class='op'>)</span>
+</div><div class='output co'>#&gt; [1] "select * from pr_data_dm_admmart_pred where false"</div><div class='output co'>#&gt; <span class='error'>Error in dbGetQuery(conn, query): could not find function "dbGetQuery"</span></div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

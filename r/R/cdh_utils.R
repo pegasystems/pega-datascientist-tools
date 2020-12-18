@@ -28,7 +28,8 @@ NULL
 #' @export
 #'
 #' @examples
-#' data <- data.table( id = "abc", pyresponsecount = 1234 ); applyUniformPegaFieldCasing(data)
+#' DT <- data.table::data.table(id = "abc", pyresponsecount = 1234)
+#' applyUniformPegaFieldCasing(DT)
 applyUniformPegaFieldCasing <- function(dt)
 {
   fields <- names(dt)
@@ -56,6 +57,67 @@ applyUniformPegaFieldCasing <- function(dt)
   fields <- gsub("^(.)", "\\U\\1", fields, perl = T)
 
   setnames(dt, fields)
+}
+
+# Drop internal fields, fix types and more
+standardizeDatamartModelData <- function(dt, latestOnly)
+{
+  # drop internal fields
+  dt[, names(dt)[grepl("^p[x|z]", names(dt))] := NULL]
+
+  # proper camel casing of fields
+  applyUniformPegaFieldCasing(dt)
+
+  # filter to only take latest snapshot
+  if (latestOnly) {
+    dt <- dt[, .SD[which.max(SnapshotTime)], by=ModelID]
+  }
+
+  # some fields notoriously returned as char but are numeric
+  dt[, Performance := as.numeric(as.character(Performance))]
+  dt[, Positives := as.numeric(as.character(Positives))]
+  dt[, Negatives := as.numeric(as.character(Negatives))]
+
+  # convert date/time fields if present and not already converted prior
+  if (class(dt$SnapshotTime) == "factor") {
+    dt[, SnapshotTime := fromPRPCDateTime(SnapshotTime)]
+  }
+  if ("FactoryUpdateTime" %in% names(dt)) {
+    if (class(dt$FactoryUpdateTime) == "factor") {
+      dt[, FactoryUpdateTime := fromPRPCDateTime(FactoryUpdateTime)]
+    }
+  }
+
+  return(dt)
+}
+
+# If context of ADM models has been customized, additional context keys will
+# be represented as a JSON string in the pyName field. Here we try to detect
+# that and create proper fields instead of a JSON string.
+expandJSONContextInNameField <- function(dt)
+{
+  mapping <- data.table( OriginalName = levels(dt$Name) )
+  mapping[, isJSON := startsWith(OriginalName, "{") & endsWith(OriginalName, "}")]
+  if (!any(mapping$isJSON)) return(dt)
+
+  jsonFields <- rbindlist(lapply(mapping$OriginalName[mapping$isJSON], jsonlite::fromJSON, flatten=T), fill = T)
+  mapping[(isJSON), names(jsonFields) := jsonFields]
+  rbindlist(lapply(mapping$OriginalName[mapping$isJSON], jsonlite::fromJSON, flatten=T), fill = T)
+  mapping[, isJSON := NULL]
+  for (newName in names(mapping)) {
+    if (is.character(mapping[[newName]])) {
+      mapping[[newName]] <- factor(mapping[[newName]]) # retain as factors
+    }
+  }
+  applyUniformPegaFieldCasing(mapping) # apply uniform naming to new fields as well
+
+  dt <- merge(dt, mapping, by.x="Name", by.y="OriginalName")
+  if ("Name.y" %in% names(dt)) {
+    # use name from JSON strings but only if present there
+    dt[, Name := factor(ifelse(is.na(Name.y), as.character(Name), as.character(Name.y)))]
+    dt[, Name.y := NULL]
+  }
+  return(dt)
 }
 
 #' Read a Pega dataset export file.
@@ -115,7 +177,7 @@ readDSExport <- function(instancename, srcFolder=".", tmpFolder=tempdir(check = 
       zipFile <- paste(srcFolder,
                        rev(sort(list.files(path=srcFolder, pattern=paste("^", instancename, "_.*\\.zip$", sep=""))))[1],
                        sep="/")
-      if(!file.exists(zipFile)) stop("File not found (looking for most recent file matching instancename in specified folder)")
+      if(!file.exists(zipFile)) stop(paste("File not found (looking for most recent file matching", instancename, "in", srcFolder, ")"))
     }
     jsonFile <- file.path(tmpFolder,"data.json")
     if(file.exists(jsonFile)) file.remove(jsonFile)
@@ -181,43 +243,18 @@ readADMDatamartModelExport <- function(srcFolder=".",
                                        latestOnly = F,
                                        tmpFolder=tempdir(check = T))
 {
+  if (file.exists(srcFolder) & !dir.exists(srcFolder)) {
+    # if just one argument was passed and it happens to be an existing file, try use that
+    instancename = srcFolder
+    srcFolder = "."
+  }
+
   modelz <- readDSExport(instancename, srcFolder, tmpFolder=tmpFolder, stringsAsFactors=T)
-  if ("pyModelData" %in% names(modelz)) { modelz[, pyModelData := NULL] } # older versions don't have this field and perhaps not all future versions will
-  modelz[, names(modelz)[grepl("^p[x|z]", names(modelz))] := NULL]
-  applyUniformPegaFieldCasing(modelz)
-  modelz[, Performance := as.numeric(as.character(Performance))] # some fields notoriously returned as char but are numeric
-  modelz[, Positives := as.numeric(as.character(Positives))]
-  modelz[, Negatives := as.numeric(as.character(Negatives))]
-  modelz[, SnapshotTime := fromPRPCDateTime(SnapshotTime)]
 
-  # If context of ADM models has been customized, additional context keys will
-  # be represented as a JSON string in the pyName field. Here we try to detect
-  # that and create proper fields instead of a JSON string.
-  customizedContextKeysNameMapping <- data.table( OriginalName = levels(modelz$Name) )
-  customizedContextKeysNameMapping[, isJSON := startsWith(OriginalName, "{") & endsWith(OriginalName, "}")]
-  dataInJSONNames <- rbindlist(lapply(customizedContextKeysNameMapping$OriginalName[customizedContextKeysNameMapping$isJSON], jsonlite::fromJSON, flatten=T), fill = T)
-  customizedContextKeysNameMapping[(isJSON), names(dataInJSONNames) := dataInJSONNames]
-  rbindlist(lapply(customizedContextKeysNameMapping$OriginalName[customizedContextKeysNameMapping$isJSON], jsonlite::fromJSON, flatten=T), fill = T)
-  customizedContextKeysNameMapping[, isJSON := NULL]
-  for (newName in names(customizedContextKeysNameMapping)) {
-    if (is.character(customizedContextKeysNameMapping[[newName]])) {
-      customizedContextKeysNameMapping[[newName]] <- factor(customizedContextKeysNameMapping[[newName]])
-    }
-  }
-  applyUniformPegaFieldCasing(customizedContextKeysNameMapping)
-  modelz <- merge(modelz, customizedContextKeysNameMapping, by.x="Name", by.y="OriginalName")
-  if ("Name.y" %in% names(modelz)) {
-    # use name from JSON strings but only if present there
-    modelz[, Name := factor(ifelse(is.na(Name.y), Name, Name.y))]
-    modelz[, Name.y := NULL]
-  }
+  modelz <- standardizeDatamartModelData(modelz, latestOnly=latestOnly)
+  modelz <- expandJSONContextInNameField(modelz)
 
-  if ("Factoryupdatetime" %in% names(modelz)) { modelz[, Factoryupdatetime := fromPRPCDateTime(Factoryupdatetime)] }
-  if (latestOnly) {
-    return(modelz[, .SD[which.max(SnapshotTime)], by=ModelID])
-  } else {
-    return(modelz)
-  }
+  return(modelz)
 }
 
 #' Read export of ADM predictor data.

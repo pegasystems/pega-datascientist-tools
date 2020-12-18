@@ -17,5 +17,6 @@ Uniformly sets the field names for data.tables from DB and dataset export,
 capitalizing first letter, fixing common endings.
 }
 \examples{
-data <- data.table( id = "abc", pyresponsecount = 1234 ); applyUniformPegaFieldCasing(data)
+DT <- data.table::data.table(id = "abc", pyresponsecount = 1234)
+applyUniformPegaFieldCasing(DT)
 }

@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Retrieves ADM models from the ADM Datamart. — getModelsFromDatamart • cdhtools</title>
+<title>Fix field casing — applyUniformPegaFieldCasing • cdhtools</title>
 
 
 <!-- jquery -->
@@ -39,11 +39,9 @@
 
 
 
-<meta property="og:title" content="Retrieves ADM models from the ADM Datamart. — getModelsFromDatamart" />
-<meta property="og:description" content="Reads either all or a selection of the ADM models stored in the ADM datamart into a data.table. Filters
-can be passed in to select a particular AppliesTo classes, particular ADM rules or particular applications.
-By default the method gets only the most recent snapshots but you can obtain the full history too, if available. To
-prevent possible OOM errors reading the full table, the retrieval will be batched." />
+<meta property="og:title" content="Fix field casing — applyUniformPegaFieldCasing" />
+<meta property="og:description" content="Uniformly sets the field names for data.tables from DB and dataset export,
+capitalizing first letter, fixing common endings." />
 
 
 
@@ -127,65 +125,34 @@ prevent possible OOM errors reading the full table, the retrieval will be batche
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Retrieves ADM models from the ADM Datamart.</h1>
+    <h1>Fix field casing</h1>
     
-    <div class="hidden name"><code>getModelsFromDatamart.Rd</code></div>
+    <div class="hidden name"><code>applyUniformPegaFieldCasing.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Reads either all or a selection of the ADM models stored in the ADM datamart into a <code>data.table</code>. Filters
-can be passed in to select a particular <code>AppliesTo</code> classes, particular ADM rules or particular applications.
-By default the method gets only the most recent snapshots but you can obtain the full history too, if available. To
-prevent possible OOM errors reading the full table, the retrieval will be batched.</p>
+    <p>Uniformly sets the field names for data.tables from DB and dataset export,
+capitalizing first letter, fixing common endings.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>getModelsFromDatamart</span><span class='op'>(</span>
-  <span class='va'>conn</span>,
-  appliesToFilter <span class='op'>=</span> <span class='cn'>NULL</span>,
-  ruleNameFilter <span class='op'>=</span> <span class='cn'>NULL</span>,
-  applicationFilter <span class='op'>=</span> <span class='cn'>NULL</span>,
-  mostRecentOnly <span class='op'>=</span> <span class='cn'>T</span>,
-  verbose <span class='op'>=</span> <span class='cn'>T</span>
-<span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>applyUniformPegaFieldCasing</span><span class='op'>(</span><span class='va'>dt</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>conn</th>
-      <td><p>Connection to the database</p></td>
-    </tr>
-    <tr>
-      <th>appliesToFilter</th>
-      <td><p>Optional filter on the <code>AppliesTo</code> class. Can be a list, matching is exact.</p></td>
-    </tr>
-    <tr>
-      <th>ruleNameFilter</th>
-      <td><p>Optional filter on the ADM rule name. Can be a list, matching is exact.</p></td>
-    </tr>
-    <tr>
-      <th>applicationFilter</th>
-      <td><p>Optional filter on the application field. Can be a list, matching is exact.</p></td>
-    </tr>
-    <tr>
-      <th>mostRecentOnly</th>
-      <td><p>Only return results for latest snapshot. Currently this works as a global filter, which is ok
-because the snapshot agent will also snapshot all models wholesale. If and when that becomes more granular, we may
-need to make this more subtle, so take the latest after grouping by pyconfigurationname, pyappliestoclass, pxapplication.</p></td>
-    </tr>
-    <tr>
-      <th>verbose</th>
-      <td><p>Set to <code>TRUE</code> to show database queries.</p></td>
+      <th>dt</th>
+      <td><p>Data table to apply to</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>A <code>data.table</code> with the ADM model details. The names are lowercased so processing of the results is not dependent on DB type.</p>
+    <p>The names of the input are modified by reference</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><div class='input'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='va'>models</span> <span class='op'>&lt;-</span> <span class='fu'>getModelsFromDatamart</span><span class='op'>(</span><span class='va'>conn</span><span class='op'>)</span>
-<span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='va'>allModels</span> <span class='op'>&lt;-</span> <span class='fu'>getModelsFromDatamart</span><span class='op'>(</span><span class='va'>conn</span>, mostRecentOnly <span class='op'>=</span> <span class='cn'>F</span><span class='op'>)</span>
+    <pre class="examples"><div class='input'><span class='va'>DT</span> <span class='op'>&lt;-</span> <span class='fu'>data.table</span><span class='fu'>::</span><span class='fu'><a href='https://Rdatatable.gitlab.io/data.table/reference/data.table.html'>data.table</a></span><span class='op'>(</span>id <span class='op'>=</span> <span class='st'>"abc"</span>, pyresponsecount <span class='op'>=</span> <span class='fl'>1234</span><span class='op'>)</span>
+<span class='fu'>applyUniformPegaFieldCasing</span><span class='op'>(</span><span class='va'>DT</span><span class='op'>)</span>
 </div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
