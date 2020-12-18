@@ -1,9 +1,3 @@
----
-title: "CDH Tools"
-output:
-  html_document
----
-
 # Customer Decision Hub Data Scientist Tools
 
 Notebooks and utilities for data scientists to work with Pega DSM/CDH.
