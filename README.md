@@ -11,7 +11,7 @@ The tools help to do analysis on DSM/CDH, pull data from the platform and more. 
 
 # Getting Started
 
-For instructions and information, see the [CDH Tools Wiki page](/https://github.com/pegasystems/cdh-datascientist-tools/wiki).
+For instructions and information, see the [CDH Tools Wiki page](https://github.com/pegasystems/cdh-datascientist-tools/wiki).
 
 # Contributing
 
