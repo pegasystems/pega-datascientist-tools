@@ -65,15 +65,14 @@ library(data.table)
 
 ggplot(admdatamart_models %>%
          mutate(Performance = 100*Performance,
-                Responses = Positives+Negatives,
-                AcceptRate = Positives/(Positives+Negatives)),
-       aes(Performance, AcceptRate, colour=Name, shape=ConfigurationName, size=log(Responses)))+
+                AcceptRate = Positives/ResponseCount),
+       aes(Performance, AcceptRate, colour=Name, shape=ConfigurationName, size=log(ResponseCount)))+
   geom_vline(xintercept=c(52,90), linetype="dashed")+
   geom_point(alpha=0.7) +
   guides(colour=guide_legend(title="Proposition"),
          shape=guide_legend(title="Model"),
          size=FALSE)+
-  scale_x_continuous(limits = c(50, 100), name = "Proposition Performance") +
+  scale_x_continuous(limits = c(50, 70), name = "Proposition Performance") +
   scale_y_continuous(limits = c(0, 1), name = "Success Rate", labels = scales::percent) +
   theme(panel.background = element_rect(fill='lightgreen'))
 ```

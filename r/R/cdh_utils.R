@@ -39,7 +39,7 @@ applyUniformPegaFieldCasing <- function(dt)
                            "ToClass", "Version", "Predictor", "Predictors", "Rate", "Ratio",
                            "Negatives", "Positives", "Threshold", "Error", "Importance",
                            "Type", "Percentage", "Index", "Symbol",
-                           "LowerBound", "UpperBound", "Bins",
+                           "LowerBound", "UpperBound", "Bins", "GroupIndex",
                            "ResponseCount", "NegativesPercentage", "PositivesPercentage",
                            "BinPositives", "BinNegatives", "BinResponseCount", "BinResponseCount",
                            "ResponseCountPercentage")
@@ -285,7 +285,7 @@ readADMDatamartModelExport <- function(srcFolder=".",
 #' @examples
 #' \dontrun{readADMDatamartPredictorExport("~/Downloads")}
 readADMDatamartPredictorExport <- function(srcFolder=".",
-                                           instancename = "Data-Decision-ADM-PredictorBinningSnapshot_PredictorBinningSnapshot",
+                                           instancename = "Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots",
                                            noBinning = T,
                                            latestOnly = T,
                                            tmpFolder=tempdir(check = T))
@@ -493,6 +493,9 @@ toPRPCDateTime <- function(x)
 {
   return(strftime(x, format="%Y%m%dT%H%M%OS3", tz="GMT", usetz=T))
 }
+
+# TODO below function is tricky and depends on names. It was used in the
+# modelreport.Rmd but possibly also internally.
 
 #' Helper function to return the actual and reported performance of ADM models.
 #'
