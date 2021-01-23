@@ -58,18 +58,18 @@ verify_results <- function(pmmlString, pmmlFile, inputFile, outputFile)
 
 compareBinning <- function(predictorName, dmBinning, jsonBinning, dmCSV, jsonCSV)
 {
-  expect_equal(nrow(dmBinning[bintype!="SYMBOL"]), nrow(jsonBinning[bintype!="SYMBOL"]),
+  expect_equal(nrow(dmBinning[BinType!="SYMBOL"]), nrow(jsonBinning[BinType!="SYMBOL"]),
                info=paste("nr of bins of", predictorName, ":",
-                          nrow(dmBinning[bintype!="SYMBOL"]), "[", dmCSV, "]", "vs",
-                          nrow(jsonBinning[bintype!="SYMBOL"]), "[", jsonCSV, "]"))
+                          nrow(dmBinning[BinType!="SYMBOL"]), "[", dmCSV, "]", "vs",
+                          nrow(jsonBinning[BinType!="SYMBOL"]), "[", jsonCSV, "]"))
 
   # this seems to be model performance, not predictor performance
-  expect_equal(unique(dmBinning$performance), unique(jsonBinning$performance), tolerance=1e-6,
-               info=paste("performance",
+  expect_equal(unique(dmBinning$Performance), unique(jsonBinning$Performance), tolerance=1e-6,
+               info=paste("Performance",
                           "[", dmCSV, "]", "vs", "[", jsonCSV, "]"))
 
-  if (nrow(dmBinning[bintype!="SYMBOL"]) == nrow(jsonBinning[bintype!="SYMBOL"])) {
-    flds <- setdiff(names(dmBinning), c("modelid", "performance"))
+  if (nrow(dmBinning[BinType!="SYMBOL"]) == nrow(jsonBinning[BinType!="SYMBOL"])) {
+    flds <- setdiff(names(dmBinning), c("ModelID", "Performance"))
     for (f in flds) {
       if (nrow(dmBinning) == nrow(jsonBinning)) {
         # full comparison
@@ -78,7 +78,7 @@ compareBinning <- function(predictorName, dmBinning, jsonBinning, dmCSV, jsonCSV
                                 "[", dmCSV, "]", "vs", "[", jsonCSV, "]"))
       } else {
         # exclude the SYMBOL matches from the comparison
-        expect_equal(dmBinning[bintype!="SYMBOL"][[f]], jsonBinning[bintype!="SYMBOL"][[f]], tolerance=1e-6,
+        expect_equal(dmBinning[BinType!="SYMBOL"][[f]], jsonBinning[BinType!="SYMBOL"][[f]], tolerance=1e-6,
                      info=paste("comparing (except SYMBOL matches)", f, "bins of",predictorName,
                                 "[", dmCSV, "]", "vs", "[", jsonCSV, "]"))
       }
@@ -96,23 +96,24 @@ compareCSV <- function(dmCSV, jsonCSV)
                               "[", dmCSV, "]", "vs", names(json), "[", jsonCSV, "]"))
 
   if (identical(names(dm), names(json))) {
-    dmPreds <- sort(unique(dm$predictorname))
-    jsonPreds <- sort(unique(dm$predictorname))
+    dmPreds <- sort(unique(dm$PredictorName))
+    jsonPreds <- sort(unique(dm$PredictorName))
 
     expect_identical(dmPreds, jsonPreds,
                      info=paste("predictor names not the same", names(dm), "[", dmCSV, "]", "vs", names(json), "[", jsonCSV, "]"))
 
-    # exclude when predictortype = "SYMBOLIC" as the factory representation contains all symbols
+    # exclude when PredictorType = "SYMBOLIC" as the factory representation contains all symbols
     # while this is truncated in the DM - this may not be a problem per se, if so then propensities will show this
 
-    expect_identical(nrow(dm[predictortype!="SYMBOLIC"]), nrow(json[predictortype!="SYMBOLIC"]),
+    expect_identical(nrow(dm[PredictorType!="SYMBOLIC"]), nrow(json[PredictorType!="SYMBOLIC"]),
                      info=paste("total number of bins for all non-symbolic predictors not the same",
-                                nrow(dm[predictortype!="SYMBOLIC"]), "[", dmCSV, "]", "vs",
-                                nrow(json[predictortype!="SYMBOLIC"]), "[", jsonCSV, "]"))
+                                nrow(dm[PredictorType!="SYMBOLIC"]), "[", dmCSV, "]", "vs",
+                                nrow(json[PredictorType!="SYMBOLIC"]), "[", jsonCSV, "]"))
 
     if (identical(dmPreds, jsonPreds)) {
-      for (p in c(setdiff(dmPreds,"classifier"), intersect(dmPreds, "classifier"))) { # list classifier last
-        compareBinning(p, dm[predictorname==p], json[predictorname==p], dmCSV, jsonCSV)
+      for (p in c(setdiff(dmPreds,"Classifier"),
+                  intersect(dmPreds, "Classifier"))) { # list classifier last
+        compareBinning(p, dm[PredictorName==p], json[PredictorName==p], dmCSV, jsonCSV)
       }
     }
   }
@@ -150,7 +151,8 @@ pmml_unittest <- function(testName)
     jsonFiles <- list.files(path = jsonFolder, pattern = "^.*\\.json", full.names = T)
     partitions <- data.table(pymodelpartitionid = sub("^.*json[^.]*\\.(.*)\\.json", "\\1", jsonFiles),
                              pyfactory = sapply(jsonFiles, readr::read_file))
-    modelList <- createListFromADMFactory(partitions, testName, tmpFolder)
+    modelList <- createListFromADMFactory(partitions, testName, tmpFolder,
+                                          forceLowerCasePredictorNames=T)
 
     pmml <- createPMML(modelList, testName)
 
@@ -165,6 +167,8 @@ pmml_unittest <- function(testName)
 
     predictorData <- fread(predictorDataFile)
     applyUniformPegaFieldCasing(predictorData)
+
+    # forcing lowercase predictornames here
     predictorData[, PredictorName := tolower(PredictorName)]
 
     if (file.exists(modelDataFile)) {
@@ -205,7 +209,8 @@ pmml_unittest <- function(testName)
       dmBinningFiles <- sort(dmBinningFiles)
       jsonBinningFiles <- sort(jsonBinningFiles)
       for (i in seq(length(dmBinningFiles))) {
-        compareCSV(dmBinningFiles[i], jsonBinningFiles[i]) # assume the files are named so their alphabetical order is the same
+        compareCSV(dmBinningFiles[i],
+                   jsonBinningFiles[i]) # assume the files are named so their alphabetical order is the same
       }
     }
   }
@@ -285,3 +290,130 @@ test_that("Issue with creating PMML from internal JSON", {
 test_that("Test the test generator", {
   pmml_unittest("testfw")
 })
+
+test_that("Simple but deeper dive", {
+  pmml_unittest("deeperdive")
+})
+
+test_that("Issue with a single classifier bin", {
+  pmml_unittest("singleclassifierbin")
+})
+
+# Reason codes
+
+test_that("Scorecard reason codes", {
+  context("Scorecard reason codes")
+
+  testFolder <- "d"
+  # tmpFolder <- tempdir()
+  tmpFolder <- paste(testFolder, "tmp2", sep="/")
+  if (!dir.exists(tmpFolder)) dir.create(tmpFolder)
+
+  # Convert the simplest model to PMML including reason code options
+  predData <- fread(file.path(testFolder, "deeperdive_predictordata.csv"))
+  dummyModelData <- data.table(pymodelid = unique(predData$pymodelid),
+                               pyconfigurationname = c("simplemodel"),
+                               pyappliestoclass = "Dummy",
+                               pxapplication = "Dummy",
+                               pyname = "Dummy",
+                               pysnapshottime = unique(predData$pysnapshottime))
+  pmmlFiles <- adm2pmml(dmModels = dummyModelData,
+                        dmPredictors = predData,
+                        destDir = tmpFolder)
+
+  expect_equal(length(pmmlFiles), 1)
+
+  # Run with inputs. The inputs include the same 3 cases that are detailed in the deeper dive Excel sheet
+  run_jpmml(file.path(tmpFolder, "simplemodel.pmml"),
+            file.path(testFolder, "deeperdive_inputs_reasoncodetests.csv"),
+            file.path(tmpFolder, "deeperdive_output.csv"))
+
+  # Check the outputs contain reason codes
+  expect_true(0 == file.access(file.path(tmpFolder, "deeperdive_output.csv"), mode=4))
+  output <- fread(file = file.path(tmpFolder, "deeperdive_output.csv"))
+
+  # By default 3 reason codes
+  expect_equal(length(intersect( names(output), c("Explain-1", "Explain-2", "Explain-3") )), 3)
+
+  # Each reason code should have 6 elements with the score between min and max
+  output[, paste("r1", c("pred", "binlabel", "score", "min", "avg", "max"), sep="_") := tstrsplit(`Explain-1`, split="|", fixed=T)]
+  output[, paste("r2", c("pred", "binlabel", "score", "min", "avg", "max"), sep="_") := tstrsplit(`Explain-2`, split="|", fixed=T)]
+  output[, paste("r3", c("pred", "binlabel", "score", "min", "avg", "max"), sep="_") := tstrsplit(`Explain-3`, split="|", fixed=T)]
+
+  expect_true(all(output[r1_pred != "Context Mismatch"][, (r1_score >= r1_min) & (r1_score <= r1_max)]), "All scores should be between min and max")
+  expect_true(all(output[r1_pred != "Context Mismatch"][, (r1_avg >= r1_min) & (r1_avg <= r1_max)]), "All average scores should be between min and max")
+
+  # For the first test case, first and second reason codes as expected
+  expect_equal(output$r1_pred, c(rep("Country",5), "Age")) # Age only shows up if Country is missing when using points above minimum
+  expect_equal(output$r2_pred, c(rep("Age",5), "Country"))
+  expect_equal(output$r3_pred, rep("N/A",6))
+
+  # now need to verify the 2 or 3 modes
+  # useReasonCodes="true", baselineMethod="min", reasonCodeAlgorithm="pointsAbove"
+  # useReasonCodes="true", baselineMethod="max", reasonCodeAlgorithm="pointsBelow"
+  # useReasonCodes="true", baselineMethod="mean", reasonCodeAlgorithm="pointsAbove"
+  # useReasonCodes="true", baselineMethod="mean", reasonCodeAlgorithm="pointsBelow"
+
+  # reasonCodeAlgorithm: May be "pointsAbove" or "pointsBelow", describing how reason codes shall be ranked,
+  # relative to the baseline score of each Characteristic, or as set at the top-level scorecard.
+})
+
+test_that("Creating a Scorecard from the captured scoring model", {
+  testFolder <- "d"
+
+  # for testing in console
+  # testFolder<-"tests/testthat/d"
+
+  encodedModelData <- paste(readLines(file.path(testFolder, "scoringmodeldata.json")), collapse="\n")
+
+  sc <- getScoringModelFromJSONFactoryString(encodedModelData, isAuditModel=T)
+
+  expect_equal(ncol(sc$scorecard), 5)
+  expect_equal(ncol(sc$mapping), 4)
+  expect_equal(ncol(sc$binning), 9)
+  expect_equal(nrow(sc$scorecard), 92)
+  expect_equal(nrow(sc$mapping), 22)
+  expect_equal(nrow(sc$binning), 114)
+
+  expect_equal(nrow(getScoringModelFromJSONFactoryString(encodedModelData)$mapping), 22)
+  expect_equal(nrow(getScoringModelFromJSONFactoryString(encodedModelData)$scorecard), 0) # no info about active or not, all considered inactive
+  expect_equal(nrow(getScoringModelFromJSONFactoryString(encodedModelData)$binning), 22)
+
+  # TODO run scorecard on returned binning for a single case
+  score <- function(scorecard, inputs) # candidate for cdh_utils
+  {
+    totalscore <- 0.5
+
+    return(totalscore)
+  }
+
+  # TODO verify against real ADM model (test panel)
+  xxx <- score(sc$binning, list(Age = 40, Income = 10000, OverallUsage = 0) )
+
+
+})
+
+# Check user facing wrapper function
+
+test_that("Wrapper function using DM exports", {
+  context("Wrapper function adm2pmml")
+
+  allModels <- readDSExport("Data-Decision-ADM-ModelSnapshot_All","dsexports")
+  allPredictors <- readDSExport("Data-Decision-ADM-PredictorBinningSnapshot_All","dsexports")
+
+  pmmlFiles <- adm2pmml(allModels, allPredictors)
+
+  expect_equal(length(pmmlFiles), 3)
+  expect_equal(names(pmmlFiles)[1], "./BannerModel.pmml")
+  expect_equal(names(pmmlFiles)[2], "./SalesModel.pmml")
+  expect_equal(names(pmmlFiles)[3], "./VerySimpleSalesModel.pmml")
+  expect_equal(length(pmmlFiles[[1]]), 5)
+  expect_equal(length(pmmlFiles[[2]]), 5)
+  expect_equal(length(pmmlFiles[[3]]), 5)
+
+  expect_equal(length(adm2pmml(allModels, allPredictors, ruleNameFilter="^(?!VerySimple).*$", appliesToFilter="PMDSM")), 2)
+  expect_equal(length(adm2pmml(allModels, allPredictors, appliesToFilter="DMSample")), 0)
+})
+
+
+

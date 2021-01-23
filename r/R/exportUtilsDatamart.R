@@ -247,7 +247,7 @@ getPredictorDataFromDatamart <- function(dmbinning, id, overallModelName, tmpFol
                          BinType = apply(dmbinning, 1, getBinTypeFromDatamart),
                          BinPos = as.numeric(dmbinning$BinPositives),
                          BinNeg = as.numeric(dmbinning$BinNegatives),
-                         BinIdx = as.integer(dmbinning$BinIndex),
+                         BinIndex = as.integer(dmbinning$BinIndex),
                          TotalPos = as.numeric(dmbinning$Positives),
                          TotalNeg = as.numeric(dmbinning$Negatives),
                          Smoothing = as.numeric(NA),
@@ -259,14 +259,14 @@ getPredictorDataFromDatamart <- function(dmbinning, id, overallModelName, tmpFol
   binning[BinType == "MISSING", BinLabel := "Missing"] # for consistency
   binning[BinType == "REMAININGSYMBOLS", BinLabel := "Other"] # for consistency
 
-  # If there are missings, their BinIdx should start at 0
-  binning[, BinIdx := BinIdx - ifelse(any(BinType == "MISSING"), 1L, 0L), by=c("ModelID", "PredictorName")]
+  # If there are missings, their BinIndex should start at 0
+  binning[, BinIndex := BinIndex - ifelse(any(BinType == "MISSING"), 1L, 0L), by=c("ModelID", "PredictorName")]
 
   # - change num intervals to use NA to indicate inclusiveness of bounds
   binning[PredictorType != "SYMBOLIC" & BinType != "MISSING",
           c("BinLowerBound", "BinUpperBound") :=
-            list(ifelse(BinIdx==min(BinIdx),as.numeric(NA),BinLowerBound),
-                 ifelse(BinIdx==max(BinIdx),as.numeric(NA),BinUpperBound)),
+            list(ifelse(BinIndex==min(BinIndex),as.numeric(NA),BinLowerBound),
+                 ifelse(BinIndex==max(BinIndex),as.numeric(NA),BinUpperBound)),
           by=c("ModelID", "PredictorName")]
 
   # - add "Smoothing" field in the exact same manner that ADM does it (see ISSUE-22141)
@@ -290,7 +290,7 @@ getPredictorDataFromDatamart <- function(dmbinning, id, overallModelName, tmpFol
   binningSummary <- binning[PredictorType != "CLASSIFIER",
                             .(nMissing = sum(BinType=="MISSING"),
                               nRemaining = sum(BinType=="REMAININGSYMBOLS"),
-                              maxBinIdx = max(c(0,BinIdx), na.rm = T)),
+                              maxBinIndex = max(c(0,BinIndex), na.rm = T)),
                             by=c("ModelID", "PredictorName", "PredictorType", "TotalPos", "TotalNeg", "Smoothing", "IsActive", "Performance")]
 
   if(any(binningSummary$nMissing < 1)) {
@@ -301,7 +301,7 @@ getPredictorDataFromDatamart <- function(dmbinning, id, overallModelName, tmpFol
                                          BinType="MISSING",
                                          BinPos=0,
                                          BinNeg=0,
-                                         BinIdx=0)
+                                         BinIndex=0)
     missingMissings <- merge(binningSummary[nMissing==0],
                              defaultsForMissingBin,
                              all.x=T, by="ModelID")[, BINNINGTABLEFIELDS, with=F]
@@ -318,10 +318,10 @@ getPredictorDataFromDatamart <- function(dmbinning, id, overallModelName, tmpFol
                                            BinType="REMAININGSYMBOLS",
                                            BinPos=0,
                                            BinNeg=0,
-                                           BinIdx=NA)
+                                           BinIndex=NA)
     missingRemainings <- merge(binningSummary[PredictorType=="SYMBOLIC" & nRemaining==0],
                                defaultsForRemainingBin,
-                               all.x=T, by="ModelID")[, BinIdx := 1+maxBinIdx][, BINNINGTABLEFIELDS, with=F]
+                               all.x=T, by="ModelID")[, BinIndex := 1+maxBinIndex][, BINNINGTABLEFIELDS, with=F]
   } else {
     missingRemainings <- data.table()
   }

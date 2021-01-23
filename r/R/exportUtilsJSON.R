@@ -238,10 +238,10 @@ internalBinningFromJSONFactory <- function(binningJSON, id, activePredsOnly)
 #' @export
 getScoringModelFromJSONFactoryString <- function(analyzedData, isAuditModel=F)
 {
-  buildLabel <- function(PredictorType, BinType, BinLabel, binlowerbound, binupperbound)
+  buildLabel <- function(PredictorType, BinType, BinLabel, BinLowerBound, BinUpperBound)
   {
     return(ifelse(BinType == "MISSING","MISSING",
-                  ifelse(BinType == "INTERVAL",buildIntervalNotation(binlowerbound, binupperbound),
+                  ifelse(BinType == "INTERVAL",buildIntervalNotation(BinLowerBound, BinUpperBound),
                          ifelse(BinType == "SYMBOL",BinLabel,
                                 ifelse(BinType == "REMAININGSYMBOLS", "Other", paste("Internal error: unknown type", BinType))))))
   }
@@ -255,18 +255,20 @@ getScoringModelFromJSONFactoryString <- function(analyzedData, isAuditModel=F)
   # into scorecard and a score mapping
 
   scaledBinning <- setBinWeights(internalBinning)$binning
-  scaledBinning[, Label := buildLabel(PredictorType, BinType, BinLabel, binlowerbound, binupperbound)]
+  scaledBinning[, Label := buildLabel(PredictorType, BinType, BinLabel, BinLowerBound, BinUpperBound)]
 
   # The field to score mapping (also returning pos/neg so numbers can be verified)
-  scorecard <- scaledBinning[PredictorType != "CLASSIFIER", c("predictorname", "Label", "binWeight", "BinPos", "BinNeg")]
+  scorecard <- scaledBinning[PredictorType != "CLASSIFIER",
+                             c("PredictorName", "Label", "binWeight", "BinPos", "BinNeg")]
   setnames(scorecard, c("Field", "Value", "Points", "pos", "neg"))
 
   # The classifier mapping
-  scorecardMapping <- scaledBinning[PredictorType == "CLASSIFIER", c("Label", "binWeight", "BinPos", "BinNeg")]
+  scorecardMapping <- scaledBinning[PredictorType == "CLASSIFIER",
+                                    c("Label", "binWeight", "BinPos", "BinNeg")]
   setnames(scorecardMapping, c("Score Range", "Propensity", "pos", "neg"))
 
   # Both plus the original boundaries/labels
-  oriBinning <- scaledBinning[, c("predictorname", "PredictorType", "BinType", "BinLabel", "binlowerbound", "binupperbound", "binWeight", "BinPos", "BinNeg")]
+  oriBinning <- scaledBinning[, c("PredictorName", "PredictorType", "BinType", "BinLabel", "BinLowerBound", "BinUpperBound", "binWeight", "BinPos", "BinNeg")]
   setnames(oriBinning, c("Field", "FieldType", "BinType", "Symbol", "LowerBound", "UpperBound", "Weight", "pos", "neg"))
 
   return(list(scorecard = scorecard, mapping = scorecardMapping, binning = oriBinning))
@@ -287,7 +289,7 @@ createListFromSingleJSONFactoryString <- function(aFactory, id, overallModelName
   predBinningTable <- internalBinningFromJSONFactory(model$analyzedData, id, activePredsOnly)
 
   if (forceLowerCasePredictorNames) {
-    predBinningTable$predictorname <- tolower(predBinningTable$predictorname)
+    predBinningTable[, PredictorName := tolower(PredictorName)]
   }
 
   # Dump binning for debugging
@@ -301,7 +303,13 @@ createListFromSingleJSONFactoryString <- function(aFactory, id, overallModelName
     sink()
   }
 
-  return(list("context"=model$factoryKey$modelPartition$partition,
+  # Check lowercase (for tests)
+  currentContext <- model$factoryKey$modelPartition$partition
+  if (forceLowerCasePredictorNames) {
+    names(currentContext) <- tolower(names(currentContext))
+  }
+
+  return(list("context"=currentContext,
               "binning"=predBinningTable))
 }
 

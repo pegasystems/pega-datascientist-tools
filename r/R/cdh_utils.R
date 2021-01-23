@@ -532,9 +532,6 @@ getModelPerformanceOverview <- function(dmModels = NULL, dmPredictors = NULL, js
   # that summarizes the predictor bins into a table ("ScaledBins") with the min and max weight per predictor. These weights are the
   # normalized log odds and score min/max is found by adding them up.
 
-
-  ### TODO: pyName is a factor! We don't want a factor here.
-
   perfOverview <- data.table( name = sapply(modelList, function(m) {return(m$context$pyName)}),
                               reported_performance = sapply(modelList, function(m) {return(m$binning$Performance[1])}),
                               actual_performance = NA, # placeholder
