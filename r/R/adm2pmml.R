@@ -67,11 +67,11 @@ createSingleNumericBin <- function(bin, reasonCode)
 {
   if (is.na(bin$BinUpperBound)) { # last bin is explicitly >= lower
     xmlNode("Attribute",
-            attrs=c(partialScore=bin$binWeight, reasonCode=reasonCode),
+            attrs=c(partialScore=bin$BinWeight, reasonCode=reasonCode),
             xmlNode("SimplePredicate", attrs=c(field=bin$PredictorName, operator="greaterOrEqual", value=bin$BinLowerBound)))
   } else {                                  # all other bins are [lower, upper> but are in order, so <upper will do
     xmlNode("Attribute",
-            attrs=c(partialScore=bin$binWeight, reasonCode=reasonCode),
+            attrs=c(partialScore=bin$BinWeight, reasonCode=reasonCode),
             xmlNode("SimplePredicate", attrs=c(field=bin$PredictorName, operator="lessThan", value=bin$BinUpperBound)))
   }
 }
@@ -95,7 +95,7 @@ createSinglePredictorBin <- function(predictorBin)
                           # Otherwise
                           summarizeMultiple(predictorBin$BinLabel))
   reasonCode <- paste(predictorBin$PredictorName,reasonLabel,
-                      round(predictorBin$binWeight),
+                      round(predictorBin$BinWeight),
                       round(predictorBin$minWeight),
                       round(predictorBin$avgWeight),
                       round(predictorBin$maxWeight), sep="|")
@@ -104,11 +104,11 @@ createSinglePredictorBin <- function(predictorBin)
   if (nrow(predictorBin) > 1) {
     if (any(predictorBin$BinType == "REMAININGSYMBOLS")) {
       nodeXML <- xmlNode("Attribute",
-                         attrs=c(partialScore=predictorBin$binWeight[1], reasonCode=reasonCode[1]),
+                         attrs=c(partialScore=predictorBin$BinWeight[1], reasonCode=reasonCode[1]),
                          xmlNode("True"))
     } else {
       nodeXML <- xmlNode("Attribute",
-                         attrs=c(partialScore=predictorBin$binWeight[1], reasonCode=reasonCode[1]),
+                         attrs=c(partialScore=predictorBin$BinWeight[1], reasonCode=reasonCode[1]),
                          xmlNode("SimpleSetPredicate",
                                  attrs=c("field"=predictorBin$PredictorName[1], "booleanOperator"="isIn"),
                                  createSymArray(predictorBin$BinLabel)))
@@ -119,17 +119,17 @@ createSinglePredictorBin <- function(predictorBin)
   switch(EXPR = as.character(predictorBin$BinType),
 
          "MISSING" = xmlNode("Attribute",
-                             attrs=c(partialScore=predictorBin$binWeight, reasonCode=reasonCode),
+                             attrs=c(partialScore=predictorBin$BinWeight, reasonCode=reasonCode),
                              xmlNode("SimplePredicate", attrs=c(field=predictorBin$PredictorName, operator="isMissing"))),
 
          "SYMBOL" = xmlNode("Attribute",
-                            attrs=c(partialScore=predictorBin$binWeight, reasonCode=reasonCode),
+                            attrs=c(partialScore=predictorBin$BinWeight, reasonCode=reasonCode),
                             xmlNode("SimplePredicate", attrs=c(field=predictorBin$PredictorName, operator="equal", value=predictorBin$BinLabel))),
 
          "INTERVAL" = createSingleNumericBin(predictorBin, reasonCode),
 
          "REMAININGSYMBOLS" = xmlNode("Attribute",
-                                      attrs=c(partialScore=predictorBin$binWeight, reasonCode=reasonCode),
+                                      attrs=c(partialScore=predictorBin$BinWeight, reasonCode=reasonCode),
                                       xmlNode("True")))
 }
 
@@ -140,14 +140,14 @@ createSingleClassifierBin <- function(bin)
     if (is.na(bin$BinUpperBound)) {   # both NA
       # omit - rely on discretize default value
     } else { # < upper
-      xmlNode("DiscretizeBin", attrs=c(binValue=bin$binWeight),
+      xmlNode("DiscretizeBin", attrs=c(binValue=bin$BinWeight),
               xmlNode("Interval", attrs=c(closure="openOpen", rightMargin=bin$BinUpperBound)))
     }
   } else if (is.na(bin$BinUpperBound)) { # >= lower
-    xmlNode("DiscretizeBin", attrs=c(binValue=bin$binWeight),
+    xmlNode("DiscretizeBin", attrs=c(binValue=bin$BinWeight),
             xmlNode("Interval", attrs=c(closure="closedOpen", leftMargin=bin$BinLowerBound)))
   } else {                                         # [lower, uppper>
-    xmlNode("DiscretizeBin", attrs=c(binValue=bin$binWeight),
+    xmlNode("DiscretizeBin", attrs=c(binValue=bin$BinWeight),
             xmlNode("Interval", attrs=c(closure="closedOpen", leftMargin=bin$BinLowerBound, rightMargin=bin$BinUpperBound)))
   }
 }
@@ -157,7 +157,7 @@ createClassifierBins <- function(classifierBins)
 {
   attrs <- c(field=modelScoreFieldName)
   if (nrow(classifierBins)==1) {
-    attrs <- c(attrs, defaultValue=classifierBins$binWeight[1])
+    attrs <- c(attrs, defaultValue=classifierBins$BinWeight[1])
   }
   xmlNode("Discretize", attrs=attrs,
           .children = lapply(seq(nrow(classifierBins)),
@@ -304,11 +304,11 @@ createEmptyScorecard <- function(classifierBins, modelName)
 createDefaultModel <- function(modelName)
 {
   defaultClassifierBins <- data.table(ModelID = "Default",
-                              BinLowerBound = 0,
-                              BinUpperBound = NA,
-                              BinType = "INTERVAL",
-                              binWeight = 0.5,
-                              Performance = 0.5)
+                                      BinLowerBound = 0,
+                                      BinUpperBound = NA,
+                                      BinType = "INTERVAL",
+                                      BinWeight = 0.5,
+                                      Performance = 0.5)
 
   xmlNode("TreeModel", attrs=c("modelName"=modelName, functionName="regression"),
           xmlNode("MiningSchema",
@@ -356,18 +356,18 @@ setBinWeights <- function(bins)
   setorder(bins, ModelID, PredictorName, BinType, BinUpperBound, BinLabel, na.last = T)
 
   # Set the classifier weights
-  bins[PredictorType == "CLASSIFIER", binWeight := (0.5+BinPos)/(1+BinPos+BinNeg)]
+  bins[PredictorType == "CLASSIFIER", BinWeight := (0.5+BinPos)/(1+BinPos+BinNeg)]
 
   # Weights for ordinary fields
   bins[PredictorType != "CLASSIFIER", nPredictors := uniqueN(PredictorName)]
   bins[PredictorType != "CLASSIFIER", binLogOdds := log(BinPos + Smoothing) - log(BinNeg + Smoothing)]
   bins[PredictorType != "CLASSIFIER", perPredictorContribution := (1/nPredictors - 1)*log(1+TotalPos) + (1 - 1/nPredictors)*log(1+TotalNeg)]
-  bins[PredictorType != "CLASSIFIER", binWeight := (binLogOdds + perPredictorContribution)/(1+nPredictors)]
+  bins[PredictorType != "CLASSIFIER", BinWeight := (binLogOdds + perPredictorContribution)/(1+nPredictors)]
 
   # Summarize per predictor
   if (any(bins$PredictorType != "CLASSIFIER")) {
-    predMinMaxWeights <- bins[PredictorType != "CLASSIFIER", .(minWeight = min(binWeight),
-                                                                    maxWeight = max(binWeight)), by=PredictorName]
+    predMinMaxWeights <- bins[PredictorType != "CLASSIFIER", .(minWeight = min(BinWeight),
+                                                               maxWeight = max(BinWeight)), by=PredictorName]
   } else {
     predMinMaxWeights <- data.table()
   }
@@ -386,7 +386,7 @@ setBinWeights <- function(bins)
 
     bins <- merge(bins, predMinMaxWeights, all=T, by=c("PredictorName"))
 
-    bins[PredictorType != "CLASSIFIER", binWeight := (binWeight-minWeight)*scaleFactor]
+    bins[PredictorType != "CLASSIFIER", BinWeight := (BinWeight-minWeight)*scaleFactor]
     bins[PredictorType == "CLASSIFIER", BinLowerBound := (BinLowerBound+scaleOffset)*scaleFactor]
     bins[PredictorType == "CLASSIFIER", BinUpperBound := (BinUpperBound+scaleOffset)*scaleFactor]
   }
@@ -414,9 +414,9 @@ createScorecard <- function(modelbins, modelName)
     modelbins[PredictorType != "CLASSIFIER", minWeight := NA]
     modelbins[PredictorType != "CLASSIFIER", maxWeight := NA]
   } else {
-    modelbins[PredictorType != "CLASSIFIER", avgWeight := stats::weighted.mean(binWeight,BinNeg+BinPos),by=PredictorName]
-    modelbins[PredictorType != "CLASSIFIER", minWeight := min(binWeight),by=PredictorName]
-    modelbins[PredictorType != "CLASSIFIER", maxWeight := max(binWeight),by=PredictorName]
+    modelbins[PredictorType != "CLASSIFIER", avgWeight := stats::weighted.mean(BinWeight,BinNeg+BinPos),by=PredictorName]
+    modelbins[PredictorType != "CLASSIFIER", minWeight := min(BinWeight),by=PredictorName]
+    modelbins[PredictorType != "CLASSIFIER", maxWeight := max(BinWeight),by=PredictorName]
   }
 
   if (hasNoPredictors) {

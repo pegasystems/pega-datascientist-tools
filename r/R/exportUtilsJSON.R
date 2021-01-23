@@ -259,16 +259,16 @@ getScoringModelFromJSONFactoryString <- function(analyzedData, isAuditModel=F)
 
   # The field to score mapping (also returning pos/neg so numbers can be verified)
   scorecard <- scaledBinning[PredictorType != "CLASSIFIER",
-                             c("PredictorName", "Label", "binWeight", "BinPos", "BinNeg")]
+                             c("PredictorName", "Label", "BinWeight", "BinPos", "BinNeg")]
   setnames(scorecard, c("Field", "Value", "Points", "pos", "neg"))
 
   # The classifier mapping
   scorecardMapping <- scaledBinning[PredictorType == "CLASSIFIER",
-                                    c("Label", "binWeight", "BinPos", "BinNeg")]
+                                    c("Label", "BinWeight", "BinPos", "BinNeg")]
   setnames(scorecardMapping, c("Score Range", "Propensity", "pos", "neg"))
 
   # Both plus the original boundaries/labels
-  oriBinning <- scaledBinning[, c("PredictorName", "PredictorType", "BinType", "BinLabel", "BinLowerBound", "BinUpperBound", "binWeight", "BinPos", "BinNeg")]
+  oriBinning <- scaledBinning[, c("PredictorName", "PredictorType", "BinType", "BinLabel", "BinLowerBound", "BinUpperBound", "BinWeight", "BinPos", "BinNeg")]
   setnames(oriBinning, c("Field", "FieldType", "BinType", "Symbol", "LowerBound", "UpperBound", "Weight", "pos", "neg"))
 
   return(list(scorecard = scorecard, mapping = scorecardMapping, binning = oriBinning))
