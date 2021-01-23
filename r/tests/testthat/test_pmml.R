@@ -120,6 +120,7 @@ compareCSV <- function(dmCSV, jsonCSV)
 
 # Runs a full unit test by generating PMML from the model and predictor data,
 # scoring that with JPMML against provided inputs and comparing the results against expected values.
+
 pmml_unittest <- function(testName)
 {
   testFolder <- "d"
@@ -149,7 +150,7 @@ pmml_unittest <- function(testName)
     jsonFiles <- list.files(path = jsonFolder, pattern = "^.*\\.json", full.names = T)
     partitions <- data.table(pymodelpartitionid = sub("^.*json[^.]*\\.(.*)\\.json", "\\1", jsonFiles),
                              pyfactory = sapply(jsonFiles, readr::read_file))
-    modelList <- createListFromADMFactory(partitions, testName, tmpFolder, forceLowerCasePredictorNames = T)
+    modelList <- createListFromADMFactory(partitions, testName, tmpFolder)
 
     pmml <- createPMML(modelList, testName)
 
@@ -163,11 +164,15 @@ pmml_unittest <- function(testName)
     cat("   Datamart predictor data:", predictorDataFile, fill=T)
 
     predictorData <- fread(predictorDataFile)
+    applyUniformPegaFieldCasing(predictorData)
+    predictorData[, PredictorName := tolower(PredictorName)]
+
     if (file.exists(modelDataFile)) {
-      modelData <- read.csv(modelDataFile, stringsAsFactors = F) # fread adds extra double-quotes for JSON strings, thus using simple read.csv
-      modelList <- createListFromDatamart(predictorData, testName, tmpFolder, modelData, lowerCasePredictors = T)
+      modelData <- data.table(read.csv(modelDataFile, stringsAsFactors = F)) # fread adds extra double-quotes for JSON strings, thus using simple read.csv
+      applyUniformPegaFieldCasing(modelData)
+      modelList <- createListFromDatamart(predictorData, testName, tmpFolder, modelData, useLowercaseContextKeys=TRUE)
     } else {
-      modelList <- createListFromDatamart(predictorData, testName, tmpFolder, lowerCasePredictors = T)
+      modelList <- createListFromDatamart(predictorData, testName, tmpFolder, useLowercaseContextKeys=TRUE)
     }
 
     pmml <- createPMML(modelList, testName)
@@ -230,158 +235,53 @@ test_that("Test running the JPMML engine with a simple model", {
   expect_equal(nrow(scores), 150)
 })
 
-test_that("a basic happy-path test with a single 2-predictor model w/o missings, WOS etc", {
-  pmml_unittest("deeperdive")
-})
-test_that("a basic model consisting of 2 models, also providing new partition key values", {
-  pmml_unittest("simplemultimodel")
-})
-test_that("check symbolic binning with WOS", {
-  pmml_unittest("multimodel_wos")
-})
-test_that("checks flexible context keys (wich require to parse the JSON inside the pyName field), also some invalid models with empty keys", {
-  pmml_unittest("flexandinvalidkeys")
-})
-test_that("highlights an issue with the way ADM defines the smoothing factor in the score calculation - one of the tests in this will be failing if defining the smoothing factor in a naive way", {
-  pmml_unittest("smoothfactorissue") # previously called "precisionissue"
-})
-test_that("Use of a predictor with a RESIDUAL bin", {
-  pmml_unittest("residualtest")
-})
-test_that("Missing input values", {
-  # NB example-1.4-SNAPSHOT.jar reads the CSV slightly different than previously,
-  # now need explicit NA to indicate missing value
-  pmml_unittest("missingvalues")
-})
-test_that("Models with different evidence for predictors (added/removed)", {
-  pmml_unittest("unequalevidence")
-})
-test_that("Issue with creating PMML from internal JSON", {
-  pmml_unittest("issue-4-singlebinpredictor")
-})
-test_that("Issue with a single classifier bin", {
-  pmml_unittest("singleclassifierbin")
-})
-test_that("Test the test generator", {
-  pmml_unittest("testfw")
-})
-
-# Verify that reason codes get (or don't get) generated in various flavours
-# TODO add args to adm2pmml to set # of reason codes and direction
-test_that("Scorecard reason codes", {
-  context("Scorecard reason codes")
-
-  testFolder <- "d"
-  # tmpFolder <- tempdir()
-  tmpFolder <- paste(testFolder, "tmp2", sep="/")
-  if (!dir.exists(tmpFolder)) dir.create(tmpFolder)
-
-  # Convert the simplest model to PMML including reason code options
-  predData <- fread(file.path(testFolder, "deeperdive_predictordata.csv"))
-  dummyModelData <- data.table(pymodelid = unique(predData$pymodelid),
-                               pyconfigurationname = c("simplemodel"),
-                               pyappliestoclass = "Dummy",
-                               pxapplication = "Dummy",
-                               pyname = "Dummy",
-                               pysnapshottime = unique(predData$pysnapshottime))
-  pmmlFiles <- adm2pmml(dmModels = dummyModelData,
-                        dmPredictors = predData,
-                        destDir = tmpFolder)
-  expect_equal(length(pmmlFiles), 1)
-
-  # Run with inputs. The inputs include the same 3 cases that are detailed in the deeper dive Excel sheet
-  run_jpmml(file.path(tmpFolder, "simplemodel.pmml"),
-            file.path(testFolder, "deeperdive_inputs_reasoncodetests.csv"),
-            file.path(tmpFolder, "deeperdive_output.csv"))
-
-  # Check the outputs contain reason codes
-  expect_true(0 == file.access(file.path(tmpFolder, "deeperdive_output.csv"), mode=4))
-  output <- fread(file = file.path(tmpFolder, "deeperdive_output.csv"))
-
-  # By default 3 reason codes
-  expect_equal(length(intersect( names(output), c("Explain-1", "Explain-2", "Explain-3") )), 3)
-
-  # Each reason code should have 6 elements with the score between min and max
-  output[, paste("r1", c("pred", "binlabel", "score", "min", "avg", "max"), sep="_") := tstrsplit(`Explain-1`, split="|", fixed=T)]
-  output[, paste("r2", c("pred", "binlabel", "score", "min", "avg", "max"), sep="_") := tstrsplit(`Explain-2`, split="|", fixed=T)]
-  output[, paste("r3", c("pred", "binlabel", "score", "min", "avg", "max"), sep="_") := tstrsplit(`Explain-3`, split="|", fixed=T)]
-
-  expect_true(all(output[r1_pred != "Context Mismatch"][, (r1_score >= r1_min) & (r1_score <= r1_max)]), "All scores should be between min and max")
-  expect_true(all(output[r1_pred != "Context Mismatch"][, (r1_avg >= r1_min) & (r1_avg <= r1_max)]), "All average scores should be between min and max")
-
-  # For the first test case, first and second reason codes as expected
-  expect_equal(output$r1_pred, c(rep("Country",5), "Age")) # Age only shows up if Country is missing when using points above minimum
-  expect_equal(output$r2_pred, c(rep("Age",5), "Country"))
-  expect_equal(output$r3_pred, rep("N/A",6))
-
-  # now need to verify the 2 or 3 modes
-  # useReasonCodes="true", baselineMethod="min", reasonCodeAlgorithm="pointsAbove"
-  # useReasonCodes="true", baselineMethod="max", reasonCodeAlgorithm="pointsBelow"
-  # useReasonCodes="true", baselineMethod="mean", reasonCodeAlgorithm="pointsAbove"
-  # useReasonCodes="true", baselineMethod="mean", reasonCodeAlgorithm="pointsBelow"
-
-  # reasonCodeAlgorithm: May be "pointsAbove" or "pointsBelow", describing how reason codes shall be ranked,
-  # relative to the baseline score of each Characteristic, or as set at the top-level scorecard.
-})
-
 test_that("Public functions from JSON utils", {
   context("Public JSON PMML utility functions")
 
   expect_equal(getJSONModelContextAsString("{\"partition\":{\"pyIssue\":\"Sales\", \"pyGroup\":\"Cards\"}}"),
                "pygroup_Cards_pyissue_Sales")
+
+  # TODO: perhaps exercise the peeling of JSON from pyName here as well
 })
 
-test_that("PMML generation from DM exports", {
-  context("PMML from Datamart Exports")
+# PMML Tests with ADM Datamart data
 
-  allModels <- readDSExport("Data-Decision-ADM-ModelSnapshot_All","dsexports")
-  allPredictors <- readDSExport("Data-Decision-ADM-PredictorBinningSnapshot_All","dsexports")
-
-  pmmlFiles <- adm2pmml(allModels, allPredictors)
-
-  expect_equal(length(pmmlFiles), 3)
-  expect_equal(names(pmmlFiles)[1], "./BannerModel.pmml")
-  expect_equal(names(pmmlFiles)[2], "./SalesModel.pmml")
-  expect_equal(names(pmmlFiles)[3], "./VerySimpleSalesModel.pmml")
-  expect_equal(length(pmmlFiles[[1]]), 5)
-  expect_equal(length(pmmlFiles[[2]]), 5)
-  expect_equal(length(pmmlFiles[[3]]), 5)
-
-  expect_equal(length(adm2pmml(allModels, allPredictors, ruleNameFilter="^(?!VerySimple).*$", appliesToFilter="PMDSM")), 2)
-  expect_equal(length(adm2pmml(allModels, allPredictors, appliesToFilter="DMSample")), 0)
+test_that("Simple ADM model with 2 actions, also providing new partition key values", {
+  pmml_unittest("simplemultimodel")
 })
 
-test_that("Creating a Scorecard from the captured scoring model", {
-  testFolder <- "d"
+test_that("check symbolic binning with WOS", {
+  pmml_unittest("multimodel_wos")
+})
 
-  # for testing in console
-  # testFolder<-"tests/testthat/d"
+test_that("checks flexible context keys (wich require to parse the JSON inside the pyName field), also some invalid models with empty keys", {
+  pmml_unittest("flexandinvalidkeys")
+})
 
-  encodedModelData <- paste(readLines(file.path(testFolder, "scoringmodeldata.json")), collapse="\n")
+test_that("highlights an issue with the way ADM defines the smoothing factor in the score calculation - one of the tests in this will be failing if defining the smoothing factor in a naive way", {
+  pmml_unittest("smoothfactorissue") # previously called "precisionissue"
+})
 
-  sc <- getScoringModelFromJSONFactoryString(encodedModelData, isAuditModel=T)
+test_that("Use of a predictor with a RESIDUAL bin", {
+  pmml_unittest("residualtest")
+})
 
-  expect_equal(ncol(sc$scorecard), 5)
-  expect_equal(ncol(sc$mapping), 4)
-  expect_equal(ncol(sc$binning), 9)
-  expect_equal(nrow(sc$scorecard), 92)
-  expect_equal(nrow(sc$mapping), 22)
-  expect_equal(nrow(sc$binning), 114)
+test_that("Missing input values", {
+  # NB example-1.4-SNAPSHOT.jar reads the CSV slightly different than previously,
+  # now need explicit NA to indicate missing value
+  pmml_unittest("missingvalues")
+})
 
-  expect_equal(nrow(getScoringModelFromJSONFactoryString(encodedModelData)$mapping), 22)
-  expect_equal(nrow(getScoringModelFromJSONFactoryString(encodedModelData)$scorecard), 0) # no info about active or not, all considered inactive
-  expect_equal(nrow(getScoringModelFromJSONFactoryString(encodedModelData)$binning), 22)
+test_that("Models with different evidence for predictors (added/removed)", {
+  pmml_unittest("unequalevidence")
+})
 
-  # TODO run scorecard on returned binning for a single case
-  score <- function(scorecard, inputs) # candidate for cdh_utils
-  {
-    totalscore <- 0.5
+test_that("Issue with creating PMML from internal JSON", {
+  pmml_unittest("issue-4-singlebinpredictor")
+})
 
-    return(totalscore)
-  }
+# Tests using JSON factory data
 
-  # TODO verify against real ADM model (test panel)
-  xxx <- score(sc$binning, list(Age = 40, Income = 10000, OverallUsage = 0) )
-
-
+test_that("Test the test generator", {
+  pmml_unittest("testfw")
 })

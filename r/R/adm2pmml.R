@@ -43,9 +43,9 @@ modelIDFieldName <- "Model ID"
 nrExplanations <- 3 # return top-3 reason codes
 
 BINTYPES <- c("MISSING", "SYMBOL", "INTERVAL", "REMAININGSYMBOLS")
-BINNINGTABLEFIELDS <- c("modelid", "predictorname", "predictortype",
-                        "binlabel", "binlowerbound", "binupperbound", "bintype", "binpos", "binneg", "binidx",
-                        "totalpos", "totalneg", "smoothing", "isactive", "performance")
+BINNINGTABLEFIELDS <- c("ModelID", "PredictorName", "PredictorType",
+                        "BinLabel", "BinLowerBound", "BinUpperBound", "BinType", "BinPos", "BinNeg", "BinIndex",
+                        "TotalPos", "TotalNeg", "Smoothing", "IsActive", "Performance")
 
 createNumArray <- function(a)
 {
@@ -65,14 +65,14 @@ createSymArray <- function(a)
 # Single numeric bin
 createSingleNumericBin <- function(bin, reasonCode)
 {
-  if (is.na(bin$binupperbound)) { # last bin is explicitly >= lower
+  if (is.na(bin$BinUpperBound)) { # last bin is explicitly >= lower
     xmlNode("Attribute",
             attrs=c(partialScore=bin$binWeight, reasonCode=reasonCode),
-            xmlNode("SimplePredicate", attrs=c(field=bin$predictorname, operator="greaterOrEqual", value=bin$binlowerbound)))
+            xmlNode("SimplePredicate", attrs=c(field=bin$PredictorName, operator="greaterOrEqual", value=bin$BinLowerBound)))
   } else {                                  # all other bins are [lower, upper> but are in order, so <upper will do
     xmlNode("Attribute",
             attrs=c(partialScore=bin$binWeight, reasonCode=reasonCode),
-            xmlNode("SimplePredicate", attrs=c(field=bin$predictorname, operator="lessThan", value=bin$binupperbound)))
+            xmlNode("SimplePredicate", attrs=c(field=bin$PredictorName, operator="lessThan", value=bin$BinUpperBound)))
   }
 }
 
@@ -86,15 +86,15 @@ summarizeMultiple <- function(s)
 # Scorecard entry for a single predictor bin.
 createSinglePredictorBin <- function(predictorBin)
 {
-  reasonLabel <-   switch(EXPR = as.character(predictorBin$bintype[1]),
+  reasonLabel <-   switch(EXPR = as.character(predictorBin$BinType[1]),
                           "MISSING" = "Missing",
-                          "INTERVAL" = ifelse(is.na(predictorBin$binupperbound),
-                                              paste(">=",round(predictorBin$binlowerbound,1),sep=""),
-                                              paste("<",round(predictorBin$binupperbound,1),sep="")),
+                          "INTERVAL" = ifelse(is.na(predictorBin$BinUpperBound),
+                                              paste(">=",round(predictorBin$BinLowerBound,1),sep=""),
+                                              paste("<",round(predictorBin$BinUpperBound,1),sep="")),
                           "REMAININGSYMBOLS" = "Remaining Symbols",
                           # Otherwise
-                          summarizeMultiple(predictorBin$binlabel))
-  reasonCode <- paste(predictorBin$predictorname,reasonLabel,
+                          summarizeMultiple(predictorBin$BinLabel))
+  reasonCode <- paste(predictorBin$PredictorName,reasonLabel,
                       round(predictorBin$binWeight),
                       round(predictorBin$minWeight),
                       round(predictorBin$avgWeight),
@@ -102,7 +102,7 @@ createSinglePredictorBin <- function(predictorBin)
 
   # multiple symbols will be grouped together
   if (nrow(predictorBin) > 1) {
-    if (any(predictorBin$bintype == "REMAININGSYMBOLS")) {
+    if (any(predictorBin$BinType == "REMAININGSYMBOLS")) {
       nodeXML <- xmlNode("Attribute",
                          attrs=c(partialScore=predictorBin$binWeight[1], reasonCode=reasonCode[1]),
                          xmlNode("True"))
@@ -110,21 +110,21 @@ createSinglePredictorBin <- function(predictorBin)
       nodeXML <- xmlNode("Attribute",
                          attrs=c(partialScore=predictorBin$binWeight[1], reasonCode=reasonCode[1]),
                          xmlNode("SimpleSetPredicate",
-                                 attrs=c("field"=predictorBin$predictorname[1], "booleanOperator"="isIn"),
-                                 createSymArray(predictorBin$binlabel)))
+                                 attrs=c("field"=predictorBin$PredictorName[1], "booleanOperator"="isIn"),
+                                 createSymArray(predictorBin$BinLabel)))
     }
     return(nodeXML)
   }
 
-  switch(EXPR = as.character(predictorBin$bintype),
+  switch(EXPR = as.character(predictorBin$BinType),
 
          "MISSING" = xmlNode("Attribute",
                              attrs=c(partialScore=predictorBin$binWeight, reasonCode=reasonCode),
-                             xmlNode("SimplePredicate", attrs=c(field=predictorBin$predictorname, operator="isMissing"))),
+                             xmlNode("SimplePredicate", attrs=c(field=predictorBin$PredictorName, operator="isMissing"))),
 
          "SYMBOL" = xmlNode("Attribute",
                             attrs=c(partialScore=predictorBin$binWeight, reasonCode=reasonCode),
-                            xmlNode("SimplePredicate", attrs=c(field=predictorBin$predictorname, operator="equal", value=predictorBin$binlabel))),
+                            xmlNode("SimplePredicate", attrs=c(field=predictorBin$PredictorName, operator="equal", value=predictorBin$BinLabel))),
 
          "INTERVAL" = createSingleNumericBin(predictorBin, reasonCode),
 
@@ -136,19 +136,19 @@ createSinglePredictorBin <- function(predictorBin)
 # Single bin for the model "classifier" (score to propensity mapping)
 createSingleClassifierBin <- function(bin)
 {
-  if (is.na(bin$binlowerbound)) {
-    if (is.na(bin$binupperbound)) {   # both NA
+  if (is.na(bin$BinLowerBound)) {
+    if (is.na(bin$BinUpperBound)) {   # both NA
       # omit - rely on discretize default value
     } else { # < upper
       xmlNode("DiscretizeBin", attrs=c(binValue=bin$binWeight),
-              xmlNode("Interval", attrs=c(closure="openOpen", rightMargin=bin$binupperbound)))
+              xmlNode("Interval", attrs=c(closure="openOpen", rightMargin=bin$BinUpperBound)))
     }
-  } else if (is.na(bin$binupperbound)) { # >= lower
+  } else if (is.na(bin$BinUpperBound)) { # >= lower
     xmlNode("DiscretizeBin", attrs=c(binValue=bin$binWeight),
-            xmlNode("Interval", attrs=c(closure="closedOpen", leftMargin=bin$binlowerbound)))
+            xmlNode("Interval", attrs=c(closure="closedOpen", leftMargin=bin$BinLowerBound)))
   } else {                                         # [lower, uppper>
     xmlNode("DiscretizeBin", attrs=c(binValue=bin$binWeight),
-            xmlNode("Interval", attrs=c(closure="closedOpen", leftMargin=bin$binlowerbound, rightMargin=bin$binupperbound)))
+            xmlNode("Interval", attrs=c(closure="closedOpen", leftMargin=bin$BinLowerBound, rightMargin=bin$BinUpperBound)))
   }
 }
 
@@ -170,19 +170,19 @@ createClassifierBins <- function(classifierBins)
 createPredictorNode <- function(predictorBins)
 {
   predictorBins[, binGroup := .I]
-  if(predictorBins$predictortype[1] == "SYMBOLIC") {
-    if(!any(predictorBins$bintype=="MISSING") | !any(predictorBins$bintype=="REMAININGSYMBOLS")) {
+  if(predictorBins$PredictorType[1] == "SYMBOLIC") {
+    if(!any(predictorBins$BinType=="MISSING") | !any(predictorBins$BinType=="REMAININGSYMBOLS")) {
       print(predictorBins)
       stop("Expected a MISSING and a Remaining bin")
     }
 
-    predictorBins[bintype=="MISSING", binGroup := 1L] # exclude MISSING and make sure that remains the first one
-    predictorBins[bintype!="MISSING", binGroup := 1L+.GRP, by=c("binpos","binneg")] # now group symbols together that have the same score weight
-    predictorBins[binGroup == predictorBins$binGroup[which(predictorBins$bintype=="REMAININGSYMBOLS")],
+    predictorBins[BinType=="MISSING", binGroup := 1L] # exclude MISSING and make sure that remains the first one
+    predictorBins[BinType!="MISSING", binGroup := 1L+.GRP, by=c("BinPos","BinNeg")] # now group symbols together that have the same score weight
+    predictorBins[binGroup == predictorBins$binGroup[which(predictorBins$BinType=="REMAININGSYMBOLS")],
                   binGroup := max(predictorBins$binGroup)+1 ] # make the group that Remaining is in the last one
   }
-  xmlNode("Characteristic", attrs=c(name=paste(predictorBins$predictorname[1], "score", sep = "___"),
-                                    reasonCode=predictorBins$predictorname[1],
+  xmlNode("Characteristic", attrs=c(name=paste(predictorBins$PredictorName[1], "score", sep = "___"),
+                                    reasonCode=predictorBins$PredictorName[1],
                                     baselineScore=predictorBins$minWeight[1]),
           .children = lapply(sort(unique(predictorBins$binGroup)),
                              function(i) {return(createSinglePredictorBin(predictorBins[binGroup==i]))}))
@@ -201,8 +201,8 @@ getContextKeyDefinitions <- function(modeldata)
     }
   }
 
-  keyDefs <- data.table(predictorname = names(contextTable),
-                        predictortype = ifelse(sapply(contextTable, is.numeric), "NUMERIC", "SYMBOLIC"))
+  keyDefs <- data.table(PredictorName = names(contextTable),
+                        PredictorType = ifelse(sapply(contextTable, is.numeric), "NUMERIC", "SYMBOLIC"))
 
   return(unique(keyDefs))
 }
@@ -210,7 +210,7 @@ getContextKeyDefinitions <- function(modeldata)
 # Mining schema for the overall model. Very similar to the data dictionary, but contains usage instead of type info.
 createMiningSchema <- function(modeldata)
 {
-  predictors <- unique( rbindlist(lapply(modeldata, function(x) { unique( x$binning [predictortype != "CLASSIFIER", c("predictorname")] ) } )) ) [order(predictorname)]
+  predictors <- unique( rbindlist(lapply(modeldata, function(x) { unique( x$binning [PredictorType != "CLASSIFIER", c("PredictorName")] ) } )) ) [order(PredictorName)]
   outputfields <- c(modelPropensityFieldName,
                     modelScoreFieldName,
                     modelRawScoreFieldName,
@@ -226,10 +226,10 @@ createMiningSchema <- function(modeldata)
                                function(fld) {return(xmlNode("MiningField",
                                                              # As of PMML 4.2, this is deprecated and it has been replaced by the usage type target.
                                                              attrs=c(name=fld, usageType="predicted")))}),
-                        lapply(getContextKeyDefinitions(modeldata)$predictorname,
+                        lapply(getContextKeyDefinitions(modeldata)$PredictorName,
                                function(ctx) {return(xmlNode("MiningField",
                                                              attrs=c(name=ctx, usageType="active", invalidValueTreatment="asIs")))}),
-                        lapply(predictors$predictorname,
+                        lapply(predictors$PredictorName,
                                function(pred) {return(xmlNode("MiningField",
                                                               attrs=c(name=pred, usageType="active", invalidValueTreatment="asIs")))})))
 }
@@ -250,15 +250,15 @@ createOutputs <- function(classifierBins, scaleOffset = 0, scaleFactor = 1, isSc
   staticOutputs <- list(xmlNode("OutputField",
                                 attrs=c(name=modelEvidenceFieldName, feature="transformedValue", dataType="integer", optype="continuous"),
                                 xmlNode("Constant",
-                                        xmlTextNode(sum(classifierBins$binneg)+sum(classifierBins$binpos)))),
+                                        xmlTextNode(sum(classifierBins$BinNeg)+sum(classifierBins$BinPos)))),
                         xmlNode("OutputField",
                                 attrs=c(name=modelPerformanceFieldName, feature="transformedValue", dataType="double", optype="continuous"),
                                 xmlNode("Constant",
-                                        xmlTextNode(classifierBins$performance[1]))),
+                                        xmlTextNode(classifierBins$Performance[1]))),
                         xmlNode("OutputField",
                                 attrs=c(name=modelIDFieldName, feature="transformedValue", dataType="string", optype="categorical"),
                                 xmlNode("Constant",
-                                        xmlTextNode(classifierBins$modelid[1]))))
+                                        xmlTextNode(classifierBins$ModelID[1]))))
   if (nrExplanations > 0) {
     if (isScorecard) {
       # Reason code fields will be actual scorecard reason codes
@@ -285,9 +285,9 @@ createOutputs <- function(classifierBins, scaleOffset = 0, scaleFactor = 1, isSc
 createEmptyScorecard <- function(classifierBins, modelName)
 {
   if (nrow(classifierBins) <= 1) {
-    if (is.na(classifierBins$binupperbound) & is.na(classifierBins$binlowerbound)) {
+    if (is.na(classifierBins$BinUpperBound) & is.na(classifierBins$BinLowerBound)) {
       # fix it up as bounds NA/NA will not work
-      classifierBins$binlowerbound <- 0
+      classifierBins$BinLowerBound <- 0
     }
   }
   xmlNode("TreeModel", attrs=c("modelName"=modelName, functionName="regression"),
@@ -303,12 +303,12 @@ createEmptyScorecard <- function(classifierBins, modelName)
 # Default model (TreeModel) for non-matching context keys.
 createDefaultModel <- function(modelName)
 {
-  defaultClassifierBins <- data.table(modelid = "Default",
-                              binlowerbound = 0,
-                              binupperbound = NA,
-                              bintype = "INTERVAL",
+  defaultClassifierBins <- data.table(ModelID = "Default",
+                              BinLowerBound = 0,
+                              BinUpperBound = NA,
+                              BinType = "INTERVAL",
                               binWeight = 0.5,
-                              performance = 0.5)
+                              Performance = 0.5)
 
   xmlNode("TreeModel", attrs=c("modelName"=modelName, functionName="regression"),
           xmlNode("MiningSchema",
@@ -321,26 +321,26 @@ createDefaultModel <- function(modelName)
 }
 
 # Node with meta-info on the scorecard. Currently not being used anywhere but included to demo the potential benefits.
-# With support in the accompanying rule, it could replace the inclusion of performance/evidence etc as regular but static content.
+# With support in the accompanying rule, it could replace the inclusion of Performance/evidence etc as regular but static content.
 createModelDescription <- function(classifierBins)
 {
   # FPR/TPR code from cdh_utils::auc_from_bincounts
-  pos <- classifierBins$binpos
-  neg <- classifierBins$binneg
+  pos <- classifierBins$BinPos
+  neg <- classifierBins$BinNeg
   o <- order(pos/(pos+neg), decreasing = T)
   FPR <- rev(cumsum(neg[o]) / sum(neg))
   TPR <- rev(cumsum(pos[o]) / sum(pos))
 
   xmlNode("ModelExplanation",
           xmlNode("PredictiveModelQuality",
-                  attrs=c(targetField="Classifier", dataUsage="training", numOfRecords=classifierBins$totalneg[1]+classifierBins$totalpos[1]),
+                  attrs=c(targetField="Classifier", dataUsage="training", numOfRecords=classifierBins$TotalNeg[1]+classifierBins$TotalPos[1]),
                   xmlNode("LiftData",
-                          attrs=c(rankingQuality=auc2GINI(classifierBins$performance[1]),
+                          attrs=c(rankingQuality=auc2GINI(classifierBins$Performance[1]),
                                   targetFieldValue="Positive"),
                           xmlNode("ModelLiftGraph",
                                   xmlNode("LiftGraph",
-                                          xmlNode("XCoordinates", createNumArray(cumsum(classifierBins$binpos+classifierBins$binneg))),
-                                          xmlNode("YCoordinates", createNumArray(classifierBins$binpos))))),
+                                          xmlNode("XCoordinates", createNumArray(cumsum(classifierBins$BinPos+classifierBins$BinNeg))),
+                                          xmlNode("YCoordinates", createNumArray(classifierBins$BinPos))))),
                   xmlNode("ROC",
                           attrs=c(positiveTargetFieldValue="Positive"),
                           xmlNode("ROCGraph",
@@ -350,31 +350,31 @@ createModelDescription <- function(classifierBins)
 
 # Sets the bin weights for all bins of a single "partition" of the ADM rule. The weight is basically the
 # log odds, but is normalized to the number of predictors. Returns a summary table with the min/max per predictor.
-setBinWeights <- function(modelbins)
+setBinWeights <- function(bins)
 {
   # Some of the code depends on the order of the bins
-  setorder(modelbins, modelid, predictorname, bintype, binupperbound, binlabel, na.last = T)
+  setorder(bins, ModelID, PredictorName, BinType, BinUpperBound, BinLabel, na.last = T)
 
   # Set the classifier weights
-  modelbins[predictortype == "CLASSIFIER", binWeight := (0.5+binpos)/(1+binpos+binneg)]
+  bins[PredictorType == "CLASSIFIER", binWeight := (0.5+BinPos)/(1+BinPos+BinNeg)]
 
   # Weights for ordinary fields
-  modelbins[predictortype != "CLASSIFIER", nPredictors := uniqueN(predictorname)]
-  modelbins[predictortype != "CLASSIFIER", binLogOdds := log(binpos + smoothing) - log(binneg + smoothing)]
-  modelbins[predictortype != "CLASSIFIER", perPredictorContribution := (1/nPredictors - 1)*log(1+totalpos) + (1 - 1/nPredictors)*log(1+totalneg)]
-  modelbins[predictortype != "CLASSIFIER", binWeight := (binLogOdds + perPredictorContribution)/(1+nPredictors)]
+  bins[PredictorType != "CLASSIFIER", nPredictors := uniqueN(PredictorName)]
+  bins[PredictorType != "CLASSIFIER", binLogOdds := log(BinPos + Smoothing) - log(BinNeg + Smoothing)]
+  bins[PredictorType != "CLASSIFIER", perPredictorContribution := (1/nPredictors - 1)*log(1+TotalPos) + (1 - 1/nPredictors)*log(1+TotalNeg)]
+  bins[PredictorType != "CLASSIFIER", binWeight := (binLogOdds + perPredictorContribution)/(1+nPredictors)]
 
   # Summarize per predictor
-  if (any(modelbins$predictortype != "CLASSIFIER")) {
-    predMinMaxWeights <- modelbins[predictortype != "CLASSIFIER", .(minWeight = min(binWeight),
-                                                                    maxWeight = max(binWeight)), by=predictorname]
+  if (any(bins$PredictorType != "CLASSIFIER")) {
+    predMinMaxWeights <- bins[PredictorType != "CLASSIFIER", .(minWeight = min(binWeight),
+                                                                    maxWeight = max(binWeight)), by=PredictorName]
   } else {
     predMinMaxWeights <- data.table()
   }
 
   # Scale the weights to 0..1000
   scWeight <- 0 # deliberately chosen to be 0 - contributions of predictors are thru 'perPredictorContribution'
-  hasNoPredictors <- nrow(modelbins[predictortype != "CLASSIFIER"]) == 0
+  hasNoPredictors <- nrow(bins[PredictorType != "CLASSIFIER"]) == 0
   if (hasNoPredictors) {
     scaleOffset <- 0.0
     scaleFactor <- 1.0
@@ -384,14 +384,16 @@ setBinWeights <- function(modelbins)
 
     # the scaling is sometimes slightly different than the old version because that unconditionally took the wos bin into account, which we no longer need here
 
-    modelbins <- merge(modelbins, predMinMaxWeights, all=T, by=c("predictorname"))
+    bins <- merge(bins, predMinMaxWeights, all=T, by=c("PredictorName"))
 
-    modelbins[predictortype != "CLASSIFIER", binWeight := (binWeight-minWeight)*scaleFactor]
-    modelbins[predictortype == "CLASSIFIER", binlowerbound := (binlowerbound+scaleOffset)*scaleFactor]
-    modelbins[predictortype == "CLASSIFIER", binupperbound := (binupperbound+scaleOffset)*scaleFactor]
+    bins[PredictorType != "CLASSIFIER", binWeight := (binWeight-minWeight)*scaleFactor]
+    bins[PredictorType == "CLASSIFIER", BinLowerBound := (BinLowerBound+scaleOffset)*scaleFactor]
+    bins[PredictorType == "CLASSIFIER", BinUpperBound := (BinUpperBound+scaleOffset)*scaleFactor]
   }
 
-  return(list(binning = modelbins, scaleFactor = scaleFactor, scaleOffset = scaleOffset, scWeight = scWeight))
+  result <- list(binning = bins, scaleFactor = scaleFactor, scaleOffset = scaleOffset, scWeight = scWeight)
+
+  return(result)
 }
 
 # Creates a single scorecard, for a single "partition" of the ADM rule
@@ -404,34 +406,34 @@ createScorecard <- function(modelbins, modelName)
   scaleFactor <- scaling$scaleFactor
   scWeight <- scaling$scWeight
 
-  hasNoPredictors <- nrow(modelbins[predictortype != "CLASSIFIER"]) == 0
+  hasNoPredictors <- nrow(modelbins[PredictorType != "CLASSIFIER"]) == 0
 
   # In support of decision explanation through reason codes, add some meta info to the bins (not used for scoring)
   if (hasNoPredictors) {
-    modelbins[predictortype != "CLASSIFIER", avgWeight := NA]
-    modelbins[predictortype != "CLASSIFIER", minWeight := NA]
-    modelbins[predictortype != "CLASSIFIER", maxWeight := NA]
+    modelbins[PredictorType != "CLASSIFIER", avgWeight := NA]
+    modelbins[PredictorType != "CLASSIFIER", minWeight := NA]
+    modelbins[PredictorType != "CLASSIFIER", maxWeight := NA]
   } else {
-    modelbins[predictortype != "CLASSIFIER", avgWeight := stats::weighted.mean(binWeight,binneg+binpos),by=predictorname]
-    modelbins[predictortype != "CLASSIFIER", minWeight := min(binWeight),by=predictorname]
-    modelbins[predictortype != "CLASSIFIER", maxWeight := max(binWeight),by=predictorname]
+    modelbins[PredictorType != "CLASSIFIER", avgWeight := stats::weighted.mean(binWeight,BinNeg+BinPos),by=PredictorName]
+    modelbins[PredictorType != "CLASSIFIER", minWeight := min(binWeight),by=PredictorName]
+    modelbins[PredictorType != "CLASSIFIER", maxWeight := max(binWeight),by=PredictorName]
   }
 
   if (hasNoPredictors) {
-    return(createEmptyScorecard(modelbins[predictortype=="CLASSIFIER"], modelName))
+    return(createEmptyScorecard(modelbins[PredictorType=="CLASSIFIER"], modelName))
   }
   xmlNode("Scorecard", attrs=c("modelName"=modelName, functionName="regression",
                                algorithmName="PEGA Adaptive Decisioning",
                                useReasonCodes="true", baselineMethod="min", reasonCodeAlgorithm="pointsAbove",
                                initialScore=scWeight),
           xmlNode("MiningSchema",
-                  .children = lapply(sort(unique(modelbins[predictortype != "CLASSIFIER"]$predictorname)),
+                  .children = lapply(sort(unique(modelbins[PredictorType != "CLASSIFIER"]$PredictorName)),
                                      function(pred) {return(xmlNode("MiningField",
                                                                     attrs=c(name=pred, usageType="active", invalidValueTreatment="asIs")))})),
-          createOutputs(modelbins[predictortype=="CLASSIFIER"], scaleOffset, scaleFactor, isScorecard = T),
-          createModelDescription(modelbins[predictortype=="CLASSIFIER"]),
-          xmlNode("Characteristics", .children=lapply(unique(modelbins[predictortype != "CLASSIFIER"]$predictorname),
-                                                      function(predictor) {return(createPredictorNode(modelbins[predictorname==predictor]))})))
+          createOutputs(modelbins[PredictorType=="CLASSIFIER"], scaleOffset, scaleFactor, isScorecard = T),
+          createModelDescription(modelbins[PredictorType=="CLASSIFIER"]),
+          xmlNode("Characteristics", .children=lapply(unique(modelbins[PredictorType != "CLASSIFIER"]$PredictorName),
+                                                      function(predictor) {return(createPredictorNode(modelbins[PredictorName==predictor]))})))
 }
 
 # Creates the PMML Header with timestamp etc
@@ -447,25 +449,27 @@ createHeaderNode <- function(modelName)
 createDataDictionaryNode <- function(modeldata)
 {
   predictors <- unique( rbindlist(lapply(modeldata,
-                                         function(x) { unique( x$binning [predictortype != "CLASSIFIER", c("predictorname","predictortype")] ) } )) ) [order(predictorname)]
-  outputfields <- data.table(predictorname=c(modelPropensityFieldName,
+                                         function(x) { unique( x$binning [PredictorType != "CLASSIFIER", c("PredictorName","PredictorType")] ) } )) ) [order(PredictorName)]
+  outputfields <- data.table(PredictorName=c(modelPropensityFieldName,
                                              modelScoreFieldName,
                                              modelRawScoreFieldName,
                                              modelEvidenceFieldName,
                                              modelPerformanceFieldName,
                                              modelIDFieldName,
                                              sapply(seq(nrExplanations), function(x){return(paste("Explain",x,sep="-"))})),
-                             predictortype=c("NUMERIC", "NUMERIC", "NUMERIC", "INTEGER", "NUMERIC", "SYMBOLIC",
+                             PredictorType=c("NUMERIC", "NUMERIC", "NUMERIC", "INTEGER", "NUMERIC", "SYMBOLIC",
                                              rep("SYMBOLIC", nrExplanations)))
-  dataDict <- rbindlist(list(outputfields, getContextKeyDefinitions(modeldata), predictors))
+  dataDict <- rbindlist(list(outputfields,
+                             getContextKeyDefinitions(modeldata),
+                             predictors))
 
   xmlNode("DataDictionary",
           .children = lapply(seq(nrow(dataDict)),
                              function(i) {return(xmlNode("DataField",
-                                                         attrs=c(name=dataDict[i]$predictorname,
-                                                                 dataType=plyr::revalue(dataDict[i]$predictortype,
+                                                         attrs=c(name=dataDict[i]$PredictorName,
+                                                                 dataType=plyr::revalue(dataDict[i]$PredictorType,
                                                                                         c("SYMBOLIC"="string","NUMERIC"="double","INTEGER"="integer"), warn_missing=F),
-                                                                 optype=plyr::revalue(dataDict[i]$predictortype,
+                                                                 optype=plyr::revalue(dataDict[i]$PredictorType,
                                                                                       c("SYMBOLIC"="categorical","NUMERIC"="continuous","INTEGER"="continuous"), warn_missing=F))))}))
 }
 
@@ -487,10 +491,10 @@ createSegmentPredicate <- function(contextKVPs)
 # creates complex PMML embedded in an overall MiningModel segmented by context key values
 createModelPartitions <- function(modeldata, overallModelName)
 {
-  segments <- lapply(names(modeldata), function(modelid) {return(xmlNode("Segment", attrs=c(id=modelid),
-                                                                         createSegmentPredicate(modeldata[[modelid]]$context),
-                                                                         createScorecard(modeldata[[modelid]]$binning,
-                                                                                         paste(overallModelName, modelid, sep="_"))))})
+  segments <- lapply(names(modeldata), function(ModelID) {return(xmlNode("Segment", attrs=c(id=ModelID),
+                                                                         createSegmentPredicate(modeldata[[ModelID]]$context),
+                                                                         createScorecard(modeldata[[ModelID]]$binning,
+                                                                                         paste(overallModelName, ModelID, sep="_"))))})
 
   segments[[1+length(segments)]] <- xmlNode("Segment", attrs=c(id="default"),
                                             xmlNode("True"),
@@ -507,8 +511,8 @@ isValidModel <- function(singlemodeldata)
   !any(!is.null(singlemodeldata$context) & singlemodeldata$context == "ContextNotDefinedError" )
 }
 
-# Creates single PMML Segment model with multiple embedded Scorecards. Each segment is defined by the context key values.
-# Input is a list of context-binning tuples.
+# Creates single PMML Segment model with multiple embedded Scorecards. Each segment is defined
+# by the context key values. Input is a list of context-binning tuples.
 createPMML <- function(modeldata, overallModelName)
 {
   # Sanity checks to validate assumptions on the input:
@@ -519,33 +523,36 @@ createPMML <- function(modeldata, overallModelName)
   # Make sure the input has the required fields
   sapply(modeldata, function(m) { if (!identical(sort(names(m$binning)),
                                                  sort(BINNINGTABLEFIELDS)))
-    stop(paste("Not all required columns present. Found:", paste(sort(names(m$binning)), collapse = ","), ", expected:", paste(sort(BINNINGTABLEFIELDS), collapse = ",")))})
+    stop(paste("Not all required columns present. Found:",
+               paste(sort(names(m$binning)), collapse = ","),
+               ", expected:", paste(sort(BINNINGTABLEFIELDS), collapse = ",")))})
 
   # Make sure the "enums" only have the expected values
   for (i in length(modeldata)) {
-    oribintypes <- unique(modeldata[[i]]$binning$bintype)
-    modeldata[[i]]$binning$bintype <- factor(modeldata[[i]]$binning$bintype, levels=BINTYPES)
-    if (any(is.na(modeldata[[i]]$binning$bintype))) {
-      print(oribintypes)
-      stop(paste("Unexpected bin types encountered.", "Expected:", paste(BINTYPES,collapse = ","), ", got:", paste(oribintypes, collapse = ",")))
+    oriBinTypes <- unique(modeldata[[i]]$binning$BinType)
+    modeldata[[i]]$binning$BinType <- factor(modeldata[[i]]$binning$BinType, levels=BINTYPES)
+    if (any(is.na(modeldata[[i]]$binning$BinType))) {
+      print(oriBinTypes)
+      stop(paste("Unexpected bin types encountered.",
+                 "Expected:", paste(BINTYPES,collapse = ","),
+                 ", got:", paste(oriBinTypes, collapse = ",")))
     }
   }
 
   # Make sure the predictor binning is according to expectations
   # numerics: INTERVALBELOW & INTERVALABOVE also set bound for last interval. Both should be present.
-  # classifier! forgotten
-  binningSummary <- rbindlist(lapply(modeldata, function(m) {return(m$binning[,.(nMissing=sum(bintype=="MISSING")),
-                                                                              by=c("modelid", "predictorname", "predictortype")])}))
-  if (any(binningSummary$nMissing != 1 & binningSummary$predictortype != "CLASSIFIER")) {
-    print(binningSummary[which(binningSummary$nMissing != 1 & binningSummary$predictortype != "CLASSIFIER")])
+  binningSummary <- rbindlist(lapply(modeldata, function(m) {return(m$binning[,.(nMissing=sum(BinType=="MISSING")),
+                                                                              by=c("ModelID", "PredictorName", "PredictorType")])}))
+  if (any(binningSummary$nMissing != 1 & binningSummary$PredictorType != "CLASSIFIER")) {
+    print(binningSummary[which(binningSummary$nMissing != 1 & binningSummary$PredictorType != "CLASSIFIER")])
     stop("Incorrect number of missing bins.")
   }
 
   # Make sure the predictor binning is according to expectations
-  modelSummary <- rbindlist(lapply(modeldata, function(m) {return(m$binning[,.(hasClassifier=any(predictortype=="CLASSIFIER"),
-                                                                               hasPredictors=any(predictortype=="NUMERIC" | predictortype=="SYMBOLIC"),
-                                                                               predictornames=paste(unique(predictorname), collapse = ",")),
-                                                                            by=c("modelid")])}))
+  modelSummary <- rbindlist(lapply(modeldata, function(m) {return(m$binning[,.(hasClassifier=any(PredictorType=="CLASSIFIER"),
+                                                                               hasPredictors=any(PredictorType=="NUMERIC" | PredictorType=="SYMBOLIC"),
+                                                                               PredictorNames=paste(unique(PredictorName), collapse = ",")),
+                                                                            by=c("ModelID")])}))
   if (!all(modelSummary$hasClassifier)) {
     print(modelSummary)
     stop("No classifier present.")
@@ -629,14 +636,14 @@ adm2pmml <- function(dmModels = NULL, dmPredictors = NULL, dbConn = NULL, forceU
 
   # DM dataset exports
   if (!is.null(dmModels) & !is.null(dmPredictors)) {
-    setnames(dmModels, tolower(names(dmModels)))
-    setnames(dmPredictors, tolower(names(dmPredictors)))
+    applyUniformPegaFieldCasing(dmModels)
+    applyUniformPegaFieldCasing(dmPredictors)
 
     if(!is.null(appliesToFilter)) {
-      dmModels <- dmModels[ grepl(appliesToFilter, pyappliestoclass, ignore.case=T, perl=T) ]
+      dmModels <- dmModels[ grepl(appliesToFilter, AppliesToClass, ignore.case=T, perl=T) ]
     }
     if(!is.null(ruleNameFilter)) {
-      dmModels <- dmModels[ grepl(ruleNameFilter, pyconfigurationname, ignore.case=T, perl=T) ]
+      dmModels <- dmModels[ grepl(ruleNameFilter, ConfigurationName, ignore.case=T, perl=T) ]
     }
   } else {
     # Connection --> Datamart
@@ -645,41 +652,46 @@ adm2pmml <- function(dmModels = NULL, dmPredictors = NULL, dbConn = NULL, forceU
 
         dmModels <- getModelsFromDatamart(conn, verbose=verbose)
         if(!is.null(appliesToFilter)) {
-          dmModels <- dmModels[ grepl(appliesToFilter, pyappliestoclass, ignore.case=T, perl=T) ]
+          dmModels <- dmModels[ grepl(appliesToFilter, AppliesToClass, ignore.case=T, perl=T) ]
         }
         if(!is.null(ruleNameFilter)) {
-          dmModels <- dmModels[ grepl(ruleNameFilter, pyconfigurationname, ignore.case=T, perl=T) ]
+          dmModels <- dmModels[ grepl(ruleNameFilter, ConfigurationName, ignore.case=T, perl=T) ]
         }
         dmPredictors <- getPredictorsForModelsFromDatamart(conn, dmModels, verbose=verbose)
       } else {
         modelFactory <- getModelsFromJSONTable(conn, appliesto=appliesToFilter, configurationname=ruleNameFilter, verbose=verbose)
       }
+      # casing will have been fixed by the db read methods
     }
   }
 
   # ADM datamart, either from DB or from DS exports
   if (!is.null(dmModels) & !is.null(dmPredictors)) {
     # Iterate over unique model rules (model configurations). Every single one of these results in a seperate PMML file.
-    modelRules <- unique(dmModels[, c("pyconfigurationname", "pyappliestoclass", "pxapplication"), with=F])
+    modelRules <- unique(dmModels[, c("ConfigurationName", "AppliesToClass"), with=F])
 
     if(nrow(modelRules)>0) {
       for (m in seq(nrow(modelRules))) {
-        modelPartitionName <- modelRules$pyConfigurationName[m]
+        modelPartitionName <- modelRules$ConfigurationName[m]
 
-        modelPartitionFullName <- paste(modelRules$pxapplication[m], modelRules$pyappliestoclass[m], modelRules$pyconfigurationname[m], sep="_")  # get all model "partitions" for this model rule
-        # pmmlFileName <- paste(destDir, paste(modelRules$pyConfigurationName[m], "ds", "pmml", "xml", sep="."), sep="/")
-        pmmlFileName <- paste(destDir, paste(modelRules$pyconfigurationname[m], "pmml", sep="."), sep="/")
+        modelPartitionFullName <- paste(modelRules$AppliesToClass[m], modelRules$ConfigurationName[m], sep="_")  # get all model "partitions" for this model rule
+        # pmmlFileName <- paste(destDir, paste(modelRules$ConfigurationName[m], "ds", "pmml", "xml", sep="."), sep="/")
+        pmmlFileName <- paste(destDir, paste(modelRules$ConfigurationName[m], "pmml", sep="."), sep="/")
 
         if (verbose) {
           print(paste("Processing", modelPartitionFullName))
         }
 
         # Each of the model instances is an instantiation of a model rule for a specific set of context key values
-        modelInstances <- unique(dmModels[pyconfigurationname==modelRules$pyconfigurationname[m] &
-                                            pyappliestoclass==modelRules$pyappliestoclass[m] &
-                                            pxapplication==modelRules$pxapplication[m]])
+        modelInstances <- unique(dmModels[ConfigurationName==modelRules$ConfigurationName[m] &
+                                            AppliesToClass==modelRules$AppliesToClass[m]])
+        for (fld in names(modelInstances)) {
+          if (is.factor(modelInstances[[fld]])) {
+            modelInstances[[fld]] <- as.character(modelInstances[[fld]])
+          }
+        }
 
-        modelList <- createListFromDatamart(dmPredictors[pymodelid %in% modelInstances$pymodelid],
+        modelList <- createListFromDatamart(dmPredictors[ModelID %in% modelInstances$ModelID],
                                             modelPartitionFullName, tmpDir, modelsForPartition=modelInstances)
 
         pmml <- createPMML(modelList, modelPartitionFullName)
@@ -688,7 +700,7 @@ adm2pmml <- function(dmModels = NULL, dmPredictors = NULL, dbConn = NULL, forceU
         print(pmml)
         sink()
 
-        generatedPMMLFiles[[pmmlFileName]] <- unique(modelInstances$pymodelid)
+        generatedPMMLFiles[[pmmlFileName]] <- unique(modelInstances$ModelID)
 
         if (verbose) {
           print(paste("Generated",pmmlFileName,paste("(",length(modelList)," models)", sep="")))
@@ -696,19 +708,21 @@ adm2pmml <- function(dmModels = NULL, dmPredictors = NULL, dbConn = NULL, forceU
       }
     }
   } else if (!is.null(modelFactory)) {
+    applyUniformPegaFieldCasing(modelFactory)
+
     # returns a list of binning, context pairs - we just want to pass this list to the PMML exporter
-    for (p in unique(modelFactory$pyconfigpartitionid)) {
+    for (p in unique(modelFactory$ConfigpartitionID)) {
       # get all model "partitions" for this model rule
-      modelPartitions <- modelFactory[pyconfigpartitionid==p]
-      modelPartitionInfo <- fromJSON(modelPartitions[1]$pyconfigpartition)
-      modelPartitionName <- modelPartitionInfo$partition$pyPurpose
-      modelPartitionFullName <- paste(modelPartitionInfo$partition$pyClassName, modelPartitionInfo$partition$pyPurpose, sep="_")
+      modelPartitions <- modelFactory[ConfigpartitionID==p]
+      modelPartitionInfo <- fromJSON(modelPartitions[1]$Configpartition)
+      modelPartitionName <- modelPartitionInfo$partition$Purpose
+      modelPartitionFullName <- paste(modelPartitionInfo$partition$ClassName, modelPartitionInfo$partition$Purpose, sep="_")
 
       if(!is.null(appliesToFilter)) {
-        if (!grepl(appliesToFilter, modelPartitionInfo$partition$pyClassName, ignore.case=T, perl=T)) next
+        if (!grepl(appliesToFilter, modelPartitionInfo$partition$ClassName, ignore.case=T, perl=T)) next
       }
       if(!is.null(ruleNameFilter)) {
-        if (!grepl(ruleNameFilter, modelPartitionInfo$partition$pyPurpose, ignore.case=T, perl=T)) next
+        if (!grepl(ruleNameFilter, modelPartitionInfo$partition$Purpose, ignore.case=T, perl=T)) next
       }
 
       if(verbose) {
@@ -723,7 +737,7 @@ adm2pmml <- function(dmModels = NULL, dmPredictors = NULL, dbConn = NULL, forceU
       print(pmml)
       sink()
 
-      generatedPMMLFiles[[pmmlFileName]] <- unique(modelPartitions$pymodelpartitionid)
+      generatedPMMLFiles[[pmmlFileName]] <- unique(modelPartitions$ModelpartitionID)
 
       if(verbose) {
         print(paste("Generated",pmmlFileName,paste("(",nrow(modelPartitions)," models)", sep="")))

@@ -12,10 +12,13 @@ test_that("ADM Factory to Binning simple", {
   expect_equal(nrow(asDataMart), 25)
   expect_equal(ncol(asDataMart), 16)
 
-  summary <- asDataMart[, .(nbins = .N), by=pypredictorname]
-  expect_equal(summary$pypredictorname, c("AGE", "COUNTRY", "Classifier"), info=paste(summary$pypredictorname, collapse=";"))
+  summary <- asDataMart[, .(nbins = .N), by=PredictorName]
+  expect_equal(summary$PredictorName, c("AGE", "COUNTRY", "Classifier"),
+               info=paste(summary$PredictorName, collapse=";"))
   expect_equal(summary$nbins, c(7, 4, 14), info=paste(summary$nbins, collapse=";"))
 })
+
+
 
 test_that("ADM Factory to Binning more complex", {
   admFactoryModel <- paste(readLines("d/issue-4-singlebinpredictor.json/FS-CDH-Data-Customer_SalesAdaptiveModel.json.973807ad-af2d-5f81-ba85-9edae1963b8d.json"), collapse=" ")
@@ -24,9 +27,9 @@ test_that("ADM Factory to Binning more complex", {
   expect_equal(nrow(asDataMart), 283)
   expect_equal(ncol(asDataMart), 16)
 
-  expect_equal(asDataMart[pypredictorname=="AGE"]$pybinsymbol,
+  expect_equal(asDataMart[PredictorName=="AGE"]$BinSymbol,
                c("<3.04","[3.04, 14.08>","[14.08, 25.04>","[25.04, 29.04>","[29.04, 32.08>","[32.08, 36.08>","[36.08, 43.04>","\u226543.04"))
-  expect_equal(asDataMart[pypredictorname=="CREDITSTATUS"]$pybinsymbol,
+  expect_equal(asDataMart[PredictorName=="CREDITSTATUS"]$BinSymbol,
                c("Missing","Clear","Due payment"))
 })
 
@@ -35,34 +38,49 @@ test_that("ADM Factory to Binning similar to direct DM export", {
   asDataMart <- admJSONFactoryToBinning(admFactoryModel)
 
   dmModels <- fread("d/BigModel_modeldata.csv")
-  dmPredictors <- fread("d/BigModel_predictordata.csv")[pymodelid == dmModels$pymodelid[which(dmModels$pyname=="BOFFERSUM")]]
+  applyUniformPegaFieldCasing(dmModels)
 
-  expect_equal(length(unique(asDataMart$pypredictorname)), 44)
+  dmPredictors <- fread("d/BigModel_predictordata.csv")
+  applyUniformPegaFieldCasing(dmPredictors)
+  dmPredictors <- dmPredictors[ModelID == dmModels$ModelID[which(dmModels$Name=="BOFFERSUM")]]
+
+  expect_equal(length(unique(asDataMart$PredictorName)), 44)
 
   # special handling for bin type RESIDUAL, this is set in DM but not in the JSON convert as it does not seem to matter
-  dmPredictors[pybintype=="RESIDUAL", pybintype:="EQUIBEHAVIOR"]
+  dmPredictors[BinType=="RESIDUAL", BinType:="EQUIBEHAVIOR"]
 
   for (fld in c("ADDRESS", "AGE", "CITY", "COUNTRY", "CREDITHISTORY", "Classifier")) {
-    for (col in c("pypredictorname", "pybinindex", "pytype", "pybintype",
-                  "pyentrytype", "pybinpositives", "pybinnegatives",
-                  "pybinindex", "pyperformance", "pylift", "pyzratio" )) {
-      expect_equal(asDataMart[pypredictorname==fld][[col]], dmPredictors[pypredictorname==fld][[col]], tolerance=1e-6,
+
+    for (col in c("PredictorName", "BinIndex", "Type", "BinType",
+                  "EntryType", "BinPositives", "BinNegatives",
+                  "Performance", "Lift", "ZRatio" )) {
+      expect_true(col %in% names(asDataMart),
+                  info=paste("Expected", col, "in converted data from Factory (", sort(names(asDataMart)), ")"))
+      expect_true(col %in% names(dmPredictors),
+                  info=paste("Expected", col, "in DM export (", sort(names(dmPredictors)), ")"))
+
+      expect_equal(asDataMart[PredictorName==fld][[col]],
+                   dmPredictors[PredictorName==fld][[col]], tolerance=1e-6,
                    info=paste("comparing", col, "of", fld,
-                              paste(asDataMart[pypredictorname==fld][[col]], collapse=";"), "vs",
-                              paste(dmPredictors[pypredictorname==fld][[col]], collapse=";")))
+                              paste(asDataMart[PredictorName==fld][[col]], collapse=";"), "vs",
+                              paste(dmPredictors[PredictorName==fld][[col]], collapse=";")))
     }
+
     # special cases
     # pytype vs pypredictortype name confusion
-    expect_equal(asDataMart[pypredictorname==fld][["pypredictortype"]], dmPredictors[pypredictorname==fld][["pytype"]],
-                 info=paste("comparing", "pypredictortype", "of", fld))
+    expect_equal(asDataMart[PredictorName==fld]$PredictorType,
+                 dmPredictors[PredictorName==fld]$Type,
+                 info=paste("comparing", "PredictorType", "of", fld))
+
     # first lower bound has a value in the DM snapshots, NA in the other
-    expect_equal(asDataMart[pypredictorname==fld][["pybinlowerbound"]][2:length(asDataMart[pypredictorname==fld][["pybinlowerbound"]])],
-                 dmPredictors[pypredictorname==fld][["pybinlowerbound"]][2:length(dmPredictors[pypredictorname==fld][["pybinlowerbound"]])],
-                 info=paste("comparing", "pybinlowerbound", "of", fld))
+    expect_equal(asDataMart[PredictorName==fld]$BinLowerBound[2:length(asDataMart[PredictorName==fld]$BinLowerBound)],
+                 dmPredictors[PredictorName==fld]$BinLowerBound[2:length(dmPredictors[PredictorName==fld]$BinLowerBound)],
+                 info=paste("comparing", "BinLowerBound", "of", fld))
+
     # last upper bound has a value in the DM snapshots, NA in the other
-    expect_equal(asDataMart[pypredictorname==fld][["pybinupperbound"]][1:(length(asDataMart[pypredictorname==fld][["pybinupperbound"]])-1)],
-                 dmPredictors[pypredictorname==fld][["pybinupperbound"]][1:(length(dmPredictors[pypredictorname==fld][["pybinupperbound"]])-1)],
-                 info=paste("comparing", "pybinupperbound", "of", fld))
+    expect_equal(asDataMart[PredictorName==fld]$BinUpperBound[1:(length(asDataMart[PredictorName==fld]$BinUpperBound)-1)],
+                 dmPredictors[PredictorName==fld]$BinUpperBound[1:(length(dmPredictors[PredictorName==fld]$BinUpperBound)-1)],
+                 info=paste("comparing", "BinUpperBound", "of", fld))
   }
 })
 

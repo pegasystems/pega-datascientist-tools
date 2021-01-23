@@ -1,7 +1,7 @@
 # Example preprocessing to create off-line model reports for
 # CDH Sample, for CreditCards offers in Outbound channels
 
-#library(cdhtools)
+library(cdhtools)
 library(data.table)
 
 # Read the latest ADM Model export file from the Downloads folder

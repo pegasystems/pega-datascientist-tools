@@ -35,7 +35,7 @@ applyUniformPegaFieldCasing <- function(dt)
   fields <- names(dt)
 
   # field name endings we want to see capitalized
-  capitializeEndWords <- c("ID", "Key", "Name", "Count", "Time", "UpdateTime",
+  capitializeEndWords <- c("ID", "Key", "Name", "Count", "Time", "DateTime", "UpdateTime",
                            "ToClass", "Version", "Predictor", "Predictors", "Rate", "Ratio",
                            "Negatives", "Positives", "Threshold", "Error", "Importance",
                            "Type", "Percentage", "Index", "Symbol",
@@ -250,6 +250,9 @@ readADMDatamartModelExport <- function(srcFolder=".",
   }
 
   modelz <- readDSExport(instancename, srcFolder, tmpFolder=tmpFolder, stringsAsFactors=T)
+  if ("pyModelData" %in% names(modelz)) {
+    modelz[,pyModelData := NULL]
+  }
 
   modelz <- standardizeDatamartModelData(modelz, latestOnly=latestOnly)
   modelz <- expandJSONContextInNameField(modelz)
@@ -512,14 +515,13 @@ toPRPCDateTime <- function(x)
 getModelPerformanceOverview <- function(dmModels = NULL, dmPredictors = NULL, jsonPartitions = NULL)
 {
   if (!is.null(dmModels) & !is.null(dmPredictors)) {
-    setnames(dmModels, tolower(names(dmModels)))
-    setnames(dmPredictors, tolower(names(dmPredictors)))
-    modelList <- createListFromDatamart(dmPredictors[pymodelid %in% dmModels$pymodelid],
-                                        fullName="Dummy", modelsForPartition=dmModels)
+    modelList <- createListFromDatamart(dmPredictors[ModelID %in% dmModels$ModelID],
+                                        fullName="Dummy",
+                                        modelsForPartition=dmModels)
   } else if (!is.null(dmPredictors) & is.null(dmModels)) {
-    setnames(dmPredictors, tolower(names(dmPredictors)))
+
     modelList <- createListFromDatamart(dmPredictors, fullName="Dummy")
-    modelList[[1]][["context"]] <- list("pyname" =  "Dummy") # should arguably be part of the createList but that breaks some tests, didnt want to bother
+    modelList[[1]][["context"]] <- list("Name" =  "Dummy") # should arguably be part of the createList but that breaks some tests, didnt want to bother
   } else if (!is.null(jsonPartitions)) {
     modelList <- createListFromADMFactory(jsonPartitions, overallModelName="Dummy")
   } else {
@@ -527,59 +529,47 @@ getModelPerformanceOverview <- function(dmModels = NULL, dmPredictors = NULL, js
   }
 
   # Name, response count and reported performance obtained from the data directly. For the score min/max using the utility function
-  # that summarizes the predictor bins into a table ("scaling") with the min and max weight per predictor. These weights are the
+  # that summarizes the predictor bins into a table ("ScaledBins") with the min and max weight per predictor. These weights are the
   # normalized log odds and score min/max is found by adding them up.
-  perfOverview <- data.table( pyname = sapply(modelList, function(m) {return(m$context$pyname)}),
-                              performance = sapply(modelList, function(m) {return(m$binning$performance[1])}),
-                              actual_performance = NA, # placeholder
-                              responses = sapply(modelList, function(m) {return(m$binning$totalpos[1] + m$binning$totalneg[1])}),
-                              score_min = sapply(modelList, function(m) {binz <- copy(m$binning); scaling <- setBinWeights(binz); return(sum(scaling$binning[predictortype != "CLASSIFIER"]$minWeight))}),
-                              score_max = sapply(modelList, function(m) {binz <- copy(m$binning); scaling <- setBinWeights(binz); return(sum(scaling$binning[predictortype != "CLASSIFIER"]$maxWeight))}))
 
-  classifiers <- lapply(modelList, function(m) { return (m$binning[predictortype == "CLASSIFIER"])})
+
+  ### TODO: pyName is a factor! We don't want a factor here.
+
+  perfOverview <- data.table( name = sapply(modelList, function(m) {return(m$context$pyName)}),
+                              reported_performance = sapply(modelList, function(m) {return(m$binning$Performance[1])}),
+                              actual_performance = NA, # placeholder
+                              responses = sapply(modelList, function(m) {return(m$binning$TotalPos[1] + m$binning$TotalNeg[1])}),
+                              score_min = sapply(modelList, function(m) {scaled <- setBinWeights(copy(m$binning)); return(sum(scaled$binning[PredictorType != "CLASSIFIER"]$minWeight))}),
+                              score_max = sapply(modelList, function(m) {scaled <- setBinWeights(copy(m$binning)); return(sum(scaled$binning[PredictorType != "CLASSIFIER"]$maxWeight))}))
+
+
+  classifiers <- lapply(modelList, function(m) { return (m$binning[PredictorType == "CLASSIFIER"])})
 
   findClassifierBin <- function( classifierBins, score )
   {
-    if (nrow(classifierBins) == 1) return(1)
+    if (nrow(classifierBins) == 1) {
+      return(-999)
+    }
 
-    return (1 + findInterval(score, classifierBins$binupperbound[1 : (nrow(classifierBins) - 1)]))
+    return (1 + findInterval(score, classifierBins$BinUpperBound[1 : (nrow(classifierBins) - 1)]))
   }
 
   perfOverview$nbins <- sapply(classifiers, nrow)
-  perfOverview$actual_score_bin_min <- sapply(seq(nrow(perfOverview)), function(n) { return( findClassifierBin( classifiers[[n]], perfOverview$score_min[n]))} )
-  perfOverview$actual_score_bin_max <- sapply(seq(nrow(perfOverview)), function(n) { return( findClassifierBin( classifiers[[n]], perfOverview$score_max[n]))} )
-  perfOverview$actual_performance <- sapply(seq(nrow(perfOverview)), function(n) { return( auc_from_bincounts(classifiers[[n]]$binpos[perfOverview$actual_score_bin_min[n]:perfOverview$actual_score_bin_max[n]],
-                                                                                                              classifiers[[n]]$binneg[perfOverview$actual_score_bin_min[n]:perfOverview$actual_score_bin_max[n]] )) })
-  setorder(perfOverview, pyname)
+  perfOverview$actual_score_bin_min <- sapply(seq(nrow(perfOverview)),
+                                              function(n) { return( findClassifierBin( classifiers[[n]], perfOverview$score_min[n]))} )
+  perfOverview$actual_score_bin_max <- sapply(seq(nrow(perfOverview)),
+                                              function(n) { return( findClassifierBin( classifiers[[n]], perfOverview$score_max[n]))} )
+  perfOverview$actual_performance <- sapply(seq(nrow(perfOverview)),
+                                           function(n) { return( auc_from_bincounts(
+                                             classifiers[[n]]$BinPos[perfOverview$actual_score_bin_min[n]:perfOverview$actual_score_bin_max[n]],
+                                             classifiers[[n]]$BinNeg[perfOverview$actual_score_bin_min[n]:perfOverview$actual_score_bin_max[n]] )) })
+  # print(perfOverview)
+  # print(sapply(perfOverview, class))
+  # print(modelList)
+  # stop("Booh")
+  setorder(perfOverview, name)
+
 
   return(perfOverview)
 }
 
-####
-
-# Internal code to generate the data exports
-createIHexport <- function()
-{
-  # pick up a dump of IH data from Pega
-  ihDump <- readDSExport("../extra/Data-pxStrategyResult_pxInteractionHistory.zip")
-
-  # rescale outcome/decision time to a period of 2 weeks
-  ihDump[, pxOutcomeTime := fromPRPCDateTime(pxOutcomeTime)]
-  ihDump[, pxDecisionTime := fromPRPCDateTime(pxDecisionTime)]
-  minTime <- min(min(ihDump$pxOutcomeTime), min(ihDump$pxDecisionTime))
-  maxTime <- max(max(ihDump$pxOutcomeTime), max(ihDump$pxDecisionTime))
-  oldtimespan <- as.double(difftime(maxTime, minTime, units="secs"))
-  newtimespan <- as.double(lubridate::weeks(2))
-
-  # downsample to reduce the size
-  ihsampledata <- ihDump[sort(sample.int(nrow(ihDump), 50000))]
-
-  ihsampledata[, pxOutcomeTime := toPRPCDateTime(minTime + as.double(difftime(pxOutcomeTime, minTime))*newtimespan/oldtimespan)]
-  ihsampledata[, pxDecisionTime := toPRPCDateTime(minTime + as.double(difftime(pxDecisionTime, minTime))*newtimespan/oldtimespan)]
-
-  # write as data object for easy import
-  save(ihsampledata, file="ihsampledata.rda")
-
-  # re-write as an export zip
-  writeDSExport( ihsampledata, "ihsampledata.zip" )
-}

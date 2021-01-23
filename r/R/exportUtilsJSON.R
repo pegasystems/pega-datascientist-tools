@@ -110,19 +110,19 @@ getNumBinningFromJSON <- function(numField, id)
     print(numField)
     stop(paste("Assumption invalidated that first numeric bin is MISSING, field=", numField$name, "id=", id))
   }
-  data.table( modelid = id,
-              predictorname = numField$name,
-              predictortype = numField$type,
-              binlabel = NA, # binlabel not relevant for numerics
-              binlowerbound = c(NA, NA, intervals[rlang::seq2(2,length(intervals))]), # bin[1] is for missing values
-              binupperbound = c(NA, intervals[rlang::seq2(2,length(intervals))], NA),
-              bintype = c("MISSING", rep("INTERVAL", length(intervals))),
-              binpos = unlist(numField$positives),
-              binneg = unlist(numField$negatives),
-              binidx = c(0, seq(length(intervals))),
-              totalpos = numField$totalPositives,
-              totalneg = numField$totalNegatives,
-              smoothing = numField$laplaceSmoothingValue)
+  data.table( ModelID = id,
+              PredictorName = numField$name,
+              PredictorType = numField$type,
+              BinLabel = NA, # binlabel not relevant for numerics
+              BinLowerBound = c(NA, NA, intervals[rlang::seq2(2,length(intervals))]), # bin[1] is for missing values
+              BinUpperBound = c(NA, intervals[rlang::seq2(2,length(intervals))], NA),
+              BinType = c("MISSING", rep("INTERVAL", length(intervals))),
+              BinPos = unlist(numField$positives),
+              BinNeg = unlist(numField$negatives),
+              BinIndex = c(0, seq(length(intervals))),
+              TotalPos = numField$totalPositives,
+              TotalNeg = numField$totalNegatives,
+              Smoothing = numField$laplaceSmoothingValue)
 }
 
 getSymBinningFromJSON <- function(symField, id)
@@ -144,19 +144,19 @@ getSymBinningFromJSON <- function(symField, id)
   # the remaining symbols bin
   normalValues <- setdiff(which(mapping != 0 & mapping != remainingSymbolsIdx), c(1,2))
 
-  data.table( modelid = id,
-              predictorname = symField$name,
-              predictortype = symField$type,
-              binlabel = c("Missing", symkeys[normalValues], "Other"),
-              binlowerbound = NA,
-              binupperbound = NA,
-              bintype = c("MISSING", rep("SYMBOL", length(normalValues)), "REMAININGSYMBOLS"),
-              binpos = unlist(symField$positives) [c(1, 1 + mapping[normalValues], 1 + remainingSymbolsIdx)],
-              binneg = unlist(symField$negatives) [c(1, 1 + mapping[normalValues], 1 + remainingSymbolsIdx)],
-              binidx = c(0, mapping[normalValues], remainingSymbolsIdx),
-              totalpos = symField$totalPositives,
-              totalneg = symField$totalNegatives,
-              smoothing = symField$laplaceSmoothingValue)
+  data.table( ModelID = id,
+              PredictorName = symField$name,
+              PredictorType = symField$type,
+              BinLabel = c("Missing", symkeys[normalValues], "Other"),
+              BinLowerBound = NA,
+              BinUpperBound = NA,
+              BinType = c("MISSING", rep("SYMBOL", length(normalValues)), "REMAININGSYMBOLS"),
+              BinPos = unlist(symField$positives) [c(1, 1 + mapping[normalValues], 1 + remainingSymbolsIdx)],
+              BinNeg = unlist(symField$negatives) [c(1, 1 + mapping[normalValues], 1 + remainingSymbolsIdx)],
+              BinIndex = c(0, mapping[normalValues], remainingSymbolsIdx),
+              TotalPos = symField$totalPositives,
+              TotalNeg = symField$totalNegatives,
+              Smoothing = symField$laplaceSmoothingValue)
 }
 
 internalBinningFromJSONFactory <- function(binningJSON, id, activePredsOnly)
@@ -174,7 +174,7 @@ internalBinningFromJSONFactory <- function(binningJSON, id, activePredsOnly)
     if (length(numPredictorIdx) > 0) {
       predBinningTableNum <- rbindlist(lapply(numPredictorIdx, function(i) {
         b <- getNumBinningFromJSON(binningJSON$groupedPredictors[i,], id = id)
-        b[, isactive := predictorname[1] %in% activePreds]
+        b[, IsActive := PredictorName[1] %in% activePreds]
         return(b)}))
     }
   }
@@ -185,37 +185,37 @@ internalBinningFromJSONFactory <- function(binningJSON, id, activePredsOnly)
     if (length(symPredictorIdx) > 0) {
       predBinningTableSym <- rbindlist(lapply(symPredictorIdx, function(i) {
         b <- getSymBinningFromJSON(binningJSON$groupedPredictors[i,], id = id)
-        b[, isactive := predictorname[1] %in% activePreds]
+        b[, IsActive := PredictorName[1] %in% activePreds]
         return(b)}))
     }
   }
 
   lengthClassifierArrays <- length(binningJSON$outcomeProfile$positives) # Element [1] will not be used, would be for missing but contains no data
 
-  classifierTable <- data.table( modelid = id,
-                                 predictorname = "Classifier",
-                                 predictortype = "CLASSIFIER",
-                                 binlabel = NA, # label not relevant for classifier
-                                 binlowerbound = c(NA, unlist(binningJSON$outcomeProfile$mapping$intervals[seq_len(lengthClassifierArrays-2)+1])),
-                                 binupperbound = c(unlist(binningJSON$outcomeProfile$mapping$intervals[seq_len(lengthClassifierArrays-2)+1]), NA),
-                                 bintype = rep("INTERVAL", lengthClassifierArrays-1),
-                                 binpos = unlist(binningJSON$outcomeProfile$positives[2:lengthClassifierArrays]),
-                                 binneg = unlist(binningJSON$outcomeProfile$negatives[2:lengthClassifierArrays]),
-                                 binidx = 1:(lengthClassifierArrays-1),
-                                 totalpos = binningJSON$outcomeProfile$totalPositives,
-                                 totalneg = binningJSON$outcomeProfile$totalNegatives,
-                                 smoothing = NA, # not using binningJSON$outcomeProfile$laplaceSmoothingValue
-                                 isactive = T)
+  classifierTable <- data.table( ModelID = id,
+                                 PredictorName = "Classifier",
+                                 PredictorType = "CLASSIFIER",
+                                 BinLabel = NA, # label not relevant for classifier
+                                 BinLowerBound = c(NA, unlist(binningJSON$outcomeProfile$mapping$intervals[seq_len(lengthClassifierArrays-2)+1])),
+                                 BinUpperBound = c(unlist(binningJSON$outcomeProfile$mapping$intervals[seq_len(lengthClassifierArrays-2)+1]), NA),
+                                 BinType = rep("INTERVAL", lengthClassifierArrays-1),
+                                 BinPos = unlist(binningJSON$outcomeProfile$positives[2:lengthClassifierArrays]),
+                                 BinNeg = unlist(binningJSON$outcomeProfile$negatives[2:lengthClassifierArrays]),
+                                 BinIndex = 1:(lengthClassifierArrays-1),
+                                 TotalPos = binningJSON$outcomeProfile$totalPositives,
+                                 TotalNeg = binningJSON$outcomeProfile$totalNegatives,
+                                 Smoothing = NA, # not using binningJSON$outcomeProfile$laplaceSmoothingValue
+                                 IsActive = T)
 
   predBinningList <- list(predBinningTableNum, predBinningTableSym, classifierTable)
   predBinningTable <- rbindlist(predBinningList[lengths(predBinningList)>0]) # exclude the NULL or empty lists
 
   # Performance calculated from outcome profile to be compatible with DM tables where there is no performance profile
-  predBinningTable$performance <- auc_from_bincounts(binningJSON$outcomeProfile$positives,
+  predBinningTable$Performance <- auc_from_bincounts(binningJSON$outcomeProfile$positives,
                                                      binningJSON$outcomeProfile$negatives)
 
-  predBinningTable$bintype <- factor(predBinningTable$bintype, levels=BINTYPES)
-  setorder(predBinningTable, predictorname, bintype, binupperbound, binlabel, na.last = T)
+  predBinningTable$BinType <- factor(predBinningTable$BinType, levels=BINTYPES)
+  setorder(predBinningTable, PredictorName, BinType, BinUpperBound, BinLabel, na.last = T)
 
   return(predBinningTable)
 }
@@ -238,12 +238,12 @@ internalBinningFromJSONFactory <- function(binningJSON, id, activePredsOnly)
 #' @export
 getScoringModelFromJSONFactoryString <- function(analyzedData, isAuditModel=F)
 {
-  buildLabel <- function(predictortype, bintype, binlabel, binlowerbound, binupperbound)
+  buildLabel <- function(PredictorType, BinType, BinLabel, binlowerbound, binupperbound)
   {
-    return(ifelse(bintype == "MISSING","MISSING",
-                  ifelse(bintype == "INTERVAL",buildIntervalNotation(binlowerbound, binupperbound),
-                         ifelse(bintype == "SYMBOL",binlabel,
-                                ifelse(bintype == "REMAININGSYMBOLS", "Other", paste("Internal error: unknown type", bintype))))))
+    return(ifelse(BinType == "MISSING","MISSING",
+                  ifelse(BinType == "INTERVAL",buildIntervalNotation(binlowerbound, binupperbound),
+                         ifelse(BinType == "SYMBOL",BinLabel,
+                                ifelse(BinType == "REMAININGSYMBOLS", "Other", paste("Internal error: unknown type", BinType))))))
   }
 
   scoringModelJSON <- fromJSON(analyzedData)
@@ -255,18 +255,18 @@ getScoringModelFromJSONFactoryString <- function(analyzedData, isAuditModel=F)
   # into scorecard and a score mapping
 
   scaledBinning <- setBinWeights(internalBinning)$binning
-  scaledBinning[, Label := buildLabel(predictortype, bintype, binlabel, binlowerbound, binupperbound)]
+  scaledBinning[, Label := buildLabel(PredictorType, BinType, BinLabel, binlowerbound, binupperbound)]
 
   # The field to score mapping (also returning pos/neg so numbers can be verified)
-  scorecard <- scaledBinning[predictortype != "CLASSIFIER", c("predictorname", "Label", "binWeight", "binpos", "binneg")]
+  scorecard <- scaledBinning[PredictorType != "CLASSIFIER", c("predictorname", "Label", "binWeight", "BinPos", "BinNeg")]
   setnames(scorecard, c("Field", "Value", "Points", "pos", "neg"))
 
   # The classifier mapping
-  scorecardMapping <- scaledBinning[predictortype == "CLASSIFIER", c("Label", "binWeight", "binpos", "binneg")]
+  scorecardMapping <- scaledBinning[PredictorType == "CLASSIFIER", c("Label", "binWeight", "BinPos", "BinNeg")]
   setnames(scorecardMapping, c("Score Range", "Propensity", "pos", "neg"))
 
   # Both plus the original boundaries/labels
-  oriBinning <- scaledBinning[, c("predictorname", "predictortype", "bintype", "binlabel", "binlowerbound", "binupperbound", "binWeight", "binpos", "binneg")]
+  oriBinning <- scaledBinning[, c("predictorname", "PredictorType", "BinType", "BinLabel", "binlowerbound", "binupperbound", "binWeight", "BinPos", "BinNeg")]
   setnames(oriBinning, c("Field", "FieldType", "BinType", "Symbol", "LowerBound", "UpperBound", "Weight", "pos", "neg"))
 
   return(list(scorecard = scorecard, mapping = scorecardMapping, binning = oriBinning))
@@ -288,8 +288,6 @@ createListFromSingleJSONFactoryString <- function(aFactory, id, overallModelName
 
   if (forceLowerCasePredictorNames) {
     predBinningTable$predictorname <- tolower(predBinningTable$predictorname)
-
-    names(model$factoryKey$modelPartition$partition) <- tolower(names(model$factoryKey$modelPartition$partition))
   }
 
   # Dump binning for debugging
@@ -310,7 +308,12 @@ createListFromSingleJSONFactoryString <- function(aFactory, id, overallModelName
 createListFromADMFactory <- function(partitions, overallModelName, tmpFolder=NULL, forceLowerCasePredictorNames=F)
 {
   modelList <- lapply(partitions$pymodelpartitionid,
-                      function(x) { return(createListFromSingleJSONFactoryString(partitions$pyfactory[which(partitions$pymodelpartitionid==x)], x, overallModelName, tmpFolder, forceLowerCasePredictorNames)) })
+                      function(x) {
+                        return(createListFromSingleJSONFactoryString(partitions$pyfactory[which(partitions$pymodelpartitionid==x)],
+                                                                     x,
+                                                                     overallModelName,
+                                                                     tmpFolder,
+                                                                     forceLowerCasePredictorNames)) })
   names(modelList) <- partitions$pymodelpartitionid
   return(modelList)
 }
@@ -331,48 +334,54 @@ createListFromADMFactory <- function(partitions, overallModelName, tmpFolder=NUL
 #' binning <- admJSONFactoryToBinning(admFactory$pyfactory[1])}
 admJSONFactoryToBinning <- function(factoryJSON, modelname="Dummy")
 {
-  factoryDetail <- createListFromSingleJSONFactoryString(factoryJSON, id=modelname, overallModelName=modelname, tmpFolder=NULL, forceLowerCasePredictorNames=F, activePredsOnly=F)
+  factoryDetail <- createListFromSingleJSONFactoryString(factoryJSON,
+                                                         id=modelname,
+                                                         overallModelName=modelname,
+                                                         tmpFolder=NULL,
+                                                         forceLowerCasePredictorNames=F,
+                                                         activePredsOnly=F)
 
-  snapshottime <- toPRPCDateTime(lubridate::now())
-  predictorBinning <- factoryDetail$binning [, .(pypredictortype = ifelse(predictortype[1]=="SYMBOLIC", "symbolic", "numeric"),
-                                                 pytype = ifelse(predictortype[1]=="SYMBOLIC", "symbolic", "numeric"), # same as pypredictortype
-                                                 pybintype = ifelse(bintype[1]=="MISSING", "MISSING", "EQUIBEHAVIOR"), # RESIDUAL DOES NOT SEEM TO MATTER
+  SnapshotTime <- toPRPCDateTime(lubridate::now())
+  predictorBinning <- factoryDetail$binning [, .(PredictorType = ifelse(PredictorType[1]=="SYMBOLIC", "symbolic", "numeric"),
+                                                 Type = ifelse(PredictorType[1]=="SYMBOLIC", "symbolic", "numeric"), # same as PredictorType
+                                                 BinType = ifelse(BinType[1]=="MISSING", "MISSING", "EQUIBEHAVIOR"), # RESIDUAL DOES NOT SEEM TO MATTER
 
-                                                 pybinsymbol = ifelse(predictortype[1]=="SYMBOLIC", paste(binlabel, collapse = ","), buildIntervalNotation(binlowerbound, binupperbound)),
-                                                 pybinlowerbound = first(binlowerbound),
-                                                 pybinupperbound = first(binupperbound),
+                                                 BinSymbol = ifelse(PredictorType[1]=="SYMBOLIC",
+                                                                    paste(BinLabel, collapse = ","),
+                                                                    buildIntervalNotation(BinLowerBound, BinUpperBound)),
+                                                 BinLowerBound = first(BinLowerBound),
+                                                 BinUpperBound = first(BinUpperBound),
 
-                                                 pyentrytype = ifelse(predictortype[1]=="CLASSIFIER", "Classifier", ifelse(isactive[1], "Active", "Inactive")),
-                                                 pysnapshottime = snapshottime,
-                                                 pybinpositives = first(binpos),
-                                                 pybinnegatives = first(binneg)
+                                                 EntryType = ifelse(PredictorType[1]=="CLASSIFIER", "Classifier", ifelse(IsActive[1], "Active", "Inactive")),
+                                                 SnapshotTime = SnapshotTime,
+                                                 BinPositives = first(BinPos),
+                                                 BinNegatives = first(BinNeg)
                                                  # pypositives/pynegatives are aggregates at predictor level - can build but may not be needed
                                                  # pygroupindex would be nice but optional
-                                                 # pybinindex normally starts at 1.. here always 0 for missings whether they exist or not... issue?
+                                                 # BinIndex normally starts at 1.. here always 0 for missings whether they exist or not... issue?
                                                  # pytotalbins is predictor level aggregate
-  ), by=c("modelid", "predictorname", "binidx")]
-  setnames(predictorBinning, c("modelid", "predictorname", "binidx"), c("pymodelid", "pypredictorname", "pybinindex"))
+  ), by=c("ModelID", "PredictorName", "BinIndex")]
 
   # label bin index 0 as MISSING by definition
   # but then drop the missing bins without evidence
   # and finally make sure the index always starts at 1
-  predictorBinning[pybinindex==0, pybintype := "MISSING"]
-  predictorBinning <- predictorBinning[!(pybinindex == 0 & pybinpositives == 0 & pybinnegatives == 0)]
-  predictorBinning[, pybinindex := ifelse(rep(any(pybinindex == 0),.N), pybinindex+1, pybinindex), by=c("pymodelid", "pypredictorname")]
-  predictorBinning[, pybinindex := as.integer(pybinindex)]
+  predictorBinning[BinIndex==0, BinType := "MISSING"]
+  predictorBinning <- predictorBinning[!(BinIndex == 0 & BinPositives == 0 & BinNegatives == 0)]
+  predictorBinning[, BinIndex := ifelse(rep(any(BinIndex == 0),.N), BinIndex+1, BinIndex), by=c("ModelID", "PredictorName")]
+  predictorBinning[, BinIndex := as.integer(BinIndex)]
 
   # recalculate auc, z-ratio and lift
-  predictorBinning[, pyperformance := auc_from_bincounts(pybinpositives, pybinnegatives), by=c("pymodelid", "pypredictorname")]
-  predictorBinning[, pylift := lift(pybinpositives, pybinnegatives), by=c("pymodelid", "pypredictorname")]
-  predictorBinning[, pyzratio := zratio(pybinpositives, pybinnegatives), by=c("pymodelid", "pypredictorname")]
-  predictorBinning[, pyzratio := ifelse(is.nan(pyzratio), 0, pyzratio)]
+  predictorBinning[, Performance := auc_from_bincounts(BinPositives, BinNegatives), by=c("ModelID", "PredictorName")]
+  predictorBinning[, Lift := lift(BinPositives, BinNegatives), by=c("ModelID", "PredictorName")]
+  predictorBinning[, ZRatio := zratio(BinPositives, BinNegatives), by=c("ModelID", "PredictorName")]
+  predictorBinning[, ZRatio := ifelse(is.nan(ZRatio), 0, ZRatio)]
 
   # drop the empty last bins
-  predictorBinning[, maxpybinindex := max(pybinindex), by=c("pymodelid", "pypredictorname")]
-  predictorBinning <- predictorBinning[!(pybinindex == maxpybinindex & pybinpositives == 0 & pybinnegatives == 0)][, -"maxpybinindex"]
+  predictorBinning[, maxBinIndex := max(BinIndex), by=c("ModelID", "PredictorName")]
+  predictorBinning <- predictorBinning[!(BinIndex == maxBinIndex & BinPositives == 0 & BinNegatives == 0)][, -"maxBinIndex"]
 
   # order can have been changed after the binindex manipulation above
-  setorderv(predictorBinning, c("pymodelid", "pypredictorname", "pybinindex"))
+  setorderv(predictorBinning, c("ModelID", "PredictorName", "BinIndex"))
 
   return(predictorBinning)
 }
