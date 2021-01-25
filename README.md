@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/pegasystems/cdh-datascientist-tools.svg?branch=master)](https://travis-ci.org/pegasystems/cdh-datascientist-tools)
+[![R build status](https://github.com/pegasystems/cdh-datascientist-tools/workflows/cdhtools/badge.svg)](https://github.com/pegasystems/cdh-datascientist-tools/actions?workflow=cdhtools)
 [![codecov](https://codecov.io/gh/pegasystems/cdh-datascientist-tools/branch/master/graph/badge.svg)](https://codecov.io/gh/pegasystems/cdh-datascientist-tools)
 
 # Customer Decision Hub Data Scientist Tools
