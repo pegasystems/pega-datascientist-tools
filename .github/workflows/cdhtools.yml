@@ -3,6 +3,7 @@
 #
 # https://github.com/r-lib/actions/tree/master/examples
 # https://tomasvotruba.com/blog/2020/01/27/switch-travis-to-github-actions-to-reduce-stress/
+# https://stackoverflow.com/questions/58139175/running-actions-in-another-directory
 
 name: cdhtools
 
@@ -34,8 +35,8 @@ jobs:
       - uses: r-lib/actions/setup-pandoc@v1
       
       - name: Install dependencies
+        working-directory: ./r
         run: |
-          setwd("r")
           install.packages(c("remotes", "rcmdcheck"))
           remotes::install_deps(dependencies = TRUE)
           remotes::install_cran("covr")
@@ -49,14 +50,13 @@ jobs:
           restore-keys: ${{ runner.os }}-${{ hashFiles('.github/R-version') }}-1-
           
       - name: Check
+        working-directory: ./r
         run: |
-          setwd("r")
           rcmdcheck::rcmdcheck(args = "--no-manual", error_on = "error")
         shell: Rscript {0}
         
       - name: Test coverage
+        working-directory: ./r
         run: |
-          setwd("r")
           covr::codecov()
         shell: Rscript {0}
-        
