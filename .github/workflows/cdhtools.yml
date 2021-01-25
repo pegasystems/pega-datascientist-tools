@@ -35,6 +35,7 @@ jobs:
       
       - name: Install dependencies
         run: |
+          setwd("r")
           install.packages(c("remotes", "rcmdcheck"))
           remotes::install_deps(dependencies = TRUE)
           remotes::install_cran("covr")
