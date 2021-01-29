@@ -5,8 +5,8 @@ if (Sys.info()['sysname'] == 'Darwin') {
   dyn.load(paste0(system2('/usr/libexec/java_home', stdout = TRUE), '/jre/lib/server/libjvm.dylib'))
 }
 
-library(XML) # not sure why this is necessary...
-library(jsonlite) # not sure why this is necessary...
+library(XML)
+library(jsonlite)
 library(RJDBC)
 library(cdhtools)
 
@@ -14,8 +14,8 @@ library(cdhtools)
 
 drv <- JDBC("org.postgresql.Driver", "~/Documents/tools/jdbc-drivers/postgresql-9.2-1002.jdbc4.jar")
 
-pg_user <- "pega"
-pg_pwd <- "pega"
+pg_user <- "<USERNAME>"
+pg_pwd <- "<PASSWORD>"
 
 conn <- dbConnect(drv, "jdbc:postgresql://localhost:5432/pega731", pg_user, pg_pwd)
 

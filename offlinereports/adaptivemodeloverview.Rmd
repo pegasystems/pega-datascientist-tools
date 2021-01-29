@@ -12,15 +12,13 @@ params:
   modelfile:
     # full path to the source file which should be an export of the ADM model table
     # can be a plain CSV file, a zipped up CSV or the full path of a dataset export
-    #value: "../extra/pr_data_dm_admmart_mdl_fact.csv"
-    value: "/Users/perdo/Documents/pega/cdh-datascientist-tools-data/off-line reports examples/models.csv"
+    value: "../data/pr_data_dm_admmart_mdl_fact.csv"
   predictordatafile:
     # optional full path to ADM predictor binning table data
     # if given, the model overview will also contain aggregate predictor plots
     # this example file is the same as the RDA file used elsewhere in demos of CDH tools
     # can be a plain CSV file, a zipped up CSV or the full path of a dataset export
-    #value: "../extra/pr_data_dm_admmart_pred.csv"
-    value: "/Users/perdo/Documents/pega/cdh-datascientist-tools-data/off-line reports examples/predictors.csv"
+    value: "../data/pr_data_dm_admmart_pred.csv"
   modellist:
     # optional name for a text file that will be created with a list of model ID and model names
     # to drive bulk-creation of individual model reports

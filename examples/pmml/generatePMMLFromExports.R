@@ -1,6 +1,6 @@
 # Export ADM Datamart models to PMML from a dataset export
 
-library(XML) # not sure why this is necessary...
+library(XML)
 library(cdhtools)
 
 models <- readDSExport("Data-Decision-ADM-ModelSnapshot", srcFolder="~/Downloads", tmpFolder="tmp")

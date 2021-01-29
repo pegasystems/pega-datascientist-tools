@@ -7,7 +7,7 @@
 # as this info is not present in the predictor binning data
 
 notebook="./modelreport.Rmd"
-source="../extra/pr_data_dm_admmart_pred.csv"
+source="../data/pr_data_dm_admmart_pred.csv"
 modelid="7bf31ac7-8562-522f-8f95-7d35e3c7a96f"
 modeldescription="Banner Model - BMOBILEAPP"
 output="`pwd`/$modeldescription.html"

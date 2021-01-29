@@ -65,7 +65,7 @@ standardizeDatamartModelData <- function(dt, latestOnly)
   # drop internal fields
   dt[, names(dt)[grepl("^p[x|z]", names(dt))] := NULL]
 
-  # proper camel casing of fields
+  # standardized camel casing of fields
   applyUniformPegaFieldCasing(dt)
 
   # filter to only take latest snapshot
@@ -79,11 +79,11 @@ standardizeDatamartModelData <- function(dt, latestOnly)
   dt[, Negatives := as.numeric(as.character(Negatives))]
 
   # convert date/time fields if present and not already converted prior
-  if (class(dt$SnapshotTime) == "factor") {
+  if (is.factor(dt$SnapshotTime) || is.character(dt$SnapshotTime)) {
     dt[, SnapshotTime := fromPRPCDateTime(SnapshotTime)]
   }
   if ("FactoryUpdateTime" %in% names(dt)) {
-    if (class(dt$FactoryUpdateTime) == "factor") {
+    if (is.factor(dt$FactoryUpdateTime) || is.character(dt$FactoryUpdateTime)) {
       dt[, FactoryUpdateTime := fromPRPCDateTime(FactoryUpdateTime)]
     }
   }

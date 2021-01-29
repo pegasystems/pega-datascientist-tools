@@ -34,7 +34,8 @@ or use the generic `readDSExport` function. Type `?readADMDatamartModelExport`
 for help or use the links in the Wiki.
 
 ```{r}
-models <- readADMDatamartModelExport("~/Downloads")
+#models <- readADMDatamartModelExport("~/Downloads")
+models <- readADMDatamartModelExport("../../data/Data-Decision-ADM-ModelSnapshot_pyModelSnapshots.zip")
 ```
 
 This `data.table` contains all the model-level attributes. The Pega `py`
@@ -59,7 +60,8 @@ ggplot(models, aes(Performance, Positives/ResponseCount, color=log(Positives), s
   scale_size_continuous(guide=NULL) +
   scale_color_continuous_sequential(guide=NULL) +
   scale_y_continuous(limits = c(0, NA), labels = scales::percent) +
-  labs(title="Performance vs Success Rate",subtitle = "By Channel and Issue", y="Success Rate")
+  labs(title="Performance vs Success Rate",subtitle = "By Channel and Issue", y="Success Rate")+
+  theme_minimal()
 
 ```
 

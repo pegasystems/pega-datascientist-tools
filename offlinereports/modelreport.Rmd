@@ -12,7 +12,7 @@ params:
   predictordatafile:
     # full path to the source file which should be an export of the ADM predictor binning table
     # this example file is the same as the RDA file used elsewhere in demos of CDH tools
-    value: "../extra/pr_data_dm_admmart_pred.csv"
+    value: "../data/pr_data_dm_admmart_pred.csv"
   modeldescription:
     # optional model description typically corresponding to the model info of the indicated model
     value: "Sales Model - PSDISCOUNT100"
