@@ -6,7 +6,7 @@
 \usage{
 readADMDatamartPredictorExport(
   srcFolder = ".",
-  instancename = "Data-Decision-ADM-PredictorBinningSnapshot_PredictorBinningSnapshot",
+  instancename = "Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots",
   noBinning = T,
   latestOnly = T,
   tmpFolder = tempdir(check = T)

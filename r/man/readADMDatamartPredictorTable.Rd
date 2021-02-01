@@ -6,7 +6,7 @@
 \usage{
 readADMDatamartPredictorTable(
   conn,
-  modelids = NULL,
+  ModelIDs = NULL,
   latestOnly = T,
   verbose = T
 )
@@ -14,7 +14,7 @@ readADMDatamartPredictorTable(
 \arguments{
 \item{conn}{Connection to the database}
 
-\item{modelids}{Optional list of model IDs to select from}
+\item{ModelIDs}{Optional list of model IDs to select from}
 
 \item{latestOnly}{Only return results for latest snapshot. Currently this works as a global filter, which is ok
 because the snapshot agent will also snapshot all models wholesale. If and when that becomes more granular, we may

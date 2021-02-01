@@ -8,7 +8,7 @@ library(ggplot2)
 # and probably sampled as well.
 
 # ih <- readDSExport("Data-pxStrategyResult_pxInteractionHistory", "~/Downloads")
-ih <- readDSExport("Data-pxStrategyResult_pxInteractionHistory.zip", "../data")
+ih <- readDSExport("Data-pxStrategyResult_pxInteractionHistory", "../data")
 
 # standardized camel casing of fields
 applyUniformPegaFieldCasing(ih)
@@ -28,7 +28,9 @@ performance <- ih[Issue=="Sales",
 
 # Plot
 
-ggplot(performance, aes(date, auc, color=Name)) +
+plt <- ggplot(performance, aes(date, auc, color=Name)) +
   geom_smooth(size=1,se=F) + geom_point() + theme_minimal() +
   scale_y_continuous(limits=c(0.5,NA))
+
+print(plt)
 

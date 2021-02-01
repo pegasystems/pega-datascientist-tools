@@ -20,27 +20,25 @@ library(cdhtools)
 library(data.table)
 ```
 
-Then to run this example, export the dataset representing the ADM models from
-Pega. These steps are detailed in that same Wiki, see [ADM Datamart](https://github.com/pegasystems/cdh-datascientist-tools/wiki/CDH-Model-analysis-from-ADM-Datamart).
-
-Once you have exported and downloaded the data for the dataset
-`Data-Decision-ADM-ModelSnapshot` continue the notebook from here.
+Then to run this example, use a sample dataset included or export your own 
+from Pega. These steps are detailed in that same Wiki, see [ADM Datamart](https://github.com/pegasystems/cdh-datascientist-tools/wiki/CDH-Model-analysis-from-ADM-Datamart).
 
 Change the folder if it is different from the Mac default location used 
 below. The function `readADMDatamartModelExport` will take the latest 
 downloaded model export zip from that location. If you need more control
 over which file is taken exactly you can also specify the exact file name
-or use the generic `readDSExport` function. Type `?readADMDatamartModelExport`
+or use the generic `readDSExport` function. See `?readADMDatamartModelExport`
 for help or use the links in the Wiki.
 
 ```{r}
+models <- readADMDatamartModelExport("../../data")
+
 #models <- readADMDatamartModelExport("~/Downloads")
-models <- readADMDatamartModelExport("../../data/Data-Decision-ADM-ModelSnapshot_pyModelSnapshots.zip")
 ```
 
 This `data.table` contains all the model-level attributes. The Pega `py`
 prefixes have been stripped off and casing has been normalized, so you will
-find attributes like `ActivePredictors`, not `pyactivepredictors`. 
+find attributes like `ResponseCount`, not `pyResponseCount`. 
 
 This data can then easily be used for plotting. Below a few examples. For 
 more please see the [Graph Gallery](https://github.com/pegasystems/cdh-datascientist-tools/wiki/CDH-Graph-Gallery) in the Wiki.

@@ -47,14 +47,10 @@ options(digits = 5)
 This notebook gives a global overview of the adaptive models from the data mart. Detailed model reports for individual model instances can be created by running the "modelreport" scripts.
 
 ```{r, echo=F, warning=F, error=F, include=F}
-
 knitr::opts_chunk$set(echo=F)
 
 if (!("modelfile" %in% names(params))) stop(paste("Required parameter '", modelfile, "' missing."))
-
-if (!file.exists(params$modelfile)) {
-  stop(paste("File does not exist:", params$modelfile))
-}
+if (!file.exists(params$modelfile)) stop(paste("File does not exist:", params$modelfile))
 
 if (endsWith(params$modelfile, ".zip")) {
   # checking if this looks like a DS export
@@ -100,7 +96,7 @@ mdls[, Name := trimws(gsub("\\.+", " ", make.names(paste(".", Name))))]
 allTimeResponseCountThreshold <- 2
 ```
 
-Dropping models with fewer than `r allTimeResponseCountThreshold` positive responses:
+Dropping models with fewer than `r allTimeResponseCountThreshold` positive responses, if any:
 
 ```{r, warning=F}
 stdKeys <- intersect(c("ConfigurationName", "Issue","Group","Name","Channel","Direction","Treatment"), names(mdls))
@@ -145,16 +141,16 @@ Overall success rate of the propositions. When all models evaluate the same prop
 
 ```{r}
 propSuccess <- latestMdls[, .(SuccessRate = weighted.mean(SuccessRate, Responses, na.rm = T)), 
-                          by=c("ConfigurationName", "Name")][order(SuccessRate)]
+                          by=c("ConfigurationName", "Channel", "Name")][order(SuccessRate)]
 p <- ggplot(propSuccess, aes(factor(Name, levels=rev(levels(Name))), 
                              ifelse(is.nan(SuccessRate), 0, SuccessRate), fill=SuccessRate)) + 
   geom_col() + coord_flip() +
   geom_text(aes(label=sprintf("%.2f%%", 100*SuccessRate)), color="blue", hjust=0.5)+
   xlab("Proposition") + scale_y_continuous(name="Success Rate", labels=percent) + 
-  ggtitle("Proposition Success Rates") +
+  ggtitle("Proposition Success Rates", subtitle = "across channels") +
   scale_fill_continuous_divergingx(guide=F)+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
-  facet_wrap(~ConfigurationName, scales = "free_y")
+  facet_wrap(.~Channel, scales = "free_y")
 print(p)
 ```
 
@@ -162,7 +158,7 @@ print(p)
 
 This is similar to the standard "bubble chart" in the ADM reporting pages.
 
-```{r}
+```{r warning=FALSE}
 bubbleData <- latestMdls[, .(SuccessRate = weighted.mean(SuccessRate, Responses, na.rm = T),
                              Performance = weighted.mean(Performance, Responses, na.rm = T),
                              Responses = sum(Responses, na.rm = T)), 
