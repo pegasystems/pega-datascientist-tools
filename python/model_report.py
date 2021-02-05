@@ -290,7 +290,7 @@ class ModelReport:
                 ax.scatter(_df['model snapshot'].values, _df['responses'].values,
                            color=[mapper.to_rgba(v) for v in _df['model performance'].values])
                 if _df['responses'].max()>1:
-                    ax.text(_df['model snapshot'].max(),_df['responses'].max(),'   '+name, {'FontSize':9})
+                    ax.text(_df['model snapshot'].max(),_df['responses'].max(),'   '+name, {'fontsize':9})
             for i in ax.get_xmajorticklabels():
                 i.set_rotation(90)
             ax.set_ylabel('Responses')
@@ -483,10 +483,11 @@ class ADMReport(ModelReport):
         fig, ax = plt.subplots(figsize=figsize)
         sns.barplot(x='bin symbol', y='bin responses', data=df, ax=ax, color='blue', order=order)
         ax1 = ax.twinx()
-        sns.catplot(x='bin symbol', y='bin propensity', data=df, ax=ax1, color='orange', kind='point', order=order)
+        ax1.plot(df.sort_values('bin index')['bin symbol'], df.sort_values('bin index')['bin propensity'], color='orange', marker='o')
         for i in ax.get_xmajorticklabels():
             i.set_rotation(90)
         labels = [i.get_text()[0:24]+'...' if len(i.get_text())>25 else i.get_text() for i in ax.get_xticklabels()]
+        ax.set_xticks(ax.get_xticks())
         ax.set_xticklabels(labels)
         ax.set_ylabel('Responses')
         ax.set_xlabel('Range')
@@ -494,7 +495,7 @@ class ADMReport(ModelReport):
         patches = [mpatches.Patch(color='blue', label='Responses'), mpatches.Patch(color='orange', label='Propensity')]
         ax.legend(handles=patches, bbox_to_anchor=(1.05, 1),loc=2, borderaxespad=0.5, frameon=True)
         ax.set_title(title)
-        plt.close()
+
 
     def show_predictor_report(self, model_name, predictors=None, figsize=(10, 5)):
         """ Show predictor graphs for a given model
