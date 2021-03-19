@@ -151,7 +151,7 @@ pmml_unittest <- function(testName)
     jsonFiles <- list.files(path = jsonFolder, pattern = "^.*\\.json", full.names = T)
     partitions <- data.table(pymodelpartitionid = sub("^.*json[^.]*\\.(.*)\\.json", "\\1", jsonFiles),
                              pyfactory = sapply(jsonFiles, readr::read_file))
-    modelList <- createListFromADMFactory(partitions, testName, tmpFolder,
+    modelList <- normalizedBinningFromADMFactory(partitions, testName, tmpFolder,
                                           forceLowerCasePredictorNames=T)
 
     pmml <- createPMML(modelList, testName)
@@ -174,9 +174,9 @@ pmml_unittest <- function(testName)
     if (file.exists(modelDataFile)) {
       modelData <- data.table(read.csv(modelDataFile, stringsAsFactors = F)) # fread adds extra double-quotes for JSON strings, thus using simple read.csv
       applyUniformPegaFieldCasing(modelData)
-      modelList <- createListFromDatamart(predictorData, testName, tmpFolder, modelData, useLowercaseContextKeys=TRUE)
+      modelList <- normalizedBinningFromDatamart(predictorData, testName, tmpFolder, modelData, useLowercaseContextKeys=TRUE)
     } else {
-      modelList <- createListFromDatamart(predictorData, testName, tmpFolder, useLowercaseContextKeys=TRUE)
+      modelList <- normalizedBinningFromDatamart(predictorData, testName, tmpFolder, useLowercaseContextKeys=TRUE)
     }
 
     pmml <- createPMML(modelList, testName)

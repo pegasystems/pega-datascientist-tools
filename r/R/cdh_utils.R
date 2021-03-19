@@ -70,7 +70,11 @@ standardizeDatamartModelData <- function(dt, latestOnly)
 
   # filter to only take latest snapshot
   if (latestOnly) {
-    dt <- dt[, .SD[which.max(SnapshotTime)], by=ModelID]
+    if (is.factor(dt$SnapshotTime)) {
+      dt <- dt[, .SD[SnapshotTime == max(as.character(SnapshotTime))], by=ModelID] # careful, which.max returns only 1
+    } else {
+      dt <- dt[, .SD[SnapshotTime == max(SnapshotTime)], by=ModelID] # careful, which.max returns only 1
+    }
   }
 
   # some fields notoriously returned as char but are numeric
@@ -326,7 +330,7 @@ readADMDatamartPredictorExport <- function(srcFolder=".",
   predz[, SnapshotTime := fromPRPCDateTime(SnapshotTime)]
 
   if (latestOnly) {
-    return(predz[, .SD[which.max(SnapshotTime)], by=ModelID])
+    return(predz[, .SD[SnapshotTime == max(SnapshotTime)], by=ModelID]) # careful: which.max would only return 1 row
   } else {
     return(predz)
   }
@@ -515,15 +519,15 @@ toPRPCDateTime <- function(x)
 getModelPerformanceOverview <- function(dmModels = NULL, dmPredictors = NULL, jsonPartitions = NULL)
 {
   if (!is.null(dmModels) & !is.null(dmPredictors)) {
-    modelList <- createListFromDatamart(dmPredictors[ModelID %in% dmModels$ModelID],
+    modelList <- normalizedBinningFromDatamart(dmPredictors[ModelID %in% dmModels$ModelID],
                                         fullName="Dummy",
                                         modelsForPartition=dmModels)
   } else if (!is.null(dmPredictors) & is.null(dmModels)) {
 
-    modelList <- createListFromDatamart(dmPredictors, fullName="Dummy")
-    modelList[[1]][["context"]] <- list("Name" =  "Dummy") # should arguably be part of the createList but that breaks some tests, didnt want to bother
+    modelList <- normalizedBinningFromDatamart(dmPredictors, fullName="Dummy")
+    modelList[[1]][["context"]] <- list("Name" =  "Dummy") # should arguably be part of the normalizedBinning but that breaks some tests, didnt want to bother
   } else if (!is.null(jsonPartitions)) {
-    modelList <- createListFromADMFactory(jsonPartitions, overallModelName="Dummy")
+    modelList <- normalizedBinningFromADMFactory(jsonPartitions, overallModelName="Dummy")
   } else {
     stop("Needs either datamart or JSON Factory specifications")
   }
@@ -536,8 +540,8 @@ getModelPerformanceOverview <- function(dmModels = NULL, dmPredictors = NULL, js
                               reported_performance = sapply(modelList, function(m) {return(m$binning$Performance[1])}),
                               actual_performance = NA, # placeholder
                               responses = sapply(modelList, function(m) {return(m$binning$TotalPos[1] + m$binning$TotalNeg[1])}),
-                              score_min = sapply(modelList, function(m) {scaled <- setBinWeights(copy(m$binning)); return(sum(scaled$binning[PredictorType != "CLASSIFIER"]$minWeight))}),
-                              score_max = sapply(modelList, function(m) {scaled <- setBinWeights(copy(m$binning)); return(sum(scaled$binning[PredictorType != "CLASSIFIER"]$maxWeight))}))
+                              score_min = sapply(modelList, function(m) {scaled <- getNBFormulaWeights(copy(m$binning)); return(sum(scaled$binning[PredictorType != "CLASSIFIER"]$minWeight))}),
+                              score_max = sapply(modelList, function(m) {scaled <- getNBFormulaWeights(copy(m$binning)); return(sum(scaled$binning[PredictorType != "CLASSIFIER"]$maxWeight))}))
 
 
   classifiers <- lapply(modelList, function(m) { return (m$binning[PredictorType == "CLASSIFIER"])})

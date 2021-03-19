@@ -56,3 +56,22 @@ test_that("Score Ranges DMSample", {
                perfOverviewSalesModel[(nbins > 1) & (actual_score_bin_max - actual_score_bin_min + 1 == nbins)]$actual_performance,
                tolerance = 1e-06)
 })
+
+# High level test of creating a sensitivity plot
+test_that("Sensitivity Analysis", {
+  context("Sensitivity analysis")
+
+  allModels <- readDSExport("Data-Decision-ADM-ModelSnapshot_All","dsexports")
+  allPredictors <- readDSExport("Data-Decision-ADM-PredictorBinningSnapshot_All","dsexports")
+
+  varimp <- admVarImp(allModels, allPredictors)
+
+  expect_equal(ncol(varimp), 4)
+  expect_equal(nrow(varimp), 27) # active predictors
+
+  varimp <- admVarImp(allModels, allPredictors, "ConfigurationName")
+
+  expect_equal(ncol(varimp), 5) # 1 extra for the configuration name
+  expect_equal(nrow(varimp), 45)
+})
+

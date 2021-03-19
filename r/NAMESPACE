@@ -2,6 +2,8 @@
 
 export(adm2pmml)
 export(admJSONFactoryToBinning)
+export(admVarImp)
+export(admVarImpPlot)
 export(applyUniformPegaFieldCasing)
 export(auc2GINI)
 export(auc_from_bincounts)

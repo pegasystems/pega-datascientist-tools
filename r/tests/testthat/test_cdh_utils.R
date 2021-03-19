@@ -73,7 +73,7 @@ test_that("model export with JSON names", {
 test_that("specialized predictor data export", {
   data <- readADMDatamartPredictorExport(instancename="Data-Decision-ADM-PredictorBinningSnapshot_All",
                                          srcFolder="dsexports")
-  expect_equal(nrow(data), 15) # binning skipped by default
+  expect_equal(nrow(data), 425) # binning skipped by default
   expect_equal(ncol(data), 15) # omits internal and binning fields
   expect_identical(sort(names(data)),
                    c("BinType", "Contents", "EntryType", "ModelID", "Negatives",
@@ -112,7 +112,7 @@ test_that("specialized predictor data export", {
   data <- readADMDatamartPredictorExport(instancename="Data-Decision-ADM-PredictorBinningSnapshot_All",
                                          srcFolder="dsexports",
                                          noBinning = F)
-  expect_equal(nrow(data), 15) # binning but only latest snapshots
+  expect_equal(nrow(data), 1755) # binning but only latest snapshots
   expect_equal(ncol(data), 30) # omits internal fields
 })
 

@@ -84,7 +84,7 @@
       <h1 data-toc-skip>adhoc-datasetanalysis</h1>
                         <h4 class="author">Pega</h4>
             
-            <h4 class="date">2020-12-18</h4>
+            <h4 class="date">2021-03-19</h4>
       
       
       <div class="hidden name"><code>adhoc-datasetanalysis.Rmd</code></div>
@@ -831,14 +831,14 @@
 <p>With the data in place, you can now do the analyses you want. For the IH data we can for example plot accept rate over time.</p>
 <p>BTW, if you’re not familiar with the <code>data.table</code> syntax below, it would be a good idea to look into this. The internals of <code>cdhtools</code> heavily rely on it also.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="http://ggplot2.tidyverse.org">ggplot2</a></span><span class="op">)</span>
+<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org">ggplot2</a></span><span class="op">)</span>
 <span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="http://colorspace.R-Forge.R-project.org">colorspace</a></span><span class="op">)</span>
 
 <span class="va">ihsampledata</span><span class="op">[</span>, <span class="va">period</span> <span class="op">:=</span> <span class="fu">lubridate</span><span class="fu">::</span><span class="fu"><a href="http://lubridate.tidyverse.org/reference/as_date.html">as_date</a></span><span class="op">(</span><span class="va">pxOutcomeTime</span><span class="op">)</span><span class="op">]</span>
 <span class="va">ihsampledata</span><span class="op">[</span>, <span class="va">successRate</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">pyOutcome</span><span class="op">==</span><span class="st">"Accepted"</span><span class="op">)</span><span class="op">/</span><span class="va">.N</span>, by<span class="op">=</span><span class="va">period</span><span class="op">]</span>
 <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span><span class="op">(</span><span class="va">ihsampledata</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span><span class="va">period</span>, <span class="va">successRate</span>, fill<span class="op">=</span><span class="va">pyChannel</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> 
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_bar.html">geom_col</a></span><span class="op">(</span>position<span class="op">=</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/position_dodge.html">position_dodge</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="http://colorspace.R-Forge.R-project.org//reference/scale_colour_discrete_divergingx.html">scale_fill_discrete_divergingx</a></span><span class="op">(</span>name<span class="op">=</span><span class="st">"Channel"</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://colorspace.R-Forge.R-project.org//reference/scale_colour_discrete_divergingx.html">scale_fill_discrete_divergingx</a></span><span class="op">(</span>name<span class="op">=</span><span class="st">"Channel"</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html">scale_y_continuous</a></span><span class="op">(</span>limits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="cn">NA</span><span class="op">)</span>, name <span class="op">=</span> <span class="st">"Success Rate"</span>, labels <span class="op">=</span> <span class="fu">scales</span><span class="fu">::</span><span class="va"><a href="https://scales.r-lib.org//reference/label_percent.html">percent</a></span><span class="op">)</span> <span class="op">+</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"Success Rate over Time"</span>, x<span class="op">=</span><span class="st">"Date"</span><span class="op">)</span><span class="op">+</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html">theme_bw</a></span><span class="op">(</span><span class="op">)</span><span class="op">+</span>

@@ -159,7 +159,7 @@ getSymBinningFromJSON <- function(symField, id)
               Smoothing = symField$laplaceSmoothingValue)
 }
 
-internalBinningFromJSONFactory <- function(binningJSON, id, activePredsOnly)
+normalizedBinningFromJSONFactory <- function(binningJSON, id, activePredsOnly)
 {
   # assuming first of each active group is the active predictor
   activePreds <- list()
@@ -249,12 +249,12 @@ getScoringModelFromJSONFactoryString <- function(analyzedData, isAuditModel=F)
   scoringModelJSON <- fromJSON(analyzedData)
   id <- getJSONModelContextAsString(toJSON(scoringModelJSON$factoryKey$modelPartition))
 
-  internalBinning <- internalBinningFromJSONFactory(scoringModelJSON, id, activePredsOnly=!isAuditModel)
+  internalBinning <- normalizedBinningFromJSONFactory(scoringModelJSON, id, activePredsOnly=!isAuditModel)
 
   # the internal binning is not a scorecard yet so relabel some of the columns and split
   # into scorecard and a score mapping
 
-  scaledBinning <- setBinWeights(internalBinning)$binning
+  scaledBinning <- getNBFormulaWeights(internalBinning)$binning
   scaledBinning[, Label := buildLabel(PredictorType, BinType, BinLabel, BinLowerBound, BinUpperBound)]
 
   # The field to score mapping (also returning pos/neg so numbers can be verified)
@@ -274,7 +274,7 @@ getScoringModelFromJSONFactoryString <- function(analyzedData, isAuditModel=F)
   return(list(scorecard = scorecard, mapping = scorecardMapping, binning = oriBinning))
 }
 
-createListFromSingleJSONFactoryString <- function(aFactory, id, overallModelName, tmpFolder=NULL, forceLowerCasePredictorNames=F, activePredsOnly=T)
+normalizedBinningFromSingleJSONFactoryString <- function(aFactory, id, overallModelName, tmpFolder=NULL, forceLowerCasePredictorNames=F, activePredsOnly=T)
 {
   model <- fromJSON(aFactory)
 
@@ -286,7 +286,7 @@ createListFromSingleJSONFactoryString <- function(aFactory, id, overallModelName
     sink()
   }
 
-  predBinningTable <- internalBinningFromJSONFactory(model$analyzedData, id, activePredsOnly)
+  predBinningTable <- normalizedBinningFromJSONFactory(model$analyzedData, id, activePredsOnly)
 
   if (forceLowerCasePredictorNames) {
     predBinningTable[, PredictorName := tolower(PredictorName)]
@@ -313,11 +313,11 @@ createListFromSingleJSONFactoryString <- function(aFactory, id, overallModelName
               "binning"=predBinningTable))
 }
 
-createListFromADMFactory <- function(partitions, overallModelName, tmpFolder=NULL, forceLowerCasePredictorNames=F)
+normalizedBinningFromADMFactory <- function(partitions, overallModelName, tmpFolder=NULL, forceLowerCasePredictorNames=F)
 {
   modelList <- lapply(partitions$pymodelpartitionid,
                       function(x) {
-                        return(createListFromSingleJSONFactoryString(partitions$pyfactory[which(partitions$pymodelpartitionid==x)],
+                        return(normalizedBinningFromSingleJSONFactoryString(partitions$pyfactory[which(partitions$pymodelpartitionid==x)],
                                                                      x,
                                                                      overallModelName,
                                                                      tmpFolder,
@@ -342,7 +342,7 @@ createListFromADMFactory <- function(partitions, overallModelName, tmpFolder=NUL
 #' binning <- admJSONFactoryToBinning(admFactory$pyfactory[1])}
 admJSONFactoryToBinning <- function(factoryJSON, modelname="Dummy")
 {
-  factoryDetail <- createListFromSingleJSONFactoryString(factoryJSON,
+  factoryDetail <- normalizedBinningFromSingleJSONFactoryString(factoryJSON,
                                                          id=modelname,
                                                          overallModelName=modelname,
                                                          tmpFolder=NULL,

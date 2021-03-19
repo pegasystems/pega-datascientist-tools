@@ -350,7 +350,7 @@ createModelDescription <- function(classifierBins)
 
 # Sets the bin weights for all bins of a single "partition" of the ADM rule. The weight is basically the
 # log odds, but is normalized to the number of predictors. Returns a summary table with the min/max per predictor.
-setBinWeights <- function(bins)
+getNBFormulaWeights <- function(bins)
 {
   # Some of the code depends on the order of the bins
   setorder(bins, ModelID, PredictorName, BinType, BinUpperBound, BinLabel, na.last = T)
@@ -400,7 +400,7 @@ setBinWeights <- function(bins)
 createScorecard <- function(modelbins, modelName)
 {
   # Add the bin weights based on the log odds
-  scaling <- setBinWeights(modelbins)
+  scaling <- getNBFormulaWeights(modelbins)
   modelbins <- scaling$binning
   scaleOffset <- scaling$scaleOffset
   scaleFactor <- scaling$scaleFactor
@@ -482,19 +482,22 @@ createSegmentPredicate <- function(contextKVPs)
   } else {
     xmlNode("CompoundPredicate",
             attrs=c(booleanOperator="and"),
-            .children = sapply(names(contextKVPs), function(key) {
-              return(xmlNode("SimplePredicate",
-                             attrs=c(field=key, operator="equal", value=contextKVPs[[key]])))}))
+            .children = sapply(names(contextKVPs),
+                               function(key) {
+                                 return(xmlNode("SimplePredicate",
+                                                attrs=c(field=key, operator="equal", value=contextKVPs[[key]])))}))
   }
 }
 
 # creates complex PMML embedded in an overall MiningModel segmented by context key values
 createModelPartitions <- function(modeldata, overallModelName)
 {
-  segments <- lapply(names(modeldata), function(ModelID) {return(xmlNode("Segment", attrs=c(id=ModelID),
-                                                                         createSegmentPredicate(modeldata[[ModelID]]$context),
-                                                                         createScorecard(modeldata[[ModelID]]$binning,
-                                                                                         paste(overallModelName, ModelID, sep="_"))))})
+  segments <- lapply(names(modeldata),
+                     function(ModelID) {
+                       return(xmlNode("Segment", attrs=c(id=ModelID),
+                                      createSegmentPredicate(modeldata[[ModelID]]$context),
+                                      createScorecard(modeldata[[ModelID]]$binning,
+                                                      paste(overallModelName, ModelID, sep="_"))))})
 
   segments[[1+length(segments)]] <- xmlNode("Segment", attrs=c(id="default"),
                                             xmlNode("True"),
@@ -691,7 +694,7 @@ adm2pmml <- function(dmModels = NULL, dmPredictors = NULL, dbConn = NULL, forceU
           }
         }
 
-        modelList <- createListFromDatamart(dmPredictors[ModelID %in% modelInstances$ModelID],
+        modelList <- normalizedBinningFromDatamart(dmPredictors[ModelID %in% modelInstances$ModelID],
                                             modelPartitionFullName, tmpDir, modelsForPartition=modelInstances)
 
         pmml <- createPMML(modelList, modelPartitionFullName)
@@ -730,7 +733,8 @@ adm2pmml <- function(dmModels = NULL, dmPredictors = NULL, dbConn = NULL, forceU
       }
       pmmlFileName <- paste(destDir, paste(modelPartitionName, "pmml", sep="."), sep="/")
 
-      modelList <- createListFromADMFactory(modelPartitions, modelPartitionFullName, tmpDir)
+      modelList <- normalizedBinningFromADMFactory(modelPartitions, modelPartitionFullName, tmpDir)
+
       pmml <- createPMML(modelList, modelPartitionFullName)
 
       sink(pmmlFileName)

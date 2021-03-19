@@ -237,6 +237,8 @@ getPredictorDataFromDatamart <- function(dmbinning, id, overallModelName, tmpFol
 {
   dmbinning <- dmbinning[which(SnapshotTime == max(SnapshotTime) & (EntryType == "Active" | EntryType == "Classifier"))]
 
+  if (nrow(dmbinning) == 0) return(NULL) # defensive coding, but we have seen binnings without any active and/or classifier rows
+
   # explicit mapping so we can set types as well as do some value mapping
   binning <- data.table( ModelID = dmbinning$ModelID,
                          PredictorName = dmbinning$PredictorName,
@@ -354,11 +356,11 @@ getPredictorDataFromDatamart <- function(dmbinning, id, overallModelName, tmpFol
   return(predBinningTable)
 }
 
-createListFromDatamart <- function(predictorsForPartition,
-                                   fullName,
-                                   tmpFolder=NULL,
-                                   modelsForPartition=NULL,
-                                   useLowercaseContextKeys=FALSE)
+normalizedBinningFromDatamart <- function(predictorsForPartition,
+                                          fullName="",
+                                          tmpFolder=NULL,
+                                          modelsForPartition=NULL,
+                                          useLowercaseContextKeys=FALSE)
 {
   predictorsForPartition <- data.table(predictorsForPartition) # just to be sure
 
@@ -367,17 +369,23 @@ createListFromDatamart <- function(predictorsForPartition,
 
     modelsForPartition <- modelsForPartition[SnapshotTime == max(SnapshotTime),] # max works because the way Pega date strings are represented
 
-    modelsForPartition[["contextAsString"]] <- sapply(modelsForPartition$ModelID, function(x)
-    { return(getDMModelContextAsString(getContextKeyValuesFromDatamart(modelsForPartition[ModelID==x,]))) })
+    modelsForPartition[["contextAsString"]] <-
+      sapply(modelsForPartition$ModelID,
+             function(x) { return(getDMModelContextAsString(getContextKeyValuesFromDatamart(modelsForPartition[ModelID==x,]))) })
 
-    modelList <- lapply(modelsForPartition$ModelID,
-                        function(x){list("binning" = getPredictorDataFromDatamart(predictorsForPartition[ModelID==x,],
+    modelList <-
+      lapply(modelsForPartition$ModelID,
+             function(x){list("binning" = getPredictorDataFromDatamart(predictorsForPartition[ModelID==x,],
+                                                                       modelsForPartition[ModelID==x,]$contextAsString,
+                                                                       fullName, tmpFolder),
+                              "context" = getContextKeyValuesFromDatamart(modelsForPartition[ModelID==x,],
+                                                                          useLowercaseContextKeys=useLowercaseContextKeys))})
 
-                                                                                  modelsForPartition[ModelID==x,]$contextAsString,
-                                                                                  fullName, tmpFolder),
-                                         "context" = getContextKeyValuesFromDatamart(modelsForPartition[ModelID==x,],
-                                                                                     useLowercaseContextKeys=useLowercaseContextKeys))})
     names(modelList) <- modelsForPartition$ModelID
+
+    # remove the elements w/o any binning at all
+    modelList <- modelList[sapply(modelList, function(x) {return(!is.null(x$binning) & !is.null(x$context))})]
+
   } else {
     modelList <- list(list("binning"=getPredictorDataFromDatamart(predictorsForPartition, "allbinning", fullName, tmpFolder)))
     names(modelList) <- fullName

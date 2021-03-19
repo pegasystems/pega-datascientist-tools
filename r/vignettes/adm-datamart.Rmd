@@ -33,6 +33,7 @@ a dataset export will be described later.
 
 ```{r}
 library(cdhtools)
+
 data(admdatamart_models)
 data(admdatamart_binning)
 ```
@@ -59,6 +60,7 @@ With the data loaded, we can start with a plot similar to what the Analytics Cen
 
 ```{r, warning=F, message=FALSE}
 library(ggplot2)
+library(colorspace)
 library(scales)
 library(tidyverse)
 library(data.table)
@@ -228,6 +230,25 @@ ggplot(classifierdata, aes(cumRelativeVolume, lift, color=Banner)) + geom_line()
   scale_y_continuous(limits = c(0, NA), name = "Lift", labels = scales::percent) +
   theme_bw() + 
   ggtitle("Lift Chart for Banner Models")
+```
+
+# Sensitity Analysis
+
+Showing the overall predictor contributions to the models. Behind the scenes
+the ADM models are translated to score cards, and the weights of all score card
+elements are used to determine the overall weight of the predictors.
+
+Here we "facet" by model rule (ConfigurationName) but you can also leave this
+out or facet by e.g. Channel or Issue.
+
+The provided plot function is fairly trivial. For simple use cases it will be
+sufficient and the plot can still be decorated using standard ggplot constructs
+as shown.
+
+```{r}
+varimp <- admVarImp(admdatamart_models, admdatamart_binning, c("ConfigurationName"))
+admVarImpPlot(varimp) + 
+  theme_bw() + scale_fill_viridis_c(begin=0.5, end=0.9)
 ```
 
 # Other Ideas
