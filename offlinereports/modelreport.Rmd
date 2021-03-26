@@ -12,14 +12,19 @@ params:
   predictordatafile:
     # full path to the source file which should be an export of the ADM predictor binning table
     # this example file is the same as the RDA file used elsewhere in demos of CDH tools
-    value: "../data/pr_data_dm_admmart_pred.csv"
+    #value: "../data/pr_data_dm_admmart_pred.csv"
+    # value: "~/cdh/1/Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210317T130452_GMT.zip"
+    value: "~/cdh/2/PR_DATA_DM_ADMMART_PRED.csv"
+
   modeldescription:
     # optional model description typically corresponding to the model info of the indicated model
     value: "Sales Model - PSDISCOUNT100"
   modelid:
     # model ID found by examining the model table from the data mart; if there is just one model
     # in the predictor binning file it can be left empty
-    value: "7cf6a839-9eba-5765-8856-1031b1e60315"
+    #value: "7cf6a839-9eba-5765-8856-1031b1e60315" # default
+    #value: "016a8388-9c5f-55cb-85de-7de789a859b2" # 1
+    value: "ccb39edf-eb7d-54c6-8e56-cb3b70d35752"  # 2
     #value: "N/A"
 ---
 
@@ -33,9 +38,16 @@ library(kableExtra)
 library(cdhtools)
 library(plotly)
 library(readxl)
+library(gridExtra)
 
 theme_set(theme_minimal())
 options(digits = 5)
+knitr::opts_chunk$set(
+  comment = ">", echo = FALSE, warning = FALSE, fig.width = 4, fig.height = 4
+)
+
+source("../r/R/adm.R") # !!!! TEMP !!!!
+source("../r/R/plots.R") # !!!! TEMP !!!!
 ```
 
 # Model report for: `r params$modeldescription` at `r today()`
@@ -53,28 +65,23 @@ if (!file.exists(params$predictordatafile)) {
   stop(paste("File does not exist:", params$predictordatafile))
 }
 
-if (endsWith(params$predictordatafile, ".xlsx")) {
-  modelPredictorBins <- as.data.table(read_excel(params$predictordatafile))
-  # The report defs change the column names. Note this might be version dependent.
-  setnames(modelPredictorBins, 
-           old=c("Predictor Name", "Type", "Performance", "Bin Index", "Range/Symbols", "Bin Negatives", "Bin Positives", "Role", "Bin ZRatio", "Bin Lift"), 
-           new=c("PredictorName", "PredictorType", "Performance", "BinIndex", "BinSymbol", "BinNegatives", "BinPositives", "EntryType", "ZRatio", "Lift"))
-  modelPredictorBins[, SnapshotTime := cdhtools::toPRPCDateTime(now())]
-  modelPredictorBins[, ModelID := 0]
-  for (num in c("Lift", "Performance", "BinNegatives", "BinPositives", "BinIndex", "ZRatio")) {
-    modelPredictorBins[[num]] <- as.numeric(modelPredictorBins[[num]])
-  }
-} else {
-  if (endsWith(params$predictordatafile, ".zip")) {
-    # NB this might work only on Linux/Mac; consider making configurable
-    modelPredictorBins <- fread(cmd=paste("unzip -p", gsub(" ", "\\ ", params$predictordatafile, fixed = T))) 
-  } else {
-    modelPredictorBins <- fread(params$predictordatafile)
-  }
-}
+## TODO: Excel reading (below) does not generalize very well
 
-# Set names in universal way
-applyUniformPegaFieldCasing(modelPredictorBins)
+# if (endsWith(params$predictordatafile, ".xlsx")) {
+#   modelPredictorBins <- as.data.table(read_excel(params$predictordatafile))
+#   # The report defs change the column names. Note this might be version dependent.
+#   setnames(modelPredictorBins, 
+#            old=c("Predictor Name", "Type", "Performance", "Bin Index", "Range/Symbols", "Bin Negatives", "Bin Positives", "Role", "Bin ZRatio", "Bin Lift"), 
+#            new=c("PredictorName", "PredictorType", "Performance", "BinIndex", "BinSymbol", "BinNegatives", "BinPositives", "EntryType", "ZRatio", "Lift"))
+#   modelPredictorBins[, SnapshotTime := cdhtools::toPRPCDateTime(now())]
+#   modelPredictorBins[, ModelID := 0]
+#   for (num in c("Lift", "Performance", "BinNegatives", "BinPositives", "BinIndex", "ZRatio")) {
+#     modelPredictorBins[[num]] <- as.numeric(modelPredictorBins[[num]])
+#   }
+# }
+
+modelPredictorBins <- readDatamartFromFile(params$predictordatafile)
+
 
 # make sure there is only ONE model ID or subset to just the one passed in
 if (!(params$modelid %in% c("", "NA", "N/A", "na", "n/a"))) {
@@ -89,13 +96,13 @@ if (!(params$modelid %in% c("", "NA", "N/A", "na", "n/a"))) {
   }
 }
 
-# in older versions "PredictorType" was called "Type" - keep both
-if("Type" %in% names(modelPredictorBins) & !"PredictorType" %in% names(modelPredictorBins)) {
-  modelPredictorBins[, PredictorType := Type]
-}
-if(!"Type" %in% names(modelPredictorBins) & "PredictorType" %in% names(modelPredictorBins)) {
-  modelPredictorBins[, Type := PredictorType]
-}
+# # in older versions "PredictorType" was called "Type" - keep both
+# if("Type" %in% names(modelPredictorBins) & !"PredictorType" %in% names(modelPredictorBins)) {
+#   modelPredictorBins[, PredictorType := Type]
+# }
+# if(!"Type" %in% names(modelPredictorBins) & "PredictorType" %in% names(modelPredictorBins)) {
+#   modelPredictorBins[, Type := PredictorType]
+# }
 
 # check for presence of required fields
 requiredFields <- c("SnapshotTime","ModelID",
@@ -113,16 +120,17 @@ if (!all(sapply(requiredFields, function(x) { return(x %in% names(modelPredictor
 # keep only the required + optional fields in the data so to avoid implicit assumptions
 modelPredictorBins <- modelPredictorBins[, intersect(names(modelPredictorBins), c(requiredFields, optionalFields)), with=F]
 
-# Excel exports sometimes screw up formatting of large numeric values - drop the comma used as thousands separators
-# NB not sure how generic this code will turn out to be
-for (f in c("BinNegatives","BinPositives")) {
-  if (class(modelPredictorBins[[f]]) == "character") {
-    modelPredictorBins[[f]] <- as.numeric(gsub(',','',modelPredictorBins[[f]],fixed=T))
-  }
-}
+# # Excel exports sometimes screw up formatting of large numeric values - drop the comma used as thousands separators
+# # NB not sure how generic this code will turn out to be
+# for (f in c("BinNegatives","BinPositives")) {
+#   if (class(modelPredictorBins[[f]]) == "character") {
+#     modelPredictorBins[[f]] <- as.numeric(gsub(',','',modelPredictorBins[[f]],fixed=T))
+#   }
+# }
 
 # Predictor binning can have multiple snapshots. Keeping performance over time but only the last binning.
 hasMultipleSnapshots <- (length(unique(modelPredictorBins$SnapshotTime)) > 1)
+
 if (hasMultipleSnapshots) {
   predPerformanceOverTime <- unique(modelPredictorBins[, c("PredictorName", "Performance", "SnapshotTime"), with=F])  
   
@@ -130,17 +138,18 @@ if (hasMultipleSnapshots) {
   # so just keeping the last day, then per predictor finding the actual last snapshot. This may not work in a situation
   # where not all models are updated frequently.
   
-  # # NB we have seen situations where other formats appeared after import/export to Excel - may need to deal w that a la as.POSIXct(strptime(SnapshotTime, format="%Y-%m-%d"))
-  modelPredictorBins[, snapshot := fromPRPCDateTime(SnapshotTime)] 
-  if (sum(is.na(modelPredictorBins$snapshot))/nrow(modelPredictorBins) > 0.2) {
-    modelPredictorBins[, snapshot := parse_date_time(SnapshotTime, orders=c("%Y-%m-%d %H:%M:%S"))] 
-    if (sum(is.na(modelPredictorBins$snapshot))/nrow(modelPredictorBins) > 0.2) {
-      stop("Assumed Pega date-time string but resulting in over 20% NA's in snapshot time after conversion. Check that this is valid or update the code that deals with date/time conversion.")
-    }
-  }
-  lastDay <- max(lubridate::floor_date(modelPredictorBins$snapshot, unit = "days"))
-  modelPredictorBins <- modelPredictorBins[lubridate::floor_date(snapshot, unit="days") == lastDay]
-  modelPredictorBins <- modelPredictorBins[, .SD[snapshot == max(snapshot)], by=c("ModelID")]
+  # # # NB we have seen situations where other formats appeared after import/export to Excel - may need to deal w that a la as.POSIXct(strptime(SnapshotTime, format="%Y-%m-%d"))
+  # modelPredictorBins[, snapshot := fromPRPCDateTime(SnapshotTime)] 
+  # if (sum(is.na(modelPredictorBins$snapshot))/nrow(modelPredictorBins) > 0.2) {
+  #   modelPredictorBins[, snapshot := parse_date_time(SnapshotTime, orders=c("%Y-%m-%d %H:%M:%S"))] 
+  #   if (sum(is.na(modelPredictorBins$snapshot))/nrow(modelPredictorBins) > 0.2) {
+  #     stop("Assumed Pega date-time string but resulting in over 20% NA's in snapshot time after conversion. Check that this is valid or update the code that deals with date/time conversion.")
+  #   }
+  # }
+  
+  lastDay <- max(lubridate::floor_date(modelPredictorBins$SnapshotTime, unit = "days"))
+  modelPredictorBins <- modelPredictorBins[lubridate::floor_date(SnapshotTime, unit="days") == lastDay]
+  modelPredictorBins <- modelPredictorBins[, .SD[SnapshotTime == max(SnapshotTime)], by=c("ModelID")]
 }
 
 # recalculate a few fields that are used - use the naming conventions from the data mart
@@ -160,123 +169,103 @@ setorder(modelPredictorBins, -Performance, BinIndex)
 
 # Model Performance and Score Distribution
 
-The model scores (sum of the log odds of the Naive Bayes classifier) are mapped to propensities in the Classifier of ADM. This classifier is constructed using the PAV (Pool Adjacent Violaters) algorithm, a form of monotonic regression.
+The model scores (sum of the log odds of the Naive Bayes classifier) are mapped to propensities in the Classifier of ADM. This classifier is constructed using the PAV (Pool Adjacent Violators) algorithm, a form of monotonic regression.
 
 ## Model Performance
 
 The model reports a performance of `r round(modelPredictorBins[EntryType == "Classifier"]$Performance[1],5)` measured in AUC. If supporting data is available, the actual AUC is recalculated using only those bins that fall into the current score range (if available, shown in parentheses in the title and bins not in range greyed out).
 
 ```{r, echo=F, warning=F, error=F}
-binning <- modelPredictorBins[EntryType == "Classifier"]
+classifierBinning <- modelPredictorBins[EntryType == "Classifier"]
 
 actualPerformance <- NULL
-binning[, inCurrentRange := T]
+classifierBinning[, inCurrentRange := T]
 
 # TODO: commented out because it depends heavily on names of fields that have recently changed
 # if (all(sapply(requiredFieldsForActualPerformance, function(f) {return(f %in% names(modelPredictorBins))}))) {
 #   # TODO consider try/catch because this one easily fails
 #   actualPerformance <- getModelPerformanceOverview(dmPredictors = modelPredictorBins)
-#   binning[, inCurrentRange := (BinIndex >= actualPerformance$actual_score_bin_min & BinIndex <= actualPerformance$actual_score_bin_max)]
+#   classifierBinning[, inCurrentRange := (BinIndex >= actualPerformance$actual_score_bin_min & BinIndex <= actualPerformance$actual_score_bin_max)]
 # }
-
-binning[, bin := factor(BinIndex)]
-binning[, successrate := BinPositives/BinResponseCount]
-binning[, successratepct := 100*successrate]
-binning[, Lift := 100*Lift]
-binning[, adjustedpropensity := 100*(0.5+BinPositives)/(1+BinResponseCount)]
 ```
 
 |Total Positives|Total Negatives|Total Responses|Overall Propensity|
 |--------------:|--------------:|--------------:|-----------------:|
-|`r sum(binning$BinPositives)`|`r sum(binning$BinNegatives)`|`r sum(binning$BinPositives) + sum(binning$BinNegatives)`|`r sprintf("%.2f%%", 100*sum(binning$BinPositives)/(sum(binning$BinPositives) + sum(binning$BinNegatives)))`|
+|`r sum(classifierBinning$BinPositives)`|`r sum(classifierBinning$BinNegatives)`|`r sum(classifierBinning$BinResponseCount)`|`r sprintf("%.2f%%", 100*sum(classifierBinning$BinPositives)/sum(classifierBinning$BinResponseCount))`|
 
 ```{r, results="asis", echo=F, warning=F, error=F, fig.align = "center"}
-if (nrow(binning) < 1) {
+if (nrow(classifierBinning) < 1) {
   cat("<p style='color:Red;'>NO data available for Classifier for date:", max(modelPredictorBins$SnapshotTime), "</p>", fill=T)
 }
 ```
 
-## Cumulative Gains chart
+## Cumulative Gains and Lift charts
 
-Below are two alternative ways to view the Classifier.
+Below are alternative ways to view the Classifier.
 
 The Cumulative Gains chart shows the percentage of he overall cases in the "positive" category gained by targeting a percentage of the total number of cases. For example, this view shows how large a percentage of the total expected responders you target by targeting only the top decile.
 
 The Lift chart is derived from this and shows the ratio of the cumulative gain and the targeted volume.
 
-```{r, echo=F, warning=F, error=F, fig.align = "left"}
+```{r, fig.align = "left", fig.width=8}
 # right align is nicer but plotly doesnt do that
+
+# for inspiration on the charts:
 # see http://dmg.org/pmml/v4-0-1/ModelExplanation.html#gainscharts
 # and https://www.ibm.com/support/knowledgecenter/de/SSLVMB_24.0.0/spss/tutorials/mlp_bankloan_outputtype_02.html
 
-subtitle <- paste0("Performance: ", round(binning$Performance[1],5), " (AUC)")
+subtitle <- paste0("Performance: ", round(classifierBinning$Performance[1],5), " (AUC)")
 if (!is.null(actualPerformance)) {
-  if (round(binning$Performance[1],5) != round(binning$Performance[1],5)) {
-    subtitle <- paste0("Performance: ", round(binning$Performance[1],5), 
+  if (round(classifierBinning$Performance[1],5) != round(classifierBinning$Performance[1],5)) {
+    subtitle <- paste0("Performance: ", round(classifierBinning$Performance[1],5), 
                        " (AUC) (actual: ", round(actualPerformance$actual_performance,5),")")
   }
 }
 
-binning[, Responses := BinPositives+BinNegatives]
-binning[, CumPositivesPct := rev(100.0*cumsum(rev(BinPositives))/sum(BinPositives))]
-binning[, CumVolumePct := rev(100.0*cumsum(rev(Responses))/sum(Responses))]
-
-if (nrow(binning) >= 1 & (sum(binning$BinNegatives) + sum(binning$BinPositives) > 0)) {
-  secAxisFactor <- sum(binning$BinPositives)
-  lastRow <- copy(binning[1,])[, c("CumPositivesPct", "CumVolumePct") := 0 ]
-  cumGains <- ggplot(rbind(binning, lastRow), aes(CumVolumePct/100, CumPositivesPct/100)) + 
-    geom_ribbon(aes(ymin=CumVolumePct/100, ymax=CumPositivesPct/100), color = "steelblue3", size=0, fill="steelblue3", alpha=0.6) +
-    geom_abline(slope = 1, linetype = "dashed", color = "grey") +
-    #geom_area(color = "steelblue3", size=1, fill="steelblue3", alpha=0.6) +
-    geom_line(color = "steelblue3", size=2) +
-    geom_point(color = "black", size=1) +
-    scale_x_continuous(labels = scales::percent, name = "% of Population", breaks = (0:10)/10, limits = c(0,1)) +
-    scale_y_continuous(labels = scales::percent, name = "% of Total Positive Responses", limits = c(0,1),
-                       sec.axis = sec_axis(~.*secAxisFactor, name = "Total Positive Responses")) +
-    ggtitle("Cumulative Gains", subtitle = subtitle) +
-    theme(plot.title = element_text(hjust = 0.5), 
-          plot.subtitle = element_text(hjust = 0.5))
-  print(cumGains)
-  #ggplotly(cumGains) - TODO convert to plotly plot as ggplotly doesnt show both axes
+if (nrow(classifierBinning) >= 1 & (sum(classifierBinning$BinNegatives) + sum(classifierBinning$BinPositives) > 0)) {
+  cumGains <- plotADMCumulativeGains(classifierBinning)
   
-  secAxisFactorBaseRate <- sum(binning$BinPositives)/(sum(binning$BinPositives) + sum(binning$BinNegatives)) 
-  cumLift <- ggplot(binning, aes(CumVolumePct/100, CumPositivesPct/CumVolumePct)) + 
-    geom_ribbon(aes(ymin=1.0, ymax=CumPositivesPct/CumVolumePct), color = "steelblue3", size=0, fill="steelblue3", alpha=0.6) +
-    geom_line(color = "steelblue3", size=2) +
-    geom_point(color = "black", size=1) +
-    scale_x_continuous(labels = scales::percent, name = "% of Population", breaks = (0:10)/10, limits = c(0,1)) +
-    scale_y_continuous(name = "Lift", limits = c(1.0,NA),
-                       sec.axis = sec_axis(~.*secAxisFactorBaseRate, labels = scales::percent, name = "Success Rate")) +
-    ggtitle("Lift") +
-    theme(plot.title = element_text(hjust = 0.5))
-  print(cumLift)
+  cumLift <- plotADMCumulativeLift(classifierBinning)
+  
+  classic <- plotADMBinning(classifierBinning) + ggtitle("Score Distribution")
+  
+  #ggplotly(cumGains) - TODO convert to plotly plot as ggplotly doesnt show both axes
+
+  grid.arrange(cumGains, cumLift, classic, nrow=1)
 }
 ```
 
 ## Score Distribution
 
-The Score Distribution shows the volume and average success rate in every bin of the score ranges of the Classifier.
+The Score Distribution shows the volume and average success rate in every bin of the score ranges of the Classifier. Same plot as before but
+this is an interactive one, using Plotly.
 
-```{r, results="asis", echo=F, warning=F, error=F, fig.align = "center"}
-# Plotly version of the graph gives hover-over. Just plotlygg(p) doesnt work perfectly, unfortunately, so building it up.
-if (nrow(binning) >= 1) {
-  ply <- plot_ly(binning) %>%
-    add_bars(x = ~bin, y = ~Responses, 
+```{r fig.align="center", fig.width=8, warning=FALSE, results="asis"}
+
+# Using a native Plotly version of the graph to make the hover-over work. Just 
+# plotlygg(p) doesnt work perfectly, unfortunately.
+
+classifierBinning[, bin := factor(BinIndex)]
+classifierBinning[, successratepct := 100*BinPositives/BinResponseCount]
+
+if (nrow(classifierBinning) >= 1) {
+  ply <- plot_ly(classifierBinning) %>%
+    add_bars(x = ~bin, y = ~BinResponseCount, 
              color = ~factor(inCurrentRange, levels=c(T, F)), 
              colors = c("darkgreen", "darkgrey"),
              hoverinfo = "text", 
-             text = ~paste0("Score Range: ", BinSymbol, "\nResponses: ", Responses, "\nSuccess Rate: ", sprintf("%.2f%%", successratepct)),
+             text = ~paste0("Score Range: ", BinSymbol, "\nResponses: ", BinResponseCount, "\nSuccess Rate: ", sprintf("%.2f%%", successratepct)),
              yaxis = 'y') %>%
     add_lines(x = ~bin, y = ~successratepct,
               line = list(color = "orange", width = 4), 
               yaxis = 'y2') %>%
-    add_markers(x = ~bin[(binning$inCurrentRange)], y = ~successratepct[(binning$inCurrentRange)],
+    add_markers(x = ~bin[(classifierBinning$inCurrentRange)], y = ~successratepct[(classifierBinning$inCurrentRange)],
                 marker = list(color="black"),
-                hoverinfo = "text", text = ~sprintf("%.2f%%", successratepct[(binning$inCurrentRange)]),
+                hoverinfo = "text", text = ~sprintf("%.2f%%", successratepct[(classifierBinning$inCurrentRange)]),
                 yaxis = 'y2') %>%
-    add_markers(x = ~bin[(!binning$inCurrentRange)], y = ~successratepct[(!binning$inCurrentRange)],
+    add_markers(x = ~bin[(!classifierBinning$inCurrentRange)], y = ~successratepct[(!classifierBinning$inCurrentRange)],
                 marker = list(color="darkgrey"),
-                hoverinfo = "text", text = ~sprintf("%.2f%%", successratepct[(!binning$inCurrentRange)]),
+                hoverinfo = "text", text = ~sprintf("%.2f%%", successratepct[(!classifierBinning$inCurrentRange)]),
                 yaxis = 'y2') %>%
     layout(title = paste0("Score Distribution of the Classifier"),
            xaxis = list(title = ""), # to put values instead of bin indices: , tickangle = -45, tickmode = "array", tickvals = ~bin, ticktext = ~BinSymbol
@@ -296,11 +285,8 @@ The success rate is defined as $\frac{positives}{positives+negatives}$ per bin.
 The adjusted propensity that is returned is a small modification (Laplace smoothing) to this and calculated as $\frac{0.5+positives}{1+positives+negatives}$ so empty models return a propensity of 0.5.
 
 ```{r, echo=F, warning=F, error=F, include=T}
-if (nrow(binning) >= 1) {
-  binningTable <- binning[, c("BinIndex", "BinSymbol", "BinPositives", "BinNegatives", "CumVolumePct", "successratepct", "adjustedpropensity", "CumPositivesPct", "ZRatio", "Lift", "inCurrentRange"), with=F]
-  setnames(binningTable, c("Index", "Bin", "Positives", "Negatives", "Cum. Total (%)", "Success Rate (%)", "Adjusted Propensity (%)", "Cum. Positives (%)", "Z-Ratio", "Lift (%)", "In Score Range"))
-  
-  kable(binningTable) %>% kable_styling()
+if (nrow(classifierBinning) >= 1) {
+  kable(userFriendlyADMBinning(classifierBinning)) %>% kable_styling()
 }
 ```
 
@@ -314,12 +300,12 @@ Number of positives and negatives in each bin and the derived lift and Z-ratio. 
 # TODO - consider colouring the predictor names by part before first dot ; unless there are > 10 of those
 
 predSummary <- modelPredictorBins[EntryType != "Classifier", .(Negatives = sum(BinNegatives),
-                                                                 Positives = sum(BinPositives),
-                                                                 Active = EntryType[1],
-                                                                 Type = PredictorType[1],
-                                                                 Bins = .N,
-                                                                 Performance = Performance[1],
-                                                                 Group = GroupIndex[1]), by=PredictorName]
+                                                               Positives = sum(BinPositives),
+                                                               Active = EntryType[1],
+                                                               Type = PredictorType[1],
+                                                               Bins = .N,
+                                                               Performance = Performance[1],
+                                                               Group = GroupIndex[1]), by=PredictorName]
 names(predSummary)[1] <- "Predictor"
 if (nrow(predSummary) == 0) {
   cat("The model has no predictors", fill=T)
@@ -338,67 +324,37 @@ if (nrow(predSummary) == 0) {
 
 Binning of all individual predictors. Predictors are listed in the same order as in the summary above.
 
-```{r, results="asis", echo=F, warning=F, error=F, fig.height = 5, fig.width = 6, fig.align = "center"}
+```{r, results="asis", fig.height = 4, fig.width = 6, fig.align = "center"}
 
-# for all: EntryType != "Classifier"
+# to print all instead of only the active ones, change condition to: EntryType != "Classifier"
+
 for (f in unique(modelPredictorBins[EntryType == "Active"]$PredictorName)) {
-  binning <- modelPredictorBins[PredictorName==f]
-  
-  if (nrow(binning) < 1) {
+  predictorBinning <- modelPredictorBins[PredictorName==f]
+
+  if (nrow(predictorBinning) < 1) {
     cat("<p style='color:Red;'>NO data available for", f, "for date:", max(modelPredictorBins$SnapshotTime), "</p>", fill=T)
   } else {
     
-    # Table prelude with some overall info about the predictor
-    cat(paste0("\n<p></p>## ", f, "\n<p></p>"))
-    cat("\n<p></p>|Field|Value|\n")
-    cat("|---|---|\n")
-    cat(paste0("|Univariate Performance (AUC)|",binning$Performance[1],"|\n"))
-    cat(paste0("|Status|",binning$EntryType[1],"|\n"))
-    cat(paste0("|Predictor Group|",binning$GroupIndex[1],"|\n"))
-    cat(paste0("|Total Positives|",sum(binning$BinPositives),"|\n"))
-    cat(paste0("|Total Negatives|",sum(binning$BinNegatives),"|\n"))
-    cat(paste0("|Total Responses|",sum(binning$BinPositives)+sum(binning$BinNegatives),"|\n"))
-    cat(paste0("|Overall Propensity|",sprintf("%.2f%%",100*sum(binning$BinPositives)/(sum(binning$BinPositives) + sum(binning$BinNegatives))),"|\n"))
-    cat("<p></p>")
-    
-    # A list with the other predictors in the same group
+    # Find other predictors in the same group
     correlatedPreds <- predSummary[Group == predSummary[Predictor==f]$Group & Predictor != f]
     if (nrow(correlatedPreds) > 0) { 
-      cat(paste0("Correlated Predictors: ", paste(correlatedPreds$PredictorName, collapse = ", "), "\n<p></p>"))
+      extraPredInfo <- list("Correlated Predictors" = paste(sort(correlatedPreds$Predictor), collapse = ", "))
+    } else {
+      extraPredInfo <- list("Correlated Predictors" = "--")
     }
     
-    binning[, bin := factor(BinIndex)]
-    binning[, successrate := BinPositives/BinResponseCount]
-    binning[, successratepct := 100*successrate]
-    binning[, Lift := 100*Lift]
-    
-    successRateMax <- max(binning$successrate, na.rm = T)
-    if (0 == successRateMax) { successRateMax <- 1 }
-    secAxisFactor <- max(binning$BinResponseCount)/successRateMax
+    # Table prelude with some overall info about the predictor
+    printADMPredictorInfo(predictorBinning, extraPredInfo)
+
     # colour names: http://sape.inf.usi.ch/quick-reference/ggplot2/colour
     
-    if (nrow(binning) > 1) {
-      p <- ggplot(binning, aes(bin, successrate, group=1))+
-        geom_col(aes(y=BinResponseCount/secAxisFactor), fill=ifelse(binning$EntryType[1]=="Active","steelblue3","darkgrey"))+
-        geom_line(colour="orange", size=2)+geom_point()+
-        geom_hline(data=binning[1,], mapping = aes(yintercept = Positives/(Positives+Negatives)),
-                   colour="orange", linetype="dashed") +
-        scale_y_continuous(limits=c(0, successRateMax), name="Success Rate", labels=percent,
-                           sec.axis = sec_axis(~.*secAxisFactor, name = "Responses"))+
-        scale_x_discrete(name = "", 
-                         labels=ifelse(binning$PredictorType == "numeric" | nchar(binning$BinSymbol) <= 25, 
-                                       binning$BinSymbol, 
-                                       paste(substr(binning$BinSymbol, 1, 25), "..."))) +
-        ggtitle(f)+
-        theme(axis.text.x = element_text(angle = 45, hjust = 1),
-              plot.title = element_text(hjust = 0.5),
-              plot.subtitle = element_text(hjust = 0.5))
+    if (nrow(predictorBinning) > 1) {
+      p <- plotADMBinning(predictorBinning)+ ggtitle(f)
+      
       print(p)
     }  
     
-    binningTable <- binning[, c("BinIndex", "BinSymbol", "BinPositives", "BinNegatives", "successratepct", "ZRatio", "Lift"), with=F]
-    setnames(binningTable, c("Index", "Bin", "Positives", "Negatives", "Success Rate (%)", "Z-Ratio", "Lift (%)"))
-    print(kable(binningTable, format = "markdown"))
+    print(kable(userFriendlyADMBinning(predictorBinning), format = "markdown"))
   }
 }
 ```

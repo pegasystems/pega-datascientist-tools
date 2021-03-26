@@ -48,8 +48,9 @@ export.
 ```{r}
 varimp <- admVarImp(admdatamart_models[ConfigurationName=="OmniAdaptiveModel"], admdatamart_binning)
 
-head(varimp)
+varimp[]
 ```
+
 
 ## Plots
 
