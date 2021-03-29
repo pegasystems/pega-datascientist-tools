@@ -1,3 +1,10 @@
 .Rproj.user
 *.pmml
 extra/**/*.html
+java/.gradle/
+java/.idea/
+java/DDSUtil/build
+modelreport_files/
+tmp/
+tmp3/
+

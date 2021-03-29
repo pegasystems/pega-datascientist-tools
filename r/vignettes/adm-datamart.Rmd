@@ -92,7 +92,8 @@ plotADMPredictorPerformance(admdatamart_binning, admdatamart_models[Configuratio
 You could also show the predictor performance in one plot across all predictors for all the selected models. Also arranging by performance in both dimensions gives a quick visual clue of which predictors and which models need attention.
 
 ```{r, warning=F, message=FALSE}
-plotADMPredictorPerformanceMatrix(admdatamart_binning, admdatamart_models, by_fields="Name", facets = c()) +
+plotADMPredictorPerformanceMatrix(admdatamart_binning, admdatamart_models, 
+                                  aggregation="Name", facets = c()) +
   theme(axis.text.y = element_text(size=6),
         axis.text.x = element_text(size=6, angle = 45, hjust = 1))
 ```
@@ -189,7 +190,7 @@ as shown.
 
 ```{r}
 varimp <- admVarImp(admdatamart_models, admdatamart_binning, c("ConfigurationName"))
-admVarImpPlot(varimp) + 
+plotADMVarImp(varimp) + 
   theme_bw() + scale_fill_viridis_c(begin=0.5, end=0.9)
 ```
 

@@ -12,17 +12,25 @@ params:
   modelfile:
     # full path to the source file which should be an export of the ADM model table
     # can be a plain CSV file, a zipped CSV or the full path of a dataset export
-    #value: "../data/pr_data_dm_admmart_mdl_fact.csv"
+    value: "../data/pr_data_dm_admmart_mdl_fact.csv"
     #value: "~/cdh/1/Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210317T130409_GMT.zip"
-    value: "~/cdh/2/PR_DATA_DM_ADMMART_MDL_FACT.csv"
+    # value: "~/cdh/2/PR_DATA_DM_ADMMART_MDL_FACT.csv"
+    # value: "~/cdh/3/models.csv"
+    #value: "~/cdh/4/MD_FACT.csv.zip"
+    # value: "~/cdh/5/Data-Decision-ADM-ModelSnapshot_AdaptiveModelSnapshotRepo_20201110T085543_GMT.zip"
+    # value: "~/cdh/6/models.csv"
   predictordatafile:
     # optional full path to ADM predictor binning table data
     # if given, the model overview will also contain aggregate predictor plots
     # this example file is the same as the RDA file used elsewhere in demos of CDH tools
     # can be a plain CSV file, a zipped CSV or the full path of a dataset export
-    #value: "../data/pr_data_dm_admmart_pred.csv"
+    value: "../data/pr_data_dm_admmart_pred.csv"
     #value: "~/cdh/1/Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210317T130452_GMT.zip"
-    value: "~/cdh/2/PR_DATA_DM_ADMMART_PRED.csv"
+    #value: "~/cdh/2/PR_DATA_DM_ADMMART_PRED.csv"
+    # value: "~/cdh/3/binning.csv"
+    #value: "~/cdh/4/PRED_FACT.csv.zip"
+    # value: "~/cdh/5/Data-Decision-ADM-PredictorBinningSnapshot_PredictorBinningSnapshotRepo_20201110T084825_GMT.zip"
+    # value: "~/cdh/6/predbinning2.csv"
   modellist:
     # optional name for a text file that will be created with a list of model ID and model names
     # to drive bulk-creation of individual model reports
@@ -46,11 +54,6 @@ options(digits = 5)
 knitr::opts_chunk$set(
   comment = ">", echo = FALSE, warning = FALSE, fig.width = 10, fig.height = 10
 )
-
-source("../r/R/adm.R") # !!!! TEMP !!!!
-source("../r/R/plots.R") # !!!! TEMP !!!!
-source("../r/R/adm2pmml.R") # !!!! TEMP !!!!
-source("../r/R/exportUtilsDatamart.R") # !!!! TEMP !!!!
 ```
 
 
@@ -58,7 +61,7 @@ source("../r/R/exportUtilsDatamart.R") # !!!! TEMP !!!!
 
 This notebook gives a global overview of the adaptive models from the data mart. Detailed model reports for individual model instances can be created by running the "modelreport" scripts.
 
-```{r, echo=F, warning=F, error=F, include=F}
+```{r Read Model Data, echo=F, error=F, warning=FALSE, include=F}
 
 if (!("modelfile" %in% names(params))) stop(paste("Required parameter '", modelfile, "' missing."))
 if (!file.exists(params$modelfile)) stop(paste("File does not exist:", params$modelfile))
@@ -100,7 +103,7 @@ if (hasLargeModelList) {
 
 Overall success rate of the propositions. Different channels usually have different success rates.
 
-```{r}
+```{r Plot Proposition Success Rates}
 p <- plotADMPropositionSuccessRates(mdls[Positives > 10], limit=20, facets="Channel") + 
   scale_fill_continuous_divergingx()
 p
@@ -116,7 +119,7 @@ and can be applied to any ggplot result. It only works for relatively simple plo
 breaks down especially with faceting, so use in this generic notebook is limited but
 it can be great for more specific plots.
 
-```{r message=FALSE}
+```{r Bubble Chart, message=FALSE, warning=FALSE}
 p <- plotADMPerformanceSuccessRateBubbleChart(mdls, facets = "ConfigurationName")
 
 ggplotly(p) %>% layout(showlegend=FALSE) # %>% config(displayModeBar = F)
@@ -125,10 +128,15 @@ ggplotly(p) %>% layout(showlegend=FALSE) # %>% config(displayModeBar = F)
 
 ## Model Performance over Time
 
-```{r}
-p <- plotADMModelPerformanceOverTime(mdls) + propositionLegendForSmallNumbersOnly
-p
-# ggplotly(p)
+```{r Performance over Time}
+if (uniqueN(mdls$SnapshotTime) < 2)
+{
+  cat("Trend plots will only be available when the model data contains multiple snapshots.", fill=T)
+} else {
+  p <- plotADMModelPerformanceOverTime(mdls) + propositionLegendForSmallNumbersOnly
+  p
+  # ggplotly(p)
+}
 ```
 
 ## Model Success Rate over Time
@@ -137,20 +145,22 @@ Similar, showing the success rate over time.
 
 The same models that have higher model performance also generally have a higher success rate.
 
-```{r}
-p <- plotADMModelSuccessRateOverTime(mdls) + propositionLegendForSmallNumbersOnly
-
-p
-#ggplotly(p)
+```{r Success Rate over Time}
+if (uniqueN(mdls$SnapshotTime) < 2)
+{
+  cat("Trend plots will only be available when the model data contains multiple snapshots.", fill=T)
+} else {
+  p <- plotADMModelSuccessRateOverTime(mdls) + propositionLegendForSmallNumbersOnly
+  p
+  #ggplotly(p)
+}
 ```
 
 # Predictor summaries
 
-Reading the detailed predictor information from the optionally provided file.
+Reading the detailed predictor information from the optionally provided datamart dump.
 
-This will be used to show predictor info across models.
-
-```{r}
+```{r Read Predictor Data}
 if (is.null(params$predictordatafile) || params$predictordatafile=="")
 {
   cat("Predictor related plots will only be available when the predictor data is available to this script.", fill=T)
@@ -166,15 +176,17 @@ if (is.null(params$predictordatafile) || params$predictordatafile=="")
 ### Globally, across all models
 
 Box plots of univariate predictor performance. This gives an indication of the usefulness of 
-(categories of) predictors, globally and across all models.
+(categories of) predictors, globally and across all models. The additional diamond shape in 
+the box plots indicates the weighted performance (weighted by number of responses of the models).
 
-```{r}
+```{r Univariate Predictors Boxplot}
 if (!is.null(modelPredictorBins) && nrow(modelPredictorBins) > 0) {
-  plotADMPredictorPerformance(modelPredictorBins, limit = 40)
+  plotADMPredictorPerformance(modelPredictorBins, limit = 40) + xlab("AUC")
 } else {
   cat("Predictor related plots will only be available when the predictor data is available to this script.", fill=T)
 }
 ```
+
 
 ### Predictor Importance in models
 
@@ -183,12 +195,15 @@ the previous plot that gives a view of the *univariate* performance, this looks
 at the actual contribution to the ADM models (using the cumulative log odds of
 each of the predictors).
 
-```{r}
-varimp <- admVarImp(mdls, modelPredictorBins, facets = "ConfigurationName")
-p <- plotADMVarImp(varimp[Rank <= 20])
-
-print(p + scale_fill_continuous_sequential())
+```{r Predictor Importance per Model}
+if (!is.null(modelPredictorBins) && nrow(modelPredictorBins) > 0) {
+  varimp <- admVarImp(mdls, modelPredictorBins, facets = "ConfigurationName")
+  p <- plotADMVarImp(varimp[Rank <= 20])
+  
+  print(p + scale_fill_continuous_sequential())
+}
 ```
+
 
 ## Predictor Performance across Propositions
 
@@ -198,7 +213,7 @@ too good to be true.
 
 Instead of faceting, here we loop through the plots since they tend to get large.
 
-```{r, fig.width=8, fig.height=8}
+```{r Predictors vs Propos, fig.height=8, fig.width=8}
 if (!is.null(modelPredictorBins) && nrow(modelPredictorBins) > 0) {
   for (c in unique(mdls$ConfigurationName)) {
     plt <- plotADMPredictorPerformanceMatrix(modelPredictorBins, mdls[ConfigurationName == c], limit=50) +

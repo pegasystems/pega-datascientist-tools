@@ -18,9 +18,7 @@ predictor importance by.}
 }
 \value{
 A \code{data.table}) with \code{PredictorName}, \code{Importance}
-and \code{Rank} plus columns for each of the \code{facets} if supplied. In
-addition there is a column \code{ConfigurationNames} with a concatenation
-of all the values for \code{ConfigurationName} in the original model data.
+and \code{Rank} plus columns for each of the \code{facets} if supplied.
 }
 \description{
 Uses the predictor binning from the ADM Datamart data to find the

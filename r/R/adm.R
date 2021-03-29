@@ -210,9 +210,7 @@ readADMDatamartPredictorExport <- function(srcFolder=".",
 #'   predictor importance by.
 #'
 #' @return A \code{data.table}) with \code{PredictorName}, \code{Importance}
-#' and \code{Rank} plus columns for each of the \code{facets} if supplied. In
-#' addition there is a column \code{ConfigurationNames} with a concatenation
-#' of all the values for \code{ConfigurationName} in the original model data.
+#' and \code{Rank} plus columns for each of the \code{facets} if supplied.
 #' @export
 #'
 #' @examples
@@ -231,9 +229,6 @@ admVarImp <- function(dmModels, dmPredictors, facets = NULL)
   # Iterate over all models, (TODO: this is not efficient)
   allNormalizedBins <- lapply(unique(dmModels$ModelID), function(m) {
     if (nrow(dmPredictors[ModelID == m & EntryType == "Active"]) < 1) return (NULL)
-
-    modelPartitionFullName <- paste(unlist(unique(dmModels[ModelID == m, c("AppliesToClass", "ConfigurationName", "ModelID")])), collapse = "_")
-
     dmmodelList <- normalizedBinningFromDatamart(dmPredictors[ModelID == m],
                                                  modelsForPartition = dmModels[ModelID == m])
 
@@ -267,9 +262,6 @@ admVarImp <- function(dmModels, dmPredictors, facets = NULL)
   varImp <- allNormalizedBins[PredictorType != "CLASSIFIER", .(Importance = stats::weighted.mean(BinWeight/BinIndexOccurences, BinPos+BinNeg)), by=c("PredictorName",facets)][order(-Importance)]
   varImp[, Rank := frank(-Importance, ties.method = "first"), by=facets]
   varImp[, Importance := 100.0*Importance/max(Importance), by=facets]
-
-  # Return name of all model configurations as a constant field value
-  varImp[, ConfigurationNames := paste(sort(unique(dmModels$ConfigurationName)), collapse=",")]
   setorder(varImp, Rank)
 
   return(varImp)

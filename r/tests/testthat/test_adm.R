@@ -66,12 +66,12 @@ test_that("Sensitivity Analysis", {
 
   varimp <- admVarImp(allModels, allPredictors)
 
-  expect_equal(ncol(varimp), 4)
+  expect_equal(ncol(varimp), 3)
   expect_equal(nrow(varimp), 27) # active predictors
 
   varimp <- admVarImp(allModels, allPredictors, "ConfigurationName")
 
-  expect_equal(ncol(varimp), 5) # 1 extra for the configuration name
+  expect_equal(ncol(varimp), 4) # 1 extra for the configuration name
   expect_equal(nrow(varimp), 45)
 })
 
