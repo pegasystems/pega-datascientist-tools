@@ -21,7 +21,7 @@ plotsAbbreviateInterval <- function(str)
 plotsGetFacets <- function(facets, scales = "free")
 {
   if (length(facets) == 0) return(NULL)
-  if (length(facets) == 1 && all(facets == "")) return(NULL)
+  if (length(facets) == 1 && facets == "") return(NULL)
 
   facettingExpr <- paste( ifelse(length(setdiff(facets, facets[1]))==0,".",paste(setdiff(facets, facets[1]), collapse="+")), "~", facets[1] )
 
@@ -31,13 +31,13 @@ plotsGetFacets <- function(facets, scales = "free")
 # Get plot title and subtitle adding in description of the facets
 plotsGetTitles <- function(baseTitle, aggregation = c(), facets = c(), limit = NA)
 {
-  if (length(aggregation) == 0 || (length(aggregation) == 1 && all(aggregation == ""))) {
+  if (length(aggregation) == 0 || (length(aggregation) == 1 && aggregation == "")) {
     aggregationSpecs <- NULL
   } else {
     aggregationSpecs <- paste(aggregation, collapse="/")
   }
 
-  if (length(facets) == 0 || (length(facets) == 1 && all(facets == ""))) {
+  if (length(facets) == 0 || (length(facets) == 1 && facets == "")) {
     facetSpecs <- NULL
   } else {
     facetSpecs <- paste("by", paste(facets, collapse=" x "))
@@ -57,7 +57,7 @@ plotsGetTitles <- function(baseTitle, aggregation = c(), facets = c(), limit = N
 plotsCheckFacetsExist <- function(data, facets)
 {
   if (length(facets) == 0) return(c())
-  if (length(facets) == 1 && all(facets == "")) return(c())
+  if (length(facets) == 1 && facets == "") return(c())
 
   if (length(setdiff(facets, names(data))) > 0) {
     warning(paste("Not all facets present in provided data,", setdiff(facets, names(data)), "will be ignored."))

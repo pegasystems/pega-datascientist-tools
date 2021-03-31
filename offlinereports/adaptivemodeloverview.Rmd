@@ -12,8 +12,8 @@ params:
   modelfile:
     # full path to the source file which should be an export of the ADM model table
     # can be a plain CSV file, a zipped CSV or the full path of a dataset export
-    value: "../data/pr_data_dm_admmart_mdl_fact.csv"
-    #value: "~/cdh/1/Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210317T130409_GMT.zip"
+    # value: "../data/pr_data_dm_admmart_mdl_fact.csv"
+    value: "~/cdh/1/Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210317T130409_GMT.zip"
     # value: "~/cdh/2/PR_DATA_DM_ADMMART_MDL_FACT.csv"
     # value: "~/cdh/3/models.csv"
     #value: "~/cdh/4/MD_FACT.csv.zip"
@@ -24,8 +24,8 @@ params:
     # if given, the model overview will also contain aggregate predictor plots
     # this example file is the same as the RDA file used elsewhere in demos of CDH tools
     # can be a plain CSV file, a zipped CSV or the full path of a dataset export
-    value: "../data/pr_data_dm_admmart_pred.csv"
-    #value: "~/cdh/1/Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210317T130452_GMT.zip"
+    # value: "../data/pr_data_dm_admmart_pred.csv"
+    value: "~/cdh/1/Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210317T130452_GMT.zip"
     #value: "~/cdh/2/PR_DATA_DM_ADMMART_PRED.csv"
     # value: "~/cdh/3/binning.csv"
     #value: "~/cdh/4/PRED_FACT.csv.zip"
