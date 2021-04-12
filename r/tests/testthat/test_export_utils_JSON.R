@@ -133,7 +133,7 @@ test_that("Creating a Scorecard from the encode Model data", {
   # for testing in console
   # testFolder<-"tests/testthat/d"
   encodedModelData <- paste(readLines(file.path(testFolder, "encodedmodelsnapshot.txt")), collapse="\n")
-#
+
   sc <- getScorecardFromSnapshot(encodedModelData, name = "encodedmodelsnapshot.txt")
 
   expect_equal(length(sc), 4) # four elements expected: scorecard, binning, mapping and pmml
