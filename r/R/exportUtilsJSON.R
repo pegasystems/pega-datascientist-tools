@@ -220,21 +220,29 @@ normalizedBinningFromJSONFactory <- function(binningJSON, id, activePredsOnly)
   return(predBinningTable)
 }
 
-#' Build a scoring model from the "analyzedData" JSON string that is part of the
-#' JSON Factory.
+#' Create a human-readable as well as machine-executable Scorecard from the JSON
+#' of a specific model.
+#'
+#' This works off the "analyzedData" JSON string from the JSON factory.
 #'
 #' This part of the ADM Factory string is the only piece that is necessary for
 #' scoring. The scoring model itself is currently just a binning table in
 #' internal format. We should see if this needs to be augmented to make it more
 #' of a score card.
 #'
-#' @param modelJSON The JSON string with the analyzed (scoring) portion of
-#'   the ADM Factory JSON.
+#' @param modelJSON The JSON string with the analyzed (scoring) portion of the
+#'   ADM Factory JSON.
+#' @param name Optional name to be used in the generated PMML. Will be used in
+#'   the header of the PMML.
 #' @param isAuditModel When \code{True} (default) the data comes from the
-#'   full-auditability blob in the datamart which only contains active predictors.
-#'   When \code{False} then it will filter the data for active predictors.
+#'   full-auditability blob in the datamart which only contains active
+#'   predictors. When \code{False} then it will filter the data for active
+#'   predictors.
 #'
-#' @return A \code{data.table} with the binning.
+#' @return A 4-element \code{list} with the human-readable scorecard in
+#'   $scorecard as a \code{data.table}, a human-readable mapping of the score to
+#'   a propensity in $mapping, also as a \code{data.table}, an executable PMML
+#'   in $pmml in the form of a string and additional the full internal binning.
 #' @export
 getScoringModelFromJSONFactoryString <- function(modelJSON, name="", isAuditModel=T)
 {
@@ -276,6 +284,32 @@ getScoringModelFromJSONFactoryString <- function(modelJSON, name="", isAuditMode
 
 
   return(list(scorecard = scorecard, mapping = scorecardMapping, binning = oriBinning, pmml = toString(pmml)))
+}
+
+#' Convert a model snapshot into a human-readable as well as machine-executable
+#' PMML Scorecard.
+#'
+#' This works off the model snapshot data stored in the \code{pymodeldata} in
+#' the ADM model table.
+#'
+#' This function really is just a convencience wrapper around
+#' \code{getScoringModelFromJSONFactoryString}. It first decodes the data
+#' then delegates to that function.
+#'
+#' @param modelSnapshot The encoded model snapshot string from the model table.
+#' @param name Optional name to be used in the generated PMML. Will be used in
+#'   the header of the PMML.
+#'
+#' @return A 4-element \code{list} with the human-readable scorecard in
+#'   $scorecard as a \code{data.table}, a human-readable mapping of the score to
+#'   a propensity in $mapping, also as a \code{data.table}, an executable PMML
+#'   in $pmml in the form of a string and additional the full internal binning.
+#' @export
+getScorecardFromSnapshot <- function(modelSnapshot, name="")
+{
+  modelDataJSON <- memDecompress(base64enc::base64decode(modelSnapshot), type = "gzip", asChar = T)
+
+  getScoringModelFromJSONFactoryString(modelDataJSON, name, isAuditModel = T)
 }
 
 normalizedBinningFromSingleJSONFactoryString <- function(aFactory, id, overallModelName, tmpFolder=NULL, forceLowerCasePredictorNames=F, activePredsOnly=T)

@@ -85,15 +85,14 @@ test_that("ADM Factory to Binning similar to direct DM export", {
   }
 })
 
-test_that("Creating a Scorecard from the captured scoring model", {
+test_that("Creating a Scorecard from the scoring model JSON", {
   testFolder <- "d"
 
   # for testing in console
   # testFolder<-"tests/testthat/d"
+  decodedModelData <- paste(readLines(file.path(testFolder, "scoringmodeldata.json")), collapse="\n")
 
-  encodedModelData <- paste(readLines(file.path(testFolder, "scoringmodeldata.json")), collapse="\n")
-
-  sc <- getScoringModelFromJSONFactoryString(encodedModelData, name = "scoringmodeldata.json")
+  sc <- getScoringModelFromJSONFactoryString(decodedModelData, name = "scoringmodeldata.json")
 
   expect_equal(length(sc), 4) # four elements expected: scorecard, binning, mapping and pmml
 
@@ -108,7 +107,7 @@ test_that("Creating a Scorecard from the captured scoring model", {
   expect_true(grepl("<Scorecard", sc$pmml, fixed=T))
   expect_true(grepl("Characteristic name=\"Age___score\" reasonCode=\"Age\"", sc$pmml, fixed=T))
 
-  sc <- getScoringModelFromJSONFactoryString(encodedModelData, isAuditModel = F)
+  sc <- getScoringModelFromJSONFactoryString(decodedModelData, isAuditModel = F)
 
   expect_equal(nrow(sc$mapping), 22)
   expect_equal(nrow(sc$scorecard), 0) # no info about active or not, all considered inactive
@@ -125,6 +124,30 @@ test_that("Creating a Scorecard from the captured scoring model", {
   # TODO verify against real ADM model (test panel)
   xxx <- score(sc$binning, list(Age = 40, Income = 10000, OverallUsage = 0) )
 
+
+})
+
+test_that("Creating a Scorecard from the encode Model data", {
+  testFolder <- "d"
+
+  # for testing in console
+  # testFolder<-"tests/testthat/d"
+  encodedModelData <- paste(readLines(file.path(testFolder, "encodedmodelsnapshot.txt")), collapse="\n")
+#
+  sc <- getScorecardFromSnapshot(encodedModelData, name = "encodedmodelsnapshot.txt")
+
+  expect_equal(length(sc), 4) # four elements expected: scorecard, binning, mapping and pmml
+
+  expect_equal(ncol(sc$scorecard), 5)
+  expect_equal(ncol(sc$mapping), 4)
+  expect_equal(ncol(sc$binning), 9)
+  expect_equal(nrow(sc$scorecard), 85)
+  expect_equal(nrow(sc$mapping), 21)
+  expect_equal(nrow(sc$binning), 106)
+
+  expect_true(startsWith(sc$pmml, "<PMML"))
+  expect_true(grepl("<Scorecard", sc$pmml, fixed=T))
+  expect_true(grepl("Characteristic name=\"Age___score\" reasonCode=\"Age\"", sc$pmml, fixed=T))
 
 })
 

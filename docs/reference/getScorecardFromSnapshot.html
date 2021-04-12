@@ -6,8 +6,8 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Create a human-readable as well as machine-executable Scorecard from the JSON
-of a specific model. — getScoringModelFromJSONFactoryString • cdhtools</title>
+<title>Convert a model snapshot into a human-readable as well as machine-executable
+PMML Scorecard. — getScorecardFromSnapshot • cdhtools</title>
 
 
 <!-- jquery -->
@@ -40,9 +40,10 @@ of a specific model. — getScoringModelFromJSONFactoryString • cdhtools</titl
 
 
 
-<meta property="og:title" content="Create a human-readable as well as machine-executable Scorecard from the JSON
-of a specific model. — getScoringModelFromJSONFactoryString" />
-<meta property="og:description" content="This works off the &quot;analyzedData&quot; JSON string from the JSON factory." />
+<meta property="og:title" content="Convert a model snapshot into a human-readable as well as machine-executable
+PMML Scorecard. — getScorecardFromSnapshot" />
+<meta property="og:description" content="This works off the model snapshot data stored in the pymodeldata in
+the ADM model table." />
 
 
 
@@ -126,37 +127,30 @@ of a specific model. — getScoringModelFromJSONFactoryString" />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Create a human-readable as well as machine-executable Scorecard from the JSON
-of a specific model.</h1>
+    <h1>Convert a model snapshot into a human-readable as well as machine-executable
+PMML Scorecard.</h1>
     
-    <div class="hidden name"><code>getScoringModelFromJSONFactoryString.Rd</code></div>
+    <div class="hidden name"><code>getScorecardFromSnapshot.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>This works off the "analyzedData" JSON string from the JSON factory.</p>
+    <p>This works off the model snapshot data stored in the <code>pymodeldata</code> in
+the ADM model table.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>getScoringModelFromJSONFactoryString</span><span class='op'>(</span><span class='va'>modelJSON</span>, name <span class='op'>=</span> <span class='st'>""</span>, isAuditModel <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>getScorecardFromSnapshot</span><span class='op'>(</span><span class='va'>modelSnapshot</span>, name <span class='op'>=</span> <span class='st'>""</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>modelJSON</th>
-      <td><p>The JSON string with the analyzed (scoring) portion of the
-ADM Factory JSON.</p></td>
+      <th>modelSnapshot</th>
+      <td><p>The encoded model snapshot string from the model table.</p></td>
     </tr>
     <tr>
       <th>name</th>
       <td><p>Optional name to be used in the generated PMML. Will be used in
 the header of the PMML.</p></td>
-    </tr>
-    <tr>
-      <th>isAuditModel</th>
-      <td><p>When <code>True</code> (default) the data comes from the
-full-auditability blob in the datamart which only contains active
-predictors. When <code>False</code> then it will filter the data for active
-predictors.</p></td>
     </tr>
     </table>
 
@@ -168,10 +162,9 @@ predictors.</p></td>
   in $pmml in the form of a string and additional the full internal binning.</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>This part of the ADM Factory string is the only piece that is necessary for
-scoring. The scoring model itself is currently just a binning table in
-internal format. We should see if this needs to be augmented to make it more
-of a score card.</p>
+    <p>This function really is just a convencience wrapper around
+<code>getScoringModelFromJSONFactoryString</code>. It first decodes the data
+then delegates to that function.</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

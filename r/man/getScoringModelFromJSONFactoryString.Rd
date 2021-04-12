@@ -2,23 +2,33 @@
 % Please edit documentation in R/exportUtilsJSON.R
 \name{getScoringModelFromJSONFactoryString}
 \alias{getScoringModelFromJSONFactoryString}
-\title{Build a scoring model from the "analyzedData" JSON string that is part of the
-JSON Factory.}
+\title{Create a human-readable as well as machine-executable Scorecard from the JSON
+of a specific model.}
 \usage{
-getScoringModelFromJSONFactoryString(analyzedData, isAuditModel = F)
+getScoringModelFromJSONFactoryString(modelJSON, name = "", isAuditModel = T)
 }
 \arguments{
-\item{analyzedData}{The JSON string with the analyzed (scoring) portion of
-the ADM Factory JSON.}
+\item{modelJSON}{The JSON string with the analyzed (scoring) portion of the
+ADM Factory JSON.}
 
-\item{isAuditModel}{When \code{True} the data comes from the
-full-auditability blob in the datamart and only contains active predictors.
-When \code{False} then it will filter the data for only active predictors.}
+\item{name}{Optional name to be used in the generated PMML. Will be used in
+the header of the PMML.}
+
+\item{isAuditModel}{When \code{True} (default) the data comes from the
+full-auditability blob in the datamart which only contains active
+predictors. When \code{False} then it will filter the data for active
+predictors.}
 }
 \value{
-A \code{data.table} with the binning.
+A 4-element \code{list} with the human-readable scorecard in
+  $scorecard as a \code{data.table}, a human-readable mapping of the score to
+  a propensity in $mapping, also as a \code{data.table}, an executable PMML
+  in $pmml in the form of a string and additional the full internal binning.
 }
 \description{
+This works off the "analyzedData" JSON string from the JSON factory.
+}
+\details{
 This part of the ADM Factory string is the only piece that is necessary for
 scoring. The scoring model itself is currently just a binning table in
 internal format. We should see if this needs to be augmented to make it more

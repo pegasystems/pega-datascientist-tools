@@ -34,5 +34,6 @@ Imports:
     fasttime,
     XML,
     kableExtra,
-    stringi
+    stringi,
+    base64enc
 VignetteBuilder: knitr
