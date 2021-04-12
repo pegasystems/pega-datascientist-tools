@@ -341,7 +341,9 @@ plotADMPredictorPerformance <- function(predictordata,
     # plotsAbbreviateNameiation would loose predictors, revert
     plotdata[, PredictorName := predictorname_ori]
   }
-  plotdata[, PredictorName := sapply(as.character(PredictorName), plotsAbbreviateName)]
+
+  # again??
+  # plotdata[, PredictorName := sapply(as.character(PredictorName), plotsAbbreviateName)]
 
   # join with model data (for facetting)
   if (!is.null(modeldata)) {
@@ -353,7 +355,7 @@ plotADMPredictorPerformance <- function(predictordata,
   #                           by=PredictorName][order(-meanPerf)] $ PredictorName
   predictorOrder <- plotdata[, .(meanPerf = mean(Performance, na.rm = T)),
                              by=PredictorName][order(-meanPerf)] $ PredictorName
-  plotdata[, Category := predictorClassifier(PredictorName)]
+  plotdata[, Category := predictorClassifier(as.character(PredictorName))]
   plotdata[, Type := factor(PredictorType)] #### todo also via a default function
   plotdata[, PredictorName := factor(PredictorName, levels=predictorOrder)]
 

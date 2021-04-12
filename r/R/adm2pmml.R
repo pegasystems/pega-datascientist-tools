@@ -526,9 +526,9 @@ createPMML <- function(modeldata, overallModelName)
   # Make sure the input has the required fields
   sapply(modeldata, function(m) { if (!identical(sort(names(m$binning)),
                                                  sort(BINNINGTABLEFIELDS)))
-    stop(paste("Not all required columns present. Found:",
+    stop(paste("Not all required columns present.\nFound:",
                paste(sort(names(m$binning)), collapse = ","),
-               ", expected:", paste(sort(BINNINGTABLEFIELDS), collapse = ",")))})
+               "\nExpected:", paste(sort(BINNINGTABLEFIELDS), collapse = ",")))})
 
   # Make sure the "enums" only have the expected values
   for (i in length(modeldata)) {
@@ -537,8 +537,8 @@ createPMML <- function(modeldata, overallModelName)
     if (any(is.na(modeldata[[i]]$binning$BinType))) {
       print(oriBinTypes)
       stop(paste("Unexpected bin types encountered.",
-                 "Expected:", paste(BINTYPES,collapse = ","),
-                 ", got:", paste(oriBinTypes, collapse = ",")))
+                 "\nExpected:", paste(BINTYPES,collapse = ","),
+                 "\nGot:", paste(oriBinTypes, collapse = ",")))
     }
   }
 

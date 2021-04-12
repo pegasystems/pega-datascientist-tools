@@ -2,6 +2,7 @@ library(testthat)
 library(cdhtools)
 library(data.table)
 library(jsonlite)
+library(XML)
 
 context("check ADM Factory JSON utilities")
 
@@ -82,5 +83,48 @@ test_that("ADM Factory to Binning similar to direct DM export", {
                  dmPredictors[PredictorName==fld]$BinUpperBound[1:(length(dmPredictors[PredictorName==fld]$BinUpperBound)-1)],
                  info=paste("comparing", "BinUpperBound", "of", fld))
   }
+})
+
+test_that("Creating a Scorecard from the captured scoring model", {
+  testFolder <- "d"
+
+  # for testing in console
+  # testFolder<-"tests/testthat/d"
+
+  encodedModelData <- paste(readLines(file.path(testFolder, "scoringmodeldata.json")), collapse="\n")
+
+  sc <- getScoringModelFromJSONFactoryString(encodedModelData, name = "scoringmodeldata.json")
+
+  expect_equal(length(sc), 4) # four elements expected: scorecard, binning, mapping and pmml
+
+  expect_equal(ncol(sc$scorecard), 5)
+  expect_equal(ncol(sc$mapping), 4)
+  expect_equal(ncol(sc$binning), 9)
+  expect_equal(nrow(sc$scorecard), 92)
+  expect_equal(nrow(sc$mapping), 22)
+  expect_equal(nrow(sc$binning), 114)
+
+  expect_true(startsWith(sc$pmml, "<PMML"))
+  expect_true(grepl("<Scorecard", sc$pmml, fixed=T))
+  expect_true(grepl("Characteristic name=\"Age___score\" reasonCode=\"Age\"", sc$pmml, fixed=T))
+
+  sc <- getScoringModelFromJSONFactoryString(encodedModelData, isAuditModel = F)
+
+  expect_equal(nrow(sc$mapping), 22)
+  expect_equal(nrow(sc$scorecard), 0) # no info about active or not, all considered inactive
+  expect_equal(nrow(sc$binning), 22)
+
+  # TODO run scorecard on returned binning for a single case
+  score <- function(scorecard, inputs) # candidate for cdh_utils
+  {
+    totalscore <- 0.5
+
+    return(totalscore)
+  }
+
+  # TODO verify against real ADM model (test panel)
+  xxx <- score(sc$binning, list(Age = 40, Income = 10000, OverallUsage = 0) )
+
+
 })
 

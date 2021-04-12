@@ -228,15 +228,15 @@ normalizedBinningFromJSONFactory <- function(binningJSON, id, activePredsOnly)
 #' internal format. We should see if this needs to be augmented to make it more
 #' of a score card.
 #'
-#' @param analyzedData The JSON string with the analyzed (scoring) portion of
+#' @param modelJSON The JSON string with the analyzed (scoring) portion of
 #'   the ADM Factory JSON.
-#' @param isAuditModel When \code{True} the data comes from the
-#'   full-auditability blob in the datamart and only contains active predictors.
-#'   When \code{False} then it will filter the data for only active predictors.
+#' @param isAuditModel When \code{True} (default) the data comes from the
+#'   full-auditability blob in the datamart which only contains active predictors.
+#'   When \code{False} then it will filter the data for active predictors.
 #'
 #' @return A \code{data.table} with the binning.
 #' @export
-getScoringModelFromJSONFactoryString <- function(analyzedData, isAuditModel=F)
+getScoringModelFromJSONFactoryString <- function(modelJSON, name="", isAuditModel=T)
 {
   buildLabel <- function(PredictorType, BinType, BinLabel, BinLowerBound, BinUpperBound)
   {
@@ -246,10 +246,13 @@ getScoringModelFromJSONFactoryString <- function(analyzedData, isAuditModel=F)
                                 ifelse(BinType == "REMAININGSYMBOLS", "Other", paste("Internal error: unknown type", BinType))))))
   }
 
-  scoringModelJSON <- fromJSON(analyzedData)
+  scoringModelJSON <- fromJSON(modelJSON)
   id <- getJSONModelContextAsString(toJSON(scoringModelJSON$factoryKey$modelPartition))
 
   internalBinning <- normalizedBinningFromJSONFactory(scoringModelJSON, id, activePredsOnly=!isAuditModel)
+
+  # Executable PMML scorecard
+  pmml <- createPMML(list(list(context = NULL, binning = internalBinning)), name)
 
   # the internal binning is not a scorecard yet so relabel some of the columns and split
   # into scorecard and a score mapping
@@ -271,7 +274,8 @@ getScoringModelFromJSONFactoryString <- function(analyzedData, isAuditModel=F)
   oriBinning <- scaledBinning[, c("PredictorName", "PredictorType", "BinType", "BinLabel", "BinLowerBound", "BinUpperBound", "BinWeight", "BinPos", "BinNeg")]
   setnames(oriBinning, c("Field", "FieldType", "BinType", "Symbol", "LowerBound", "UpperBound", "Weight", "pos", "neg"))
 
-  return(list(scorecard = scorecard, mapping = scorecardMapping, binning = oriBinning))
+
+  return(list(scorecard = scorecard, mapping = scorecardMapping, binning = oriBinning, pmml = toString(pmml)))
 }
 
 normalizedBinningFromSingleJSONFactoryString <- function(aFactory, id, overallModelName, tmpFolder=NULL, forceLowerCasePredictorNames=F, activePredsOnly=T)
