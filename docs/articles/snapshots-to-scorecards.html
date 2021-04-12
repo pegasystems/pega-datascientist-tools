@@ -107,7 +107,7 @@
 <p>The <code>snapshot</code> contains the (encoded) string retrieved from the <code>pymodeldata</code> field in the ADM model table. This string can be copied from a table browsing function in a database tool, from a dataset export or from scripted database access.</p>
 <p>The string below is an example - replace it with the data that you export using one of these methods.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">snapshot</span> <span class="op">&lt;-</span> <span class="st">[3760 chars quoted with '"']</span></code></pre></div>
+<code class="sourceCode R"><span class="va">snapshot</span> <span class="op">&lt;-</span> <span class="st">"eJztW1lz2zgSfp9fwVLlYbdKUhEXjzxMl ...... ufYeNc6T30I+5Hs5BK2m7/8HRyIsNw=="</span> </code></pre></div>
 <p>Then this function call into <code>cdhtools</code> creates the scorecard from it.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">sc</span> <span class="op">&lt;-</span> <span class="fu">cdhtools</span><span class="fu">::</span><span class="fu"><a href="../reference/getScorecardFromSnapshot.html">getScorecardFromSnapshot</a></span><span class="op">(</span><span class="va">snapshot</span>, <span class="st">"Example Snapshot"</span><span class="op">)</span></code></pre></div>
@@ -1359,7 +1359,7 @@ Propensity
 <pre><code>&lt;PMML xmlns="http://www.dmg.org/PMML-4_1" version="4.1"&gt;
  &lt;Header description="ADM Model export for Example Snapshot"&gt;
   &lt;Application name="adm2pmml" version="1.1"/&gt;
-  &lt;Timestamp&gt;Mon Apr 12 18:49:23 2021&lt;/Timestamp&gt;
+  &lt;Timestamp&gt;Mon Apr 12 19:31:00 2021&lt;/Timestamp&gt;
  &lt;/Header&gt;
  &lt;DataDictionary&gt;
   &lt;DataField name="Propensity" dataType="double" optype="continuous"/&gt;
