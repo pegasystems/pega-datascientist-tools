@@ -229,8 +229,8 @@ plotADMModelPerformanceOverTime <- function(modeldata,
   plotdata$Proposition <- apply(plotdata[, aggregation, with=F], 1, paste, collapse="/")
 
   # order by final performance
-  propositionOrder <- plotdata[, .(Performance = stats::weighted.mean(Performance[which.max(SnapshotTime)],
-                                                                      ResponseCount[which.max(SnapshotTime)], na.rm = T)), by=Proposition][order(-Performance)]$Proposition
+  propositionOrder <- plotdata[, .(Performance = stats::weighted.mean(Performance[safe_which_max(SnapshotTime)],
+                                                                      ResponseCount[safe_which_max(SnapshotTime)], na.rm = T)), by=Proposition][order(-Performance)]$Proposition
 
   plotdata[, Proposition := factor(Proposition, levels=propositionOrder)]
 
@@ -270,8 +270,8 @@ plotADMModelSuccessRateOverTime <- function(modeldata,
   plotdata$Proposition <- apply(plotdata[, aggregation, with=F], 1, paste, collapse="/")
 
   # order by final success rate
-  propositionOrder <- plotdata[, .(SuccessRate = stats::weighted.mean(SuccessRate[which.max(SnapshotTime)],
-                                                                      ResponseCount[which.max(SnapshotTime)], na.rm = T)), by=Proposition][order(-SuccessRate)]$Proposition
+  propositionOrder <- plotdata[, .(SuccessRate = stats::weighted.mean(SuccessRate[safe_which_max(SnapshotTime)],
+                                                                      ResponseCount[safe_which_max(SnapshotTime)], na.rm = T)), by=Proposition][order(-SuccessRate)]$Proposition
 
   plotdata[, Proposition := factor(Proposition, levels=propositionOrder)]
 
@@ -320,10 +320,10 @@ plotADMPredictorPerformance <- function(predictordata,
   # predictor performance for latest snapshots - this should work regardless whether
   # the input data is per bin or is for only one snapshot
   plotdata <- predictordata[EntryType != "Classifier" & Positives > 0,
-                            .(Performance = 100*Performance[which.max(SnapshotTime)],
-                              Positives = Positives[which.max(SnapshotTime)],
-                              Negatives = Negatives[which.max(SnapshotTime)],
-                              ResponseCount = ResponseCount[which.max(SnapshotTime)]),
+                            .(Performance = 100*Performance[safe_which_max(SnapshotTime)],
+                              Positives = Positives[safe_which_max(SnapshotTime)],
+                              Negatives = Negatives[safe_which_max(SnapshotTime)],
+                              ResponseCount = ResponseCount[safe_which_max(SnapshotTime)]),
                             by=c("ModelID", "PredictorName",
                                  # older versions did not have PredictorType
                                  ifelse(("PredictorType" %in% names(predictordata)), "PredictorType", "Type"),

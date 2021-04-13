@@ -142,7 +142,9 @@ readDatamartFromFile <- function(file)
     if (sum(is.na(timez))/length(timez) > 0.2) {
       suppressWarnings(timez <- parse_date_time(data$SnapshotTime, orders=c("%Y-%m-%d %H:%M:%S", "%y-%b-%d") )) # TODO: more formats here
       if (sum(is.na(timez))/length(timez) > 0.2) {
-        warning("Assumed Pega date-time string but resulting in over 20% NA's in snapshot time after conversion. Check that this is valid or update the code that deals with date/time conversion.")
+        warning(paste("Assumed Pega date-time string but resulting in over 20% NA's in snapshot time after conversion.",
+                      "Check that this is valid or update the code that deals with date/time conversion.",
+                      "Head: ", paste(head(data$SnapshotTime), collapse=";")))
       }
     }
     data[, SnapshotTime := timez]

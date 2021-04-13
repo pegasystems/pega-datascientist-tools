@@ -314,3 +314,15 @@ toPRPCDateTime <- function(x)
   return(strftime(x, format="%Y%m%dT%H%M%OS3", tz="GMT", usetz=T))
 }
 
+# robust version of which.max that can deal with NA's
+safe_which_max <- function(x)
+{
+  if (all(is.na(x))) return (length(x))
+  return (which.max(x))
+}
+
+safe_is_max <- function(x)
+{
+  if (all(is.na(x))) return (rep(T,length(x)))
+  return (x == max(x, na.rm=T))
+}

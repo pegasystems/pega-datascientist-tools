@@ -235,7 +235,7 @@ getBinTypeFromDatamart <- function(dmbin)
 # and add missing information like Smoothing factor etc.
 getPredictorDataFromDatamart <- function(dmbinning, id, overallModelName, tmpFolder=NULL)
 {
-  dmbinning <- dmbinning[which(SnapshotTime == max(SnapshotTime) & (EntryType == "Active" | EntryType == "Classifier"))]
+  dmbinning <- dmbinning[(safe_is_max(SnapshotTime) & (EntryType == "Active" | EntryType == "Classifier"))]
 
   if (nrow(dmbinning) == 0) return(NULL) # defensive coding, but we have seen binnings without any active and/or classifier rows
 
@@ -367,7 +367,7 @@ normalizedBinningFromDatamart <- function(predictorsForPartition,
   if (!is.null(modelsForPartition)) {
     modelsForPartition <- as.data.table(modelsForPartition)
 
-    modelsForPartition <- modelsForPartition[SnapshotTime == max(SnapshotTime),] # max works because the way Pega date strings are represented
+    modelsForPartition <- modelsForPartition[safe_is_max(SnapshotTime),] # max works because the way Pega date strings are represented
 
     modelsForPartition[["contextAsString"]] <-
       sapply(modelsForPartition$ModelID,
@@ -387,7 +387,8 @@ normalizedBinningFromDatamart <- function(predictorsForPartition,
     modelList <- modelList[sapply(modelList, function(x) {return(!is.null(x$binning) & !is.null(x$context))})]
 
   } else {
-    modelList <- list(list("binning"=getPredictorDataFromDatamart(predictorsForPartition, "allbinning", fullName, tmpFolder)))
+    modelList <- list(list("binning"=getPredictorDataFromDatamart(predictorsForPartition,
+                                                                  "allbinning", fullName, tmpFolder)))
     names(modelList) <- fullName
   }
 

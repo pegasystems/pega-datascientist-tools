@@ -232,9 +232,10 @@ admVarImp <- function(dmModels, dmPredictors, facets = NULL)
     dmmodelList <- normalizedBinningFromDatamart(dmPredictors[ModelID == m],
                                                  modelsForPartition = dmModels[ModelID == m])
 
-    if (length(dmmodelList) > 1) {
+    if (length(dmmodelList) != 1) {
       # xxx <<- dmmodelList
-      stop(paste("Code assumes model list per AppliesTo/ConfigurationName/ModelID always has 1 element but contains", length(dmmodelList)))
+      stop(paste("Code assumes model list per AppliesTo/ConfigurationName/ModelID always has 1 element but contains",
+                 length(dmmodelList)))
     }
 
     # To pull in score card scaling factors use the other properties
