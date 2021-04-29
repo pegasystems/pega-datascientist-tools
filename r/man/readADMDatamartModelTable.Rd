@@ -10,7 +10,8 @@ readADMDatamartModelTable(
   ruleNameFilter = NULL,
   applicationFilter = NULL,
   latestOnly = F,
-  verbose = F
+  verbose = F,
+  includeModelData = F
 )
 }
 \arguments{
@@ -27,6 +28,9 @@ because the snapshot agent will also snapshot all models wholesale. If and when 
 need to make this more subtle, so take the latest after grouping by pyconfigurationname, pyappliestoclass, pxapplication.}
 
 \item{verbose}{Set to \code{TRUE} to show database queries.}
+
+\item{includeModelData}{Include the "blob" with serialized model data. The data will not be unpacked but just
+be there as a large string. Default is \code{FALSE}.}
 }
 \value{
 A \code{data.table} with the ADM model details. The names are

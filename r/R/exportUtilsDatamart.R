@@ -36,6 +36,8 @@ getDMModelContextAsString <- function(partition)
 #' because the snapshot agent will also snapshot all models wholesale. If and when that becomes more granular, we may
 #' need to make this more subtle, so take the latest after grouping by pyconfigurationname, pyappliestoclass, pxapplication.
 #' @param verbose Set to \code{TRUE} to show database queries.
+#' @param includeModelData Include the "blob" with serialized model data. The data will not be unpacked but just
+#' be there as a large string. Default is \code{FALSE}.
 #'
 #' @return A \code{data.table} with the ADM model details. The names are
 #' CamelCased in a standard way so processing of the results is not dependent
@@ -45,15 +47,21 @@ getDMModelContextAsString <- function(partition)
 #' @examples
 #' \dontrun{models <- readADMDatamartModelTable(conn)}
 #' \dontrun{allModels <- readADMDatamartModelTable(conn, latestOnly = F)}
-readADMDatamartModelTable <- function(conn, appliesToFilter=NULL, ruleNameFilter=NULL, applicationFilter=NULL, latestOnly = F, verbose=F)
+readADMDatamartModelTable <- function(conn, appliesToFilter=NULL, ruleNameFilter=NULL, applicationFilter=NULL, latestOnly = F, verbose=F,
+                                      includeModelData = F)
 {
   # Drop Pega internal fields and model data (if present - not all releases have that)
-  query <- paste("select * from", DATAMART_MODELTABLE, "where false")
+  # Also drop large "pymodeldata" always - TODO perhaps make this a flag (includeModelData)
+  query <- paste("select * from", DATAMART_MODELTABLE, "where 1=2")
   if(verbose) {
     print(query)
   }
   fields <- names(dbGetQuery(conn, query))
-  fields <- setdiff(fields[!grepl("^p[x|z]", fields)], "pymodeldata")
+  if (includeModelData) {
+    fields <- fields[!grepl("^p[x|z]", fields, ignore.case = T)]
+  } else {
+    fields <- fields[!grepl("^((p[x|z])|pymodeldata)", fields, ignore.case = T)]
+  }
 
   wheres <- list()
   if(!is.null(appliesToFilter)) {
@@ -67,6 +75,9 @@ readADMDatamartModelTable <- function(conn, appliesToFilter=NULL, ruleNameFilter
   }
 
   if (latestOnly) {
+    # Currently only batching when fetching all snapshots as this makes the table really large. However in
+    # principle the same logic could be applied here. Note also that max(pysnapshottime) is the overall max
+    # and not per model ID.
     batchConditions <- paste("pysnapshottime IN (select max(pysnapshottime) from", DATAMART_MODELTABLE, ")")
   } else {
     query <- paste("select pymodelid, count(*) as nsnapshots from", DATAMART_MODELTABLE,
@@ -124,12 +135,12 @@ readADMDatamartModelTable <- function(conn, appliesToFilter=NULL, ruleNameFilter
 readADMDatamartPredictorTable <- function(conn, ModelIDs = NULL, latestOnly=T, verbose=T)
 {
   # Drop Pega internal fields
-  query <- paste("select * from", DATAMART_PREDICTORTABLE, "where false")
+  query <- paste("select * from", DATAMART_PREDICTORTABLE, "where 1=2")
   if(verbose) {
     print(query)
   }
   fields <- names(dbGetQuery(conn, query))
-  fields <- fields[!grepl("^p[x|z]", fields)]
+  fields <- fields[!grepl("^p[x|z]", fields, ignore.case = T)]
 
   # TODO implement some sort of batching
 

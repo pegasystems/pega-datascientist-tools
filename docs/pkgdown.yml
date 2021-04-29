@@ -1,4 +1,4 @@
-pandoc: 2.11.2
+pandoc: 2.11.4
 pkgdown: 1.6.1
 pkgdown_sha: ~
 articles:
@@ -7,5 +7,5 @@ articles:
   adm-explained: adm-explained.html
   ih-reporting: ih-reporting.html
   snapshots-to-scorecards: snapshots-to-scorecards.html
-last_built: 2021-04-12T17:30Z
+last_built: 2021-04-29T15:38Z
 

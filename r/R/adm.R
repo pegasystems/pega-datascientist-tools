@@ -1,8 +1,29 @@
+# Flexible time conversion - necessary to support different databases as
+# this is not always Pega format in some of the database exports
+standardizedParseTime <- function(t)
+{
+  if (!is.POSIXt(t) && (is.factor(t) || is.character(t))) {
+    suppressWarnings(timez <- fromPRPCDateTime(t))
+    if (sum(is.na(timez))/length(timez) > 0.2) {
+      suppressWarnings(timez <- parse_date_time(t, orders=c("%Y-%m-%d %H:%M:%S", "%y-%b-%d") )) # TODO: more formats here
+      if (sum(is.na(timez))/length(timez) > 0.2) {
+        warning(paste("Assumed Pega date-time string but resulting in over 20% NA's in snapshot time after conversion.",
+                      "Check that this is valid or update the code that deals with date/time conversion.",
+                      "Head: ", paste(head(t), collapse=";")))
+      }
+    }
+    return(timez)
+  }
+  return(t)
+}
+
 # Drop internal fields, fix types and more
 standardizeDatamartModelData <- function(dt, latestOnly)
 {
   # drop internal fields
-  dt[, names(dt)[grepl("^p[x|z]", names(dt))] := NULL]
+  if (any(grepl("^p[x|z]", names(dt), ignore.case = T))) {
+    dt[, names(dt)[grepl("^p[x|z]", names(dt), ignore.case = T)] := NULL]
+  }
 
   # standardized camel casing of fields
   applyUniformPegaFieldCasing(dt)
@@ -22,12 +43,12 @@ standardizeDatamartModelData <- function(dt, latestOnly)
   dt[, Negatives := as.numeric(as.character(Negatives))]
 
   # convert date/time fields if present and not already converted prior
-  if (is.factor(dt$SnapshotTime) || is.character(dt$SnapshotTime)) {
-    dt[, SnapshotTime := fromPRPCDateTime(SnapshotTime)]
+  if (!is.POSIXt(dt$SnapshotTime)) {
+    dt[, SnapshotTime := standardizedParseTime(SnapshotTime)]
   }
   if ("FactoryUpdateTime" %in% names(dt)) {
-    if (is.factor(dt$FactoryUpdateTime) || is.character(dt$FactoryUpdateTime)) {
-      dt[, FactoryUpdateTime := fromPRPCDateTime(FactoryUpdateTime)]
+    if (!is.POSIXt(dt$FactoryUpdateTime)) {
+      dt[, FactoryUpdateTime := standardizedParseTime(FactoryUpdateTime)]
     }
   }
 
@@ -39,6 +60,9 @@ standardizeDatamartModelData <- function(dt, latestOnly)
 # that and create proper fields instead of a JSON string.
 expandJSONContextInNameField <- function(dt)
 {
+  if (!is.factor(dt$Name)) {
+    dt[, Name := as.factor(Name)]
+  }
   mapping <- data.table( OriginalName = levels(dt$Name) )
   mapping[, isJSON := startsWith(OriginalName, "{") & endsWith(OriginalName, "}")]
   if (!any(mapping$isJSON)) return(dt)

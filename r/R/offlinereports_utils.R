@@ -137,17 +137,7 @@ readDatamartFromFile <- function(file)
 
   # Time (if not converted already)
   if (!is.POSIXt(data$SnapshotTime)) {
-    # try be smart about the date/time format - is not always Pega format in some of the database exports
-    suppressWarnings(timez <- fromPRPCDateTime(data$SnapshotTime))
-    if (sum(is.na(timez))/length(timez) > 0.2) {
-      suppressWarnings(timez <- parse_date_time(data$SnapshotTime, orders=c("%Y-%m-%d %H:%M:%S", "%y-%b-%d") )) # TODO: more formats here
-      if (sum(is.na(timez))/length(timez) > 0.2) {
-        warning(paste("Assumed Pega date-time string but resulting in over 20% NA's in snapshot time after conversion.",
-                      "Check that this is valid or update the code that deals with date/time conversion.",
-                      "Head: ", paste(head(data$SnapshotTime), collapse=";")))
-      }
-    }
-    data[, SnapshotTime := timez]
+    data[, SnapshotTime := standardizedParseTime(SnapshotTime)]
   }
 
   # # with customized model contexts, Name will be a JSON string, sanitize that a bit

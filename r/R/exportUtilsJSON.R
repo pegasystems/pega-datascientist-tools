@@ -312,6 +312,24 @@ getScorecardFromSnapshot <- function(modelSnapshot, name="")
   getScoringModelFromJSONFactoryString(modelDataJSON, name, isAuditModel = T)
 }
 
+
+getModelParamsFromSnapshot <- function(modelSnapshot)
+{
+  modelSnapshotFile <- "tests/testthat/d/encodedmodelsnapshot.txt"
+  modelSnapshot <- paste(readLines(modelSnapshotFile), collapse="\n")
+  modelDataJSON <- memDecompress(base64enc::base64decode(modelSnapshot), type = "gzip", asChar = T)
+
+  xxx<-jsonlite::fromJSON(modelDataJSON)
+
+  # NB most meta params are missing!
+
+  yyy <- xxx[sapply(xxx, is.atomic)]
+  zzz <- yyy[sapply(yyy, length) == 1]
+
+  as.data.frame(zzz)
+}
+
+
 normalizedBinningFromSingleJSONFactoryString <- function(aFactory, id, overallModelName, tmpFolder=NULL, forceLowerCasePredictorNames=F, activePredsOnly=T)
 {
   model <- fromJSON(aFactory)

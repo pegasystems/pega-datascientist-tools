@@ -148,7 +148,8 @@ prevent possible OOM errors reading the full table, the retrieval will be batche
   ruleNameFilter <span class='op'>=</span> <span class='cn'>NULL</span>,
   applicationFilter <span class='op'>=</span> <span class='cn'>NULL</span>,
   latestOnly <span class='op'>=</span> <span class='cn'>F</span>,
-  verbose <span class='op'>=</span> <span class='cn'>F</span>
+  verbose <span class='op'>=</span> <span class='cn'>F</span>,
+  includeModelData <span class='op'>=</span> <span class='cn'>F</span>
 <span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -179,6 +180,11 @@ need to make this more subtle, so take the latest after grouping by pyconfigurat
     <tr>
       <th>verbose</th>
       <td><p>Set to <code>TRUE</code> to show database queries.</p></td>
+    </tr>
+    <tr>
+      <th>includeModelData</th>
+      <td><p>Include the "blob" with serialized model data. The data will not be unpacked but just
+be there as a large string. Default is <code>FALSE</code>.</p></td>
     </tr>
     </table>
 
