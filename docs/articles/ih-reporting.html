@@ -66,6 +66,9 @@
       <a href="../articles/ih-reporting.html">ih-reporting</a>
     </li>
     <li>
+      <a href="../articles/predictor-evolution.html">predictor-evolution</a>
+    </li>
+    <li>
       <a href="../articles/snapshots-to-scorecards.html">snapshots-to-scorecards</a>
     </li>
   </ul>
@@ -87,7 +90,7 @@
       <h1 data-toc-skip>ih-reporting</h1>
                         <h4 class="author">Pega</h4>
             
-            <h4 class="date">2021-04-29</h4>
+            <h4 class="date">2021-05-25</h4>
       
       
       <div class="hidden name"><code>ih-reporting.Rmd</code></div>
@@ -115,21 +118,58 @@
 <span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://lubridate.tidyverse.org">lubridate</a></span><span class="op">)</span>
 
 <span class="fu"><a href="https://rdrr.io/r/utils/data.html">data</a></span><span class="op">(</span><span class="va">ihsampledata</span><span class="op">)</span> 
-<span class="co">#ihsampledata &lt;- readDSExport("Data-pxStrategyResult_pxInteractionHistory", "~/Downloads")</span></code></pre></div>
+<span class="co">#ihsampledata &lt;- readDSExport("Data-pxStrategyResult_pxInteractionHistory", "~/Downloads"</span>
+
+<span class="fu">cdhtools</span><span class="fu">::</span><span class="fu"><a href="../reference/applyUniformPegaFieldCasing.html">applyUniformPegaFieldCasing</a></span><span class="op">(</span><span class="va">ihsampledata</span><span class="op">)</span>
+
+<span class="co"># Both "Accept" and "Accepted" occur as labels - fix that for the reporting</span>
+<span class="va">ihsampledata</span><span class="op">[</span><span class="va">Outcome</span> <span class="op">==</span> <span class="st">"Accept"</span>, <span class="va">Outcome</span> <span class="op">:=</span> <span class="st">"Accepted"</span><span class="op">]</span></code></pre></div>
+</div>
+<div id="percentage-of-responses-by-channel" class="section level1">
+<h1 class="hasAnchor">
+<a href="#percentage-of-responses-by-channel" class="anchor"></a>Percentage of responses by Channel</h1>
+<p>This shows how the distribution of responses is different per channel.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span><span class="op">(</span><span class="va">ihsampledata</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span><span class="va">pyChannel</span>, fill<span class="op">=</span><span class="va">pyOutcome</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> 
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_bar.html">geom_bar</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
+<code class="sourceCode R"><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span><span class="op">(</span><span class="va">ihsampledata</span><span class="op">[</span><span class="va">Channel</span> <span class="op">!=</span> <span class="st">""</span><span class="op">]</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span><span class="va">Channel</span>, fill<span class="op">=</span><span class="va">Outcome</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> 
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_bar.html">geom_bar</a></span><span class="op">(</span>position <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/position_stack.html">position_fill</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html">theme_bw</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://colorspace.R-Forge.R-project.org//reference/scale_colour_discrete_divergingx.html">scale_fill_discrete_divergingx</a></span><span class="op">(</span>name<span class="op">=</span><span class="st">"Outcome"</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://colorspace.R-Forge.R-project.org//reference/scale_colour_discrete_divergingx.html">scale_fill_discrete_divergingx</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html">scale_y_continuous</a></span><span class="op">(</span>labels <span class="op">=</span> <span class="fu">scales</span><span class="fu">::</span><span class="fu"><a href="https://scales.r-lib.org/reference/label_percent.html">percent_format</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/coord_flip.html">coord_flip</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">ylab</a></span><span class="op">(</span><span class="st">""</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">ggtitle</a></span><span class="op">(</span><span class="st">"Interaction History"</span>, subtitle <span class="op">=</span> <span class="st">"by Channel"</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">xlab</a></span><span class="op">(</span><span class="st">"Channel"</span><span class="op">)</span></code></pre></div>
-<p><img src="ih-reporting_files/figure-html/unnamed-chunk-2-1.png" width="672" style="display: block; margin: auto;"></p>
+<p><img src="ih-reporting_files/figure-html/unnamed-chunk-2-1.png" width="672" style="display: block; margin: auto;"> # Number of interactions over time</p>
+<p>This shows the total number of interactions split by type of response, per day. Note the additional outcomes “Churned” and “Loyal” here, which are independent of Channel and have been the result of responses to Customer level models, not to channel specific propensity models.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span><span class="op">(</span><span class="va">ihsampledata</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span><span class="fu"><a href="http://lubridate.tidyverse.org/reference/as_date.html">as_date</a></span><span class="op">(</span><span class="fu"><a href="../reference/fromPRPCDateTime.html">fromPRPCDateTime</a></span><span class="op">(</span><span class="va">pxOutcomeTime</span><span class="op">)</span><span class="op">)</span>, fill<span class="op">=</span><span class="va">pyOutcome</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_bar.html">geom_bar</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
+<code class="sourceCode R"><span class="va">ihsampledata</span><span class="op">[</span>, <span class="va">Day</span> <span class="op">:=</span> <span class="fu"><a href="http://lubridate.tidyverse.org/reference/as_date.html">as_date</a></span><span class="op">(</span><span class="fu"><a href="../reference/fromPRPCDateTime.html">fromPRPCDateTime</a></span><span class="op">(</span><span class="va">OutcomeTime</span><span class="op">)</span><span class="op">)</span><span class="op">]</span>
+<span class="va">ihsampledata_by_date</span> <span class="op">&lt;-</span> <span class="va">ihsampledata</span><span class="op">[</span>, <span class="va">.N</span>, by<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"Outcome"</span>, <span class="st">"Day"</span><span class="op">)</span><span class="op">]</span>
+
+<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span><span class="op">(</span><span class="va">ihsampledata_by_date</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span><span class="va">Day</span>, <span class="va">N</span><span class="op">*</span><span class="fl">1000</span>, fill<span class="op">=</span><span class="va">Outcome</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_ribbon.html">geom_area</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html">theme_bw</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://colorspace.R-Forge.R-project.org//reference/scale_colour_discrete_divergingx.html">scale_fill_discrete_divergingx</a></span><span class="op">(</span>name<span class="op">=</span><span class="st">"Outcome"</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">ggtitle</a></span><span class="op">(</span><span class="st">"Interactions over Time"</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">xlab</a></span><span class="op">(</span><span class="st">"Date"</span><span class="op">)</span></code></pre></div>
+  <span class="fu"><a href="https://colorspace.R-Forge.R-project.org//reference/scale_colour_discrete_divergingx.html">scale_fill_discrete_divergingx</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">ggtitle</a></span><span class="op">(</span><span class="st">"Interactions over Time"</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">xlab</a></span><span class="op">(</span><span class="st">"Date"</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">ylab</a></span><span class="op">(</span><span class="st">"Number of Interactions"</span><span class="op">)</span></code></pre></div>
 <p><img src="ih-reporting_files/figure-html/unnamed-chunk-3-1.png" width="672" style="display: block; margin: auto;"></p>
+</div>
+<div id="calculation-of-auc-from-interaction-history" class="section level1">
+<h1 class="hasAnchor">
+<a href="#calculation-of-auc-from-interaction-history" class="anchor"></a>Calculation of AUC from Interaction History</h1>
+<p>The actual model performance can easily be calculated from the data in IH, since we have both the propensities (from the models) and the actual outcomes.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">ihsampledata</span><span class="op">[</span>, <span class="va">Week</span> <span class="op">:=</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/IDateTime.html">week</a></span><span class="op">(</span><span class="fu"><a href="../reference/fromPRPCDateTime.html">fromPRPCDateTime</a></span><span class="op">(</span><span class="va">OutcomeTime</span><span class="op">)</span><span class="op">)</span><span class="op">]</span>
+<span class="va">performance</span> <span class="op">&lt;-</span> <span class="va">ihsampledata</span><span class="op">[</span><span class="va">Outcome</span> <span class="op">%in%</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"Accept"</span>, <span class="st">"Accepted"</span>, <span class="st">"Rejected"</span><span class="op">)</span>, 
+                  <span class="fu">.</span><span class="op">(</span>AUC <span class="op">=</span> <span class="fl">100</span><span class="op">*</span><span class="fu"><a href="../reference/auc_from_probs.html">auc_from_probs</a></span><span class="op">(</span><span class="va">Outcome</span> <span class="op">%in%</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"Accept"</span>, <span class="st">"Accepted"</span><span class="op">)</span>, <span class="va">Propensity</span><span class="op">)</span>,
+                    n <span class="op">=</span> <span class="va">.N</span>,
+                    Day2 <span class="op">=</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/last.html">first</a></span><span class="op">(</span><span class="va">Day</span><span class="op">)</span><span class="op">)</span>, 
+                  by<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"Day"</span>, <span class="st">"Name"</span>, <span class="st">"Group"</span>, <span class="st">"Issue"</span><span class="op">)</span><span class="op">]</span>
+
+<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span><span class="op">(</span><span class="va">performance</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span><span class="va">Day</span>, <span class="va">AUC</span>, color<span class="op">=</span><span class="va">Name</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+  <span class="co"># geom_smooth(size=2,se=F,method = "loess", span=0.5) + </span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html">geom_line</a></span><span class="op">(</span>size<span class="op">=</span><span class="fl">2</span><span class="op">)</span> <span class="op">+</span> 
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html">geom_point</a></span><span class="op">(</span>size<span class="op">=</span><span class="fl">2</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html">theme_minimal</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://colorspace.R-Forge.R-project.org//reference/scale_colour_discrete_qualitative.html">scale_color_discrete_qualitative</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html">scale_y_continuous</a></span><span class="op">(</span>limits<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">50</span>,<span class="cn">NA</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">ggtitle</a></span><span class="op">(</span><span class="st">"Model Performance"</span>, subtitle <span class="op">=</span> <span class="st">"per week"</span><span class="op">)</span></code></pre></div>
+<p><img src="ih-reporting_files/figure-html/unnamed-chunk-4-1.png" width="672" style="display: block; margin: auto;"></p>
 </div>
   </div>
 

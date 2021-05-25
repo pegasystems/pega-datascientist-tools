@@ -35,5 +35,6 @@ Imports:
     XML,
     kableExtra,
     stringi,
-    base64enc
+    base64enc,
+    gridExtra
 VignetteBuilder: knitr

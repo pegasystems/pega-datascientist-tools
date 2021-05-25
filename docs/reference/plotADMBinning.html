@@ -107,6 +107,9 @@
       <a href="../articles/ih-reporting.html">ih-reporting</a>
     </li>
     <li>
+      <a href="../articles/predictor-evolution.html">predictor-evolution</a>
+    </li>
+    <li>
       <a href="../articles/snapshots-to-scorecards.html">snapshots-to-scorecards</a>
     </li>
   </ul>
@@ -136,7 +139,7 @@
     <p>Combined bar-line plot with bars indicating volume and lines propensity.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>plotADMBinning</span><span class='op'>(</span><span class='va'>binning</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>plotADMBinning</span><span class='op'>(</span><span class='va'>binning</span>, useSmartLabels <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -144,6 +147,14 @@
     <tr>
       <th>binning</th>
       <td><p>Binning of the predictor.</p></td>
+    </tr>
+    <tr>
+      <th>useSmartLabels</th>
+      <td><p>If true (default) it will abbreviate lengthy symbols
+and for numerics it will re-create a shorter interval notation from the
+lower and upper bounds. This will generally look better than the labels in
+the binning. Turn it off to use the default bin labels. Smart labels do not work
+well with additional faceting, so turn it off in that case as well.</p></td>
     </tr>
     </table>
 

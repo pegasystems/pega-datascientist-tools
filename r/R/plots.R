@@ -602,8 +602,13 @@ plotADMCumulativeLift <- function(binning)
 #' Create binning plot for any predictor.
 #'
 #' Combined bar-line plot with bars indicating volume and lines propensity.
-#'
+
 #' @param binning Binning of the predictor.
+#' @param useSmartLabels If true (default) it will abbreviate lengthy symbols
+#' and for numerics it will re-create a shorter interval notation from the
+#' lower and upper bounds. This will generally look better than the labels in
+#' the binning. Turn it off to use the default bin labels. Smart labels do not work
+#' well with additional faceting, so turn it off in that case as well.
 #'
 #' @return A \code{ggplot} object that can either be printed directly, or to
 #' which additional decoration (e.g. coloring or labels) can be added first.
@@ -613,7 +618,7 @@ plotADMCumulativeLift <- function(binning)
 #' \dontrun{
 #' plotADMBinning(predictorbinning[PredictorName=="NetWealth"])
 #' }
-plotADMBinning <- function(binning)
+plotADMBinning <- function(binning, useSmartLabels = T)
 {
   binning[, BinIndex := as.numeric(BinIndex)] # just in case
   setorder(binning, BinIndex)
@@ -622,21 +627,32 @@ plotADMBinning <- function(binning)
   if (0 == successRateMax) { successRateMax <- 1 }
   secAxisFactor <- ceiling(max(binning$BinResponseCount)/successRateMax)
 
-  ggplot(binning, aes(factor(BinIndex), BinPositives/BinResponseCount, group=1))+
+  if (useSmartLabels) {
+    plt <- ggplot(binning, aes(factor(BinIndex), BinPositives/BinResponseCount, group=1))
+  } else {
+    plt <- ggplot(binning, aes(BinSymbol, BinPositives/BinResponseCount, group=1))
+  }
+
+  plt <- plt +
     geom_col(aes(y=BinResponseCount/secAxisFactor), fill=ifelse(binning$EntryType[1]=="Inactive","darkgrey","steelblue3"))+
     geom_line(colour="orange", size=2)+geom_point()+
     geom_hline(data=binning[1,], mapping = aes(yintercept = Positives/(Positives+Negatives)),
                colour="orange", linetype="dashed") +
     scale_y_continuous(limits=c(0, successRateMax), name="Success Rate", labels=percent,
                        sec.axis = sec_axis(~.*secAxisFactor, name = "Responses"))+
-    scale_x_discrete(name = "",
-                     labels=ifelse(getPredictorType(binning) == "numeric",
-                                   plotsAbbreviateInterval(binning$BinSymbol),
-                                   ifelse(nchar(binning$BinSymbol) <= 25,
-                                          binning$BinSymbol,
-                                          paste(substr(binning$BinSymbol, 1, 25), "...")))) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1),
           plot.title = element_text(hjust = 0.5),
           plot.subtitle = element_text(hjust = 0.5))
+
+  if (useSmartLabels) {
+    plt <- plt + scale_x_discrete(name = "",
+                                      labels=ifelse(getPredictorType(binning) == "numeric",
+                                                    plotsAbbreviateInterval(binning$BinSymbol),
+                                                    ifelse(nchar(binning$BinSymbol) <= 25,
+                                                           binning$BinSymbol,
+                                                           paste(substr(binning$BinSymbol, 1, 25), "..."))))
+    }
+
+  plt
 }
 

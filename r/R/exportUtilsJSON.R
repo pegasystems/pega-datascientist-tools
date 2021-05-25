@@ -220,6 +220,9 @@ normalizedBinningFromJSONFactory <- function(binningJSON, id, activePredsOnly)
   return(predBinningTable)
 }
 
+# TODO: figure out how this works for AB models and take versioning into
+# account. For AB models perhaps only the (hyper)parameters?
+
 #' Create a human-readable as well as machine-executable Scorecard from the JSON
 #' of a specific model.
 #'
@@ -313,6 +316,11 @@ getScorecardFromSnapshot <- function(modelSnapshot, name="")
 }
 
 
+# TODO: below is just an internal experiment to see if we can get the
+# parameters for the NB models as well. That doesnt seem to be the case
+# currently (Pega 8.6). See discussions in techdocs somewhere.
+# Also see https://agilestudio.pega.com/prweb/AgileStudio/app/agilestudio/story/US-415172
+# for the versioning of the model data.
 getModelParamsFromSnapshot <- function(modelSnapshot)
 {
   modelSnapshotFile <- "tests/testthat/d/encodedmodelsnapshot.txt"

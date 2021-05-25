@@ -4,10 +4,16 @@
 \alias{plotADMBinning}
 \title{Create binning plot for any predictor.}
 \usage{
-plotADMBinning(binning)
+plotADMBinning(binning, useSmartLabels = T)
 }
 \arguments{
 \item{binning}{Binning of the predictor.}
+
+\item{useSmartLabels}{If true (default) it will abbreviate lengthy symbols
+and for numerics it will re-create a shorter interval notation from the
+lower and upper bounds. This will generally look better than the labels in
+the binning. Turn it off to use the default bin labels. Smart labels do not work
+well with additional faceting, so turn it off in that case as well.}
 }
 \value{
 A \code{ggplot} object that can either be printed directly, or to

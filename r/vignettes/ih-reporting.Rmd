@@ -39,23 +39,65 @@ library(colorspace)
 library(lubridate)
 
 data(ihsampledata) 
-#ihsampledata <- readDSExport("Data-pxStrategyResult_pxInteractionHistory", "~/Downloads")
+#ihsampledata <- readDSExport("Data-pxStrategyResult_pxInteractionHistory", "~/Downloads"
+
+cdhtools::applyUniformPegaFieldCasing(ihsampledata)
+
+# Both "Accept" and "Accepted" occur as labels - fix that for the reporting
+ihsampledata[Outcome == "Accept", Outcome := "Accepted"]
 ```
+
+# Percentage of responses by Channel
+
+This shows how the distribution of responses is different per channel.
 
 ```{r, warning=F, message=FALSE}
-ggplot(ihsampledata, aes(pyChannel, fill=pyOutcome)) + 
-  geom_bar() +
+ggplot(ihsampledata[Channel != ""], aes(Channel, fill=Outcome)) + 
+  geom_bar(position = position_fill()) +
   theme_bw() +
-  scale_fill_discrete_divergingx(name="Outcome") +
+  scale_fill_discrete_divergingx() +
+  scale_y_continuous(labels = scales::percent_format()) +
+  coord_flip() + ylab("") +
   ggtitle("Interaction History", subtitle = "by Channel") + xlab("Channel")
 ```
+# Number of interactions over time
+
+This shows the total number of interactions split by type of response, per
+day. Note the additional outcomes "Churned" and "Loyal" here, which are
+independent of Channel and have been the result of responses to Customer level
+models, not to channel specific propensity models.
 
 ```{r message=FALSE, warning=FALSE}
-ggplot(ihsampledata, aes(as_date(fromPRPCDateTime(pxOutcomeTime)), fill=pyOutcome)) +
-  geom_bar() +
+ihsampledata[, Day := as_date(fromPRPCDateTime(OutcomeTime))]
+ihsampledata_by_date <- ihsampledata[, .N, by=c("Outcome", "Day")]
+
+ggplot(ihsampledata_by_date, aes(Day, N*1000, fill=Outcome)) +
+  geom_area() +
   theme_bw() +
-  scale_fill_discrete_divergingx(name="Outcome") +
-  ggtitle("Interactions over Time") + xlab("Date")
+  scale_fill_discrete_divergingx() +
+  ggtitle("Interactions over Time") + xlab("Date") + ylab("Number of Interactions")
+```
+
+# Calculation of AUC from Interaction History 
+
+The actual model performance can easily be calculated from the data in IH, since
+we have both the propensities (from the models) and the actual outcomes.
+
+```{r}
+ihsampledata[, Week := week(fromPRPCDateTime(OutcomeTime))]
+performance <- ihsampledata[Outcome %in% c("Accept", "Accepted", "Rejected"), 
+                  .(AUC = 100*auc_from_probs(Outcome %in% c("Accept", "Accepted"), Propensity),
+                    n = .N,
+                    Day2 = first(Day)), 
+                  by=c("Day", "Name", "Group", "Issue")]
+
+ggplot(performance, aes(Day, AUC, color=Name)) +
+  # geom_smooth(size=2,se=F,method = "loess", span=0.5) + 
+  geom_line(size=2) + 
+  geom_point(size=2) + theme_minimal() +
+  scale_color_discrete_qualitative() +
+  scale_y_continuous(limits=c(50,NA)) +
+  ggtitle("Model Performance", subtitle = "per week")
 ```
 
 

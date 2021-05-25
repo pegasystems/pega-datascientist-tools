@@ -1,0 +1,260 @@
+---
+title: "predictor-evolution"
+author: "Pega"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{predictor-evolution}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+# knitr options: https://yihui.name/knitr/options/
+knitr::opts_chunk$set(
+collapse = TRUE,
+# fig.width = 7,
+# fig.height = 5,
+fig.align = "center",
+comment = "#>"
+)
+
+library(cdhtools)
+library(ggplot2)
+library(scales)
+library(colorspace)
+library(data.table)
+library(gridExtra)
+```
+
+# Predictor Evolution from the ADM Datamart
+
+This notebook shows how you can use the ADM datamart to show day-over-day or
+week-over-week performance or value changes of the predictors.
+
+# Getting the data
+
+Prerequisite is an extract of the ADM datamart predictors table that contains
+multiple snapshots. By default, only the latest state of the predictors is 
+kept, so you will first need to configure that in the settings of the Adaptive
+system.
+
+# Exploring the data
+
+Using this data we will now zoom in into a particular action (GoldCard) of one
+particular model (OmniNBA). The data has been obtained from the CDHSample 
+application but the code should work generically. We have used the models 
+table from the ADM datamart to identify the *ModelID* of this particular
+model.
+
+We have (this many) entries and you can easily see that the number of active
+predictors for this model varies over time.
+
+(plot # active preds over time, exclude binning)
+
+You can also plot the reported predictor performance over time, but note that this
+will converge to a flat line as predictor performance is cumulative.
+
+(plot predictor performance over time)
+
+# Day-over-day predictor performance
+
+If you want to see day-over-day (or week-over-week) performance of the predictors
+we need to look into the changes in the binning. Performance (AUC) is easily 
+calculated from the number of positives and negatives in the bins. So if the 
+binning would be stable, it would be easy enough to subtract the counts of one 
+day from the counts of the next day and calculate the performance for that 
+particular day.
+
+However the binning changes all the time, so the algorithm that relates the 
+counts from the binning in one day to the binning of the next day is a bit
+more complex. 
+
+## Approach for numeric fields
+
+For numerics the best you can do is for every bin in day 1, look at the overlap
+with the boundaries of the bins in day 2 and contribute the counts of day 1
+proportionally.
+
+```{r}
+# bins2 - bins1 for a numeric field
+subtractNumBinning <- function(bins1, bins2)
+{
+  i1 <- 1
+  i2 <- 1
+  deltabinning <- copy(bins2)
+  while (i1 <= nrow(bins1) && i2 <= nrow(bins2)) {
+    cat("index 1 = [", i1, "]", "index 2 = [", i2, "]", fill=T)
+  
+    overlap_lo <- max(bins1$BinLower[i1], bins2$BinLower[i2])
+    overlap_hi <- min(bins1$BinUpper[i1], bins2$BinUpper[i2])
+    if (overlap_hi > overlap_lo) {
+      portion <- (overlap_hi - overlap_lo) / (bins1$BinUpper[i1] - bins1$BinLower[i1])
+  
+      # cat("contribute", sprintf("%.1f%%",100*portion), "of binning 1 [", i1, "]", "to binning 2 [", i2, "]", fill = T)
+  
+      deltabinning$BinPositives[i2] <- deltabinning$BinPositives[i2] - portion*bins1$BinPositives[i1]
+      deltabinning$BinNegatives[i2] <- deltabinning$BinNegatives[i2] - portion*bins1$BinNegatives[i1]
+    }
+    # advance the one that is behind:
+    if (overlap_hi < bins1$BinUpper[i1]) {
+      i2 <- i2 + 1
+    } else if (overlap_hi < bins2$BinUpper[i2]) {
+      i1 <- i1 + 1
+    } else {
+      i2 <- i2 + 1
+      i1 <- i1 + 1
+    }
+  }  
+  
+  deltabinning[(BinPositives+BinNegatives)>0]
+}
+```
+
+```{r echo=FALSE}
+# add normal datamart fields when only bin counts and boundaries are available
+addReqFields <- function(dt)
+{
+  dt[, BinIndex := seq(.N)]
+  dt[, BinResponseCount := BinPositives+BinNegatives]
+  dt[, Positives := sum(BinPositives)]
+  dt[, Negatives := sum(BinNegatives)]
+  dt[, EntryType := "Active"]
+  if (!("BinSymbol" %in% names(dt))) dt[, BinSymbol := paste0("[", BinLower, " - ", BinUpper, "]")]
+  dt[, Performance := auc_from_bincounts(BinPositives, BinNegatives)]
+
+  dt  
+}
+
+num_t1 <- addReqFields(data.table( BinPositives = c(120, 60, 60),
+                               BinNegatives = c(6000, 4000, 12000),
+                               BinLower = c(10, 40, 60),
+                               BinUpper = c(40, 60, 100),
+                               PredictorType = "numeric",
+                               t = "Day 1"))
+
+num_t2 <- addReqFields(data.table( BinPositives = c(120, 100, 120, 100),
+                               BinNegatives = c(9000, 8000, 25000, 15000),
+                               BinLower = c(0, 35, 60, 70),
+                               BinUpper = c(35, 60, 70, 110),
+                               PredictorType = "numeric",
+                               t = "Day 2"))
+
+num_delta <- addReqFields(subtractNumBinning(num_t1, num_t2))[, t := "Delta"]
+allbinnings <- rbind(num_t1, num_t2, num_delta)[, t := paste(t, sprintf("AUC=%.2f", 100*Performance))]
+
+plotADMBinning(allbinnings,
+               useSmartLabels = F) +
+  facet_grid(cols=vars(t), scales = "free_x") +
+  geom_hline(mapping = aes(yintercept = Positives/(Positives+Negatives)),
+           colour="orange", linetype="dashed") +
+  xlab("Interval")+
+  ggtitle("Difference between binning in two consecutive days") 
+```
+
+## Approach for symbolic fields
+
+For symbolics we first need to split the bin label (and assume there are no
+comma's in the original labels), then contribute a fraction of the counts in 
+the bins from day 1 to all the bins in day 2 where those split labels fall into.
+
+```{r}
+subtractSymBinning <- function(bins1, bins2)
+{
+  deltabinning <- copy(bins2)
+  labelsBin2 <- lapply(strsplit(sym_t2$BinSymbol, split=",", fixed=T), trimws)
+  for (i1 in seq_len(nrow(bins1))) {
+    labels <- sapply(unlist(strsplit(bins1$BinSymbol[i1], split=",", fixed=T)), trimws)
+    portion <- 1/length(labels)
+    
+    # now look up each of these in the other binning
+    # NB does not deal with "remaining" symbols or "missing" yet
+    for (label in labels) {
+      i2 <- which(unlist(lapply(labelsBin2, function(x) {label %in% x})))[1]  
+      if (!is.na(i2)) {
+        # cat("contribute", sprintf("%.1f%%",100*portion), "of binning 1 [", i1, "]", "to binning 2 [", i2, "]", fill = T)
+    
+        deltabinning$BinPositives[i2] <- deltabinning$BinPositives[i2] - portion*bins1$BinPositives[i1]
+        deltabinning$BinNegatives[i2] <- deltabinning$BinNegatives[i2] - portion*bins1$BinNegatives[i1]
+      }
+    }
+  }
+  
+  deltabinning[(BinPositives+BinNegatives)>0]
+}
+```
+
+```{r echo=FALSE}
+sym_t1 <- addReqFields(data.table( BinPositives = c(110, 60, 70),
+                               BinNegatives = c(5000, 3000, 10000),
+                               BinSymbol = c("Apples,Pears", "Oranges", "Bananas"),
+                               PredictorType = "symbolic",
+                               t = "Day 1"))
+
+sym_t2 <- addReqFields(data.table( BinPositives = c(150, 100, 200, 115),
+                               BinNegatives = c(10000, 7000, 20000, 6100),
+                               BinSymbol = c("Apples", "Kiwis", "Bananas,Peaches", "Oranges,Pears"),
+                               PredictorType = "symbolic",
+                               t = "Day 2"))
+
+
+sym_delta <- addReqFields(subtractSymBinning(sym_t1, sym_t2))[, t := "Delta"]
+
+grid.arrange(grobs = lapply(list(sym_t1, sym_t2, sym_delta), function(b) { 
+  plotADMBinning(b) +  ggtitle(b$t[1], subtitle = sprintf("AUC=%.2f", 100*b$Performance[1]))}), nrow=1)
+```
+
+
+## View of day-over-day performance
+
+We can apply this to the whole dataset of the same model/action we looked at
+earlier and get a view of the per-day (or per-week) binning - so not cumulative.
+
+(PIC non-cumulative predictor performance)
+
+## Tracking daily averages and other metrics
+
+With the same data you can also look at an estimation of the value distribution over time.
+For example, we can track the percentage of missing values, or track the estimated
+mean value over time (estimated because the values are binned and the ADM datamart
+does not include the original non-binned values). 
+
+Note: to find the daily mean you don't have to create the differences of the binnings first,
+you could derive them straight from the data:
+
+$$\bar{x}_\Delta = \frac{E_2\bar{x}_2 - E_1\bar{x}_1}{E_2-E_1}$$
+
+The max/min would also be interesting but we cannot retrieve the daily
+values of these from the ADM datamart, so you would be able to detect increases
+in max and decreases of the min (for numerics) but never a decrease in the max
+or an increase of the min.
+
+```{r}
+allbinnings[, .("Average Value" = weighted.mean(BinUpper + BinLower, BinResponseCount)/2), by=t]
+```
+
+# Conclusion
+
+The ADM datamart is a rich source of data and can be used to get detailed insights into
+the predictor data. However bear in mind there are other and probably easier ways to
+accompish the same goals - especially the Prediction level monitoring and the
+export of Historical Datasets.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
