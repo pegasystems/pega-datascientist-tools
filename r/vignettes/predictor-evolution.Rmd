@@ -84,7 +84,7 @@ subtractNumBinning <- function(bins1, bins2)
   i2 <- 1
   deltabinning <- copy(bins2)
   while (i1 <= nrow(bins1) && i2 <= nrow(bins2)) {
-    cat("index 1 = [", i1, "]", "index 2 = [", i2, "]", fill=T)
+    # cat("index 1 = [", i1, "]", "index 2 = [", i2, "]", fill=T)
   
     overlap_lo <- max(bins1$BinLower[i1], bins2$BinLower[i2])
     overlap_hi <- min(bins1$BinUpper[i1], bins2$BinUpper[i2])
@@ -107,7 +107,10 @@ subtractNumBinning <- function(bins1, bins2)
     }
   }  
   
-  deltabinning[(BinPositives+BinNegatives)>0]
+  deltabinning <- deltabinning[(BinPositives+BinNegatives)>0]
+  deltabinning[, Performance := auc_from_bincounts(BinPositives, BinNegatives)]
+  
+  return(deltabinning)
 }
 ```
 
@@ -180,7 +183,10 @@ subtractSymBinning <- function(bins1, bins2)
     }
   }
   
-  deltabinning[(BinPositives+BinNegatives)>0]
+  deltabinning <- deltabinning[(BinPositives+BinNegatives)>0]
+  deltabinning[, Performance := auc_from_bincounts(BinPositives, BinNegatives)]
+  
+  return(deltabinning)
 }
 ```
 
@@ -214,20 +220,18 @@ earlier and get a view of the per-day (or per-week) binning - so not cumulative.
 
 ## Tracking daily averages and other metrics
 
-With the same data you can also look at an estimation of the value distribution over time.
-For example, we can track the percentage of missing values, or track the estimated
-mean value over time (estimated because the values are binned and the ADM datamart
-does not include the original non-binned values). 
+With the predictor snapshot data you can also look at other - simpler - metrics,
+things like the mean value, or the number of missings values for example.
 
-Note: to find the daily mean you don't have to create the differences of the binnings first,
-you could derive them straight from the data:
+Tracking these is easier and does not even require to reconstruct a "delta binning".
+
+For example, the daily mean can be derived straight from the data:
 
 $$\bar{x}_\Delta = \frac{E_2\bar{x}_2 - E_1\bar{x}_1}{E_2-E_1}$$
 
-The max/min would also be interesting but we cannot retrieve the daily
-values of these from the ADM datamart, so you would be able to detect increases
-in max and decreases of the min (for numerics) but never a decrease in the max
-or an increase of the min.
+The max/min would also be interesting. We cannot retrieve the daily
+values of these from the ADM datamart, but you *can* easily detect a decrease of the
+minimum and an increase of the maximum.
 
 ```{r}
 allbinnings[, .("Average Value" = weighted.mean(BinUpper + BinLower, BinResponseCount)/2), by=t]

@@ -63,6 +63,9 @@
       <a href="../articles/adm-explained.html">adm-explained</a>
     </li>
     <li>
+      <a href="../articles/historical-dataset.html">historical-dataset</a>
+    </li>
+    <li>
       <a href="../articles/ih-reporting.html">ih-reporting</a>
     </li>
     <li>
@@ -84,13 +87,13 @@
 
       
 
-      </header><script src="predictor-evolution_files/header-attrs-2.7/header-attrs.js"></script><div class="row">
+      </header><script src="predictor-evolution_files/header-attrs-2.8/header-attrs.js"></script><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>predictor-evolution</h1>
                         <h4 class="author">Pega</h4>
             
-            <h4 class="date">2021-05-25</h4>
+            <h4 class="date">2021-05-28</h4>
       
       
       <div class="hidden name"><code>predictor-evolution.Rmd</code></div>
@@ -135,7 +138,7 @@
   <span class="va">i2</span> <span class="op">&lt;-</span> <span class="fl">1</span>
   <span class="va">deltabinning</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/copy.html">copy</a></span><span class="op">(</span><span class="va">bins2</span><span class="op">)</span>
   <span class="kw">while</span> <span class="op">(</span><span class="va">i1</span> <span class="op">&lt;=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">bins1</span><span class="op">)</span> <span class="op">&amp;&amp;</span> <span class="va">i2</span> <span class="op">&lt;=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">bins2</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span>
-    <span class="fu"><a href="https://rdrr.io/r/base/cat.html">cat</a></span><span class="op">(</span><span class="st">"index 1 = ["</span>, <span class="va">i1</span>, <span class="st">"]"</span>, <span class="st">"index 2 = ["</span>, <span class="va">i2</span>, <span class="st">"]"</span>, fill<span class="op">=</span><span class="cn">T</span><span class="op">)</span>
+    <span class="co"># cat("index 1 = [", i1, "]", "index 2 = [", i2, "]", fill=T)</span>
   
     <span class="va">overlap_lo</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">max</a></span><span class="op">(</span><span class="va">bins1</span><span class="op">$</span><span class="va">BinLower</span><span class="op">[</span><span class="va">i1</span><span class="op">]</span>, <span class="va">bins2</span><span class="op">$</span><span class="va">BinLower</span><span class="op">[</span><span class="va">i2</span><span class="op">]</span><span class="op">)</span>
     <span class="va">overlap_hi</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">min</a></span><span class="op">(</span><span class="va">bins1</span><span class="op">$</span><span class="va">BinUpper</span><span class="op">[</span><span class="va">i1</span><span class="op">]</span>, <span class="va">bins2</span><span class="op">$</span><span class="va">BinUpper</span><span class="op">[</span><span class="va">i2</span><span class="op">]</span><span class="op">)</span>
@@ -158,20 +161,18 @@
     <span class="op">}</span>
   <span class="op">}</span>  
   
-  <span class="va">deltabinning</span><span class="op">[</span><span class="op">(</span><span class="va">BinPositives</span><span class="op">+</span><span class="va">BinNegatives</span><span class="op">)</span><span class="op">&gt;</span><span class="fl">0</span><span class="op">]</span>
+  <span class="va">deltabinning</span> <span class="op">&lt;-</span> <span class="va">deltabinning</span><span class="op">[</span><span class="op">(</span><span class="va">BinPositives</span><span class="op">+</span><span class="va">BinNegatives</span><span class="op">)</span><span class="op">&gt;</span><span class="fl">0</span><span class="op">]</span>
+  <span class="va">deltabinning</span><span class="op">[</span>, <span class="va">Performance</span> <span class="op">:=</span> <span class="fu"><a href="../reference/auc_from_bincounts.html">auc_from_bincounts</a></span><span class="op">(</span><span class="va">BinPositives</span>, <span class="va">BinNegatives</span><span class="op">)</span><span class="op">]</span>
+  
+  <span class="kw"><a href="https://rdrr.io/r/base/function.html">return</a></span><span class="op">(</span><span class="va">deltabinning</span><span class="op">)</span>
 <span class="op">}</span></code></pre></div>
-<pre><code>#&gt; index 1 = [ 1 ] index 2 = [ 1 ]
-#&gt; index 1 = [ 1 ] index 2 = [ 2 ]
-#&gt; index 1 = [ 2 ] index 2 = [ 2 ]
-#&gt; index 1 = [ 3 ] index 2 = [ 3 ]
-#&gt; index 1 = [ 3 ] index 2 = [ 4 ]</code></pre>
 <p><img src="predictor-evolution_files/figure-html/unnamed-chunk-2-1.png" width="700" style="display: block; margin: auto;"></p>
 </div>
 <div id="approach-for-symbolic-fields" class="section level2">
 <h2 class="hasAnchor">
 <a href="#approach-for-symbolic-fields" class="anchor"></a>Approach for symbolic fields</h2>
 <p>For symbolics we first need to split the bin label (and assume there are no comma’s in the original labels), then contribute a fraction of the counts in the bins from day 1 to all the bins in day 2 where those split labels fall into.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">subtractSymBinning</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">bins1</span>, <span class="va">bins2</span><span class="op">)</span>
 <span class="op">{</span>
   <span class="va">deltabinning</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/copy.html">copy</a></span><span class="op">(</span><span class="va">bins2</span><span class="op">)</span>
@@ -193,7 +194,10 @@
     <span class="op">}</span>
   <span class="op">}</span>
   
-  <span class="va">deltabinning</span><span class="op">[</span><span class="op">(</span><span class="va">BinPositives</span><span class="op">+</span><span class="va">BinNegatives</span><span class="op">)</span><span class="op">&gt;</span><span class="fl">0</span><span class="op">]</span>
+  <span class="va">deltabinning</span> <span class="op">&lt;-</span> <span class="va">deltabinning</span><span class="op">[</span><span class="op">(</span><span class="va">BinPositives</span><span class="op">+</span><span class="va">BinNegatives</span><span class="op">)</span><span class="op">&gt;</span><span class="fl">0</span><span class="op">]</span>
+  <span class="va">deltabinning</span><span class="op">[</span>, <span class="va">Performance</span> <span class="op">:=</span> <span class="fu"><a href="../reference/auc_from_bincounts.html">auc_from_bincounts</a></span><span class="op">(</span><span class="va">BinPositives</span>, <span class="va">BinNegatives</span><span class="op">)</span><span class="op">]</span>
+  
+  <span class="kw"><a href="https://rdrr.io/r/base/function.html">return</a></span><span class="op">(</span><span class="va">deltabinning</span><span class="op">)</span>
 <span class="op">}</span></code></pre></div>
 <p><img src="predictor-evolution_files/figure-html/unnamed-chunk-4-1.png" width="700" style="display: block; margin: auto;"></p>
 </div>
@@ -206,11 +210,12 @@
 <div id="tracking-daily-averages-and-other-metrics" class="section level2">
 <h2 class="hasAnchor">
 <a href="#tracking-daily-averages-and-other-metrics" class="anchor"></a>Tracking daily averages and other metrics</h2>
-<p>With the same data you can also look at an estimation of the value distribution over time. For example, we can track the percentage of missing values, or track the estimated mean value over time (estimated because the values are binned and the ADM datamart does not include the original non-binned values).</p>
-<p>Note: to find the daily mean you don’t have to create the differences of the binnings first, you could derive them straight from the data:</p>
+<p>With the predictor snapshot data you can also look at other - simpler - metrics, things like the mean value, or the number of missings values for example.</p>
+<p>Tracking these is easier and does not even require to reconstruct a “delta binning”.</p>
+<p>For example, the daily mean can be derived straight from the data:</p>
 <p><span class="math display">\[\bar{x}_\Delta = \frac{E_2\bar{x}_2 - E_1\bar{x}_1}{E_2-E_1}\]</span></p>
-<p>The max/min would also be interesting but we cannot retrieve the daily values of these from the ADM datamart, so you would be able to detect increases in max and decreases of the min (for numerics) but never a decrease in the max or an increase of the min.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<p>The max/min would also be interesting. We cannot retrieve the daily values of these from the ADM datamart, but you <em>can</em> easily detect a decrease of the minimum and an increase of the maximum.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">allbinnings</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="st">"Average Value"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/weighted.mean.html">weighted.mean</a></span><span class="op">(</span><span class="va">BinUpper</span> <span class="op">+</span> <span class="va">BinLower</span>, <span class="va">BinResponseCount</span><span class="op">)</span><span class="op">/</span><span class="fl">2</span><span class="op">)</span>, by<span class="op">=</span><span class="va">t</span><span class="op">]</span>
 <span class="co">#&gt;                  t Average Value</span>
 <span class="co">#&gt; 1: Day 1 AUC=65.91      59.38849</span>

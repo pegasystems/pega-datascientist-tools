@@ -33,3 +33,13 @@
 #'
 #' @source DMSample
 "ihsampledata"
+
+#' A sample export of a Historical Dataset to illustrate how to import and analyze this.
+#'
+#' A \code{data.table} containing a sample of HDS data.
+#'
+#' @format A \code{data.table} with 12062 decisions with associated outcomes.
+#'
+#' @source CDHSample
+"hds"
+

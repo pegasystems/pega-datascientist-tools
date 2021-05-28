@@ -1,0 +1,185 @@
+---
+title: "historical-dataset"
+author: "Pega"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{historical-dataset}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+# knitr options: https://yihui.name/knitr/options/
+knitr::opts_chunk$set(
+collapse = TRUE,
+# fig.width = 7,
+# fig.height = 5,
+fig.align = "center",
+comment = "#>"
+)
+
+library(data.table)
+library(ggplot2)
+library(scales)
+library(lubridate)
+library(colorspace)
+library(Hmisc)
+```
+
+# Exploring the Historical Datasets
+
+Historical Datasets can be created from Adaptive models. They contain all the
+values of the predictors at the time of decision plus the associated outcome.
+
+To enable HDS please see Pega documentation.
+
+Once enabled, this feature will generate datafiles in the repository. These
+are in multi-line JSON format. To read them using *cdhtools* it is easiest to
+concatenate the files together (cat data/\*.json >>payload.json) then read
+the combined JSON file with *readDSExport("payload.json")*.
+
+In this example we use a dataset that is included in the package.
+
+```{r}
+library(cdhtools)
+
+data(hds)
+```
+
+## Fields
+
+This Historical Dataset contains a number of different categories of fields,
+indicated by a prefix to the field name.
+
+Customer data shows like this:
+
+```{r, comment = ''}
+str(hds[,sort(names(hds)[startsWith(names(hds), "Customer_")]),with=F])
+```
+
+The outcome and decision time:
+
+```{r, comment = ''}
+str(hds[,sort(names(hds)[startsWith(names(hds), "Decision_")]),with=F])
+```
+
+Automatic IH predictors:
+
+```{r, comment = ''}
+str(hds[,sort(names(hds)[startsWith(names(hds), "IH_")]),with=F])
+```
+
+Other parameters:
+
+```{r, comment = ''}
+str(hds[,sort(names(hds)[startsWith(names(hds), "Param_")]),with=F])
+```
+
+The model context keys:
+
+```{r, comment = ''}
+str(hds[,sort(names(hds)[startsWith(names(hds), "Context_")]),with=F])
+```
+
+And there will also be some "meta" fields that describe where the data is coming from as
+well as an ID so the individual decision can be tied back to a specific version of the
+model.
+
+```{r, comment = ''}
+str(hds[,names(hds)[!grepl("_", names(hds), fixed = T)],with=F])
+```
+
+## Setting the correct types
+
+The data from the JSON file will all be read as symbolic values. We fix up the
+date/time fields and the numerics.
+
+```{r}
+for (timeField in c("Decision_DecisionTime", "Decision_OutcomeTime")) {
+  hds[[timeField]] <- fromPRPCDateTime(hds[[timeField]])
+}
+
+# Assume fields are numeric if conversion yields < 1% NA's
+
+for (fld in names(hds)) {
+  if (is.character(hds[[fld]])) {
+    suppressWarnings(asnum <- as.numeric(hds[[fld]]))
+    if (sum(!is.na(hds[[fld]]) & is.na(asnum)) / sum(!is.na(hds[[fld]])) < 0.01) {
+      hds[[fld]] <- asnum
+    }
+  }
+}
+```
+
+# Exploring the data
+
+We now have all data at hand and can create some simple overviews of the data.
+
+Here we just zoom in into one particular customer field - but this can 
+obviously be applied to any field.
+
+We first round the dates to a granularity of days. Depending on the needs this
+can be done to hours or weeks - or whatever suits the use case.
+
+```{r}
+hds[, Day := as.POSIXct(round_date(hds$Decision_DecisionTime, unit="day"))]
+```
+
+## Value of Customer Age over time
+
+We can do a simple boxplot of Age over time. This gives an indication of the
+mean, p10, p90 and outlier values.
+
+```{r message=FALSE, warning=FALSE}
+ggplot(hds, aes(factor(Day), Customer_Age)) +
+  geom_boxplot(size=1, fill="lightblue") +
+  ggtitle("Customer_Age", subtitle = "values over time") +
+  theme_minimal() + xlab("") + theme(axis.text.x = element_text(angle = 45, vjust = 1))
+```
+
+## Missing values
+
+Showing the number of missing values might also be interesting. Missing values
+are a common source of issues in the models.
+
+```{r}
+ggplot(hds[, .(nMissing = sum(is.na(Customer_Age))/nrow(hds)), by=Day],
+       aes(Day, nMissing, fill=nMissing)) +
+  geom_col(size=1) +
+  scale_fill_continuous_diverging(guide=F) +
+  scale_y_continuous(labels=percent) +
+  ggtitle("Customer_Age", subtitle = "percentage of missing values") +
+  theme_minimal() + xlab("") + ylab("") + theme(axis.text.x = element_text(angle = 45, vjust = 1))
+```
+
+## Predictor Performance
+
+Since the Historical Dataset contains the outcomes, we can also plot the day-over-day 
+predictor performance. We can "bin" the predictor using a simple quantile binning,
+then use the number of "positives" and "negatives" to calculate the AUC.
+
+This is not exactly the same binning as ADM is doing but for numeric fields this
+will be a good approximation. For symbolic fields the binning should take a 
+similar approach as ADM is doing, by grouping labels by z-ratio first.
+
+```{r}
+hds[, Customer_Age_Binned := cut2(Customer_Age, g=20)]
+hds[, Customer_Age_BinPos := sum(Decision_Outcome=="Accepted"), by=c("Day", "Customer_Age_Binned")]
+hds[, Customer_Age_BinNeg := sum(Decision_Outcome=="Rejected"), by=c("Day", "Customer_Age_Binned")]
+hds[, Customer_Age_Performance := auc_from_bincounts(Customer_Age_BinPos, Customer_Age_BinNeg), by=c("Day")]
+```
+
+```{r echo=FALSE}
+ggplot(hds, aes(Day, Customer_Age_Performance*100)) +
+  geom_line(aes(group=1), color="orange", size=1) +
+  geom_point(aes(color=Customer_Age_Performance), size=2)+
+  scale_y_continuous(limits=c(50,80), name="")+
+  scale_color_continuous_diverging(palette="Red-Green", mid = 0.52, guide=F)+
+  ggtitle("Customer_Age", subtitle = "predictor performance") +
+  theme_minimal() + xlab("") + theme(axis.text.x = element_text(angle = 45, vjust = 1))
+```
+
+
+
+
