@@ -69,8 +69,10 @@ applyUniformPegaFieldCasing <- function(dt)
 #' a full file name to the export or to a JSON file that you unpacked yourself.
 #'
 #' @param instancename Name of the file w/o the timestamp, in Pega format
-#'   <Applies To>_<Instance Name>, or the complete filename including timestamp
-#'   and zip extension as exported from Pega.
+#'   <Applies To>_<Instance Name>, or the complete filename of the dataset
+#'   export file, or a specific JSON file. If none of these work it will try
+#'   to interpret the instancename as a pattern to \code{list.files} to match
+#'   multiple JSON files.
 #' @param srcFolder Optional folder to look for the file (defaults to the
 #'   current folder)
 #' @param tmpFolder Optional folder to store the unzipped data (defaults to a temp folder)
@@ -91,38 +93,57 @@ applyUniformPegaFieldCasing <- function(dt)
 #' \dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip",
 #' "~/Downloads")}
 #' \dontrun{readDSExport("~/Downloads/Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip")}
+#' \dontrun{readDSExport("SampleApp-SR_DecisionResults.json", "data")
+#' \dontrun{readDSExport("\\.json$", "create_hds/data")}
 readDSExport <- function(instancename, srcFolder=".", tmpFolder=tempdir(check = T), excludeComplexTypes=T, acceptJSONLines=NULL, stringsAsFactors=F)
 {
+  jsonFile <- NULL
+
   if(endsWith(instancename, ".json")) {
-    if (file.exists(instancename)) {
-      jsonFile <- instancename
-      multiLineJSON <- readLines(jsonFile)
-    } else if (file.exists(file.path(srcFolder,instancename))) {
+    # See if it is a single, existing, JSON file
+    if (file.exists(file.path(srcFolder,instancename))) {
       jsonFile <- file.path(srcFolder,instancename)
       multiLineJSON <- readLines(jsonFile)
-    } else {
-      stop("File not found (specified a JSON file)")
     }
   } else {
+    # See if it is a fully specified ZIP file then assume this is a Pega
+    # export with a "data.json" file inside.
+
     if(endsWith(instancename, ".zip")) {
-      if (file.exists(instancename)) {
-        zipFile <- instancename
-      } else if (file.exists(file.path(srcFolder,instancename))) {
-        zipFile <- file.path(srcFolder,instancename)
-      } else {
-        stop("File not found (specified a ZIP file)")
-      }
+      zipFile <- file.path(srcFolder,instancename)
     } else {
+
+      # See if it is just a base name of the instance, then find the most
+      # recent file by appending the date and "zip" extension according to
+      # the Pega dataset export conventions.
+
       zipFile <- paste(srcFolder,
                        rev(sort(list.files(path=srcFolder, pattern=paste("^", instancename, "_.*\\.zip$", sep=""))))[1],
                        sep="/")
-      if(!file.exists(zipFile)) stop(paste("File not found (looking for most recent file matching", instancename, "in", srcFolder, ")"))
     }
-    jsonFile <- file.path(tmpFolder,"data.json")
-    if(file.exists(jsonFile)) file.remove(jsonFile)
-    utils::unzip(zipFile, exdir=tmpFolder)
-    multiLineJSON <- readLines(jsonFile)
-    file.remove(jsonFile)
+
+    if (file.exists(zipFile)) {
+      jsonFile <- file.path(tmpFolder,"data.json")
+      if(file.exists(jsonFile)) file.remove(jsonFile)
+      utils::unzip(zipFile, exdir=tmpFolder)
+      if (!file.exists(jsonFile)) stop(paste("Expected Pega Dataset Export zipfile but",zipFile,"does not contain data.json"))
+      multiLineJSON <- readLines(jsonFile)
+      file.remove(jsonFile)
+    }
+  }
+
+  if (is.null(jsonFile)) {
+    # Try to interpret the filename as a pattern.
+    jsonFile <- list.files(pattern = instancename, path = srcFolder, full.names = T)
+    if (length(jsonFile) > 0) {
+      multiLineJSON <- unlist(sapply(jsonFile, readLines))
+    } else {
+      jsonFile <- NULL
+    }
+  }
+
+  if (is.null(jsonFile)) {
+    stop("File not found.")
   }
 
   if(!is.null(acceptJSONLines)) {

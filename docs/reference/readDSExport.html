@@ -115,9 +115,6 @@ a full file name to the export or to a JSON file that you unpacked yourself." />
       <a href="../articles/ih-reporting.html">ih-reporting</a>
     </li>
     <li>
-      <a href="../articles/predictor-evolution.html">predictor-evolution</a>
-    </li>
-    <li>
       <a href="../articles/snapshots-to-scorecards.html">snapshots-to-scorecards</a>
     </li>
   </ul>
@@ -167,8 +164,10 @@ a full file name to the export or to a JSON file that you unpacked yourself.</p>
     <tr>
       <th>instancename</th>
       <td><p>Name of the file w/o the timestamp, in Pega format
-&lt;Applies To&gt;_&lt;Instance Name&gt;, or the complete filename including timestamp
-and zip extension as exported from Pega.</p></td>
+&lt;Applies To&gt;_&lt;Instance Name&gt;, or the complete filename of the dataset
+export file, or a specific JSON file. If none of these work it will try
+to interpret the instancename as a pattern to <code>list.files</code> to match
+multiple JSON files.</p></td>
     </tr>
     <tr>
       <th>srcFolder</th>
@@ -201,13 +200,6 @@ really big files so you can filter early.</p></td>
 
     <p>A <code>data.table</code> with the contents</p>
 
-    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><div class='input'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='fu'>readDSExport</span><span class='op'>(</span><span class='st'>"Data-Decision-ADM-ModelSnapshot_All"</span><span class='op'>)</span>
-<span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='fu'>readDSExport</span><span class='op'>(</span><span class='st'>"Data-Decision-ADM-ModelSnapshot_All"</span>, <span class='st'>"~/Downloads"</span><span class='op'>)</span>
-<span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='fu'>readDSExport</span><span class='op'>(</span><span class='st'>"Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip"</span>,
-<span class='st'>"~/Downloads"</span><span class='op'>)</span>
-<span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='fu'>readDSExport</span><span class='op'>(</span><span class='st'>"~/Downloads/Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip"</span><span class='op'>)</span>
-</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

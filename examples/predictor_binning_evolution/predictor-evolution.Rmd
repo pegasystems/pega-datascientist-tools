@@ -1,24 +1,11 @@
 ---
-title: "predictor-evolution"
+title: "Predictor Evolution"
 author: "Pega"
-date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{predictor-evolution}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+date: "5/30/2021"
+output: html_document
 ---
 
 ```{r setup, include = FALSE}
-# knitr options: https://yihui.name/knitr/options/
-knitr::opts_chunk$set(
-collapse = TRUE,
-# fig.width = 7,
-# fig.height = 5,
-fig.align = "center",
-comment = "#>"
-)
-
 library(cdhtools)
 library(ggplot2)
 library(scales)

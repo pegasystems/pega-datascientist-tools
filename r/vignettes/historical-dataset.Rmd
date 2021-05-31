@@ -32,24 +32,27 @@ library(Hmisc)
 Historical Datasets can be created from Adaptive models. They contain all the
 values of the predictors at the time of decision plus the associated outcome.
 
-To enable HDS please see Pega documentation.
+To enable this feature please see the Pega documentation.
 
-Once enabled, this feature will generate datafiles in the repository. These
-are in multi-line JSON format. To read them using *cdhtools* it is easiest to
-concatenate the files together (cat data/\*.json >>payload.json) then read
-the combined JSON file with *readDSExport("payload.json")*.
+Once enabled, the system will start generating datafiles in the repository. These
+are in multi-line JSON format.
 
-In this example we use a dataset that is included in the package.
+In this example we use a dataset that is included in the package (*hds*). To read 
+your own JSON files from a repository, you could use the 
+*readDSExport* function. This supports reading multiple JSON files from a folder. 
 
 ```{r}
 library(cdhtools)
 
 data(hds)
+
+# To read your own Historical Data from the JSON files in a repository use:
+# hds <- readDSExport("\\.json$", "data")
 ```
 
 ## Fields
 
-This Historical Dataset contains a number of different categories of fields,
+This Historical Dataset contains a number of categories of fields,
 indicated by a prefix to the field name.
 
 Customer data shows like this:
@@ -82,7 +85,7 @@ The model context keys:
 str(hds[,sort(names(hds)[startsWith(names(hds), "Context_")]),with=F])
 ```
 
-And there will also be some "meta" fields that describe where the data is coming from as
+There will also be some "meta" fields that describe where the data is coming from as
 well as an ID so the individual decision can be tied back to a specific version of the
 model.
 
@@ -92,7 +95,7 @@ str(hds[,names(hds)[!grepl("_", names(hds), fixed = T)],with=F])
 
 ## Setting the correct types
 
-The data from the JSON file will all be read as symbolic values. We fix up the
+The data from the JSON file will all be read as symbolic. We fix up the
 date/time fields and the numerics.
 
 ```{r}

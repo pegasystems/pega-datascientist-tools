@@ -15,8 +15,10 @@ readDSExport(
 }
 \arguments{
 \item{instancename}{Name of the file w/o the timestamp, in Pega format
-<Applies To>_<Instance Name>, or the complete filename including timestamp
-and zip extension as exported from Pega.}
+<Applies To>_<Instance Name>, or the complete filename of the dataset
+export file, or a specific JSON file. If none of these work it will try
+to interpret the instancename as a pattern to \code{list.files} to match
+multiple JSON files.}
 
 \item{srcFolder}{Optional folder to look for the file (defaults to the
 current folder)}
@@ -43,11 +45,4 @@ from Pega datasets. This export file is a zipped multi-line JSON file
 file (Pega appends a datetime stamp) if given a folder, then unzips it into a
 temp folder and read the data into a \code{data.table}. You can also specify
 a full file name to the export or to a JSON file that you unpacked yourself.
-}
-\examples{
-\dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_All")}
-\dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_All", "~/Downloads")}
-\dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip",
-"~/Downloads")}
-\dontrun{readDSExport("~/Downloads/Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip")}
 }

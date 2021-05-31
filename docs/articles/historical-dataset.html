@@ -69,9 +69,6 @@
       <a href="../articles/ih-reporting.html">ih-reporting</a>
     </li>
     <li>
-      <a href="../articles/predictor-evolution.html">predictor-evolution</a>
-    </li>
-    <li>
       <a href="../articles/snapshots-to-scorecards.html">snapshots-to-scorecards</a>
     </li>
   </ul>
@@ -93,7 +90,7 @@
       <h1 data-toc-skip>historical-dataset</h1>
                         <h4 class="author">Pega</h4>
             
-            <h4 class="date">2021-05-28</h4>
+            <h4 class="date">2021-05-31</h4>
       
       
       <div class="hidden name"><code>historical-dataset.Rmd</code></div>
@@ -106,17 +103,20 @@
 <h1 class="hasAnchor">
 <a href="#exploring-the-historical-datasets" class="anchor"></a>Exploring the Historical Datasets</h1>
 <p>Historical Datasets can be created from Adaptive models. They contain all the values of the predictors at the time of decision plus the associated outcome.</p>
-<p>To enable HDS please see Pega documentation.</p>
-<p>Once enabled, this feature will generate datafiles in the repository. These are in multi-line JSON format. To read them using <em>cdhtools</em> it is easiest to concatenate the files together (cat data/*.json &gt;&gt;payload.json) then read the combined JSON file with <em>readDSExport(“payload.json”)</em>.</p>
-<p>In this example we use a dataset that is included in the package.</p>
+<p>To enable this feature please see the Pega documentation.</p>
+<p>Once enabled, the system will start generating datafiles in the repository. These are in multi-line JSON format.</p>
+<p>In this example we use a dataset that is included in the package (<em>hds</em>). To read your own JSON files from a repository, you could use the <em>readDSExport</em> function. This supports reading multiple JSON files from a folder.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">cdhtools</span><span class="op">)</span>
 
-<span class="fu"><a href="https://rdrr.io/r/utils/data.html">data</a></span><span class="op">(</span><span class="va">hds</span><span class="op">)</span></code></pre></div>
+<span class="fu"><a href="https://rdrr.io/r/utils/data.html">data</a></span><span class="op">(</span><span class="va">hds</span><span class="op">)</span>
+
+<span class="co"># To read your own Historical Data from the JSON files in a repository use:</span>
+<span class="co"># hds &lt;- readDSExport("\\.json$", "data")</span></code></pre></div>
 <div id="fields" class="section level2">
 <h2 class="hasAnchor">
 <a href="#fields" class="anchor"></a>Fields</h2>
-<p>This Historical Dataset contains a number of different categories of fields, indicated by a prefix to the field name.</p>
+<p>This Historical Dataset contains a number of categories of fields, indicated by a prefix to the field name.</p>
 <p>Customer data shows like this:</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(hds[,<span class="fu">sort</span>(<span class="fu">names</span>(hds)[<span class="fu">startsWith</span>(<span class="fu">names</span>(hds), <span class="st">"Customer_"</span>)]),<span class="at">with=</span>F])</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>Classes <span class="st">'data.table'</span> and <span class="st">'data.frame'</span><span class="sc">:</span>  <span class="dv">12062</span> obs. of  <span class="dv">37</span> variables<span class="sc">:</span></span>
@@ -161,10 +161,10 @@
 <p>The outcome and decision time:</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(hds[,<span class="fu">sort</span>(<span class="fu">names</span>(hds)[<span class="fu">startsWith</span>(<span class="fu">names</span>(hds), <span class="st">"Decision_"</span>)]),<span class="at">with=</span>F])</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>Classes <span class="st">'data.table'</span> and <span class="st">'data.frame'</span><span class="sc">:</span>  <span class="dv">12062</span> obs. of  <span class="dv">6</span> variables<span class="sc">:</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a> <span class="er">$</span> Decision_DecisionTime <span class="sc">:</span> chr  <span class="st">"20210518T174907.081 GMT"</span> <span class="st">"20210518T234124.081 GMT"</span> <span class="st">"20210518T181111.081 GMT"</span> <span class="st">"20210518T181725.081 GMT"</span> ...</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a> <span class="er">$</span> Decision_DecisionTime <span class="sc">:</span> chr  <span class="st">"20210521T165101.558 GMT"</span> <span class="st">"20210521T224318.558 GMT"</span> <span class="st">"20210521T171305.558 GMT"</span> <span class="st">"20210521T171919.558 GMT"</span> ...</span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a> <span class="sc">$</span> Decision_InteractionID<span class="sc">:</span> chr  <span class="st">"4567747631398332338"</span> <span class="st">"8067856128443557643"</span> <span class="st">"4567747631398332383"</span> <span class="st">"4567747631398332394"</span> ...</span>
 <span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a> <span class="sc">$</span> Decision_Outcome      <span class="sc">:</span> chr  <span class="st">"Rejected"</span> <span class="st">"Rejected"</span> <span class="st">"Rejected"</span> <span class="st">"Rejected"</span> ...</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a> <span class="sc">$</span> Decision_OutcomeTime  <span class="sc">:</span> chr  <span class="st">"20210520T064342.203 GMT"</span> <span class="st">"20210520T093838.203 GMT"</span> <span class="st">"20210520T094116.203 GMT"</span> <span class="st">"20210520T105529.203 GMT"</span> ...</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a> <span class="sc">$</span> Decision_OutcomeTime  <span class="sc">:</span> chr  <span class="st">"20210523T054536.700 GMT"</span> <span class="st">"20210523T084032.700 GMT"</span> <span class="st">"20210523T084310.700 GMT"</span> <span class="st">"20210523T095723.700 GMT"</span> ...</span>
 <span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a> <span class="sc">$</span> Decision_Rank         <span class="sc">:</span> chr  <span class="st">"31.0"</span> <span class="st">"9.0"</span> <span class="st">"10.0"</span> <span class="st">"10.0"</span> ...</span>
 <span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a> <span class="sc">$</span> Decision_SubjectID    <span class="sc">:</span> chr  <span class="st">"Customer-2519"</span> <span class="st">"Customer-4812"</span> <span class="st">"Customer-2467"</span> <span class="st">"Customer-2348"</span> ...</span>
 <span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a> <span class="sc">-</span> <span class="fu">attr</span>(<span class="sc">*</span>, <span class="st">".internal.selfref"</span>)<span class="ot">=</span><span class="er">&lt;</span>externalptr<span class="sc">&gt;</span> </span></code></pre></div>
@@ -224,7 +224,7 @@
 <span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a> <span class="sc">$</span> Context_Issue    <span class="sc">:</span> chr  <span class="st">"Sales"</span> <span class="st">"Sales"</span> <span class="st">"Sales"</span> <span class="st">"Sales"</span> ...</span>
 <span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a> <span class="sc">$</span> Context_Name     <span class="sc">:</span> chr  <span class="st">"FirstMortgageFHA"</span> <span class="st">"FirstMortgageFHA"</span> <span class="st">"FirstMortgageFHA"</span> <span class="st">"FirstMortgageFHA"</span> ...</span>
 <span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a> <span class="sc">-</span> <span class="fu">attr</span>(<span class="sc">*</span>, <span class="st">".internal.selfref"</span>)<span class="ot">=</span><span class="er">&lt;</span>externalptr<span class="sc">&gt;</span> </span></code></pre></div>
-<p>And there will also be some “meta” fields that describe where the data is coming from as well as an ID so the individual decision can be tied back to a specific version of the model.</p>
+<p>There will also be some “meta” fields that describe where the data is coming from as well as an ID so the individual decision can be tied back to a specific version of the model.</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(hds[,<span class="fu">names</span>(hds)[<span class="sc">!</span><span class="fu">grepl</span>(<span class="st">"_"</span>, <span class="fu">names</span>(hds), <span class="at">fixed =</span> T)],<span class="at">with=</span>F])</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>Classes <span class="st">'data.table'</span> and <span class="st">'data.frame'</span><span class="sc">:</span>  <span class="dv">12062</span> obs. of  <span class="dv">6</span> variables<span class="sc">:</span></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a> <span class="er">$</span> positiveSampling<span class="sc">:</span> chr  <span class="st">"10.0"</span> <span class="st">"10.0"</span> <span class="st">"10.0"</span> <span class="st">"10.0"</span> ...</span>
@@ -238,7 +238,7 @@
 <div id="setting-the-correct-types" class="section level2">
 <h2 class="hasAnchor">
 <a href="#setting-the-correct-types" class="anchor"></a>Setting the correct types</h2>
-<p>The data from the JSON file will all be read as symbolic values. We fix up the date/time fields and the numerics.</p>
+<p>The data from the JSON file will all be read as symbolic. We fix up the date/time fields and the numerics.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="kw">for</span> <span class="op">(</span><span class="va">timeField</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"Decision_DecisionTime"</span>, <span class="st">"Decision_OutcomeTime"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span>
   <span class="va">hds</span><span class="op">[[</span><span class="va">timeField</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fromPRPCDateTime.html">fromPRPCDateTime</a></span><span class="op">(</span><span class="va">hds</span><span class="op">[[</span><span class="va">timeField</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>
@@ -283,7 +283,7 @@
 <code class="sourceCode R"><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span><span class="op">(</span><span class="va">hds</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span>nMissing <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html">is.na</a></span><span class="op">(</span><span class="va">Customer_Age</span><span class="op">)</span><span class="op">)</span><span class="op">/</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">hds</span><span class="op">)</span><span class="op">)</span>, by<span class="op">=</span><span class="va">Day</span><span class="op">]</span>,
        <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span><span class="va">Day</span>, <span class="va">nMissing</span>, fill<span class="op">=</span><span class="va">nMissing</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_bar.html">geom_col</a></span><span class="op">(</span>size<span class="op">=</span><span class="fl">1</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://colorspace.R-Forge.R-project.org//reference/scale_colour_continuous_diverging.html">scale_fill_continuous_diverging</a></span><span class="op">(</span>guide<span class="op">=</span><span class="cn">F</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://rdrr.io/pkg/colorspace/man/scale_colour_continuous_diverging.html">scale_fill_continuous_diverging</a></span><span class="op">(</span>guide<span class="op">=</span><span class="cn">F</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html">scale_y_continuous</a></span><span class="op">(</span>labels<span class="op">=</span><span class="va">percent</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">ggtitle</a></span><span class="op">(</span><span class="st">"Customer_Age"</span>, subtitle <span class="op">=</span> <span class="st">"percentage of missing values"</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html">theme_minimal</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">xlab</a></span><span class="op">(</span><span class="st">""</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">ylab</a></span><span class="op">(</span><span class="st">""</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html">theme</a></span><span class="op">(</span>axis.text.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_text</a></span><span class="op">(</span>angle <span class="op">=</span> <span class="fl">45</span>, vjust <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></code></pre></div>
