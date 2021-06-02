@@ -18,6 +18,11 @@ fig.height = 5,
 fig.align = "center",
 comment = "#>"
 )
+
+library(ggplot2)
+library(scales)
+
+theme_set(theme_minimal())
 ```
 
 # ADM Model Report Dissected
@@ -30,11 +35,13 @@ library(data.table)
 
 data(admdatamart_models)
 data(admdatamart_binning)
+```
 
-model <- admdatamart_models[ConfigurationName == "VerySimpleSalesModel" & Name == "PSDISCOUNT100"][SnapshotTime == max(SnapshotTime)]
-modelpredictors <- admdatamart_binning[ModelID == model$ModelID & EntryType != "Inactive"]
+```{r}
+model <- latestSnapshotsOnly(admdatamart_models) [Name == "FirstMortgage" & Channel == "SMS"]
+modelpredictors <- latestSnapshotsOnly(admdatamart_binning[ModelID == model$ModelID & EntryType != "Inactive"])
 
-predictorbinning <- modelpredictors[PredictorName == "COUNTRY"][order(BinIndex)]
+predictorbinning <- modelpredictors[PredictorName == "Customer.AnnualIncome"][order(BinIndex)]
 ```
 
 ## Model overview
@@ -44,7 +51,8 @@ The selected model is:
 ```{r, echo=FALSE, warning=F}
 library(knitr)
 library(kableExtra)
-modelmetadata <- data.table(Group = paste(model$Issue, model$Group, sep="/"),
+modelmetadata <- data.table(Action = paste(model$Issue, model$Group, sep="/"),
+                            Channel = model$Channel,
                             Name = model$Name,
                             `Active Predictors` = paste(setdiff(unique(modelpredictors$PredictorName),"Classifier"), collapse = ", "),
                             `Model Performance (AUC)` = model$Performance*100)
@@ -238,8 +246,6 @@ kable(binning) %>%
 Below the classifier mapping. On the x-axis the binned scores (log odds values), on the y-axis the returned propensities. The bin that contains the score we calculated above is highlighted.
 
 ```{r, echo=F, warning=F, error=F}
-library(ggplot2)
-library(scales)
 classifier <- modelpredictors[EntryType == "Classifier"][order(BinIndex)]
 classifier[, Propensity := BinPositives/(BinPositives+BinNegatives)]  # TODO small correction
 
@@ -250,21 +256,19 @@ scorebin <- findInterval(score, as.numeric(classifier$BinLowerBound), left.open 
 The score `r score` falls in bin `r scorebin` of the classifier, so for this set of inputs, the model returns a propensity of `r sprintf("%.2f%%", 100*classifier$Propensity[scorebin])`.
 
 ```{r, echo=F}
-propensityMax <- max(classifier$Propensity, na.rm = T)
-if (0 == propensityMax) { propensityMax <- 1 }
-secAxisFactor <- max(classifier$BinResponseCount)/propensityMax
-classifierBarplot <- ggplot(classifier, aes(as.factor(BinIndex), Propensity, group=1))+
-  geom_col(aes(y=(BinPositives+BinNegatives)/secAxisFactor), classifier[BinIndex == scorebin], fill="steelblue3")+
-  geom_col(aes(y=(BinPositives+BinNegatives)/secAxisFactor), classifier[BinIndex != scorebin], fill="grey")+
-  geom_line(colour="orange", size=2)+geom_point()+
-  geom_hline(yintercept = classifier$Propensity[scorebin], linetype="dashed") +
-  scale_y_continuous(limits=c(0, max(classifier$Propensity)), name="Propensity", labels=scales::percent,
-                     sec.axis = sec_axis(~.*secAxisFactor, name = "Responses"))+
-  scale_x_discrete(name = "Score", labels = classifier$BinSymbol) +
-  ggtitle("Log odds to Propensity mapping", subtitle = "Classifier")+
-  theme_minimal()+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        plot.title = element_text(hjust = 0.5),
-        plot.subtitle = element_text(hjust = 0.5))
-print(classifierBarplot)
+classifierBinning <- modelpredictors[PredictorName=="Classifier"]
+
+successRateMax <- max(classifierBinning$BinPositives/classifierBinning$BinResponseCount, na.rm = T)
+if (0 == successRateMax) { successRateMax <- 1 }
+secAxisFactor <- ceiling(max(classifierBinning$BinResponseCount)/successRateMax)
+
+  # geom_col(aes(y=(BinPositives+BinNegatives)/secAxisFactor), classifier[BinIndex == scorebin], fill="steelblue3")+
+  # geom_col(aes(y=(BinPositives+BinNegatives)/secAxisFactor), classifier[BinIndex != scorebin], fill="grey")+
+
+plotADMBinning(classifierBinning) +
+      geom_col(aes(y=BinResponseCount/secAxisFactor), classifierBinning[BinIndex != scorebin], fill="grey")+
+      geom_col(aes(y=BinResponseCount/secAxisFactor), classifierBinning[BinIndex == scorebin], fill="steelblue3")+
+      geom_line(colour="orange", size=2)+geom_point()+
+    geom_hline(data=classifierBinning[1,], mapping = aes(yintercept = Positives/(Positives+Negatives)),
+               colour="orange", linetype="dashed")
 ```

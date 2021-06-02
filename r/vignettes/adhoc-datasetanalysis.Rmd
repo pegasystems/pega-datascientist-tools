@@ -17,6 +17,11 @@ fig.height = 5,
 fig.align = "center",
 comment = "#>"
 )
+
+library(ggplot2)
+library(colorspace)
+
+theme_set(theme_minimal())
 ```
 
 # Ad-Hoc Data Analysis using Dataset Exports
@@ -65,9 +70,6 @@ BTW, if you're not familiar with the `data.table` syntax below, it would be a go
 of `cdhtools` heavily rely on it also.
 
 ```{r, warning=F}
-library(ggplot2)
-library(colorspace)
-
 ihsampledata[, period := lubridate::as_date(pxOutcomeTime)]
 ihsampledata[, successRate := sum(pyOutcome=="Accepted")/.N, by=period]
 ggplot(ihsampledata, aes(period, successRate, fill=pyChannel)) + 

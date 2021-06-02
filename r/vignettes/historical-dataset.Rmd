@@ -25,6 +25,8 @@ library(scales)
 library(lubridate)
 library(colorspace)
 library(Hmisc)
+
+theme_set(theme_minimal())
 ```
 
 # Exploring the Historical Datasets
@@ -143,8 +145,8 @@ ggplot(hds, aes(factor(Day), Customer_Age)) +
 
 ## Missing values
 
-Showing the number of missing values might also be interesting. Missing values
-are a common source of issues in the models.
+Showing the percentage of missing values per day. Missing values
+are a common source of issues in models.
 
 ```{r}
 ggplot(hds[, .(nMissing = sum(is.na(Customer_Age))/nrow(hds)), by=Day],

@@ -93,8 +93,8 @@ applyUniformPegaFieldCasing <- function(dt)
 #' \dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip",
 #' "~/Downloads")}
 #' \dontrun{readDSExport("~/Downloads/Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip")}
-#' \dontrun{readDSExport("SampleApp-SR_DecisionResults.json", "data")
-#' \dontrun{readDSExport("\\.json$", "create_hds/data")}
+#' \dontrun{readDSExport("SampleApp-SR_DecisionResults.json", "data")}
+#' \dontrun{readDSExport("json$", "create_hds/data")}
 readDSExport <- function(instancename, srcFolder=".", tmpFolder=tempdir(check = T), excludeComplexTypes=T, acceptJSONLines=NULL, stringsAsFactors=F)
 {
   jsonFile <- NULL
@@ -335,6 +335,31 @@ toPRPCDateTime <- function(x)
   return(strftime(x, format="%Y%m%dT%H%M%OS3", tz="GMT", usetz=T))
 }
 
+#' Subset the provided datamart data to just the latest snapshot per model.
+#'
+#' If there is just one snapshot, nothing will change. It works for both
+#' model and predictor tables. If there is no snapshottime field, it will
+#' not do anything.
+#'
+#' @param dt The \code{data.table} with the datamart data.
+#'
+#' @return A \code{data.table} with just the latest snapshots per model.
+#' @export
+#'
+#' @examples
+#' latestSnapshotsOnly(admdatamart_binning)
+latestSnapshotsOnly <- function(dt)
+{
+  l <- function(grp, fld) { grp[grp[[fld]] == max(grp[[fld]])] }
+
+  snapshottimeField <- names(dt)[which(tolower(names(dt)) %in% c("snapshottime", "pysnapshottime"))[1]] # be careful with the names after all manipulation we do
+  if (!is.na(snapshottimeField)) {
+    return(dt[, l(.SD, snapshottimeField), by=ModelID])
+  } else {
+    return(dt)
+  }
+}
+
 # robust version of which.max that can deal with NA's
 safe_which_max <- function(x)
 {
@@ -347,3 +372,4 @@ safe_is_max <- function(x)
   if (all(is.na(x))) return (rep(T,length(x)))
   return (x == max(x, na.rm=T))
 }
+

@@ -13,11 +13,20 @@ vignette: >
 # knitr options: https://yihui.name/knitr/options/
 knitr::opts_chunk$set(
   collapse = TRUE,
-  fig.width = 7,
-  fig.height = 5,
+  fig.width = 8,
+  fig.height = 8,
   fig.align = "center",
   comment = "#>"
 )
+
+library(ggplot2)
+library(colorspace)
+library(scales)
+library(tidyverse)
+library(data.table)
+library(gridExtra)
+
+theme_set(theme_minimal())
 ```
 
 # ADM Datamart
@@ -31,7 +40,7 @@ Since the schema is open we can easily use it to create our own reports and supp
 Let's first load the data. An example export is provided with the package. Ways to load your own data from the database or from
 a dataset export will be described later.
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 library(cdhtools)
 
 data(admdatamart_models)
@@ -45,46 +54,45 @@ To load your own data, export the datasets from Pega, download them to your file
 ```{r, eval=FALSE}
 admdatamart_models <- readADMDatamartModelExport("~/Downloads")
 admdatamart_binning <- readADMDatamartPredictorExport("~/Downloads", noBinning = F)
-
-# Filter models relevant to our application
-admdatamart_models <- admdatamart_models[ConfigurationName %in% c("SalesModel", "BannerModel")]
 ```
+
+The data may contain multiple snapshots. For this notebook, we have explicit
+variables with and without this trend information. Normally you would pass an
+option to keep all snapshots or not when reading the data, or configure it
+in Pega to store it in the first place.
+
+```{r}
+admdatamart_models_latest <- latestSnapshotsOnly(admdatamart_models)
+admdatamart_binning_latest <- latestSnapshotsOnly(admdatamart_binning)
+```
+
 
 ## Data Loading directly from the database
 
 If you have database access you can also load the data directly from the DB. All you need is a JDBC driver and the proper credentials.
 
-# Advanced Reports
+# Detailed Reports
 
-With the data loaded, we can start with a plot similar to what the Analytics Center provides OOTB, however here we can easily include multiple models.
+With the data loaded, we can start with a plot similar to what the Analytics Center provides OOTB, however here we have more flexibility to slice & dice.
 
-```{r, warning=F, message=FALSE}
-library(ggplot2)
-library(colorspace)
-library(scales)
-library(tidyverse)
-library(data.table)
-
-plotADMPerformanceSuccessRateBubbleChart(admdatamart_models) + 
+```{r, message=FALSE, warning=FALSE}
+plotADMPerformanceSuccessRateBubbleChart(admdatamart_models_latest, facets = c("Issue", "Channel")) + 
   scale_x_continuous(limits = c(50, 70), name = "Performance") +  
-  geom_point(aes(shape=ConfigurationName)) +
-  geom_vline(xintercept=c(52,90), linetype="dashed") +
-  guides(colour=guide_legend(title="Action"), shape=guide_legend(title="Model")) # not shown by default
+  geom_vline(xintercept=c(52,90), linetype="dashed")
 ```
 
-If we group by model instead of proposition, we can see the spread of success rate and performance for all the propositions of one model. In this example, it’s immediately obvious that the Banners have a much lower success rate than the Sales propositions, and also that the Very Simple model has a much lower performance than the (presumably not so simple) Sales model.
+We can zoom in into the performance and success rates of the various channels. Here you see that success rates for e-mail are low, as is the average
+model performance.
 
-```{r, warning=F, message=FALSE}
-plotADMPerformanceSuccessRateBoxPlot(admdatamart_models, "ConfigurationName") +
+```{r, fig.height=5, fig.width=5, warning=F, message=FALSE}
+plotADMPerformanceSuccessRateBoxPlot(admdatamart_models_latest, "Channel") +
   scale_x_continuous(limits = c(50, 70), name = "Performance") + coord_flip()
 ```
 
 The below plot shows the predictor performance across the selected models. It is similar to one of the reports in the set of out of the box reports available through the Report Browser ("Adaptive" category), however that one does not do a weighted average of the performance. This one does, so gives a more accurate picture.
 
-```{r, warning=F, message=FALSE}
-theme_set(theme_bw())
-
-plotADMPredictorPerformance(admdatamart_binning, admdatamart_models[ConfigurationName != "VerySimpleSalesModel"]) +
+```{r fig.height=9, fig.width=9, message=FALSE, warning=FALSE}
+plotADMPredictorPerformance(admdatamart_binning, admdatamart_models_latest) +
         scale_fill_discrete_sequential(palette="SunsetDark") +
         theme(axis.text.y = element_text(size=8), strip.text = element_text(size=8))
 ```
@@ -92,8 +100,8 @@ plotADMPredictorPerformance(admdatamart_binning, admdatamart_models[Configuratio
 You could also show the predictor performance in one plot across all predictors for all the selected models. Also arranging by performance in both dimensions gives a quick visual clue of which predictors and which models need attention.
 
 ```{r, warning=F, message=FALSE}
-plotADMPredictorPerformanceMatrix(admdatamart_binning, admdatamart_models, 
-                                  aggregation="Name", facets = c()) +
+plotADMPredictorPerformanceMatrix(admdatamart_binning_latest, admdatamart_models_latest, 
+                                  aggregation="Name") +
   theme(axis.text.y = element_text(size=6),
         axis.text.x = element_text(size=6, angle = 45, hjust = 1))
 ```
@@ -106,8 +114,8 @@ The below snippet calculates the KS score for all predictors of all propositions
 
 
 ```{r, warning=F, message=FALSE}
-admdatamart_binning[ , Propensity := BinPositives/(BinPositives+BinNegatives)]
-setorder(admdatamart_binning,Propensity)
+admdatamart_binning_latest[ , Propensity := BinPositives/(BinPositives+BinNegatives)]
+setorder(admdatamart_binning_latest,Propensity)
 myKS <- function(binning)
 {
   Goods <- cumsum(binning$BinNegatives) / sum(binning$BinNegatives)
@@ -116,14 +124,14 @@ myKS <- function(binning)
   return(ifelse(is.na(KS),0,KS))
 }
 performanceSummary <- 
-  left_join(admdatamart_binning[, .(KS = myKS(.SD),
+  left_join(admdatamart_binning_latest[, .(KS = myKS(.SD),
                                     auc = first(Performance)), 
-                                by=c("ModelID", "SnapshotTime", "PredictorName","EntryType")],
-            admdatamart_models,
-            by = c("ModelID","SnapshotTime"))
+                                by=c("ModelID", "PredictorName","EntryType")],
+            admdatamart_models_latest,
+            by = c("ModelID"))
 
 ## Show KS numbers
-ggplot(performanceSummary, 
+ggplot(performanceSummary[KS > 0.01], 
        aes(Name, factor(PredictorName,
                         levels=c(setdiff(sort(performanceSummary$PredictorName,decreasing = T), "Classifier"),"Classifier"))))+
   geom_raster(aes(fill=(EntryType=="Classifier")))+
@@ -138,41 +146,33 @@ ggplot(performanceSummary,
 
 # Gains and Lift Charts
 
-The predictor data for the model classifiers can also be used to create gains or lift charts, as an alternative to the bin-oriented propensity plot that is available in the Analytics Center.
+In the product models are represented by a score distribution plot like below
 
-For example, Gains charts for the Banner models:
+```{r fig.height=5, fig.width=5}
+model <- admdatamart_binning_latest[ModelID %in% admdatamart_models_latest[Name=="FirstMortgage"]$ModelID]
 
-```{r}
-classifierdata <- admdatamart_binning[EntryType=="Classifier" & 
-                                        ModelID %in% admdatamart_models[ConfigurationName=="BannerModel" &
-                                                                          SnapshotTime==max(SnapshotTime)]$ModelID,
-                                      c("BinIndex", "BinNegatives", "BinPositives", "Lift", "ModelID")]
-setorder(classifierdata,-BinIndex)
-
-classifierdata[,cumRelativeVolume := cumsum((BinNegatives+BinPositives)/sum(BinNegatives+BinPositives)), by=ModelID]
-classifierdata[,cumRelativePositives := cumsum((BinPositives)/sum(BinPositives)), by=ModelID]
-classifierdata[,Banner := admdatamart_models$Name[admdatamart_models$ModelID == ModelID][1], by=ModelID]
-
-ggplot(classifierdata, aes(cumRelativeVolume, cumRelativePositives, color=Banner)) + geom_line() +
-  geom_abline(slope = 1, intercept = 0, color="red", linetype="dashed") +
-  scale_x_continuous(limits = c(0, 1), name = "Percentile", labels = scales::percent) +
-  scale_y_continuous(limits = c(0, 1), name = "Percentage of Clicks", labels = scales::percent) +
-  theme_bw() + guides(color=F) +
-  facet_wrap(~Banner)+
-  ggtitle("Gains Chart for Banner Models")
+plotADMBinning(model[EntryType == "Classifier"]) +
+  ggtitle(paste(unique(model$Name), collapse=","), subtitle = "Classifier")
 ```
 
-Or a Lift chart for the same models:
+The same data can be represented as a cumulative gains chart, which indicates 
+the percentage of positive responses as a function of the size of the population
+targeted.
 
-```{r}
-classifierdata[,lift := (cumsum(BinPositives)/cumsum(BinNegatives+BinPositives)) / (sum(BinPositives)/sum(BinNegatives+BinPositives)), by=ModelID]
+```{r fig.height=5, fig.width=5}
+plotADMCumulativeGains (model[EntryType == "Classifier"]) +
+  ggtitle(paste(unique(model$Name), collapse=","), subtitle = "Cumulative Gains")
+```
 
-ggplot(classifierdata, aes(cumRelativeVolume, lift, color=Banner)) + geom_line() +
-  geom_hline(yintercept = 1, color="red", linetype="dashed") +
-  scale_x_continuous(limits = c(0, 1), name = "Percentile", labels = scales::percent) +
-  scale_y_continuous(limits = c(0, NA), name = "Lift", labels = scales::percent) +
-  theme_bw() + 
-  ggtitle("Lift Chart for Banner Models")
+
+A similar view is given by the cumulative lift graphs. This gives insight into what percentage of the customers should be targeted by the
+models to achieve a certain lift in response rates. Both plots are included in the 
+off-line model reports.
+
+
+```{r fig.height=5, fig.width=5}
+plotADMCumulativeLift (model[EntryType == "Classifier"]) +
+  ggtitle(paste(unique(model$Name), collapse=","), subtitle = "Lift")
 ```
 
 # Sensitity Analysis
@@ -188,16 +188,51 @@ The provided plot function is fairly trivial. For simple use cases it will be
 sufficient and the plot can still be decorated using standard ggplot constructs
 as shown.
 
-```{r}
-varimp <- admVarImp(admdatamart_models, admdatamart_binning, c("ConfigurationName"))
+```{r fig.height=9, fig.width=9}
+varimp <- admVarImp(admdatamart_models_latest, admdatamart_binning, c("ConfigurationName"))
 plotADMVarImp(varimp) + 
   theme_bw() + scale_fill_viridis_c(begin=0.5, end=0.9)
 ```
 
-# Other Ideas
+# Trend charts
 
-A lot more plots could easily be created. The above are just examples. Showing changes over time would, for example, also be easy to do.
+Out of the box, model data is stored over time. This allows trend charts to 
+be created for the performance of models.
 
-If you have ideas/needs for additional plots please contact us. Create them and put a PR in GitHub or contact us via an Issue.
+The below plots nicely show how the models ramp up over the course of a few
+hours. We aggregate up to Group level to avoid having too many lines in the
+plot.
+
+```{r fig.height=5, fig.width=7}
+plotADMModelPerformanceOverTime(admdatamart_models, aggregation = c("Issue", "Group"), facets = "Channel")
+```
+
+All the plotting functions are fairly straightforward and built on *ggplot* and
+*data.table*. When there is no standard supporting plot function, it is easy
+enough to write your own. For example, to show the performance of the Age 
+predictor over time and across all models.
+
+```{r fig.height=5, fig.width=5}
+predictorPerformanceTrend <- admdatamart_binning[startsWith(PredictorName, "Customer.A") & BinIndex == 1, .(Performance = 100*mean(Performance)), by=c("SnapshotTime","PredictorName")]
+
+ggplot(predictorPerformanceTrend, aes(SnapshotTime, Performance, color=PredictorName)) +
+  geom_line(size=1) + 
+  ggtitle("Performance over Time")
+```
+
+# Binning Evolution
+
+With the detailed binning information available over time, we can show how the
+binning of a predictor evolves. You see that the number of bins grows as more
+data becomes available. You also see that this predictor isn't always active
+(grey instead of blue).
+
+```{r fig.height=10, fig.width=10}
+binningOverTime <- admdatamart_binning[PredictorName=="Customer.Age" & ModelID == model$ModelID[1]]
+
+grid.arrange(grobs = lapply(sort(unique(binningOverTime$SnapshotTime)), function(t) { 
+  plotADMBinning(binningOverTime[SnapshotTime==t]) +
+    ggtitle(t)}))
+```
 
 

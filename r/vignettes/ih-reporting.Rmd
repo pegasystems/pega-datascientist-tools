@@ -38,6 +38,8 @@ library(data.table)
 library(colorspace)
 library(lubridate)
 
+theme_set(theme_minimal())
+
 data(ihsampledata) 
 #ihsampledata <- readDSExport("Data-pxStrategyResult_pxInteractionHistory", "~/Downloads"
 

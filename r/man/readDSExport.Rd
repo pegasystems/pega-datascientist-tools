@@ -46,3 +46,12 @@ file (Pega appends a datetime stamp) if given a folder, then unzips it into a
 temp folder and read the data into a \code{data.table}. You can also specify
 a full file name to the export or to a JSON file that you unpacked yourself.
 }
+\examples{
+\dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_All")}
+\dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_All", "~/Downloads")}
+\dontrun{readDSExport("Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip",
+"~/Downloads")}
+\dontrun{readDSExport("~/Downloads/Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip")}
+\dontrun{readDSExport("SampleApp-SR_DecisionResults.json", "data")}
+\dontrun{readDSExport("json$", "create_hds/data")}
+}
