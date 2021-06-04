@@ -599,6 +599,8 @@ plotADMCumulativeLift <- function(binning)
           axis.text.x = element_text(angle = 45, hjust = 1))
 }
 
+# TODO perhaps call this plotADMScoreDistribution as an alias
+
 #' Create binning plot for any predictor.
 #'
 #' Combined bar-line plot with bars indicating volume and lines propensity.

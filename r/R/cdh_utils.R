@@ -101,16 +101,23 @@ readDSExport <- function(instancename, srcFolder=".", tmpFolder=tempdir(check = 
 
   if(endsWith(instancename, ".json")) {
     # See if it is a single, existing, JSON file
-    if (file.exists(file.path(srcFolder,instancename))) {
-      jsonFile <- file.path(srcFolder,instancename)
+    if (file.exists(instancename)) {
+      jsonFile <- instancename
       multiLineJSON <- readLines(jsonFile)
+    } else if (file.exists(file.path(srcFolder,instancename))) {
+        jsonFile <- file.path(srcFolder,instancename)
+        multiLineJSON <- readLines(jsonFile)
     }
   } else {
     # See if it is a fully specified ZIP file then assume this is a Pega
     # export with a "data.json" file inside.
 
     if(endsWith(instancename, ".zip")) {
-      zipFile <- file.path(srcFolder,instancename)
+      if (file.exists(instancename)) {
+        zipFile <- instancename
+      } else if (file.exists(file.path(srcFolder,instancename))) {
+        zipFile <- file.path(srcFolder,instancename)
+      }
     } else {
 
       # See if it is just a base name of the instance, then find the most
