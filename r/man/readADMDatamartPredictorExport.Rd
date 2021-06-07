@@ -8,6 +8,7 @@ readADMDatamartPredictorExport(
   srcFolder = ".",
   instancename = "Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots",
   noBinning = T,
+  classifierOnly = F,
   latestOnly = T,
   tmpFolder = tempdir(check = T)
 )
@@ -24,6 +25,11 @@ name of the dataset: \code{Data-Decision-ADM-PredictorBinningSnapshot_PredictorB
 \item{noBinning}{If TRUE (the default), skip reading the predictor binning data and just
 return predictor level data. For a detailed view with all binning data, set
 to FALSE.}
+
+\item{classifierOnly}{if TRUE only returns the data for the model classifiers.
+Default is FALSE, so all predictors are returned. When setting this flag
+to TRUE, \code{noBinning} would typically be set to FALSE as the typical
+use case is to analyse the score distributions.}
 
 \item{latestOnly}{If TRUE (the default) only the most recent snapshot for every model
 is read. To return all data over time (if available), set to FALSE.}

@@ -131,6 +131,9 @@ readADMDatamartModelExport <- function(srcFolder=".",
   if ("pyModelData" %in% names(modelz)) {
     modelz[,pyModelData := NULL]
   }
+  if ("ModelData" %in% names(modelz)) {
+    modelz[,ModelData := NULL]
+  }
 
   modelz <- standardizeDatamartModelData(modelz, latestOnly=latestOnly)
   modelz <- expandJSONContextInNameField(modelz)
@@ -155,6 +158,10 @@ readADMDatamartModelExport <- function(srcFolder=".",
 #' @param noBinning If TRUE (the default), skip reading the predictor binning data and just
 #'   return predictor level data. For a detailed view with all binning data, set
 #'   to FALSE.
+#' @param classifierOnly if TRUE only returns the data for the model classifiers.
+#'   Default is FALSE, so all predictors are returned. When setting this flag
+#'   to TRUE, \code{noBinning} would typically be set to FALSE as the typical
+#'   use case is to analyse the score distributions.
 #' @param latestOnly If TRUE (the default) only the most recent snapshot for every model
 #'   is read. To return all data over time (if available), set to FALSE.
 #' @param tmpFolder Optional folder to store the unzipped data (defaults to a
@@ -168,13 +175,14 @@ readADMDatamartModelExport <- function(srcFolder=".",
 readADMDatamartPredictorExport <- function(srcFolder=".",
                                            instancename = "Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots",
                                            noBinning = T,
+                                           classifierOnly = F,
                                            latestOnly = T,
                                            tmpFolder=tempdir(check = T))
 {
-  noBinningSkipFields <- c("pyBinSymbol","pyBinNegativesPercentage","pyBinPositivesPercentage",
-                           "pyBinNegatives", "pyBinPositives", "pyRelativeBinNegatives", "pyRelativeBinPositives",
-                           "pyBinResponseCount", "pyRelativeBinResponseCount", "pyBinResponseCountPercentage",
-                           "pyBinLowerBound", "pyBinUpperBound", "pyZRatio", "pyLift", "pyBinIndex")
+  noBinningSkipFields <- c("BinSymbol","BinNegativesPercentage","BinPositivesPercentage",
+                           "BinNegatives", "BinPositives", "RelativeBinNegatives", "RelativeBinPositives",
+                           "BinResponseCount", "RelativeBinResponseCount", "BinResponseCountPercentage",
+                           "BinLowerBound", "BinUpperBound", "ZRatio", "Lift", "BinIndex")
 
   if (file.exists(srcFolder) & !dir.exists(srcFolder)) {
     # if just one argument was passed and it happens to be an existing file, try use that
@@ -182,28 +190,40 @@ readADMDatamartPredictorExport <- function(srcFolder=".",
     srcFolder = "."
   }
 
+  if (classifierOnly) {
+    stop("Not implmemented yet.")
+  }
+
   if (noBinning) {
     predz <- readDSExport(instancename, srcFolder, tmpFolder=tmpFolder,
                           acceptJSONLines=function(linez) {
-                            # TODO make non fixed and a bit safer, allowing for
-                            # extra spaces and so on
-                            return(grepl('"pyBinIndex":1,', linez, fixed=T))
+                            # require binindex = 1 to be in there,
+                            # match both with and without py, upper and lower case
+                            return(grepl('"[[:alpha:]]*BinIndex"[[:space:]]*:[[:space:]]*1[^[:digit:]]', linez, ignore.case = T))
                           },
                           stringsAsFactors=T)
-    # just to be very defensive, double check there really are no other bins left
-    if (any(predz$pyBinIndex > 1)) {
-      predz <- predz[pyBinIndex = 1]
+
+    if (any(grepl("^p[x|z]", names(predz)))) {
+      predz[, names(predz)[grepl("^p[x|z]", names(predz))] := NULL] # drop px/pz fields
     }
-    predz[, pyBinIndex := NULL]
+    applyUniformPegaFieldCasing(predz)
+
+    # double check there really are no other bins left
+    if (any(predz$BinIndex > 1)) {
+      predz <- predz[BinIndex == 1]
+    }
+    predz[, BinIndex := NULL] # drop the column
 
     predz[, intersect(names(predz), noBinningSkipFields) := NULL]
+
   } else {
     predz <- readDSExport(instancename, srcFolder, tmpFolder=tmpFolder)
+
+    if (any(grepl("^p[x|z]", names(predz)))) {
+      predz[, names(predz)[grepl("^p[x|z]", names(predz))] := NULL] # drop px/pz fields
+    }
+    applyUniformPegaFieldCasing(predz)
   }
-
-  predz[, names(predz)[grepl("^p[x|z]", names(predz))] := NULL]
-
-  applyUniformPegaFieldCasing(predz)
 
   predz[, Performance := as.numeric(as.character(Performance))] # some fields notoriously returned as char but are numeric
   predz[, Positives := as.numeric(as.character(Positives))]

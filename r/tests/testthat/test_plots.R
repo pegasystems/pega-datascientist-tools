@@ -8,7 +8,7 @@ context("Plotting functions")
 test_that("plotADMBinning", {
   data(admdatamart_binning)
 
-  p <- plotADMBinning(admdatamart_binning[PredictorName=="AGE"][ModelID==ModelID[1]])
+  p <- plotADMBinning(admdatamart_binning[PredictorName=="Customer.Age"][ModelID==ModelID[1]])
 
   expect_s3_class(p, "ggplot")
 })

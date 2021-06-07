@@ -59,6 +59,15 @@ applyUniformPegaFieldCasing <- function(dt)
   setnames(dt, fields)
 }
 
+
+readMultilineJSON <- function(jsonFile, acceptJSONLines=NULL, dropColumns=c())
+{
+  # drop-in replacement for readLines? or returning data.table
+  # TODO read large file in batches, apply filtering in between
+  # drop columns we don't want early
+}
+
+
 #' Read a Pega dataset export file.
 #'
 #' \code{readDSExport} reads a dataset export file as exported and downloaded
@@ -111,6 +120,7 @@ readDSExport <- function(instancename, srcFolder=".", tmpFolder=tempdir(check = 
   } else {
     # See if it is a fully specified ZIP file then assume this is a Pega
     # export with a "data.json" file inside.
+    zipFile <- instancename
 
     if(endsWith(instancename, ".zip")) {
       if (file.exists(instancename)) {
