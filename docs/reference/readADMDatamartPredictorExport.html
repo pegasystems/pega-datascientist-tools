@@ -151,6 +151,7 @@ as factors.</p>
   srcFolder <span class='op'>=</span> <span class='st'>"."</span>,
   instancename <span class='op'>=</span> <span class='st'>"Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots"</span>,
   noBinning <span class='op'>=</span> <span class='cn'>T</span>,
+  classifierOnly <span class='op'>=</span> <span class='cn'>F</span>,
   latestOnly <span class='op'>=</span> <span class='cn'>T</span>,
   tmpFolder <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/tempfile.html'>tempdir</a></span><span class='op'>(</span>check <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span>
 <span class='op'>)</span></pre>
@@ -175,6 +176,13 @@ name of the dataset: <code>Data-Decision-ADM-PredictorBinningSnapshot_PredictorB
       <td><p>If TRUE (the default), skip reading the predictor binning data and just
 return predictor level data. For a detailed view with all binning data, set
 to FALSE.</p></td>
+    </tr>
+    <tr>
+      <th>classifierOnly</th>
+      <td><p>if TRUE only returns the data for the model classifiers.
+Default is FALSE, so all predictors are returned. When setting this flag
+to TRUE, <code>noBinning</code> would typically be set to FALSE as the typical
+use case is to analyse the score distributions.</p></td>
     </tr>
     <tr>
       <th>latestOnly</th>

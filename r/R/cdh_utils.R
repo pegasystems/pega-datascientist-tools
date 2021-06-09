@@ -60,11 +60,42 @@ applyUniformPegaFieldCasing <- function(dt)
 }
 
 
-readMultilineJSON <- function(jsonFile, acceptJSONLines=NULL, dropColumns=c())
+#' Efficient read of newline-delimited JSON (NDJSON) (aka line-delimited JSON (LDJSON),
+#' JSON lines (JSONL), multi-line JSON), a common format for big data streaming.
+#'
+#' @param jsonFiles Either a single file with the JSON data, a folder that
+#'   we read the
+#' @param acceptJSONLines Optional filter function. If given, this is applied
+#'   to the lines with JSON data and only those lines for which the function
+#'   returns TRUE will be parsed. This is just for efficiency when reading
+#'   really big files so you can filter rows early. This would most typically
+#'   be used internally when called from \code{readDSExport} and related.
+#' @param dropColumns Optional list if columns that will be dropped. Dropping
+#'   will happen after converting (batches of) data to \code{data.table}.
+#'
+#' @return A \code{data.table} with the contents
+#' @export
+#'
+#' @examples
+#' \dontrun{readNDJSON("datamart.json")}
+readNDJSON <- function(jsonFiles, acceptJSONLines=NULL, dropColumns=c())
 {
-  # drop-in replacement for readLines? or returning data.table
-  # TODO read large file in batches, apply filtering in between
-  # drop columns we don't want early
+  # Efficient read of newline-delimited JSON (NDJSON) (aka line-delimited JSON (LDJSON),
+  # JSON lines (JSONL), multi-line JSON), a common format for big data streaming.
+
+  # jsonFiles
+  # - a single file
+  # - a folder in which case we pick up all the json files from it
+  # - a zip file then we read the json file(s) from it
+  # - a pattern that we pass to list.files
+
+  # returns a data.table
+
+  # reads large files in batches
+
+  # applies row filtering using the provided accept function
+  # applies column filtering after converting to data.table using the dropColumns
+
 }
 
 
@@ -90,7 +121,7 @@ readMultilineJSON <- function(jsonFile, acceptJSONLines=NULL, dropColumns=c())
 #' @param acceptJSONLines Optional filter function. If given, this is applied
 #'   to the lines with JSON data and only those lines for which the function
 #'   returns TRUE will be parsed. This is just for efficiency when reading
-#'   really big files so you can filter early.
+#'   really big files so you can filter rows early.
 #' @param stringsAsFactors Logical (default is FALSE). Convert all character columns to factors?
 #'
 #' @return A \code{data.table} with the contents

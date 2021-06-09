@@ -115,6 +115,7 @@ plotADMVarImp <- function(varimp)
                      fill=Importance)) +
     geom_col() +
     geom_text(aes(x=0,label=PredictorName),size=3,hjust=0,colour="black")+
+    scale_fill_continuous_diverging(palette="Cyan-Magenta")+
     guides(fill=F) +
     ylab("") +
     plotsGetFacets(facets) +
