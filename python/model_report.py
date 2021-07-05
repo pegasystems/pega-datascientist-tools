@@ -26,7 +26,7 @@ class ModelReport:
     """
 
 
-    def __init__(self, modelID, modelName, positives, responses, performance, snapshot):
+    def __init__(self, modelID, issue, group, channel, direction, modelName, positives, responses, performance, snapshot):
         """
         The constructor for ModelReport class.
 
@@ -36,6 +36,10 @@ class ModelReport:
 
         Args:
             modelID (numpy array): id of the models imported from ADM datamart
+            issue   (numpy array): business issue, usually this is PYISSUE
+            group   (numpy array): group, usually this is PYGROUP
+            channel (numpy array): channel, usually this is PYCHANNEL
+            direction (numpy array): direction, usually this is PYDIRECTION
             modelName (numpy array): name of the models, usually this is PYNAME
             positives (numpy array): number of positives
             responses (numpy array): total number of responses, usually this is PYRESPONSECOUNT
@@ -56,26 +60,30 @@ class ModelReport:
             modelSnapshot = np.array([datetimeObj(2019,1,1), datetimeObj(2019,2,1), datetimeObj(2019,3,1)])
 
             dfModel:
-                | model ID | model name | positives | responses | model performance | model snapshot        |
-                ---------------------------------------------------------------------------------------------
-                | i1       | model1     | 1         | 100       | 0.6               | datetimeObj(2019,1,1) |
-                | i1       | model1     | 2         | 110       | 0.7               | datetimeObj(2019,2,1) |
-                | i3       | model3     | 7         | 200       | 0.73              | datetimeObj(2019,3,1) |
+                | model ID |...| model name | positives | responses | model performance | model snapshot        |
+                -------------------------------------------------------------------------------------------------
+                | i1       |...| model1     | 1         | 100       | 0.6               | datetimeObj(2019,1,1) |
+                | i1       |...| model1     | 2         | 110       | 0.7               | datetimeObj(2019,2,1) |
+                | i3       |...| model3     | 7         | 200       | 0.73              | datetimeObj(2019,3,1) |
 
             latestModels:
-                | model ID | model name | positives | responses | model performance | model snapshot        |
-                ---------------------------------------------------------------------------------------------
-                | i1       | model1     | 2         | 110       | 0.7               | datetimeObj(2019,2,1) |
-                | i3       | model3     | 7         | 200       | 0.73              | datetimeObj(2019,3,1) |
+                | model ID |...| model name | positives | responses | model performance | model snapshot        |
+                -------------------------------------------------------------------------------------------------
+                | i1       |...| model1     | 2         | 110       | 0.7               | datetimeObj(2019,2,1) |
+                | i3       |...| model3     | 7         | 200       | 0.73              | datetimeObj(2019,3,1) |
 
         """
         self.modelID = modelID
+        self.issue = issue
+        self.group = group
+        self.channel = channel
+        self.direction = direction
         self.modelName = modelName
         self.positives = positives
         self.responses = responses
         self.modelAUC = performance
         self.modelSnapshot = snapshot
-        self.cols = ['model ID', 'model name', 'positives', 'responses', 'model performance', 'model snapshot']
+        self.cols = ['model ID', 'issue', 'group', 'channel', 'direction', 'model name', 'positives', 'responses', 'model performance', 'model snapshot']
         self._check_data_shape()
         self.dfModel, self.latestModels = self._create_model_df()
 
@@ -84,7 +92,7 @@ class ModelReport:
         """ Sets correct data type for certain dataframe columns
 
         """
-        for col in ['model name']:
+        for col in ['issue', 'group', 'channel', 'direction', 'model name']:
             df[col] = df[col].astype(str)
         df['model snapshot'] = pd.to_datetime(df['model snapshot'])
         return df
@@ -93,8 +101,11 @@ class ModelReport:
         """ Ensure input data has the correct shape
 
         """
-        if not self.modelID.shape[0]==self.modelName.shape[0]==self.positives.shape[
-            0]==self.responses.shape[0]==self.modelAUC.shape[0]==self.modelSnapshot.shape[0]:
+        if not self.modelID.shape[0]==self.issue.shape[0]==self.group.shape[
+                0]==self.channel.shape[0]==self.direction.shape[
+                    0]==self.modelName.shape[0]==self.positives.shape[
+                        0]==self.responses.shape[0]==self.modelAUC.shape[
+                            0]==self.modelSnapshot.shape[0]:
             raise TypeError("All input data must have the same number of rows")
 
     def _create_model_df(self):
@@ -110,11 +121,12 @@ class ModelReport:
 
         """
         df_all = pd.DataFrame.from_dict(dict(
-            zip(self.cols,[self.modelID, self.modelName, self.positives, self.responses,
-                           self.modelAUC, self.modelSnapshot] )))
+            zip(self.cols,[self.modelID, self.issue, self.group, self.channel,
+                           self.direction, self.modelName, self.positives, 
+                           self.responses, self.modelAUC, self.modelSnapshot] )))
         df_all = self._calculate_success_rate(df_all, 'positives', 'responses', 'success rate (%)')
         df_all = self._set_proper_type(df_all)
-        df_latest = df_all.sort_values('model snapshot').groupby(['model name']).tail(1)
+        df_latest = df_all.sort_values('model snapshot').groupby(['model ID']).tail(1)
 
         return (df_all, df_latest)
 
@@ -151,9 +163,10 @@ class ModelReport:
         Returns:
             filtered pandas dataframe
         """
-        if 'model ID' in df.columns:
-            _df = df.drop('model ID', axis=1)
-        else: _df = df.reset_index(drop=True)
+        #if 'model ID' in df.columns:
+        #    _df = df.drop('model ID', axis=1)
+        #else: 
+        _df = df.reset_index(drop=True)
         if query!={}:
             if not type(query)==dict:
                 raise TypeError('query must be a dict where values are lists')
@@ -187,8 +200,8 @@ class ModelReport:
                 (np.array([[vals[i,0]] for i in range(vals.shape[0])]),
                           np.array([vals[i,2:]-vals[i,1:-1]  for i in range(vals.shape[0])]))))
         _df.columns = cols
-        _df.rename(columns={cols[0]:'model name'}, inplace=True)
-        df_sign = _df.set_index('model name').mask(_df.set_index('model name')>0, 1)
+        _df.rename(columns={cols[0]:'model ID'}, inplace=True)
+        df_sign = _df.set_index('model ID').mask(_df.set_index('model ID')>0, 1)
         df_sign = df_sign.mask(df_sign<0, -1)
         df_sign[cols[0]] = 1
         return df_sign[cols].fillna(1)
@@ -211,21 +224,21 @@ class ModelReport:
 
         """
         df = self._apply_query(query, self.dfModel)
-        df = df[['model name', 'model snapshot', 'responses']].sort_values('model snapshot').reset_index(drop=True)
+        df = df[['model ID', 'model snapshot', 'responses']].sort_values('model snapshot').reset_index(drop=True)
         df['Date'] = pd.Series([i.date() for i in df['model snapshot']])
         df = df[df['Date']>(df['Date'].max()-datetime.timedelta(lookback))]
         if df.shape[0]<1:
             print("no data within lookback range")
             return pd.DataFrame()
         else:
-            idx = df.groupby(['model name', 'Date'])['model snapshot'].transform(max)==df['model snapshot']
+            idx = df.groupby(['model ID', 'Date'])['model snapshot'].transform(max)==df['model snapshot']
             df = df[idx]
             if fill_null_days:
                 idx_date = pd.date_range(df['Date'].min(), df['Date'].max())
-                df = df.set_index('Date').groupby('model name').apply(lambda d: d.reindex(idx_date)).drop(
-                    'model name', axis=1).reset_index('model name').reset_index().rename(columns={'index':'Date'})
+                df = df.set_index('Date').groupby('model ID').apply(lambda d: d.reindex(idx_date)).drop(
+                    'model ID', axis=1).reset_index('model ID').reset_index().rename(columns={'index':'Date'})
                 df['Date'] = df['Date'].dt.date
-            df_annot = df.pivot(columns='Date', values='responses', index='model name')
+            df_annot = df.pivot(columns='Date', values='responses', index='model ID')
             df_sign = self._create_sign_df(df_annot)
         return (df_annot, df_sign)
 
@@ -279,13 +292,14 @@ class ModelReport:
         """
         _df_g = self._apply_query(query, self.dfModel)
         if len(_df_g['model snapshot'].unique())<2:
-            'There are not enough timestamps to plot a timeline graph'
+            print('There are not enough timestamps to plot a timeline graph')
         else:
             fig, ax = plt.subplots(figsize=figsize)
             norm = colors.Normalize(vmin=0.5, vmax=1)
             mapper = plt.cm.ScalarMappable(norm=norm, cmap=plt.cm.gnuplot_r)
-            for name in _df_g['model name'].unique():
-                _df = _df_g[_df_g['model name']==name].sort_values('model snapshot')
+            for ids in _df_g['model ID'].unique():
+                _df = _df_g[_df_g['model ID']==ids].sort_values('model snapshot')
+                name = _df['model name'].unique()[0]
                 ax.plot(_df['model snapshot'].values, _df['responses'].values, color='gray')
                 ax.scatter(_df['model snapshot'].values, _df['responses'].values,
                            color=[mapper.to_rgba(v) for v in _df['model performance'].values])
@@ -320,6 +334,10 @@ class ModelReport:
         """
         f, ax = plt.subplots(figsize=figsize)
         annot_df, heatmap_df = self.generate_heatmap_df(lookback, query, fill_null_days)
+        heatmap_df = heatmap_df.reset_index().merge(self.dfModel[['model ID', 'model name']].drop_duplicates(), 
+                                                    on='model ID', how='left').drop('model ID', axis=1).set_index('model name')
+        annot_df = annot_df.reset_index().merge(self.dfModel[['model ID', 'model name']].drop_duplicates(), 
+                                                    on='model ID', how='left').drop('model ID', axis=1).set_index('model name')
         myColors = ['r', 'orange', 'w']
         colorText = ['Decreased', 'No Change', 'Increased or NA']
         cmap = colors.ListedColormap(myColors)
@@ -343,11 +361,15 @@ class ModelReport:
         """
         _df_g = self._apply_query(query, self.dfModel)
         if len(_df_g['model snapshot'].unique())<2:
-            'There are not enough timestamps to plot a timeline graph'
+            print('There are not enough timestamps to plot a timeline graph')
         else:
             fig, ax = plt.subplots(figsize=figsize)
-            sns.lineplot(x='model snapshot', y='success rate (%)', data=self.dfModel, hue='model name', marker="o", ax=ax)
-            ax.legend(bbox_to_anchor=(1.05, 1),loc=2)
+            sns.pointplot(x='model snapshot', y='success rate (%)', data=self.dfModel, hue='model ID', marker="o", ax=ax)
+            modelnames = _df_g[['model ID', 'model name']].drop_duplicates().set_index('model ID').to_dict()['model name']
+            handles, labels = ax.get_legend_handles_labels()
+            newlabels = [modelnames[i] for i in labels]
+            ax.legend(handles, newlabels, bbox_to_anchor=(1.05, 1),loc=2)
+            #ax.legend(bbox_to_anchor=(1.05, 1),loc=2)
             ax.set_ylabel('Success Rate (%)')
             ax.set_xlabel('Date')
             ax.xaxis.set_major_locator(mdates.DayLocator(interval=day_interval))
@@ -381,9 +403,10 @@ class ADMReport(ModelReport):
 
     """
 
-    def __init__(self, modelID, modelName, positives, responses, performance, snapshot,
-                 predModelID, predName, predPerformance, binSymbol, binIndex, entryType,
-                 predictorType, predSnapshot, binPositives, binResponses):
+    def __init__(self, modelID, issue, group, channel, direction, modelName, 
+                 positives, responses, performance, snapshot, predModelID, predName, 
+                 predPerformance, binSymbol, binIndex, entryType, predictorType, 
+                 predSnapshot, binPositives, binResponses):
         """ Constructor of class ADMReport
         All the inout data to instantiate the class must be numpy arrays.
         If ADM data is obtained in csv format, each input array for this class is the corresponding
@@ -406,7 +429,8 @@ class ADMReport(ModelReport):
             predCols (list): name of columns in predictor dataframe
 
         """
-        ModelReport.__init__(self, modelID, modelName, positives, responses, performance, snapshot)
+        ModelReport.__init__(self, modelID, issue, group, channel, direction, 
+                             modelName, positives, responses, performance, snapshot)
         self.predModelID = predModelID
         self.predName = predName
         self.predPerformance = predPerformance
@@ -446,10 +470,10 @@ class ADMReport(ModelReport):
         idx = _df.groupby(['model ID', 'predictor name'])['predictor snapshot'].transform(max)==_df['predictor snapshot']
         _df = _df[idx]
         _df = self._calculate_success_rate(_df, 'bin positives', 'bin responses', 'bin propensity')
-        latestPredModel = self.latestModels.merge(_df, on='model ID', how='right').drop(['model ID', 'predictor snapshot'], axis=1)
+        latestPredModel = self.latestModels.merge(_df, on='model ID', how='right').drop(['predictor snapshot'], axis=1)
         return latestPredModel
 
-    def show_score_distribution(self, models=None, figsize=(14, 10)):
+    def show_score_distribution(self, query={}, figsize=(14, 10)):
         """ Show score distribution similar to ADM out-of-the-box report
 
         Shows a score distribution graph per model. If certain models selected,
@@ -459,16 +483,16 @@ class ADMReport(ModelReport):
         ADM reports, the percentage of responses are shown
 
         Args:
-            models (list): select certain model names to show score distribution
+            query (dict of list values): select certain models to show score distribution
             figsize (tuple): size of graph
         """
 
         df = self.latestPredModel[self.latestPredModel['predictor name']=='Classifier']
-        if models:
-            df = df[df['model name'].isin(models)]
-        for model in df['model name'].unique():
-            _df = df[df['model name']==model]
-            self.distribution_graph(_df, 'Model name: '+model, figsize)
+        df = self._apply_query(query, df).reset_index(drop=True)
+        for model in df['model ID'].unique():
+            _df = df[df['model ID']==model]
+            name = _df['model name'].unique()[0]
+            self.distribution_graph(_df, 'Model name: '+name, figsize)
 
     @staticmethod
     def distribution_graph(df, title, figsize):
@@ -497,21 +521,23 @@ class ADMReport(ModelReport):
         ax.set_title(title)
 
 
-    def show_predictor_report(self, model_name, predictors=None, figsize=(10, 5)):
+    def show_predictor_report(self, query, predictors=None, figsize=(10, 5)):
         """ Show predictor graphs for a given model
 
-        For a given model (model_name) shows all its predictors' graphs. If certain predictors
+        For a given model (query) shows all its predictors' graphs. If certain predictors
         selected, only those predictor graphs will be shown
 
         Args:
-            model_name (str): name of the model
+            query (dict of list values): filter a model
             predictors (list): list of predictors to show their graphs. Optional field
             figsize (tuple): size of graph
         """
-        df = self.latestPredModel[(self.latestPredModel['model name']==model_name) &
-                                  (self.latestPredModel['predictor name']!='Classifier')]
+        df = self.latestPredModel[self.latestPredModel['predictor name']!='Classifier']
+        df = self._apply_query(query, df).reset_index(drop=True)
+        print('Model ID:', df['model ID'].unique())
         if predictors:
             df = df[df['predictor name'].isin(predictors)]
+        model_name = df['model name'].unique()[0]
         for pred in df['predictor name'].unique():
             _df = df[df['predictor name']==pred]
             title = 'Model name: '+model_name+'\n Predictor name: '+pred
