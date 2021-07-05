@@ -38,9 +38,11 @@ standardizeDatamartModelData <- function(dt, latestOnly)
   }
 
   # some fields notoriously returned as char but are numeric
-  dt[, Performance := as.numeric(as.character(Performance))]
-  dt[, Positives := as.numeric(as.character(Positives))]
-  dt[, Negatives := as.numeric(as.character(Negatives))]
+  for (fld in c("Performance", "Positives", "Negatives")) {
+    if (fld %in% names(dt)) {
+      if (!is.numeric(dt[[fld]])) dt[[fld]] <- as.numeric(as.character(dt[[fld]]))
+    }
+  }
 
   # convert date/time fields if present and not already converted prior
   if (!is.POSIXt(dt$SnapshotTime)) {
@@ -225,9 +227,12 @@ readADMDatamartPredictorExport <- function(srcFolder=".",
     applyUniformPegaFieldCasing(predz)
   }
 
-  predz[, Performance := as.numeric(as.character(Performance))] # some fields notoriously returned as char but are numeric
-  predz[, Positives := as.numeric(as.character(Positives))]
-  predz[, Negatives := as.numeric(as.character(Negatives))]
+  # some fields notoriously returned as char but are numeric
+  for (fld in c("Performance", "Positives", "Negatives", "BinLowerBound", "BinUpperBound")) {
+    if (fld %in% names(predz)) {
+      if (!is.numeric(predz[[fld]])) predz[[fld]] <- as.numeric(as.character(predz[[fld]]))
+    }
+  }
 
   predz[, SnapshotTime := fromPRPCDateTime(SnapshotTime)]
 

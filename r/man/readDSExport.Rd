@@ -31,7 +31,7 @@ defaults to T so not including nested lists/data frames}
 \item{acceptJSONLines}{Optional filter function. If given, this is applied
 to the lines with JSON data and only those lines for which the function
 returns TRUE will be parsed. This is just for efficiency when reading
-really big files so you can filter early.}
+really big files so you can filter rows early.}
 
 \item{stringsAsFactors}{Logical (default is FALSE). Convert all character columns to factors?}
 }

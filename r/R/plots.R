@@ -639,7 +639,9 @@ plotADMBinning <- function(binning, useSmartLabels = T)
   plt <- plt +
     geom_col(aes(y=BinResponseCount/secAxisFactor), fill=ifelse(binning$EntryType[1]=="Inactive","darkgrey","steelblue3"))+
     geom_line(colour="orange", size=2)+geom_point()+
-    geom_hline(data=binning[1,], mapping = aes(yintercept = Positives/(Positives+Negatives)),
+    geom_hline(data=data.table(Positives = sum(binning$BinPositives),
+                               Negatives = sum(binning$BinNegatives)),
+               mapping = aes(yintercept = Positives/(Positives+Negatives)),
                colour="orange", linetype="dashed") +
     scale_y_continuous(limits=c(0, successRateMax), name="Success Rate", labels=percent,
                        sec.axis = sec_axis(~.*secAxisFactor, name = "Responses"))+
