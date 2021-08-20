@@ -1,0 +1,73 @@
+---
+title: "Example analysis of ValueFinder dataset"
+author: "Pega"
+date: "8/20/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(cdhtools)
+library(data.table)
+library(ggplot2)
+library(colorspace)
+
+theme_set(theme_minimal())
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Value Finder
+
+The Value Finder simulations create a dataset called "pyValueFinder". This dataset contains the decision records including
+the stage labels that is used for the analysis that results in the typical Value Finder pie chart.
+
+In the data folder we've stored a copy of such a dataset, generated from an (internal) demo application (OmniNBA).
+
+This notebook shows an example how the data can be read for additional analysis.
+
+# Data read
+
+```{r}
+simdata <- readDSExport("Data-Insights_pyValueFinder", "../../data")
+```
+
+# First level analysis
+
+Unlike in Pega, here we can't say how many customers do not get actions. The data only contains information about
+customers that are getting actions.
+
+```{r}
+customersummary <- simdata[, .(Propensity = max(pyPropensity), N = .N), by=c("CustomerID","pyStage")]
+```
+
+## Counts per Stage
+
+```{r}
+ggplot(customersummary, aes(pyStage, fill=pyStage)) +
+  geom_bar() +
+  scale_fill_discrete_divergingx()
+```
+
+## Distribution of Propensity
+
+Showing the distribution of the max propensity for the customers that do
+get some action.
+
+```{r}
+ggplot(simdata, aes(x=pyPropensity)) + 
+  geom_boxplot(aes(colour=pyStage)) +
+  geom_density(aes(x = pyPropensity), inherit.aes = FALSE) +
+  scale_colour_discrete_divergingx() +
+  facet_grid(pyStage ~ .) +
+  ggtitle("Propensity Distribution", subtitle = "per NBAD Stage")
+```
+
+
+
+
+
+
+
+
+
+
+
