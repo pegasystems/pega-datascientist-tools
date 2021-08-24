@@ -28,6 +28,7 @@ This notebook shows an example how the data can be read for additional analysis.
 
 ```{r}
 simdata <- readDSExport("Data-Insights_pyValueFinder", "../../data")
+simdata[, pyStage := factor(pyStage, levels = c("Eligibility", "Applicability", "Suitability", "Arbitration"))]
 ```
 
 # First level analysis
@@ -61,6 +62,11 @@ ggplot(simdata, aes(x=pyPropensity)) +
   ggtitle("Propensity Distribution", subtitle = "per NBAD Stage")
 ```
 
+# Reproducing the standard Value Finder analysis
+
+
+
+# Looking at the number of offers 
 
 
 
