@@ -2,7 +2,9 @@
 title: "Example analysis of ValueFinder dataset"
 author: "Pega"
 date: "8/20/2021"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -139,6 +141,25 @@ ggplot(countsPerStage,
   geom_text(data = countsPerStage[Status != "NoAction" | pyStage == "Eligibility"], mapping = aes(label=Count, y=yText)) +
   scale_fill_manual(values = c(colorcodes[1], colorcodes[2], colorcodes[4]))
 ```
+
+# Non emphathetic arbitration
+
+After arbitration we have `r uniqueN(customersummary[pyStage=="Arbitration" & !isWellServed]$CustomerID)` 
+customers that receive only low propensity offers.
+
+After the first three stages we have `r uniqueN(customersummary[pyStage=="Suitability" & !isWellServed]$CustomerID)` customers
+receiving only low propensity offers.
+
+So if these numbers are different, it means additional customers are getting low propensity
+offers, due to the way the arbitration works (including Value, Levers and Context weights).
+
+```{r}
+notWellServedAfterEngagement <- unique(customersummary[pyStage=="Suitability" & !isWellServed]$CustomerID)
+notWellServedAfterArbitration <- unique(customersummary[pyStage=="Arbitration" & !isWellServed]$CustomerID)
+
+length(setdiff(notWellServedAfterArbitration, notWellServedAfterEngagement))
+```
+
 
 # Additional analysis: Looking at the number of offers 
 
