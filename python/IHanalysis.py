@@ -136,10 +136,10 @@ def get_daily_graph(df, x, y, **kwargs):
         if outlier_df.shape[0]>0:
             plt.legend()
     if 'ylabel' in kwargs.keys():
-        ax.set_ylabel(kwargs['ylabel'], FontSize=13)
+        ax.set_ylabel(kwargs['ylabel'], fontsize=13)
     else:
-        ax.set_ylabel(y, FontSize=13)
-    ax.set_xlabel(x, FontSize=13)
+        ax.set_ylabel(y, fontsize=13)
+    ax.set_xlabel(x, fontsize=13)
     for i in ax.get_xmajorticklabels():
         i.set_rotation(90)
     if 'ylim' in kwargs.keys():
