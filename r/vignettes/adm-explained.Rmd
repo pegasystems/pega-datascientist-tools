@@ -48,7 +48,7 @@ predictorbinning <- modelpredictors[PredictorName == "Customer.AnnualIncome"][or
 
 The selected model is:
 
-```{r, echo=FALSE, warning=F}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 library(knitr)
 library(kableExtra)
 modelmetadata <- data.table(Action = paste(model$Issue, model$Group, sep="/"),

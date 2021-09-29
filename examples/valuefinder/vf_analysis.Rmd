@@ -123,10 +123,9 @@ countsPerStage[, yNotWellServed := WellServed + NotWellServed/2]
 countsPerStage[, yNoAction := WellServed + NotWellServed + NoAction/2]
 
 # Values picked using ColorSync tool on Value Finder pie chart
-colorcodes <- list(rgb(205,0,32,maxColorValue=255),
-                   rgb(252,165,46,maxColorValue=255),
-                   "darkblue",
-                   rgb(33,158,63,maxColorValue=255))
+vfRed <- rgb(205,0,32,maxColorValue=255)
+vfOrange <- rgb(252,165,46,maxColorValue=255)
+vfGreen <- rgb(33,158,63,maxColorValue=255)
 
 countsPerStage <- melt(countsPerStage, id=c("pyStage", "yWellServed", "yNotWellServed", "yNoAction"), value.name = "Count", variable.name = "Status")
 
@@ -139,7 +138,7 @@ ggplot(countsPerStage,
   geom_col(colour="black", alpha=0.8) +
   geom_text(data = countsPerStage[Status == "NoAction" & pyStage != "Eligibility"], mapping = aes(label=paste0(Count, " (-", Delta, ")"), y=yText)) +
   geom_text(data = countsPerStage[Status != "NoAction" | pyStage == "Eligibility"], mapping = aes(label=Count, y=yText)) +
-  scale_fill_manual(values = c(colorcodes[1], colorcodes[2], colorcodes[4]))
+  scale_fill_manual(values = c(values = c(vfRed, vfOrange, vfGreen)))
 ```
 
 # Non emphathetic arbitration
