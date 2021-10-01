@@ -84,7 +84,7 @@ ggplot(simdataPropensities, aes(value, fill=variable, colour=variable)) +
   geom_histogram(aes(y=..density..), position = position_dodge(), bins=40) +
   geom_density(alpha=0.2) +
   scale_fill_discrete_diverging(name="Type") + 
-  scale_colour_discrete_diverging(guide=F) + xlab("Propensity") +
+  scale_colour_discrete_diverging(guide="none") + xlab("Propensity") +
   facet_grid(variable ~ .) +
   geom_vline(xintercept=th, linetype="dashed") +
   ggtitle("Propensity distribution", "first stage")

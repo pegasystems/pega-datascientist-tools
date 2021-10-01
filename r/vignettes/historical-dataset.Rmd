@@ -152,7 +152,7 @@ are a common source of issues in models.
 ggplot(hds[, .(nMissing = sum(is.na(Customer_Age))/nrow(hds)), by=Day],
        aes(Day, nMissing, fill=nMissing)) +
   geom_col(size=1) +
-  scale_fill_continuous_diverging(guide=F) +
+  scale_fill_continuous_diverging(guide="none") +
   scale_y_continuous(labels=percent) +
   ggtitle("Customer_Age", subtitle = "percentage of missing values") +
   theme_minimal() + xlab("") + ylab("") + theme(axis.text.x = element_text(angle = 45, vjust = 1))
@@ -180,7 +180,7 @@ ggplot(hds, aes(Day, Customer_Age_Performance*100)) +
   geom_line(aes(group=1), color="orange", size=1) +
   geom_point(aes(color=Customer_Age_Performance), size=2)+
   scale_y_continuous(limits=c(50,80), name="")+
-  scale_color_continuous_diverging(palette="Red-Green", mid = 0.52, guide=F)+
+  scale_color_continuous_diverging(palette="Red-Green", mid = 0.52, guide="none")+
   ggtitle("Customer_Age", subtitle = "predictor performance") +
   theme_minimal() + xlab("") + theme(axis.text.x = element_text(angle = 45, vjust = 1))
 ```

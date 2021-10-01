@@ -116,7 +116,7 @@ plotADMVarImp <- function(varimp)
     geom_col() +
     geom_text(aes(x=0,label=PredictorName),size=3,hjust=0,colour="black")+
     # scale_fill_continuous_diverging(palette="Cyan-Magenta")+
-    guides(fill=F) +
+    guides(fill="none") +
     ylab("") +
     plotsGetFacets(facets) +
     plotsGetTitles(paste(ifelse(length(facets)==0, "Global", ""), "Predictor Importance"), "", facets)
@@ -137,7 +137,7 @@ plotADMVarImp <- function(varimp)
 #   geom_col() +
 #   geom_text(aes(x=0,label=PredictorName),size=3,hjust=0,colour="black")+
 #   scale_fill_manual(values = xxx$Color)+
-#   guides(fill=F)
+#   guides(fill="none")
 
 
 #' Create bubble chart from ADM datamart model data.
@@ -164,7 +164,7 @@ plotADMPerformanceSuccessRateBubbleChart <- function(modeldata, aggregation=inte
 
   ggplot(modeldata, aes(100*Performance, Positives/ResponseCount, colour=Name, size=ResponseCount)) +
     geom_point(alpha=0.7) +
-    guides(colour=FALSE, size=FALSE)+
+    guides(colour="none", size="none")+
     scale_x_continuous(limits = c(50, 100), name = "AUC") +
     scale_y_continuous(limits = c(0, NA), name = "Success Rate", labels = scales::percent) +
     plotsGetFacets(facets) +
@@ -372,7 +372,7 @@ plotADMPredictorPerformance <- function(predictordata,
     if (length(unique(plotdata$Category))>1) {
       # use fill as well as line color
       plt <- plt + geom_boxplot(mapping = aes(fill=Category, linetype=Type, alpha=Type), lwd=0.5, outlier.size = 0.1) +
-        scale_alpha_discrete(limits = rev, guide=F)
+        scale_alpha_discrete(limits = rev, guide="none")
     } else {
       # only type available
       plt <- plt + geom_boxplot(mapping = aes(fill=Type), lwd=0.5, outlier.size = 0.1)
@@ -466,7 +466,7 @@ plotADMPredictorPerformanceMatrix <- function(predictordata,
     geom_raster(aes(fill=myGoodness(Performance))) +
     scale_fill_gradient2(low="red", mid="green", high="white", midpoint=0.50) +
     geom_text(aes(label=sprintf("%.2f",Performance)), size=2)+
-    guides(fill=F) +
+    guides(fill="none") +
     xlab("") +
     scale_y_discrete(limits=rev, name="") +
     theme(axis.text.x = element_text(size=8, angle = 45, hjust = 1)) +
@@ -518,7 +518,7 @@ plotADMPropositionSuccessRates <- function(modeldata,
     # geom_text(aes(label=sprintf("%.2f%%", 100*`Success Rate`)), color="blue", hjust=0.5, size=2)+
     geom_text(aes(x=0, label=plotsAbbreviateName(Proposition)), color="black", hjust=0, size=2)+
     scale_x_continuous(labels=percent) +
-    guides(fill=FALSE) +
+    guides(fill="none") +
     ylab("") +
     theme(axis.text.y = element_text(hjust = 1, size=6)) +
     plotsGetFacets(facets, scales="free_y") +

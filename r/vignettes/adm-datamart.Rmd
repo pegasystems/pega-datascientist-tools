@@ -138,7 +138,7 @@ ggplot(performanceSummary[KS > 0.01],
   labs(x="",y="",title="Kolmogorov–Smirnov scores")+
   geom_text(aes(label=sprintf("%.2f%%",100*KS)), size=2)+
   scale_fill_brewer(palette="Spectral")+
-  guides(fill=F)+
+  guides(fill="none")+
   theme(axis.text.x = element_text(size=6),
         axis.text.y = element_text(size=6))+
   scale_x_discrete(position = "top")

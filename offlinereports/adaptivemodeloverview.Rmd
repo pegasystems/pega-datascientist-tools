@@ -100,7 +100,7 @@ droppedMdls
 ```{r}
 hasLargeModelList <- (length(unique(mdls$Name)) > 10)
 if (hasLargeModelList) {
-  propositionLegendForSmallNumbersOnly <- scale_color_discrete_qualitative(guide=F, name="Action")
+  propositionLegendForSmallNumbersOnly <- scale_color_discrete_qualitative(guide="none", name="Action")
 } else {
   propositionLegendForSmallNumbersOnly <- scale_color_discrete_qualitative(name="Action")
 }
