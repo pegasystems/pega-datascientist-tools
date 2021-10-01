@@ -3,7 +3,7 @@ library(testthat)
 context("Toplevel Examples")
 
 test_that("example folder exists", {
-  exampleFolder <- normalizePath(file.path("../../..", "examples"), mustWork = T)
+  exampleFolder <- normalizePath(file.path("../../..", "examples"))
 
   print("Example folder check")
   print(getwd())
