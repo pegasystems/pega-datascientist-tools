@@ -27,7 +27,11 @@ theme_set(theme_minimal())
 
 # ADM Model Report Dissected
 
-We will use one of the shipped datamart exports for the example. This is a model very similar to one used in some of the ADM PowerPoint/Excel deep dive examples. To load your own data, see the vignette on ADM reporting for examples.
+This notebook shows exactly how all the values in an ADM model report are
+calculated. It also shows how the propensity is calculated for a particular
+customer.
+
+We use one of the shipped datamart exports for the example. This is a model very similar to one used in some of the ADM PowerPoint/Excel deep dive examples. To load your own data, see the vignette on ADM reporting for examples.
 
 ```{r}
 library(cdhtools)
@@ -37,6 +41,13 @@ data(admdatamart_models)
 data(admdatamart_binning)
 ```
 
+For the example we use one particular model: FirstMortgage over SMS. You can
+use your own data and select a different model.
+
+To explain the ADM model report, we use the "AnnualIncome" predictor as an
+example. This too can be swapped for any other predictor when using different
+data.
+
 ```{r}
 model <- latestSnapshotsOnly(admdatamart_models) [Name == "FirstMortgage" & Channel == "SMS"]
 modelpredictors <- latestSnapshotsOnly(admdatamart_binning[ModelID == model$ModelID & EntryType != "Inactive"])
@@ -44,9 +55,10 @@ modelpredictors <- latestSnapshotsOnly(admdatamart_binning[ModelID == model$Mode
 predictorbinning <- modelpredictors[PredictorName == "Customer.AnnualIncome"][order(BinIndex)]
 ```
 
-## Model overview
+# Model overview
 
-The selected model is:
+The selected model is shown below. Only the currently active predictors are
+used for the propensity calculation, so only showing those.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 library(knitr)
@@ -63,7 +75,8 @@ kable(t(modelmetadata))  %>%
 
 ## Predictor binning for `r predictorbinning$PredictorName[1]`
 
-The ADM model report will show predictor binning similar to this, with all displayed data coming from fields in the ADM data mart:
+The ADM model report will show predictor binning similar to this, with all displayed data coming from fields in the ADM data mart. 
+In subsequent sections we'll show how all the data is derived from the number of positives and negatives in each of the bins.
 
 ```{r, echo=FALSE}
 predictormetadata <- data.table(Name = predictorbinning$PredictorName[1],
@@ -97,9 +110,14 @@ kable(predictorbinning2) %>%
   kable_styling(bootstrap_options = "striped", full_width = F)
 ```
 
-# Simple ratios and totals
+# Bin statistics
 
-The counts of positive and negative responses in each bin are the only things that ADM tracks, the rest is derived from these. The percentages and totals are trivially derived, and the propensity is just the number of positives divided by the total as illustrated below:
+## Positive and Negative ratios
+
+Internally, ADM only keeps track of the total counts of positive and negative responses in each bin. Everything
+else is derived from those numbers. The percentages and totals are trivially derived, and the propensity is just 
+the number of positives divided by the total. The numbers calculated here match the numbers from the datamart
+table exactly.
 
 ```{r}
 binningDerived <- predictorbinning[, c(1,3,5)] # copy over only the labels, pos and neg counts
@@ -121,7 +139,7 @@ kable(binningDerived) %>%
 binningDerived[, Propensity := (Positives)/(Positives+Negatives)] # put back as we changed it for display purposes
 ```
 
-# Lift
+## Lift
 
 Lift is the ratio of the propensity in a particular bin over the average propensity. So a value of 1 is the average, larger than 1 means higher propensity, smaller means lower propensity:
 
@@ -142,9 +160,9 @@ kable(binningDerived) %>%
   column_spec(4, color = "blue") 
 ```
 
-# Z-Ratio
+## Z-Ratio
 
-The Z-Ratio is also a measure of the how the propensity in a bin differs from the average, but takes into account the size of the bin and thus is statistically more relevant. It represents the number of standard deviations from the average, so centres around 0. The wider the spread, the better the predictor is.
+The Z-Ratio is also a measure of the how the propensity in a bin differs from the average, but takes into account the size of the bin and thus is statistically more relevant. It represents the number of standard deviations from the average, so centers around 0. The wider the spread, the better the predictor is.
 
 $$\frac{posFraction-negFraction}{\sqrt(\frac{posFraction*(1-posFraction)}{\sum positives}+\frac{negFraction*(1-negFraction)}{\sum negatives})}$$ 
 
@@ -167,7 +185,8 @@ kable(binningDerived) %>%
 
 # Predictor AUC
 
-The predictor AUC is can be derived from the positives and negatives as well, e.g. using the *pROC* package.
+The predictor AUC is the univariate performance of this predictor against the
+outcome. This too can be derived from the positives and negatives, e.g. using the *pROC* package.
 
 ```{r, warning=F,message=F}
 library(pROC)
@@ -184,7 +203,7 @@ prediction = unlist(sapply(1:nrow(predictorbinning),
 plot.roc(response, prediction, print.auc=T, col="darkgreen", levels=c(T,F), direction=">")
 ```
 
-The AUC can also be calculated directly from the positives and negatives using a utility function in *cdhtools*:
+There is also a convenient function in *cdhtools* to calculate it directly from the positives and negatives:
 
 ```{r}
 cdhtools::auc_from_bincounts(predictorbinning$Positives, predictorbinning$Negatives)
@@ -211,7 +230,9 @@ kable(binningDerived) %>%
   column_spec(c(6,7), color = "blue") 
 ```
 
-## Propensity mapping
+# Propensity mapping
+
+## Log odds contribution for all the predictors
 
 To get to a propensity, the log odds of the relevant bins of the active predictors are added up and divided by the number of active predictors +1, then used to index in the classifier.
 
@@ -243,32 +264,48 @@ kable(binning) %>%
   column_spec(6, color = "blue") 
 ```
 
-Below the classifier mapping. On the x-axis the binned scores (log odds values), on the y-axis the returned propensities. The bin that contains the score we calculated above is highlighted.
+# Classifier
+
+The success rate is defined as $\frac{positives}{positives+negatives}$ per bin. 
+
+The adjusted propensity that is returned is a small modification (Laplace smoothing) to this and calculated as $\frac{0.5+positives}{1+positives+negatives}$ so empty models return a propensity of 0.5.
 
 ```{r, echo=F, warning=F, error=F}
 classifier <- modelpredictors[EntryType == "Classifier"][order(BinIndex)]
-classifier[, Propensity := BinPositives/(BinPositives+BinNegatives)]  # TODO small correction
+classifier[, Propensity := BinPositives/(BinPositives+BinNegatives)]
+classifier[, AdjustedPropensity := (0.5+BinPositives)/(1+BinPositives+BinNegatives)]
 
-score <- binning$`Log odds`[nrow(binning)]
+score <- binning$`Log odds`[nrow(binning)] # last one is the average log odds
 scorebin <- findInterval(score, as.numeric(classifier$BinLowerBound), left.open = T, all.inside = T)
+
+classifierTable <- userFriendlyADMBinning(classifier)
+
+kable(classifierTable) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  column_spec(c(2,3,4), bold = T, border_left = T, border_right = T) %>%
+  column_spec(c(7), color = "blue") 
 ```
 
-The score `r score` falls in bin `r scorebin` of the classifier, so for this set of inputs, the model returns a propensity of `r sprintf("%.2f%%", 100*classifier$Propensity[scorebin])`.
+
+# Final propensity
+
+Below the classifier mapping. On the x-axis the binned scores (log odds values), on the y-axis the returned propensities. The bin that contains the score we calculated above is highlighted.
+
+The score `r score` falls in bin `r scorebin` of the classifier, so for this set of inputs, the model returns a propensity of `r sprintf("%.2f%%", 100*classifier$AdjustedPropensity[scorebin])`.
 
 ```{r, echo=F}
-classifierBinning <- modelpredictors[PredictorName=="Classifier"]
-
-successRateMax <- max(classifierBinning$BinPositives/classifierBinning$BinResponseCount, na.rm = T)
+successRateMax <- max(classifier$Propensity, na.rm = T)
 if (0 == successRateMax) { successRateMax <- 1 }
-secAxisFactor <- ceiling(max(classifierBinning$BinResponseCount)/successRateMax)
+secAxisFactor <- ceiling(max(classifier$BinResponseCount)/successRateMax)
 
   # geom_col(aes(y=(BinPositives+BinNegatives)/secAxisFactor), classifier[BinIndex == scorebin], fill="steelblue3")+
   # geom_col(aes(y=(BinPositives+BinNegatives)/secAxisFactor), classifier[BinIndex != scorebin], fill="grey")+
 
-plotADMBinning(classifierBinning) +
-      geom_col(aes(y=BinResponseCount/secAxisFactor), classifierBinning[BinIndex != scorebin], fill="grey")+
-      geom_col(aes(y=BinResponseCount/secAxisFactor), classifierBinning[BinIndex == scorebin], fill="steelblue3")+
+plotADMBinning(classifier) +
+      geom_col(aes(y=BinResponseCount/secAxisFactor), classifier[BinIndex != scorebin], fill="grey")+
+      geom_col(aes(y=BinResponseCount/secAxisFactor), classifier[BinIndex == scorebin], fill="steelblue3")+
       geom_line(colour="orange", size=2)+geom_point()+
-    geom_hline(data=classifierBinning[1,], mapping = aes(yintercept = Positives/(Positives+Negatives)),
-               colour="orange", linetype="dashed")
+    geom_hline(data=classifier[1,], mapping = aes(yintercept = Positives/(Positives+Negatives)),
+               colour="orange", linetype="dashed")+
+  geom_label(data=classifier[scorebin,], mapping=aes(label=sprintf("%.2f%%",100*AdjustedPropensity)), vjust=0, nudge_y = 0.01)
 ```
