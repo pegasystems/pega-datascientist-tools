@@ -6,7 +6,8 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Read a Pega dataset export file. — readDSExport • cdhtools</title>
+<title>Efficient read of newline-delimited JSON (NDJSON) (aka line-delimited JSON (LDJSON),
+JSON lines (JSONL), multi-line JSON), a common format for big data streaming. — readNDJSON • cdhtools</title>
 
 
 <!-- jquery -->
@@ -39,13 +40,10 @@
 
 
 
-<meta property="og:title" content="Read a Pega dataset export file. — readDSExport" />
-<meta property="og:description" content="readDSExport reads a dataset export file as exported and downloaded
-from Pega datasets. This export file is a zipped multi-line JSON file
-(http://jsonlines.org/). readDSExport will find the most recent
-file (Pega appends a datetime stamp) if given a folder, then unzips it into a
-temp folder and read the data into a data.table. You can also specify
-a full file name to the export or to a JSON file that you unpacked yourself." />
+<meta property="og:title" content="Efficient read of newline-delimited JSON (NDJSON) (aka line-delimited JSON (LDJSON),
+JSON lines (JSONL), multi-line JSON), a common format for big data streaming. — readNDJSON" />
+<meta property="og:description" content="Efficient read of newline-delimited JSON (NDJSON) (aka line-delimited JSON (LDJSON),
+JSON lines (JSONL), multi-line JSON), a common format for big data streaming." />
 
 
 
@@ -135,64 +133,39 @@ a full file name to the export or to a JSON file that you unpacked yourself." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Read a Pega dataset export file.</h1>
+    <h1>Efficient read of newline-delimited JSON (NDJSON) (aka line-delimited JSON (LDJSON),
+JSON lines (JSONL), multi-line JSON), a common format for big data streaming.</h1>
     
-    <div class="hidden name"><code>readDSExport.Rd</code></div>
+    <div class="hidden name"><code>readNDJSON.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p><code>readDSExport</code> reads a dataset export file as exported and downloaded
-from Pega datasets. This export file is a zipped multi-line JSON file
-(<a href='http://jsonlines.org/'>http://jsonlines.org/</a>). <code>readDSExport</code> will find the most recent
-file (Pega appends a datetime stamp) if given a folder, then unzips it into a
-temp folder and read the data into a <code>data.table</code>. You can also specify
-a full file name to the export or to a JSON file that you unpacked yourself.</p>
+    <p>Efficient read of newline-delimited JSON (NDJSON) (aka line-delimited JSON (LDJSON),
+JSON lines (JSONL), multi-line JSON), a common format for big data streaming.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>readDSExport</span><span class='op'>(</span>
-  <span class='va'>instancename</span>,
-  srcFolder <span class='op'>=</span> <span class='st'>"."</span>,
-  tmpFolder <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/tempfile.html'>tempdir</a></span><span class='op'>(</span>check <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span>,
-  excludeComplexTypes <span class='op'>=</span> <span class='cn'>T</span>,
-  acceptJSONLines <span class='op'>=</span> <span class='cn'>NULL</span>,
-  stringsAsFactors <span class='op'>=</span> <span class='cn'>F</span>
-<span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>readNDJSON</span><span class='op'>(</span><span class='va'>jsonFiles</span>, acceptJSONLines <span class='op'>=</span> <span class='cn'>NULL</span>, dropColumns <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='op'>)</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>instancename</th>
-      <td><p>Name of the file w/o the timestamp, in Pega format
-&lt;Applies To&gt;_&lt;Instance Name&gt;, or the complete filename of the dataset
-export file, or a specific JSON file. If none of these work it will try
-to interpret the instancename as a pattern to <code>list.files</code> to match
-multiple JSON files.</p></td>
-    </tr>
-    <tr>
-      <th>srcFolder</th>
-      <td><p>Optional folder to look for the file (defaults to the
-current folder)</p></td>
-    </tr>
-    <tr>
-      <th>tmpFolder</th>
-      <td><p>Optional folder to store the unzipped data (defaults to a temp folder)</p></td>
-    </tr>
-    <tr>
-      <th>excludeComplexTypes</th>
-      <td><p>Flag to not return complex embedded types,
-defaults to T so not including nested lists/data frames</p></td>
+      <th>jsonFiles</th>
+      <td><p>Either a single file with the JSON data, a folder that
+we read the</p></td>
     </tr>
     <tr>
       <th>acceptJSONLines</th>
       <td><p>Optional filter function. If given, this is applied
 to the lines with JSON data and only those lines for which the function
 returns TRUE will be parsed. This is just for efficiency when reading
-really big files so you can filter rows early.</p></td>
+really big files so you can filter rows early. This would most typically
+be used internally when called from <code>readDSExport</code> and related.</p></td>
     </tr>
     <tr>
-      <th>stringsAsFactors</th>
-      <td><p>Logical (default is FALSE). Convert all character columns to factors?</p></td>
+      <th>dropColumns</th>
+      <td><p>Optional list if columns that will be dropped. Dropping
+will happen after converting (batches of) data to <code>data.table</code>.</p></td>
     </tr>
     </table>
 
@@ -201,13 +174,7 @@ really big files so you can filter rows early.</p></td>
     <p>A <code>data.table</code> with the contents</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><div class='input'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='fu'>readDSExport</span><span class='op'>(</span><span class='st'>"Data-Decision-ADM-ModelSnapshot_All"</span><span class='op'>)</span>
-<span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='fu'>readDSExport</span><span class='op'>(</span><span class='st'>"Data-Decision-ADM-ModelSnapshot_All"</span>, <span class='st'>"~/Downloads"</span><span class='op'>)</span>
-<span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='fu'>readDSExport</span><span class='op'>(</span><span class='st'>"Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip"</span>,
-<span class='st'>"~/Downloads"</span><span class='op'>)</span>
-<span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='fu'>readDSExport</span><span class='op'>(</span><span class='st'>"~/Downloads/Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip"</span><span class='op'>)</span>
-<span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='fu'>readDSExport</span><span class='op'>(</span><span class='st'>"SampleApp-SR_DecisionResults.json"</span>, <span class='st'>"data"</span><span class='op'>)</span>
-<span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='fu'>readDSExport</span><span class='op'>(</span><span class='st'>"json$"</span>, <span class='st'>"create_hds/data"</span><span class='op'>)</span>
+    <pre class="examples"><div class='input'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='fu'>readNDJSON</span><span class='op'>(</span><span class='st'>"datamart.json"</span><span class='op'>)</span>
 </div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

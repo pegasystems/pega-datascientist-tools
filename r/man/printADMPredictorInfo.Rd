@@ -4,9 +4,11 @@
 \alias{printADMPredictorInfo}
 \title{HTML snippet with predictor info.}
 \usage{
-printADMPredictorInfo(binning, extra = list())
+printADMPredictorInfo(predictorName, binning, extra = list())
 }
 \arguments{
+\item{predictorName}{Name of the predictor.}
+
 \item{binning}{Binning of the predictor.}
 
 \item{extra}{Optional list with extra key-value pairs added to the list.}

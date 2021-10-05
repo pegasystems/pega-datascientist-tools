@@ -621,7 +621,7 @@ plotADMCumulativeLift <- function(binning)
 #' \dontrun{
 #' plotADMBinning(predictorbinning[PredictorName=="NetWealth"])
 #' }
-plotADMBinning <- function(binning, useSmartLabels = T)
+plotADMBinning <- function(binning, useSmartLabels = T) # TODO consider adding laplaceSmoothing = F to add 0.5 and 1.0
 {
   binning[, BinIndex := as.numeric(BinIndex)] # just in case
   setorder(binning, BinIndex)

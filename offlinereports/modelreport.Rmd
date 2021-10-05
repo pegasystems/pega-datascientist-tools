@@ -352,7 +352,7 @@ for (f in unique(modelPredictorBins[EntryType == "Active"]$PredictorName)) {
     }
     
     # Table prelude with some overall info about the predictor
-    printADMPredictorInfo(predictorBinning, extraPredInfo)
+    printADMPredictorInfo(f, predictorBinning, extraPredInfo)
 
     # colour names: http://sape.inf.usi.ch/quick-reference/ggplot2/colour
     

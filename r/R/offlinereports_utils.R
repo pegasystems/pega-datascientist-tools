@@ -3,11 +3,12 @@
 #' Prints (cat) HTML snippet with predictor level info from a \code{data.table} with
 #' the predictor binning.
 #'
+#' @param predictorName Name of the predictor.
 #' @param binning Binning of the predictor.
 #' @param extra Optional list with extra key-value pairs added to the list.
 #'
 #' @export
-printADMPredictorInfo <- function(binning, extra = list())
+printADMPredictorInfo <- function(predictorName, binning, extra = list())
 {
   # predictorinfo <- as.list(modelPredictorBins[PredictorName==f][1])
 
@@ -20,7 +21,7 @@ printADMPredictorInfo <- function(binning, extra = list())
 
   kvps <- c(kvps, extra)
 
-  cat(paste0("\n<p></p>## ", f, "\n<p></p>"))
+  cat(paste0("\n<p></p>## ", predictorName, "\n<p></p>"))
   cat("\n<p></p>|Field|Value|\n")
   cat("|---|---|\n")
 

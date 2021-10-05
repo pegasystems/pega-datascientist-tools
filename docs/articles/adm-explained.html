@@ -84,14 +84,14 @@
 
       
 
-      </header><script src="adm-explained_files/header-attrs-2.8/header-attrs.js"></script><script src="adm-explained_files/kePrint-0.0.1/kePrint.js"></script><link href="adm-explained_files/lightable-0.0.1/lightable.css" rel="stylesheet">
+      </header><script src="adm-explained_files/header-attrs-2.11/header-attrs.js"></script><script src="adm-explained_files/kePrint-0.0.1/kePrint.js"></script><link href="adm-explained_files/lightable-0.0.1/lightable.css" rel="stylesheet">
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>adm-explained</h1>
                         <h4 class="author">Pega</h4>
             
-            <h4 class="date">2021-06-09</h4>
+            <h4 class="date">2021-10-05</h4>
       
       
       <div class="hidden name"><code>adm-explained.Rmd</code></div>
@@ -103,22 +103,26 @@
 <div id="adm-model-report-dissected" class="section level1">
 <h1 class="hasAnchor">
 <a href="#adm-model-report-dissected" class="anchor"></a>ADM Model Report Dissected</h1>
-<p>We will use one of the shipped datamart exports for the example. This is a model very similar to one used in some of the ADM PowerPoint/Excel deep dive examples. To load your own data, see the vignette on ADM reporting for examples.</p>
+<p>This notebook shows exactly how all the values in an ADM model report are calculated. It also shows how the propensity is calculated for a particular customer.</p>
+<p>We use one of the shipped datamart exports for the example. This is a model very similar to one used in some of the ADM PowerPoint/Excel deep dive examples. To load your own data, see the vignette on ADM reporting for examples.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">cdhtools</span><span class="op">)</span>
 <span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com">data.table</a></span><span class="op">)</span>
 
 <span class="fu"><a href="https://rdrr.io/r/utils/data.html">data</a></span><span class="op">(</span><span class="va">admdatamart_models</span><span class="op">)</span>
 <span class="fu"><a href="https://rdrr.io/r/utils/data.html">data</a></span><span class="op">(</span><span class="va">admdatamart_binning</span><span class="op">)</span></code></pre></div>
+<p>For the example we use one particular model: FirstMortgage over SMS. You can use your own data and select a different model.</p>
+<p>To explain the ADM model report, we use the “AnnualIncome” predictor as an example. This too can be swapped for any other predictor when using different data.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/latestSnapshotsOnly.html">latestSnapshotsOnly</a></span><span class="op">(</span><span class="va">admdatamart_models</span><span class="op">)</span> <span class="op">[</span><span class="va">Name</span> <span class="op">==</span> <span class="st">"FirstMortgage"</span> <span class="op">&amp;</span> <span class="va">Channel</span> <span class="op">==</span> <span class="st">"SMS"</span><span class="op">]</span>
 <span class="va">modelpredictors</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/latestSnapshotsOnly.html">latestSnapshotsOnly</a></span><span class="op">(</span><span class="va">admdatamart_binning</span><span class="op">[</span><span class="va">ModelID</span> <span class="op">==</span> <span class="va">model</span><span class="op">$</span><span class="va">ModelID</span> <span class="op">&amp;</span> <span class="va">EntryType</span> <span class="op">!=</span> <span class="st">"Inactive"</span><span class="op">]</span><span class="op">)</span>
 
 <span class="va">predictorbinning</span> <span class="op">&lt;-</span> <span class="va">modelpredictors</span><span class="op">[</span><span class="va">PredictorName</span> <span class="op">==</span> <span class="st">"Customer.AnnualIncome"</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setorder.html">order</a></span><span class="op">(</span><span class="va">BinIndex</span><span class="op">)</span><span class="op">]</span></code></pre></div>
-<div id="model-overview" class="section level2">
-<h2 class="hasAnchor">
-<a href="#model-overview" class="anchor"></a>Model overview</h2>
-<p>The selected model is:</p>
+</div>
+<div id="model-overview" class="section level1">
+<h1 class="hasAnchor">
+<a href="#model-overview" class="anchor"></a>Model overview</h1>
+<p>The selected model is shown below. Only the currently active predictors are used for the propensity calculation, so only showing those.</p>
 <table class="table table table-striped"><tbody>
 <tr>
 <td style="text-align:left;font-weight: bold;">
@@ -161,11 +165,10 @@ Model Performance (AUC)
 </td>
 </tr>
 </tbody></table>
-</div>
 <div id="predictor-binning-for-customer-annualincome" class="section level2">
 <h2 class="hasAnchor">
 <a href="#predictor-binning-for-customer-annualincome" class="anchor"></a>Predictor binning for Customer.AnnualIncome</h2>
-<p>The ADM model report will show predictor binning similar to this, with all displayed data coming from fields in the ADM data mart:</p>
+<p>The ADM model report will show predictor binning similar to this, with all displayed data coming from fields in the ADM data mart. In subsequent sections we’ll show how all the data is derived from the number of positives and negatives in each of the bins.</p>
 <table class="table table table-striped"><tbody>
 <tr>
 <td style="text-align:left;font-weight: bold;">
@@ -446,10 +449,13 @@ Grand Total
 </table>
 </div>
 </div>
-<div id="simple-ratios-and-totals" class="section level1">
+<div id="bin-statistics" class="section level1">
 <h1 class="hasAnchor">
-<a href="#simple-ratios-and-totals" class="anchor"></a>Simple ratios and totals</h1>
-<p>The counts of positive and negative responses in each bin are the only things that ADM tracks, the rest is derived from these. The percentages and totals are trivially derived, and the propensity is just the number of positives divided by the total as illustrated below:</p>
+<a href="#bin-statistics" class="anchor"></a>Bin statistics</h1>
+<div id="positive-and-negative-ratios" class="section level2">
+<h2 class="hasAnchor">
+<a href="#positive-and-negative-ratios" class="anchor"></a>Positive and Negative ratios</h2>
+<p>Internally, ADM only keeps track of the total counts of positive and negative responses in each bin. Everything else is derived from those numbers. The percentages and totals are trivially derived, and the propensity is just the number of positives divided by the total. The numbers calculated here match the numbers from the datamart table exactly.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">binningDerived</span> <span class="op">&lt;-</span> <span class="va">predictorbinning</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">3</span>,<span class="fl">5</span><span class="op">)</span><span class="op">]</span> <span class="co"># copy over only the labels, pos and neg counts</span>
 <span class="va">binningDerived</span><span class="op">[</span>, <span class="va">`Responses %`</span> <span class="op">:=</span> <span class="op">(</span><span class="va">Positives</span><span class="op">+</span><span class="va">Negatives</span><span class="op">)</span><span class="op">/</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">Positives</span><span class="op">)</span><span class="op">+</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">Negatives</span><span class="op">)</span><span class="op">)</span><span class="op">]</span>
@@ -622,9 +628,9 @@ Propensity
 </tbody>
 </table>
 </div>
-<div id="lift" class="section level1">
-<h1 class="hasAnchor">
-<a href="#lift" class="anchor"></a>Lift</h1>
+<div id="lift" class="section level2">
+<h2 class="hasAnchor">
+<a href="#lift" class="anchor"></a>Lift</h2>
 <p>Lift is the ratio of the propensity in a particular bin over the average propensity. So a value of 1 is the average, larger than 1 means higher propensity, smaller means lower propensity:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">binningDerived</span><span class="op">[</span>, <span class="va">Lift</span> <span class="op">:=</span> <span class="op">(</span><span class="va">Positives</span><span class="op">/</span><span class="op">(</span><span class="va">Positives</span><span class="op">+</span><span class="va">Negatives</span><span class="op">)</span><span class="op">)</span> <span class="op">/</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">Positives</span><span class="op">)</span><span class="op">/</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">Positives</span><span class="op">+</span><span class="va">Negatives</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></code></pre></div>
@@ -731,10 +737,10 @@ Lift
 </tbody>
 </table>
 </div>
-<div id="z-ratio" class="section level1">
-<h1 class="hasAnchor">
-<a href="#z-ratio" class="anchor"></a>Z-Ratio</h1>
-<p>The Z-Ratio is also a measure of the how the propensity in a bin differs from the average, but takes into account the size of the bin and thus is statistically more relevant. It represents the number of standard deviations from the average, so centres around 0. The wider the spread, the better the predictor is.</p>
+<div id="z-ratio" class="section level2">
+<h2 class="hasAnchor">
+<a href="#z-ratio" class="anchor"></a>Z-Ratio</h2>
+<p>The Z-Ratio is also a measure of the how the propensity in a bin differs from the average, but takes into account the size of the bin and thus is statistically more relevant. It represents the number of standard deviations from the average, so centers around 0. The wider the spread, the better the predictor is.</p>
 <p><span class="math display">\[\frac{posFraction-negFraction}{\sqrt(\frac{posFraction*(1-posFraction)}{\sum positives}+\frac{negFraction*(1-negFraction)}{\sum negatives})}\]</span></p>
 <p>See also: <a href="http://techdocs.rpega.com/display/EPZ/2019/06/21/Z-ratio+calculation+in+ADM" class="uri">http://techdocs.rpega.com/display/EPZ/2019/06/21/Z-ratio+calculation+in+ADM</a>.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
@@ -886,10 +892,11 @@ Z-Ratio
 </tbody>
 </table>
 </div>
+</div>
 <div id="predictor-auc" class="section level1">
 <h1 class="hasAnchor">
 <a href="#predictor-auc" class="anchor"></a>Predictor AUC</h1>
-<p>The predictor AUC is can be derived from the positives and negatives as well, e.g. using the <em>pROC</em> package.</p>
+<p>The predictor AUC is the univariate performance of this predictor against the outcome. This too can be derived from the positives and negatives, e.g. using the <em>pROC</em> package.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="http://expasy.org/tools/pROC/">pROC</a></span><span class="op">)</span>
 
@@ -904,7 +911,7 @@ Z-Ratio
 
 <span class="fu"><a href="https://rdrr.io/pkg/pROC/man/plot.roc.html">plot.roc</a></span><span class="op">(</span><span class="va">response</span>, <span class="va">prediction</span>, print.auc<span class="op">=</span><span class="cn">T</span>, col<span class="op">=</span><span class="st">"darkgreen"</span>, levels<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="cn">T</span>,<span class="cn">F</span><span class="op">)</span>, direction<span class="op">=</span><span class="st">"&gt;"</span><span class="op">)</span></code></pre></div>
 <p><img src="adm-explained_files/figure-html/unnamed-chunk-12-1.png" width="672" style="display: block; margin: auto;"></p>
-<p>The AUC can also be calculated directly from the positives and negatives using a utility function in <em>cdhtools</em>:</p>
+<p>There is also a convenient function in <em>cdhtools</em> to calculate it directly from the positives and negatives:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu">cdhtools</span><span class="fu">::</span><span class="fu"><a href="../reference/auc_from_bincounts.html">auc_from_bincounts</a></span><span class="op">(</span><span class="va">predictorbinning</span><span class="op">$</span><span class="va">Positives</span>, <span class="va">predictorbinning</span><span class="op">$</span><span class="va">Negatives</span><span class="op">)</span>
 <span class="co">#&gt; [1] 0.6385368</span></code></pre></div>
@@ -1085,9 +1092,13 @@ Modified Log odds
 </tr>
 </tbody>
 </table>
-<div id="propensity-mapping" class="section level2">
+</div>
+<div id="propensity-mapping" class="section level1">
+<h1 class="hasAnchor">
+<a href="#propensity-mapping" class="anchor"></a>Propensity mapping</h1>
+<div id="log-odds-contribution-for-all-the-predictors" class="section level2">
 <h2 class="hasAnchor">
-<a href="#propensity-mapping" class="anchor"></a>Propensity mapping</h2>
+<a href="#log-odds-contribution-for-all-the-predictors" class="anchor"></a>Log odds contribution for all the predictors</h2>
 <p>To get to a propensity, the log odds of the relevant bins of the active predictors are added up and divided by the number of active predictors +1, then used to index in the classifier.</p>
 <p>Below an example. From all the active predictors of the model for we pick a value (in the middle for numerics, first symbol for symbolics) and show the (modified) log odds. These log odds values are averaged (added up and divided by number of active predictors + 1), and this is the “score” that is mapped to a propensity value by the classifier (which is constructed using the PAV(A) algorithm).</p>
 <table class="table table table-striped">
@@ -1853,10 +1864,472 @@ NA
 </tr>
 </tbody>
 </table>
-<p>Below the classifier mapping. On the x-axis the binned scores (log odds values), on the y-axis the returned propensities. The bin that contains the score we calculated above is highlighted.</p>
-<p>The score -0.0539169 falls in bin 8 of the classifier, so for this set of inputs, the model returns a propensity of 25.32%.</p>
-<p><img src="adm-explained_files/figure-html/unnamed-chunk-18-1.png" width="672" style="display: block; margin: auto;"></p>
 </div>
+</div>
+<div id="classifier" class="section level1">
+<h1 class="hasAnchor">
+<a href="#classifier" class="anchor"></a>Classifier</h1>
+<p>The success rate is defined as <span class="math inline">\(\frac{positives}{positives+negatives}\)</span> per bin.</p>
+<p>The adjusted propensity that is returned is a small modification (Laplace smoothing) to this and calculated as <span class="math inline">\(\frac{0.5+positives}{1+positives+negatives}\)</span> so empty models return a propensity of 0.5.</p>
+<table class="table table table-striped">
+<thead><tr>
+<th style="text-align:right;">
+Index
+</th>
+<th style="text-align:left;">
+Bin
+</th>
+<th style="text-align:right;">
+Positives
+</th>
+<th style="text-align:right;">
+Negatives
+</th>
+<th style="text-align:right;">
+Cum. Total (%)
+</th>
+<th style="text-align:right;">
+Success Rate (%)
+</th>
+<th style="text-align:right;">
+Adjusted Propensity (%)
+</th>
+<th style="text-align:right;">
+Cum. Positives (%)
+</th>
+<th style="text-align:right;">
+Z-Ratio
+</th>
+<th style="text-align:right;">
+Lift (%)
+</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+&lt;-1.33
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+0
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+4
+</td>
+<td style="text-align:right;">
+100.0000000
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:right;color: blue !important;">
+10.000000
+</td>
+<td style="text-align:right;">
+100.000000
+</td>
+<td style="text-align:right;">
+-2.001220
+</td>
+<td style="text-align:right;">
+0.0000
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+[-1.33, -0.15&gt;
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+89
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+860
+</td>
+<td style="text-align:right;">
+99.8986315
+</td>
+<td style="text-align:right;">
+9.378293
+</td>
+<td style="text-align:right;color: blue !important;">
+9.421053
+</td>
+<td style="text-align:right;">
+100.000000
+</td>
+<td style="text-align:right;">
+-8.399098
+</td>
+<td style="text-align:right;">
+55.6492
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+[-0.15, -0.11&gt;
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+95
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+775
+</td>
+<td style="text-align:right;">
+75.8489610
+</td>
+<td style="text-align:right;">
+10.919540
+</td>
+<td style="text-align:right;color: blue !important;">
+10.964409
+</td>
+<td style="text-align:right;">
+86.616541
+</td>
+<td style="text-align:right;">
+-6.036864
+</td>
+<td style="text-align:right;">
+64.7947
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+[-0.11, -0.1&gt;
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+31
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+189
+</td>
+<td style="text-align:right;">
+53.8013178
+</td>
+<td style="text-align:right;">
+14.090909
+</td>
+<td style="text-align:right;color: blue !important;">
+14.253394
+</td>
+<td style="text-align:right;">
+72.330827
+</td>
+<td style="text-align:right;">
+-1.203337
+</td>
+<td style="text-align:right;">
+83.6131
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+[-0.1, -0.09&gt;
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+36
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+198
+</td>
+<td style="text-align:right;">
+48.2260517
+</td>
+<td style="text-align:right;">
+15.384615
+</td>
+<td style="text-align:right;color: blue !important;">
+15.531915
+</td>
+<td style="text-align:right;">
+67.669173
+</td>
+<td style="text-align:right;">
+-0.639770
+</td>
+<td style="text-align:right;">
+91.2898
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+[-0.09, -0.06&gt;
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+106
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+457
+</td>
+<td style="text-align:right;">
+42.2959959
+</td>
+<td style="text-align:right;">
+18.827709
+</td>
+<td style="text-align:right;color: blue !important;">
+18.882979
+</td>
+<td style="text-align:right;">
+62.255639
+</td>
+<td style="text-align:right;">
+1.303568
+</td>
+<td style="text-align:right;">
+111.7205
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+[-0.06, -0.055&gt;
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+15
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+62
+</td>
+<td style="text-align:right;">
+28.0283832
+</td>
+<td style="text-align:right;">
+19.480519
+</td>
+<td style="text-align:right;color: blue !important;">
+19.871795
+</td>
+<td style="text-align:right;">
+46.315790
+</td>
+<td style="text-align:right;">
+0.587495
+</td>
+<td style="text-align:right;">
+115.5942
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+8
+</td>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+[-0.055, -0.05&gt;
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+20
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+59
+</td>
+<td style="text-align:right;">
+26.0770400
+</td>
+<td style="text-align:right;">
+25.316456
+</td>
+<td style="text-align:right;color: blue !important;">
+25.625000
+</td>
+<td style="text-align:right;">
+44.060150
+</td>
+<td style="text-align:right;">
+1.723199
+</td>
+<td style="text-align:right;">
+150.2237
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+9
+</td>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+[-0.05, -0.02&gt;
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+108
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+311
+</td>
+<td style="text-align:right;">
+24.0750127
+</td>
+<td style="text-align:right;">
+25.775656
+</td>
+<td style="text-align:right;color: blue !important;">
+25.833333
+</td>
+<td style="text-align:right;">
+41.052632
+</td>
+<td style="text-align:right;">
+4.451738
+</td>
+<td style="text-align:right;">
+152.9485
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+10
+</td>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+[-0.02, 0.03&gt;
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+103
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+271
+</td>
+<td style="text-align:right;">
+13.4566650
+</td>
+<td style="text-align:right;">
+27.540107
+</td>
+<td style="text-align:right;color: blue !important;">
+27.600000
+</td>
+<td style="text-align:right;">
+24.812030
+</td>
+<td style="text-align:right;">
+4.874566
+</td>
+<td style="text-align:right;">
+163.4184
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+11
+</td>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+[0.03, 0.085&gt;
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+49
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+80
+</td>
+<td style="text-align:right;">
+3.9787126
+</td>
+<td style="text-align:right;">
+37.984496
+</td>
+<td style="text-align:right;color: blue !important;">
+38.076923
+</td>
+<td style="text-align:right;">
+9.323308
+</td>
+<td style="text-align:right;">
+4.703074
+</td>
+<td style="text-align:right;">
+225.3937
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+12
+</td>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+[0.085, 0.995&gt;
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+5
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+7
+</td>
+<td style="text-align:right;">
+0.7095793
+</td>
+<td style="text-align:right;">
+41.666667
+</td>
+<td style="text-align:right;color: blue !important;">
+42.307692
+</td>
+<td style="text-align:right;">
+1.954887
+</td>
+<td style="text-align:right;">
+1.563071
+</td>
+<td style="text-align:right;">
+247.2431
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+13
+</td>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+&gt;=0.995
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+8
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+8
+</td>
+<td style="text-align:right;">
+0.4054739
+</td>
+<td style="text-align:right;">
+50.000000
+</td>
+<td style="text-align:right;color: blue !important;">
+50.000000
+</td>
+<td style="text-align:right;">
+1.203008
+</td>
+<td style="text-align:right;">
+2.223204
+</td>
+<td style="text-align:right;">
+296.6917
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="final-propensity" class="section level1">
+<h1 class="hasAnchor">
+<a href="#final-propensity" class="anchor"></a>Final propensity</h1>
+<p>Below the classifier mapping. On the x-axis the binned scores (log odds values), on the y-axis the returned propensities. The bin that contains the score we calculated above is highlighted.</p>
+<p>The score -0.0539169 falls in bin 8 of the classifier, so for this set of inputs, the model returns a propensity of 25.62%.</p>
+<p><img src="adm-explained_files/figure-html/unnamed-chunk-18-1.png" width="672" style="display: block; margin: auto;"></p>
 </div>
   </div>
 
