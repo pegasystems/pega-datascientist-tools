@@ -25,6 +25,8 @@ library(cdhtools)
 library(data.table)
 library(ggplot2)
 library(colorspace)
+library(lubridate)
+
 theme_set(theme_minimal())
 ```
 
@@ -34,7 +36,14 @@ Pull in data from the ADM datamart. For the predictor data we need the detailed
 bin level data, hence the flag to `readADMDatamartPredictorExport`. When using
 the generic `readDSExport` this is (obviously) not needed.
 
-```{r}
+```{r message=FALSE, warning=FALSE}
+library(cdhtools)
+
+data(admdatamart_models)
+data(admdatamart_binning)
+```
+
+```{r, eval=FALSE}
 admdatamart_models <- readADMDatamartModelExport("~/Downloads")
 admdatamart_binning <- readADMDatamartPredictorExport("~/Downloads", noBinning = F)
 ```
@@ -60,7 +69,7 @@ There is an additional method that turns the variable importance data into
 a `ggplot` plot.
 
 ```{r}
-admVarImpPlot(varimp)
+plotADMVarImp(varimp)
 ```
 
 ### Multiple configurations
@@ -72,7 +81,7 @@ Note how we add some decoration to the returned plot object.
 ```{r}
 varimp <- admVarImp(admdatamart_models, admdatamart_binning, facets = "ConfigurationName")
 
-admVarImpPlot(varimp) +
+plotADMVarImp(varimp) +
   scale_fill_continuous_diverging(palette="Tropic")
 ```
 
@@ -86,7 +95,7 @@ Some more decoration is added to the plot.
 varimp <- admVarImp(admdatamart_models[ConfigurationName=="OmniAdaptiveModel"], admdatamart_binning, 
                     facets = c("Issue", "Channel"))
 
-admVarImpPlot(varimp) +
+plotADMVarImp(varimp) +
   scale_fill_continuous_diverging(palette="Tropic") +
   theme(strip.background = element_rect(color="darkgrey", fill="grey", size=1.5, linetype="solid")
   )
