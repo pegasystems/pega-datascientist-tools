@@ -9,7 +9,7 @@ plotADMPredictorPerformance(
   modeldata = NULL,
   facets = ifelse(is.null(modeldata), "", "ConfigurationName"),
   limit = .Machine$integer.max,
-  predictorClassifier = defaultPredictorClassification
+  predictorClassifier = defaultPredictorCategorization
 )
 }
 \arguments{

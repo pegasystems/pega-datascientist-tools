@@ -1,25 +1,76 @@
-# Plot Control and Test groups conversion for the action/treatment combination
-# NBAD uses OOTB 2% of customers for random control group
-# Calculate z-score and visualize significance
-# Based on Accept and Reject outcomes.
-# For CTR use Clicked and Impression outcomes for Web. Set Total = Impression count,
-# do not sum with Clicked outcomes
+---
+title: "Control Group analysis on IH data"
+output:
+  html_document:
+    df_print: paged
+params:
+  outputfile:
+    value: "~/ModelsWithStatSignificantDiffFromRandom.csv"
+---
 
-
+```{r message=FALSE, warning=FALSE}
 library(cdhtools)
 library(data.table)
-library(lubridate)
 library(ggplot2)
+library(scales)
+library(colorspace)
+library(lubridate)
+library(kableExtra)
 library(tidyverse)
-library(ggthemr)
-library(arrow)
 
+theme_set(theme_minimal())
+```
+
+# Intro
+
+Plot Control and Test groups conversion for the action/treatment combination.
+
+NBAD by default uses OOTB 2% of customers for random control group. This
+notebook calculates the z-scores and visualizes the significance based on
+Accept and Reject outcomes.
+
+For CTR use Clicked and Impression outcomes for Web. Set Total = Impression count,
+do not sum with Clicked outcomes
+
+# Data
+
+By default uses the small IH sample that is part of the CDHTools package.
+
+To use your own data use use the *readDSExport* function with the json file
+as argument, or use *read_json_arrow* from the *arrow* package.
+
+Selects Web channel outcomes and set ActionID = Adaptive model identifier if using treatment level models
+Treatment level models is a preferred approach for NBAD based CDH implementations.
+
+Use Issue/Group/Name if using action level models
+
+```{r}
+data("ihsampledata")
+
+# standardized camel casing of fields
+applyUniformPegaFieldCasing(ihsampledata)
+
+# Both "Accept" and "Accepted" occur as labels - fix that for the reporting
+ihsampledata[Outcome == "Accept", Outcome := "Accepted"]
+
+ih <- ihsampledata
+
+ih <- ih %>%
+  filter((Outcome == "Accepted" |
+            Outcome == "Rejected") & (Channel == "Web")) %>%
+  mutate(ActionID = paste(Issue, "/", Group, "/", Name, "/", Treatment, sep = ""))
 
 # Filter IH data by action id filter: may be Issue/Group/Name/Treatment
 action_id_filter <- ""
 
-#Function to calculate Z-score, p-value and confidence interval,
-#as soon as R performs Chi^2 test. should be used if control group size > 30
+```
+
+# Calculations
+
+Function to calculate Z-score, p-value and confidence interval, as soon as R
+performs Chi^2 test should be used if control group size > 30.
+
+```{r}
 z.prop <-
   function(x1,
            x2,
@@ -63,27 +114,14 @@ z.prop <-
 substrLeft <- function(x, n) {
   substr(x, n + 1, nchar(x))
 }
+```
 
-#Load test data. Use read_json_arrow from arrow package to load huge datasets
-load("../../r/data/ihsampledata.rda")
 
-# Both "Accept" and "Accepted" occur as labels - fix that for the reporting
-ihsampledata[Outcome == "Accept", Outcome := "Accepted"]
+Calculate acceptance rate/click-through rate
 
-ih <- ihsampledata
+```{r}
 
-# standardized camel casing of fields
-applyUniformPegaFieldCasing(ih)
 
-#Select Web channel outcomes and set ActionID = Adaptive model identifier if using treatment level models
-#Treatment level models is a preferred approach for NBAD based CDH implementations
-#Use Issue/Group/Name if using action level models
-ih <- ih %>%
-  filter((Outcome == "Accepted" |
-            Outcome == "Rejected") & (Channel == "Web")) %>%
-  mutate(ActionID = paste(Issue, "/", Group, "/", Name, "/", Treatment, sep = ""))
-
-#Calculate acceptance rate/click-through rate
 ih_analysis <- ih %>%
   group_by(ActionID, Modelcontrolgroup, Outcome) %>%
   filter(Modelcontrolgroup != "") %>%
@@ -97,9 +135,11 @@ ih_analysis <- ih %>%
 #Filter out actions
 ih_action = filter(ih_analysis,
                    startsWith(ActionID, action_id_filter))
+```
 
-#Plot acceptance rate for test and control groups
-ggthemr("flat dark")
+# Plot acceptance rate for test and control groups
+
+```{r}
 hist_action_cmp <- ih_action %>%
   ggplot(aes(x = Modelcontrolgroup, y = Conversion)) +
   geom_col(aes(fill = Modelcontrolgroup),
@@ -115,8 +155,12 @@ hist_action_cmp <- ih_action %>%
   labs(y = "Accept Rate %", x = "Action/Treatment model", fill = "Group")
 
 hist_action_cmp
+```
 
-#Calculate Z-score and p-value
+
+# Calculate Z-score and p-value
+
+```{r}
 z_ih_action <- ih_action %>%
   pivot_wider(
     names_from = Modelcontrolgroup,
@@ -127,16 +171,22 @@ z_ih_action <- ih_action %>%
     z.prop(Accepted_Control, Accepted_Test, Total_Control, Total_Test)$ts.z
   ))
 
-#Plot Z-score
 z_test <- z_ih_action %>%
-  ggplot(aes(x = gsub("/", "\n", ModelName), y = ZScore)) +
+  ggplot(aes(x = gsub("/", "\n", ModelName), y = ZScore, fill = ZScore)) +
   geom_col() +
   ggtitle("Z-score") +
-  labs(y = "Z", x = "Action/Treatment")
+  labs(y = "Z", x = "Action/Treatment") +
+  scale_fill_continuous(guide="none")
 
 z_test
+```
 
-#Save a table of all models sorted by p-value. Useful to evaluate lift
+# Keep table with models sorted by p-value. 
+
+Saving the table to a file for external use.
+
+```{r}
+
 evaluate_models <- ih_action %>%
   pivot_wider(
     names_from = Modelcontrolgroup,
@@ -146,9 +196,12 @@ evaluate_models <- ih_action %>%
   mutate(ZScore = (
     z.prop(Accepted_Control, Accepted_Test, Total_Control, Total_Test)$ts.z
   ),
-  P.value = (
+  `P value` = (
     z.prop(Accepted_Control, Accepted_Test, Total_Control, Total_Test)$p.val
   )) %>%
-  arrange(P.value)
+  arrange(`P value`)
 
-write_excel_csv(evaluate_models, "~/ModelsWithStatSignificantDiffFromRandom.csv")
+write_excel_csv(evaluate_models, params$outputfile)
+
+evaluate_models %>% kbl() %>% kable_paper("hover", full_width = F)
+```

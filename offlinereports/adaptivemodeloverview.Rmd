@@ -194,6 +194,7 @@ if (!is.null(modelPredictorBins) && nrow(modelPredictorBins) > 0) {
 }
 ```
 
+### TODO: grouped by predictor category
 
 ### Predictor Importance in models
 
