@@ -607,21 +607,21 @@ class ADMReport(ModelReport):
         sns.heatmap(df_g.fillna(50).T, ax=ax, cmap=cmap, annot=True, fmt='.2f', vmin=50, vmax=100)
         bottom, top = ax.get_ylim()
         ax.set_ylim(bottom + 0.5, top - 0.5)
-        
-    def ImpactInfluence(X):
-        d = {}
-        d['Impact(%)'] = X['absIc'].max()
-        d['Influence(%)'] = (X['bin response count percentage']*X['absIc']/100).sum()
-        return pd.Series(d)
     
 
     def calculate_impact_influence(self, modelID=None, query={}):
+        def ImpactInfluence(X):
+            d = {}
+            d['Impact(%)'] = X['absIc'].max()
+            d['Influence(%)'] = (X['bin response count percentage']*X['absIc']/100).sum()
+            return pd.Series(d)
+        
         _df_g = self.latestPredModel[self.latestPredModel['predictor name']!='Classifier'].reset_index(drop=True)
         _df = self._apply_query(query, _df_g).reset_index(drop=True)
         if modelID:
             _df = _df[_df['model ID']==modelID].reset_index(drop=True)
         _df['absIc'] = np.abs(_df['bin positive percentage'] - _df['bin negative percentage'])
-        _df = _df.groupby(['model ID', 'predictor name']).apply(self.ImpactInfluence).reset_index().merge(
+        _df = _df.groupby(['model ID', 'predictor name']).apply(ImpactInfluence).reset_index().merge(
             df[['model ID', 'issue', 'group', 'channel', 'direction', 'model name']].drop_duplicates(), on='model ID')
         return _df.sort_values(['predictor name', 'Impact(%)'], ascending=[False, False])
 
