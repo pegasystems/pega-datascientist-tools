@@ -406,7 +406,7 @@ class ADMReport(ModelReport):
     def __init__(self, modelID, issue, group, channel, direction, modelName, 
                  positives, responses, performance, snapshot, predModelID, predName, 
                  predPerformance, binSymbol, binIndex, entryType, predictorType, 
-                 predSnapshot, binPositives, binResponses):
+                 predSnapshot, binPositives, binResponses, binPositivePer, binNegativePer, binResponseCountPer):
         """ Constructor of class ADMReport
         All the inout data to instantiate the class must be numpy arrays.
         If ADM data is obtained in csv format, each input array for this class is the corresponding
@@ -424,6 +424,9 @@ class ADMReport(ModelReport):
             predSnapshot (numpy array of datetime): predictor snapshot
             binPositives (numpy array): number of positives within bins
             binResponses (numpy array): total number of responses within bins
+            binPositivePer (numpy array): positive percentage within bins
+            binNegativePer (numpy array): negative percentage within bins
+            binResponseCountPer (numpy array): response count percentage within bins
 
         Attributes:
             predCols (list): name of columns in predictor dataframe
@@ -441,9 +444,13 @@ class ADMReport(ModelReport):
         self.predSnapshot = predSnapshot
         self.binPositives = binPositives
         self.binResponses = binResponses
+        self.binPositivePer = binPositivePer
+        self.binNegativePer = binNegativePer
+        self.binResponseCountPer = binResponseCountPer
         self._check_pred_data_shape()
         self.predCols = ['model ID', 'predictor name', 'predictor performance', 'bin symbol', 'bin index', 'entry type',
-                         'predictor type', 'bin positives', 'bin responses', 'predictor snapshot']
+                         'predictor type', 'bin positives', 'bin responses', 'bin positive perccentage', 
+                         'bin negative percentage', 'bin response count percentage', 'predictor snapshot']
         self.latestPredModel = self._create_pred_model_df()
 
 
@@ -466,7 +473,8 @@ class ADMReport(ModelReport):
         """
         _df = pd.DataFrame.from_dict(dict(
                 zip(self.predCols, [self.predModelID, self.predName, self.predPerformance, self.binSymbol, self.binIndex,
-                    self.entryType, self.predictorType, self.binPositives, self.binResponses, self.predSnapshot])))
+                    self.entryType, self.predictorType, self.binPositives, self.binResponses, self.binPositivePer,
+                                    self.binNegativePer, self.binResponseCountPer, self.predSnapshot])))
         idx = _df.groupby(['model ID', 'predictor name'])['predictor snapshot'].transform(max)==_df['predictor snapshot']
         _df = _df[idx]
         _df = self._calculate_success_rate(_df, 'bin positives', 'bin responses', 'bin propensity')
@@ -599,3 +607,30 @@ class ADMReport(ModelReport):
         sns.heatmap(df_g.fillna(50).T, ax=ax, cmap=cmap, annot=True, fmt='.2f', vmin=50, vmax=100)
         bottom, top = ax.get_ylim()
         ax.set_ylim(bottom + 0.5, top - 0.5)
+        
+    def ImpactInfluence(X):
+        d = {}
+        d['Impact(%)'] = X['absIc'].max()
+        d['Influence(%)'] = (X['bin response count percentage']*X['absIc']/100).sum()
+        return pd.Series(d)
+    
+
+    def calculate_impact_influence(self, modelID=None, query={}):
+        _df_g = self.latestPredModel[self.latestPredModel['predictor name']!='Classifier'].reset_index(drop=True)
+        _df = self._apply_query(query, _df_g).reset_index(drop=True)
+        if modelID:
+            _df = _df[_df['Model ID']==modelID].reset_index(drop=True)
+        _df['absIc'] = np.abs(_df['bin positive percentage'] - _df['bin negative percentage'])
+        _df = _df.groupby(['model ID', 'predictor name']).apply(ImpactInfluence).reset_index().merge(
+            df[['model ID', 'issue', 'group', 'channel', 'direction', 'model name']].drop_duplicates(), on='model ID')
+        return _df.sort_values(['predictor name', 'Impact(%)'], ascending=[False, False])
+
+    def plot_impact_influence(self, modelID, query={}, figsize=(12, 5)):
+        _df_g = calculate_impact_influence(_df, modelID=modelID, query=query)[[
+            'model ID', 'predictor name', 'Impact(%)', 'Influence(%)']].set_index(
+            ['model ID', 'predictor name']).stack().reset_index().rename(columns={'level_2':'metric', 0:'value'})
+        fig, ax = plt.subplots(figsize=figsize)
+        sns.barplot(x='predictor name', y='value', data=_df_g, hue='metric', ax=ax)
+        ax.legend(bbox_to_anchor=(1.01, 1),loc=2)
+        ax.set_ylabel('Metrics')
+
