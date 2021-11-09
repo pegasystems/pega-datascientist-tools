@@ -619,7 +619,7 @@ class ADMReport(ModelReport):
         _df_g = self.latestPredModel[self.latestPredModel['predictor name']!='Classifier'].reset_index(drop=True)
         _df = self._apply_query(query, _df_g).reset_index(drop=True)
         if modelID:
-            _df = _df[_df['Model ID']==modelID].reset_index(drop=True)
+            _df = _df[_df['model ID']==modelID].reset_index(drop=True)
         _df['absIc'] = np.abs(_df['bin positive percentage'] - _df['bin negative percentage'])
         _df = _df.groupby(['model ID', 'predictor name']).apply(ImpactInfluence).reset_index().merge(
             df[['model ID', 'issue', 'group', 'channel', 'direction', 'model name']].drop_duplicates(), on='model ID')
