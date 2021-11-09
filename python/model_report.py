@@ -621,7 +621,7 @@ class ADMReport(ModelReport):
         if modelID:
             _df = _df[_df['model ID']==modelID].reset_index(drop=True)
         _df['absIc'] = np.abs(_df['bin positive percentage'] - _df['bin negative percentage'])
-        _df = _df.groupby(['model ID', 'predictor name']).apply(ImpactInfluence).reset_index().merge(
+        _df = _df.groupby(['model ID', 'predictor name']).apply(self.ImpactInfluence).reset_index().merge(
             df[['model ID', 'issue', 'group', 'channel', 'direction', 'model name']].drop_duplicates(), on='model ID')
         return _df.sort_values(['predictor name', 'Impact(%)'], ascending=[False, False])
 
