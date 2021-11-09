@@ -626,7 +626,7 @@ class ADMReport(ModelReport):
         return _df.sort_values(['predictor name', 'Impact(%)'], ascending=[False, False])
 
     def plot_impact_influence(self, modelID, query={}, figsize=(12, 5)):
-        _df_g = calculate_impact_influence(_df, modelID=modelID, query=query)[[
+        _df_g = self.calculate_impact_influence(modelID=modelID, query=query)[[
             'model ID', 'predictor name', 'Impact(%)', 'Influence(%)']].set_index(
             ['model ID', 'predictor name']).stack().reset_index().rename(columns={'level_2':'metric', 0:'value'})
         fig, ax = plt.subplots(figsize=figsize)
