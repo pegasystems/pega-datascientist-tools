@@ -449,7 +449,7 @@ class ADMReport(ModelReport):
         self.binResponseCountPer = binResponseCountPer
         self._check_pred_data_shape()
         self.predCols = ['model ID', 'predictor name', 'predictor performance', 'bin symbol', 'bin index', 'entry type',
-                         'predictor type', 'bin positives', 'bin responses', 'bin positive perccentage', 
+                         'predictor type', 'bin positives', 'bin responses', 'bin positive percentage', 
                          'bin negative percentage', 'bin response count percentage', 'predictor snapshot']
         self.latestPredModel = self._create_pred_model_df()
 
