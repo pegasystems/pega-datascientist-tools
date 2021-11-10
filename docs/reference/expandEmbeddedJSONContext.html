@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Convert to a Pega date-time string. — toPRPCDateTime • cdhtools</title>
+<title>Expand embedded JSON in a column of a data.table into separate columns. — expandEmbeddedJSONContext • cdhtools</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,11 @@
 
 
 
-<meta property="og:title" content="Convert to a Pega date-time string. — toPRPCDateTime" />
-<meta property="og:description" content="Convert to a Pega date-time string." />
+<meta property="og:title" content="Expand embedded JSON in a column of a data.table into separate columns. — expandEmbeddedJSONContext" />
+<meta property="og:description" content="Mostly
+used to expand Name + Treatment that are embedded in the Name field as JSON
+strings. Other ADM context key modifications will also show as JSON in the
+Name fields, this utility will peel it apart." />
 
 
 
@@ -130,33 +133,45 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Convert to a Pega date-time string.</h1>
+    <h1>Expand embedded JSON in a column of a data.table into separate columns.</h1>
     
-    <div class="hidden name"><code>toPRPCDateTime.Rd</code></div>
+    <div class="hidden name"><code>expandEmbeddedJSONContext.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Convert to a Pega date-time string.</p>
+    <p>Mostly
+used to expand Name + Treatment that are embedded in the Name field as JSON
+strings. Other ADM context key modifications will also show as JSON in the
+Name fields, this utility will peel it apart.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>toPRPCDateTime</span><span class='op'>(</span><span class='va'>x</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>expandEmbeddedJSONContext</span><span class='op'>(</span><span class='va'>dt</span>, fieldName <span class='op'>=</span> <span class='st'>"Name"</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>x</th>
-      <td><p>A vector of valid date-time objects (valid for <code><a href='https://rdrr.io/r/base/strptime.html'>strftime</a></code>)</p></td>
+      <th>dt</th>
+      <td><p>The data.table to use</p></td>
+    </tr>
+    <tr>
+      <th>fieldName</th>
+      <td><p>The field name to look for embedded JSON. Defaults to Name.</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>A vector of string representations in the format used by Pega.</p>
+    <p>A data.table with the extra columns. If there is no JSON in the
+field returns the original data.table directly.</p>
+    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
+
+    <p>Called as part of the standard model read, but exposed so it can also be
+applied when reading data from different sources like a CSV file.</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><div class='input'><span class='fu'>toPRPCDateTime</span><span class='op'>(</span><span class='fu'><a href='https://rdrr.io/r/base/Sys.time.html'>Sys.time</a></span><span class='op'>(</span><span class='op'>)</span><span class='op'>)</span>
-</div><div class='output co'>#&gt; [1] "20211110T164429.601 GMT"</div></pre>
+    <pre class="examples"><div class='input'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='va'>models</span> <span class='op'>&lt;-</span> <span class='fu'>expandEmbeddedJSONContext</span><span class='op'>(</span><span class='va'>models</span><span class='op'>)</span>
+</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">
