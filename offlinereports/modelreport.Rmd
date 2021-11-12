@@ -24,7 +24,7 @@ params:
   modelid:
     # model ID found by examining the model table from the data mart; if there is just one model
     # in the predictor binning file it can be left empty
-    value: "7cf6a839-9eba-5765-8856-1031b1e60315" # default
+    value: "68e1d164-81e3-5da0-816c-0bbc3c20ac6c" # default
     #value: "016a8388-9c5f-55cb-85de-7de789a859b2" # 1
     # value: "ccb39edf-eb7d-54c6-8e56-cb3b70d35752"  # 2
     # value: "c70d6b91-1f2f-5680-84d3-f3abbd5112a7" # 3
