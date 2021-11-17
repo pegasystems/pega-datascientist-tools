@@ -44,9 +44,10 @@ plotsGetFacets <- function(facets, scales = "free")
   if (length(facets) == 0) return(NULL)
   if (length(facets) == 1 && facets == "") return(NULL)
 
-  facettingExpr <- paste( ifelse(length(setdiff(facets, facets[1]))==0,".",paste(setdiff(facets, facets[1]), collapse="+")), "~", facets[1] )
+  # facettingExpr <- paste( ifelse(length(setdiff(facets, facets[1]))==0,".",
+  #                                paste(setdiff(facets, facets[1]), collapse="+")), "~", facets[1] )
 
-  return(facet_wrap(facettingExpr, scales=scales))
+  return(facet_wrap(facets, scales=scales))
 }
 
 # Get plot title and subtitle adding in description of the facets
@@ -182,6 +183,7 @@ plotADMPerformanceSuccessRateBubbleChart <- function(modeldata, aggregation=inte
   facets <- plotsCheckFacetsExist(modeldata, facets)
 
   # TODO move color/size aes into geom_point so we can override
+  # OR allow for something to pass as color
 
   ggplot(modeldata, aes(100*Performance, Positives/ResponseCount, colour=Name, size=ResponseCount)) +
     geom_point(alpha=0.7) +
@@ -353,6 +355,9 @@ plotADMPredictorPerformance <- function(predictordata,
                                         categoryAggregateView = F,
                                         predictorTypeClassifier = ifelse(categoryAggregateView, F, identity),
                                         showWeightedPerformance = FALSE)
+
+  # TODO add length argument for abbrevating lengthy names
+
 {
   facets <- plotsCheckFacetsExist(modeldata, facets)
 
@@ -373,6 +378,7 @@ plotADMPredictorPerformance <- function(predictordata,
   }
 
   # abbreviate lengthy predictor names
+  # TODO check if this is actually working...
   plotdata[, PredictorName := factor(PredictorName)]
   plotdata[, predictorname_ori := PredictorName]
   levels(plotdata$PredictorName) <- sapply(levels(plotdata$PredictorName), plotsAbbreviateName)
