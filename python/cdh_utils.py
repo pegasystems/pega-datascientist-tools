@@ -10,13 +10,14 @@ of data analysis, reporting and monitoring.
 
 import pandas as pd
 import os 
+import errno
 import zipfile
 import re
 import numpy as np
 from sklearn.metrics import roc_auc_score
 import datetime
 
-def readDSExport(instanceName, srcFolder='.', tmpFolder='.'):
+def readDSExport(instanceName, srcFolder='.', tmpFolder='.', verbose=True):
     """Read a Pega dataset export file.
     Reads a dataset export file as exported and downloaded from Pega. The export
     file is formatted as a zipped multi-line JSON file, unzip it into a temp 
@@ -50,12 +51,10 @@ def readDSExport(instanceName, srcFolder='.', tmpFolder='.'):
         regex = re.compile('^' + instanceName + '_.*\\.zip$')
         instance_files = [f for f in files_dir if regex.search(f)]
         if len(instance_files) == 0:
-            #print(instanceName + ' instance not found')
-            #return None
-            raise Exception(instanceName + ' not found')
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), instanceName)
         mostRecentZip = sorted(instance_files, reverse=True)[0]
              
-    print(mostRecentZip)        
+    if verbose: print(mostRecentZip)
     # Remove json file if already exists
     jsonFile = tmpFolder + "/data.json"
     if os.path.exists(jsonFile):
