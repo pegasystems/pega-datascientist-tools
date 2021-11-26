@@ -9,6 +9,7 @@ of data analysis, reporting and monitoring.
 """
 
 import pandas as pd
+from pyarrow import json
 import os 
 import errno
 import zipfile
@@ -64,7 +65,10 @@ def readDSExport(instanceName, srcFolder='.', tmpFolder='.', verbose=True):
     zip_ref.extractall(tmpFolder)
     zip_ref.close()   
     # Read json and transform to pandas dataframe
-    df = pd.read_json(jsonFile, lines=True)
+    try: 
+        df = json.read_json(jsonFile).to_pandas()
+    except Exception:
+        df = pd.read_json(jsonFile, lines=True)
     return df
 
 
