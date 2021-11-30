@@ -4,7 +4,7 @@ import re
 import copy
 from typing import Optional, Tuple
 
-class SnapshotData:
+class ADMSnapshot:
     """Main class for importing, preprocessing and structuring Pega snapshot data."""
 
     def __init__(self, path, overwrite_mapping:Optional[dict] = None, **kwargs):
@@ -28,11 +28,11 @@ class SnapshotData:
 
         Examples
         --------
-        >>> Data =  SnapshotData(f"/CDHSample")
-        >>> Data =  SnapshotData(f"Data/Adaptive Models & Predictors Export",
+        >>> Data =  ADMSnapshot(f"/CDHSample")
+        >>> Data =  ADMSnapshot(f"Data/Adaptive Models & Predictors Export",
                     model_filename = "Data-Decision-ADM-ModelSnapshot_AdaptiveModelSnapshotRepo20201110T085543_GMT/data.json",
                     predictor_filename = "Data-Decision-ADM-PredictorBinningSnapshot_PredictorBinningSnapshotRepo20201110T084825_GMT/data.json")
-        >>> Data =  SnapshotData(f"Data/files",
+        >>> Data =  ADMSnapshot(f"Data/files",
                     model_filename = "ModelData.csv",
                     predictor_filename = "PredictorData.csv")
 
@@ -135,7 +135,7 @@ class SnapshotData:
             'ModelName': ['Name'], 
             'Positives': ['Positives'], 
             'Responses': ['Response', 'Responses', 'ResponseCount'], 
-            'ModelSnapshot': ['ModelSnapshot', 'SnapshotTime'],
+            'SnapshotTime': ['ModelSnapshot', 'SnapshotTime'],
             'PredictorName': ['PredictorName'],
             'Performance': ['Performance'],
             'EntryType': ['EntryType'],
@@ -220,8 +220,11 @@ class SnapshotData:
         """
         for col in {'Issue', 'Group', 'Channel', 'Direction', 'ModelName'} & set(df.columns):
             df[col] = df[col].astype(str) 
+        
+        for col in {'Performance', 'Positives', 'Negatives'} & set(df.columns):
+            df[col] = df[col].astype(int) 
         try: 
-            df['ModelSnapshot'] = pd.to_datetime(df['ModelSnapshot'])
+            df['SnapshotTime'] = pd.to_datetime(df['SnapshotTime'])
         except Exception:
             print("Warning: Unable to format timestamps.")
 
@@ -231,6 +234,6 @@ class SnapshotData:
     def last(df: pd.DataFrame) -> pd.DataFrame:
         """Property to retrieve only the last values for a given dataframe."""
         if 'ModelName' in df.columns: 
-            return df.sort_values('ModelSnapshot').groupby(['ModelID']).last()
+            return df.sort_values('SnapshotTime').groupby(['ModelID']).last()
         if 'PredictorName' in df.columns:
-            return df.sort_values('ModelSnapshot').groupby(['ModelID', 'PredictorName']).last()
+            return df.sort_values('SnapshotTime').groupby(['ModelID', 'PredictorName']).last()
