@@ -71,6 +71,7 @@ def readDSExport(file, path='.', verbose=True, **kwargs):
             from pyarrow import csv
             return csv.read_csv(file, **kwargs).to_pandas()
         except ImportError:
+            print("Can't import pyarrow, so defaulting to pandas. For faster imports, please install pyarrow.")
             return pd.read_csv(file, **kwargs)
         except OSError:
             raise FileNotFoundError(f"File {file} is not found.")
@@ -79,6 +80,7 @@ def readDSExport(file, path='.', verbose=True, **kwargs):
             from pyarrow import json
             return json.read_json(file, **kwargs).to_pandas()
         except ImportError:
+            print("Can't import pyarrow, so defaulting to pandas. For faster imports, please install pyarrow.")
             return pd.read_json(file, **kwargs)
         except OSError:
             raise FileNotFoundError(f"File {file} is not found.")
