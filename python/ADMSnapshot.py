@@ -197,13 +197,6 @@ class ADMSnapshot:
         return fields
     
 
-    def get_combined_data(self):
-        """Combines the model data and predictor data into one dataframe."""
-        lastPreds = self.last(self.predictorData)
-        lastModels = self.last(self.modelData)
-        combined = lastModels.merge(lastPreds, on='ModelID', how='right')
-        return combined
-
     @staticmethod
     def _set_types(df: pd.DataFrame) -> pd.DataFrame:
         """A method to change columns to their proper type
@@ -237,3 +230,23 @@ class ADMSnapshot:
             return df.sort_values('SnapshotTime').groupby(['ModelID']).last()
         if 'PredictorName' in df.columns:
             return df.sort_values('SnapshotTime').groupby(['ModelID', 'PredictorName']).last()
+        
+    def get_combined_data(self, modelData:pd.DataFrame = None, predictorData:pd.DataFrame = None) -> pd.DataFrame:
+        """Combines the model data and predictor data into one dataframe.
+        
+        Parameters
+        ----------
+        modelData : pd.DataFrame
+            Optional dataframe to override 'self.modelData' for merging
+        predictorData : pd.DataFrame
+            Optional dataframe to override 'self.predictorData' for merging
+        
+        Returns
+        -------
+        pd.DataFrame
+            The combined dataframe
+        """
+        lastPreds = self.last(self.predictorData) if predictorData is None else predictorData
+        lastModels = self.last(self.modelData) if modelData is None else modelData
+        combined = lastModels.merge(lastPreds, on='ModelID', how='right')
+        return combined
