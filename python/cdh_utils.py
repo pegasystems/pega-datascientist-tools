@@ -91,7 +91,7 @@ def readDSExport(file, path='.', verbose=True, **kwargs):
             raise FileNotFoundError(f"File {file} is not found.")
 
 
-def readZippedFile(file):
+def readZippedFile(file, verbose = False):
     """Read a zipped file.
     Reads a dataset export file as exported and downloaded from Pega. The export
     file is formatted as a zipped multi-line JSON file or CSV file
@@ -101,6 +101,8 @@ def readZippedFile(file):
     ----------
     file : str
         The full path to the file
+    verbose : str
+        Whether to print the names of the files within the unzipped file for debugging purposes
 
     Returns
     -------
@@ -110,6 +112,7 @@ def readZippedFile(file):
 
     with zipfile.ZipFile(file, mode='r') as z:
         files = z.namelist()
+        if verbose: print(files)
         if 'data.json' in files:
             with z.open('data.json') as file:
                 try:
@@ -139,10 +142,16 @@ def get_latest_file(path, target, verbose=False):
     ----------
     path : str
         The filepath where the data is stored
-    target : str ['modelData' or 'predictorData']
+    target : str in ['modelData', 'predictorData']
         Whether to look for data about the predictive models ('modelData')
         or the predictor bins ('predictorData')
+    verbose : bool
+        Whether to print all found files before comparing name criteria for debugging purposes
     
+    Returns
+    -------
+    str
+        The most recent file given the file name criteria.
     """
     default_model_names = [
         'Data-Decision-ADM-ModelSnapshot',
@@ -157,7 +166,7 @@ def get_latest_file(path, target, verbose=False):
         'predictor_binning_snapshots',
         'PRED_FACT'
     ]
-    supported = ['.json', '.csv', '.zip']
+    supported = ['.json', '.csv', '.zip', '.parquet']
 
     files_dir = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
     files_dir = [f for f in files_dir if os.path.splitext(f)[-1].lower() in supported]
