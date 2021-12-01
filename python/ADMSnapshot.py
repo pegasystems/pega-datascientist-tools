@@ -250,3 +250,7 @@ class ADMSnapshot:
         lastModels = self.last(self.modelData) if modelData is None else modelData
         combined = lastModels.merge(lastPreds, on='ModelID', how='right')
         return combined
+    
+    @staticmethod
+    def defaultPredictorCategorization(name:str) -> str:
+        raise NotImplemented
