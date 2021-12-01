@@ -124,6 +124,8 @@ def readZippedFile(file):
                     return csv.read_json(file).to_pandas()
                 except ImportError:
                     return pd.read_csv(file)
+        else:
+            raise FileNotFoundError("Cannot find a 'data' file in the zip folder.")
 
 
 def get_latest_file(path, target, verbose=False):
