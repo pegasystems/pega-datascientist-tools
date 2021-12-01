@@ -50,7 +50,7 @@ The `cdhtools` package ships with a small sample of IH data
 
 ```{r}
 data(ihsampledata, package="cdhtools")
-knitr::kable(head(ihsampledata,10))
+knitr::kable(head(ihsampledata, 5))
 ```
 
 Some of the columns in your dataset may represent date or date-time values. Pega will export these as strings in the
@@ -61,7 +61,7 @@ report and plot.
 for (f in c("pxOutcomeTime", "pxDecisionTime")) {
   ihsampledata[[f]] <- cdhtools::fromPRPCDateTime(ihsampledata[[f]])
 }
-summary(ihsampledata)
+summary(ihsampledata[,grepl("Time",names(ihsampledata)), with=F])
 ```
 
 With the data in place, you can now do the analyses you want. For the IH data we can for example plot accept rate over time.
@@ -71,17 +71,18 @@ of `cdhtools` heavily rely on it also.
 
 ```{r, warning=F}
 ihsampledata[, period := lubridate::as_date(pxOutcomeTime)]
-ihsampledata[, successRate := sum(pyOutcome=="Accepted")/.N, by=period]
-ggplot(ihsampledata, aes(period, successRate, fill=pyChannel)) + 
-  geom_col(position=position_dodge()) +
-  scale_fill_discrete_divergingx(name="Channel") +
+ihsampledata[, successRate := sum(pyOutcome=="Accepted")/.N, by=c("period","pyChannel")]
+ggplot(ihsampledata, aes(period, successRate, color=pyChannel)) + 
+  geom_line(size=1) +
+  # geom_col(position=position_dodge()) +
+  scale_color_discrete_qualitative(name="Channel", guide = guide_legend(reverse = TRUE)) +
   scale_y_continuous(limits = c(0, NA), name = "Success Rate", labels = scales::percent) +
   labs(title = "Success Rate over Time", x="Date")+
   theme_bw()+
   theme(axis.text.x=element_text(angle=45, hjust=1))
 ```
 
-But you can of course also use a different style, for example the style from the `tidyverse` universe:
+But you can of course also use a different plot style, for example from the `tidyverse` universe:
 
 ```{r, warning=F, message=F}
 library(tidyverse)

@@ -48,11 +48,18 @@ To explain the ADM model report, we use the "AnnualIncome" predictor as an
 example. This too can be swapped for any other predictor when using different
 data.
 
-```{r}
-model <- latestSnapshotsOnly(admdatamart_models) [Name == "FirstMortgage" & Channel == "SMS"]
-modelpredictors <- latestSnapshotsOnly(admdatamart_binning[ModelID == model$ModelID & EntryType != "Inactive"])
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+# Commented-out chunk useful to find a good example in the data
+modelsGoodPreds <- unique((latestSnapshotsOnly(admdatamart_binning) [TotalBins>4 & Type=="numeric" & EntryType == "Active"])$ModelID )
+latestSnapshotsOnly(admdatamart_models)[ModelID %in% modelsGoodPreds, c("Positives","Performance","ActivePredictors","Name","Channel")][order(-ActivePredictors)]
+print(unique(modelpredictors[TotalBins>4 & Type=="numeric" & EntryType == "Active"]$PredictorName))
+```
 
-predictorbinning <- modelpredictors[PredictorName == "Customer.AnnualIncome"][order(BinIndex)]
+```{r}
+model <- latestSnapshotsOnly(admdatamart_models) [Name == "AutoNew36Months" & Channel == "SMS"]
+modelpredictors <- latestSnapshotsOnly(admdatamart_binning)[ModelID == model$ModelID & EntryType != "Inactive"]
+
+predictorbinning <- modelpredictors[PredictorName == "IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount"][order(BinIndex)]
 ```
 
 # Model overview
@@ -289,9 +296,9 @@ kable(classifierTable) %>%
 
 # Final propensity
 
-Below the classifier mapping. On the x-axis the binned scores (log odds values), on the y-axis the returned propensities. The bin that contains the score we calculated above is highlighted.
+Below the classifier mapping. On the x-axis the binned scores (log odds values), on the y-axis the Success Rates. Note the returned propensities are following a slightly adjusted formula, see the table above. The bin that contains the calculated score is highlighted.
 
-The score `r score` falls in bin `r scorebin` of the classifier, so for this set of inputs, the model returns a propensity of `r sprintf("%.2f%%", 100*classifier$AdjustedPropensity[scorebin])`.
+The score *`r score`* falls in *bin `r scorebin`* of the classifier, so for this set of inputs, the model returns a propensity of `r sprintf("%.2f%%", 100*classifier$AdjustedPropensity[scorebin])`.
 
 ```{r, echo=F}
 successRateMax <- max(classifier$Propensity, na.rm = T)
@@ -307,5 +314,8 @@ plotADMBinning(classifier) +
       geom_line(colour="orange", size=2)+geom_point()+
     geom_hline(data=classifier[1,], mapping = aes(yintercept = Positives/(Positives+Negatives)),
                colour="orange", linetype="dashed")+
-  geom_label(data=classifier[scorebin,], mapping=aes(label=sprintf("%.2f%%",100*AdjustedPropensity)), vjust=0, nudge_y = 0.01)
+  geom_label(data=classifier[scorebin,], 
+             mapping=aes(label=sprintf("Returned Propensity: %.2f%%", 100*AdjustedPropensity)), 
+             y=classifier[scorebin,]$BinPositives/classifier[scorebin,]$BinResponseCount + 0.0002, 
+             vjust=0)
 ```

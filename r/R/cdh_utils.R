@@ -173,7 +173,7 @@ readDSExport <- function(instancename, srcFolder=".", tmpFolder=tempdir(check = 
     if (file.exists(zipFile)) {
       jsonFile <- file.path(tmpFolder,"data.json")
       if(file.exists(jsonFile)) file.remove(jsonFile)
-      utils::unzip(zipFile, exdir=tmpFolder)
+      utils::unzip(zipFile, exdir=tmpFolder) # consider passing files="data.json"
       if (!file.exists(jsonFile)) stop(paste("Expected Pega Dataset Export zipfile but",zipFile,"does not contain data.json"))
       multiLineJSON <- readLines(jsonFile)
       file.remove(jsonFile)

@@ -57,16 +57,34 @@ standardizeDatamartModelData <- function(dt, latestOnly)
   return(dt)
 }
 
-# If context of ADM models has been customized, additional context keys will
-# be represented as a JSON string in the pyName field. Here we try to detect
-# that and create proper fields instead of a JSON string.
-expandJSONContextInNameField <- function(dt)
+#' Expand embedded JSON in a column of a data.table into separate columns.
+#'
+#' Mostly
+#' used to expand Name + Treatment that are embedded in the Name field as JSON
+#' strings. Other ADM context key modifications will also show as JSON in the
+#' Name fields, this utility will peel it apart.
+#'
+#' Called as part of the standard model read, but exposed so it can also be
+#' applied when reading data from different sources like a CSV file.
+#'
+#' @param dt The data.table to use
+#' @param fieldName The field name to look for embedded JSON. Defaults to Name.
+#'
+#' @return A data.table with the extra columns. If there is no JSON in the
+#' field returns the original data.table directly.
+#' @export
+#'
+#' @examples
+#' \dontrun{models <- expandEmbeddedJSONContext(models)}
+expandEmbeddedJSONContext <- function(dt, fieldName = "Name")
 {
-  if (!is.factor(dt$Name)) {
-    dt[, Name := as.factor(Name)]
+  if (!is.factor(dt[[fieldName]])) {
+    dt[[fieldName]] <- as.factor(dt[[fieldName]])
   }
-  mapping <- data.table( OriginalName = levels(dt$Name) )
+  mapping <- data.table( OriginalName = levels(dt[[fieldName]]) )
   mapping[, isJSON := startsWith(OriginalName, "{") & endsWith(OriginalName, "}")]
+
+  # Exit if it doesn't seem to be a JSON string
   if (!any(mapping$isJSON)) return(dt)
 
   jsonFields <- rbindlist(lapply(mapping$OriginalName[mapping$isJSON], jsonlite::fromJSON, flatten=T), fill = T)
@@ -80,15 +98,15 @@ expandJSONContextInNameField <- function(dt)
   }
   applyUniformPegaFieldCasing(mapping) # apply uniform naming to new fields as well
 
-  dt <- merge(dt, mapping, by.x="Name", by.y="OriginalName")
-  if ("Name.y" %in% names(dt)) {
+  dt <- merge(dt, mapping, by.x=fieldName, by.y="OriginalName")
+  if (paste0(fieldName, ".y") %in% names(dt)) {
     # use name from JSON strings but only if present there
-    dt[, Name := factor(ifelse(is.na(Name.y), as.character(Name), as.character(Name.y)))]
-    dt[, Name.y := NULL]
+    dt[[fieldName]] <- factor(ifelse(is.na(dt[[paste0(fieldName, ".y")]]), as.character(dt[[fieldName]]), as.character(dt[[paste0(fieldName, ".y")]])))
+    dt[[paste0(fieldName, ".y")]] <- NULL
   }
+
   return(dt)
 }
-
 
 
 # TODO provide similar func for IH data - even only for demo scenarios that strips off internal fields
@@ -138,7 +156,7 @@ readADMDatamartModelExport <- function(srcFolder=".",
   }
 
   modelz <- standardizeDatamartModelData(modelz, latestOnly=latestOnly)
-  modelz <- expandJSONContextInNameField(modelz)
+  modelz <- expandEmbeddedJSONContext(modelz)
 
   return(modelz)
 }

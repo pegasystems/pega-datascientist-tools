@@ -6,6 +6,7 @@ output:
     df_print: paged
     toc: yes
   pdf_document: default
+always_allow_html: true
 params:
   # Below default values for the parameters. This notebook is usually launched from a (bash)script in which
   # these values are set. That also allows to run the notebook multiple times for different values.
@@ -127,7 +128,7 @@ breaks down especially with faceting, so use in this generic notebook is limited
 it can be great for more specific plots.
 
 ```{r Bubble Chart, message=FALSE, warning=FALSE}
-p <- plotADMPerformanceSuccessRateBubbleChart(mdls, facets = "ConfigurationName")
+p <- plotADMPerformanceSuccessRateBubbleChart(latestSnapshotsOnly(mdls), facets = "ConfigurationName")
 
 ggplotly(p) %>% layout(showlegend=FALSE) # %>% config(displayModeBar = F)
 ```
@@ -188,13 +189,22 @@ the box plots indicates the weighted performance (weighted by number of response
 
 ```{r Univariate Predictors Boxplot}
 if (!is.null(modelPredictorBins) && nrow(modelPredictorBins) > 0) {
-  plotADMPredictorPerformance(modelPredictorBins, limit = 40) + xlab("AUC")
+  plotADMPredictorPerformance(modelPredictorBins, limit = 30, predictorTypeClassifier = F) + xlab("AUC")
 } else {
   cat("Predictor related plots will only be available when the predictor data is available to this script.", fill=T)
 }
 ```
 
-### TODO: grouped by predictor category
+### Predictor performance by Category
+
+```{r Univariate Predictor Category Boxplot}
+if (!is.null(modelPredictorBins) && nrow(modelPredictorBins) > 0) {
+  plotADMPredictorPerformance(modelPredictorBins,  
+                              predictorTypeClassifier = F, categoryAggregateView = T) + xlab("AUC")
+} else {
+  cat("Predictor related plots will only be available when the predictor data is available to this script.", fill=T)
+}
+```
 
 ### Predictor Importance in models
 
@@ -206,7 +216,7 @@ each of the predictors).
 ```{r Predictor Importance per Model}
 if (!is.null(modelPredictorBins) && nrow(modelPredictorBins) > 0) {
   varimp <- admVarImp(mdls, modelPredictorBins, facets = "ConfigurationName")
-  p <- plotADMVarImp(varimp[Rank <= 20])
+  p <- plotADMVarImp(varimp[Rank <= 30])
   
   print(p + scale_fill_continuous_sequential())
 }
