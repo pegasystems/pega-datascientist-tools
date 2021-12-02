@@ -33,9 +33,9 @@ def readDSExport(file: Union[pd.DataFrame, str], path: str='.', verbose: bool=Tr
         or a string, in which case it can either be:
         - The name of the file (if a custom name) or
         - Whether we want to look for 'modelData' or 'predictorData' in the path folder.
-    path : str
+    path : str, default='.'
         The location of the file
-    verbose : bool
+    verbose : bool, default=True
         Whether to print out which file will be imported
     
     Keyword arguments:
@@ -107,7 +107,7 @@ def readZippedFile(file: str, verbose: bool = False) -> pd.DataFrame:
     ----------
     file : str
         The full path to the file
-    verbose : str
+    verbose : str, default=False
         Whether to print the names of the files within the unzipped file for debugging purposes
 
     Returns
@@ -151,7 +151,7 @@ def get_latest_file(path: str, target: str, verbose: bool=False) -> str:
     target : str in ['modelData', 'predictorData']
         Whether to look for data about the predictive models ('modelData')
         or the predictor bins ('predictorData')
-    verbose : bool
+    verbose : bool, default=False
         Whether to print all found files before comparing name criteria for debugging purposes
     
     Returns
@@ -295,14 +295,14 @@ def auc2GINI(auc:float) -> float:
     return (2*safe_range_auc(auc) - 1)
     
 
-def fromPRPCDateTime(x: str, return_string:bool = False) -> Union[datetime.datetime, str]:
+def fromPRPCDateTime(x: str, return_string: bool = False) -> Union[datetime.datetime, str]:
     """ Convert from a Pega date-time string.
     
     Parameters
     ----------
     x: str
         String of Pega date-time
-    return_string: bool
+    return_string: bool, default=False
         If True it will return the date in string format. If 
         False it will return in datetime type
 
