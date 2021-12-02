@@ -6,6 +6,7 @@ Various utilities to access and manipulate data from Pega for purposes
 of data analysis, reporting and monitoring.
 """
 
+from typing import List, Union
 import pandas as pd
 import os 
 import zipfile
@@ -14,7 +15,7 @@ import numpy as np
 from sklearn.metrics import roc_auc_score
 import datetime
 
-def readDSExport(file, path='.', verbose=True, **kwargs):
+def readDSExport(file: Union[pd.DataFrame, str], path: str='.', verbose: bool=True, **kwargs) -> pd.DataFrame:
     """Read a Pega dataset export file.
     Can accept either a Pandas DataFrame or one of the following formats:
     - .csv
@@ -39,6 +40,11 @@ def readDSExport(file, path='.', verbose=True, **kwargs):
     
     Keyword arguments:
         Any arguments to plug into the read csv or json function, from either PyArrow or Pandas.
+    
+    Returns
+    -------
+    pd.DataFrame
+        The read data from the given file
             
     Examples: 
         >>> df = readDSExport(file = 'modelData', path = './datamart')
@@ -91,7 +97,7 @@ def readDSExport(file, path='.', verbose=True, **kwargs):
             raise FileNotFoundError(f"File {file} is not found.")
 
 
-def readZippedFile(file, verbose = False):
+def readZippedFile(file: str, verbose: bool = False) -> pd.DataFrame:
     """Read a zipped file.
     Reads a dataset export file as exported and downloaded from Pega. The export
     file is formatted as a zipped multi-line JSON file or CSV file
@@ -131,7 +137,7 @@ def readZippedFile(file, verbose = False):
             raise FileNotFoundError("Cannot find a 'data' file in the zip folder.")
 
 
-def get_latest_file(path, target, verbose=False):
+def get_latest_file(path: str, target: str, verbose: bool=False) -> str:
     """Convenience method to find the latest model snapshot.
     It has a set of default names to search for and finds all files who match it.
     Once it finds all matching files in the directory, it chooses the most recent one.
@@ -190,8 +196,18 @@ def get_latest_file(path, target, verbose=False):
     paths = [os.path.join(path, name) for name in matches]
     return max(paths, key=os.path.getctime)
 
-def safe_range_auc(auc):
+def safe_range_auc(auc: float) -> float:
     """Internal helper to keep auc a safe number between 0.5 and 1.0 always.
+    
+    Parameters
+    ----------
+    auc : float
+        The AUC (Area Under the Curve) score
+    
+    Returns
+    -------
+    float
+        'Safe' AUC score, between 0.5 and 1.0
     """
     
     if np.isnan(auc):
@@ -200,18 +216,21 @@ def safe_range_auc(auc):
         return (0.5 + np.abs(0.5-auc))
     
 
-def auc_from_probs(groundtruth, probs):
-    """ Calculates AUC from an array of truth values and predictions.
+def auc_from_probs(groundtruth: List[int], probs: List[float]) -> List[float]:
+    """Calculates AUC from an array of truth values and predictions.
     Calculates the area under the ROC curve from an array of truth values and 
     predictions, making sure to always return a value between 0.5 and 1.0 and 
     will return 0.5 in case of any issues.
     
-    Args:
-        groundtruth: The 'true' values, Positive values must be represented as 
-            True or 1. Negative values must be represented as False or 0.
-        probs: The predictions, as a numeric vector as the same length as groundtruth
+    Parameters
+    ----------
+    groundtruth : List[int]
+        The 'true' values, Positive values must be represented as 
+        True or 1. Negative values must be represented as False or 0.
+    probs : List[float]
+        The predictions, as a numeric vector as the same length as groundtruth
     
-    Returns:
+    Returns : List[float]
         The AUC as a value between 0.5 and 1, return 0.5 if there are any issues
         with the data
         
@@ -224,18 +243,22 @@ def auc_from_probs(groundtruth, probs):
     return safe_range_auc(auc)
     
 
-def auc_from_bincounts(pos, neg):
-    """
-    Calculates AUC from counts of positives and negatives directly
+def auc_from_bincounts(pos: List[int], neg: List[int]) -> float:
+    """Calculates AUC from counts of positives and negatives directly
     This is an efficient calculation of the AUC directly from an array of positives
     and negatives. It makes sure to always return a value between 0.5 and 1.0
     and will return 0.5 in case of any issues.
     
-    Args:
-        pos: Vector with counts of the positive responses
-        neg: Vector with counts of the negative responses
+    Parameters
+    ----------
+    pos : List[int]
+        Vector with counts of the positive responses
+    neg: List[int]
+        Vector with counts of the negative responses
     
-    Returns:
+    Returns
+    -------
+    float
         The AUC as a value between 0.5 and 1, return 0.5 if there are any issues
         with the data.
         
@@ -252,14 +275,18 @@ def auc_from_bincounts(pos, neg):
 
 
 
-def auc2GINI(auc):
+def auc2GINI(auc:float) -> float:
     """
     Convert AUC performance metric to GINI
     
-    Args:
-        auc: The AUC (number between 0.5 and 1)
+    Parameters
+    ----------
+    auc: float
+        The AUC (number between 0.5 and 1)
         
-    Returns:
+    Returns
+    -------
+    float
         GINI metric, a number between 0 and 1
         
     Examples:
@@ -268,14 +295,20 @@ def auc2GINI(auc):
     return (2*safe_range_auc(auc) - 1)
     
 
-def fromPRPCDateTime(x, return_string = False):
+def fromPRPCDateTime(x: str, return_string:bool = False) -> Union[datetime.datetime, str]:
     """ Convert from a Pega date-time string.
     
-    Args:
-        x: String of Pega date-time
-        return_string: If True it will return the date in string format. If 
-            False it will return in datetime type
-    Returns:
+    Parameters
+    ----------
+    x: str
+        String of Pega date-time
+    return_string: bool
+        If True it will return the date in string format. If 
+        False it will return in datetime type
+
+    Returns
+    -------
+    Union[datetime.datetime, str]
         The converted date in datetime format or string.
         
     Examples:
@@ -283,7 +316,6 @@ def fromPRPCDateTime(x, return_string = False):
         >>> fromPRPCDateTime("20180316T134127.847 GMT", True)
         >>> fromPRPCDateTime("20180316T184127.846")
         >>> fromPRPCDateTime("20180316T184127.846", True)
-            
     """
     import pytz
     
@@ -318,34 +350,21 @@ def fromPRPCDateTime(x, return_string = False):
         return dt
     
 
-def toPRPCDateTime(x):
+def toPRPCDateTime(x: datetime.datetime) -> str:
     """ Convert to a Pega date-time string
     
-    Args:
-        x: A datetime object
+    Parameters
+    ----------
+    x: datetime.datetime
+        A datetime object
     
-    Returns:
+    Returns
+    -------
+    str
         A string representation in the format used by Pega
         
     Examples:
         >>> toPRPCDateTime(datetime.datetime.now())
-        
     """
     
     return x.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
