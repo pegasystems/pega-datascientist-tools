@@ -214,8 +214,12 @@ class ADMSnapshot:
         for col in {'Issue', 'Group', 'Channel', 'Direction', 'ModelName'} & set(df.columns):
             df[col] = df[col].astype(str) 
         
-        for col in {'Performance', 'Positives', 'Negatives'} & set(df.columns):
+        for col in {'Positives', 'Negatives'} & set(df.columns):
             df[col] = df[col].astype(int) 
+
+        for col in {'Performance'} & set(df.columns):
+            df[col] = df[col].astype(float) 
+
         try: 
             df['SnapshotTime'] = pd.to_datetime(df['SnapshotTime'])
         except Exception:
@@ -246,6 +250,8 @@ class ADMSnapshot:
         pd.DataFrame
             The combined dataframe
         """
+
+        #TODO: support multiple snapshots for combined data
         lastPreds = self.last(self.predictorData) if predictorData is None else predictorData
         lastModels = self.last(self.modelData) if modelData is None else modelData
         combined = lastModels.merge(lastPreds, on='ModelID', how='right')
