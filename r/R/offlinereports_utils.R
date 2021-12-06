@@ -75,7 +75,8 @@ userFriendlyADMBinning <- function(bins)
 #' as such will return model data with all snapshots, or predictor data for only
 #' the latest snapshot.
 #'
-#' @param file Name of the file. Can be a dataset export, a csv, a zip etc.
+#' @param file Name of the file. Can be a dataset export, a csv, a zip or
+#' a parquet file.
 #'
 #' @return A \code{data.table}
 #' @export
@@ -107,10 +108,14 @@ readDatamartFromFile <- function(file)
       # read with fread, unzipping on-the-fly; this might work only on Linux/Mac; consider making configurable or on error handler
       data <- fread(cmd=paste("unzip -p", gsub(" ", "\\ ", file, fixed = T)))
     }
-  } else {
-
-    # Plain read
+  } else if (endsWith(file, ".csv")) {
+    # CSV read
     data <- fread(file)
+  } else if (endsWith(file, ".parquet")) {
+    # Parquet format
+    data <- as.data.table(read_parquet(file))
+  } else {
+    stop(paste("Unknown source file type", file))
   }
 
   # Set names in universal way. May have been done already, will be harmless to do twice.
@@ -122,7 +127,7 @@ readDatamartFromFile <- function(file)
   }
 
   # some fields notoriously returned as char but are numeric
-  for (f in c("Performance", "Positives", "Negatives")) {
+  for (f in intersect(c("Performance", "Positives", "Negatives"), names(data))) {
     if (!is.numeric(data[[f]])) {
       data[[f]] <- as.numeric(data[[f]])
     }
@@ -146,7 +151,8 @@ readDatamartFromFile <- function(file)
 
   # Check for duplicate names - happens in some real life exports
   if (length(names(data)) != length(unique(names(data)))) {
-    warning(paste("Duplicate names in", file, ":", sort(names(data))))
+    warning(paste("Duplicate names in", file, ":",
+                  paste(as.character(data.table(name = names(data))[, .N,by=name][N>1]$name), collapse=", ")))
     return(NULL)
   }
 

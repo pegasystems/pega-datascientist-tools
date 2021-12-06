@@ -92,7 +92,7 @@ plotADMPerformanceSuccessRateBoxPlot(admdatamart_models_latest, "Channel") +
 The below plot shows the predictor performance across the selected models. It is similar to one of the reports in the set of out of the box reports available through the Report Browser ("Adaptive" category), however that one does not do a weighted average of the performance. This one does, so gives a more accurate picture.
 
 ```{r fig.height=9, fig.width=9, message=FALSE, warning=FALSE}
-plotADMPredictorPerformance(admdatamart_binning, admdatamart_models_latest) +
+plotADMPredictorImportance(admdatamart_binning, admdatamart_models_latest) +
         scale_fill_discrete_sequential(palette="SunsetDark") +
         theme(axis.text.y = element_text(size=8), strip.text = element_text(size=8))
 ```
@@ -100,7 +100,7 @@ plotADMPredictorPerformance(admdatamart_binning, admdatamart_models_latest) +
 You could also show the predictor performance in one plot across all predictors for all the selected models. Also arranging by performance in both dimensions gives a quick visual clue of which predictors and which models need attention.
 
 ```{r, warning=F, message=FALSE}
-plotADMPredictorPerformanceMatrix(admdatamart_binning_latest, admdatamart_models_latest, 
+plotADMPredictorImportanceMatrix(admdatamart_binning_latest, admdatamart_models_latest, 
                                   aggregation="Name") +
   theme(axis.text.y = element_text(size=6),
         axis.text.x = element_text(size=6, angle = 45, hjust = 1))
@@ -177,20 +177,16 @@ plotADMCumulativeLift (model[EntryType == "Classifier"]) +
 
 # Sensitity Analysis
 
-Showing the overall predictor contributions to the models. Behind the scenes
-the ADM models are translated to score cards, and the weights of all score card
-elements are used to determine the overall weight of the predictors.
+Showing the overall predictor contributions to the models.
 
 Here we "facet" by model rule (ConfigurationName) but you can also leave this
 out or facet by e.g. Channel or Issue.
 
-The provided plot function is fairly trivial. For simple use cases it will be
-sufficient and the plot can still be decorated using standard ggplot constructs
-as shown.
+## TODO: fix up using new predictor importance method
 
 ```{r fig.height=9, fig.width=9}
-varimp <- admVarImp(admdatamart_models_latest, admdatamart_binning, c("ConfigurationName"))
-plotADMVarImp(varimp) + 
+# varimp <- admVarImp(admdatamart_models_latest, admdatamart_binning, c("ConfigurationName"))
+plotADMPredictorImportance(admdatamart_binning, admdatamart_models_latest) + 
   theme_bw() + scale_fill_viridis_c(begin=0.5, end=0.9)
 ```
 

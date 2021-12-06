@@ -21,7 +21,6 @@ context("Toplevel Examples")
 # a solution for that, just running it locally.
 
 exampleFolder <- file.path("../../..", "examples")
-offlineReportsFolder <- file.path("../../..", "offlinereports")
 
 test_that("example folder exists", {
   print("Example folder check")
@@ -39,6 +38,8 @@ test_that("expected R notebooks are there", {
     # So below will be skipped on Github actions for now
 
     notebooks <- list.files(exampleFolder, pattern=".Rmd", recursive = T, full.names = T)
+
+    # TODO: expecting two more (at least) now since move of off-line reports
 
     expect_equal(5, length(notebooks), info="Number of R notebooks")
   }
@@ -68,20 +69,3 @@ test_that("check example notebooks", {
     }
   }
 })
-
-test_that("check offline model overview", {
-  if (dir.exists(offlineReportsFolder)) {
-    # So below will be skipped on Github actions for now, only running locally
-
-    verify_notebook(file.path(offlineReportsFolder, "adaptivemodeloverview.Rmd"))
-  }
-})
-
-test_that("check offline model report", {
-  if (dir.exists(offlineReportsFolder)) {
-    # So below will be skipped on Github actions for now, only running locally
-
-    verify_notebook(file.path(offlineReportsFolder, "modelreport.Rmd"))
-  }
-})
-

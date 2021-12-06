@@ -64,14 +64,22 @@ test_that("Sensitivity Analysis", {
   allModels <- readDSExport("Data-Decision-ADM-ModelSnapshot_All","dsexports")
   allPredictors <- readDSExport("Data-Decision-ADM-PredictorBinningSnapshot_All","dsexports")
 
+  # Without aggregators, will be per model and no scaling
   varimp <- admVarImp(allModels, allPredictors)
 
-  expect_equal(ncol(varimp), 3)
-  expect_equal(nrow(varimp), 27) # active predictors
+  expect_equal(ncol(varimp), 7)
+  expect_equal(nrow(varimp), 137)
 
+  expect_equal(max(varimp$Importance), 100) # Should be scaled
+  expect_equal(varimp$ImportanceRank[1], 1) # Highest should be on top
+
+  # With aggregator, rolls up
   varimp <- admVarImp(allModels, allPredictors, "ConfigurationName")
 
-  expect_equal(ncol(varimp), 4) # 1 extra for the configuration name
+  expect_equal(ncol(varimp), 7)
   expect_equal(nrow(varimp), 45)
+
+  expect_equal(max(varimp$Importance), 100) # Should be scaled
+  expect_equal(varimp$ImportanceRank[1], 1) # Highest should be on top
 })
 

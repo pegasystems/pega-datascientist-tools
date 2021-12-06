@@ -1,46 +1,39 @@
 ---
 title: "Adaptive Model Report"
-author: "Pega"
+subtitle: "For `r params$modeldescription`"
+author: "Pega CDH Tools"
 output:
   html_document:
     df_print: paged
     toc: yes
   pdf_document: default
+always_allow_html: true
 params:
   # Below default values for the parameters. This notebook is usually launched from a (bash)script in which
   # these values are set. That also allows to run the notebook multiple times for different values.
+  
   predictordatafile:
-    # full path to the source file which should be an export of the ADM predictor binning table
-    # this example file is the same as the RDA file used elsewhere in demos of CDH tools
-    value: "../data/pr_data_dm_admmart_pred.csv"
-    # value: "~/cdh/1/Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210317T130452_GMT.zip"
-    # value: "~/cdh/2/PR_DATA_DM_ADMMART_PRED.csv"
-    # value: "~/cdh/3/binning.csv"
-    # value: "~/cdh/5/Data-Decision-ADM-PredictorBinningSnapshot_PredictorBinningSnapshotRepo_20201110T084825_GMT.zip"
-    # value: "~/cdh/6/predbinning2.csv"
+    # Full path to ADM predictor binning table data. There is 
+    # flexibility in format: CSV, zipped CSV or dataset export. If you have something
+    # different, you'll need to load, filter and re-write as CSV first.
+    value: "../../data/pr_data_dm_admmart_pred.csv"
+    
   modeldescription:
-    # optional model description typically corresponding to the model info of the indicated model
+    # Optional model description typically corresponding to the model info of the indicated model
     value: "Sales Model - PSDISCOUNT100"
+    
   modelid:
-    # model ID found by examining the model table from the data mart; if there is just one model
-    # in the predictor binning file it can be left empty
+    # Model ID that is used to filter the predictor binning table data. If the
+    # binning data only contains a single Model ID it can be left empty.
     value: "68e1d164-81e3-5da0-816c-0bbc3c20ac6c" # default
-    #value: "016a8388-9c5f-55cb-85de-7de789a859b2" # 1
-    # value: "ccb39edf-eb7d-54c6-8e56-cb3b70d35752"  # 2
-    # value: "c70d6b91-1f2f-5680-84d3-f3abbd5112a7" # 3
-    # value: "0e4a91ca-137f-5127-a91a-d4249691ccda" # 5
-    # value: "aac7fd35-11e8-56db-a85c-fbc1df91d6a8" # 6
     # value: "N/A"
 ---
 
 ```{r, echo=F, warning=F, error=F, include=FALSE}
 library(cdhtools)
-# source("../r/R/cdh_utils.R")
-# source("../r/R/plots.R")
-# source("../r/R/adm.R")
-# source("../r/R/offlinereports_utils.R")
-# source("../r/R/adm2pmml.R")
-# source("../r/R/exportUtilsDatamart.R")
+
+# include below when developing the library
+sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source)
 
 library(data.table)
 library(lubridate)
@@ -49,7 +42,7 @@ library(scales)
 library(knitr)
 library(kableExtra)
 library(plotly)
-library(readxl)
+# library(readxl) - standard support for Excel is a bit tricky, we recommend saving as CSV or read/write in a different R/Python script first
 library(gridExtra)
 
 theme_set(theme_minimal())
@@ -59,7 +52,6 @@ knitr::opts_chunk$set(
 )
 ```
 
-# Model report for: `r params$modeldescription` at `r today()`
 
 ```{r, echo=F, warning=F, error=F, include=F}
 
@@ -68,27 +60,15 @@ knitr::opts_chunk$set(
 # well behaved modelPredictorBins object with the current (latest) snapshot.
 # If there are multiple snapshots, predPerformanceOverTime will give that data.
 
-if (!("predictordatafile" %in% names(params))) stop(paste("Required parameter '", predictordatafile, "' missing."))
+if (!("predictordatafile" %in% names(params))) stop("Predictor binning missing. Please provide through parameter 'predictordatafile'.")
+if (!file.exists(params$predictordatafile)) stop(paste("File does not exist:", params$predictordatafile))
 
-if (!file.exists(params$predictordatafile)) {
-  stop(paste("File does not exist:", params$predictordatafile))
-}
-
-## TODO: Excel reading (below) does not generalize very well
-
-# if (endsWith(params$predictordatafile, ".xlsx")) {
-#   modelPredictorBins <- as.data.table(read_excel(params$predictordatafile))
-#   # The report defs change the column names. Note this might be version dependent.
-#   setnames(modelPredictorBins, 
-#            old=c("Predictor Name", "Type", "Performance", "Bin Index", "Range/Symbols", "Bin Negatives", "Bin Positives", "Role", "Bin ZRatio", "Bin Lift"), 
-#            new=c("PredictorName", "PredictorType", "Performance", "BinIndex", "BinSymbol", "BinNegatives", "BinPositives", "EntryType", "ZRatio", "Lift"))
-#   modelPredictorBins[, SnapshotTime := cdhtools::toPRPCDateTime(now())]
-#   modelPredictorBins[, ModelID := 0]
-#   for (num in c("Lift", "Performance", "BinNegatives", "BinPositives", "BinIndex", "ZRatio")) {
-#     modelPredictorBins[[num]] <- as.numeric(modelPredictorBins[[num]])
-#   }
-# }
-
+# This read function is a helper for theses off-line reports. It looks at file
+# extensions to figure out whether to read CSV, a model export zip or something
+# else, then also sanitizes and standardizes the output. For specific needs we
+# recommend using readDSExport. If you need to deal with CSV's read with fread then 
+# standardize the casing with "applyUniformPegaFieldCasing" and fix up the
+# date/time fields if necessary.
 modelPredictorBins <- readDatamartFromFile(params$predictordatafile)
 
 # make sure there is only ONE model ID or subset to just the one passed in
@@ -127,14 +107,6 @@ if (!all(sapply(requiredFields, function(x) { return(x %in% names(modelPredictor
 
 # keep only the required + optional fields in the data so to avoid implicit assumptions
 modelPredictorBins <- modelPredictorBins[, intersect(names(modelPredictorBins), c(requiredFields, optionalFields)), with=F]
-
-# # Excel exports sometimes screw up formatting of large numeric values - drop the comma used as thousands separators
-# # NB not sure how generic this code will turn out to be
-# for (f in c("BinNegatives","BinPositives")) {
-#   if (class(modelPredictorBins[[f]]) == "character") {
-#     modelPredictorBins[[f]] <- as.numeric(gsub(',','',modelPredictorBins[[f]],fixed=T))
-#   }
-# }
 
 # Predictor binning can have multiple snapshots. Keeping performance over time but only the last binning.
 hasMultipleSnapshots <- (length(unique(modelPredictorBins$SnapshotTime)) > 1)
@@ -235,6 +207,10 @@ if (nrow(classifierBinning) >= 1 & (sum(classifierBinning$BinNegatives) + sum(cl
   
   cumLift <- plotADMCumulativeLift(classifierBinning)
   
+  # TODO: add a cum Success rate one. Like lift but w/o the division.
+  # TODO: consider ggplot of these, those work just fine
+  # TODO: classic one on separate line. Make bars less prominent. Swap y-axes - they're opposite what product does.
+  
   classic <- plotADMBinning(classifierBinning) + ggtitle("Score Distribution")
   
   #ggplotly(cumGains) - TODO convert to plotly plot as ggplotly doesnt show both axes
@@ -252,6 +228,8 @@ this is an interactive one, using Plotly.
 
 # Using a native Plotly version of the graph to make the hover-over work. Just 
 # plotlygg(p) doesnt work perfectly, unfortunately.
+
+# TODO: swap y-axes and bars less prominent
 
 classifierBinning[, bin := factor(BinIndex)]
 classifierBinning[, successratepct := 100*BinPositives/BinResponseCount]
@@ -298,7 +276,15 @@ if (nrow(classifierBinning) >= 1) {
 }
 ```
 
-# Predictor summary
+# Performance by Predictor Category
+
+Active predictors grouped by category.
+
+```{r Predictor Category}
+plotADMPredictorImportance(modelPredictorBins[EntryType=="Active",ResponseCount:=Positives+Negatives], categoryAggregateView = T)
+```
+
+# Predictor Overview
 
 Number of positives and negatives in each bin and the derived lift and Z-ratio. If grouping information is available, strongly correlated predictors are grouped, with the highest performance predictor groups on top. Groups are indicated by indentation.
 
@@ -328,7 +314,8 @@ if (nrow(predSummary) == 0) {
 }
 ```
 
-# Predictor Binning
+
+# Binning of the active Predictors
 
 Binning of all individual predictors. Predictors are listed in the same order as in the summary above.
 
