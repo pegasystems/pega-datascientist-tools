@@ -120,15 +120,15 @@ test_that("plotADMPredictorImportance", {
   expect_s3_class(p, "ggplot")
 })
 
-test_that("plotADMPredictorImportanceMatrix", {
+test_that("plotADMPredictorImportanceHeatmap", {
   data(admdatamart_models)
   data(admdatamart_binning)
 
-  p <- plotADMPredictorImportanceMatrix(admdatamart_binning, admdatamart_models) # ****
+  p <- plotADMPredictorImportanceHeatmap(admdatamart_binning, admdatamart_models) # ****
 
   expect_s3_class(p, "ggplot")
 
-  p <- plotADMPredictorImportanceMatrix(admdatamart_binning, admdatamart_models, aggregation = "Name", facets = "")
+  p <- plotADMPredictorImportanceHeatmap(admdatamart_binning, admdatamart_models, aggregation = "Name", facets = "")
 
   expect_s3_class(p, "ggplot")
 })

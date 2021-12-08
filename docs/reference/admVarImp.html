@@ -41,8 +41,9 @@
 
 <meta property="og:title" content="Calculate variable importance from ADM Datamart data. — admVarImp" />
 <meta property="og:description" content="Uses the predictor binning from the ADM Datamart data to find the
-relative predictor importance. Uses the exact same cumulative log odds
-scores and weighs these by the evidence in the bins." />
+relative importance. The importance is given by the distance to the
+average log odds, per predictor. Next to importance it also returns
+the univariate predictor performance (AUC)." />
 
 
 
@@ -139,8 +140,9 @@ scores and weighs these by the evidence in the bins." />
 
     <div class="ref-description">
     <p>Uses the predictor binning from the ADM Datamart data to find the
-relative predictor importance. Uses the exact same cumulative log odds
-scores and weighs these by the evidence in the bins.</p>
+relative importance. The importance is given by the distance to the
+average log odds, per predictor. Next to importance it also returns
+the univariate predictor performance (AUC).</p>
     </div>
 
     <pre class="usage"><span class='fu'>admVarImp</span><span class='op'>(</span><span class='va'>dmModels</span>, <span class='va'>dmPredictors</span>, facets <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span></pre>
@@ -151,7 +153,8 @@ scores and weighs these by the evidence in the bins.</p>
     <tr>
       <th>dmModels</th>
       <td><p>Data frame (or anything else that converts to
-<code>data.table</code>) with the ADM datamart model data.</p></td>
+<code>data.table</code>) with the ADM datamart model data. Only used
+when there are facets, so can be NULL.</p></td>
     </tr>
     <tr>
       <th>dmPredictors</th>
@@ -160,8 +163,8 @@ scores and weighs these by the evidence in the bins.</p>
     </tr>
     <tr>
       <th>facets</th>
-      <td><p>Optional list of names from the model data to split the
-predictor importance by.</p></td>
+      <td><p>Optional list of names from the model data to aggregate
+up to.</p></td>
     </tr>
     </table>
 

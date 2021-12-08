@@ -1,6 +1,6 @@
 ---
-title: "Adaptive Model Report"
-subtitle: "For `r params$modeldescription`"
+title: "`r params$title`"
+subtitle: "`r params$modeldescription`"
 author: "Pega CDH Tools"
 output:
   html_document:
@@ -12,6 +12,9 @@ params:
   # Below default values for the parameters. This notebook is usually launched from a (bash)script in which
   # these values are set. That also allows to run the notebook multiple times for different values.
   
+  title:
+    value: "Adaptive Model Report"
+    
   predictordatafile:
     # Full path to ADM predictor binning table data. There is 
     # flexibility in format: CSV, zipped CSV or dataset export. If you have something
@@ -37,7 +40,7 @@ sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.na
 
 library(data.table)
 library(lubridate)
-library(ggplot2)
+# library(ggplot2)
 library(scales)
 library(knitr)
 library(kableExtra)
@@ -224,49 +227,53 @@ if (nrow(classifierBinning) >= 1 & (sum(classifierBinning$BinNegatives) + sum(cl
 The Score Distribution shows the volume and average success rate in every bin of the score ranges of the Classifier. Same plot as before but
 this is an interactive one, using Plotly.
 
-```{r fig.align="center", fig.width=8, warning=FALSE, results="asis"}
+```{r fig.align="center", fig.width=8, results="asis"}
 
 # Using a native Plotly version of the graph to make the hover-over work. Just 
 # plotlygg(p) doesnt work perfectly, unfortunately.
 
-# TODO: swap y-axes and bars less prominent
+classifierBinning[, propensity := 100*BinPositives/BinResponseCount]
 
-classifierBinning[, bin := factor(BinIndex)]
-classifierBinning[, successratepct := 100*BinPositives/BinResponseCount]
+pegaClassifierBlueBar <- "#278DC1"
+pegaClassifierYellowLine <- "EF8B08"
 
 if (nrow(classifierBinning) >= 1) {
   ply <- plot_ly(classifierBinning) %>%
-    add_bars(x = ~bin, y = ~BinResponseCount, 
+    add_bars(x = ~BinIndex, y = ~BinResponseCount, 
              color = ~factor(inCurrentRange, levels=c(T, F)), 
-             colors = c("darkgreen", "darkgrey"),
+             colors = c(pegaClassifierBlueBar, "darkgrey"),
+             alpha = 0.8,
              hoverinfo = "text", 
-             text = ~paste0("Score Range: ", BinSymbol, "\nResponses: ", BinResponseCount, "\nSuccess Rate: ", sprintf("%.2f%%", successratepct)),
+             text = ~paste0("Score Range: ", BinSymbol, "\nResponses: ", BinResponseCount, "\nSuccess Rate: ", sprintf("%.2f%%", propensity)),
              yaxis = 'y') %>%
-    add_lines(x = ~bin, y = ~successratepct,
-              line = list(color = "orange", width = 4), 
+    add_lines(x = ~BinIndex, y = ~propensity,
+              line = list(color = pegaClassifierYellowLine, width = 4),
               yaxis = 'y2') %>%
-    add_markers(x = ~bin[(classifierBinning$inCurrentRange)], y = ~successratepct[(classifierBinning$inCurrentRange)],
+    add_markers(x = ~BinIndex[(classifierBinning$inCurrentRange)], y = ~propensity[(classifierBinning$inCurrentRange)],
                 marker = list(color="black"),
-                hoverinfo = "text", text = ~sprintf("%.2f%%", successratepct[(classifierBinning$inCurrentRange)]),
+                hoverinfo = "text", text = ~sprintf("%.2f%%", propensity[(classifierBinning$inCurrentRange)]),
                 yaxis = 'y2') %>%
-    add_markers(x = ~bin[(!classifierBinning$inCurrentRange)], y = ~successratepct[(!classifierBinning$inCurrentRange)],
+    # outside the current range
+    add_markers(x = ~BinIndex[(!classifierBinning$inCurrentRange)], y = ~propensity[(!classifierBinning$inCurrentRange)],
                 marker = list(color="darkgrey"),
-                hoverinfo = "text", text = ~sprintf("%.2f%%", successratepct[(!classifierBinning$inCurrentRange)]),
+                hoverinfo = "text", text = ~sprintf("%.2f%%", propensity[(!classifierBinning$inCurrentRange)]),
                 yaxis = 'y2') %>%
     layout(title = paste0("Score Distribution of the Classifier"),
            xaxis = list(title = ""), # to put values instead of bin indices: , tickangle = -45, tickmode = "array", tickvals = ~bin, ticktext = ~BinSymbol
-           yaxis = list(side = 'right', title = "Responses"),
-           yaxis2 = list(side = 'left', overlaying = "y", title = 'Success Rate (%)', showgrid = FALSE, zeroline = FALSE, automargin = TRUE, rangemode = "tozero"),
+           yaxis = list(side = 'left', title = "Responses"),
+           yaxis2 = list(side = 'right', overlaying = "y", title = 'Propensity (%)', 
+                         showgrid = FALSE, zeroline = FALSE, automargin = TRUE, rangemode = "tozero"),
            showlegend = FALSE,
            annotations = list(list(x = 0.5 , y = 1.02, 
                                    text = subtitle, showarrow = F, 
                                    xref='paper', yref='paper'))) %>% 
     config(displayModeBar = F)
+  
   ply
 }
 ```
 
-The success rate is defined as $\frac{positives}{positives+negatives}$ per bin. 
+Propensity is defined as $\frac{positives}{positives+negatives}$ per bin. 
 
 The adjusted propensity that is returned is a small modification (Laplace smoothing) to this and calculated as $\frac{0.5+positives}{1+positives+negatives}$ so empty models return a propensity of 0.5.
 
@@ -281,14 +288,15 @@ if (nrow(classifierBinning) >= 1) {
 Active predictors grouped by category.
 
 ```{r Predictor Category}
-plotADMPredictorImportance(modelPredictorBins[EntryType=="Active",ResponseCount:=Positives+Negatives], categoryAggregateView = T)
+plotADMPredictorImportance(modelPredictorBins, categoryAggregateView = T) +
+  scale_fill_discrete(guide="none")
 ```
 
 # Predictor Overview
 
 Number of positives and negatives in each bin and the derived lift and Z-ratio. If grouping information is available, strongly correlated predictors are grouped, with the highest performance predictor groups on top. Groups are indicated by indentation.
 
-```{r, echo=F, warning=F, error=F, include=T}
+```{r echo=F, error=F, include=T}
 
 # TODO - the grouping could be displayed in more fancy ways using kableExtra options for grouping
 # TODO - consider colouring the predictor names by part before first dot ; unless there are > 10 of those

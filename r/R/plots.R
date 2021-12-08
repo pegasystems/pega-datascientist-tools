@@ -1,3 +1,9 @@
+
+# Colors picked from score distribution of the classifier of ADM
+pegaClassifierBlueBar <- "#278DC1"
+pegaClassifierYellowLine <- "#EF8B08"
+
+
 # Abbreviate lengthy names
 plotsAbbreviateName <- function(str, len = 32)
 {
@@ -368,6 +374,9 @@ plotADMPredictorImportance <- function(predictordata,
     return(NULL)
   }
 
+  categoryOrder <- featureImportance[, .(w = median(Importance)), by=Category][order(w)]
+  featureImportance[, Category := factor(Category, levels = categoryOrder$Category)]
+
   # Base plot
   if (categoryAggregateView) {
     plt <- ggplot(featureImportance, aes(Importance, Category))
@@ -441,13 +450,13 @@ plotADMPredictorImportance <- function(predictordata,
 #'
 #' @examples
 #' \dontrun{
-#'     plt <- plotADMPredictorImportanceMatrix(modelPredictorBins, mdls, limit=50) +
+#'     plt <- plotADMPredictorImportanceHeatmap(modelPredictorBins, mdls, limit=50) +
 #'     theme(axis.text.y = element_text(size=8),
 #'     axis.text.x = element_text(size=8, angle = 45, hjust = 1),
 #'     strip.text = element_text(size=8))
 #'     print(plt)
 #' }
-plotADMPredictorImportanceMatrix <- function(predictordata,
+plotADMPredictorImportanceHeatmap <- function(predictordata,
                                              modeldata,
                                              aggregation = intersect(c("Issue","Group","Name","Treatment"), names(modeldata)),
                                              facets = "ConfigurationName",
@@ -578,10 +587,11 @@ plotADMCumulativeGains <- function(binning)
   lastRow <- copy(binning[1,])[, c("CumPositivesPct", "CumVolumePct") := 0 ]
 
   ggplot(rbind(binning, lastRow), aes(CumVolumePct/100, CumPositivesPct/100)) +
-    geom_ribbon(aes(ymin=CumVolumePct/100, ymax=CumPositivesPct/100), color = "steelblue3", size=0, fill="steelblue3", alpha=0.6) +
+    geom_ribbon(aes(ymin=CumVolumePct/100, ymax=CumPositivesPct/100),
+                color = pegaClassifierBlueBar, size=0, fill=pegaClassifierBlueBar, alpha=0.6) +
     geom_abline(slope = 1, linetype = "dashed", color = "grey") +
     #geom_area(color = "steelblue3", size=1, fill="steelblue3", alpha=0.6) +
-    geom_line(color = "steelblue3", size=2) +
+    geom_line(color = pegaClassifierYellowLine, size=2) +
     geom_point(color = "black", size=1) +
     scale_x_continuous(labels = scales::percent, name = "% of Population", breaks = (0:10)/10, limits = c(0,1)) +
     scale_y_continuous(labels = scales::percent, name = "% of Total Positive Responses", limits = c(0,1),
@@ -616,8 +626,9 @@ plotADMCumulativeLift <- function(binning)
   secAxisFactorBaseRate <- sum(binning$BinPositives)/(sum(binning$BinPositives) + sum(binning$BinNegatives))
 
   ggplot(binning, aes(CumVolumePct/100, CumPositivesPct/CumVolumePct)) +
-    geom_ribbon(aes(ymin=1.0, ymax=CumPositivesPct/CumVolumePct), color = "steelblue3", size=0, fill="steelblue3", alpha=0.6) +
-    geom_line(color = "steelblue3", size=2) +
+    geom_ribbon(aes(ymin=1.0, ymax=CumPositivesPct/CumVolumePct),
+                color = pegaClassifierBlueBar, size=0, fill=pegaClassifierBlueBar, alpha=0.6) +
+    geom_line(color = pegaClassifierYellowLine, size=2) +
     geom_point(color = "black", size=1) +
     scale_x_continuous(labels = scales::percent, name = "% of Population", breaks = (0:10)/10, limits = c(0,1)) +
     scale_y_continuous(name = "Lift", limits = c(1.0,NA),
@@ -654,9 +665,9 @@ plotADMBinning <- function(binning, useSmartLabels = T) # TODO consider adding l
   binning[, BinIndex := as.numeric(BinIndex)] # just in case
   setorder(binning, BinIndex)
 
-  successRateMax <- max(binning$BinPositives/binning$BinResponseCount, na.rm = T)
-  if (0 == successRateMax) { successRateMax <- 1 }
-  secAxisFactor <- ceiling(max(binning$BinResponseCount)/successRateMax)
+  responsesMax <- max(binning$BinResponseCount, na.rm = T)
+  if (0 == responsesMax) { responsesMax <- 1 }
+  secAxisFactor <- max(binning$BinPositives/binning$BinResponseCount) / responsesMax
 
   if (useSmartLabels) {
     plt <- ggplot(binning, aes(factor(BinIndex), BinPositives/BinResponseCount, group=1))
@@ -665,14 +676,19 @@ plotADMBinning <- function(binning, useSmartLabels = T) # TODO consider adding l
   }
 
   plt <- plt +
-    geom_col(aes(y=BinResponseCount/secAxisFactor), fill=ifelse(binning$EntryType[1]=="Inactive","darkgrey","steelblue3"))+
-    geom_line(colour="orange", size=2)+geom_point()+
+    geom_col(aes(y=BinResponseCount),
+             fill=ifelse(binning$EntryType[1]=="Inactive", "darkgrey", pegaClassifierBlueBar),
+             alpha=0.8)+
+    geom_line(aes(y=(BinPositives/BinResponseCount)/secAxisFactor),
+              colour="orange", size=2) +
+    geom_point(aes(y=(BinPositives/BinResponseCount)/secAxisFactor),
+              size=1) +
     geom_hline(data=data.table(Positives = sum(binning$BinPositives),
                                Negatives = sum(binning$BinNegatives)),
-               mapping = aes(yintercept = Positives/(Positives+Negatives)),
+               mapping = aes(yintercept = (Positives/(Positives+Negatives))/secAxisFactor),
                colour="orange", linetype="dashed") +
-    scale_y_continuous(limits=c(0, successRateMax), name="Success Rate", labels=percent,
-                       sec.axis = sec_axis(~.*secAxisFactor, name = "Responses"))+
+    scale_y_continuous(limits=c(0, responsesMax), name="Responses",
+                       sec.axis = sec_axis(~.*secAxisFactor, name = "Propensity (%)", labels=percent))+
     theme(axis.text.x = element_text(angle = 45, hjust = 1),
           plot.title = element_text(hjust = 0.5),
           plot.subtitle = element_text(hjust = 0.5))

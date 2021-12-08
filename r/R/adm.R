@@ -263,6 +263,44 @@ readADMDatamartPredictorExport <- function(srcFolder=".",
   return(predz)
 }
 
+#' Generic method to read ADM Datamart data into a list structure.
+#'
+#' Method is very flexible in the arguments. It can take a \code{data.table}
+#' for the model data and the predictor data, but the arguments can also be
+#' pointing to files in CSV, zipped CSV, (LD)JSON, parquet or dataset export formats.
+#'
+#' @param modeldata Location, reference or the actual model table from the
+#' ADM datamart.
+#' @param predictordata Location, reference or the actual predictor binning
+#' table from the ADM datamart.
+#' @param folder Optional path for the folder in which to look for the model
+#' and predictor data.
+#' @param keepSerializedModelData By default the serialized model data is left
+#' out from the model data as this typically is large and only needed for
+#' specific use cases.
+#'
+#' @return
+#' @export
+#'
+#' @examples
+ADMDatamart <- function(modeldata = NULL, predictordata = NULL, folder = NULL,
+                        keepModelData = FALSE)
+{
+  # modeldata can be data.table
+  # modeldata can be a file, pointing to CSV or parquet file or export zip
+  # modeldata can also be just the base name of the export zip but then there should be a folder
+  # modeldata can even be nul then if you specify folder it should pick up the latest
+
+  # TODO this is rather incomplete - to be implemented and used in all plot
+  # methods
+
+  return(list(modeldata = modeldata,
+              predictordata = predictordata,
+              hasMultipleModelSnapshots = T,
+              hasMultiplePredictorSnapshots = F,
+              hasPredictorBinning = F))
+}
+
 #' Calculate variable importance from ADM Datamart data.
 #'
 #' Uses the predictor binning from the ADM Datamart data to find the

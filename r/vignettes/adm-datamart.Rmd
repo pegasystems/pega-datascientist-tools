@@ -100,7 +100,7 @@ plotADMPredictorImportance(admdatamart_binning, admdatamart_models_latest) +
 You could also show the predictor performance in one plot across all predictors for all the selected models. Also arranging by performance in both dimensions gives a quick visual clue of which predictors and which models need attention.
 
 ```{r, warning=F, message=FALSE}
-plotADMPredictorImportanceMatrix(admdatamart_binning_latest, admdatamart_models_latest, 
+plotADMPredictorImportanceHeatmap(admdatamart_binning_latest, admdatamart_models_latest, 
                                   aggregation="Name") +
   theme(axis.text.y = element_text(size=6),
         axis.text.x = element_text(size=6, angle = 45, hjust = 1))

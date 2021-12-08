@@ -46,7 +46,7 @@ userFriendlyADMBinning <- function(bins)
                         Positives = bins$BinPositives,
                         Negatives = bins$BinNegatives,
                         `Cum. Total (%)` = rev(100.0*cumsum(rev(bins$BinResponseCount))/sum(bins$BinResponseCount)),
-                        `Success Rate (%)` =  100*bins$BinPositives/bins$BinResponseCount,
+                        `Propensity (%)` =  100*bins$BinPositives/bins$BinResponseCount,
                         `Adjusted Propensity (%)` = 100*(0.5+bins$BinPositives)/(1+bins$BinResponseCount),
                         `Cum. Positives (%)` = rev(100.0*cumsum(rev(bins$BinPositives))/sum(bins$BinPositives)),
                         `Z-Ratio` = bins$ZRatio,
@@ -56,7 +56,7 @@ userFriendlyADMBinning <- function(bins)
                         Bin = bins$BinSymbol,
                         Positives = bins$BinPositives,
                         Negatives = bins$BinNegatives,
-                        `Success Rate (%)` =  100*bins$BinPositives/(bins$BinResponseCount),
+                        `Propensity (%)` =  100*bins$BinPositives/(bins$BinResponseCount),
                         `Z-Ratio` = bins$ZRatio,
                         `Lift (%)` = 100*bins$Lift) )
   }

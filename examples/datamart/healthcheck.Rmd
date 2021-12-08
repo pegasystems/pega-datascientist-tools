@@ -1,6 +1,7 @@
 ---
 title: "`r params$title`"
-author: "`r params$subtitle`"
+subtitle: "`r params$subtitle`"
+author: "Pega CDH Tools"
 output:
   html_document:
     df_print: paged
@@ -12,11 +13,11 @@ params:
   # these values are set, although you can also run it from R Studio: Knit with Parameters to be prompted 
   # for the paths to the data.
   
-  # Titles to put on top of the output
   title:
     value: "ADM Health Check"
+    
   subtitle:
-    value: "Pega CDH Tools"
+    value: ""
     
   modelfile:
     # Full path to the source file which should be an export of the ADM model table
@@ -689,7 +690,7 @@ if (!is.null(modelPredictorBins) && nrow(modelPredictorBins) > 0) {
     applicableModels <- latestSnapshotsOnly(mdls) [ConfigurationName==c]
     applicablePredictorBins <- modelPredictorBins[EntryType=="Active" & ModelID %in% applicableModels$ModelID]
     if (nrow(applicablePredictorBins) > 0) {
-      plt <- plotADMPredictorImportanceMatrix(applicablePredictorBins, applicableModels, 
+      plt <- plotADMPredictorImportanceHeatmap(applicablePredictorBins, applicableModels, 
                                                limit=params$max_propositions_in_plot) +
         theme(axis.text.y = element_text(size=8),
               axis.text.x = element_text(size=8, angle = 45, hjust = 1),
