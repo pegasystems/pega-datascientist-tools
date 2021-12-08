@@ -72,7 +72,7 @@ class ADMSnapshot:
             model_filename = kwargs.pop('model_filename', 'modelData')
             df1, self.renamed_model, self.missing_model = self._import_utils(model_filename, path, overwrite_mapping, subset)
         if df1 is not None:
-            df1['SuccesRate'] = df1['Positives'] / df1['Responses'] if df1 is not None else None
+            df1['SuccesRate'] = df1['Positives'] / df1['ResponseCount'] if df1 is not None else None
         
         if predictor_df is not None:
             df2, self.renamed_preds, self.missing_preds = self._import_utils(name=predictor_df)
@@ -83,7 +83,7 @@ class ADMSnapshot:
             try: 
                 df2['SuccesRate'] = df2['BinPositives'] / df2['BinResponseCount'] if df2 is not None else None
             except KeyError:
-                df2['SuccesRate'] = df2['BinPositives'] / df2['Responses'] if df2 is not None else None
+                df2['SuccesRate'] = df2['BinPositives'] / df2['ResponseCount'] if df2 is not None else None
 
         if df1 is not None and df2 is not None:
             total_missing = set(self.missing_model) & set(self.missing_preds) - set(df1.columns) - set(df2.columns) 
@@ -134,7 +134,7 @@ class ADMSnapshot:
             'Direction': ['Direction'], 
             'ModelName': ['Name'], 
             'Positives': ['Positives'], 
-            'Responses': ['Response', 'Responses', 'ResponseCount'], 
+            'ResponseCount': ['Response', 'Responses', 'ResponseCount'], 
             'SnapshotTime': ['ModelSnapshot', 'SnapshotTime'],
             'PredictorName': ['PredictorName'],
             'Performance': ['Performance'],
@@ -254,7 +254,7 @@ class ADMSnapshot:
         #TODO: support multiple snapshots for combined data
         lastPreds = self.last(self.predictorData) if predictorData is None else predictorData
         lastModels = self.last(self.modelData) if modelData is None else modelData
-        combined = lastModels.merge(lastPreds, on='ModelID', how='right')
+        combined = lastModels.merge(lastPreds, on='ModelID', how='right', suffixes=('', 'Bin'))
         return combined
     
     @staticmethod
