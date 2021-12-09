@@ -159,6 +159,8 @@ def get_latest_file(path: str, target: str, verbose: bool=False) -> str:
     str
         The most recent file given the file name criteria.
     """
+
+    #NOTE remove some default names
     default_model_names = [
         'Data-Decision-ADM-ModelSnapshot',
         'PR_DATA_DM_ADMMART_MDL_FACT',
@@ -194,7 +196,7 @@ def get_latest_file(path: str, target: str, verbose: bool=False) -> str:
         return None
 
     paths = [os.path.join(path, name) for name in matches]
-    return max(paths, key=os.path.getctime)
+    return max(paths, key=os.path.getctime) #TODO check for latest timestamp
 
 def safe_range_auc(auc: float) -> float:
     """Internal helper to keep auc a safe number between 0.5 and 1.0 always.

@@ -88,7 +88,10 @@ class ADMSnapshot:
         if df1 is not None and df2 is not None:
             total_missing = set(self.missing_model) & set(self.missing_preds) - set(df1.columns) - set(df2.columns) 
             if len(total_missing) > 0:
-                print(f"Missing required field values. Please check if they are available in the data, and supply a custom mapping if the naming is different from default. Missing values: {total_missing}")
+                print(f"""Missing required field values. 
+                Please check if they are available in the data, 
+                and supply a custom mapping if the naming is different from default. 
+                Missing values: {total_missing}""")
                 
         return df1, df2
     
