@@ -414,7 +414,7 @@ createScorecard <- function(modelbins, modelName)
     modelbins[PredictorType != "CLASSIFIER", minWeight := NA]
     modelbins[PredictorType != "CLASSIFIER", maxWeight := NA]
   } else {
-    modelbins[PredictorType != "CLASSIFIER", avgWeight := stats::weighted.mean(BinWeight,BinNeg+BinPos),by=PredictorName]
+    modelbins[PredictorType != "CLASSIFIER", avgWeight := weighted.mean(BinWeight,BinNeg+BinPos),by=PredictorName]
     modelbins[PredictorType != "CLASSIFIER", minWeight := min(BinWeight),by=PredictorName]
     modelbins[PredictorType != "CLASSIFIER", maxWeight := max(BinWeight),by=PredictorName]
   }

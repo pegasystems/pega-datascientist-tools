@@ -224,15 +224,6 @@ minimum and an increase of the maximum.
 allbinnings[, .("Average Value" = weighted.mean(BinUpper + BinLower, BinResponseCount)/2), by=t]
 ```
 
-# Conclusion
-
-The ADM datamart is a rich source of data and can be used to get detailed insights into
-the predictor data. However bear in mind there are other and probably easier ways to
-accompish the same goals - especially the Prediction level monitoring and the
-export of Historical Datasets.
-
-
-
 
 
 

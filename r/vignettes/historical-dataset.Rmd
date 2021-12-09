@@ -1,6 +1,6 @@
 ---
 title: "historical-dataset"
-author: "Pega"
+author: "Pega CDH Tools"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >

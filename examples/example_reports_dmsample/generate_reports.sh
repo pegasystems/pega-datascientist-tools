@@ -5,8 +5,8 @@
 # then running the R script in this same folder. Alternatively they can be
 # exported directly from the database.
 
-modeloverviewnotebook="../healthcheck.Rmd"
-modelreportnotebook="../modelreport.Rmd"
+modeloverviewnotebook="../datamart/healthcheck.Rmd"
+modelreportnotebook="../datamart/modelreport.Rmd"
 
 modeldata="`pwd`/models.csv"
 predbinning="`pwd`/predbinning.csv"

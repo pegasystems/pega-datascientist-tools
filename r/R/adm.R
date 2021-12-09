@@ -279,12 +279,11 @@ readADMDatamartPredictorExport <- function(srcFolder=".",
 #' out from the model data as this typically is large and only needed for
 #' specific use cases.
 #'
-#' @return
+#' @return A list that wraps the the two \code{data.table} elements plus
+#' a few flags that indicate whether there are multiple snapshots or not.
 #' @export
-#'
-#' @examples
 ADMDatamart <- function(modeldata = NULL, predictordata = NULL, folder = NULL,
-                        keepModelData = FALSE)
+                        keepSerializedModelData = FALSE)
 {
   # modeldata can be data.table
   # modeldata can be a file, pointing to CSV or parquet file or export zip

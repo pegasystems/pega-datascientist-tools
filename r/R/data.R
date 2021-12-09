@@ -43,3 +43,12 @@
 #' @source CDHSample
 "hds"
 
+# TODO:
+#  Run use_data_raw() if you have code to generate data (R data):
+# usethis::use_data_raw("mydata_set")
+# This will create a data-raw folder.
+# Let’s say you want to make a data set mydata_set:
+# Create data-raw/mydata_set.R and at the end, run
+# usethis::use_data(mydata_set, compress = "xz")
+# And this will make a data/mydata_set.rda file.
+

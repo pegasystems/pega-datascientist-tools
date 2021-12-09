@@ -2,6 +2,7 @@
 title: "`r params$title`"
 subtitle: "`r params$subtitle`"
 author: "Pega CDH Tools"
+date: "`r Sys.Date()`"
 output:
   html_document:
     df_print: paged
@@ -53,7 +54,7 @@ params:
 library(cdhtools)
 
 # include below when developing the library
-sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source)
+# sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source)
 
 library(data.table)
 library(lubridate)
