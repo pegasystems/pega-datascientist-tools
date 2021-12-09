@@ -89,9 +89,9 @@
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>adm-explained</h1>
-                        <h4 class="author">Pega</h4>
+                        <h4 class="author">Pega CDH Tools</h4>
             
-            <h4 class="date">2021-11-10</h4>
+            <h4 class="date">2021-12-08</h4>
       
       
       <div class="hidden name"><code>adm-explained.Rmd</code></div>
@@ -114,10 +114,10 @@
 <p>For the example we use one particular model: FirstMortgage over SMS. You can use your own data and select a different model.</p>
 <p>To explain the ADM model report, we use the “AnnualIncome” predictor as an example. This too can be swapped for any other predictor when using different data.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/latestSnapshotsOnly.html">latestSnapshotsOnly</a></span><span class="op">(</span><span class="va">admdatamart_models</span><span class="op">)</span> <span class="op">[</span><span class="va">Name</span> <span class="op">==</span> <span class="st">"FirstMortgage"</span> <span class="op">&amp;</span> <span class="va">Channel</span> <span class="op">==</span> <span class="st">"SMS"</span><span class="op">]</span>
-<span class="va">modelpredictors</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/latestSnapshotsOnly.html">latestSnapshotsOnly</a></span><span class="op">(</span><span class="va">admdatamart_binning</span><span class="op">[</span><span class="va">ModelID</span> <span class="op">==</span> <span class="va">model</span><span class="op">$</span><span class="va">ModelID</span> <span class="op">&amp;</span> <span class="va">EntryType</span> <span class="op">!=</span> <span class="st">"Inactive"</span><span class="op">]</span><span class="op">)</span>
+<code class="sourceCode R"><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/latestSnapshotsOnly.html">latestSnapshotsOnly</a></span><span class="op">(</span><span class="va">admdatamart_models</span><span class="op">)</span> <span class="op">[</span><span class="va">Name</span> <span class="op">==</span> <span class="st">"AutoNew36Months"</span> <span class="op">&amp;</span> <span class="va">Channel</span> <span class="op">==</span> <span class="st">"SMS"</span><span class="op">]</span>
+<span class="va">modelpredictors</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/latestSnapshotsOnly.html">latestSnapshotsOnly</a></span><span class="op">(</span><span class="va">admdatamart_binning</span><span class="op">)</span><span class="op">[</span><span class="va">ModelID</span> <span class="op">==</span> <span class="va">model</span><span class="op">$</span><span class="va">ModelID</span> <span class="op">&amp;</span> <span class="va">EntryType</span> <span class="op">!=</span> <span class="st">"Inactive"</span><span class="op">]</span>
 
-<span class="va">predictorbinning</span> <span class="op">&lt;-</span> <span class="va">modelpredictors</span><span class="op">[</span><span class="va">PredictorName</span> <span class="op">==</span> <span class="st">"Customer.AnnualIncome"</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setorder.html">order</a></span><span class="op">(</span><span class="va">BinIndex</span><span class="op">)</span><span class="op">]</span></code></pre></div>
+<span class="va">predictorbinning</span> <span class="op">&lt;-</span> <span class="va">modelpredictors</span><span class="op">[</span><span class="va">PredictorName</span> <span class="op">==</span> <span class="st">"IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount"</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/setorder.html">order</a></span><span class="op">(</span><span class="va">BinIndex</span><span class="op">)</span><span class="op">]</span></code></pre></div>
 </div>
 <div id="model-overview" class="section level1">
 <h1 class="hasAnchor">
@@ -129,7 +129,7 @@
 Action
 </td>
 <td style="text-align:left;">
-Sales/HomeLoans
+Sales/AutoLoans
 </td>
 </tr>
 <tr>
@@ -145,7 +145,7 @@ SMS
 Name
 </td>
 <td style="text-align:left;">
-FirstMortgage
+AutoNew36Months
 </td>
 </tr>
 <tr>
@@ -153,7 +153,7 @@ FirstMortgage
 Active Predictors
 </td>
 <td style="text-align:left;">
-Customer.pyCountry, Customer.NetWealth, Customer.AnnualIncome, Customer.CLV_VALUE, Customer.RiskCode, Customer.NoOfDependents, Customer.WinScore, Customer.RelationshipStartDate, Customer.Age, Param.ExtGroupCreditcards, Customer.MaritalStatus, Customer.Date_of_Birth, Customer.BusinessSegment, Customer.CreditScore, Customer.InCollections, IH.Web.Inbound.Loyal.pyHistoricalOutcomeCount, IH.SMS.Outbound.Rejected.pyHistoricalOutcomeCount, IH.Web.Inbound.Accepted.pxLastGroupID, IH.Web.Inbound.Rejected.pyHistoricalOutcomeCount, IH.Email.Outbound.Rejected.pyHistoricalOutcomeCount, IH.Web.Inbound.Loyal.pxLastGroupID, IH.Email.Outbound.Rejected.pxLastGroupID, IH.Web.Inbound.Accepted.pyHistoricalOutcomeCount, IH.Web.Inbound.Rejected.pxLastGroupID, IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount, IH.SMS.Outbound.Accepted.pxLastGroupID, IH.SMS.Outbound.Rejected.pxLastGroupID, IH.Web.Inbound.Loyal.pxLastOutcomeTime.DaysSince, IH.Email.Outbound.Accepted.pxLastGroupID, IH.Email.Outbound.Accepted.pyHistoricalOutcomeCount, IH.Email.Outbound.Loyal.pxLastOutcomeTime.DaysSince, IH.Email.Outbound.Loyal.pyHistoricalOutcomeCount, IH.Web.Inbound.Churned.pxLastOutcomeTime.DaysSince, IH.Web.Inbound.Churned.pxLastGroupID, IH.Web.Inbound.Churned.pyHistoricalOutcomeCount, IH.SMS.Outbound.Loyal.pyHistoricalOutcomeCount
+Customer.Prefix, Customer.NetWealth, Customer.AnnualIncome, Customer.CLV_VALUE, Customer.OrganizationLabel, Customer.WinScore, Customer.Age, Customer.Gender, Customer.MaritalStatus, Customer.BusinessSegment, Customer.CreditScore, IH.Email.Outbound.Accepted.pxLastGroupID, IH.Email.Outbound.Accepted.pyHistoricalOutcomeCount, IH.Email.Outbound.Rejected.pyHistoricalOutcomeCount, IH.Email.Outbound.Rejected.pxLastGroupID, IH.Web.Inbound.Accepted.pyHistoricalOutcomeCount, IH.Web.Inbound.Rejected.pxLastGroupID, IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount, IH.SMS.Outbound.Accepted.pxLastGroupID, IH.SMS.Outbound.Rejected.pxLastGroupID, IH.Web.Inbound.Churned.pxLastOutcomeTime.DaysSince, IH.Web.Inbound.Churned.pxLastGroupID, IH.SMS.Outbound.Loyal.pyHistoricalOutcomeCount, IH.SMS.Outbound.Churned.pxLastGroupID
 </td>
 </tr>
 <tr>
@@ -161,13 +161,13 @@ Customer.pyCountry, Customer.NetWealth, Customer.AnnualIncome, Customer.CLV_VALU
 Model Performance (AUC)
 </td>
 <td style="text-align:left;">
-64.851
+60.5845
 </td>
 </tr>
 </tbody></table>
-<div id="predictor-binning-for-customer-annualincome" class="section level2">
+<div id="predictor-binning-for-ih-sms-outbound-accepted-pyhistoricaloutcomecount" class="section level2">
 <h2 class="hasAnchor">
-<a href="#predictor-binning-for-customer-annualincome" class="anchor"></a>Predictor binning for Customer.AnnualIncome</h2>
+<a href="#predictor-binning-for-ih-sms-outbound-accepted-pyhistoricaloutcomecount" class="anchor"></a>Predictor binning for IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount</h2>
 <p>The ADM model report will show predictor binning similar to this, with all displayed data coming from fields in the ADM data mart. In subsequent sections we’ll show how all the data is derived from the number of positives and negatives in each of the bins.</p>
 <table class="table table table-striped"><tbody>
 <tr>
@@ -175,7 +175,7 @@ Model Performance (AUC)
 Name
 </td>
 <td style="text-align:left;">
-Customer.AnnualIncome
+IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount
 </td>
 </tr>
 <tr>
@@ -183,7 +183,7 @@ Customer.AnnualIncome
 Range
 </td>
 <td style="text-align:left;">
-Range : [87.39, 178595.58]
+Range : [1.0, 33.0]
 </td>
 </tr>
 <tr>
@@ -191,7 +191,7 @@ Range : [87.39, 178595.58]
 Responses
 </td>
 <td style="text-align:left;">
-3946
+5602
 </td>
 </tr>
 <tr>
@@ -199,7 +199,7 @@ Responses
 # Bins
 </td>
 <td style="text-align:left;">
-6
+5
 </td>
 </tr>
 <tr>
@@ -207,7 +207,7 @@ Responses
 Predictor Performance (AUC)
 </td>
 <td style="text-align:left;">
-63.8537
+65.4153
 </td>
 </tr>
 </tbody></table>
@@ -244,176 +244,147 @@ Lift
 <tbody>
 <tr>
 <td style="text-align:left;">
-&lt;13841.2209
+MISSING
 </td>
 <td style="text-align:right;">
-20.70
+0.09
 </td>
 <td style="text-align:right;">
-196
+0
 </td>
 <td style="text-align:right;">
-29.47
+0.00
 </td>
 <td style="text-align:right;">
-621
+5
 </td>
 <td style="text-align:right;">
-18.93
+0.09
 </td>
 <td style="text-align:right;">
-0.2399000
+0.0000000
 </td>
 <td style="text-align:right;">
-5.563528
+-2.237073
 </td>
 <td style="text-align:right;">
-1.423539
+0.000000
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-[13841.2209, 26293.0609&gt;
+&lt;7.08
 </td>
 <td style="text-align:right;">
-21.74
+39.54
 </td>
 <td style="text-align:right;">
-175
+7
 </td>
 <td style="text-align:right;">
-26.32
+19.44
 </td>
 <td style="text-align:right;">
-683
+2208
 </td>
 <td style="text-align:right;">
-20.82
+39.67
 </td>
 <td style="text-align:right;">
-0.2040000
+0.0032000
 </td>
 <td style="text-align:right;">
-2.974253
+-3.051114
 </td>
 <td style="text-align:right;">
-1.210281
+0.491773
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-[26293.0609, 36123.4609&gt;
+[7.08, 12.04&gt;
 </td>
 <td style="text-align:right;">
-11.99
+34.45
 </td>
 <td style="text-align:right;">
-119
+11
 </td>
 <td style="text-align:right;">
-17.89
+30.56
 </td>
 <td style="text-align:right;">
-354
+1919
 </td>
 <td style="text-align:right;">
-10.79
+34.48
 </td>
 <td style="text-align:right;">
-0.2516000
+0.0057000
 </td>
 <td style="text-align:right;">
-4.491330
+-0.509054
 </td>
 <td style="text-align:right;">
-1.492867
+0.886903
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-[36123.4609, 44970.8209&gt;
+[12.04, 18.04&gt;
 </td>
 <td style="text-align:right;">
-7.70
+19.53
 </td>
 <td style="text-align:right;">
-47
+12
 </td>
 <td style="text-align:right;">
-7.07
+33.33
 </td>
 <td style="text-align:right;">
-257
+1082
 </td>
 <td style="text-align:right;">
-7.83
+19.44
 </td>
 <td style="text-align:right;">
-0.1546000
+0.0110000
 </td>
 <td style="text-align:right;">
--0.696389
+1.764386
 </td>
 <td style="text-align:right;">
-0.917402
+1.706886
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-[44970.8209, 64959.3009&gt;
+&gt;=18.04
 </td>
 <td style="text-align:right;">
-16.93
+6.39
 </td>
 <td style="text-align:right;">
-70
+6
 </td>
 <td style="text-align:right;">
-10.53
+16.67
 </td>
 <td style="text-align:right;">
-598
+352
 </td>
 <td style="text-align:right;">
-18.23
+6.32
 </td>
 <td style="text-align:right;">
-0.1048000
+0.0168000
 </td>
 <td style="text-align:right;">
--5.629861
+1.662827
 </td>
 <td style="text-align:right;">
-0.621809
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-&gt;=64959.3009
-</td>
-<td style="text-align:right;">
-20.93
-</td>
-<td style="text-align:right;">
-58
-</td>
-<td style="text-align:right;">
-8.72
-</td>
-<td style="text-align:right;">
-768
-</td>
-<td style="text-align:right;">
-23.41
-</td>
-<td style="text-align:right;">
-0.0702000
-</td>
-<td style="text-align:right;">
--11.121730
-</td>
-<td style="text-align:right;">
-0.416662
+2.608007
 </td>
 </tr>
 <tr>
@@ -421,22 +392,22 @@ Lift
 Grand Total
 </td>
 <td style="text-align:right;">
-99.99
+100.00
 </td>
 <td style="text-align:right;">
-665
+36
 </td>
 <td style="text-align:right;">
 100.00
 </td>
 <td style="text-align:right;">
-3281
+5566
 </td>
 <td style="text-align:right;">
-100.01
+100.00
 </td>
 <td style="text-align:right;">
-0.1685251
+0.0064263
 </td>
 <td style="text-align:right;">
 0.000000
@@ -489,140 +460,117 @@ Propensity
 <tbody>
 <tr>
 <td style="text-align:left;">
-&lt;13841.2209
+MISSING
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-196
+0
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-621
+5
 </td>
 <td style="text-align:right;color: blue !important;">
-20.70
+0.09
 </td>
 <td style="text-align:right;color: blue !important;">
-29.47
+0.00
 </td>
 <td style="text-align:right;color: blue !important;">
-18.93
+0.09
 </td>
 <td style="text-align:right;color: blue !important;">
-0.2399
+0.0000
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-[13841.2209, 26293.0609&gt;
+&lt;7.08
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-175
+7
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-683
+2208
 </td>
 <td style="text-align:right;color: blue !important;">
-21.74
+39.54
 </td>
 <td style="text-align:right;color: blue !important;">
-26.32
+19.44
 </td>
 <td style="text-align:right;color: blue !important;">
-20.82
+39.67
 </td>
 <td style="text-align:right;color: blue !important;">
-0.2040
+0.0032
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-[26293.0609, 36123.4609&gt;
+[7.08, 12.04&gt;
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-119
+11
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-354
+1919
 </td>
 <td style="text-align:right;color: blue !important;">
-11.99
+34.45
 </td>
 <td style="text-align:right;color: blue !important;">
-17.89
+30.56
 </td>
 <td style="text-align:right;color: blue !important;">
-10.79
+34.48
 </td>
 <td style="text-align:right;color: blue !important;">
-0.2516
+0.0057
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-[36123.4609, 44970.8209&gt;
+[12.04, 18.04&gt;
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-47
+12
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-257
+1082
 </td>
 <td style="text-align:right;color: blue !important;">
-7.70
+19.53
 </td>
 <td style="text-align:right;color: blue !important;">
-7.07
+33.33
 </td>
 <td style="text-align:right;color: blue !important;">
-7.83
+19.44
 </td>
 <td style="text-align:right;color: blue !important;">
-0.1546
+0.0110
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-[44970.8209, 64959.3009&gt;
+&gt;=18.04
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-70
+6
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-598
+352
 </td>
 <td style="text-align:right;color: blue !important;">
-16.93
+6.39
 </td>
 <td style="text-align:right;color: blue !important;">
-10.53
+16.67
 </td>
 <td style="text-align:right;color: blue !important;">
-18.23
+6.32
 </td>
 <td style="text-align:right;color: blue !important;">
-0.1048
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-&gt;=64959.3009
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-58
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-768
-</td>
-<td style="text-align:right;color: blue !important;">
-20.93
-</td>
-<td style="text-align:right;color: blue !important;">
-8.72
-</td>
-<td style="text-align:right;color: blue !important;">
-23.41
-</td>
-<td style="text-align:right;color: blue !important;">
-0.0702
+0.0168
 </td>
 </tr>
 </tbody>
@@ -652,86 +600,72 @@ Lift
 <tbody>
 <tr>
 <td style="text-align:left;">
-&lt;13841.2209
+MISSING
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-196
+0
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-621
+5
 </td>
 <td style="text-align:right;color: blue !important;">
-1.4235
+0.0000
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-[13841.2209, 26293.0609&gt;
+&lt;7.08
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-175
+7
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-683
+2208
 </td>
 <td style="text-align:right;color: blue !important;">
-1.2103
+0.4918
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-[26293.0609, 36123.4609&gt;
+[7.08, 12.04&gt;
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-119
+11
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-354
+1919
 </td>
 <td style="text-align:right;color: blue !important;">
-1.4929
+0.8869
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-[36123.4609, 44970.8209&gt;
+[12.04, 18.04&gt;
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-47
+12
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-257
+1082
 </td>
 <td style="text-align:right;color: blue !important;">
-0.9174
+1.7069
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-[44970.8209, 64959.3009&gt;
+&gt;=18.04
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-70
+6
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-598
+352
 </td>
 <td style="text-align:right;color: blue !important;">
-0.6218
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-&gt;=64959.3009
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-58
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-768
-</td>
-<td style="text-align:right;color: blue !important;">
-0.4167
+2.6080
 </td>
 </tr>
 </tbody>
@@ -771,122 +705,102 @@ Z-Ratio
 <tbody>
 <tr>
 <td style="text-align:left;">
-&lt;13841.2209
+MISSING
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-196
+0
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-621
+5
 </td>
 <td style="text-align:right;">
-0.2947368
+0.0000000
 </td>
 <td style="text-align:right;">
-0.1892716
+0.0008983
 </td>
 <td style="text-align:right;color: blue !important;">
-5.5635283
+-2.2370730
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-[13841.2209, 26293.0609&gt;
+&lt;7.08
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-175
+7
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-683
+2208
 </td>
 <td style="text-align:right;">
-0.2631579
+0.1944444
 </td>
 <td style="text-align:right;">
-0.2081682
+0.3966942
 </td>
 <td style="text-align:right;color: blue !important;">
-2.9742535
+-3.0511136
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-[26293.0609, 36123.4609&gt;
+[7.08, 12.04&gt;
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-119
+11
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-354
+1919
 </td>
 <td style="text-align:right;">
-0.1789474
+0.3055556
 </td>
 <td style="text-align:right;">
-0.1078939
+0.3447718
 </td>
 <td style="text-align:right;color: blue !important;">
-4.4913299
+-0.5090537
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-[36123.4609, 44970.8209&gt;
+[12.04, 18.04&gt;
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-47
+12
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-257
+1082
 </td>
 <td style="text-align:right;">
-0.0706767
+0.3333333
 </td>
 <td style="text-align:right;">
-0.0783298
+0.1943945
 </td>
 <td style="text-align:right;color: blue !important;">
--0.6963889
+1.7643857
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-[44970.8209, 64959.3009&gt;
+&gt;=18.04
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-70
+6
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-598
+352
 </td>
 <td style="text-align:right;">
-0.1052632
+0.1666667
 </td>
 <td style="text-align:right;">
-0.1822615
+0.0632411
 </td>
 <td style="text-align:right;color: blue !important;">
--5.6298615
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-&gt;=64959.3009
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-58
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-768
-</td>
-<td style="text-align:right;">
-0.0872180
-</td>
-<td style="text-align:right;">
-0.2340750
-</td>
-<td style="text-align:right;color: blue !important;">
--11.1217299
+1.6628273
 </td>
 </tr>
 </tbody>
@@ -910,11 +824,11 @@ Z-Ratio
                                                     <span class="va">predictorbinning</span><span class="op">$</span><span class="va">Negatives</span><span class="op">[</span><span class="va">r</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">}</span><span class="op">)</span><span class="op">)</span>
 
 <span class="fu"><a href="https://rdrr.io/pkg/pROC/man/plot.roc.html">plot.roc</a></span><span class="op">(</span><span class="va">response</span>, <span class="va">prediction</span>, print.auc<span class="op">=</span><span class="cn">T</span>, col<span class="op">=</span><span class="st">"darkgreen"</span>, levels<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="cn">T</span>,<span class="cn">F</span><span class="op">)</span>, direction<span class="op">=</span><span class="st">"&gt;"</span><span class="op">)</span></code></pre></div>
-<p><img src="adm-explained_files/figure-html/unnamed-chunk-12-1.png" width="672" style="display: block; margin: auto;"></p>
+<p><img src="adm-explained_files/figure-html/unnamed-chunk-13-1.png" width="672" style="display: block; margin: auto;"></p>
 <p>There is also a convenient function in <em>cdhtools</em> to calculate it directly from the positives and negatives:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu">cdhtools</span><span class="fu">::</span><span class="fu"><a href="../reference/auc_from_bincounts.html">auc_from_bincounts</a></span><span class="op">(</span><span class="va">predictorbinning</span><span class="op">$</span><span class="va">Positives</span>, <span class="va">predictorbinning</span><span class="op">$</span><span class="va">Negatives</span><span class="op">)</span>
-<span class="co">#&gt; [1] 0.6385368</span></code></pre></div>
+<span class="co">#&gt; [1] 0.6541527</span></code></pre></div>
 </div>
 <div id="predictor-score-and-log-odds" class="section level1">
 <h1 class="hasAnchor">
@@ -954,140 +868,117 @@ Modified Log odds
 <tbody>
 <tr>
 <td style="text-align:left;">
-&lt;13841.2209
+MISSING
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-196
+0
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-621
+5
 </td>
 <td style="text-align:right;">
-0.2947368
+0.0000000
 </td>
 <td style="text-align:right;">
-0.1892716
+0.0008983
 </td>
 <td style="text-align:right;color: blue !important;">
-0.4429001
+-Inf
 </td>
 <td style="text-align:right;color: blue !important;">
-0.4363266
+1.6536612
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-[13841.2209, 26293.0609&gt;
+&lt;7.08
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-175
+7
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-683
+2208
 </td>
 <td style="text-align:right;">
-0.2631579
+0.1944444
 </td>
 <td style="text-align:right;">
-0.2081682
+0.3966942
 </td>
 <td style="text-align:right;color: blue !important;">
-0.2344076
+-0.7130193
 </td>
 <td style="text-align:right;color: blue !important;">
-0.2279605
+-0.8140942
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-[26293.0609, 36123.4609&gt;
+[7.08, 12.04&gt;
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-119
+11
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-354
+1919
 </td>
 <td style="text-align:right;">
-0.1789474
+0.3055556
 </td>
 <td style="text-align:right;">
-0.1078939
+0.3447718
 </td>
 <td style="text-align:right;color: blue !important;">
-0.5059431
+-0.1207512
 </td>
 <td style="text-align:right;color: blue !important;">
-0.4997169
+-0.2319921
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-[36123.4609, 44970.8209&gt;
+[12.04, 18.04&gt;
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-47
+12
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-257
+1082
 </td>
 <td style="text-align:right;">
-0.0706767
+0.3333333
 </td>
 <td style="text-align:right;">
-0.0783298
+0.1943945
 </td>
 <td style="text-align:right;color: blue !important;">
--0.1028120
+0.5392532
 </td>
 <td style="text-align:right;color: blue !important;">
--0.1070755
+0.4264424
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-[44970.8209, 64959.3009&gt;
+&gt;=18.04
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-70
+6
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-598
+352
 </td>
 <td style="text-align:right;">
-0.1052632
+0.1666667
 </td>
 <td style="text-align:right;">
-0.1822615
+0.0632411
 </td>
 <td style="text-align:right;color: blue !important;">
--0.5489790
+0.9690413
 </td>
 <td style="text-align:right;color: blue !important;">
--0.5540346
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-&gt;=64959.3009
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-58
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-768
-</td>
-<td style="text-align:right;">
-0.0872180
-</td>
-<td style="text-align:right;">
-0.2340750
-</td>
-<td style="text-align:right;color: blue !important;">
--0.9872302
-</td>
-<td style="text-align:right;color: blue !important;">
--0.9917328
+0.8721079
 </td>
 </tr>
 </tbody>
@@ -1125,22 +1016,22 @@ Log odds
 <tbody>
 <tr>
 <td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-Customer.pyCountry
+Customer.Prefix
 </td>
 <td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-GUA
+Miss
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1
+2
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-126
+8
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-804
+1174
 </td>
 <td style="text-align:right;color: blue !important;">
--0.2585606
+-0.0219008
 </td>
 </tr>
 <tr>
@@ -1148,19 +1039,19 @@ GUA
 Customer.NetWealth
 </td>
 <td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-13634
+5458
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-5
+1
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-103
+7
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-654
+2679
 </td>
 <td style="text-align:right;color: blue !important;">
--0.2633268
+-0.9394840
 </td>
 </tr>
 <tr>
@@ -1168,19 +1059,19 @@ Customer.NetWealth
 Customer.AnnualIncome
 </td>
 <td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-31208
+2827
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-3
+1
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-119
+7
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-354
+3401
 </td>
 <td style="text-align:right;color: blue !important;">
-0.4997169
+-1.1780835
 </td>
 </tr>
 <tr>
@@ -1188,124 +1079,24 @@ Customer.AnnualIncome
 Customer.CLV_VALUE
 </td>
 <td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1180
+352
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-5
+1
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-98
+7
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-429
+1379
 </td>
 <td style="text-align:right;color: blue !important;">
-0.1072834
+-0.2755163
 </td>
 </tr>
 <tr>
 <td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-Customer.RiskCode
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-R4
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-2
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-152
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-811
-</td>
-<td style="text-align:right;color: blue !important;">
--0.0817145
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-Customer.NoOfDependents
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-2
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-2
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-133
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-803
-</td>
-<td style="text-align:right;color: blue !important;">
--0.2051011
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-Customer.WinScore
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-76
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-4
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-34
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-348
-</td>
-<td style="text-align:right;color: blue !important;">
--0.7359378
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-Customer.RelationshipStartDate
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1769
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-5
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-54
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-275
-</td>
-<td style="text-align:right;color: blue !important;">
--0.0433780
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-Customer.Age
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-41
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-5
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-40
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-162
-</td>
-<td style="text-align:right;color: blue !important;">
-0.1860497
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-Param.ExtGroupCreditcards
+Customer.OrganizationLabel
 </td>
 <td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
 NON-MISSING
@@ -1314,13 +1105,73 @@ NON-MISSING
 1
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-482
+31
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-2033
+3646
 </td>
 <td style="text-align:right;color: blue !important;">
-0.1551901
+0.2356695
+</td>
+</tr>
+<tr>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+Customer.WinScore
+</td>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+66
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+2
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+9
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+462
+</td>
+<td style="text-align:right;color: blue !important;">
+1.0247886
+</td>
+</tr>
+<tr>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+Customer.Age
+</td>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+37
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+2
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+7
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+3042
+</td>
+<td style="text-align:right;color: blue !important;">
+-1.1030803
+</td>
+</tr>
+<tr>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+Customer.Gender
+</td>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+M
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+1
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+7
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+1735
+</td>
+<td style="text-align:right;color: blue !important;">
+-0.5051155
 </td>
 </tr>
 <tr>
@@ -1328,39 +1179,19 @@ NON-MISSING
 Customer.MaritalStatus
 </td>
 <td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-Married
+Single
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-2
+1
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-167
+6
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-903
+1454
 </td>
 <td style="text-align:right;color: blue !important;">
--0.0951718
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-Customer.Date_of_Birth
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-18773
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-2
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-43
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-255
-</td>
-<td style="text-align:right;color: blue !important;">
--0.1860585
+-0.4750671
 </td>
 </tr>
 <tr>
@@ -1374,13 +1205,13 @@ middleSegmentPlus
 1
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-340
+10
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-2015
+3369
 </td>
 <td style="text-align:right;color: blue !important;">
--0.1860851
+-0.8256861
 </td>
 </tr>
 <tr>
@@ -1388,299 +1219,19 @@ middleSegmentPlus
 Customer.CreditScore
 </td>
 <td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-649
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-4
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-43
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-434
-</td>
-<td style="text-align:right;color: blue !important;">
--0.7241070
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-Customer.InCollections
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-true
+432
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
 1
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-115
+14
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-704
+426
 </td>
 <td style="text-align:right;color: blue !important;">
--0.2144949
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.Web.Inbound.Loyal.pyHistoricalOutcomeCount
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-4
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-5
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-60
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-211
-</td>
-<td style="text-align:right;color: blue !important;">
-0.3279119
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.SMS.Outbound.Rejected.pyHistoricalOutcomeCount
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-101
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-4
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-43
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-301
-</td>
-<td style="text-align:right;color: blue !important;">
--0.3568291
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.Web.Inbound.Accepted.pxLastGroupID
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-Customer
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-3
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-238
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1262
-</td>
-<td style="text-align:right;color: blue !important;">
--0.0786530
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.Web.Inbound.Rejected.pyHistoricalOutcomeCount
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-94
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-6
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-43
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-272
-</td>
-<td style="text-align:right;color: blue !important;">
--0.2610892
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.Email.Outbound.Rejected.pyHistoricalOutcomeCount
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-82
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-4
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-94
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-395
-</td>
-<td style="text-align:right;color: blue !important;">
-0.1507218
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.Web.Inbound.Loyal.pxLastGroupID
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-MISSING
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-283
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1525
-</td>
-<td style="text-align:right;color: blue !important;">
--0.0908149
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.Email.Outbound.Rejected.pxLastGroupID
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-DepositAccounts
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-2
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-114
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-585
-</td>
-<td style="text-align:right;color: blue !important;">
--0.0438538
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.Web.Inbound.Accepted.pyHistoricalOutcomeCount
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-7
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-2
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-496
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-2632
-</td>
-<td style="text-align:right;color: blue !important;">
--0.0784476
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.Web.Inbound.Rejected.pxLastGroupID
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-DepositAccounts
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-2
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-192
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-919
-</td>
-<td style="text-align:right;color: blue !important;">
-0.0251814
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-4
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-3
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-53
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-210
-</td>
-<td style="text-align:right;color: blue !important;">
-0.2144922
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.SMS.Outbound.Accepted.pxLastGroupID
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-Account
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-3
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-61
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-287
-</td>
-<td style="text-align:right;color: blue !important;">
-0.0425010
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.SMS.Outbound.Rejected.pxLastGroupID
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-DepositAccounts
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-3
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-100
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-427
-</td>
-<td style="text-align:right;color: blue !important;">
-0.1386226
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.Web.Inbound.Loyal.pxLastOutcomeTime.DaysSince
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-NA
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-283
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1525
-</td>
-<td style="text-align:right;color: blue !important;">
--0.0908149
+1.5687755
 </td>
 </tr>
 <tr>
@@ -1688,19 +1239,19 @@ NA
 IH.Email.Outbound.Accepted.pxLastGroupID
 </td>
 <td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-DepositAccounts
+CreditCards
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
 2
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-321
+10
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1749
+2887
 </td>
 <td style="text-align:right;color: blue !important;">
--0.1050056
+-0.7338969
 </td>
 </tr>
 <tr>
@@ -1714,38 +1265,98 @@ IH.Email.Outbound.Accepted.pyHistoricalOutcomeCount
 2
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-260
+10
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1402
+1244
 </td>
 <td style="text-align:right;color: blue !important;">
--0.0931573
+0.1372604
 </td>
 </tr>
 <tr>
 <td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.Email.Outbound.Loyal.pxLastOutcomeTime.DaysSince
+IH.Email.Outbound.Rejected.pyHistoricalOutcomeCount
 </td>
 <td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
--20
+68
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
 2
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-176
+6
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-687
+1251
 </td>
 <td style="text-align:right;color: blue !important;">
-0.2299342
+-0.3955513
 </td>
 </tr>
 <tr>
 <td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.Email.Outbound.Loyal.pyHistoricalOutcomeCount
+IH.Email.Outbound.Rejected.pxLastGroupID
+</td>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+DepositAccounts
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+2
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+7
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+975
+</td>
+<td style="text-align:right;color: blue !important;">
+0.0345785
+</td>
+</tr>
+<tr>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+IH.Web.Inbound.Accepted.pyHistoricalOutcomeCount
+</td>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+NA
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+1
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+0
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+4
+</td>
+<td style="text-align:right;color: blue !important;">
+2.3964598
+</td>
+</tr>
+<tr>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+IH.Web.Inbound.Rejected.pxLastGroupID
+</td>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+Account
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+1
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+18
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+3425
+</td>
+<td style="text-align:right;color: blue !important;">
+-0.2688240
+</td>
+</tr>
+<tr>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount
 </td>
 <td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
 1
@@ -1754,13 +1365,53 @@ IH.Email.Outbound.Loyal.pyHistoricalOutcomeCount
 2
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-131
+7
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-623
+2208
 </td>
 <td style="text-align:right;color: blue !important;">
-0.0328850
+-0.8140942
+</td>
+</tr>
+<tr>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+IH.SMS.Outbound.Accepted.pxLastGroupID
+</td>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+Customer
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+2
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+9
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+2090
+</td>
+<td style="text-align:right;color: blue !important;">
+-0.5140538
+</td>
+</tr>
+<tr>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+IH.SMS.Outbound.Rejected.pxLastGroupID
+</td>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+Account
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+2
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+10
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+1484
+</td>
+<td style="text-align:right;color: blue !important;">
+-0.0391163
 </td>
 </tr>
 <tr>
@@ -1774,13 +1425,13 @@ NA
 1
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-381
+23
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1755
+2891
 </td>
 <td style="text-align:right;color: blue !important;">
-0.0666781
+0.1741358
 </td>
 </tr>
 <tr>
@@ -1794,33 +1445,13 @@ MISSING
 1
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-381
+23
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1755
+2891
 </td>
 <td style="text-align:right;color: blue !important;">
-0.0666781
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.Web.Inbound.Churned.pyHistoricalOutcomeCount
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-4
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-6
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-34
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-190
-</td>
-<td style="text-align:right;color: blue !important;">
--0.1359004
+0.1412802
 </td>
 </tr>
 <tr>
@@ -1828,19 +1459,39 @@ IH.Web.Inbound.Churned.pyHistoricalOutcomeCount
 IH.SMS.Outbound.Loyal.pyHistoricalOutcomeCount
 </td>
 <td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+NA
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
 1
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-2
+24
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-96
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-434
+4563
 </td>
 <td style="text-align:right;color: blue !important;">
-0.0897301
+-0.2161764
+</td>
+</tr>
+<tr>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+IH.SMS.Outbound.Churned.pxLastGroupID
+</td>
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+MISSING
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+1
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+28
+</td>
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+4935
+</td>
+<td style="text-align:right;color: blue !important;">
+-0.1440303
 </td>
 </tr>
 <tr>
@@ -1859,7 +1510,7 @@ NA
 NA
 </td>
 <td style="text-align:right;color: blue !important;">
--0.0539169
+-0.1094691
 </td>
 </tr>
 </tbody>
@@ -1889,7 +1540,7 @@ Negatives
 Cum. Total (%)
 </th>
 <th style="text-align:right;">
-Success Rate (%)
+Propensity (%)
 </th>
 <th style="text-align:right;">
 Adjusted Propensity (%)
@@ -1910,28 +1561,28 @@ Lift (%)
 1
 </td>
 <td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-&lt;-1.33
+&lt;-1.95
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
 0
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-4
-</td>
-<td style="text-align:right;">
-100.0000000
-</td>
-<td style="text-align:right;">
-0.000000
-</td>
-<td style="text-align:right;color: blue !important;">
-10.000000
+35
 </td>
 <td style="text-align:right;">
 100.000000
 </td>
 <td style="text-align:right;">
--2.001220
+0.0000000
+</td>
+<td style="text-align:right;color: blue !important;">
+1.3888889
+</td>
+<td style="text-align:right;">
+100.00000
+</td>
+<td style="text-align:right;">
+-5.934769
 </td>
 <td style="text-align:right;">
 0.0000
@@ -1942,31 +1593,31 @@ Lift (%)
 2
 </td>
 <td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-[-1.33, -0.15&gt;
+[-1.95, -0.63&gt;
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-89
+7
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-860
+1939
 </td>
 <td style="text-align:right;">
-99.8986315
+99.375223
 </td>
 <td style="text-align:right;">
-9.378293
+0.3597122
 </td>
 <td style="text-align:right;color: blue !important;">
-9.421053
+0.3852080
 </td>
 <td style="text-align:right;">
-100.000000
+100.00000
 </td>
 <td style="text-align:right;">
--8.399098
+-2.322612
 </td>
 <td style="text-align:right;">
-55.6492
+55.9752
 </td>
 </tr>
 <tr>
@@ -1974,31 +1625,31 @@ Lift (%)
 3
 </td>
 <td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-[-0.15, -0.11&gt;
+[-0.63, -0.5&gt;
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-95
+7
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-775
+1331
 </td>
 <td style="text-align:right;">
-75.8489610
+64.637629
 </td>
 <td style="text-align:right;">
-10.919540
+0.5231689
 </td>
 <td style="text-align:right;color: blue !important;">
-10.964409
+0.5601195
 </td>
 <td style="text-align:right;">
-86.616541
+80.55556
 </td>
 <td style="text-align:right;">
--6.036864
+-0.674919
 </td>
 <td style="text-align:right;">
-64.7947
+81.4109
 </td>
 </tr>
 <tr>
@@ -2006,31 +1657,31 @@ Lift (%)
 4
 </td>
 <td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-[-0.11, -0.1&gt;
+[-0.5, -0.36&gt;
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-31
+8
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-189
+1125
 </td>
 <td style="text-align:right;">
-53.8013178
+40.753302
 </td>
 <td style="text-align:right;">
-14.090909
+0.7060900
 </td>
 <td style="text-align:right;color: blue !important;">
-14.253394
+0.7495591
 </td>
 <td style="text-align:right;">
-72.330827
+61.11111
 </td>
 <td style="text-align:right;">
--1.203337
+0.289246
 </td>
 <td style="text-align:right;">
-83.6131
+109.8755
 </td>
 </tr>
 <tr>
@@ -2038,31 +1689,31 @@ Lift (%)
 5
 </td>
 <td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-[-0.1, -0.09&gt;
+[-0.36, -0.29&gt;
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-36
+4
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-198
+446
 </td>
 <td style="text-align:right;">
-48.2260517
+20.528383
 </td>
 <td style="text-align:right;">
-15.384615
+0.8888889
 </td>
 <td style="text-align:right;color: blue !important;">
-15.531915
+0.9977827
 </td>
 <td style="text-align:right;">
-67.669173
+38.88889
 </td>
 <td style="text-align:right;">
--0.639770
+0.590078
 </td>
 <td style="text-align:right;">
-91.2898
+138.3210
 </td>
 </tr>
 <tr>
@@ -2070,31 +1721,31 @@ Lift (%)
 6
 </td>
 <td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-[-0.09, -0.06&gt;
+[-0.29, -0.22&gt;
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-106
+3
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-457
+319
 </td>
 <td style="text-align:right;">
-42.2959959
+12.495537
 </td>
 <td style="text-align:right;">
-18.827709
+0.9316770
 </td>
 <td style="text-align:right;color: blue !important;">
-18.882979
+1.0835913
 </td>
 <td style="text-align:right;">
-62.255639
+27.77778
 </td>
 <td style="text-align:right;">
-1.303568
+0.563599
 </td>
 <td style="text-align:right;">
-111.7205
+144.9793
 </td>
 </tr>
 <tr>
@@ -2102,31 +1753,31 @@ Lift (%)
 7
 </td>
 <td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-[-0.06, -0.055&gt;
+[-0.22, 0.99&gt;
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-15
+2
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-62
+144
 </td>
 <td style="text-align:right;">
-28.0283832
+6.747590
 </td>
 <td style="text-align:right;">
-19.480519
+1.3698630
 </td>
 <td style="text-align:right;color: blue !important;">
-19.871795
+1.7006803
 </td>
 <td style="text-align:right;">
-46.315790
+19.44444
 </td>
 <td style="text-align:right;">
-0.587495
+0.776338
 </td>
 <td style="text-align:right;">
-115.5942
+213.1659
 </td>
 </tr>
 <tr>
@@ -2134,191 +1785,31 @@ Lift (%)
 8
 </td>
 <td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-[-0.055, -0.05&gt;
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-20
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-59
-</td>
-<td style="text-align:right;">
-26.0770400
-</td>
-<td style="text-align:right;">
-25.316456
-</td>
-<td style="text-align:right;color: blue !important;">
-25.625000
-</td>
-<td style="text-align:right;">
-44.060150
-</td>
-<td style="text-align:right;">
-1.723199
-</td>
-<td style="text-align:right;">
-150.2237
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-9
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-[-0.05, -0.02&gt;
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-108
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-311
-</td>
-<td style="text-align:right;">
-24.0750127
-</td>
-<td style="text-align:right;">
-25.775656
-</td>
-<td style="text-align:right;color: blue !important;">
-25.833333
-</td>
-<td style="text-align:right;">
-41.052632
-</td>
-<td style="text-align:right;">
-4.451738
-</td>
-<td style="text-align:right;">
-152.9485
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-10
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-[-0.02, 0.03&gt;
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-103
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-271
-</td>
-<td style="text-align:right;">
-13.4566650
-</td>
-<td style="text-align:right;">
-27.540107
-</td>
-<td style="text-align:right;color: blue !important;">
-27.600000
-</td>
-<td style="text-align:right;">
-24.812030
-</td>
-<td style="text-align:right;">
-4.874566
-</td>
-<td style="text-align:right;">
-163.4184
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-11
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-[0.03, 0.085&gt;
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-49
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-80
-</td>
-<td style="text-align:right;">
-3.9787126
-</td>
-<td style="text-align:right;">
-37.984496
-</td>
-<td style="text-align:right;color: blue !important;">
-38.076923
-</td>
-<td style="text-align:right;">
-9.323308
-</td>
-<td style="text-align:right;">
-4.703074
-</td>
-<td style="text-align:right;">
-225.3937
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-12
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-[0.085, 0.995&gt;
+&gt;=0.99
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
 5
 </td>
 <td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-7
+227
 </td>
 <td style="text-align:right;">
-0.7095793
+4.141378
 </td>
 <td style="text-align:right;">
-41.666667
+2.1551724
 </td>
 <td style="text-align:right;color: blue !important;">
-42.307692
+2.3605150
 </td>
 <td style="text-align:right;">
-1.954887
+13.88889
 </td>
 <td style="text-align:right;">
-1.563071
+1.700289
 </td>
 <td style="text-align:right;">
-247.2431
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-13
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-&gt;=0.995
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-8
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-8
-</td>
-<td style="text-align:right;">
-0.4054739
-</td>
-<td style="text-align:right;">
-50.000000
-</td>
-<td style="text-align:right;color: blue !important;">
-50.000000
-</td>
-<td style="text-align:right;">
-1.203008
-</td>
-<td style="text-align:right;">
-2.223204
-</td>
-<td style="text-align:right;">
-296.6917
+335.3688
 </td>
 </tr>
 </tbody>
@@ -2327,9 +1818,9 @@ Lift (%)
 <div id="final-propensity" class="section level1">
 <h1 class="hasAnchor">
 <a href="#final-propensity" class="anchor"></a>Final propensity</h1>
-<p>Below the classifier mapping. On the x-axis the binned scores (log odds values), on the y-axis the returned propensities. The bin that contains the score we calculated above is highlighted.</p>
-<p>The score -0.0539169 falls in bin 8 of the classifier, so for this set of inputs, the model returns a propensity of 25.62%.</p>
-<p><img src="adm-explained_files/figure-html/unnamed-chunk-18-1.png" width="672" style="display: block; margin: auto;"></p>
+<p>Below the classifier mapping. On the x-axis the binned scores (log odds values), on the y-axis the Success Rates. Note the returned propensities are following a slightly adjusted formula, see the table above. The bin that contains the calculated score is highlighted.</p>
+<p>The score <em>-0.1094691</em> falls in <em>bin 7</em> of the classifier, so for this set of inputs, the model returns a propensity of 1.70%.</p>
+<p><img src="adm-explained_files/figure-html/unnamed-chunk-19-1.png" width="672" style="display: block; margin: auto;"></p>
 </div>
   </div>
 

@@ -20,8 +20,8 @@ context("Toplevel Examples")
 # GitHub actions - they're running in total isolation. So until we find
 # a solution for that, just running it locally.
 
-exampleFolder <- file.path("../../..", "examples")
-offlineReportsFolder <- file.path("../../..", "offlinereports")
+packageRootFolder <- file.path("../../..")
+exampleFolder <- file.path(packageRootFolder, "examples")
 
 test_that("example folder exists", {
   print("Example folder check")
@@ -40,9 +40,16 @@ test_that("expected R notebooks are there", {
 
     notebooks <- list.files(exampleFolder, pattern=".Rmd", recursive = T, full.names = T)
 
-    expect_equal(5, length(notebooks), info="Number of R notebooks")
+    # TODO: expecting two more (at least) now since move of off-line reports
+
+    expect_equal(7, length(notebooks), info="Number of R notebooks")
   }
 })
+
+# Perhaps watch out in all files or all Rmd files for a
+# "source" statement in a line that is not commented out
+# sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source)
+# any(grepl("^[ ]*[^#]*source", readLines(f)))
 
 verify_notebook <- function(nb)
 {
@@ -69,19 +76,15 @@ test_that("check example notebooks", {
   }
 })
 
-test_that("check offline model overview", {
-  if (dir.exists(offlineReportsFolder)) {
-    # So below will be skipped on Github actions for now, only running locally
-
-    verify_notebook(file.path(offlineReportsFolder, "adaptivemodeloverview.Rmd"))
+test_that("check not sourcing CDH Tools files directly", {
+  if (dir.exists(exampleFolder)) {
+    rFilez <- list.files(packageRootFolder, pattern=".Rmd", recursive = T, full.names = T)
+    for (rFile in rFilez) {
+      scanFileForSourceInclusion <- grepl("^[ ]*[^#]*source", readLines(rFile))
+      expect_false(any(scanFileForSourceInclusion),
+                   info = paste("Looks like there is a direct include of CDH tools source in", rFile,
+                                "at lines",
+                                paste(which(scanFileForSourceInclusion), collapse = ", ")))
+    }
   }
 })
-
-test_that("check offline model report", {
-  if (dir.exists(offlineReportsFolder)) {
-    # So below will be skipped on Github actions for now, only running locally
-
-    verify_notebook(file.path(offlineReportsFolder, "modelreport.Rmd"))
-  }
-})
-

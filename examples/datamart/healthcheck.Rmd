@@ -1,0 +1,730 @@
+---
+title: "`r params$title`"
+subtitle: "`r params$subtitle`"
+author: "Pega CDH Tools"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+  pdf_document: default
+always_allow_html: true
+params:
+  # Below default values for the parameters. This notebook is usually launched from a (bash)script in which
+  # these values are set, although you can also run it from R Studio: Knit with Parameters to be prompted 
+  # for the paths to the data.
+  
+  title:
+    value: "ADM Health Check"
+    
+  subtitle:
+    value: ""
+    
+  modelfile:
+    # Full path to the source file which should be an export of the ADM model table
+    # can be a plain CSV file, a zipped CSV, or the full path of a dataset export
+    value: "../../data/pr_data_dm_admmart_mdl_fact.csv"
+
+  predictordatafile:
+    # Optional full path to ADM predictor binning table data. If given, the model 
+    # overview will also contain predictor plots. Like the model file, there is 
+    # flexibility in format: CSV, zipped CSV or dataset export. If you have something
+    # different, you'll need to load, filter and re-write as CSV first.
+    value: "../../data/pr_data_dm_admmart_pred.csv"
+
+  modellist:
+    # Facilitates automatic generation of individual model reports (calling the
+    # off-line model report notebook). Optional. When given, is the name of a 
+    # text file that will be generated from the model data with a list of 
+    # model ID's (and some other info). This file can be iterated
+    # over in a batch script to generate individual model reports.
+    value: ""
+  
+  # Number of propositions, models and predictors to put in lists and plots
+  max_propositions_in_plot:
+    value: 20
+  max_models_in_list:
+    value: 50
+  max_predictors_in_plot:
+    value: 30
+---
+
+
+```{r, echo=F, warning=F, error=F, include=FALSE}
+library(cdhtools)
+
+# include below when developing the library
+sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source)
+
+library(data.table)
+library(lubridate)
+library(ggplot2)
+library(plotly)
+library(colorspace)
+library(scales)
+library(knitr)
+library(kableExtra)
+library(stringi)
+library(arrow) # for parquet read/write
+
+theme_set(theme_light())
+options(digits = 5)
+knitr::opts_chunk$set(
+  comment = ">", echo = FALSE, warning = FALSE, fig.width = 10, fig.height = 10
+)
+```
+
+This notebook gives a global overview of the adaptive models from the data mart.
+
+For best viewing results, open the HTML in a browser. Viewing the HTML from
+platforms like e.g. Sharepoint or Github will loose the interactive charts. Non-interactive, 
+static, plots are available always.
+
+The default notebook output is a single-page HTML that can easily be shared. The
+HTML is interactive where this makes sense (using Plotly for rendering). You
+can also export to PDF as well as other formats supported by Pandoc (e.g. Word).
+
+To create stand-alone model reports for individual model 
+instances see the "modelreport" notebook.
+
+```{r Read Model Data, echo=F, error=F, warning=FALSE, include=F}
+
+if (!("modelfile" %in% names(params))) stop("Model data missing. Please provide through parameter 'modelfile'.")
+if (!file.exists(params$modelfile)) stop(paste("File does not exist:", params$modelfile))
+
+# This read function is a helper for theses off-line reports. It looks at file
+# extensions to figure out whether to read CSV, a model export zip or something
+# else, then also sanitizes and standardizes the output. For specific needs we
+# recommend using readDSExport. If you need to deal with CSV's read with fread then 
+# standardize the casing with "applyUniformPegaFieldCasing" and fix up the
+# date/time fields if necessary.
+mdls <- readDatamartFromFile(params$modelfile)
+
+# mdls[, SnapshotDate := date(SnapshotTime)] # for plotting aggregating to days, sometimes there are inter-day snapshots in the data
+```
+
+# Overview of the Propositions
+
+Propositions, also referred to as offers or actions with treatments, are
+the most granular perspective on the adaptive models.
+
+## Proposition Success Rates across Channels
+
+Overall success rate of the propositions. Different channels usually have different success rates.
+
+We limit here to propositions that have received at least 100 responses (impressions or
+actual feedback).
+
+```{r Plot Proposition Success Rates}
+p <- plotADMPropositionSuccessRates(mdls[ResponseCount >= 100], 
+                                    limit=params$max_propositions_in_plot, 
+                                    facets="Channel") + 
+  scale_fill_continuous_divergingx()
+# ggplotly(p) %>% layout(showlegend=FALSE) # plotly no use here given the way the plot is constructed
+p
+```
+
+## Proposition Success Rates over Time
+
+Trend of success rates per Channel split by model configuration.
+
+TODO: the Channel colors are not consistent throughout all plots
+
+```{r Success Rate over Time, message=FALSE, warning=FALSE}
+if (uniqueN(mdls$SnapshotTime) < 2)
+{
+  cat("Trend plots will only be available when the model data contains multiple snapshots.", fill=T)
+} else {
+  p <- plotADMModelSuccessRateOverTime(mdls[ResponseCount >= 100], aggregation = "Channel") + 
+    scale_color_discrete_qualitative(name="Channel")  
+  #geom_smooth(aes(fill=Channel), alpha=0.1)
+  p
+}
+```
+
+
+# Overview of Adaptive Models
+
+There are a total of `r nrow(latestSnapshotsOnly(mdls))` models in the latest snapshot.
+
+In the sections below we check which of these models have reached certain
+confidence thresholds.
+
+TODO: organize this better
+Identify technical problems
+E.g. are there propositions that are not retrieving any positives? (the success rate will be zero; to the bottom of the plot)
+Identify propositions for which the model is not predictive (low performance; to the left side in the graph)
+The performance may be increased if new potential predictors are added. Can we add potential predictors that have not yet been considered? This could help, however there is no guarantee as an outcome could be inherently difficult to predict - as any volcanologist would affirm ;)
+Identify propositions that are not proposed enough (low number of responses; small circle size in the graph)
+Are the eligibility rules in the Decision Strategy to restrictive? Should we relax the exclusion rules?
+Should we increase the priority of this proposition in the Decision Strategy?
+Identify propositions that are proposed so much that they be dominating other propositions (a high number of responses; a large circle size in the graph)
+Is this desired from a business perspective? If not, the prioritization in the Decision Strategy could be adjusted
+Identify propositions with a low success rate (low success rate; to the bottom of the plot)
+Should business consider dismissing the proposition?
+If the model performance is low (to the left of the plot) then there may be room for improvement if the model can be improved, because proposing it to more relevant customers would increase the success rate. If the model performance is already high (to the right of the plot) then the relevance to the customer is already high, but the proposition would seem to be inherently unattractive
+
+
+
+
+## Empty and Immature Models
+
+```{r CategorizeModels}
+mdls[, isEmpty := ResponseCount == 0]
+mdls[, noPositives := ResponseCount > 0 & Positives == 0]
+mdls[, isImmature := Positives > 0 & Positives < 200]
+mdls[, noPerformance := Positives >= 200 & Performance == 0.5]
+
+availableStandardContextKeys <- intersect(c("ConfigurationName", "Issue","Group","Name","Channel","Direction","Treatment"), names(mdls))
+fieldsForModelAnalysis <- c(availableStandardContextKeys, c("ResponseCount", "Positives", "Negatives", "Performance"))
+
+setorderv(mdls, availableStandardContextKeys)
+mdls[, Channel := factor(Channel)] # to enforce consistent coloring
+
+modelsNeverUsed <- latestSnapshotsOnly(mdls)[(isEmpty), fieldsForModelAnalysis, with=F]
+modelsNoPositives <- latestSnapshotsOnly(mdls)[(noPositives), fieldsForModelAnalysis, with=F]
+modelsImmature <- latestSnapshotsOnly(mdls)[(isImmature), fieldsForModelAnalysis, with=F]
+modelsNoPerformance <- latestSnapshotsOnly(mdls)[(noPerformance), fieldsForModelAnalysis, with=F]
+```
+
+### Models that have never been used
+
+These models have no responses at all: no positives but also no negatives. 
+
+Showing first `r min(nrow(modelsNeverUsed), params$max_models_in_list)` from total of `r nrow(modelsNeverUsed)`.
+
+```{r}
+modelsNeverUsed %>% 
+  head(params$max_models_in_list) %>% 
+  kbl() %>%
+  kable_paper(c("striped", "hover"), full_width = F) %>% 
+  scroll_box(height = "300px")
+```
+
+### Models that have have been used but never received a positive response
+
+These models have been used but never received a "positive" response.
+
+Showing first `r min(nrow(modelsNoPositives), params$max_models_in_list)` from total of `r nrow(modelsNoPositives)`.
+
+```{r}
+modelsNoPositives %>% 
+  head(params$max_models_in_list) %>% 
+  kbl() %>%
+  kable_paper(c("striped", "hover"), full_width = F) %>% 
+  scroll_box(height = "300px")
+```
+
+
+### Models that are still in an immature phase of learning
+
+These models have received at least one positive response but not enough to
+be qualified to be fully "mature" - a concept that matters especially for 
+outbound channels.
+
+Showing first `r min(nrow(modelsImmature), params$max_models_in_list)` from total of `r nrow(modelsImmature)`.
+
+```{r}
+modelsImmature %>% 
+  head(params$max_models_in_list) %>% 
+  kbl() %>%
+  kable_paper(c("striped", "hover"), full_width = F) %>% 
+  scroll_box(height = "300px")
+```
+
+
+### Models that have received sufficient responses but are still at their minimum performance
+
+These models also have received at over 200 positives but still show the minimum
+model performance. This could be an indication of data problems, or not having the
+right predictors but may also be caused by technical aspects like the order of
+the responses to the model.
+
+Showing first `r min(nrow(modelsNoPerformance), params$max_models_in_list)` from total of `r nrow(modelsNoPerformance)`.
+
+```{r}
+modelsNoPerformance %>% 
+  head(params$max_models_in_list) %>% 
+  kbl() %>%
+  kable_paper(c("striped", "hover"), full_width = F) %>% 
+  scroll_box(height = "300px")
+```
+
+
+## Number of Empty/Immature Models over time
+
+The number of empty or immature models over time. Empty is defined as having
+no responses at all. Immature is defined as having < 200 positives, and no
+performance means model performance is still the initial 0.5 value while having
+matured already according to the definition.
+
+```{r Number of Empty or Immature models over time, message=FALSE, warning=FALSE}
+if (uniqueN(mdls$SnapshotTime) < 2)
+{
+  cat("Trend plots will only be available when the model data contains multiple snapshots.", fill=T)
+} else {
+  
+  immatureModelsByChannel <- mdls[, .(`Empty Models` = length(unique(ModelID[(isEmpty)])), 
+                                      `Models w/o Positives` = length(unique(ModelID[(noPositives)])), 
+                                      `Immature Models` = length(unique(ModelID[(isImmature)])), 
+                                      `Models w/o Performance` = length(unique(ModelID[(noPerformance)])),
+                                      `Number of non-empty Models` = length(unique(ModelID[(!isEmpty)]))), 
+                                  by=c("Channel", "SnapshotTime")]
+  
+  ggplot(melt(immatureModelsByChannel, c("Channel", "SnapshotTime"), 
+              variable.name="Count", value.name="N"),
+         aes(SnapshotTime, N, color=Count)) + 
+    geom_line(size=1) + xlab("") + ylab("Count") +
+    scale_color_discrete_qualitative() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    facet_wrap(. ~ Channel, strip.position = "right") +
+    ggtitle("Immature and Empty Models", subtitle = "by Channel")
+}
+```
+
+## Analysis of skewness of the Responses
+
+Showing the cumulative number of responses by the number of models. 
+
+Some skewness is expected: not all propositions drive the same amount of
+responses, and a healthy arbitration strategy shows that. 
+
+However sometimes we see that a very small number of models dominate the
+interactions. That could be a problem but is less about the models
+themselves and more about the arbitration or the way the responses are 
+collected.
+
+```{r fig.height=5, fig.width=8}
+responseGainData <- 
+  latestSnapshotsOnly(mdls) [, .(Responses = max(ResponseCount)), by=c("Channel", "ModelID")][order(Channel,Responses,decreasing = T)]
+responseGainData[ , TotalResponseFraction := cumsum(Responses) / sum(Responses) , by=Channel]
+responseGainData[ , TotalModelsFraction := seq(.N)/.N , by=Channel]
+
+plt <- ggplot(responseGainData, aes(TotalModelsFraction, TotalResponseFraction, color=Channel)) + 
+  geom_line(size=1) +
+  scale_color_discrete_qualitative() +
+  scale_x_continuous(name="Percentage of Models", labels = scales::percent, limits = c(0,1)) +
+  scale_y_continuous(name="Percentage of Responses", labels = scales::percent, limits = c(0,1)) +
+  #geom_abline(slope=1, intercept=0, color="grey", linetype="dashed") +
+  ggtitle("Cumulative Responses by Models", subtitle = "by Channel")
+
+ggplotly(plt)
+```
+
+Static version for viewing this on platforms that do not 
+support the interactive Plotly graphs.
+
+```{r fig.height=5, fig.width=8}
+plt
+```
+
+
+## Models with most responses
+
+### Models with largest number of positive responses.
+
+```{r fig.height=8, fig.width=8}
+topNPositives <- latestSnapshotsOnly(mdls) [frank(-Positives, ties.method="dense") <= params$max_propositions_in_plot][order(-Positives)]
+topNPositives[, Label := apply(topNPositives[,availableStandardContextKeys,with=F], 1, paste, collapse="/")]
+topNPositives[, Rank := factor(seq(.N), levels=rev(seq(.N)))]
+
+ggplot(topNPositives,
+       aes(Rank, Positives, fill=Channel)) +
+  geom_col() +
+  geom_text(aes(y=0,label=Label), size=3, hjust=0) +
+  coord_flip() +
+  scale_fill_discrete_qualitative(name="Channel") +
+  ggtitle(paste("Top", params$max_propositions_in_plot, "highest Positives"))
+```
+
+## Models with largest number of responses (positive or negative).
+
+```{r fig.height=8, fig.width=8}
+topNResponses <- latestSnapshotsOnly(mdls) [frank(-ResponseCount, ties.method="dense") <= params$max_propositions_in_plot][order(-ResponseCount)]
+topNResponses[, Label := apply(topNResponses[,availableStandardContextKeys,with=F], 1, paste, collapse="/")]
+topNResponses[, Rank := factor(seq(.N), levels=rev(seq(.N)))]
+
+ggplot(topNResponses,
+       aes(Rank, ResponseCount, fill=Channel)) +
+  geom_col() +
+  geom_text(aes(y=0,label=Label), size=3, hjust=0) +
+  coord_flip() +
+  scale_fill_discrete_qualitative(name="Channel") +
+  ggtitle(paste("Top", params$max_propositions_in_plot, "highest Responses"))
+```
+
+
+## Model Performance vs Proposition Success Rates (the Bubble Chart)
+
+This is similar to the standard "bubble chart" in the ADM reporting pages.
+
+If all the bubbles clutter too much on the left-hand side of the charts, this
+means the models are not predictive (yet). Bubbles on the bottom of the charts
+represent propositions with very low success rates. In an ideal scenario you
+will see the larger bubbles more on the top-right, so more volume for propositions
+with higher success rates and better models.
+
+
+```{r Bubble Chart, message=FALSE, warning=FALSE}
+plt <- plotADMPerformanceSuccessRateBubbleChart(latestSnapshotsOnly(mdls)[ResponseCount >= 100], 
+                                                facets = c("ConfigurationName", "Channel"))
+  # scale_colour_gradient(low="darkred", high="darkgreen") +
+  # geom_point(aes(fill=TmpName)) + # Trick to show name in hover, starts to work
+  # guides(fill="none")
+
+ggplotly(plt) %>% 
+  layout(showlegend=FALSE) 
+```
+
+Static version for viewing this on platforms that do not 
+support the interactive Plotly graphs.
+
+Instead of using a color for every proposition, here we use color to indicate how
+"good" the models are: green for models with higher number of positives and 
+higher model performance.
+
+```{r}
+# ugly hack - color by goodness, temporarily replacing Name
+mdls[, OhMyGoodness := (cdhtools::auc2GINI(Performance) + pmin(Positives, 200) * (1.0/200))/2] # "goodness" as a value from 0..1
+mdls[, OriName := Name]
+mdls[, Name := OhMyGoodness]
+
+plt <- plotADMPerformanceSuccessRateBubbleChart(latestSnapshotsOnly(mdls)[ResponseCount >= 100], 
+                                                facets = c("ConfigurationName", "Channel")) +
+  scale_colour_gradient(low="darkred", high="darkgreen")
+
+# ugly hack - revert
+mdls[, Name := OriName]
+# mdls[, OhMyGoodness := NULL]
+
+plt
+```
+
+
+## Analysis of models driving most Volume
+
+Ideally higher performing and more mature models drive most of the
+responses.
+
+### Analysis of Performance vs Volume
+
+Showing the response count vs. the model performance (AUC).
+
+```{r fig.height=5, fig.width=8, message=FALSE, warning=FALSE}
+cumAUCOverVolumeData <- 
+  latestSnapshotsOnly(mdls) [, .(Performance = max(Performance), 
+                                 ResponseCount = max(ResponseCount)), 
+                             by=c("Channel", "ModelID")]
+cumAUCOverVolumeData[, TotalResponses := sum(ResponseCount), by=Channel]
+cumAUCOverVolumeData[, PerformanceBin := cut(Performance, breaks=15)]
+
+plt <- ggplot(cumAUCOverVolumeData[, .(N = sum(ResponseCount)/TotalResponses), 
+                                   by=c("PerformanceBin", "Channel")], 
+              aes(PerformanceBin, N, color=Channel)) + 
+  #geom_col(position = position_dodge()) +
+  geom_smooth(aes(group=Channel), se = F) + 
+  scale_color_discrete_qualitative() +
+  scale_y_continuous(name="Percentage of Responses", labels = scales::percent) +
+  xlab("Model Performance") +
+  theme(axis.text.x=element_text(angle=45, hjust=1)) +
+  ggtitle("Distribution of Volume vs Model Performance", subtitle = "by Channel")
+
+ggplotly(plt)
+```
+
+Static version for viewing this on platforms that do not 
+support the interactive Plotly graphs.
+
+```{r fig.height=5, fig.width=8, message=FALSE, warning=FALSE}
+plt
+```
+
+### Positives vs. Number of Models
+
+Showing the number of models for different counts of positives. 
+
+Ideally there are only few models without positives and the vast majority
+is on the right-hand side of the plot, with > 200 positives.
+
+```{r fig.height=5, fig.width=8, message=FALSE}
+modelsByPositives <- latestSnapshotsOnly(mdls)
+modelsByPositives[, PositivesBin := cut(Positives, breaks=c(seq(0,200,by=10), Inf), 
+                                        right=F)]
+modelsByPositives <- modelsByPositives[, .(Positives = min(Positives), 
+                                           Models = uniqueN(ModelID)),
+                                       by=c("Channel", "PositivesBin")]
+setorder(modelsByPositives, Positives)
+modelsByPositives[, cumModels := Models/sum(Models), by="Channel"]
+
+plt <- ggplot(modelsByPositives, aes(PositivesBin, cumModels, color=Channel)) + 
+  geom_line(aes(group=Channel)) + geom_point() +
+  scale_color_discrete_qualitative() +
+  scale_y_continuous(name="Percentage of Models", labels = scales::percent) +
+  theme(axis.text.x=element_text(angle=45, hjust=1)) +
+  xlab("Positives") +
+  ggtitle("Percentage of models vs number of positive responses", subtitle = "by Channel")
+
+ggplotly(plt)
+```
+
+Static version for viewing this on platforms that do not 
+support the interactive Plotly graphs.
+
+```{r fig.height=5, fig.width=8, message=FALSE}
+plt
+```
+
+
+## Model Performance over Time
+
+Showing how the model performance evolves over time. Only available if there
+are multiple snapshots (which typically is the case).
+
+Aggregating up to Channel and splitting by model configuration.
+
+TODO: the Channel colors are not consistent throughout all plots
+
+```{r Performance over Time, message=FALSE, warning=FALSE}
+if (uniqueN(mdls$SnapshotTime) < 2)
+{
+  cat("Trend plots will only be available when the model data contains multiple snapshots.", fill=T)
+} else {
+  p <- plotADMModelPerformanceOverTime(mdls, aggregation = "Channel") +
+    scale_color_discrete_qualitative(name="Channel")  
+  #geom_smooth(aes(fill=Channel), alpha=0.1)
+  p
+  # ggplotly(p)
+}
+```
+
+
+## Propensity distribution
+
+Reading the detailed predictor information from the optionally provided datamart 
+dump of the predictor binning table. By default this table only contains the last
+snapshot.
+
+```{r Read Predictor Data}
+if (is.null(params$predictordatafile) || params$predictordatafile=="")
+{
+  cat("Predictor analysis will only be available when predictor binning data is available.", fill=T)
+  modelPredictorBins <- NULL
+} else {
+  modelPredictorBins <- readDatamartFromFile(params$predictordatafile)
+}  
+```
+
+Analysing the volume of responses vs the propensity range. In a more
+emphathetic setup, you would expect higher volume for higher propensities. Often
+however, multiple factors are included in the prioritization, changing this
+picture.
+
+Note that the propensity bins are not of equal width. Propensities are typically
+very low so with an equal width distribution, almost all volume would be in the
+first bins. The binning here is based on (roughly) equal volume across all data.
+
+So when one of the graphs shows more volume on the left, that is to be 
+interpreted as relative to the other graphs.
+
+```{r Propensity distribution, message=FALSE, warning=FALSE}
+if (!is.null(modelPredictorBins) && nrow(modelPredictorBins) > 0) {
+  classifiers <- merge(modelPredictorBins[EntryType=="Classifier"], unique(mdls[,c("ModelID","Channel")]))
+  classifiers[, Propensity := (0.5+BinPositives)/(1+BinResponseCount)]
+  classifiers[, PropensityRange := Hmisc::cut2(Propensity, g=15)]
+  classifiers[, TotalVolume := sum(BinResponseCount), by="Channel"]
+  
+  ggplot(classifiers[,.(RelVolume = sum(BinResponseCount)/TotalVolume, 
+                        Propensity = min(Propensity)), 
+                     by=c("Channel", "PropensityRange", "TotalVolume")],
+         aes(PropensityRange, RelVolume, fill=Channel, group=Channel)) +
+    geom_col() + geom_smooth(se=F) +
+    theme(axis.text.x=element_text(angle=45, hjust=1, size=7)) +
+    facet_wrap(. ~ Channel, strip.position = "right") + #, scales = "free_x") +
+    xlab("Propensity") +
+    scale_y_continuous(name="Volume", labels = scales::percent) +
+    scale_fill_discrete_qualitative() +
+    ggtitle("Volume vs. Propensity") 
+} else {
+  cat("Propensity analysis will only be available when predictor binning data is available.", fill=T)
+}
+```
+
+# Analysis of Predictors
+
+TODO: format this better
+
+Zooming into a model: which predictors are used in a model?
+It’s not always necessary to understand the exact ‘why’ as to how a model works (causation), but occasionally it can be good to zoom into a model to:
+see which predictors it uses (and does not use)
+which are the top predictors
+and e.g. what the uplift is in the top 10% scoring customers
+Has the technical setup been done correctly, or are there ‘leaking’ predictors, i.e. predictors that appear to perform well but should be removed
+This is typically done when:
+A new proposition has been introduced
+when a potential predictor has been added/removed
+when there has been a prioritization change in the Decision Strategy
+when a model is performing badly
+But also when a model is performing very well, to give positive feedback to the business
+
+Identify and remove predictors that are never used
+Only remove if there is clearly no future value to other propositions as well. Or remove it if there is always a related predictor that performs better.
+
+
+## Predictor Performance across all models
+
+Box plots of univariate predictor performance. This gives an indication of the usefulness of 
+(categories of) predictors, globally and across all models. The additional diamond shape in 
+the box plots indicates the weighted performance (weighted by number of responses of the models).
+
+```{r Univariate Predictors Boxplot}
+if (!is.null(modelPredictorBins) && nrow(modelPredictorBins) > 0) {
+  for (c in unique(mdls$ConfigurationName)) {
+    applicableModels <- latestSnapshotsOnly(mdls) [ConfigurationName==c]
+    applicablePredictorBins <- modelPredictorBins[ModelID %in% applicableModels$ModelID & EntryType=="Active"]
+    
+    if (nrow(applicablePredictorBins) > 0) {
+      if ("PredictorCategory" %in% names(modelPredictorBins)) {
+        plt <- plotADMPredictorImportance(applicablePredictorBins, modeldata = applicableModels,
+                                           limit = params$max_predictors_in_plot, 
+                                           predictorClassifier = "PredictorCategory")
+      } else {
+        plt <- plotADMPredictorImportance(applicablePredictorBins, modeldata = applicableModels,
+                                           limit = params$max_predictors_in_plot)
+      }
+      plt <- plt + ggtitle("Predictor Performance", 
+                           subtitle = paste0("(Top", params$max_predictors_in_plot, " ", c, ")"))
+      print(plt)
+    }
+  }
+} else {
+  cat("Predictor analysis will only be available when predictor binning data is available.", fill=T)
+}
+```
+
+
+## Performance by Predictor Category
+
+For the active predictors only.
+
+TODO: colors are inconsistent wrt previous one
+
+```{r Univariate Predictor Category Boxplot}
+if (!is.null(modelPredictorBins) && nrow(modelPredictorBins) > 0) {
+  if ("PredictorCategory" %in% names(modelPredictorBins)) {
+    plt <- plotADMPredictorImportance(modelPredictorBins,  
+                                latestSnapshotsOnly(mdls),
+                                predictorClassifier = "PredictorCategory",
+                                categoryAggregateView = T,
+                                facets = c("Channel", "ConfigurationName"))
+  } else {
+      plt <- plotADMPredictorImportance(modelPredictorBins,  
+                                latestSnapshotsOnly(mdls),
+                                categoryAggregateView = T,
+                                facets = c("Channel", "ConfigurationName"))
+  }
+  print(plt)
+} else {
+  cat("Predictor analysis will only be available when predictor binning data is available.", fill=T)
+}
+```
+
+## Bad predictors across all models
+
+See if there are predictors that are just always very bad.
+
+TODO: maybe view this one as performance, not importance
+
+```{r}
+if (!is.null(modelPredictorBins) && nrow(modelPredictorBins) > 0) {
+  plotADMPredictorImportance(modelPredictorBins, 
+                              mdls[(!isImmature)], facets=NULL, 
+                              limit = -params$max_predictors_in_plot,)
+} else {
+  cat("Predictor analysis will only be available when predictor binning data is available.", fill=T)
+}
+```
+
+## Missing values
+
+TODO: add analysis of predictors with high number of missing values across the models
+
+If a predictor is low performing: are there too many missing values? This could point to a technical problem
+
+## Number of Active and Inactive Predictors
+
+Showing the number of active and inactive predictors per model.
+
+```{r fig.height=5, fig.width=5}
+if (!is.null(modelPredictorBins) && nrow(modelPredictorBins) > 0) {
+  typeDistributionPlotData <- 
+    merge(unique(latestSnapshotsOnly(modelPredictorBins)[EntryType!="Classifier", c("ModelID", "PredictorName", "EntryType", "Type")]) [, .N, by=c("EntryType", "Type", "ModelID")], 
+          unique(latestSnapshotsOnly(mdls)[,c("ModelID", "ConfigurationName")]), by="ModelID")
+  
+  plt <-
+    ggplot(typeDistributionPlotData, aes(N, Type, color=Type, linetype=EntryType)) + 
+    geom_boxplot() +
+    scale_color_discrete_diverging() +
+    ylab("")+ xlab("") + 
+    facet_wrap(. ~ ConfigurationName, strip.position = "right") +
+    ggtitle("Number of Predictors per Model", subtitle = "by Type and per model configuration")
+  
+  plt
+} else {
+  cat("Predictor analysis will only be available when predictor binning data is available.", fill=T)
+}
+```
+
+
+
+## Predictor Performance across Propositions
+
+A view of predictor performance across all propositions, ordered so that the best performing predictors are at the top and the 
+best performing propositions are on the left. Green indicates good performance, red means more problematic - either too low or
+too good to be true.
+
+Instead of faceting, here we loop through the plots since they tend to get large.
+
+
+```{r Predictors vs Propos, fig.height=8, fig.width=8}
+if (!is.null(modelPredictorBins) && nrow(modelPredictorBins) > 0) {
+  for (c in unique(mdls$ConfigurationName)) {
+    applicableModels <- latestSnapshotsOnly(mdls) [ConfigurationName==c]
+    applicablePredictorBins <- modelPredictorBins[EntryType=="Active" & ModelID %in% applicableModels$ModelID]
+    if (nrow(applicablePredictorBins) > 0) {
+      plt <- plotADMPredictorImportanceHeatmap(applicablePredictorBins, applicableModels, 
+                                               limit=params$max_propositions_in_plot) +
+        theme(axis.text.y = element_text(size=8),
+              axis.text.x = element_text(size=8, angle = 45, hjust = 1),
+              strip.text = element_text(size=8))
+      print(plt)
+    }
+  }
+} else {
+  cat("Predictor analysis will only be available when predictor binning data is available.", fill=T)
+}
+```
+
+# Appendix - all the models
+
+```{r}
+mdls[, .(Snapshots = .N, Responses = max(ResponseCount)), by=c(availableStandardContextKeys, "ModelID")] #[order(ConfigurationName, Name)]
+```
+
+A list of all the models is written to a file `r params$modellist` so a script
+can iterate over all models and generate off-line model reports for each of 
+them.
+
+Generally you will want to apply some filtering, or do this for specific models
+only. This can be accomplished in either this script here, or by editing the
+generated file.
+
+```{r}
+if (params$modellist != "") {
+  inclKeys <- availableStandardContextKeys[sapply(availableStandardContextKeys, function(x) {return(length(unique(mdls[[x]]))>1)})]
+  modelIDandSanitizedNames <- unique(mdls[, .(make.names(apply(.SD, 1, function(x){return(paste(x,collapse="_"))}))), 
+                                          by=ModelID, .SDcols=inclKeys])
+  
+  write.table(modelIDandSanitizedNames, 
+              params$modellist, row.names = F, col.names = F, quote=F, sep=";")
+}
+```
+

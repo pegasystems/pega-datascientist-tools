@@ -1,0 +1,423 @@
+GbModel{
+factoryKey=FactoryKey{configPartition=com.pega.decision.adm.client.Partition: {"partition":{"pyClassName":"DMOrg-EasyPz-Data-Customer","pyPurpose":"EasyAGB"}}, modelPartition=com.pega.decision.adm.client.Partition: {"partition":{}}}
+configuration=GradientBoostModelRuleConfiguration{configurationId=DMOrg-EasyPz-Data-Customer.EasyAGB.false., contextKeys=[pyDirection, pyGroup, pyName, pyChannel, pyIssue, pyTreatment], predictors=[com.pega.decision.adm.client.PredictorInfo: {"name":"income","type":"symbolic"}, com.pega.decision.adm.client.PredictorInfo: {"name":"Age","type":"numeric"}, com.pega.decision.adm.client.PredictorInfo: {"name":"workclass","type":"symbolic"}, com.pega.decision.adm.client.PredictorInfo: {"name":"CustomerID","type":"symbolic"}, com.pega.decision.adm.client.PredictorInfo: {"name":"fnlwgt","type":"symbolic"}, com.pega.decision.adm.client.PredictorInfo: {"name":"Outcome","type":"symbolic"}, com.pega.decision.adm.client.PredictorInfo: {"name":"relationship","type":"symbolic"}, com.pega.decision.adm.client.PredictorInfo: {"name":"capitalgain","type":"symbolic"}, com.pega.decision.adm.client.PredictorInfo: {"name":"hoursperweek","type":"symbolic"}, com.pega.decision.adm.client.PredictorInfo: {"name":"maritalstatus","type":"symbolic"}, com.pega.decision.adm.client.PredictorInfo: {"name":"educationnum","type":"symbolic"}, com.pega.decision.adm.client.PredictorInfo: {"name":"Gender","type":"symbolic"}, com.pega.decision.adm.client.PredictorInfo: {"name":"nativecountry","type":"symbolic"}, com.pega.decision.adm.client.PredictorInfo: {"name":"race","type":"symbolic"}, com.pega.decision.adm.client.PredictorInfo: {"name":"education","type":"symbolic"}, com.pega.decision.adm.client.PredictorInfo: {"name":"occupation","type":"symbolic"}, com.pega.decision.adm.client.PredictorInfo: {"name":"sex","type":"symbolic"}, com.pega.decision.adm.client.PredictorInfo: {"name":"capitalloss","type":"symbolic"}, com.pega.decision.adm.client.PredictorInfo: {"name":"pyDirection","type":"symbolic"}, com.pega.decision.adm.client.PredictorInfo: {"name":"pyName","type":"symbolic"}, com.pega.decision.adm.client.PredictorInfo: {"name":"pyChannel","type":"symbolic"}, com.pega.decision.adm.client.PredictorInfo: {"name":"pyIssue","type":"symbolic"}, com.pega.decision.adm.client.PredictorInfo: {"name":"pyTreatment","type":"symbolic"}, com.pega.decision.adm.client.PredictorInfo: {"name":"pyGroup","type":"symbolic"}], ihSummaryPredictors=[IHSummaryPredictorInfo{id='pyIHSummary', appliesTo='Data-pxStrategyResult'}], ruleSet=RuleSet{ruleSetName=EasyPz, ruleSetVersion=01-01-01}, parameters=GradientBoostModelParameters{learningRateEta=0.3, regularizationLambda=1.0, complexityThresholdGamma=0.0, minChildWeight=1.0, maxTrees=50, maxTreeDepth=9} AdaptiveModelParameters{dataAnalysisCount=5000, useIhSummaries=true} ModelParameters{positiveOutcomes=[Accept, TRUE], negativeOutcomes=[Reject, FALSE], hdsEnabled=false, hdsPositiveRecordingPercentage=0.0, hdsNegativeRecordingPercentage=0.0, globalSamplingEnabled=false, globalSamplingPercentage=0.0}}
+position=ADMTopicPosition [{"configPartition":{"partition":{"pyClassName":"DMOrg-EasyPz-Data-Customer","pyPurpose":"EasyAGB"}},"modelPartition":{"partition":{}}}] : {[7e8a7fb0-4b9c-11ec-8b38-6487c34a81f7:12000], [3e8a6ab1-d0e7-3d98-af5f-ad10d14ba41e:0], } . CRT Events: 1. DLT Events: 0
+model=AdaptiveBoostScoringModel{
+modelVersion=87288230-d2fd-408f-822c-3d883f45701f
+algorithm=GRADIENT_BOOST
+factoryUpdateTime=2021-11-22T14:01:58.987Z
+trainingStat=TrainingStats(positiveCount=3196, negativeCount=8804, totalCount=12000)
+performance=0.2663333333333333
+model={
+  "boosters" : [ {
+    "trees" : [ {
+      "score" : -0.28030656447850805,
+      "gain" : 9372.074793871312,
+      "split" : "Outcome in { FALSE }",
+      "left" : {
+        "score" : -0.5997275204359673,
+        "gain" : 0.0
+      },
+      "right" : {
+        "score" : 0.59925,
+        "gain" : 0.0
+      }
+    }, {
+      "score" : -0.2165982252410167,
+      "gain" : 5051.4402607886905,
+      "split" : "Outcome in { FALSE }",
+      "left" : {
+        "score" : -0.4645836137735868,
+        "gain" : 0.0
+      },
+      "right" : {
+        "score" : 0.4644877754123471,
+        "gain" : 0.0
+      }
+    }, {
+      "score" : -0.1879803232700479,
+      "gain" : 3108.340950191437,
+      "split" : "Outcome in { FALSE }",
+      "left" : {
+        "score" : -0.4033541644032101,
+        "gain" : 0.0
+      },
+      "right" : {
+        "score" : 0.40317676510190376,
+        "gain" : 0.0
+      }
+    }, {
+      "score" : -0.17220021970181623,
+      "gain" : 2030.2597502339504,
+      "split" : "Outcome in { FALSE }",
+      "left" : {
+        "score" : -0.3689459292860969,
+        "gain" : 0.0
+      },
+      "right" : {
+        "score" : 0.3686517347104858,
+        "gain" : 0.0
+      }
+    }, {
+      "score" : -0.16157524976268106,
+      "gain" : 1376.0957587056457,
+      "split" : "Outcome in { FALSE }",
+      "left" : {
+        "score" : -0.34753232393795414,
+        "gain" : 0.0
+      },
+      "right" : {
+        "score" : 0.34711368266799414,
+        "gain" : 0.0
+      }
+    }, {
+      "score" : -0.15512125076622688,
+      "gain" : 949.9552976816864,
+      "split" : "Outcome in { FALSE }",
+      "left" : {
+        "score" : -0.333390579872116,
+        "gain" : 0.0
+      },
+      "right" : {
+        "score" : 0.33277518152606805,
+        "gain" : 0.0
+      }
+    }, {
+      "score" : -0.15059777096183807,
+      "gain" : 665.1438277282014,
+      "split" : "Outcome in { FALSE }",
+      "left" : {
+        "score" : -0.32366873198935214,
+        "gain" : 0.0
+      },
+      "right" : {
+        "score" : 0.3227986789404806,
+        "gain" : 0.0
+      }
+    }, {
+      "score" : -0.14752750527036643,
+      "gain" : 469.83288331214374,
+      "split" : "Outcome in { FALSE }",
+      "left" : {
+        "score" : -0.3167769312644343,
+        "gain" : 0.0
+      },
+      "right" : {
+        "score" : 0.3155569341112505,
+        "gain" : 0.0
+      }
+    }, {
+      "score" : -0.14483230969773908,
+      "gain" : 334.6749343623417,
+      "split" : "Outcome in { FALSE }",
+      "left" : {
+        "score" : -0.3117463063457148,
+        "gain" : 0.0
+      },
+      "right" : {
+        "score" : 0.31006474867600664,
+        "gain" : 0.0
+      }
+    }, {
+      "score" : -0.14102146400489607,
+      "gain" : 241.13083484175388,
+      "split" : "Outcome in { FALSE }",
+      "left" : {
+        "score" : -0.3079433248944341,
+        "gain" : 0.0
+      },
+      "right" : {
+        "score" : 0.3056942142304946,
+        "gain" : 0.0
+      }
+    }, {
+      "score" : -0.13864803999493328,
+      "gain" : 173.57996452500566,
+      "split" : "Outcome in { FALSE }",
+      "left" : {
+        "score" : -0.3049433215151707,
+        "gain" : 0.0
+      },
+      "right" : {
+        "score" : 0.3018731206865886,
+        "gain" : 0.0
+      }
+    }, {
+      "score" : -0.13682033148038386,
+      "gain" : 125.1258919408615,
+      "split" : "Outcome in { FALSE }",
+      "left" : {
+        "score" : -0.30242252943019626,
+        "gain" : 0.0
+      },
+      "right" : {
+        "score" : 0.29824298257485005,
+        "gain" : 0.0
+      }
+    }, {
+      "score" : -0.13433895814662986,
+      "gain" : 90.67117834569042,
+      "split" : "Outcome in { FALSE }",
+      "left" : {
+        "score" : -0.30011859382773637,
+        "gain" : 0.0
+      },
+      "right" : {
+        "score" : 0.29452718681091483,
+        "gain" : 0.0
+      }
+    }, {
+      "score" : -0.13204391218082973,
+      "gain" : 10.629835672240723,
+      "split" : "education in { Bachelors, Masters, Some-college }",
+      "left" : {
+        "score" : -0.014195037430206841,
+        "gain" : 35.30320190260618,
+        "split" : "Outcome in { FALSE }",
+        "left" : {
+          "score" : -0.2878241252475961,
+          "gain" : 0.0
+        },
+        "right" : {
+          "score" : 0.28653515307371996,
+          "gain" : 0.0
+        }
+      },
+      "right" : {
+        "score" : -0.22982369511008854,
+        "gain" : 16.168938641597176,
+        "split" : "Outcome in { FALSE }",
+        "left" : {
+          "score" : -0.29509443256894546,
+          "gain" : 0.0
+        },
+        "right" : {
+          "score" : 0.2507906071209653,
+          "gain" : 0.0
+        }
+      }
+    }, {
+      "score" : -0.12530499162959735,
+      "gain" : 7.301388529653956,
+      "split" : "education in { Bachelors, Masters, Some-college }",
+      "left" : {
+        "score" : -0.013192182177873971,
+        "gain" : 26.025046474786848,
+        "split" : "Outcome in { FALSE }",
+        "left" : {
+          "score" : -0.28247442257081773,
+          "gain" : 0.0
+        },
+        "right" : {
+          "score" : 0.28106855181314505,
+          "gain" : 0.0
+        }
+      },
+      "right" : {
+        "score" : -0.2180005829291321,
+        "gain" : 0.9062399411194058,
+        "split" : "income in { <=50K }",
+        "left" : {
+          "score" : -0.2486304872483877,
+          "gain" : 4.789284327733483,
+          "split" : "Outcome in { FALSE }",
+          "left" : {
+            "score" : -0.28771586253244863,
+            "gain" : 0.0
+          },
+          "right" : {
+            "score" : 0.18121251011457096,
+            "gain" : 0.0
+          }
+        },
+        "right" : {
+          "score" : -0.10968797900269799,
+          "gain" : 4.290637057144226,
+          "split" : "Outcome in { FALSE }",
+          "left" : {
+            "score" : -0.2506649038707639,
+            "gain" : 0.0
+          },
+          "right" : {
+            "score" : 0.19970223837012904,
+            "gain" : 0.0
+          }
+        }
+      }
+    }, {
+      "score" : -0.116131088222131,
+      "gain" : 40.35776663281078,
+      "split" : "Outcome in { FALSE }",
+      "left" : {
+        "score" : -0.2931961767320218,
+        "gain" : 0.0
+      },
+      "right" : {
+        "score" : 0.283277857748952,
+        "gain" : 0.0
+      }
+    }, {
+      "score" : -0.11609069988457196,
+      "gain" : 27.38659765632484,
+      "split" : "Outcome in { FALSE }",
+      "left" : {
+        "score" : -0.28919507614886786,
+        "gain" : 0.0
+      },
+      "right" : {
+        "score" : 0.27500674389079116,
+        "gain" : 0.0
+      }
+    }, {
+      "score" : -0.11471852444346821,
+      "gain" : 18.793382815399983,
+      "split" : "Outcome in { FALSE }",
+      "left" : {
+        "score" : -0.2841196235198974,
+        "gain" : 0.0
+      },
+      "right" : {
+        "score" : 0.26482389266332973,
+        "gain" : 0.0
+      }
+    }, {
+      "score" : -0.11081494864708001,
+      "gain" : 1.3497682570839102,
+      "split" : "education in { Bachelors, Masters, Some-college, 7th-8th }",
+      "left" : {
+        "score" : -0.013536777375144486,
+        "gain" : 4.987474835215754,
+        "split" : "Outcome in { FALSE }",
+        "left" : {
+          "score" : -0.23315310339112655,
+          "gain" : 0.0
+        },
+        "right" : {
+          "score" : 0.22670298070825282,
+          "gain" : 0.0
+        }
+      },
+      "right" : {
+        "score" : -0.1845819142539424,
+        "gain" : 0.052742167885714064,
+        "split" : "income in { <=50K }",
+        "left" : {
+          "score" : -0.2046425372935802,
+          "gain" : 0.0
+        },
+        "right" : {
+          "score" : -0.07393404599418534,
+          "gain" : 0.0
+        }
+      }
+    }, {
+      "score" : -0.09806900090079698,
+      "gain" : 0.8572045497127521,
+      "split" : "education in { Bachelors, Masters, Some-college }",
+      "left" : {
+        "score" : -0.006168202211686656,
+        "gain" : 2.9941672625001403,
+        "split" : "Outcome in { FALSE }",
+        "left" : {
+          "score" : -0.20841795279549474,
+          "gain" : 0.0
+        },
+        "right" : {
+          "score" : 0.20354710820413965,
+          "gain" : 0.0
+        }
+      },
+      "right" : {
+        "score" : -0.16068368861291943,
+        "gain" : 0.0868941267233958,
+        "split" : "income in { <=50K }",
+        "left" : {
+          "score" : -0.1787822789405933,
+          "gain" : 0.0
+        },
+        "right" : {
+          "score" : -0.04753090082905747,
+          "gain" : 0.0
+        }
+      }
+    }, {
+      "score" : -0.08459872060126208,
+      "gain" : 0.39198356811318413,
+      "split" : "education in { Bachelors, Masters, Some-college }",
+      "left" : {
+        "score" : -0.009021042797569725,
+        "gain" : 1.7372026125328512,
+        "split" : "Outcome in { FALSE }",
+        "left" : {
+          "score" : -0.18054661136745934,
+          "gain" : 0.0
+        },
+        "right" : {
+          "score" : 0.17608857356147356,
+          "gain" : 0.0
+        }
+      },
+      "right" : {
+        "score" : -0.1319756203027177,
+        "gain" : 0.041762633425462936,
+        "split" : "occupation in { Craft-repair, Adm-clerical, Exec-managerial }",
+        "left" : {
+          "score" : -0.045902634938536774,
+          "gain" : 0.0
+        },
+        "right" : {
+          "score" : -0.15496745700376693,
+          "gain" : 0.0
+        }
+      }
+    }, {
+      "score" : -0.0705883589291964,
+      "gain" : 0.03807338489521772,
+      "split" : "capitalgain < 124.0",
+      "left" : {
+        "score" : -0.030459016122748,
+        "gain" : 0.0
+      },
+      "right" : {
+        "score" : -0.09120087021639776,
+        "gain" : 0.08717859139464745,
+        "split" : "education in { Bachelors, Masters, Some-college }",
+        "left" : {
+          "score" : -0.005702099158708653,
+          "gain" : 0.0
+        },
+        "right" : {
+          "score" : -0.1144508626911617,
+          "gain" : 0.0
+        }
+      }
+    }, {
+      "score" : -0.05900176830760849,
+      "gain" : 0.12867417135878476,
+      "split" : "education in { Bachelors, Masters, Some-college, 7th-8th }",
+      "left" : {
+        "score" : 0.0014817661359163917,
+        "gain" : 0.0
+      },
+      "right" : {
+        "score" : -0.0941744567039973,
+        "gain" : 0.0
+      }
+    }, {
+      "score" : -0.04245927199390679,
+      "gain" : 0.03530556477433472,
+      "split" : "education in { Bachelors, Masters, Some-college, 7th-8th, Assoc-acdm }",
+      "left" : {
+        "score" : 0.001781028179429628,
+        "gain" : 0.0
+      },
+      "right" : {
+        "score" : -0.06405065464138776,
+        "gain" : 0.0
+      }
+    }, {
+      "score" : -0.0,
+      "gain" : 0.0
+    } ]
+  } ]
+}}}

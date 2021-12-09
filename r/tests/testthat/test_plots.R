@@ -103,28 +103,32 @@ test_that("plotADMPerformanceSuccessRateBubbleChart", {
   expect_s3_class(p, "ggplot")
 })
 
-test_that("plotADMPredictorPerformance", {
+test_that("plotADMPredictorImportance", {
   data(admdatamart_models)
   data(admdatamart_binning)
 
-  p <- plotADMPredictorPerformance(admdatamart_binning)
+  p <- plotADMPredictorImportance(admdatamart_binning)
 
   expect_s3_class(p, "ggplot")
 
-  p <- plotADMPredictorPerformance(admdatamart_binning, admdatamart_models)
+  p <- plotADMPredictorImportance(admdatamart_binning, admdatamart_models)
+
+  expect_s3_class(p, "ggplot")
+
+  p <- plotADMPredictorImportance(admdatamart_binning, admdatamart_models, categoryAggregateView = T)
 
   expect_s3_class(p, "ggplot")
 })
 
-test_that("plotADMPredictorPerformanceMatrix", {
+test_that("plotADMPredictorImportanceHeatmap", {
   data(admdatamart_models)
   data(admdatamart_binning)
 
-  p <- plotADMPredictorPerformanceMatrix(admdatamart_binning, admdatamart_models) # ****
+  p <- plotADMPredictorImportanceHeatmap(admdatamart_binning, admdatamart_models) # ****
 
   expect_s3_class(p, "ggplot")
 
-  p <- plotADMPredictorPerformanceMatrix(admdatamart_binning, admdatamart_models, aggregation = "Name", facets = "")
+  p <- plotADMPredictorImportanceHeatmap(admdatamart_binning, admdatamart_models, aggregation = "Name", facets = "")
 
   expect_s3_class(p, "ggplot")
 })
@@ -132,21 +136,7 @@ test_that("plotADMPredictorPerformanceMatrix", {
 test_that("plotADMPropositionSuccessRates", {
   data(admdatamart_models)
 
-  p <- plotADMPropositionSuccessRates(admdatamart_models) # ****
+  p <- plotADMPropositionSuccessRates(admdatamart_models)
 
   expect_s3_class(p, "ggplot")
 })
-
-test_that("plotADMVarImp", {
-  data(admdatamart_models)
-  data(admdatamart_binning)
-
-  p <- plotADMVarImp(admVarImp(admdatamart_models, admdatamart_binning))
-
-  expect_s3_class(p, "ggplot")
-
-  p <- plotADMVarImp(admVarImp(admdatamart_models, admdatamart_binning, facets = "Group"))
-
-  expect_s3_class(p, "ggplot")
-})
-
