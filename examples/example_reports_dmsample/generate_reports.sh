@@ -5,7 +5,7 @@
 # then running the R script in this same folder. Alternatively they can be
 # exported directly from the database.
 
-modeloverviewnotebook="../adaptivemodeloverview.Rmd"
+modeloverviewnotebook="../healthcheck.Rmd"
 modelreportnotebook="../modelreport.Rmd"
 
 modeldata="`pwd`/models.csv"

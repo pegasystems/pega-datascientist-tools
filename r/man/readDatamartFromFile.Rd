@@ -7,7 +7,8 @@
 readDatamartFromFile(file)
 }
 \arguments{
-\item{file}{Name of the file. Can be a dataset export, a csv, a zip etc.}
+\item{file}{Name of the file. Can be a dataset export, a csv, a zip or
+a parquet file.}
 }
 \value{
 A \code{data.table}

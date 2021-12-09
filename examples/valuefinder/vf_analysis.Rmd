@@ -75,17 +75,20 @@ ggplot(simdata, aes(x=pyModelPropensity)) +
 
 For just the first stage, but showing the various propensity properties
 
-```{r warning=FALSE}
-simdataPropensities <- melt(simdata[pyStage=="Eligibility", c("pyModelPropensity", "pyPropensity", "FinalPropensity")])
+```{r}
+simdataPropensities <- melt(simdata[pyStage=="Eligibility", 
+                                    c("pyModelPropensity", "pyPropensity", "FinalPropensity")],
+                            measure.vars = 1:3,
+                            variable.name = "Type", value.name = "Propensity")
 
-simdataPropensities[, variable:=factor(variable, levels = rev(unique(variable)))]
+simdataPropensities[, Type:=factor(Type, levels = rev(unique(Type)))]
 
-ggplot(simdataPropensities, aes(value, fill=variable, colour=variable)) +
+ggplot(simdataPropensities, aes(Propensity, fill=Type, colour=Type)) +
   geom_histogram(aes(y=..density..), position = position_dodge(), bins=40) +
   geom_density(alpha=0.2) +
-  scale_fill_discrete_diverging(name="Type") + 
-  scale_colour_discrete_diverging(guide="none") + xlab("Propensity") +
-  facet_grid(variable ~ .) +
+  scale_fill_discrete_diverging() + 
+  scale_colour_discrete_diverging(guide="none") + 
+  facet_grid(Type ~ .) +
   geom_vline(xintercept=th, linetype="dashed") +
   ggtitle("Propensity distribution", "first stage")
 ```
@@ -116,8 +119,10 @@ being "well served" (at least 1 action with a higher propensity), "under served"
 (receiving one or more actions but all lower propensity) or "no action", meaning
 they don't get anything at all - typically because of rule based filtering.
 
-```{r warning=FALSE}
-countsPerStage <- customersummary[, .(WellServed = sum(isWellServed), NotWellServed = sum(!isWellServed), NoAction = ncust - .N), by=pyStage]
+```{r}
+countsPerStage <- customersummary[, .(WellServed = as.numeric(sum(isWellServed)), 
+                                      NotWellServed = as.numeric(sum(!isWellServed)), 
+                                      NoAction = as.numeric(ncust - .N)), by=pyStage]
 countsPerStage[, yWellServed := WellServed/2]
 countsPerStage[, yNotWellServed := WellServed + NotWellServed/2]
 countsPerStage[, yNoAction := WellServed + NotWellServed + NoAction/2]
@@ -127,7 +132,8 @@ vfRed <- rgb(205,0,32,maxColorValue=255)
 vfOrange <- rgb(252,165,46,maxColorValue=255)
 vfGreen <- rgb(33,158,63,maxColorValue=255)
 
-countsPerStage <- melt(countsPerStage, id=c("pyStage", "yWellServed", "yNotWellServed", "yNoAction"), value.name = "Count", variable.name = "Status")
+countsPerStage <- melt(countsPerStage, id=c("pyStage", "yWellServed", "yNotWellServed", "yNoAction"), 
+                       value.name = "Count", variable.name = "Status")
 
 countsPerStage[, Status := factor(Status, levels=c("NoAction", "NotWellServed", "WellServed"))]
 countsPerStage[, yText := ifelse(Status=="WellServed", yWellServed, ifelse(Status=="NotWellServed", yNotWellServed, yNoAction))]
@@ -138,7 +144,8 @@ ggplot(countsPerStage,
   geom_col(colour="black", alpha=0.8) +
   geom_text(data = countsPerStage[Status == "NoAction" & pyStage != "Eligibility"], mapping = aes(label=paste0(Count, " (-", Delta, ")"), y=yText)) +
   geom_text(data = countsPerStage[Status != "NoAction" | pyStage == "Eligibility"], mapping = aes(label=Count, y=yText)) +
-  scale_fill_manual(values = c(values = c(vfRed, vfOrange, vfGreen)))
+  scale_fill_manual(values = c(vfRed, vfOrange, vfGreen)) +
+  xlab("Stage")
 ```
 
 # Non emphathetic arbitration

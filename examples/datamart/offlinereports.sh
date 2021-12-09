@@ -17,8 +17,8 @@ modellist="cdhsample-modellist.txt"
 
 # Location of the notebooks (unless copied/modified these defaults should be fine)
 
-modeloverviewnotebook="$cdhtools/offlinereports/adaptivemodeloverview.Rmd"
-modelreportnotebook="$cdhtools/offlinereports/modelreport.Rmd"
+modeloverviewnotebook="$cdhtools/examples/datamart/healthcheck.Rmd"
+modelreportnotebook="$cdhtools/examples/datamart/modelreport.Rmd"
 
 # Run the model overview notebook
 

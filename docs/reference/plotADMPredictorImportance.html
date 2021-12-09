@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Performance of predictors per proposition — plotADMPredictorPerformanceMatrix • cdhtools</title>
+<title>Create boxplots per predictor with performance range in models. — plotADMPredictorImportance • cdhtools</title>
 
 
 <!-- jquery -->
@@ -39,9 +39,9 @@
 
 
 
-<meta property="og:title" content="Performance of predictors per proposition — plotADMPredictorPerformanceMatrix" />
-<meta property="og:description" content="Creates a visual grid of predictor names vs propositions (configurable) with
-colors indicating the strength of the predictor for that proposition." />
+<meta property="og:title" content="Create boxplots per predictor with performance range in models. — plotADMPredictorImportance" />
+<meta property="og:description" content="An additional diamond is added to the boxplots to indicate weighted
+performance (by response counts in the models)." />
 
 
 
@@ -131,22 +131,25 @@ colors indicating the strength of the predictor for that proposition." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Performance of predictors per proposition</h1>
+    <h1>Create boxplots per predictor with performance range in models.</h1>
     
-    <div class="hidden name"><code>plotADMPredictorPerformanceMatrix.Rd</code></div>
+    <div class="hidden name"><code>plotADMPredictorImportance.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Creates a visual grid of predictor names vs propositions (configurable) with
-colors indicating the strength of the predictor for that proposition.</p>
+    <p>An additional diamond is added to the boxplots to indicate weighted
+performance (by response counts in the models).</p>
     </div>
 
-    <pre class="usage"><span class='fu'>plotADMPredictorPerformanceMatrix</span><span class='op'>(</span>
+    <pre class="usage"><span class='fu'>plotADMPredictorImportance</span><span class='op'>(</span>
   <span class='va'>predictordata</span>,
-  <span class='va'>modeldata</span>,
-  aggregation <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/sets.html'>intersect</a></span><span class='op'>(</span><span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"Issue"</span>, <span class='st'>"Group"</span>, <span class='st'>"Name"</span>, <span class='st'>"Treatment"</span><span class='op'>)</span>, <span class='fu'><a href='https://rdrr.io/r/base/names.html'>names</a></span><span class='op'>(</span><span class='va'>modeldata</span><span class='op'>)</span><span class='op'>)</span>,
-  facets <span class='op'>=</span> <span class='st'>"ConfigurationName"</span>,
-  limit <span class='op'>=</span> <span class='va'>.Machine</span><span class='op'>$</span><span class='va'>integer.max</span>
+  modeldata <span class='op'>=</span> <span class='cn'>NULL</span>,
+  facets <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/ifelse.html'>ifelse</a></span><span class='op'>(</span><span class='fu'><a href='https://rdrr.io/r/base/NULL.html'>is.null</a></span><span class='op'>(</span><span class='va'>modeldata</span><span class='op'>)</span>, <span class='st'>""</span>, <span class='st'>"ConfigurationName"</span><span class='op'>)</span>,
+  limit <span class='op'>=</span> <span class='va'>.Machine</span><span class='op'>$</span><span class='va'>integer.max</span>,
+  predictorClassifier <span class='op'>=</span> <span class='va'>defaultPredictorCategorization</span>,
+  categoryAggregateView <span class='op'>=</span> <span class='cn'>F</span>,
+  maxNameLength <span class='op'>=</span> <span class='va'>.Machine</span><span class='op'>$</span><span class='va'>integer.max</span>,
+  showAsBoxPlot <span class='op'>=</span> <span class='cn'>T</span>
 <span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -159,22 +162,42 @@ can be left out.</p></td>
     </tr>
     <tr>
       <th>modeldata</th>
-      <td><p>ADM Datamart model data.</p></td>
-    </tr>
-    <tr>
-      <th>aggregation</th>
-      <td><p>Vector of field names to aggregate by. Defaults to
-"Issue","Group","Name","Treatment" (if present).</p></td>
+      <td><p>Optional ADM Datamart model data, necessary when using
+model facets like Channel, ConfigurationName etc.</p></td>
     </tr>
     <tr>
       <th>facets</th>
-      <td><p>Vector of additional fields for faceting. Defaults to
-"ConfigurationName".</p></td>
+      <td><p>Optional vector of additional fields for faceting. Defaults to
+"ConfigurationName" if model data present, otherwise empty.</p></td>
     </tr>
     <tr>
       <th>limit</th>
       <td><p>Optional limit of number of predictors. Useful if there are
-many predictors to keep the plot readable.</p></td>
+many predictors to keep the plot readable. Use a negative value to swap the
+order, so showing the least performing predictors first.</p></td>
+    </tr>
+    <tr>
+      <th>predictorClassifier</th>
+      <td><p>Optional function that returns the predictor
+categories from the names. Defaults to a function that returns the text
+before the first dot.</p></td>
+    </tr>
+    <tr>
+      <th>categoryAggregateView</th>
+      <td><p>If TRUE shows an overview by predictor categories
+instead of the individual predictors.</p></td>
+    </tr>
+    <tr>
+      <th>maxNameLength</th>
+      <td><p>Max length of predictor names. Above this length
+they will be abbreviated.</p></td>
+    </tr>
+    <tr>
+      <th>showAsBoxPlot</th>
+      <td><p>When TRUE (default), will show as a box plot and sort
+by median. When FALSE will show as a simple bar chart and use the weighted
+mean (weighted by response count, which is more accurate than the box plot
+view).</p></td>
     </tr>
     </table>
 
@@ -185,11 +208,7 @@ which additional decoration (e.g. coloring or labels) can be added first.</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"><div class='input'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='op'>{</span>
-    <span class='va'>plt</span> <span class='op'>&lt;-</span> <span class='fu'>plotADMPredictorPerformanceMatrix</span><span class='op'>(</span><span class='va'>modelPredictorBins</span>, <span class='va'>mdls</span>, limit<span class='op'>=</span><span class='fl'>50</span><span class='op'>)</span> <span class='op'>+</span>
-    <span class='fu'>theme</span><span class='op'>(</span>axis.text.y <span class='op'>=</span> <span class='fu'>element_text</span><span class='op'>(</span>size<span class='op'>=</span><span class='fl'>8</span><span class='op'>)</span>,
-    axis.text.x <span class='op'>=</span> <span class='fu'>element_text</span><span class='op'>(</span>size<span class='op'>=</span><span class='fl'>8</span>, angle <span class='op'>=</span> <span class='fl'>45</span>, hjust <span class='op'>=</span> <span class='fl'>1</span><span class='op'>)</span>,
-    strip.text <span class='op'>=</span> <span class='fu'>element_text</span><span class='op'>(</span>size<span class='op'>=</span><span class='fl'>8</span><span class='op'>)</span><span class='op'>)</span>
-    <span class='fu'><a href='https://rdrr.io/r/base/print.html'>print</a></span><span class='op'>(</span><span class='va'>plt</span><span class='op'>)</span>
+<span class='fu'>plotADMPredictorImportance</span><span class='op'>(</span><span class='va'>modelPredictorBins</span>, limit <span class='op'>=</span> <span class='fl'>40</span><span class='op'>)</span> <span class='op'>+</span> <span class='fu'>xlab</span><span class='op'>(</span><span class='st'>"AUC"</span><span class='op'>)</span>
 <span class='op'>}</span>
 </div></pre>
   </div>

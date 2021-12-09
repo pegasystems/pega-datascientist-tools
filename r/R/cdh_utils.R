@@ -35,7 +35,8 @@ applyUniformPegaFieldCasing <- function(dt)
   fields <- names(dt)
 
   # field name endings we want to see capitalized
-  capitializeEndWords <- c("ID", "Key", "Name", "Count", "Time", "DateTime", "UpdateTime",
+  capitializeEndWords <- c("ID", "Key", "Name", "Count", "Category",
+                           "Time", "DateTime", "UpdateTime",
                            "ToClass", "Version", "Predictor", "Predictors", "Rate", "Ratio",
                            "Negatives", "Positives", "Threshold", "Error", "Importance",
                            "Type", "Percentage", "Index", "Symbol",

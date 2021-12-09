@@ -263,18 +263,58 @@ readADMDatamartPredictorExport <- function(srcFolder=".",
   return(predz)
 }
 
+#' Generic method to read ADM Datamart data into a list structure.
+#'
+#' Method is very flexible in the arguments. It can take a \code{data.table}
+#' for the model data and the predictor data, but the arguments can also be
+#' pointing to files in CSV, zipped CSV, (LD)JSON, parquet or dataset export formats.
+#'
+#' @param modeldata Location, reference or the actual model table from the
+#' ADM datamart.
+#' @param predictordata Location, reference or the actual predictor binning
+#' table from the ADM datamart.
+#' @param folder Optional path for the folder in which to look for the model
+#' and predictor data.
+#' @param keepSerializedModelData By default the serialized model data is left
+#' out from the model data as this typically is large and only needed for
+#' specific use cases.
+#'
+#' @return
+#' @export
+#'
+#' @examples
+ADMDatamart <- function(modeldata = NULL, predictordata = NULL, folder = NULL,
+                        keepModelData = FALSE)
+{
+  # modeldata can be data.table
+  # modeldata can be a file, pointing to CSV or parquet file or export zip
+  # modeldata can also be just the base name of the export zip but then there should be a folder
+  # modeldata can even be nul then if you specify folder it should pick up the latest
+
+  # TODO this is rather incomplete - to be implemented and used in all plot
+  # methods
+
+  return(list(modeldata = modeldata,
+              predictordata = predictordata,
+              hasMultipleModelSnapshots = T,
+              hasMultiplePredictorSnapshots = F,
+              hasPredictorBinning = F))
+}
+
 #' Calculate variable importance from ADM Datamart data.
 #'
 #' Uses the predictor binning from the ADM Datamart data to find the
-#' relative predictor importance. Uses the exact same cumulative log odds
-#' scores and weighs these by the evidence in the bins.
+#' relative importance. The importance is given by the distance to the
+#' average log odds, per predictor. Next to importance it also returns
+#' the univariate predictor performance (AUC).
 #'
 #' @param dmModels Data frame (or anything else that converts to
-#'   \code{data.table}) with the ADM datamart model data.
+#'   \code{data.table}) with the ADM datamart model data. Only used
+#'   when there are facets, so can be NULL.
 #' @param dmPredictors Data frame (or anything else that converts to
 #'   \code{data.table}) with the ADM datamart predictor data.
-#' @param facets Optional list of names from the model data to split the
-#'   predictor importance by.
+#' @param facets Optional list of names from the model data to aggregate
+#' up to.
 #'
 #' @return A \code{data.table}) with \code{PredictorName}, \code{Importance}
 #' and \code{Rank} plus columns for each of the \code{facets} if supplied.
@@ -290,51 +330,50 @@ readADMDatamartPredictorExport <- function(srcFolder=".",
 admVarImp <- function(dmModels, dmPredictors, facets = NULL)
 {
   # Normalize field names
-  applyUniformPegaFieldCasing(dmModels)
   applyUniformPegaFieldCasing(dmPredictors)
 
-  # Iterate over all models, (TODO: this is not efficient)
-  allNormalizedBins <- lapply(unique(dmModels$ModelID), function(m) {
-    if (nrow(dmPredictors[ModelID == m & EntryType == "Active"]) < 1) return (NULL)
-    dmmodelList <- normalizedBinningFromDatamart(dmPredictors[ModelID == m],
-                                                 modelsForPartition = dmModels[ModelID == m])
+  # Log odds per bin, then the bin weight is the distance to the weighted mean
+  bins <- dmPredictors[EntryType=="Active", c("BinPositives", "BinNegatives", "BinResponseCount", "Performance", "PredictorName", "ModelID"), with=F]
+  bins[, BinLogOdds := log(BinPositives+1) - log(BinNegatives+1)]
+  bins[, AvgLogOdds := weighted.mean(BinLogOdds, BinResponseCount), by=c("PredictorName", "ModelID")]
+  bins[, BinDiffLogOdds := abs(BinLogOdds - AvgLogOdds)]
 
-    if (length(dmmodelList) != 1) {
-      # xxx <<- dmmodelList
-      stop(paste("Code assumes model list per AppliesTo/ConfigurationName/ModelID always has 1 element but contains",
-                 length(dmmodelList)))
-    }
+  # The feature importance per predictor then is just the weighted average of these distances to the mean
+  featureImportance <-
+    bins[, .(Importance = weighted.mean(BinDiffLogOdds, BinResponseCount, na.rm=T),
+             Performance = first(as.numeric(Performance)), # numeric cast should not be necessary but sometimes data is odd
+             ResponseCount = sum(BinResponseCount)), by=c("PredictorName", "ModelID")]
+  featureImportance[, Importance := ifelse(is.na(Importance), 0, Importance)]
 
-    # To pull in score card scaling factors use the other properties
-    # of the returned list - this just uses the binning component of
-    # the returned list.
-    predictorWeightsPerBin <- getNBFormulaWeights(dmmodelList[[1]]$binning[(IsActive)])$binning[, c("ModelID", "PredictorName", "PredictorType", "BinLabel", "BinPos", "BinNeg", "BinWeight", "BinIndex")]
 
-    # Symbols that were combined into a single bin may have been split into
-    # multiple rows, so make sure to return that count so we can factor that
-    # in when weighing the bins.
-    predictorWeightsPerBin[, BinIndexOccurences := .N, by=c("ModelID", "PredictorName", "BinIndex")]
-
-    return(predictorWeightsPerBin)
-  })
-
-  allNormalizedBins <- rbindlist(allNormalizedBins, fill=T)
-
-  # Merge in any fields that are requested for facetting the result
+  # Now join in any facets - if there are any
   if (!is.null(facets)) {
-    allNormalizedBins <- merge(allNormalizedBins, unique(dmModels[, c("ModelID", facets), with=F]), by="ModelID")
+    applyUniformPegaFieldCasing(dmModels)
+
+    featureImportance <- merge(featureImportance,
+                               unique(dmModels[, c(facets, "ModelID"), with=F]), by="ModelID")
+
+    # Then aggregate up to the predictor names x facets
+    aggregateFeatureImportance <- featureImportance[, .(Importance = weighted.mean(Importance, ResponseCount),
+                                                        Performance = weighted.mean(Performance, ResponseCount),
+                                                        ResponseCount = sum(ResponseCount)),
+                                                    by=c("PredictorName", facets)]
+
+    aggregateFeatureImportance[, Importance := Importance*100.0/max(Importance), by=facets]
+    aggregateFeatureImportance[, ImportanceRank := frank(-Importance, ties.method = "dense"), by=facets]
+    aggregateFeatureImportance[, PerformanceRank := frank(-Performance, ties.method = "dense"), by=facets]
+    setorder(aggregateFeatureImportance, ImportanceRank)
+
+    return(aggregateFeatureImportance)
+  } else {
+    featureImportance[, Importance := Importance*100.0/max(Importance), by="ModelID"]
+    featureImportance[, ImportanceRank := frank(-Importance, ties.method = "dense"), by="ModelID"]
+    featureImportance[, PerformanceRank := frank(-Performance, ties.method = "dense"), by="ModelID"]
+    setorder(featureImportance, ImportanceRank)
+
+    return(featureImportance)
   }
-
-  # Calculate and scale the predictor weights
-  # NB: Classifier uppercase is correct, as allNormalizedBins is a normalized binning structure(!)
-  varImp <- allNormalizedBins[PredictorType != "CLASSIFIER", .(Importance = stats::weighted.mean(BinWeight/BinIndexOccurences, BinPos+BinNeg)), by=c("PredictorName",facets)][order(-Importance)]
-  varImp[, Rank := frank(-Importance, ties.method = "first"), by=facets]
-  varImp[, Importance := 100.0*Importance/max(Importance), by=facets]
-  setorder(varImp, Rank)
-
-  return(varImp)
 }
-
 # TODO below function is tricky and depends on names. It was used in the
 # modelreport.Rmd but possibly also internally.
 

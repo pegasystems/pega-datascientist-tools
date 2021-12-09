@@ -8,13 +8,14 @@ admVarImp(dmModels, dmPredictors, facets = NULL)
 }
 \arguments{
 \item{dmModels}{Data frame (or anything else that converts to
-\code{data.table}) with the ADM datamart model data.}
+\code{data.table}) with the ADM datamart model data. Only used
+when there are facets, so can be NULL.}
 
 \item{dmPredictors}{Data frame (or anything else that converts to
 \code{data.table}) with the ADM datamart predictor data.}
 
-\item{facets}{Optional list of names from the model data to split the
-predictor importance by.}
+\item{facets}{Optional list of names from the model data to aggregate
+up to.}
 }
 \value{
 A \code{data.table}) with \code{PredictorName}, \code{Importance}
@@ -22,8 +23,9 @@ and \code{Rank} plus columns for each of the \code{facets} if supplied.
 }
 \description{
 Uses the predictor binning from the ADM Datamart data to find the
-relative predictor importance. Uses the exact same cumulative log odds
-scores and weighs these by the evidence in the bins.
+relative importance. The importance is given by the distance to the
+average log odds, per predictor. Next to importance it also returns
+the univariate predictor performance (AUC).
 }
 \examples{
 \dontrun{
