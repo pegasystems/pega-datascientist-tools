@@ -90,7 +90,7 @@
       <h1 data-toc-skip>ih-reporting</h1>
                         <h4 class="author">Pega</h4>
             
-            <h4 class="date">2021-12-09</h4>
+            <h4 class="date">2021-12-10</h4>
       
       
       <div class="hidden name"><code>ih-reporting.Rmd</code></div>
@@ -159,7 +159,7 @@
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">ihsampledata</span><span class="op">[</span>, <span class="va">Week</span> <span class="op">:=</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/IDateTime.html">week</a></span><span class="op">(</span><span class="fu"><a href="../reference/fromPRPCDateTime.html">fromPRPCDateTime</a></span><span class="op">(</span><span class="va">OutcomeTime</span><span class="op">)</span><span class="op">)</span><span class="op">]</span>
 <span class="va">performance</span> <span class="op">&lt;-</span> <span class="va">ihsampledata</span><span class="op">[</span><span class="va">Outcome</span> <span class="op">%in%</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"Accept"</span>, <span class="st">"Accepted"</span>, <span class="st">"Rejected"</span><span class="op">)</span>, 
-                  <span class="fu">.</span><span class="op">(</span>AUC <span class="op">=</span> <span class="fl">100</span><span class="op">*</span><span class="fu"><a href="../reference/auc_from_probs.html">auc_from_probs</a></span><span class="op">(</span><span class="va">Outcome</span> <span class="op">%in%</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"Accept"</span>, <span class="st">"Accepted"</span><span class="op">)</span>, <span class="va">Propensity</span><span class="op">)</span>,
+                  <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>AUC <span class="op">=</span> <span class="fl">100</span><span class="op">*</span><span class="fu"><a href="../reference/auc_from_probs.html">auc_from_probs</a></span><span class="op">(</span><span class="va">Outcome</span> <span class="op">%in%</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"Accept"</span>, <span class="st">"Accepted"</span><span class="op">)</span>, <span class="va">Propensity</span><span class="op">)</span>,
                     n <span class="op">=</span> <span class="va">.N</span>,
                     Day2 <span class="op">=</span> <span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/last.html">first</a></span><span class="op">(</span><span class="va">Day</span><span class="op">)</span><span class="op">)</span>, 
                   by<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"Day"</span>, <span class="st">"Name"</span>, <span class="st">"Group"</span>, <span class="st">"Issue"</span><span class="op">)</span><span class="op">]</span>
