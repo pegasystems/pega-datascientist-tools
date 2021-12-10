@@ -5,7 +5,7 @@ output:
     df_print: paged
 params:
   outputfile:
-    value: "~/ModelsWithStatSignificantDiffFromRandom.csv"
+    value: "./ModelsWithStatSignificantDiffFromRandom.csv"
 ---
 
 ```{r message=FALSE, warning=FALSE}
@@ -16,7 +16,7 @@ library(scales)
 library(colorspace)
 library(lubridate)
 library(kableExtra)
-library(tidyverse)
+# library(tidyverse)
 
 theme_set(theme_minimal())
 ```
@@ -53,12 +53,8 @@ applyUniformPegaFieldCasing(ihsampledata)
 # Both "Accept" and "Accepted" occur as labels - fix that for the reporting
 ihsampledata[Outcome == "Accept", Outcome := "Accepted"]
 
-ih <- ihsampledata
-
-ih <- ih %>%
-  filter((Outcome == "Accepted" |
-            Outcome == "Rejected") & (Channel == "Web")) %>%
-  mutate(ActionID = paste(Issue, "/", Group, "/", Name, "/", Treatment, sep = ""))
+ih <- ihsampledata[(Outcome == "Accepted" | Outcome == "Rejected") & (Channel == "Web")]
+ih[, ActionID := paste(Issue, Group, Name, Treatment, sep = "/")]
 
 # Filter IH data by action id filter: may be Issue/Group/Name/Treatment
 action_id_filter <- ""
@@ -120,22 +116,16 @@ substrLeft <- function(x, n) {
 Calculate acceptance rate/click-through rate
 
 ```{r}
-
-
-ih_analysis <- ih %>%
-  group_by(ActionID, Modelcontrolgroup, Outcome) %>%
-  filter(Modelcontrolgroup != "") %>%
-  summarise(Count = n()) %>%
-  pivot_wider(names_from = Outcome, values_from = Count) %>%
-  mutate(across(everything(), ~ replace_na(.x, 0))) %>%
-  mutate(Total = Accepted + Rejected,
-         Conversion = 100 * Accepted / Total,
-         ModelName = substrLeft(ActionID, gregexpr("/", ActionID)[[1]][-1]))
+ih_analysis <- dcast(ih[Modelcontrolgroup != "", .(Count = .N) , by=c("ActionID", "Modelcontrolgroup", "Outcome")],
+      ActionID+Modelcontrolgroup ~ Outcome, value.var = "Count")
+ih_analysis[, Total := Accepted + Rejected]
+ih_analysis[, Conversion := 100 * Accepted / Total]
+ih_analysis[, ModelName := gsub(".*/([^/]*)/","\\1",ActionID)]
 
 #Filter out actions
-ih_action = filter(ih_analysis,
-                   startsWith(ActionID, action_id_filter))
+ih_action <- ih_analysis[startsWith(ActionID, action_id_filter)]
 ```
+
 
 # Plot acceptance rate for test and control groups
 
@@ -161,18 +151,12 @@ hist_action_cmp
 # Calculate Z-score and p-value
 
 ```{r}
-z_ih_action <- ih_action %>%
-  pivot_wider(
-    names_from = Modelcontrolgroup,
-    values_from = c(Accepted, Rejected, Total, Conversion)
-  ) %>%
-  mutate(across(everything(), ~ replace_na(.x, 0))) %>%
-  mutate(ZScore = (
-    z.prop(Accepted_Control, Accepted_Test, Total_Control, Total_Test)$ts.z
-  ))
+evaluate_models <- dcast(ih_action, ActionID+ModelName ~ Modelcontrolgroup, value.var=c("Accepted","Rejected","Total","Conversion"))
+evaluate_models[, `Z Score` := z.prop(Accepted_Control, Accepted_Test, Total_Control, Total_Test)$ts.z]
+evaluate_models[, `P value` := z.prop(Accepted_Control, Accepted_Test, Total_Control, Total_Test)$p.val]
 
-z_test <- z_ih_action %>%
-  ggplot(aes(x = gsub("/", "\n", ModelName), y = ZScore, fill = ZScore)) +
+z_test <- evaluate_models %>%
+  ggplot(aes(x = gsub("/", "\n", ModelName), y = `Z Score`, fill = `Z Score`)) +
   geom_col() +
   ggtitle("Z-score") +
   labs(y = "Z", x = "Action/Treatment") +
@@ -186,22 +170,9 @@ z_test
 Saving the table to a file for external use.
 
 ```{r}
-
-evaluate_models <- ih_action %>%
-  pivot_wider(
-    names_from = Modelcontrolgroup,
-    values_from = c(Accepted, Rejected, Total, Conversion)
-  ) %>%
-  mutate(across(everything(), ~ replace_na(.x, 0))) %>%
-  mutate(ZScore = (
-    z.prop(Accepted_Control, Accepted_Test, Total_Control, Total_Test)$ts.z
-  ),
-  `P value` = (
-    z.prop(Accepted_Control, Accepted_Test, Total_Control, Total_Test)$p.val
-  )) %>%
-  arrange(`P value`)
-
-write_excel_csv(evaluate_models, params$outputfile)
+readr::write_excel_csv(evaluate_models, params$outputfile)
 
 evaluate_models %>% kbl() %>% kable_paper("hover", full_width = F)
 ```
+
+

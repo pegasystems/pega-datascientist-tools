@@ -73,6 +73,8 @@ getDMModelContextAsString <- function(partition)
 readADMDatamartModelTable <- function(conn, appliesToFilter=NULL, ruleNameFilter=NULL, applicationFilter=NULL, latestOnly = F, verbose=F,
                                       includeModelData = F)
 {
+  fetchgroup <- NSNAPSHOTS <- NULL # Trick to silence R CMD Check warnings
+
   # Drop Pega internal fields and model data (if present - not all releases have that)
   # Also drop large "pymodeldata" always - TODO perhaps make this a flag (includeModelData)
   query <- paste("select * from", DATAMART_MODELTABLE, "where 1=2")
@@ -137,7 +139,7 @@ readADMDatamartModelTable <- function(conn, appliesToFilter=NULL, ruleNameFilter
 
 #' Retrieves predictor data from the ADM Datamart.
 #'
-#' Typically, predictor data for a certain set of models obtained from \code{getModelsFromDatamart}. It is possible to
+#' Typically, predictor data for a certain set of models obtained from \code{readADMDatamartModelTable}. It is possible to
 #' retrieve all historical data but by default it only retrieves the most recent snapshot data.
 #'
 #' @param conn Connection to the database
@@ -279,6 +281,11 @@ getBinTypeFromDatamart <- function(dmbin)
 # and add missing information like Smoothing factor etc.
 getPredictorDataFromDatamart <- function(dmbinning, id, overallModelName, tmpFolder=NULL)
 {
+  BinIndex <- BinLabel <- BinLowerBound <- BinType <- BinUpperBound <-
+    EntryType <- maxBinIndex <- nMissing <- nRemaining <- PredictorName <-
+    PredictorType <- Smoothing <- SnapshotTime <- tmpNrSymbols <-
+    tmpOriRowNo <- tmpSymbolIdx <- NULL # Trick to silence R CMD Check warnings
+
   dmbinning <- dmbinning[(safe_is_max(SnapshotTime) & (EntryType == "Active" | EntryType == "Classifier"))]
 
   if (nrow(dmbinning) == 0) return(NULL) # defensive coding, but we have seen binnings without any active and/or classifier rows
@@ -406,6 +413,8 @@ normalizedBinningFromDatamart <- function(predictorsForPartition,
                                           modelsForPartition=NULL,
                                           useLowercaseContextKeys=FALSE)
 {
+  ModelID <- SnapshotTime <- NULL # Trick to silence R CMD Check warnings
+
   predictorsForPartition <- data.table(predictorsForPartition) # just to be sure
 
   if (!is.null(modelsForPartition)) {

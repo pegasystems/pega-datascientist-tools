@@ -36,5 +36,7 @@ Imports:
     stringi,
     base64enc,
     gridExtra,
-    Hmisc
+    Hmisc,
+    DBI,
+    arrow
 VignetteBuilder: knitr

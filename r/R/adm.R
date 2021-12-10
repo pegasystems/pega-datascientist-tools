@@ -20,6 +20,8 @@ standardizedParseTime <- function(t)
 # Drop internal fields, fix types and more
 standardizeDatamartModelData <- function(dt, latestOnly)
 {
+  FactoryUpdateTime <- SnapshotTime <- ModelID <- NULL # Trick to silence warnings from R CMD Check
+
   # drop internal fields
   if (any(grepl("^p[x|z]", names(dt), ignore.case = T))) {
     dt[, names(dt)[grepl("^p[x|z]", names(dt), ignore.case = T)] := NULL]
@@ -78,6 +80,8 @@ standardizeDatamartModelData <- function(dt, latestOnly)
 #' \dontrun{models <- expandEmbeddedJSONContext(models)}
 expandEmbeddedJSONContext <- function(dt, fieldName = "Name")
 {
+  isJSON <- OriginalName <- NULL # Trick to silence R CMD Check warnings
+
   if (!is.factor(dt[[fieldName]])) {
     dt[[fieldName]] <- as.factor(dt[[fieldName]])
   }
@@ -141,6 +145,8 @@ readADMDatamartModelExport <- function(srcFolder=".",
                                        latestOnly = F,
                                        tmpFolder=tempdir(check = T))
 {
+  ModelData <- pyModelData <- NULL # Trick to silence R CMD Check warnings
+
   if (file.exists(srcFolder) & !dir.exists(srcFolder)) {
     # if just one argument was passed and it happens to be an existing file, try use that
     instancename = srcFolder
@@ -199,6 +205,8 @@ readADMDatamartPredictorExport <- function(srcFolder=".",
                                            latestOnly = T,
                                            tmpFolder=tempdir(check = T))
 {
+  BinIndex <- ModelID <- SnapshotTime <- NULL # Trick to silence R CMD Check warnings
+
   noBinningSkipFields <- c("BinSymbol","BinNegativesPercentage","BinPositivesPercentage",
                            "BinNegatives", "BinPositives", "RelativeBinNegatives", "RelativeBinPositives",
                            "BinResponseCount", "RelativeBinResponseCount", "BinResponseCountPercentage",
@@ -328,6 +336,10 @@ ADMDatamart <- function(modeldata = NULL, predictordata = NULL, folder = NULL,
 #' }
 admVarImp <- function(dmModels, dmPredictors, facets = NULL)
 {
+  EntryType <- BinLogOdds <- BinPositives <- BinNegatives <- AvgLogOdds <- NULL # Trick to silence warnings from R CMD Check
+  BinResponseCount <- BinDiffLogOdds <- Performance <- Importance <- NULL
+  ResponseCount <- ImportanceRank <- PerformanceRank <- NULL
+
   # Normalize field names
   applyUniformPegaFieldCasing(dmPredictors)
 
@@ -390,6 +402,8 @@ admVarImp <- function(dmModels, dmPredictors, facets = NULL)
 #' @export
 getModelPerformanceOverview <- function(dmModels = NULL, dmPredictors = NULL, jsonPartitions = NULL)
 {
+  ModelID <- name <- PredictorType <- NULL # Trick to silence R CMD Check warnings
+
   if (!is.null(dmModels) & !is.null(dmPredictors)) {
     modelList <- normalizedBinningFromDatamart(dmPredictors[ModelID %in% dmModels$ModelID],
                                                fullName="Dummy",

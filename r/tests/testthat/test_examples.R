@@ -52,16 +52,21 @@ test_that("expected R notebooks are there", {
 
 verify_notebook <- function(nb)
 {
-  # print(nb)
+  print(nb)
 
   outputfile <- basename(gsub("(.*).Rmd$", "\\1.html", nb))
   if (file.exists(outputfile)) {
     file.remove(outputfile)
   }
 
-  rmarkdown::render(nb, output_dir = ".", quiet = T)
+  tryCatch( rmarkdown::render(nb, output_dir = ".", quiet = T),
+            error = function(e) {
+              expect_true(F,
+                          info = paste("Processing input file", nb, "to", getwd(), "error:", e))
+              } )
 
-  expect_true(file.exists(outputfile), info = paste("Expected file", outputfile, "in", getwd()))
+  expect_true(file.exists(outputfile),
+              info = paste("Expected file", outputfile, "in", getwd()))
 }
 
 test_that("check example notebooks", {

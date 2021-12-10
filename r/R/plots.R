@@ -136,6 +136,8 @@ getPredictorType <- function(data)
 #' }
 plotADMPerformanceSuccessRateBubbleChart <- function(modeldata, aggregation=intersect(c("Issue","Group","Name","Treatment"), names(modeldata)), facets = c())
 {
+  Name <- Performance <- Positives <- ResponseCount <- NULL # Trick to silence R CMD Check warnings
+
   facets <- plotsCheckFacetsExist(modeldata, facets)
 
   # TODO move color/size aes into geom_point so we can override
@@ -173,6 +175,8 @@ plotADMPerformanceSuccessRateBubbleChart <- function(modeldata, aggregation=inte
 #' }
 plotADMPerformanceSuccessRateBoxPlot <- function(modeldata, primaryCriterion = "ConfigurationName", facets = c())
 {
+  Performance <- Positives <- ResponseCount <- NULL # Trick to silence R CMD Check warnings
+
   facets <- plotsCheckFacetsExist(modeldata, facets)
   primaryCriterionSym <- rlang::sym(primaryCriterion)
 
@@ -205,6 +209,8 @@ plotADMModelPerformanceOverTime <- function(modeldata,
                                             aggregation=intersect(c("Issue","Group","Name","Treatment"), names(modeldata)),
                                             facets=c("ConfigurationName"))
 {
+  SnapshotTime <- Performance <- ResponseCount <- Proposition <- NULL  # Trick to silence warnings from R CMD Check
+
   facets <- plotsCheckFacetsExist(modeldata, facets)
 
   plotdata <- modeldata[!is.na(SnapshotTime), .(Performance = 100*weighted.mean(Performance, ResponseCount),
@@ -246,6 +252,8 @@ plotADMModelSuccessRateOverTime <- function(modeldata,
                                             aggregation=intersect(c("Issue","Group","Name","Treatment"), names(modeldata)),
                                             facets=c("ConfigurationName"))
 {
+  SnapshotTime <- Positives <- ResponseCount <- SuccessRate <- Proposition <- NULL  # Trick to silence warnings from R CMD Check
+
   facets <- plotsCheckFacetsExist(modeldata, facets)
 
   plotdata <- modeldata[!is.na(SnapshotTime), .(SuccessRate = weighted.mean(Positives/ResponseCount, ResponseCount),
@@ -313,6 +321,11 @@ plotADMPredictorImportance <- function(predictordata,
                                        maxNameLength = .Machine$integer.max,
                                        showAsBoxPlot = T)
 {
+  Importance <- ImportanceMean <- ImportanceMedian <- ImportanceRank <-
+    ResponseCount <- Performance <- PerformanceMean <- PerformanceMedian <-
+    PerformanceRank <- Category <- PredictorName <- AbbreviatedPredictorName <-
+    OriginalPredictorName <- NULL  # Trick to silence warnings from R CMD Check
+
   facets <- plotsCheckFacetsExist(modeldata, facets)
 
   if (showAsBoxPlot) {
@@ -374,7 +387,7 @@ plotADMPredictorImportance <- function(predictordata,
     return(NULL)
   }
 
-  categoryOrder <- featureImportance[, .(w = median(Importance)), by=Category][order(w)]
+  categoryOrder <- featureImportance[, .(ImportanceMedian = median(Importance)), by=Category][order(ImportanceMedian)]
   featureImportance[, Category := factor(Category, levels = categoryOrder$Category)]
 
   # Base plot
@@ -465,6 +478,8 @@ plotADMPredictorImportanceHeatmap <- function(predictordata,
                                              limit = .Machine$integer.max,
                                              maxNameLength = .Machine$integer.max)
 {
+  EntryType <- meanPerf <- Performance <- PredictorName <- Proposition <- ResponseCount <- NULL # Trick to silence R CMD Check warnings
+
   facets <- plotsCheckFacetsExist(modeldata, facets)
 
   myGoodness <- function(x)
@@ -543,6 +558,8 @@ plotADMPropositionSuccessRates <- function(modeldata,
                                            limit = .Machine$integer.max,
                                            maxNameLength = .Machine$integer.max)
 {
+  Positives <- Proposition <- PropositionRank <- ResponseCount <- SnapshotTime <- `Success Rate` <- NULL # Trick to silence R CMD Check warnings
+
   facets <- plotsCheckFacetsExist(modeldata, facets)
 
   latestMdls <- modeldata[, .SD[which(SnapshotTime==max(SnapshotTime))], by=c("ModelID")]
@@ -582,6 +599,8 @@ plotADMPropositionSuccessRates <- function(modeldata,
 #' }
 plotADMCumulativeGains <- function(binning)
 {
+  BinIndex <- CumPositivesPct <- BinPositives <- CumVolumePct <- BinResponseCount <- NULL  # Trick to silence warnings from R CMD Check
+
   binning[, BinIndex := as.numeric(BinIndex)] # just in case
   setorder(binning, BinIndex)
 
@@ -622,6 +641,8 @@ plotADMCumulativeGains <- function(binning)
 #' }
 plotADMCumulativeLift <- function(binning)
 {
+  BinIndex <- CumPositivesPct <- BinPositives <- CumVolumePct <- BinResponseCount <- NULL  # Trick to silence warnings from R CMD Check
+
   binning[, BinIndex := as.numeric(BinIndex)] # just in case
   setorder(binning, BinIndex)
 
@@ -667,6 +688,8 @@ plotADMCumulativeLift <- function(binning)
 #' }
 plotADMBinning <- function(binning, useSmartLabels = T) # TODO consider adding laplaceSmoothing = F to add 0.5 and 1.0
 {
+  BinIndex <- BinPositives <- BinResponseCount <- BinSymbol <- Positives <- Negatives <- NULL  # Trick to silence warnings from R CMD Check
+
   binning[, BinIndex := as.numeric(BinIndex)] # just in case
   setorder(binning, BinIndex)
 
