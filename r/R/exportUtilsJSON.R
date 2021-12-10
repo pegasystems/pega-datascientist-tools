@@ -428,7 +428,7 @@ admJSONFactoryToBinning <- function(factoryJSON, modelname="Dummy")
                                                          activePredsOnly=F)
 
   SnapshotTime <- toPRPCDateTime(lubridate::now())
-  predictorBinning <- factoryDetail$binning [, .(PredictorType = ifelse(PredictorType[1]=="SYMBOLIC", "symbolic", "numeric"),
+  predictorBinning <- factoryDetail$binning [, list(PredictorType = ifelse(PredictorType[1]=="SYMBOLIC", "symbolic", "numeric"),
                                                  Type = ifelse(PredictorType[1]=="SYMBOLIC", "symbolic", "numeric"), # same as PredictorType
                                                  BinType = ifelse(BinType[1]=="MISSING", "MISSING", "EQUIBEHAVIOR"), # RESIDUAL DOES NOT SEEM TO MATTER
 

@@ -302,7 +302,7 @@ Number of positives and negatives in each bin and the derived lift and Z-ratio. 
 # TODO - the grouping could be displayed in more fancy ways using kableExtra options for grouping
 # TODO - consider colouring the predictor names by part before first dot ; unless there are > 10 of those
 
-predSummary <- modelPredictorBins[EntryType != "Classifier", .(Negatives = sum(BinNegatives),
+predSummary <- modelPredictorBins[EntryType != "Classifier", list(Negatives = sum(BinNegatives),
                                                                Positives = sum(BinPositives),
                                                                Active = EntryType[1],
                                                                Type = PredictorType[1],

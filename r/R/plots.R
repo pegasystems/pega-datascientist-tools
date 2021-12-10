@@ -213,12 +213,12 @@ plotADMModelPerformanceOverTime <- function(modeldata,
 
   facets <- plotsCheckFacetsExist(modeldata, facets)
 
-  plotdata <- modeldata[!is.na(SnapshotTime), .(Performance = 100*weighted.mean(Performance, ResponseCount),
+  plotdata <- modeldata[!is.na(SnapshotTime), list(Performance = 100*weighted.mean(Performance, ResponseCount),
                                                 ResponseCount = max(ResponseCount)), by=c(facets, aggregation, "SnapshotTime")]
   plotdata$Proposition <- apply(plotdata[, aggregation, with=F], 1, paste, collapse="/")
 
   # order by final performance
-  propositionOrder <- plotdata[, .(Performance = weighted.mean(Performance[safe_which_max(SnapshotTime)],
+  propositionOrder <- plotdata[, list(Performance = weighted.mean(Performance[safe_which_max(SnapshotTime)],
                                                                       ResponseCount[safe_which_max(SnapshotTime)], na.rm = T)), by=Proposition][order(-Performance)]$Proposition
 
   plotdata[, Proposition := factor(Proposition, levels=propositionOrder)]
@@ -256,12 +256,12 @@ plotADMModelSuccessRateOverTime <- function(modeldata,
 
   facets <- plotsCheckFacetsExist(modeldata, facets)
 
-  plotdata <- modeldata[!is.na(SnapshotTime), .(SuccessRate = weighted.mean(Positives/ResponseCount, ResponseCount),
+  plotdata <- modeldata[!is.na(SnapshotTime), list(SuccessRate = weighted.mean(Positives/ResponseCount, ResponseCount),
                                                 ResponseCount = max(ResponseCount)), by=c(facets, aggregation, "SnapshotTime")]
   plotdata$Proposition <- apply(plotdata[, aggregation, with=F], 1, paste, collapse="/")
 
   # order by final success rate
-  propositionOrder <- plotdata[, .(SuccessRate = weighted.mean(SuccessRate[safe_which_max(SnapshotTime)],
+  propositionOrder <- plotdata[, list(SuccessRate = weighted.mean(SuccessRate[safe_which_max(SnapshotTime)],
                                                                       ResponseCount[safe_which_max(SnapshotTime)], na.rm = T)), by=Proposition][order(-SuccessRate)]$Proposition
 
   plotdata[, Proposition := factor(Proposition, levels=propositionOrder)]
@@ -387,7 +387,7 @@ plotADMPredictorImportance <- function(predictordata,
     return(NULL)
   }
 
-  categoryOrder <- featureImportance[, .(ImportanceMedian = median(Importance)), by=Category][order(ImportanceMedian)]
+  categoryOrder <- featureImportance[, list(ImportanceMedian = median(Importance)), by=Category][order(ImportanceMedian)]
   featureImportance[, Category := factor(Category, levels = categoryOrder$Category)]
 
   # Base plot
@@ -496,24 +496,24 @@ plotADMPredictorImportanceHeatmap <- function(predictordata,
                                   # prevent situation where some config data exists in the predictor data as well
                                   setdiff(names(predictordata), c(aggregation, facets)), with=F],
                     unique(modeldata[, c("ModelID", aggregation, facets), with=F]),
-                    by="ModelID", all.x=F, all.y=F)[, .(Performance = weighted.mean(Performance, 1+ResponseCount, na.rm = T),
+                    by="ModelID", all.x=F, all.y=F)[, list(Performance = weighted.mean(Performance, 1+ResponseCount, na.rm = T),
                                                         ResponseCount = sum(ResponseCount)),
                                                     by=c("PredictorName", aggregation, facets)]
 
 
   # Propositions, order by performance
   plotdata$Proposition <- apply(plotdata[, aggregation, with=F], 1, paste, collapse="/")
-  propositionOrder <-  plotdata[, .(meanPerf = weighted.mean(Performance, 1+ResponseCount, na.rm = T)),
+  propositionOrder <-  plotdata[, list(meanPerf = weighted.mean(Performance, 1+ResponseCount, na.rm = T)),
                                 by=Proposition][order(-meanPerf)] $ Proposition
   plotdata[, Proposition := factor(Proposition, levels=propositionOrder)]
 
   # Predictors, order by performance
   plotdata[, PredictorName := sapply(as.character(PredictorName), plotsAbbreviateName, maxNameLength)]
-  predictorOrder <- plotdata[, .(meanPerf = weighted.mean(Performance, 1+ResponseCount, na.rm = T)),
+  predictorOrder <- plotdata[, list(meanPerf = weighted.mean(Performance, 1+ResponseCount, na.rm = T)),
                              by=PredictorName][order(-meanPerf)] $ PredictorName
   plotdata[, PredictorName := factor(PredictorName, levels = predictorOrder)]
 
-  # primaryCriterionOrder <- plotdata[, .(meanPerf = weighted.mean(Performance, 1+ResponseCount, na.rm = T)),
+  # primaryCriterionOrder <- plotdata[, list(meanPerf = weighted.mean(Performance, 1+ResponseCount, na.rm = T)),
   #                                         by=c(primaryCriterion)][order(-meanPerf)] [[primaryCriterion]]
   # plotdata[[primaryCriterion]] <- factor(plotdata[[primaryCriterion]], levels = primaryCriterionOrder)
   # primaryCriterion <- sym(primaryCriterion)
@@ -564,7 +564,7 @@ plotADMPropositionSuccessRates <- function(modeldata,
 
   latestMdls <- modeldata[, .SD[which(SnapshotTime==max(SnapshotTime))], by=c("ModelID")]
 
-  propSuccess <- latestMdls[, .(`Success Rate` = weighted.mean(Positives/ResponseCount, ResponseCount, na.rm = T)),
+  propSuccess <- latestMdls[, list(`Success Rate` = weighted.mean(Positives/ResponseCount, ResponseCount, na.rm = T)),
                             by=c(aggregation, facets)]
   propSuccess[, `Success Rate` := ifelse(is.nan(`Success Rate`), 0, `Success Rate`)]
   propSuccess$Proposition <- apply(propSuccess[, aggregation, with=F], 1, paste, collapse="/")

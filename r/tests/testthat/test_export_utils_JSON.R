@@ -13,7 +13,7 @@ test_that("ADM Factory to Binning simple", {
   expect_equal(nrow(asDataMart), 25)
   expect_equal(ncol(asDataMart), 16)
 
-  summary <- asDataMart[, .(nbins = .N), by=PredictorName]
+  summary <- asDataMart[, list(nbins = .N), by=PredictorName]
   expect_equal(summary$PredictorName, c("AGE", "COUNTRY", "Classifier"),
                info=paste(summary$PredictorName, collapse=";"))
   expect_equal(summary$nbins, c(7, 4, 14), info=paste(summary$nbins, collapse=";"))

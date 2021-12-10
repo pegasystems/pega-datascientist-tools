@@ -372,7 +372,7 @@ getNBFormulaWeights <- function(bins)
 
   # Summarize per predictor
   if (any(bins$PredictorType != "CLASSIFIER")) {
-    predMinMaxWeights <- bins[PredictorType != "CLASSIFIER", .(minWeight = min(BinWeight),
+    predMinMaxWeights <- bins[PredictorType != "CLASSIFIER", list(minWeight = min(BinWeight),
                                                                maxWeight = max(BinWeight)), by=PredictorName]
   } else {
     predMinMaxWeights <- data.table()
@@ -556,7 +556,7 @@ createPMML <- function(modeldata, overallModelName)
 
   # Make sure the predictor binning is according to expectations
   # numerics: INTERVALBELOW & INTERVALABOVE also set bound for last interval. Both should be present.
-  binningSummary <- rbindlist(lapply(modeldata, function(m) {return(m$binning[,.(nMissing=sum(BinType=="MISSING")),
+  binningSummary <- rbindlist(lapply(modeldata, function(m) {return(m$binning[, list(nMissing=sum(BinType=="MISSING")),
                                                                               by=c("ModelID", "PredictorName", "PredictorType")])}))
   if (any(binningSummary$nMissing != 1 & binningSummary$PredictorType != "CLASSIFIER")) {
     print(binningSummary[which(binningSummary$nMissing != 1 & binningSummary$PredictorType != "CLASSIFIER")])
@@ -564,7 +564,7 @@ createPMML <- function(modeldata, overallModelName)
   }
 
   # Make sure the predictor binning is according to expectations
-  modelSummary <- rbindlist(lapply(modeldata, function(m) {return(m$binning[,.(hasClassifier=any(PredictorType=="CLASSIFIER"),
+  modelSummary <- rbindlist(lapply(modeldata, function(m) {return(m$binning[, list(hasClassifier=any(PredictorType=="CLASSIFIER"),
                                                                                hasPredictors=any(PredictorType=="NUMERIC" | PredictorType=="SYMBOLIC"),
                                                                                PredictorNames=paste(unique(PredictorName), collapse = ",")),
                                                                             by=c("ModelID")])}))

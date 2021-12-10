@@ -116,7 +116,8 @@ substrLeft <- function(x, n) {
 Calculate acceptance rate/click-through rate
 
 ```{r}
-ih_analysis <- dcast(ih[Modelcontrolgroup != "", .(Count = .N) , by=c("ActionID", "Modelcontrolgroup", "Outcome")],
+ih_analysis <- dcast(ih[Modelcontrolgroup != "", list(Count = .N), 
+                        by=c("ActionID", "Modelcontrolgroup", "Outcome")],
       ActionID+Modelcontrolgroup ~ Outcome, value.var = "Count")
 ih_analysis[, Total := Accepted + Rejected]
 ih_analysis[, Conversion := 100 * Accepted / Total]

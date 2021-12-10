@@ -351,7 +351,7 @@ admVarImp <- function(dmModels, dmPredictors, facets = NULL)
 
   # The feature importance per predictor then is just the weighted average of these distances to the mean
   featureImportance <-
-    bins[, .(Importance = weighted.mean(BinDiffLogOdds, BinResponseCount, na.rm=T),
+    bins[, list(Importance = weighted.mean(BinDiffLogOdds, BinResponseCount, na.rm=T),
              Performance = first(as.numeric(Performance)), # numeric cast should not be necessary but sometimes data is odd
              ResponseCount = sum(BinResponseCount)), by=c("PredictorName", "ModelID")]
   featureImportance[, Importance := ifelse(is.na(Importance), 0, Importance)]
@@ -365,7 +365,7 @@ admVarImp <- function(dmModels, dmPredictors, facets = NULL)
                                unique(dmModels[, c(facets, "ModelID"), with=F]), by="ModelID")
 
     # Then aggregate up to the predictor names x facets
-    aggregateFeatureImportance <- featureImportance[, .(Importance = weighted.mean(Importance, ResponseCount),
+    aggregateFeatureImportance <- featureImportance[, list(Importance = weighted.mean(Importance, ResponseCount),
                                                         Performance = weighted.mean(Performance, ResponseCount),
                                                         ResponseCount = sum(ResponseCount)),
                                                     by=c("PredictorName", facets)]

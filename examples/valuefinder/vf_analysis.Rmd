@@ -101,7 +101,7 @@ Customers are considered "well served" if they have at least 1 action for which
 the propensity is above the threshold.
 
 ```{r}
-customersummary <- simdata[, .(MaxPropensity = max(pyPropensity),
+customersummary <- simdata[, list(MaxPropensity = max(pyPropensity),
                                MaxFinalPropensity = max(FinalPropensity), # This includes Thompson sampling
                                MaxModelPropensity = max(pyModelPropensity), 
                                InRandomControlGroup = ModelControlGroup[which.max(pyModelPropensity)] == "Control",
@@ -120,7 +120,7 @@ being "well served" (at least 1 action with a higher propensity), "under served"
 they don't get anything at all - typically because of rule based filtering.
 
 ```{r}
-countsPerStage <- customersummary[, .(WellServed = as.numeric(sum(isWellServed)), 
+countsPerStage <- customersummary[, list(WellServed = as.numeric(sum(isWellServed)), 
                                       NotWellServed = as.numeric(sum(!isWellServed)), 
                                       NoAction = as.numeric(ncust - .N)), by=pyStage]
 countsPerStage[, yWellServed := WellServed/2]

@@ -60,7 +60,7 @@ kable(data.frame(element = c("scorecard", "mapping", "pmml"),
 The "Points" in the scorecard give the weight for all the (active) predictors.
 
 ```{r echo=FALSE, warning=FALSE}
-grouped <- sc$scorecard[,.(size=.N),by=Field]
+grouped <- sc$scorecard[, list(size=.N),by=Field]
 groupIndices <- grouped$size
 names(groupIndices) <- grouped$Field
 

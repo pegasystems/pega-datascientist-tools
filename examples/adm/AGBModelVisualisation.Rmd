@@ -173,7 +173,7 @@ getGains <- function(tree)
 }
 
 allSplits <- rbindlist(lapply(forest, getGains))
-varImp <- allSplits[, .(Importance = mean(gain)), by="split"][order(-Importance)]
+varImp <- allSplits[, list(Importance = mean(gain)), by="split"][order(-Importance)]
 
 varImp[, Importance := 100*Importance/max(Importance)]
 varImp[, split := factor(split, levels = rev(varImp$split))]

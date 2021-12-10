@@ -149,7 +149,7 @@ Showing the percentage of missing values per day. Missing values
 are a common source of issues in models.
 
 ```{r}
-ggplot(hds[, .(nMissing = sum(is.na(Customer_Age))/nrow(hds)), by=Day],
+ggplot(hds[, list(nMissing = sum(is.na(Customer_Age))/nrow(hds)), by=Day],
        aes(Day, nMissing, fill=nMissing)) +
   geom_col(size=1) +
   scale_fill_continuous_diverging(guide="none") +

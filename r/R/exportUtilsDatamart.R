@@ -341,7 +341,7 @@ getPredictorDataFromDatamart <- function(dmbinning, id, overallModelName, tmpFol
   # - add MISSING bins when absent
   # - NOTE we set pos/neg to 0 for the newly created bins similar to what ADM does but this is debatable (ISSUE-22143)
   binningSummary <- binning[PredictorType != "CLASSIFIER",
-                            .(nMissing = sum(BinType=="MISSING"),
+                            list(nMissing = sum(BinType=="MISSING"),
                               nRemaining = sum(BinType=="REMAININGSYMBOLS"),
                               maxBinIndex = max(c(0,BinIndex), na.rm = T)),
                             by=c("ModelID", "PredictorName", "PredictorType", "TotalPos", "TotalNeg", "Smoothing", "IsActive", "Performance")]

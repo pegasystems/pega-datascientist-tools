@@ -221,7 +221,7 @@ values of these from the ADM datamart, but you *can* easily detect a decrease of
 minimum and an increase of the maximum.
 
 ```{r}
-allbinnings[, .("Average Value" = weighted.mean(BinUpper + BinLower, BinResponseCount)/2), by=t]
+allbinnings[, list("Average Value" = weighted.mean(BinUpper + BinLower, BinResponseCount)/2), by=t]
 ```
 
 

@@ -144,7 +144,7 @@ myKS <- function(binning)
   return(ifelse(is.na(KS),0,KS))
 }
 performanceSummary <- 
-  left_join(admdatamart_binning_latest[, .(KS = myKS(.SD),
+  left_join(admdatamart_binning_latest[, list(KS = myKS(.SD),
                                            auc = first(Performance)), 
                                        by=c("ModelID", "PredictorName","EntryType")],
             admdatamart_models_latest,
@@ -217,7 +217,7 @@ enough to write your own. For example, to show the performance of the Age
 predictor over time and across all models.
 
 ```{r fig.height=5, fig.width=5}
-predictorPerformanceTrend <- admdatamart_binning[startsWith(PredictorName, "Customer.A") & BinIndex == 1, .(Performance = 100*mean(Performance)), by=c("SnapshotTime","PredictorName")]
+predictorPerformanceTrend <- admdatamart_binning[startsWith(PredictorName, "Customer.A") & BinIndex == 1, list(Performance = 100*mean(Performance)), by=c("SnapshotTime","PredictorName")]
 
 ggplot(predictorPerformanceTrend, aes(SnapshotTime, Performance, color=PredictorName)) +
   geom_line(size=1) + 
