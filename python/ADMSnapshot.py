@@ -233,6 +233,7 @@ class ADMSnapshot:
     @staticmethod
     def last(df: pd.DataFrame) -> pd.DataFrame:
         """Property to retrieve only the last values for a given dataframe."""
+        #NOTE Maybe we don't need to groupby predictorname
         if 'ModelName' in df.columns: 
             return df.sort_values('SnapshotTime').groupby(['ModelID']).last()
         if 'PredictorName' in df.columns:
@@ -255,6 +256,8 @@ class ADMSnapshot:
         """
 
         #TODO: support multiple snapshots for combined data
+        #TODO: actives only as parameter
+        #TODO: last as parameter
         lastPreds = self.last(self.predictorData) if predictorData is None else predictorData
         lastModels = self.last(self.modelData) if modelData is None else modelData
         combined = lastModels.merge(lastPreds, on='ModelID', how='right', suffixes=('', 'Bin'))
