@@ -237,7 +237,7 @@ class ADMSnapshot:
         if 'ModelName' in df.columns: 
             return df.sort_values('SnapshotTime').groupby(['ModelID']).last()
         if 'PredictorName' in df.columns:
-            return df.sort_values('SnapshotTime').groupby(['ModelID', 'PredictorName']).last()
+            return df.sort_values('SnapshotTime').groupby(['ModelID', 'PredictorName']).last().reset_index('PredictorName')
         
     def get_combined_data(self, modelData:pd.DataFrame = None, predictorData:pd.DataFrame = None) -> pd.DataFrame:
         """Combines the model data and predictor data into one dataframe.
