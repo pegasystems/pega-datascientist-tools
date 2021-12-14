@@ -402,7 +402,7 @@ class ADMSnapshot(ADMVisualisations):
         df_sign[cols[0]] = 1
         return df_sign[cols].fillna(1)
 
-    def _create_heatmap_df(self, df:pd.DataFrame, lookback:int=5, query:Union[str, dict]=None, fill_null_days:bool=True) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    def _create_heatmap_df(self, df:pd.DataFrame, lookback:int=5, query:Union[str, dict]=None, fill_null_days:bool=False) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """Generates dataframes needed to plot calendar heatmap
         The method generates two dataframes where one is used to annotate the heatmap
         and the other is used to apply colors based on the sign dataframe.
