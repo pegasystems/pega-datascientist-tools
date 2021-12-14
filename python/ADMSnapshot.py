@@ -326,7 +326,7 @@ class ADMSnapshot(ADMVisualisations):
                 df = df[df[col].isin(val)]
         return df
 
-    def _subset_data(self, table:str, required_columns:dict, query: Union[str, dict] = None, multi_snapshot:bool = False, last:bool = False, active_only:bool = False) -> pd.DataFrame:
+    def _subset_data(self, table:str, required_columns:set, query: Union[str, dict] = None, multi_snapshot:bool = False, last:bool = False, active_only:bool = False) -> pd.DataFrame:
         """Retrieves and subsets the data and performs some assertion checks
 
         Parameters
@@ -334,7 +334,7 @@ class ADMSnapshot(ADMVisualisations):
         table : str
             Which table to retrieve from the ADMSnapshot object 
             (modelData, predictorData or combinedData)
-        required_columns : dict
+        required_columns : set
             Which columns we want to use for the visualisation
             Asserts those columns are in the data, and returns only those columns for efficiency
         query : Union[str, dict]
@@ -502,3 +502,6 @@ class ADMSnapshot(ADMVisualisations):
         df = df.groupby(['ModelID', 'PredictorName']).apply(_ImpactInfluence).reset_index().merge(
             df[['ModelID', 'Issue', 'Group', 'Channel', 'Direction', 'ModelName']].drop_duplicates(), on='ModelID')
         return df.sort_values(['PredictorName', 'Impact(%)'], ascending=[False, False])
+    
+    def select_n():
+        raise NotImplemented
