@@ -15,7 +15,7 @@ import matplotlib.ticker as mtick
 
 class ADMVisualisations:
 
-    def show_bubble_chart(self, annotate:bool=False, sizes:tuple=(10, 2000), aspect:int=3, b_to_anchor:tuple=(1.1,0.7), query:Union[str, dict]=None, figsize:tuple=(12, 6)) -> plt.figure:
+    def show_bubble_chart(self, annotate:bool=False, sizes:tuple=(10, 2000), aspect:int=3, b_to_anchor:tuple=(1.1,0.7), last=True, query:Union[str, dict]=None, figsize:tuple=(20, 5)) -> plt.figure:
         """Creates bubble chart similar to ADM OOTB reports
         
         Parameters
@@ -31,6 +31,8 @@ class ADMVisualisations:
             Aspect ratio of the graph
         b_to_anchor : tuple
             Position of the legend
+        last : bool
+            Whether to only include the last snapshot for each model
         query : Union[str, dict]
             The query to supply to _apply_query
             If a string, uses the default Pandas query function
@@ -45,7 +47,6 @@ class ADMVisualisations:
         """
 
         table = 'modelData'
-        last = True
         required_columns = {'Performance', 'SuccesRate', 'ResponseCount', 'ModelName'}
         df = self._subset_data(table=table, required_columns=required_columns, query=query, last=last)
         
@@ -53,7 +54,7 @@ class ADMVisualisations:
             gg = sns.relplot(x='Performance', y='SuccesRate', aspect=aspect, data=df, hue='ModelName')
             ax = gg.axes[0,0]
             for idx,row in df[['Performance', 'SuccesRate', 'ResponseCount']].sort_values(
-                'responses').reset_index(drop=True).reset_index().fillna(-1).iterrows():
+                'ResponseCount').reset_index(drop=True).reset_index().fillna(-1).iterrows():
                 if row[1]!=-1 and row[2]!=-1 and row[3]!=-1:
     #                     space = (gg.ax.get_xticks()[2]-gg.ax.get_xticks()[1])/((row[0]+15)/(row[0]+1))
                     ax.text(row[1]+0.003,row[2],str(row[3]).split('.')[0], horizontalalignment='left')
@@ -266,22 +267,21 @@ class ADMVisualisations:
         plt.figure
         """
         table = 'combinedData'
-        last = False
         required_columns = {'PredictorName', 'ModelName', 'BinIndex', 'BinSymbol', 'BinResponseCount', 'BinPropensity'}
-        df = self._subset_data(table, required_columns, query, last=last)
+        df = self._subset_data(table, required_columns, query)
 
         df = df[df['PredictorName']=='Classifier']
-        if df.index.nunique() > 5:
+        if df.ModelName.nunique() > 10:
             if input(f"""WARNING: you are about to create {df.index.nunique()} plots because there are that many models. 
-            This will take a while, and will probably slow down your system. Are you sure? Type 'No' to cancel.""") == 'No': 
+            This will take a while, and will probably slow down your system. Are you sure? Type 'Yes' to proceed.""") != 'Yes': 
                 print("Cancelling. Set your 'query' parameter more strictly to generate fewer images")
                 return None
-        for model in df.index.unique():
-            _df = df[df.index==model]
+        for model in df.ModelName.unique():
+            _df = df[df.ModelName==model]
             if not show_zero_responses:
                 if _df['BinResponseCount'].nunique() == [0]:
                     continue
-            name = _df.index.unique()[0]
+            name = _df.ModelName.unique()[0]
             self.distribution_graph(_df, 'Model name: '+name, figsize)
 
     def show_predictor_report(self, predictors:list=None, modelids:str=None, query:Union[str, dict]=None, figsize:tuple=(10, 5)) -> plt.figure:
@@ -416,7 +416,7 @@ class ADMVisualisations:
         bottom, top = ax.get_ylim()
         ax.set_ylim(bottom + 0.5, top - 0.5)
 
-    def plot_impact_influence(self, modelID:str=None, query:Union[str, dict]=None, figsize:tuple=(12, 5)) -> plt.figure:
+    def plot_impact_influence(self, ModelID:str=None, query:Union[str, dict]=None, figsize:tuple=(12, 5)) -> plt.figure:
         """Calculate the impact and influence of a given model's predictors
 
         Parameters
@@ -437,9 +437,9 @@ class ADMVisualisations:
         """
         table = 'combinedData'
         last = True
-        required_columns = {'PredictorName', 'ModelName', 'Performance', 'BinPositivesPercentage', 'BinNegativesPercentage', 'BinResponseCountPercentage', 'Issue', 'Group', 'Channel', 'Direction'}
+        required_columns = {'ModelID', 'PredictorName', 'ModelName', 'Performance', 'BinPositivesPercentage', 'BinNegativesPercentage', 'BinResponseCountPercentage', 'Issue', 'Group', 'Channel', 'Direction'}
         df = self._subset_data(table, required_columns, query, last=last).reset_index()
-        df = self._calculate_impact_influence(df, modelID=modelID)[[
+        df = self._calculate_impact_influence(df, ModelID=ModelID)[[
             'ModelID', 'PredictorName', 'Impact(%)', 'Influence(%)']].set_index(
             ['ModelID', 'PredictorName']).stack().reset_index().rename(columns={'level_2':'metric', 0:'value'})
         fig, ax = plt.subplots(figsize=figsize)
