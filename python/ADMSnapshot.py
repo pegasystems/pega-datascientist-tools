@@ -267,7 +267,7 @@ class ADMSnapshot(ADMVisualisations):
         """Property to retrieve only the last values for a given dataframe."""
         #NOTE Maybe we don't need to groupby predictorname
         if 'PredictorName' in df.columns:
-            return df.sort_values('SnapshotTime').groupby(['ModelID', 'PredictorName', 'BinIndex']).last().reset_index(['PredictorName', 'BinIndex'])
+            return df.sort_values('SnapshotTime').groupby(['ModelID', 'PredictorName', 'BinIndex']).last().reset_index()
         if 'ModelName' in df.columns: 
             return df.sort_values('SnapshotTime').groupby(['ModelID']).last()
         
@@ -438,16 +438,16 @@ class ADMSnapshot(ADMVisualisations):
         if df.shape[0]<1:
             print("no data within lookback range")
             return pd.DataFrame()
-        else:
-            idx = df.groupby(['ModelID', 'Date'])['SnapshotTime'].transform(max)==df['SnapshotTime']
-            df = df[idx]
-            if fill_null_days:
-                idx_date = pd.date_range(df['Date'].min(), df['Date'].max())
-                df = df.set_index('Date').groupby('ModelID').apply(lambda d: d.reindex(idx_date)).drop(
-                    'ModelID', axis=1).reset_index('ModelID').reset_index().rename(columns={'index':'Date'})
-                df['Date'] = df['Date'].dt.date
-            df_annot = df.pivot(columns='Date', values='ResponseCount', index='ModelID')
-            df_sign = self._create_sign_df(df_annot)
+        
+        idx = df.groupby(['ModelID', 'Date'])['SnapshotTime'].transform(max)==df['SnapshotTime']
+        df = df[idx]
+        if fill_null_days:
+            idx_date = pd.date_range(df['Date'].min(), df['Date'].max())
+            df = df.set_index('Date').groupby('ModelID').apply(lambda d: d.reindex(idx_date)).drop(
+                'ModelID', axis=1).reset_index('ModelID').reset_index().rename(columns={'index':'Date'})
+            df['Date'] = df['Date'].dt.date
+        df_annot = df.pivot(columns='Date', values='ResponseCount', index='ModelID')
+        df_sign = self._create_sign_df(df_annot)
         return (df_annot, df_sign)
 
     @staticmethod
@@ -489,16 +489,15 @@ class ADMSnapshot(ADMVisualisations):
         ax.set_title(title)
     
     @staticmethod
-    def _calculate_impact_influence(df:pd.DataFrame, modelID:str=None):
+    def _calculate_impact_influence(df:pd.DataFrame, ModelID:str=None):
         def _ImpactInfluence(X):
             d = {}
             d['Impact(%)'] = X['absIc'].max()
             d['Influence(%)'] = (X['BinResponseCountPercentage']*X['absIc']/100).sum()
             return pd.Series(d)
-    
-        df = df[df['PredictorName']!='Classifier'].reset_index(drop=True)
-        if modelID:
-            df = df[df['ModelID']==modelID]#.reset_index(drop=True)
+        df = df.query("PredictorName != 'Classifier'").reset_index(drop=True)
+        if ModelID is not None:
+            df = df.query("ModelID == @ModelID")
         df['absIc'] = np.abs(df['BinPositivesPercentage'] - df['BinNegativesPercentage'])
         df = df.groupby(['ModelID', 'PredictorName']).apply(_ImpactInfluence).reset_index().merge(
             df[['ModelID', 'Issue', 'Group', 'Channel', 'Direction', 'ModelName']].drop_duplicates(), on='ModelID')
