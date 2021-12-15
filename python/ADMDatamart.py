@@ -155,6 +155,7 @@ class ADMDatamart(ADMVisualisations):
             'Direction': ['Direction'], 
             'ModelName': ['Name'], 
             'Positives': ['Positives'], 
+            'Configuration': ['ConfigurationName'],
             'ResponseCount': ['Response', 'Responses', 'ResponseCount'], 
             'SnapshotTime': ['ModelSnapshot', 'SnapshotTime'],
             'PredictorName': ['PredictorName'],

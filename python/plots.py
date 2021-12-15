@@ -120,7 +120,7 @@ class ADMVisualisations:
         cbar.ax.set_ylabel('Model Performance (AUC)')
         print('Maximum AUC across all models: %.2f' % df['Performance'].max())
     
-    def show_calendar_heatmap(self, lookback=15, fill_null_days=True, query:Union[str, dict]=None, figsize=(14, 10)) -> plt.figure:
+    def show_calendar_heatmap(self, lookback=15, fill_null_days=False, query:Union[str, dict]=None, figsize=(14, 10)) -> plt.figure:
         """Creates a calendar heatmap
         x axis shows model names and y axis the dates. Data in each cell is the total number
         of responses. The color indicates where responses increased/decreased or
