@@ -8,19 +8,20 @@ import copy
 from typing import Optional, Tuple, Union
 from matplotlib import pyplot as plt
 import matplotlib.patches as mpatches
+import matplotlib.ticker as mtick
 import seaborn as sns
 
 class ADMDatamart(ADMVisualisations):
     """Main class for importing, preprocessing and structuring Pega ADM Datamart snapshot data."""
 
-    def __init__(self, path, overwrite_mapping:Optional[dict] = None, query=None, **kwargs):
+    def __init__(self, path:str=".", overwrite_mapping:Optional[dict] = None, query=None, **kwargs):
         """Gets all available data, properly names and merges into one main dataframe
 
         Parameters
         ----------
         path : str
             The path of the data files
-            Default = current path (',')
+            Default = current path ('.')
         overwrite_mapping : dict
             A dictionary to overwrite default feature names in the input data
             Default = None
@@ -31,6 +32,12 @@ class ADMDatamart(ADMVisualisations):
             The name, or extended filepath, towards the model file
         predictor_filename : str
             The name, or extended filepath, towards the predictors file
+        model_df : pd.DataFrame
+            Optional override to supply a dataframe instead of a file
+        predictor_df : pd.DataFrame
+            Optional override to supply a dataframe instead of a file
+        subset : bool
+            Whether to only select the renamed columns or retain them all
 
         Examples
         --------
@@ -83,7 +90,7 @@ class ADMDatamart(ADMVisualisations):
             df1['SuccesRate'] = df1['Positives'] / df1['ResponseCount'] if df1 is not None else None
         
         if predictor_df is not None:
-            df2, self.renamed_preds, self.missing_preds = self._import_utils(name=predictor_df, query=query, verbose=verbose)
+            df2, self.renamed_preds, self.missing_preds = self._import_utils(name=predictor_df, subset=subset, query=query, verbose=verbose)
         else:
             predictor_filename = kwargs.pop('predictor_filename', 'predictorData')
             df2, self.renamed_preds, self.missing_preds = self._import_utils(predictor_filename, path, overwrite_mapping, subset, query=query, verbose=verbose)
@@ -474,6 +481,7 @@ class ADMDatamart(ADMVisualisations):
 
         order = df.sort_values('BinIndex')['BinSymbol']
         fig, ax = plt.subplots(figsize=figsize)
+        df['BinPropensity'] = df['BinPropensity'] * 100
         sns.barplot(x='BinSymbol', y='BinResponseCount', data=df, ax=ax, color='blue', order=order)
         ax1 = ax.twinx()
         ax1.plot(df.sort_values('BinIndex')['BinSymbol'], df.sort_values('BinIndex')['BinPropensity'], color='orange', marker='o')
@@ -485,6 +493,7 @@ class ADMDatamart(ADMVisualisations):
         ax.set_ylabel('Responses')
         ax.set_xlabel('Range')
         ax1.set_ylabel('Propensity (%)')
+        ax1.yaxis.set_major_formatter(mtick.PercentFormatter())
         patches = [mpatches.Patch(color='blue', label='Responses'), mpatches.Patch(color='orange', label='Propensity')]
         ax.legend(handles=patches, bbox_to_anchor=(1.05, 1),loc=2, borderaxespad=0.5, frameon=True)
         ax.set_title(title)
