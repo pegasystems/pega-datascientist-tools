@@ -195,7 +195,7 @@ class ADMVisualisations:
         assert day_interval < df['SnapshotTime'].nunique(), f"Day interval ({day_interval}) cannot be larger than the number of snapshots ({df['SnapshotTime'].nunique()})"
         
         fig, ax = plt.subplots(figsize=figsize)
-        df['SuccesRate'] = df['SuccesRate'] * 100
+        df['SuccesRate'] *= 100
         sns.pointplot(x='SnapshotTime', y='SuccesRate', data=df, hue='ModelID', marker="o", ax=ax)
         print('Pointplot generated')
         modelnames = df[['ModelID', 'ModelName']].drop_duplicates().set_index('ModelID').to_dict()['ModelName']
@@ -238,7 +238,7 @@ class ADMVisualisations:
         df = self._subset_data(table, required_columns, query, last=last)
 
         f, ax = plt.subplots(figsize=figsize)
-        df['SuccesRate'] = df['SuccesRate'] * 100
+        df['SuccesRate'] *= 100
         bplot = sns.barplot(x='SuccesRate', y='ModelName', data=df.sort_values('SuccesRate', ascending=False), ax=ax)
         ax.xaxis.set_major_formatter(mtick.PercentFormatter())
         for p in bplot.patches:

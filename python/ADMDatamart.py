@@ -481,7 +481,7 @@ class ADMDatamart(ADMVisualisations):
 
         order = df.sort_values('BinIndex')['BinSymbol']
         fig, ax = plt.subplots(figsize=figsize)
-        df['BinPropensity'] = df['BinPropensity'] * 100
+        df['BinPropensity'] *= 100
         sns.barplot(x='BinSymbol', y='BinResponseCount', data=df, ax=ax, color='blue', order=order)
         ax1 = ax.twinx()
         ax1.plot(df.sort_values('BinIndex')['BinSymbol'], df.sort_values('BinIndex')['BinPropensity'], color='orange', marker='o')
