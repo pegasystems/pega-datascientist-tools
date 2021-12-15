@@ -10,8 +10,8 @@ from matplotlib import pyplot as plt
 import matplotlib.patches as mpatches
 import seaborn as sns
 
-class ADMSnapshot(ADMVisualisations):
-    """Main class for importing, preprocessing and structuring Pega snapshot data."""
+class ADMDatamart(ADMVisualisations):
+    """Main class for importing, preprocessing and structuring Pega ADM Datamart snapshot data."""
 
     def __init__(self, path, overwrite_mapping:Optional[dict] = None, query=None, **kwargs):
         """Gets all available data, properly names and merges into one main dataframe
@@ -34,11 +34,11 @@ class ADMSnapshot(ADMVisualisations):
 
         Examples
         --------
-        >>> Data =  ADMSnapshot(f"/CDHSample")
-        >>> Data =  ADMSnapshot(f"Data/Adaptive Models & Predictors Export",
+        >>> Data =  ADMDatamart(f"/CDHSample")
+        >>> Data =  ADMDatamart(f"Data/Adaptive Models & Predictors Export",
                     model_filename = "Data-Decision-ADM-ModelSnapshot_AdaptiveModelSnapshotRepo20201110T085543_GMT/data.json",
                     predictor_filename = "Data-Decision-ADM-PredictorBinningSnapshot_PredictorBinningSnapshotRepo20201110T084825_GMT/data.json")
-        >>> Data =  ADMSnapshot(f"Data/files",
+        >>> Data =  ADMDatamart(f"Data/files",
                     model_filename = "ModelData.csv",
                     predictor_filename = "PredictorData.csv")
 
@@ -332,7 +332,7 @@ class ADMSnapshot(ADMVisualisations):
         Parameters
         ----------
         table : str
-            Which table to retrieve from the ADMSnapshot object 
+            Which table to retrieve from the ADMDatamart object 
             (modelData, predictorData or combinedData)
         required_columns : set
             Which columns we want to use for the visualisation
