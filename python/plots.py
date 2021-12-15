@@ -15,7 +15,7 @@ import matplotlib.ticker as mtick
 
 class ADMVisualisations:
 
-    def show_bubble_chart(self, annotate:bool=False, sizes:tuple=(10, 2000), aspect:int=3, b_to_anchor:tuple=(1.1,0.7), last=True, query:Union[str, dict]=None, figsize:tuple=(20, 5)) -> plt.figure:
+    def plotPerformanceSuccessRateBubbleChart(self, annotate:bool=False, sizes:tuple=(10, 2000), aspect:int=3, b_to_anchor:tuple=(1.1,0.7), last=True, query:Union[str, dict]=None, figsize:tuple=(20, 5)) -> plt.figure:
         """Creates bubble chart similar to ADM OOTB reports
         
         Parameters
@@ -70,7 +70,7 @@ class ADMVisualisations:
         gg.ax.set_xlim(0.48, 1)
         gg._legend.set_bbox_to_anchor(b_to_anchor)
 
-    def show_response_auc_time(self, day_interval:int=7, query:Union[str, dict]=None, figsize:tuple=(16, 10)) -> plt.figure:
+    def plotPerformanceAndSuccessRateOverTime(self, day_interval:int=7, query:Union[str, dict]=None, figsize:tuple=(16, 10)) -> plt.figure:
         """Shows responses and performance of models over time
         Reponses are on the y axis and the performance of the model is indicated by heatmap.
         x axis is date
@@ -120,7 +120,7 @@ class ADMVisualisations:
         cbar.ax.set_ylabel('Model Performance (AUC)')
         print('Maximum AUC across all models: %.2f' % df['Performance'].max())
     
-    def show_calendar_heatmap(self, lookback=15, fill_null_days=False, query:Union[str, dict]=None, figsize=(14, 10)) -> plt.figure:
+    def plotResponseCountMatrix(self, lookback=15, fill_null_days=False, query:Union[str, dict]=None, figsize=(14, 10)) -> plt.figure:
         """Creates a calendar heatmap
         x axis shows model names and y axis the dates. Data in each cell is the total number
         of responses. The color indicates where responses increased/decreased or
@@ -170,7 +170,7 @@ class ADMVisualisations:
         frame = legend.get_frame()
         frame.set_facecolor('lightgrey')
 
-    def show_success_rate_time(self, day_interval:int=7, query:Union[str, dict]=None, figsize:tuple=(16, 10)) -> plt.figure:
+    def plotSuccessRateOverTime(self, day_interval:int=7, query:Union[str, dict]=None, figsize:tuple=(16, 10)) -> plt.figure:
         """Shows success rate of models over time
         Parameters
         ----------
@@ -195,6 +195,7 @@ class ADMVisualisations:
         assert day_interval < df['SnapshotTime'].nunique(), f"Day interval ({day_interval}) cannot be larger than the number of snapshots ({df['SnapshotTime'].nunique()})"
         
         fig, ax = plt.subplots(figsize=figsize)
+        df['SuccesRate'] = df['SuccesRate'] * 100
         sns.pointplot(x='SnapshotTime', y='SuccesRate', data=df, hue='ModelID', marker="o", ax=ax)
         print('Pointplot generated')
         modelnames = df[['ModelID', 'ModelName']].drop_duplicates().set_index('ModelID').to_dict()['ModelName']
@@ -204,6 +205,7 @@ class ADMVisualisations:
         ax.legend(handles, newlabels, bbox_to_anchor=(1.05, 1),loc=2)
         #ax.legend(bbox_to_anchor=(1.05, 1),loc=2)
         ax.set_ylabel('Success Rate (%)')
+        ax.yaxis.set_major_formatter(mtick.PercentFormatter())
         ax.set_xlabel('Date')
         ax.xaxis.set_major_locator(mdates.DayLocator(interval=day_interval))
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%y-%m-%d"))
@@ -211,7 +213,7 @@ class ADMVisualisations:
         for i in ax.get_xmajorticklabels():
             i.set_rotation(90)
 
-    def show_success_rate(self, query:Union[str, dict]=None, figsize:tuple=(12, 8)) -> plt.figure:
+    def plotPropositionSuccesRates(self, query:Union[str, dict]=None, figsize:tuple=(12, 8)) -> plt.figure:
         """Shows all latest proposition success rates
         A bar plot to show the success rate of all latest model instances (propositions)
         For reading simplicity, latest success rate is also annotated next to each bar
@@ -236,13 +238,14 @@ class ADMVisualisations:
         df = self._subset_data(table, required_columns, query, last=last)
 
         f, ax = plt.subplots(figsize=figsize)
+        df['SuccesRate'] = df['SuccesRate'] * 100
         bplot = sns.barplot(x='SuccesRate', y='ModelName', data=df.sort_values('SuccesRate', ascending=False), ax=ax)
         ax.xaxis.set_major_formatter(mtick.PercentFormatter())
         for p in bplot.patches:
             bplot.annotate("{:0.2%}".format(p.get_width()/100.0), (p.get_width(), p.get_y()+p.get_height()/2),
                 xytext=(3, 0), textcoords="offset points", ha='left', va='center')
 
-    def show_score_distribution(self, show_zero_responses:bool=False, query:Union[str, dict]=None, figsize:tuple=(14, 10)) -> plt.figure:
+    def plotScoreDistribution(self, show_zero_responses:bool=False, query:Union[str, dict]=None, figsize:tuple=(14, 10)) -> plt.figure:
         """Show score distribution similar to ADM out-of-the-box report
         Shows a score distribution graph per model. If certain models selected,
         only those models will be shown.
@@ -284,7 +287,7 @@ class ADMVisualisations:
             name = _df.ModelName.unique()[0]
             self.distribution_graph(_df, 'Model name: '+name, figsize)
 
-    def show_predictor_report(self, predictors:list=None, modelids:str=None, query:Union[str, dict]=None, figsize:tuple=(10, 5)) -> plt.figure:
+    def plotPredictorBinning(self, predictors:list=None, modelids:str=None, query:Union[str, dict]=None, figsize:tuple=(10, 5)) -> plt.figure:
         """ Show predictor graphs for a given model
         For a given model (query) shows all its predictors' graphs. If certain predictors
         selected, only those predictor graphs will be shown
@@ -322,7 +325,7 @@ class ADMVisualisations:
             title = 'Model name: '+model_name+'\n Predictor name: '+pred
             self.distribution_graph(_df, title, figsize)
 
-    def show_predictor_performance_boxplot(self, query:Union[str, dict]=None, figsize:tuple=(6, 12)) -> plt.figure:
+    def plotPredictorPerformance(self, query:Union[str, dict]=None, figsize:tuple=(6, 12)) -> plt.figure:
         """ Shows a box plot of predictor performance
 
         Parameters
@@ -341,17 +344,18 @@ class ADMVisualisations:
         """
         table = 'combinedData'
         last = True
-        required_columns = {'PredictorName', 'ModelName', 'BinIndex', 'BinSymbol', 'BinResponseCount', 'BinPropensity', 'Performance', 'Type'}
+        required_columns = {'PredictorName', 'ModelName', 'BinIndex', 'BinSymbol', 'BinResponseCount', 'BinPropensity', 'PerformanceBin', 'Type'}
         df = self._subset_data(table, required_columns, query, last=last)
 
 
         fig, ax = plt.subplots(figsize=figsize)
         df = df[df['PredictorName']!='Classifier'].reset_index(drop=True)
         df['Legend'] = pd.Series([i.split('.')[0] if len(i.split('.'))>1 else 'Primary' for i in df['PredictorName']])
-        order = df.groupby('PredictorName')['Performance'].mean().fillna(0).sort_values()[::-1].index
-        sns.boxplot(x='Performance', y='PredictorName', data=df, order=order, ax=ax)
+        order = df.groupby('PredictorName')['PerformanceBin'].mean().fillna(0).sort_values()[::-1].index
+        sns.boxplot(x='PerformanceBin', y='PredictorName', data=df, order=order, ax=ax)
         ax.set_xlabel('Predictor Performance')
         ax.set_ylabel('Predictor Name')
+        ax.xaxis.set_major_formatter(mtick.PercentFormatter())
 
         norm = colors.Normalize(vmin=0, vmax=len(df['Legend'].unique())-1)
         mapper = plt.cm.ScalarMappable(norm=norm, cmap=plt.cm.gnuplot_r)
@@ -375,7 +379,7 @@ class ADMVisualisations:
         legend._legend_box.align = "left"
         legend_type._legend_box.align = "left"
 
-    def show_model_predictor_performance_heatmap(self, query:Union[str, dict]=None, figsize=(14, 10)) -> plt.figure:
+    def plotPredictorPerformanceHeatmap(self, query:Union[str, dict]=None, figsize=(14, 10)) -> plt.figure:
         """ Shows a heatmap plot of predictor performance across models
 
         Parameters
@@ -394,19 +398,19 @@ class ADMVisualisations:
         """
         table = 'combinedData'
         last = True
-        required_columns = {'PredictorName', 'ModelName', 'Performance'}
+        required_columns = {'PredictorName', 'ModelName', 'PerformanceBin'}
         df = self._subset_data(table, required_columns, query, last=last)
 
         df = df[df['PredictorName']!='Classifier'].reset_index(drop=True)
         pivot_df = df.drop_duplicates().pivot_table(
-            index='ModelName', columns='PredictorName', values='Performance')
+            index='ModelName', columns='PredictorName', values='PerformanceBin')
         order = list(df[[
-            'ModelName', 'PredictorName', 'Performance']].drop_duplicates().groupby(
-            'PredictorName')['Performance'].mean().fillna(0).sort_values()[::-1].index)
+            'ModelName', 'PredictorName', 'PerformanceBin']].drop_duplicates().groupby(
+            'PredictorName')['PerformanceBin'].mean().fillna(0).sort_values()[::-1].index)
         pivot_df = pivot_df[order]*100.0
         x_order = list(df[[
-            'ModelName', 'PredictorName', 'Performance']].drop_duplicates().groupby(
-            'ModelName')['Performance'].mean().fillna(0).sort_values()[::-1].index)
+            'ModelName', 'PredictorName', 'PerformanceBin']].drop_duplicates().groupby(
+            'ModelName')['PerformanceBin'].mean().fillna(0).sort_values()[::-1].index)
         df_g = pivot_df.reindex(x_order)
         cmap = colors.LinearSegmentedColormap.from_list(
             'mycmap', [(0/100.0, 'red'), (20/100.0, 'green'),
@@ -416,7 +420,7 @@ class ADMVisualisations:
         bottom, top = ax.get_ylim()
         ax.set_ylim(bottom + 0.5, top - 0.5)
 
-    def plot_impact_influence(self, ModelID:str=None, query:Union[str, dict]=None, figsize:tuple=(12, 5)) -> plt.figure:
+    def plotImpactInfluence(self, ModelID:str=None, query:Union[str, dict]=None, figsize:tuple=(12, 5)) -> plt.figure:
         """Calculate the impact and influence of a given model's predictors
 
         Parameters
@@ -437,7 +441,7 @@ class ADMVisualisations:
         """
         table = 'combinedData'
         last = True
-        required_columns = {'ModelID', 'PredictorName', 'ModelName', 'Performance', 'BinPositivesPercentage', 'BinNegativesPercentage', 'BinResponseCountPercentage', 'Issue', 'Group', 'Channel', 'Direction'}
+        required_columns = {'ModelID', 'PredictorName', 'ModelName', 'PerformanceBin', 'BinPositivesPercentage', 'BinNegativesPercentage', 'BinResponseCountPercentage', 'Issue', 'Group', 'Channel', 'Direction'}
         df = self._subset_data(table, required_columns, query, last=last).reset_index()
         df = self._calculate_impact_influence(df, ModelID=ModelID)[[
             'ModelID', 'PredictorName', 'Impact(%)', 'Influence(%)']].set_index(
