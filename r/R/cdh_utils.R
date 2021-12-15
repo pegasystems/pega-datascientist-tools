@@ -7,15 +7,21 @@
 #'
 #' The utilities in cdhtools heavily rely on \code{data.table} and often return values of this type. \code{data.table}
 #' provides a high-performance version of base R's \code{data.frame}, see \url{https://github.com/Rdatatable/data.table/wiki}.
-#' The transition is not complete however, so in parts of the code we also still use the \code{tidyverse} style with
-#' processing pipelines based on \code{tidyr} and \code{dplyr} etc.
 
 #' @docType package
 #' @name cdhtools
-#' @import data.table jsonlite
+#' @import data.table jsonlite ggplot2 stats
 #' @importFrom rlang is_list
-#' @importFrom utils zip
+#' @importFrom utils zip head
+#' @importFrom arrow read_parquet
+#' @importFrom DBI dbGetQuery
+#' @importFrom scales percent muted
+#' @importFrom base64enc base64decode
+#' @importFrom lubridate is.POSIXt parse_date_time
+#' @importFrom XML xmlNode xmlTextNode
 NULL
+
+# TODO explicitly use lubridate week/month etc instead of data.table versions?
 
 #' Fix field casing
 #'
@@ -399,6 +405,8 @@ toPRPCDateTime <- function(x)
 #' latestSnapshotsOnly(admdatamart_binning)
 latestSnapshotsOnly <- function(dt)
 {
+  ModelID <- NULL # Trick to silence R CMD Check warnings
+
   l <- function(grp, fld) { grp[grp[[fld]] == max(grp[[fld]])] }
 
   snapshottimeField <- names(dt)[which(tolower(names(dt)) %in% c("snapshottime", "pysnapshottime"))[1]] # be careful with the names after all manipulation we do

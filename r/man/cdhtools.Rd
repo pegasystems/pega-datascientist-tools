@@ -13,7 +13,5 @@ of data analysis, reporting and monitoring.
 
 The utilities in cdhtools heavily rely on \code{data.table} and often return values of this type. \code{data.table}
 provides a high-performance version of base R's \code{data.frame}, see \url{https://github.com/Rdatatable/data.table/wiki}.
-The transition is not complete however, so in parts of the code we also still use the \code{tidyverse} style with
-processing pipelines based on \code{tidyr} and \code{dplyr} etc.
 }
 

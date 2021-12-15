@@ -88,7 +88,7 @@ we have both the propensities (from the models) and the actual outcomes.
 ```{r}
 ihsampledata[, Week := week(fromPRPCDateTime(OutcomeTime))]
 performance <- ihsampledata[Outcome %in% c("Accept", "Accepted", "Rejected"), 
-                  .(AUC = 100*auc_from_probs(Outcome %in% c("Accept", "Accepted"), Propensity),
+                  list(AUC = 100*auc_from_probs(Outcome %in% c("Accept", "Accepted"), Propensity),
                     n = .N,
                     Day2 = first(Day)), 
                   by=c("Day", "Name", "Group", "Issue")]

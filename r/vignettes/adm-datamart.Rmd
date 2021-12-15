@@ -1,6 +1,6 @@
 ---
 title: "adm-datamart"
-author: "Pega"
+author: "Pega CDH Tools"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
@@ -26,7 +26,7 @@ library(tidyverse)
 library(data.table)
 library(gridExtra)
 
-theme_set(theme_minimal())
+theme_set(theme_bw())
 ```
 
 # ADM Datamart
@@ -42,6 +42,9 @@ a dataset export will be described later.
 
 ```{r message=FALSE, warning=FALSE}
 library(cdhtools)
+
+# include below when developing the library
+# sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source)
 
 data(admdatamart_models)
 data(admdatamart_binning)
@@ -71,9 +74,11 @@ admdatamart_binning_latest <- latestSnapshotsOnly(admdatamart_binning)
 
 If you have database access you can also load the data directly from the DB. All you need is a JDBC driver and the proper credentials.
 
-# Detailed Reports
+# Model Reports
 
 With the data loaded, we can start with a plot similar to what the Analytics Center provides OOTB, however here we have more flexibility to slice & dice.
+
+## Bubble chart by Issue and Channel
 
 ```{r, message=FALSE, warning=FALSE}
 plotADMPerformanceSuccessRateBubbleChart(admdatamart_models_latest, facets = c("Issue", "Channel")) + 
@@ -81,32 +86,47 @@ plotADMPerformanceSuccessRateBubbleChart(admdatamart_models_latest, facets = c("
   geom_vline(xintercept=c(52,90), linetype="dashed")
 ```
 
+## Aggregated to Channels
+
 We can zoom in into the performance and success rates of the various channels. Here you see that success rates for e-mail are low, as is the average
 model performance.
 
 ```{r, fig.height=5, fig.width=5, warning=F, message=FALSE}
 plotADMPerformanceSuccessRateBoxPlot(admdatamart_models_latest, "Channel") +
-  scale_x_continuous(limits = c(50, 70), name = "Performance") + coord_flip()
+  scale_x_continuous(limits = c(50, 70), name = "Performance") + coord_flip() +
+  scale_color_discrete_qualitative(palette="Harmonic")
+```
+# Predictors
+
+## Sensitity Analysis
+
+Showing the overall predictor contributions to the models.
+
+Here we "facet" by model rule (ConfigurationName) but you can also leave this
+out or facet by e.g. Channel or Issue.
+
+```{r fig.height=9, fig.width=9}
+# varimp <- admVarImp(admdatamart_models_latest, admdatamart_binning, c("ConfigurationName"))
+plotADMPredictorImportance(admdatamart_binning, admdatamart_models_latest, limit = 30,
+                           predictorClassifier = function(name) { 
+                             ifelse(startsWith(name, "IH"), "Interaction History",
+                                    ifelse(startsWith(name, "Param.Ext"), "External Model", 
+                                           gsub("([^.])\\..*", "\\1", name)))})
 ```
 
-The below plot shows the predictor performance across the selected models. It is similar to one of the reports in the set of out of the box reports available through the Report Browser ("Adaptive" category), however that one does not do a weighted average of the performance. This one does, so gives a more accurate picture.
+## Predictor vs Action heatmap
 
-```{r fig.height=9, fig.width=9, message=FALSE, warning=FALSE}
-plotADMPredictorImportance(admdatamart_binning, admdatamart_models_latest) +
-        scale_fill_discrete_sequential(palette="SunsetDark") +
-        theme(axis.text.y = element_text(size=8), strip.text = element_text(size=8))
-```
-
-You could also show the predictor performance in one plot across all predictors for all the selected models. Also arranging by performance in both dimensions gives a quick visual clue of which predictors and which models need attention.
+You can also show the predictor performance in one plot across all predictors for all the selected models. Also arranging by performance in both dimensions gives a quick visual clue of which predictors and which models need attention.
 
 ```{r, warning=F, message=FALSE}
 plotADMPredictorImportanceHeatmap(admdatamart_binning_latest, admdatamart_models_latest, 
-                                  aggregation="Name") +
+                                  aggregation="Name", limit = 30) +
   theme(axis.text.y = element_text(size=6),
         axis.text.x = element_text(size=6, angle = 45, hjust = 1))
+
 ```
 
-# Alternative Performance Metrics
+## Alternative Performance Metrics
 
 With all the data available in the datamart, you are not restricted to just reporting. Using the binning information for all of the predictors, you could, for example, calculate the KS score of the models. The KS (Kolmogorov–Smirnov) score is related to the AUC that we use by default, but instead of the areas under the ROC curve, it gives the maximum separation between the true positive and false positive rate.
 
@@ -124,27 +144,28 @@ myKS <- function(binning)
   return(ifelse(is.na(KS),0,KS))
 }
 performanceSummary <- 
-  left_join(admdatamart_binning_latest[, .(KS = myKS(.SD),
-                                    auc = first(Performance)), 
-                                by=c("ModelID", "PredictorName","EntryType")],
+  left_join(admdatamart_binning_latest[, list(KS = myKS(.SD),
+                                           auc = first(Performance)), 
+                                       by=c("ModelID", "PredictorName","EntryType")],
             admdatamart_models_latest,
             by = c("ModelID"))
 
 ## Show KS numbers
 ggplot(performanceSummary[KS > 0.01], 
-       aes(Name, factor(PredictorName,
+       aes(paste(Channel,Name,sep = "/"), factor(PredictorName,
                         levels=c(setdiff(sort(performanceSummary$PredictorName,decreasing = T), "Classifier"),"Classifier"))))+
   geom_raster(aes(fill=(EntryType=="Classifier")))+
   labs(x="",y="",title="Kolmogorov–Smirnov scores")+
   geom_text(aes(label=sprintf("%.2f%%",100*KS)), size=2)+
   scale_fill_brewer(palette="Spectral")+
   guides(fill="none")+
-  theme(axis.text.x = element_text(size=6),
-        axis.text.y = element_text(size=6))+
-  scale_x_discrete(position = "top")
+  theme(axis.text.x = element_text(size=6, angle = 45, hjust = 1),
+        axis.text.y = element_text(size=6))
 ```
 
-# Gains and Lift Charts
+# Model Performance
+
+## Standard Model Classifier plot
 
 In the product models are represented by a score distribution plot like below
 
@@ -154,6 +175,8 @@ model <- admdatamart_binning_latest[ModelID %in% admdatamart_models_latest[Name=
 plotADMBinning(model[EntryType == "Classifier"]) +
   ggtitle(paste(unique(model$Name), collapse=","), subtitle = "Classifier")
 ```
+
+## Gains and Lift Charts
 
 The same data can be represented as a cumulative gains chart, which indicates 
 the percentage of positive responses as a function of the size of the population
@@ -175,21 +198,6 @@ plotADMCumulativeLift (model[EntryType == "Classifier"]) +
   ggtitle(paste(unique(model$Name), collapse=","), subtitle = "Lift")
 ```
 
-# Sensitity Analysis
-
-Showing the overall predictor contributions to the models.
-
-Here we "facet" by model rule (ConfigurationName) but you can also leave this
-out or facet by e.g. Channel or Issue.
-
-## TODO: fix up using new predictor importance method
-
-```{r fig.height=9, fig.width=9}
-# varimp <- admVarImp(admdatamart_models_latest, admdatamart_binning, c("ConfigurationName"))
-plotADMPredictorImportance(admdatamart_binning, admdatamart_models_latest) + 
-  theme_bw() + scale_fill_viridis_c(begin=0.5, end=0.9)
-```
-
 # Trend charts
 
 Out of the box, model data is stored over time. This allows trend charts to 
@@ -209,14 +217,14 @@ enough to write your own. For example, to show the performance of the Age
 predictor over time and across all models.
 
 ```{r fig.height=5, fig.width=5}
-predictorPerformanceTrend <- admdatamart_binning[startsWith(PredictorName, "Customer.A") & BinIndex == 1, .(Performance = 100*mean(Performance)), by=c("SnapshotTime","PredictorName")]
+predictorPerformanceTrend <- admdatamart_binning[startsWith(PredictorName, "Customer.A") & BinIndex == 1, list(Performance = 100*mean(Performance)), by=c("SnapshotTime","PredictorName")]
 
 ggplot(predictorPerformanceTrend, aes(SnapshotTime, Performance, color=PredictorName)) +
   geom_line(size=1) + 
   ggtitle("Performance over Time")
 ```
 
-# Binning Evolution
+# Predictor Binning Evolution
 
 With the detailed binning information available over time, we can show how the
 binning of a predictor evolves. You see that the number of bins grows as more

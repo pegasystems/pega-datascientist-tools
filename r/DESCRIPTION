@@ -2,7 +2,6 @@ Package: cdhtools
 Type: Package
 Title: Data Science Utilities for Pega CDH
 Version: 0.1.0
-Author: person("Otto Perdeck", role = c("aut", "cre"), email = "Otto.Perdeck@pega.com")
 Authors@R: person("Otto Perdeck", role = c("aut", "cre"), email = "Otto.Perdeck@pega.com")
 Maintainer: Otto Perdeck <perdo@pega.com>
 Description: Various tools and scripts to work with Pega CDH.
@@ -37,5 +36,7 @@ Imports:
     stringi,
     base64enc,
     gridExtra,
-    Hmisc
+    Hmisc,
+    DBI,
+    arrow
 VignetteBuilder: knitr

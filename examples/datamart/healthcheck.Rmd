@@ -2,6 +2,7 @@
 title: "`r params$title`"
 subtitle: "`r params$subtitle`"
 author: "Pega CDH Tools"
+date: "`r Sys.Date()`"
 output:
   html_document:
     df_print: paged
@@ -53,7 +54,7 @@ params:
 library(cdhtools)
 
 # include below when developing the library
-sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source)
+# sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source)
 
 library(data.table)
 library(lubridate)
@@ -263,7 +264,7 @@ if (uniqueN(mdls$SnapshotTime) < 2)
   cat("Trend plots will only be available when the model data contains multiple snapshots.", fill=T)
 } else {
   
-  immatureModelsByChannel <- mdls[, .(`Empty Models` = length(unique(ModelID[(isEmpty)])), 
+  immatureModelsByChannel <- mdls[, list(`Empty Models` = length(unique(ModelID[(isEmpty)])), 
                                       `Models w/o Positives` = length(unique(ModelID[(noPositives)])), 
                                       `Immature Models` = length(unique(ModelID[(isImmature)])), 
                                       `Models w/o Performance` = length(unique(ModelID[(noPerformance)])),
@@ -295,7 +296,7 @@ collected.
 
 ```{r fig.height=5, fig.width=8}
 responseGainData <- 
-  latestSnapshotsOnly(mdls) [, .(Responses = max(ResponseCount)), by=c("Channel", "ModelID")][order(Channel,Responses,decreasing = T)]
+  latestSnapshotsOnly(mdls) [, list(Responses = max(ResponseCount)), by=c("Channel", "ModelID")][order(Channel,Responses,decreasing = T)]
 responseGainData[ , TotalResponseFraction := cumsum(Responses) / sum(Responses) , by=Channel]
 responseGainData[ , TotalModelsFraction := seq(.N)/.N , by=Channel]
 
@@ -411,13 +412,13 @@ Showing the response count vs. the model performance (AUC).
 
 ```{r fig.height=5, fig.width=8, message=FALSE, warning=FALSE}
 cumAUCOverVolumeData <- 
-  latestSnapshotsOnly(mdls) [, .(Performance = max(Performance), 
+  latestSnapshotsOnly(mdls) [, list(Performance = max(Performance), 
                                  ResponseCount = max(ResponseCount)), 
                              by=c("Channel", "ModelID")]
 cumAUCOverVolumeData[, TotalResponses := sum(ResponseCount), by=Channel]
 cumAUCOverVolumeData[, PerformanceBin := cut(Performance, breaks=15)]
 
-plt <- ggplot(cumAUCOverVolumeData[, .(N = sum(ResponseCount)/TotalResponses), 
+plt <- ggplot(cumAUCOverVolumeData[, list(N = sum(ResponseCount)/TotalResponses), 
                                    by=c("PerformanceBin", "Channel")], 
               aes(PerformanceBin, N, color=Channel)) + 
   #geom_col(position = position_dodge()) +
@@ -449,7 +450,7 @@ is on the right-hand side of the plot, with > 200 positives.
 modelsByPositives <- latestSnapshotsOnly(mdls)
 modelsByPositives[, PositivesBin := cut(Positives, breaks=c(seq(0,200,by=10), Inf), 
                                         right=F)]
-modelsByPositives <- modelsByPositives[, .(Positives = min(Positives), 
+modelsByPositives <- modelsByPositives[, list(Positives = min(Positives), 
                                            Models = uniqueN(ModelID)),
                                        by=c("Channel", "PositivesBin")]
 setorder(modelsByPositives, Positives)
@@ -532,7 +533,7 @@ if (!is.null(modelPredictorBins) && nrow(modelPredictorBins) > 0) {
   classifiers[, PropensityRange := Hmisc::cut2(Propensity, g=15)]
   classifiers[, TotalVolume := sum(BinResponseCount), by="Channel"]
   
-  ggplot(classifiers[,.(RelVolume = sum(BinResponseCount)/TotalVolume, 
+  ggplot(classifiers[,list(RelVolume = sum(BinResponseCount)/TotalVolume, 
                         Propensity = min(Propensity)), 
                      by=c("Channel", "PropensityRange", "TotalVolume")],
          aes(PropensityRange, RelVolume, fill=Channel, group=Channel)) +
@@ -706,7 +707,7 @@ if (!is.null(modelPredictorBins) && nrow(modelPredictorBins) > 0) {
 # Appendix - all the models
 
 ```{r}
-mdls[, .(Snapshots = .N, Responses = max(ResponseCount)), by=c(availableStandardContextKeys, "ModelID")] #[order(ConfigurationName, Name)]
+mdls[, list(Snapshots = .N, Responses = max(ResponseCount)), by=c(availableStandardContextKeys, "ModelID")] #[order(ConfigurationName, Name)]
 ```
 
 A list of all the models is written to a file `r params$modellist` so a script
@@ -720,7 +721,7 @@ generated file.
 ```{r}
 if (params$modellist != "") {
   inclKeys <- availableStandardContextKeys[sapply(availableStandardContextKeys, function(x) {return(length(unique(mdls[[x]]))>1)})]
-  modelIDandSanitizedNames <- unique(mdls[, .(make.names(apply(.SD, 1, function(x){return(paste(x,collapse="_"))}))), 
+  modelIDandSanitizedNames <- unique(mdls[, list(make.names(apply(.SD, 1, function(x){return(paste(x,collapse="_"))}))), 
                                           by=ModelID, .SDcols=inclKeys])
   
   write.table(modelIDandSanitizedNames, 

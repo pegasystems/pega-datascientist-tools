@@ -82,6 +82,8 @@ userFriendlyADMBinning <- function(bins)
 #' @export
 readDatamartFromFile <- function(file)
 {
+  PredictorType <- Type <- SnapshotTime <- name <- N <- NULL # Trick to silence warnings from R CMD Check
+
   if (!file.exists(file)) {
     warning(paste("File does not exist:", file))
     return(NULL)

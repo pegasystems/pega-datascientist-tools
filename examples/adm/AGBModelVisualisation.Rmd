@@ -2,10 +2,10 @@
 title: "AGB Visualisation"
 author: "Pega CDH Tools"
 output:
-  pdf_document: default
   html_document:
     df_print: paged
     toc: yes
+  pdf_document: default
 always_allow_html: true
 params:
   modeldownload:
@@ -173,7 +173,7 @@ getGains <- function(tree)
 }
 
 allSplits <- rbindlist(lapply(forest, getGains))
-varImp <- allSplits[, .(Importance = mean(gain)), by="split"][order(-Importance)]
+varImp <- allSplits[, list(Importance = mean(gain)), by="split"][order(-Importance)]
 
 varImp[, Importance := 100*Importance/max(Importance)]
 varImp[, split := factor(split, levels = rev(varImp$split))]

@@ -169,6 +169,8 @@ createClassifierBins <- function(classifierBins)
 # Multiple symbol bins with the same score will be combined.
 createPredictorNode <- function(predictorBins)
 {
+  binGroup <- BinType <- NULL # Trick to silence R CMD Check warnings
+
   predictorBins[, binGroup := .I]
   if(predictorBins$PredictorType[1] == "SYMBOLIC") {
     if(!any(predictorBins$BinType=="MISSING") | !any(predictorBins$BinType=="REMAININGSYMBOLS")) {
@@ -210,6 +212,8 @@ getContextKeyDefinitions <- function(modeldata)
 # Mining schema for the overall model. Very similar to the data dictionary, but contains usage instead of type info.
 createMiningSchema <- function(modeldata)
 {
+  PredictorName <- PredictorType <- NULL # Trick to silence R CMD Check warnings
+
   predictors <- unique( rbindlist(lapply(modeldata, function(x) { unique( x$binning [PredictorType != "CLASSIFIER", c("PredictorName")] ) } )) ) [order(PredictorName)]
   outputfields <- c(modelPropensityFieldName,
                     modelScoreFieldName,
@@ -352,6 +356,8 @@ createModelDescription <- function(classifierBins)
 # log odds, but is normalized to the number of predictors. Returns a summary table with the min/max per predictor.
 getNBFormulaWeights <- function(bins)
 {
+  BinLabel <- binLogOdds <- BinLowerBound <- BinNeg <- BinPos <- BinType <- BinUpperBound <- BinWeight <- minWeight <- ModelID <- nPredictors <- perPredictorContribution <- PredictorName <- PredictorType <- Smoothing <- TotalNeg <- TotalPos <- NULL # Trick to silence R CMD Check warnings
+
   # Some of the code depends on the order of the bins
   setorder(bins, ModelID, PredictorName, BinType, BinUpperBound, BinLabel, na.last = T)
 
@@ -366,7 +372,7 @@ getNBFormulaWeights <- function(bins)
 
   # Summarize per predictor
   if (any(bins$PredictorType != "CLASSIFIER")) {
-    predMinMaxWeights <- bins[PredictorType != "CLASSIFIER", .(minWeight = min(BinWeight),
+    predMinMaxWeights <- bins[PredictorType != "CLASSIFIER", list(minWeight = min(BinWeight),
                                                                maxWeight = max(BinWeight)), by=PredictorName]
   } else {
     predMinMaxWeights <- data.table()
@@ -399,6 +405,8 @@ getNBFormulaWeights <- function(bins)
 # Creates a single scorecard, for a single "partition" of the ADM rule
 createScorecard <- function(modelbins, modelName)
 {
+  avgWeight <- BinNeg <- BinPos <- BinWeight <- maxWeight <- minWeight <- PredictorName <- PredictorType <- NULL # Trick to silence R CMD Check warnings
+
   # Add the bin weights based on the log odds
   scaling <- getNBFormulaWeights(modelbins)
   modelbins <- scaling$binning
@@ -414,7 +422,7 @@ createScorecard <- function(modelbins, modelName)
     modelbins[PredictorType != "CLASSIFIER", minWeight := NA]
     modelbins[PredictorType != "CLASSIFIER", maxWeight := NA]
   } else {
-    modelbins[PredictorType != "CLASSIFIER", avgWeight := stats::weighted.mean(BinWeight,BinNeg+BinPos),by=PredictorName]
+    modelbins[PredictorType != "CLASSIFIER", avgWeight := weighted.mean(BinWeight,BinNeg+BinPos),by=PredictorName]
     modelbins[PredictorType != "CLASSIFIER", minWeight := min(BinWeight),by=PredictorName]
     modelbins[PredictorType != "CLASSIFIER", maxWeight := max(BinWeight),by=PredictorName]
   }
@@ -448,6 +456,8 @@ createHeaderNode <- function(modelName)
 # standard output fields (score, propensity etc). These seem to be necessary in the data dictionary as well - not 100% sure why.
 createDataDictionaryNode <- function(modeldata)
 {
+  PredictorName <- PredictorType <- NULL # Trick to silence R CMD Check warnings
+
   predictors <- unique( rbindlist(lapply(modeldata,
                                          function(x) { unique( x$binning [PredictorType != "CLASSIFIER", c("PredictorName","PredictorType")] ) } )) ) [order(PredictorName)]
   outputfields <- data.table(PredictorName=c(modelPropensityFieldName,
@@ -518,6 +528,8 @@ isValidModel <- function(singlemodeldata)
 # by the context key values. Input is a list of context-binning tuples.
 createPMML <- function(modeldata, overallModelName)
 {
+  BinType <- PredictorName <- PredictorType <- NULL # Trick to silence R CMD Check warnings
+
   # Sanity checks to validate assumptions on the input:
 
   # Drop models with invalid context keys
@@ -544,7 +556,7 @@ createPMML <- function(modeldata, overallModelName)
 
   # Make sure the predictor binning is according to expectations
   # numerics: INTERVALBELOW & INTERVALABOVE also set bound for last interval. Both should be present.
-  binningSummary <- rbindlist(lapply(modeldata, function(m) {return(m$binning[,.(nMissing=sum(BinType=="MISSING")),
+  binningSummary <- rbindlist(lapply(modeldata, function(m) {return(m$binning[, list(nMissing=sum(BinType=="MISSING")),
                                                                               by=c("ModelID", "PredictorName", "PredictorType")])}))
   if (any(binningSummary$nMissing != 1 & binningSummary$PredictorType != "CLASSIFIER")) {
     print(binningSummary[which(binningSummary$nMissing != 1 & binningSummary$PredictorType != "CLASSIFIER")])
@@ -552,7 +564,7 @@ createPMML <- function(modeldata, overallModelName)
   }
 
   # Make sure the predictor binning is according to expectations
-  modelSummary <- rbindlist(lapply(modeldata, function(m) {return(m$binning[,.(hasClassifier=any(PredictorType=="CLASSIFIER"),
+  modelSummary <- rbindlist(lapply(modeldata, function(m) {return(m$binning[, list(hasClassifier=any(PredictorType=="CLASSIFIER"),
                                                                                hasPredictors=any(PredictorType=="NUMERIC" | PredictorType=="SYMBOLIC"),
                                                                                PredictorNames=paste(unique(PredictorName), collapse = ",")),
                                                                             by=c("ModelID")])}))
@@ -634,6 +646,9 @@ adm2pmml <- function(dmModels = NULL, dmPredictors = NULL, dbConn = NULL, forceU
                      destDir = ".",
                      tmpDir = NULL, verbose = (!is.null(tmpDir)))
 {
+  AppliesToClass <- ConfigurationName <- ModelID <- ConfigpartitionID <- NULL # Trick to silence R CMD Check warnings
+
+
   generatedPMMLFiles <- list()
   modelFactory <- NULL
 
@@ -653,16 +668,16 @@ adm2pmml <- function(dmModels = NULL, dmPredictors = NULL, dbConn = NULL, forceU
     if (!is.null(dbConn)) {
       if (forceUseDM) { # or perhaps if the JSON factory isnt there (e.g. when on a replicated DB)
 
-        dmModels <- getModelsFromDatamart(conn, verbose=verbose)
+        dmModels <- readADMDatamartModelTable(dbConn, verbose=verbose)
         if(!is.null(appliesToFilter)) {
           dmModels <- dmModels[ grepl(appliesToFilter, AppliesToClass, ignore.case=T, perl=T) ]
         }
         if(!is.null(ruleNameFilter)) {
           dmModels <- dmModels[ grepl(ruleNameFilter, ConfigurationName, ignore.case=T, perl=T) ]
         }
-        dmPredictors <- getPredictorsForModelsFromDatamart(conn, dmModels, verbose=verbose)
+        dmPredictors <- readADMDatamartPredictorTable(dbConn, dmModels$ModelID, verbose=verbose)
       } else {
-        modelFactory <- getModelsFromJSONTable(conn, appliesto=appliesToFilter, configurationname=ruleNameFilter, verbose=verbose)
+        modelFactory <- getModelsFromJSONTable(dbConn, appliesto=appliesToFilter, configurationname=ruleNameFilter, verbose=verbose)
       }
       # casing will have been fixed by the db read methods
     }

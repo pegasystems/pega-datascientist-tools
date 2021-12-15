@@ -9,7 +9,7 @@ library(data.table)
 library(ggplot2)
 library(colorspace)
 
-context("Toplevel Examples")
+context("Verify the R notebooks in the examples folder")
 
 # > test_check("cdhtools")
 # [1] "Example folder check"
@@ -24,9 +24,8 @@ packageRootFolder <- file.path("../../..")
 exampleFolder <- file.path(packageRootFolder, "examples")
 
 test_that("example folder exists", {
-  print("Example folder check")
-  print(getwd())
-  print(exampleFolder)
+  cat("Working dir:", getwd(), fill=T)
+  cat("Example dir:", exampleFolder, fill=T)
 
   # p <- normalizePath(exampleFolder, mustWork = T)
   # print(p)
@@ -60,9 +59,14 @@ verify_notebook <- function(nb)
     file.remove(outputfile)
   }
 
-  rmarkdown::render(nb, output_dir = ".", quiet = T)
+  tryCatch( rmarkdown::render(nb, output_dir = ".", quiet = T),
+            error = function(e) {
+              expect_true(F,
+                          info = paste("Processing input file", nb, "to", getwd(), "error:", e))
+              } )
 
-  expect_true(file.exists(outputfile))
+  expect_true(file.exists(outputfile),
+              info = paste("Expected file", outputfile, "in", getwd()))
 }
 
 test_that("check example notebooks", {
@@ -80,7 +84,7 @@ test_that("check not sourcing CDH Tools files directly", {
   if (dir.exists(exampleFolder)) {
     rFilez <- list.files(packageRootFolder, pattern=".Rmd", recursive = T, full.names = T)
     for (rFile in rFilez) {
-      scanFileForSourceInclusion <- grepl("^[ ]*[^#]*source", readLines(rFile))
+      scanFileForSourceInclusion <- grepl("^[ ]*[^#]*source.*[(|)]", readLines(rFile))
       expect_false(any(scanFileForSourceInclusion),
                    info = paste("Looks like there is a direct include of CDH tools source in", rFile,
                                 "at lines",

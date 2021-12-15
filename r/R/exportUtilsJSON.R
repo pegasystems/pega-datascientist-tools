@@ -58,6 +58,8 @@ buildIntervalNotation <- function(lower, upper) {
 #' myModel <- fromJSON(models$pyfactory[1])}
 getModelsFromJSONTable <- function(conn, appliesto=NULL, configurationname=NULL, verbose=F)
 {
+  pyClassName <- pyPurpose <- NULL # Trick to silence R CMD Check warnings
+
   models <- NULL
   tryCatch( {
     factoryTable <- ADMFACTORY_TABLE_SPLIT_SCHEMA
@@ -161,6 +163,8 @@ getSymBinningFromJSON <- function(symField, id)
 
 normalizedBinningFromJSONFactory <- function(binningJSON, id, activePredsOnly)
 {
+  BinLabel <- BinType <- BinUpperBound <- IsActive <- PredictorName <- NULL # Trick to silence R CMD Check warnings
+
   # assuming first of each active group is the active predictor
   activePreds <- list()
   if (length(binningJSON$predictorGroups$active) > 0) {
@@ -249,6 +253,9 @@ normalizedBinningFromJSONFactory <- function(binningJSON, id, activePredsOnly)
 #' @export
 getScoringModelFromJSONFactoryString <- function(modelJSON, name="", isAuditModel=T)
 {
+  BinLabel <- BinLowerBound <- BinType <- BinUpperBound <-
+    Label <- PredictorType <- NULL # Trick to silence R CMD Check warnings
+
   buildLabel <- function(PredictorType, BinType, BinLabel, BinLowerBound, BinUpperBound)
   {
     return(ifelse(BinType == "MISSING","MISSING",
@@ -340,6 +347,8 @@ getModelParamsFromSnapshot <- function(modelSnapshot)
 
 normalizedBinningFromSingleJSONFactoryString <- function(aFactory, id, overallModelName, tmpFolder=NULL, forceLowerCasePredictorNames=F, activePredsOnly=T)
 {
+  PredictorName <- NULL # Trick to silence R CMD Check warnings
+
   model <- fromJSON(aFactory)
 
   # Dump JSON for debugging
@@ -406,6 +415,11 @@ normalizedBinningFromADMFactory <- function(partitions, overallModelName, tmpFol
 #' binning <- admJSONFactoryToBinning(admFactory$pyfactory[1])}
 admJSONFactoryToBinning <- function(factoryJSON, modelname="Dummy")
 {
+  BinIndex <- BinLabel <- BinLowerBound <- BinNeg <- BinNegatives <- BinPos <-
+    BinPositives <- BinType <- BinUpperBound <- IsActive <- Lift <-
+    maxBinIndex <- Performance <- PredictorType <- ZRatio <- NULL # Trick to silence R CMD Check warnings
+
+
   factoryDetail <- normalizedBinningFromSingleJSONFactoryString(factoryJSON,
                                                          id=modelname,
                                                          overallModelName=modelname,
@@ -414,7 +428,7 @@ admJSONFactoryToBinning <- function(factoryJSON, modelname="Dummy")
                                                          activePredsOnly=F)
 
   SnapshotTime <- toPRPCDateTime(lubridate::now())
-  predictorBinning <- factoryDetail$binning [, .(PredictorType = ifelse(PredictorType[1]=="SYMBOLIC", "symbolic", "numeric"),
+  predictorBinning <- factoryDetail$binning [, list(PredictorType = ifelse(PredictorType[1]=="SYMBOLIC", "symbolic", "numeric"),
                                                  Type = ifelse(PredictorType[1]=="SYMBOLIC", "symbolic", "numeric"), # same as PredictorType
                                                  BinType = ifelse(BinType[1]=="MISSING", "MISSING", "EQUIBEHAVIOR"), # RESIDUAL DOES NOT SEEM TO MATTER
 

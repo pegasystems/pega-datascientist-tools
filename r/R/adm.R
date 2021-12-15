@@ -20,6 +20,8 @@ standardizedParseTime <- function(t)
 # Drop internal fields, fix types and more
 standardizeDatamartModelData <- function(dt, latestOnly)
 {
+  FactoryUpdateTime <- SnapshotTime <- ModelID <- NULL # Trick to silence warnings from R CMD Check
+
   # drop internal fields
   if (any(grepl("^p[x|z]", names(dt), ignore.case = T))) {
     dt[, names(dt)[grepl("^p[x|z]", names(dt), ignore.case = T)] := NULL]
@@ -78,6 +80,8 @@ standardizeDatamartModelData <- function(dt, latestOnly)
 #' \dontrun{models <- expandEmbeddedJSONContext(models)}
 expandEmbeddedJSONContext <- function(dt, fieldName = "Name")
 {
+  isJSON <- OriginalName <- NULL # Trick to silence R CMD Check warnings
+
   if (!is.factor(dt[[fieldName]])) {
     dt[[fieldName]] <- as.factor(dt[[fieldName]])
   }
@@ -141,6 +145,8 @@ readADMDatamartModelExport <- function(srcFolder=".",
                                        latestOnly = F,
                                        tmpFolder=tempdir(check = T))
 {
+  ModelData <- pyModelData <- NULL # Trick to silence R CMD Check warnings
+
   if (file.exists(srcFolder) & !dir.exists(srcFolder)) {
     # if just one argument was passed and it happens to be an existing file, try use that
     instancename = srcFolder
@@ -199,6 +205,8 @@ readADMDatamartPredictorExport <- function(srcFolder=".",
                                            latestOnly = T,
                                            tmpFolder=tempdir(check = T))
 {
+  BinIndex <- ModelID <- SnapshotTime <- NULL # Trick to silence R CMD Check warnings
+
   noBinningSkipFields <- c("BinSymbol","BinNegativesPercentage","BinPositivesPercentage",
                            "BinNegatives", "BinPositives", "RelativeBinNegatives", "RelativeBinPositives",
                            "BinResponseCount", "RelativeBinResponseCount", "BinResponseCountPercentage",
@@ -279,12 +287,11 @@ readADMDatamartPredictorExport <- function(srcFolder=".",
 #' out from the model data as this typically is large and only needed for
 #' specific use cases.
 #'
-#' @return
+#' @return A list that wraps the the two \code{data.table} elements plus
+#' a few flags that indicate whether there are multiple snapshots or not.
 #' @export
-#'
-#' @examples
 ADMDatamart <- function(modeldata = NULL, predictordata = NULL, folder = NULL,
-                        keepModelData = FALSE)
+                        keepSerializedModelData = FALSE)
 {
   # modeldata can be data.table
   # modeldata can be a file, pointing to CSV or parquet file or export zip
@@ -329,6 +336,10 @@ ADMDatamart <- function(modeldata = NULL, predictordata = NULL, folder = NULL,
 #' }
 admVarImp <- function(dmModels, dmPredictors, facets = NULL)
 {
+  EntryType <- BinLogOdds <- BinPositives <- BinNegatives <- AvgLogOdds <- NULL # Trick to silence warnings from R CMD Check
+  BinResponseCount <- BinDiffLogOdds <- Performance <- Importance <- NULL
+  ResponseCount <- ImportanceRank <- PerformanceRank <- NULL
+
   # Normalize field names
   applyUniformPegaFieldCasing(dmPredictors)
 
@@ -340,7 +351,7 @@ admVarImp <- function(dmModels, dmPredictors, facets = NULL)
 
   # The feature importance per predictor then is just the weighted average of these distances to the mean
   featureImportance <-
-    bins[, .(Importance = weighted.mean(BinDiffLogOdds, BinResponseCount, na.rm=T),
+    bins[, list(Importance = weighted.mean(BinDiffLogOdds, BinResponseCount, na.rm=T),
              Performance = first(as.numeric(Performance)), # numeric cast should not be necessary but sometimes data is odd
              ResponseCount = sum(BinResponseCount)), by=c("PredictorName", "ModelID")]
   featureImportance[, Importance := ifelse(is.na(Importance), 0, Importance)]
@@ -354,7 +365,7 @@ admVarImp <- function(dmModels, dmPredictors, facets = NULL)
                                unique(dmModels[, c(facets, "ModelID"), with=F]), by="ModelID")
 
     # Then aggregate up to the predictor names x facets
-    aggregateFeatureImportance <- featureImportance[, .(Importance = weighted.mean(Importance, ResponseCount),
+    aggregateFeatureImportance <- featureImportance[, list(Importance = weighted.mean(Importance, ResponseCount),
                                                         Performance = weighted.mean(Performance, ResponseCount),
                                                         ResponseCount = sum(ResponseCount)),
                                                     by=c("PredictorName", facets)]
@@ -391,6 +402,8 @@ admVarImp <- function(dmModels, dmPredictors, facets = NULL)
 #' @export
 getModelPerformanceOverview <- function(dmModels = NULL, dmPredictors = NULL, jsonPartitions = NULL)
 {
+  ModelID <- name <- PredictorType <- NULL # Trick to silence R CMD Check warnings
+
   if (!is.null(dmModels) & !is.null(dmPredictors)) {
     modelList <- normalizedBinningFromDatamart(dmPredictors[ModelID %in% dmModels$ModelID],
                                                fullName="Dummy",

@@ -28,7 +28,7 @@ CamelCased in a standard way so processing of the results is not dependent
 on DB type or export tooling.
 }
 \description{
-Typically, predictor data for a certain set of models obtained from \code{getModelsFromDatamart}. It is possible to
+Typically, predictor data for a certain set of models obtained from \code{readADMDatamartModelTable}. It is possible to
 retrieve all historical data but by default it only retrieves the most recent snapshot data.
 }
 \examples{
