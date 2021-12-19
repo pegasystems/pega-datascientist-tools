@@ -14,7 +14,7 @@ modelz <- modelz[ ConfigurationName == "OmniAdaptiveModel" & Group == "CreditCar
 # Read the latest ADM Predictor export file from the Downloads folder
 #predz <- readADMDatamartPredictorExport("~/Downloads")
 predz <- readDSExport("Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots", "~/Downloads")
-applyUniformPegaFieldCasing(predz)
+standardizeFieldCasing(predz)
 
 # Write back a CSV with only the model data of interest
 write.csv(modelz, "models.csv", row.names = F)

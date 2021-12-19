@@ -44,31 +44,26 @@ a dataset export will be described later.
 library(cdhtools)
 
 # include below when developing the library
-# sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source)
+sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source)
 
 data(admdatamart_models)
 data(admdatamart_binning)
+datamart <- ADMDatamart(admdatamart_models, admdatamart_binning)
 ```
 
 ## Data Loading using Datasets
 
-To load your own data, export the datasets from Pega, download them to your filesystem and let the `cdhtools` library import it. In order to be able to process the data universally we also make sure to make the names lower case and make sure the types are as expected by the snippets that follow below. This would also be a good place to zoom in to specific models relevant to your application.
+To load your own data, export the datasets from Pega, download them to your filesystem and let the `cdhtools` library import it. 
+
+The `ADMDatamart` function is a very generic function to read the model and optionally
+predictor data into a simple list structure that is universally used by the 
+`cdhtools` functions. The most basic usage is to only give it a folder location
+where you downloaded the dataset exports, but it supports different file types
+and allows for filtering etc.
 
 ```{r, eval=FALSE}
-admdatamart_models <- readADMDatamartModelExport("~/Downloads")
-admdatamart_binning <- readADMDatamartPredictorExport("~/Downloads", noBinning = F)
+datamart <- ADMDatamart("~/Downloads")
 ```
-
-The data may contain multiple snapshots. For this notebook, we have explicit
-variables with and without this trend information. Normally you would pass an
-option to keep all snapshots or not when reading the data, or configure it
-in Pega to store it in the first place.
-
-```{r}
-admdatamart_models_latest <- latestSnapshotsOnly(admdatamart_models)
-admdatamart_binning_latest <- latestSnapshotsOnly(admdatamart_binning)
-```
-
 
 ## Data Loading directly from the database
 
@@ -81,7 +76,7 @@ With the data loaded, we can start with a plot similar to what the Analytics Cen
 ## Bubble chart by Issue and Channel
 
 ```{r, message=FALSE, warning=FALSE}
-plotADMPerformanceSuccessRateBubbleChart(admdatamart_models_latest, facets = c("Issue", "Channel")) + 
+plotPerformanceSuccessRateBubbleChart(datamart, facets = c("Issue", "Channel")) + 
   scale_x_continuous(limits = c(50, 70), name = "Performance") +  
   geom_vline(xintercept=c(52,90), linetype="dashed")
 ```
@@ -92,7 +87,7 @@ We can zoom in into the performance and success rates of the various channels. H
 model performance.
 
 ```{r, fig.height=5, fig.width=5, warning=F, message=FALSE}
-plotADMPerformanceSuccessRateBoxPlot(admdatamart_models_latest, "Channel") +
+plotPerformanceSuccessRateBoxPlot(datamart, "Channel") +
   scale_x_continuous(limits = c(50, 70), name = "Performance") + coord_flip() +
   scale_color_discrete_qualitative(palette="Harmonic")
 ```
@@ -107,11 +102,7 @@ out or facet by e.g. Channel or Issue.
 
 ```{r fig.height=9, fig.width=9}
 # varimp <- admVarImp(admdatamart_models_latest, admdatamart_binning, c("ConfigurationName"))
-plotADMPredictorImportance(admdatamart_binning, admdatamart_models_latest, limit = 30,
-                           predictorClassifier = function(name) { 
-                             ifelse(startsWith(name, "IH"), "Interaction History",
-                                    ifelse(startsWith(name, "Param.Ext"), "External Model", 
-                                           gsub("([^.])\\..*", "\\1", name)))})
+plotPredictorImportance(datamart, limit = 30)
 ```
 
 ## Predictor vs Action heatmap
@@ -119,7 +110,7 @@ plotADMPredictorImportance(admdatamart_binning, admdatamart_models_latest, limit
 You can also show the predictor performance in one plot across all predictors for all the selected models. Also arranging by performance in both dimensions gives a quick visual clue of which predictors and which models need attention.
 
 ```{r, warning=F, message=FALSE}
-plotADMPredictorImportanceHeatmap(admdatamart_binning_latest, admdatamart_models_latest, 
+plotPredictorImportanceHeatmap(datamart, 
                                   aggregation="Name", limit = 30) +
   theme(axis.text.y = element_text(size=6),
         axis.text.x = element_text(size=6, angle = 45, hjust = 1))
@@ -134,8 +125,8 @@ The below snippet calculates the KS score for all predictors of all propositions
 
 
 ```{r, warning=F, message=FALSE}
-admdatamart_binning_latest[ , Propensity := BinPositives/(BinPositives+BinNegatives)]
-setorder(admdatamart_binning_latest,Propensity)
+admdatamart_binning_latest <- filterLatestSnapshotOnly(datamart$predictordata)
+setorder(admdatamart_binning_latest, Propensity)
 myKS <- function(binning)
 {
   Goods <- cumsum(binning$BinNegatives) / sum(binning$BinNegatives)
@@ -147,7 +138,7 @@ performanceSummary <-
   left_join(admdatamart_binning_latest[, list(KS = myKS(.SD),
                                            auc = first(Performance)), 
                                        by=c("ModelID", "PredictorName","EntryType")],
-            admdatamart_models_latest,
+            filterLatestSnapshotOnly(datamart$modeldata),
             by = c("ModelID"))
 
 ## Show KS numbers
@@ -170,9 +161,9 @@ ggplot(performanceSummary[KS > 0.01],
 In the product models are represented by a score distribution plot like below
 
 ```{r fig.height=5, fig.width=5}
-model <- admdatamart_binning_latest[ModelID %in% admdatamart_models_latest[Name=="FirstMortgage"]$ModelID]
+model <- admdatamart_binning_latest[ModelID %in% filterLatestSnapshotOnly(datamart$modeldata)[Name=="FirstMortgage"]$ModelID]
 
-plotADMBinning(model[EntryType == "Classifier"]) +
+plotBinning(filterClassifierOnly(model)) +
   ggtitle(paste(unique(model$Name), collapse=","), subtitle = "Classifier")
 ```
 
@@ -183,7 +174,7 @@ the percentage of positive responses as a function of the size of the population
 targeted.
 
 ```{r fig.height=5, fig.width=5}
-plotADMCumulativeGains (model[EntryType == "Classifier"]) +
+plotCumulativeGains (filterClassifierOnly(model)) +
   ggtitle(paste(unique(model$Name), collapse=","), subtitle = "Cumulative Gains")
 ```
 
@@ -194,7 +185,7 @@ off-line model reports.
 
 
 ```{r fig.height=5, fig.width=5}
-plotADMCumulativeLift (model[EntryType == "Classifier"]) +
+plotCumulativeLift (filterClassifierOnly(model)) +
   ggtitle(paste(unique(model$Name), collapse=","), subtitle = "Lift")
 ```
 
@@ -208,7 +199,7 @@ hours. We aggregate up to Group level to avoid having too many lines in the
 plot.
 
 ```{r fig.height=5, fig.width=7}
-plotADMModelPerformanceOverTime(admdatamart_models, aggregation = c("Issue", "Group"), facets = "Channel")
+plotPerformanceOverTime(datamart, aggregation = c("Issue", "Group"), facets = "Channel")
 ```
 
 All the plotting functions are fairly straightforward and built on *ggplot* and
@@ -217,9 +208,11 @@ enough to write your own. For example, to show the performance of the Age
 predictor over time and across all models.
 
 ```{r fig.height=5, fig.width=5}
-predictorPerformanceTrend <- admdatamart_binning[startsWith(PredictorName, "Customer.A") & BinIndex == 1, list(Performance = 100*mean(Performance)), by=c("SnapshotTime","PredictorName")]
+predictorPerformanceTrend <- datamart$predictordata[startsWith(as.character(PredictorName), "Customer.A") & BinIndex == 1, 
+                                                    list(AUC = mean(AUC)), 
+                                                    by=c("SnapshotTime","PredictorName")]
 
-ggplot(predictorPerformanceTrend, aes(SnapshotTime, Performance, color=PredictorName)) +
+ggplot(predictorPerformanceTrend, aes(SnapshotTime, AUC, color=PredictorName)) +
   geom_line(size=1) + 
   ggtitle("Performance over Time")
 ```
@@ -232,10 +225,10 @@ data becomes available. You also see that this predictor isn't always active
 (grey instead of blue).
 
 ```{r fig.height=10, fig.width=10}
-binningOverTime <- admdatamart_binning[PredictorName=="Customer.Age" & ModelID == model$ModelID[1]]
+binningOverTime <- datamart$predictordata[PredictorName=="Customer.Age" & ModelID == model$ModelID[1]]
 
 grid.arrange(grobs = lapply(sort(unique(binningOverTime$SnapshotTime)), function(t) { 
-  plotADMBinning(binningOverTime[SnapshotTime==t]) +
+  plotBinning(binningOverTime[SnapshotTime==t]) +
     ggtitle(t)}))
 ```
 

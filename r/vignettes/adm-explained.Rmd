@@ -33,12 +33,15 @@ customer.
 
 We use one of the shipped datamart exports for the example. This is a model very similar to one used in some of the ADM PowerPoint/Excel deep dive examples. To load your own data, see the vignette on ADM reporting for examples.
 
-```{r}
+```{r include=F}
 library(cdhtools)
+
+# include below when developing the library
+sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source)
+
 library(data.table)
 
-data(admdatamart_models)
-data(admdatamart_binning)
+data(admdatamart)
 ```
 
 For the example we use one particular model: FirstMortgage over SMS. You can
@@ -50,14 +53,14 @@ data.
 
 ```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 # Commented-out chunk useful to find a good example in the data
-modelsGoodPreds <- unique((latestSnapshotsOnly(admdatamart_binning) [TotalBins>4 & Type=="numeric" & EntryType == "Active"])$ModelID )
-latestSnapshotsOnly(admdatamart_models)[ModelID %in% modelsGoodPreds, c("Positives","Performance","ActivePredictors","Name","Channel")][order(-ActivePredictors)]
+modelsGoodPreds <- unique((filterLatestSnapshotOnly(admdatamart$predictordata) [TotalBins>4 & Type=="numeric" & EntryType == "Active"])$ModelID )
+filterLatestSnapshotOnly(admdatamart$modeldata)[ModelID %in% modelsGoodPreds, c("Positives","Performance","ActivePredictors","Name","Channel")][order(-ActivePredictors)]
 print(unique(modelpredictors[TotalBins>4 & Type=="numeric" & EntryType == "Active"]$PredictorName))
 ```
 
 ```{r}
-model <- latestSnapshotsOnly(admdatamart_models) [Name == "AutoNew36Months" & Channel == "SMS"]
-modelpredictors <- latestSnapshotsOnly(admdatamart_binning)[ModelID == model$ModelID & EntryType != "Inactive"]
+model <- filterLatestSnapshotOnly(admdatamart$modeldata) [Name == "AutoNew36Months" & Channel == "SMS"]
+modelpredictors <- filterLatestSnapshotOnly(admdatamart_binning)[ModelID == model$ModelID & EntryType != "Inactive"]
 
 predictorbinning <- modelpredictors[PredictorName == "IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount"][order(BinIndex)]
 ```
@@ -308,7 +311,7 @@ secAxisFactor <- ceiling(max(classifier$BinResponseCount)/successRateMax)
   # geom_col(aes(y=(BinPositives+BinNegatives)/secAxisFactor), classifier[BinIndex == scorebin], fill="steelblue3")+
   # geom_col(aes(y=(BinPositives+BinNegatives)/secAxisFactor), classifier[BinIndex != scorebin], fill="grey")+
 
-plotADMBinning(classifier) +
+plotBinning(classifier) +
       geom_col(aes(y=BinResponseCount/secAxisFactor), classifier[BinIndex != scorebin], fill="grey")+
       geom_col(aes(y=BinResponseCount/secAxisFactor), classifier[BinIndex == scorebin], fill="steelblue3")+
       geom_line(colour="orange", size=2)+geom_point()+

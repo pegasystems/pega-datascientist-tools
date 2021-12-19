@@ -166,14 +166,14 @@ pmml_unittest <- function(testName)
     cat("   Datamart predictor data:", predictorDataFile, fill=T)
 
     predictorData <- fread(predictorDataFile)
-    applyUniformPegaFieldCasing(predictorData)
+    standardizeFieldCasing(predictorData)
 
     # forcing lowercase predictornames here
     predictorData[, PredictorName := tolower(PredictorName)]
 
     if (file.exists(modelDataFile)) {
       modelData <- data.table(read.csv(modelDataFile, stringsAsFactors = F)) # fread adds extra double-quotes for JSON strings, thus using simple read.csv
-      applyUniformPegaFieldCasing(modelData)
+      standardizeFieldCasing(modelData)
       modelList <- normalizedBinningFromDatamart(predictorData, testName, tmpFolder, modelData, useLowercaseContextKeys=TRUE)
     } else {
       modelList <- normalizedBinningFromDatamart(predictorData, testName, tmpFolder, useLowercaseContextKeys=TRUE)

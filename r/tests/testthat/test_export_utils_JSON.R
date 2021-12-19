@@ -39,10 +39,10 @@ test_that("ADM Factory to Binning similar to direct DM export", {
   asDataMart <- admJSONFactoryToBinning(admFactoryModel)
 
   dmModels <- fread("d/BigModel_modeldata.csv")
-  applyUniformPegaFieldCasing(dmModels)
+  standardizeFieldCasing(dmModels)
 
   dmPredictors <- fread("d/BigModel_predictordata.csv")
-  applyUniformPegaFieldCasing(dmPredictors)
+  standardizeFieldCasing(dmPredictors)
   dmPredictors <- dmPredictors[ModelID == dmModels$ModelID[which(dmModels$Name=="BOFFERSUM")]]
 
   expect_equal(length(unique(asDataMart$PredictorName)), 44)

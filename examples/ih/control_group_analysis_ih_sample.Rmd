@@ -48,7 +48,7 @@ Use Issue/Group/Name if using action level models
 data("ihsampledata")
 
 # standardized camel casing of fields
-applyUniformPegaFieldCasing(ihsampledata)
+standardizeFieldCasing(ihsampledata)
 
 # Both "Accept" and "Accepted" occur as labels - fix that for the reporting
 ihsampledata[Outcome == "Accept", Outcome := "Accepted"]

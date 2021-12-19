@@ -133,7 +133,7 @@ num_t2 <- addReqFields(data.table( BinPositives = c(120, 100, 120, 100),
 num_delta <- addReqFields(subtractNumBinning(num_t1, num_t2))[, t := "Delta"]
 allbinnings <- rbind(num_t1, num_t2, num_delta)[, t := paste(t, sprintf("AUC=%.2f", 100*Performance))]
 
-plotADMBinning(allbinnings,
+plotBinning(allbinnings,
                useSmartLabels = F) +
   facet_grid(cols=vars(t), scales = "free_x") +
   geom_hline(mapping = aes(yintercept = Positives/(Positives+Negatives)),
@@ -194,7 +194,7 @@ sym_t2 <- addReqFields(data.table( BinPositives = c(150, 100, 200, 115),
 sym_delta <- addReqFields(subtractSymBinning(sym_t1, sym_t2))[, t := "Delta"]
 
 grid.arrange(grobs = lapply(list(sym_t1, sym_t2, sym_delta), function(b) { 
-  plotADMBinning(b) +  ggtitle(b$t[1], subtitle = sprintf("AUC=%.2f", 100*b$Performance[1]))}), nrow=1)
+  plotBinning(b) +  ggtitle(b$t[1], subtitle = sprintf("AUC=%.2f", 100*b$Performance[1]))}), nrow=1)
 ```
 
 

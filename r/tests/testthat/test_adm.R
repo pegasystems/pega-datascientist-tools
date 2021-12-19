@@ -57,29 +57,72 @@ test_that("Score Ranges DMSample", {
                tolerance = 1e-06)
 })
 
-# High level test of creating a sensitivity plot
-test_that("Sensitivity Analysis", {
-  context("Sensitivity analysis")
+test_that("Feature Importance", {
+  context("Feature Importance")
 
-  allModels <- readDSExport("Data-Decision-ADM-ModelSnapshot_All","dsexports")
-  allPredictors <- readDSExport("Data-Decision-ADM-PredictorBinningSnapshot_All","dsexports")
+  datamart <- ADMDatamart("Data-Decision-ADM-ModelSnapshot_All",
+                          "Data-Decision-ADM-PredictorBinningSnapshot_All",
+                          "dsexports")
 
-  # Without aggregators, will be per model and no scaling
-  varimp <- admVarImp(allModels, allPredictors)
+  # Without filter would give much more results
+  varimp <- admVarImp(datamart)
 
-  expect_equal(ncol(varimp), 7)
+  expect_equal(ncol(varimp), 8)
+  expect_equal(nrow(varimp), 410)
+
+  varimp <- admVarImp(datamart, filter = filterActiveOnly)
+
+  expect_equal(ncol(varimp), 8)
   expect_equal(nrow(varimp), 137)
 
   expect_equal(max(varimp$Importance), 100) # Should be scaled
   expect_equal(varimp$ImportanceRank[1], 1) # Highest should be on top
 
   # With aggregator, rolls up
-  varimp <- admVarImp(allModels, allPredictors, "ConfigurationName")
+  varimp <- admVarImp(datamart, "ConfigurationName", filter = filterActiveOnly)
 
-  expect_equal(ncol(varimp), 7)
+  expect_equal(ncol(varimp), 8)
   expect_equal(nrow(varimp), 45)
 
   expect_equal(max(varimp$Importance), 100) # Should be scaled
   expect_equal(varimp$ImportanceRank[1], 1) # Highest should be on top
+})
+
+test_that("ADMDatamart from DS exports", {
+  dm <- ADMDatamart("Data-Decision-ADM-ModelSnapshot_All", "Data-Decision-ADM-PredictorBinningSnapshot_All", "dsexports")
+
+  expect_equal(length(dm), 2)
+  expect_equal(nrow(dm$modeldata), 30)
+  expect_equal(nrow(dm$predictordata), 1755)
+})
+
+test_that("ADMDatamart from tables", {
+  data(admdatamart_models)
+  data(admdatamart_binning)
+  dm <- ADMDatamart(admdatamart_models, admdatamart_binning)
+
+  expect_equal(length(dm), 2)
+  expect_equal(nrow(dm$modeldata), 1047)
+  expect_equal(nrow(dm$predictordata), 70735)
+
+  dm <- ADMDatamart(admdatamart_models, admdatamart_binning,
+                    filter = function(x) { return(x[Channel != "SMS"])})
+
+  expect_equal(length(dm), 2)
+  expect_equal(nrow(dm$modeldata), 638)
+  expect_equal(nrow(dm$predictordata), 34503)
+})
+
+test_that("Filter binning", {
+  data(admdatamart_binning)
+
+  expect_equal(ncol(admdatamart_binning), 36)
+  expect_equal(nrow(admdatamart_binning), 70735)
+
+  preds <- filterPredictorBinning(admdatamart_binning)
+
+  expect_equal(ncol(preds), 21)
+  expect_equal(nrow(preds), 32397)
+
 })
 

@@ -28,25 +28,44 @@ test_that("dataset exports", {
 })
 
 test_that("specialized model data export", {
-  data <- readADMDatamartModelExport(instancename="Data-Decision-ADM-ModelSnapshot_All",
-                                     srcFolder="dsexports")
-  expect_equal(nrow(data), 30)
-  expect_equal(ncol(data), 16) # omits internal fields
-  expect_identical(sort(names(data)),
-                   c("ActivePredictors", "AppliesToClass", "ConfigurationName", "Group", "Issue",
+
+  expect_error(ADMDatamart(modeldata = "Data-Decision-ADM-ModelSnapshot_All", folder = "dsexports"),
+               "Not all required model fields present")
+
+  data <- ADMDatamart(modeldata = "Data-Decision-ADM-ModelSnapshot_All",
+                      predictordata = NULL,
+                      folder = "dsexports",
+                      cleanupHookModelData = function(mdls) {
+                        mdls[, Direction := "NA"]
+                        mdls[, Channel := "NA"]
+                        return(mdls)
+                      })
+
+  expect_equal(nrow(data$modeldata), 30)
+  expect_equal(ncol(data$modeldata), 16) # omits internal fields
+
+  expect_identical(sort(names(data$modeldata)),
+                   c("ConfigurationName", "Direction", "Group", "Issue",
                      "ModelID", "Name", "Negatives", "Performance", "Positives",
-                     "RelativeNegatives", "RelativePositives", "RelativeResponseCount",
-                     "ResponseCount", "SnapshotTime", "TotalPredictors"));
-  dataTypes <- as.character(sapply(data[, sort(names(data)), with=F], class))
+                     "ResponseCount", "SnapshotTime", "SuccessRate", "TotalPredictors" ))
+
+  dataTypes <- as.character(sapply(data$modeldata[, sort(names(data$modeldata)), with=F], class))
   expect_equal(dataTypes,
                c("integer", "factor", "factor", "factor", "factor",
                  "factor", "factor", "numeric", "numeric", "numeric",
                  "numeric", "numeric", "numeric",
                  "numeric", "c(\"POSIXct\", \"POSIXt\")", "integer"));
 
-  data <- readADMDatamartModelExport(instancename="Data-Decision-ADM-ModelSnapshot_All",
-                                     srcFolder="dsexports",
-                                     latestOnly=T)
+  data <- ADMDatamart(modeldata = "Data-Decision-ADM-ModelSnapshot_All",
+                      predictordata = NULL,
+                      folder = "dsexports",
+                      cleanupHookModelData = function(mdls) {
+                        mdls[, Direction := "NA"]
+                        mdls[, Channel := "NA"]
+                        return(mdls)
+                      },
+                      filter = filterLatestSnapshotOnly)
+
   expect_equal(nrow(data), 15) # only latest snapshot
   expect_equal(ncol(data), 16)
 })
@@ -59,8 +78,7 @@ test_that("model export with JSON names", {
   expect_setequal(unique(m1$pyName),
                   c("{\"Proposition\":\"P1\"}","{\"pyName\":\"SuperSaver\",\"pyTreatment\":\"Bundles_WebTreatment\"}","BasicChecking","P10"))
 
-  m2 <- readADMDatamartModelExport(instancename="ADM-ModelSnapshots-withJSON-fromCDHSample.zip",
-                                   srcFolder="dsexports")
+  m2 <- ADMDatamart(m1, predictordata = NULL)
 
   expect_equal(ncol(m2), 20)
   expect_equal(nrow(m2), 361)

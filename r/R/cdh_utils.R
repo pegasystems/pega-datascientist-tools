@@ -35,21 +35,21 @@ NULL
 #'
 #' @examples
 #' DT <- data.table::data.table(id = "abc", pyresponsecount = 1234)
-#' applyUniformPegaFieldCasing(DT)
-applyUniformPegaFieldCasing <- function(dt)
+#' standardizeFieldCasing(DT)
+standardizeFieldCasing <- function(dt)
 {
   fields <- names(dt)
 
   # field name endings we want to see capitalized
-  capitializeEndWords <- c("ID", "Key", "Name", "Count", "Category",
+  capitializeEndWords <- c("ID", "Key", "Name", "Count", "Category", "Data",
                            "Time", "DateTime", "UpdateTime",
                            "ToClass", "Version", "Predictor", "Predictors", "Rate", "Ratio",
                            "Negatives", "Positives", "Threshold", "Error", "Importance",
                            "Type", "Percentage", "Index", "Symbol",
                            "LowerBound", "UpperBound", "Bins", "GroupIndex",
                            "ResponseCount", "NegativesPercentage", "PositivesPercentage",
-                           "BinPositives", "BinNegatives", "BinResponseCount", "BinResponseCount",
-                           "ResponseCountPercentage")
+                           "BinPositives", "BinNegatives", "BinResponseCount",
+                           "ResponseCountPercentage", "AUC")
 
   # remove px/py/pz prefixes
   fields <- gsub(pattern = "^p(x|y|z)", replacement = "", tolower(fields))
@@ -65,46 +65,6 @@ applyUniformPegaFieldCasing <- function(dt)
 
   setnames(dt, fields)
 }
-
-
-#' Efficient read of newline-delimited JSON (NDJSON) (aka line-delimited JSON (LDJSON),
-#' JSON lines (JSONL), multi-line JSON), a common format for big data streaming.
-#'
-#' @param jsonFiles Either a single file with the JSON data, a folder that
-#'   we read the
-#' @param acceptJSONLines Optional filter function. If given, this is applied
-#'   to the lines with JSON data and only those lines for which the function
-#'   returns TRUE will be parsed. This is just for efficiency when reading
-#'   really big files so you can filter rows early. This would most typically
-#'   be used internally when called from \code{readDSExport} and related.
-#' @param dropColumns Optional list if columns that will be dropped. Dropping
-#'   will happen after converting (batches of) data to \code{data.table}.
-#'
-#' @return A \code{data.table} with the contents
-#' @export
-#'
-#' @examples
-#' \dontrun{readNDJSON("datamart.json")}
-readNDJSON <- function(jsonFiles, acceptJSONLines=NULL, dropColumns=c())
-{
-  # Efficient read of newline-delimited JSON (NDJSON) (aka line-delimited JSON (LDJSON),
-  # JSON lines (JSONL), multi-line JSON), a common format for big data streaming.
-
-  # jsonFiles
-  # - a single file
-  # - a folder in which case we pick up all the json files from it
-  # - a zip file then we read the json file(s) from it
-  # - a pattern that we pass to list.files
-
-  # returns a data.table
-
-  # reads large files in batches
-
-  # applies row filtering using the provided accept function
-  # applies column filtering after converting to data.table using the dropColumns
-
-}
-
 
 #' Read a Pega dataset export file.
 #'
@@ -145,8 +105,11 @@ readNDJSON <- function(jsonFiles, acceptJSONLines=NULL, dropColumns=c())
 readDSExport <- function(instancename, srcFolder=".", tmpFolder=tempdir(check = T), excludeComplexTypes=T, acceptJSONLines=NULL, stringsAsFactors=F)
 {
   jsonFile <- NULL
+  errorReason <- ""
 
   if(endsWith(instancename, ".json")) {
+    errorReason <- "looking for existing JSON file"
+
     # See if it is a single, existing, JSON file
     if (file.exists(instancename)) {
       jsonFile <- instancename
@@ -161,12 +124,15 @@ readDSExport <- function(instancename, srcFolder=".", tmpFolder=tempdir(check = 
     zipFile <- instancename
 
     if(endsWith(instancename, ".zip")) {
+      errorReason <- "looking for existing ZIP file"
+
       if (file.exists(instancename)) {
         zipFile <- instancename
       } else if (file.exists(file.path(srcFolder,instancename))) {
         zipFile <- file.path(srcFolder,instancename)
       }
     } else {
+      errorReason <- "looking for most recent dataset export ZIP file"
 
       # See if it is just a base name of the instance, then find the most
       # recent file by appending the date and "zip" extension according to
@@ -178,16 +144,24 @@ readDSExport <- function(instancename, srcFolder=".", tmpFolder=tempdir(check = 
     }
 
     if (file.exists(zipFile)) {
+      errorReason <- "looking for data.json file in standard dataset export"
+
       jsonFile <- file.path(tmpFolder,"data.json")
       if(file.exists(jsonFile)) file.remove(jsonFile)
-      utils::unzip(zipFile, exdir=tmpFolder) # consider passing files="data.json"
-      if (!file.exists(jsonFile)) stop(paste("Expected Pega Dataset Export zipfile but",zipFile,"does not contain data.json"))
+
+      utils::unzip(zipFile, exdir=tmpFolder, files="data.json")
+
+      if (!file.exists(jsonFile)) stop(paste("Expected Pega Dataset Export zipfile but",
+                                             zipFile,
+                                             "does not contain data.json"))
       multiLineJSON <- readLines(jsonFile)
       file.remove(jsonFile)
     }
   }
 
   if (is.null(jsonFile)) {
+    errorReason <- paste("looking for pattern to match", instancename)
+
     # Try to interpret the filename as a pattern.
     jsonFile <- list.files(pattern = instancename, path = srcFolder, full.names = T)
     if (length(jsonFile) > 0) {
@@ -198,7 +172,7 @@ readDSExport <- function(instancename, srcFolder=".", tmpFolder=tempdir(check = 
   }
 
   if (is.null(jsonFile)) {
-    stop("File not found.")
+    stop(paste("Dataset JSON file not found", errorReason))
   }
 
   if(!is.null(acceptJSONLines)) {
@@ -388,33 +362,6 @@ fromPRPCDateTime <- function(x)
 toPRPCDateTime <- function(x)
 {
   return(strftime(x, format="%Y%m%dT%H%M%OS3", tz="GMT", usetz=T))
-}
-
-#' Subset the provided datamart data to just the latest snapshot per model.
-#'
-#' If there is just one snapshot, nothing will change. It works for both
-#' model and predictor tables. If there is no snapshottime field, it will
-#' not do anything.
-#'
-#' @param dt The \code{data.table} with the datamart data.
-#'
-#' @return A \code{data.table} with just the latest snapshots per model.
-#' @export
-#'
-#' @examples
-#' latestSnapshotsOnly(admdatamart_binning)
-latestSnapshotsOnly <- function(dt)
-{
-  ModelID <- NULL # Trick to silence R CMD Check warnings
-
-  l <- function(grp, fld) { grp[grp[[fld]] == max(grp[[fld]])] }
-
-  snapshottimeField <- names(dt)[which(tolower(names(dt)) %in% c("snapshottime", "pysnapshottime"))[1]] # be careful with the names after all manipulation we do
-  if (!is.na(snapshottimeField)) {
-    return(dt[, l(.SD, snapshottimeField), by=ModelID])
-  } else {
-    return(dt)
-  }
 }
 
 # robust version of which.max that can deal with NA's

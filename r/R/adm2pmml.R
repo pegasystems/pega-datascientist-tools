@@ -654,8 +654,8 @@ adm2pmml <- function(dmModels = NULL, dmPredictors = NULL, dbConn = NULL, forceU
 
   # DM dataset exports
   if (!is.null(dmModels) & !is.null(dmPredictors)) {
-    applyUniformPegaFieldCasing(dmModels)
-    applyUniformPegaFieldCasing(dmPredictors)
+    standardizeFieldCasing(dmModels)
+    standardizeFieldCasing(dmPredictors)
 
     if(!is.null(appliesToFilter)) {
       dmModels <- dmModels[ grepl(appliesToFilter, AppliesToClass, ignore.case=T, perl=T) ]
@@ -726,7 +726,7 @@ adm2pmml <- function(dmModels = NULL, dmPredictors = NULL, dbConn = NULL, forceU
       }
     }
   } else if (!is.null(modelFactory)) {
-    applyUniformPegaFieldCasing(modelFactory)
+    standardizeFieldCasing(modelFactory)
 
     # returns a list of binning, context pairs - we just want to pass this list to the PMML exporter
     for (p in unique(modelFactory$ConfigpartitionID)) {

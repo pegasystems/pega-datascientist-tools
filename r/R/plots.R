@@ -9,7 +9,7 @@ plotsAbbreviateName <- function(str, abbreviateLength)
 {
   if (length(str) > 1) return(sapply(str, plotsAbbreviateName, abbreviateLength))
 
-  parts <- strsplit(str,".",fixed=T)
+  parts <- strsplit(as.character(str),".",fixed=T)
 
   if (length(parts[[1]]) == 1) {
     if (nchar(str) > abbreviateLength) {
@@ -41,7 +41,8 @@ plotsAbbreviateInterval <- function(str)
   # split inputs by space, abbreviate numbers in the elements (if matching,
   # otherwise they remain untouched), and paste them back together again
   regexpNumber <- "(.*)([[:digit:]]+)([.])([[:digit:]]{1,3})[[:digit:]]*(.*)"
-  sapply(strsplit(str, " ", fixed=T), function(v) {paste(gsub(regexpNumber, "\\1\\2\\3\\4\\5", v), collapse = " ")} )
+  sapply(strsplit(as.character(str), " ", fixed=T),
+         function(v) {paste(gsub(regexpNumber, "\\1\\2\\3\\4\\5", v), collapse = " ")} )
 }
 
 # Build faceting expression
@@ -97,13 +98,6 @@ plotsCheckFacetsExist <- function(data, facets)
   return (facets)
 }
 
-# Returns predictor category as the element before the first dot, or "TopLevel" if there is no dot.
-defaultPredictorCategorization <- function(p)
-{
-  hasDot <- grepl(".", p, fixed = T)
-  return (ifelse(hasDot, gsub("^([^.]*)\\..*$", "\\1", p), rep("TopLevel", length(p))))
-}
-
 # older versions don't use PredictorType but Type
 getPredictorType <- function(data)
 {
@@ -132,24 +126,23 @@ getPredictorType <- function(data)
 #'
 #' @examples
 #' \dontrun{
-#' plotADMPerformanceSuccessRateBubbleChart(mdls, facets = "ConfigurationName")
+#' plotPerformanceSuccessRateBubbleChart(mdls, facets = "ConfigurationName")
 #' }
-plotADMPerformanceSuccessRateBubbleChart <- function(modeldata, aggregation=intersect(c("Issue","Group","Name","Treatment"), names(modeldata)), facets = c())
+plotPerformanceSuccessRateBubbleChart <- function(datamart,
+                                                  aggregation=intersect(c("Issue","Group","Name","Treatment"), names(datamart$modeldata)),
+                                                  facets = c(),
+                                                  color = "Name",
+                                                  filter = identity)
 {
   Name <- Performance <- Positives <- ResponseCount <- NULL # Trick to silence R CMD Check warnings
 
+  modeldata <- filter(datamart$modeldata)
   facets <- plotsCheckFacetsExist(modeldata, facets)
 
-  # TODO move color/size aes into geom_point so we can override
-  # OR allow for something to pass as color, e.g. maturity
-  # OhMyGoodness := pmin(cdhtools::auc2GINI(Performance), 0.7) + (1.0/0.7) * pmin(Positives,200) * (1.0/200)
-  # TODO consider coloring by my goodness by default
-  # figure out a way to remove the legend from plotly
-
-  ggplot(modeldata, aes(100*Performance, Positives/ResponseCount, colour=Name, size=ResponseCount)) +
+  ggplot(modeldata, aes_string("AUC", "SuccessRate", color=color, size="ResponseCount")) +
     geom_point(alpha=0.7) +
     guides(colour="none", size="none")+
-    scale_x_continuous(limits = c(50, 100), name = "AUC") +
+    scale_x_continuous(limits = c(50, 100), name = "Performance") +
     scale_y_continuous(limits = c(0, NA), name = "Success Rate", labels = scales::percent) +
     plotsGetFacets(facets) +
     plotsGetTitles("Performance vs Success Rate", aggregation, facets)
@@ -170,19 +163,23 @@ plotADMPerformanceSuccessRateBubbleChart <- function(modeldata, aggregation=inte
 #'
 #' @examples
 #' \dontrun{
-#' plotADMPerformanceSuccessRateBoxPlot(admdatamart_models, "ConfigurationName") +
+#' plotPerformanceSuccessRateBoxPlot(admdatamart_models, "ConfigurationName") +
 #'   scale_x_continuous(limits = c(50, 70), name = "Performance") + coord_flip()
 #' }
-plotADMPerformanceSuccessRateBoxPlot <- function(modeldata, primaryCriterion = "ConfigurationName", facets = c())
+plotPerformanceSuccessRateBoxPlot <- function(datamart,
+                                              primaryCriterion = "ConfigurationName",
+                                              facets = c(),
+                                              filter = identity)
 {
   Performance <- Positives <- ResponseCount <- NULL # Trick to silence R CMD Check warnings
 
+  modeldata <- filter(datamart$modeldata)
   facets <- plotsCheckFacetsExist(modeldata, facets)
   primaryCriterionSym <- rlang::sym(primaryCriterion)
 
-  ggplot(modeldata, aes(100*Performance, Positives/ResponseCount, colour=!!primaryCriterionSym)) +
+  ggplot(modeldata, aes(AUC, Positives/ResponseCount, colour=!!primaryCriterionSym)) +
     geom_boxplot(alpha=0.7, lwd=1) +
-    scale_x_continuous(limits = c(50, 100), name = "AUC") +
+    scale_x_continuous(limits = c(50, 100), name = "Performance") +
     scale_y_continuous(limits = c(0, NA), name = "Success Rate", labels = scales::percent) +
     plotsGetFacets(facets) +
     plotsGetTitles("Performance vs Success Rate", primaryCriterion, facets)
@@ -203,27 +200,31 @@ plotADMPerformanceSuccessRateBoxPlot <- function(modeldata, primaryCriterion = "
 #'
 #' @examples
 #' \dontrun{
-#' plotADMModelSuccessRateOverTime(mdls)
+#' plotSuccessRateOverTime(mdls)
 #' }
-plotADMModelPerformanceOverTime <- function(modeldata,
-                                            aggregation=intersect(c("Issue","Group","Name","Treatment"), names(modeldata)),
-                                            facets=c("ConfigurationName"))
+plotPerformanceOverTime <- function(datamart,
+                                    aggregation=intersect(c("Issue","Group","Name","Treatment"), names(datamart$modeldata)),
+                                    facets=c("ConfigurationName"),
+                                    filter = identity)
 {
   SnapshotTime <- Performance <- ResponseCount <- Proposition <- NULL  # Trick to silence warnings from R CMD Check
 
+  modeldata <- filter(datamart$modeldata)
   facets <- plotsCheckFacetsExist(modeldata, facets)
 
   plotdata <- modeldata[!is.na(SnapshotTime), list(Performance = 100*weighted.mean(Performance, ResponseCount),
-                                                ResponseCount = max(ResponseCount)), by=c(facets, aggregation, "SnapshotTime")]
-  plotdata$Proposition <- apply(plotdata[, aggregation, with=F], 1, paste, collapse="/")
+                                                   ResponseCount = max(ResponseCount)),
+                        by=c(facets, aggregation, "SnapshotTime")]
+  plotdata$Aggregation <- apply(plotdata[, aggregation, with=F], 1, paste, collapse="/")
 
   # order by final performance
   propositionOrder <- plotdata[, list(Performance = weighted.mean(Performance[safe_which_max(SnapshotTime)],
-                                                                      ResponseCount[safe_which_max(SnapshotTime)], na.rm = T)), by=Proposition][order(-Performance)]$Proposition
+                                                                  ResponseCount[safe_which_max(SnapshotTime)], na.rm = T)),
+                               by=Aggregation][order(-Performance)]$Aggregation
 
-  plotdata[, Proposition := factor(Proposition, levels=propositionOrder)]
+  plotdata[, Aggregation := factor(Aggregation, levels=propositionOrder)]
 
-  ggplot(plotdata, aes(SnapshotTime, Performance, color=Proposition)) +
+  ggplot(plotdata, aes(SnapshotTime, Performance, color=Aggregation)) +
     geom_line() +
     xlab("") + ylab("AUC") +
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
@@ -246,23 +247,26 @@ plotADMModelPerformanceOverTime <- function(modeldata,
 #'
 #' @examples
 #' \dontrun{
-#' plotADMModelSuccessRateOverTime(mdls)
+#' plotSuccessRateOverTime(mdls)
 #' }
-plotADMModelSuccessRateOverTime <- function(modeldata,
-                                            aggregation=intersect(c("Issue","Group","Name","Treatment"), names(modeldata)),
-                                            facets=c("ConfigurationName"))
+plotSuccessRateOverTime <- function(datamart,
+                                    aggregation=intersect(c("Issue","Group","Name","Treatment"), names(datamart$modeldata)),
+                                    facets=c("ConfigurationName"),
+                                    filter = identity)
 {
   SnapshotTime <- Positives <- ResponseCount <- SuccessRate <- Proposition <- NULL  # Trick to silence warnings from R CMD Check
 
+  modeldata <- filter(datamart$modeldata)
   facets <- plotsCheckFacetsExist(modeldata, facets)
 
   plotdata <- modeldata[!is.na(SnapshotTime), list(SuccessRate = weighted.mean(Positives/ResponseCount, ResponseCount),
-                                                ResponseCount = max(ResponseCount)), by=c(facets, aggregation, "SnapshotTime")]
+                                                   ResponseCount = max(ResponseCount)),
+                        by=c(facets, aggregation, "SnapshotTime")]
   plotdata$Proposition <- apply(plotdata[, aggregation, with=F], 1, paste, collapse="/")
 
   # order by final success rate
   propositionOrder <- plotdata[, list(SuccessRate = weighted.mean(SuccessRate[safe_which_max(SnapshotTime)],
-                                                                      ResponseCount[safe_which_max(SnapshotTime)], na.rm = T)), by=Proposition][order(-SuccessRate)]$Proposition
+                                                                  ResponseCount[safe_which_max(SnapshotTime)], na.rm = T)), by=Proposition][order(-SuccessRate)]$Proposition
 
   plotdata[, Proposition := factor(Proposition, levels=propositionOrder)]
 
@@ -272,11 +276,13 @@ plotADMModelSuccessRateOverTime <- function(modeldata,
     scale_y_continuous(limits = c(0, NA), name = "Success Rate", labels = scales::percent) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
     plotsGetFacets(facets, scales="free_y") +
-    plotsGetTitles("Model Success Rate over Time", aggregation, facets)
+    plotsGetTitles("Success Rate over Time", aggregation, facets)
 }
 
 # TODO the order seems a bit weird, see default modeloverview.Rmd for example
 # TODO may add weighted perf only optionally
+# TODO consider a "active only" flag. Probably should do that by default,
+# but if focussing on the bottom N should probably use all.
 
 #' Create boxplots per predictor with performance range in models.
 #'
@@ -292,9 +298,6 @@ plotADMModelSuccessRateOverTime <- function(modeldata,
 #' @param limit Optional limit of number of predictors. Useful if there are
 #' many predictors to keep the plot readable. Use a negative value to swap the
 #' order, so showing the least performing predictors first.
-#' @param predictorClassifier Optional function that returns the predictor
-#' categories from the names. Defaults to a function that returns the text
-#' before the first dot.
 #' @param categoryAggregateView If TRUE shows an overview by predictor categories
 #' instead of the individual predictors.
 #' @param maxNameLength Max length of predictor names. Above this length
@@ -303,6 +306,9 @@ plotADMModelSuccessRateOverTime <- function(modeldata,
 #' by median. When FALSE will show as a simple bar chart and use the weighted
 #' mean (weighted by response count, which is more accurate than the box plot
 #' view).
+#' @param activeOnly When TRUE, only considering predictors that are active. When
+#' FALSE, using all predictors. Defaults to TRUE when the limit is positive, to
+#' FALSE when it is negative.
 #'
 #' @return A \code{ggplot} object that can either be printed directly, or to
 #' which additional decoration (e.g. coloring or labels) can be added first.
@@ -310,26 +316,35 @@ plotADMModelSuccessRateOverTime <- function(modeldata,
 #'
 #' @examples
 #' \dontrun{
-#' plotADMPredictorImportance(modelPredictorBins, limit = 40) + xlab("AUC")
+#' plotPredictorImportance(modelPredictorBins, limit = 40) + xlab("AUC")
 #' }
-plotADMPredictorImportance <- function(predictordata,
-                                       modeldata = NULL,
-                                       facets = ifelse(is.null(modeldata), "", "ConfigurationName"),
-                                       limit = .Machine$integer.max,
-                                       predictorClassifier = defaultPredictorCategorization,
-                                       categoryAggregateView = F,
-                                       maxNameLength = .Machine$integer.max,
-                                       showAsBoxPlot = T)
+plotPredictorImportance <- function(datamart,
+                                    facets = ifelse(is.null(datamart$modeldata), "", "ConfigurationName"),
+                                    limit = .Machine$integer.max,
+                                    categoryAggregateView = F,
+                                    maxNameLength = .Machine$integer.max,
+                                    showAsBoxPlot = T,
+                                    activeOnly = (limit > 0),
+                                    filter = identity)
 {
   Importance <- ImportanceMean <- ImportanceMedian <- ImportanceRank <-
     ResponseCount <- Performance <- PerformanceMean <- PerformanceMedian <-
-    PerformanceRank <- Category <- PredictorName <- AbbreviatedPredictorName <-
-    OriginalPredictorName <- NULL  # Trick to silence warnings from R CMD Check
+    PerformanceRank <- Category <- PredictorName <- NULL  # Trick to silence warnings from R CMD Check
 
+  modeldata <- filter(datamart$modeldata)
+  predictordata <- datamart$predictordata[ModelID %in% unique(modeldata$ModelID)]
   facets <- plotsCheckFacetsExist(modeldata, facets)
 
   if (showAsBoxPlot) {
-    featureImportance <- admVarImp(modeldata, predictordata, facets = NULL)
+    if (activeOnly) {
+      featureImportance <- admVarImp(modeldata,
+                                     predictordata[EntryType=="Active"],
+                                     facets = NULL)
+    } else {
+      featureImportance <- admVarImp(modeldata,
+                                     predictordata[EntryType!="Classifier"],
+                                     facets = NULL)
+    }
 
     # Now join in any facets - if there are any
     if (!is.null(facets)) {
@@ -345,54 +360,39 @@ plotADMPredictorImportance <- function(predictordata,
     featureImportance[, ImportanceRank := frank(-ImportanceMedian, ties.method="dense"), by=facets]
     featureImportance[, PerformanceRank := frank(-PerformanceMedian, ties.method="dense"), by=facets]
   } else {
-    featureImportance <- admVarImp(modeldata, predictordata, facets = facets)
+    if (activeOnly) {
+      featureImportance <- admVarImp(modeldata,
+                                     predictordata[EntryType=="Active"],
+                                     facets = facets)
+    } else {
+      featureImportance <- admVarImp(modeldata,
+                                     predictordata[EntryType!="Classifier"],
+                                     facets = facets)
+    }
   }
 
-  # Predictor Category
-  # TODO: support a character that just represents the field name
-  if (is.logical(predictorClassifier)) {
-    if (predictorClassifier) {
-      predictorClassifier <- defaultPredictorCategorization
-    } else {
-      predictorClassifier <- NULL
-    }
-  }
-  nameMapping <- data.table( PredictorName = as.character(unique(featureImportance$PredictorName)) )
-  if (is.function(predictorClassifier)) {
-    nameMapping[, Category := sapply(PredictorName, predictorClassifier)]
-  } else {
-    if (is.character(predictorClassifier) | is.factor(predictorClassifier)) {
-      if (predictorClassifier %in% names(predictordata)) {
-        nameMapping <- merge(nameMapping, unique(predictordata[,c("PredictorName", predictorClassifier), with=F]), by="PredictorName")
-        tmp <- nameMapping[[predictorClassifier]]
-        nameMapping[[predictorClassifier]] <- NULL
-        nameMapping[["Category"]] <- tmp
-      } else {
-        nameMapping[,Category := "Missing Category"]
-        predictorClassifier <- NULL
-      }
-    } else {
-      nameMapping[,Category := "Missing Category"]
-      predictorClassifier <- NULL
-    }
-  }
-  nameMapping[, AbbreviatedPredictorName := make.names(sapply(PredictorName, plotsAbbreviateName, maxNameLength), unique = T)]
-  featureImportance <- merge(featureImportance, nameMapping, by="PredictorName")
-  featureImportance[, OriginalPredictorName := PredictorName]
-  featureImportance[, PredictorName := AbbreviatedPredictorName]
-  featureImportance[, AbbreviatedPredictorName := NULL]
+  # # Abbreviate lengthy names
+  # nameMapping <- data.table( PredictorName = levels(featureImportance$PredictorName) )
+  # nameMapping[, AbbreviatedPredictorName := make.names(sapply(PredictorName,
+  #                                                             plotsAbbreviateName,
+  #                                                             maxNameLength), unique = T)]
+  #
+  # featureImportance <- merge(featureImportance, nameMapping, by="PredictorName")
+  # featureImportance[, OriginalPredictorName := PredictorName]
+  # featureImportance[, PredictorName := AbbreviatedPredictorName]
+  # featureImportance[, AbbreviatedPredictorName := NULL]
 
   if (nrow(featureImportance) == 0) {
     warning("No data to plot")
     return(NULL)
   }
 
-  categoryOrder <- featureImportance[, list(ImportanceMedian = median(Importance)), by=Category][order(ImportanceMedian)]
-  featureImportance[, Category := factor(Category, levels = categoryOrder$Category)]
+  categoryOrder <- featureImportance[, list(ImportanceMedian = median(Importance)), by=PredictorCategory][order(ImportanceMedian)]
+  featureImportance[, PredictorCategory := factor(PredictorCategory, levels = categoryOrder$PredictorCategory)]
 
   # Base plot
   if (categoryAggregateView) {
-    plt <- ggplot(featureImportance, aes(Importance, Category))
+    plt <- ggplot(featureImportance, aes(Importance, PredictorCategory))
   } else {
     # Note: the y-axis order is not completely correct. A predictor name has a fixed
     # rank in the levels of the factor, but it can occur at different ranks in the
@@ -403,26 +403,17 @@ plotADMPredictorImportance <- function(predictordata,
     if (limit < 0) {
       featureImportance[, ImportanceRank := max(ImportanceRank) - ImportanceRank + 1]
     }
-    plt <- ggplot(featureImportance[ImportanceRank <= abs(limit)], aes(Importance, PredictorName))
+    plt <- ggplot(featureImportance[as.integer(PredictorName) <= abs(limit)], aes(Importance, PredictorName))
+    # plt <- ggplot(featureImportance[ImportanceRank <= abs(limit)], aes(Importance, PredictorName))
   }
 
   # Aesthetics
   if (showAsBoxPlot) {
-    if (is.null(predictorClassifier)) {
-      plt <- plt + geom_boxplot(aes(fill=ImportanceMean), lwd=0.5, outlier.size = 0.1, alpha=0.8) +
-        scale_fill_continuous(guide="none")
-    } else {
-      plt <- plt + geom_boxplot(aes(fill=Category, alpha=ImportanceMean), lwd=0.5, outlier.size = 0.1) +
-        scale_alpha_continuous(guide="none")
-    }
+    plt <- plt + geom_boxplot(aes(fill=PredictorCategory, alpha=ImportanceMean), lwd=0.5, outlier.size = 0.1) +
+      scale_alpha_continuous(guide="none")
   } else {
-    if (is.null(predictorClassifier)) {
-      plt <- plt + geom_col(aes(fill=ImportanceMean), alpha=0.8) +
-        scale_fill_continuous(guide="none")
-    } else {
-      plt <- plt + geom_col(aes(fill=Category, alpha=Importance)) +
-        scale_alpha_continuous(guide="none")
-    }
+    plt <- plt + geom_col(aes(fill=PredictorCategory, alpha=Importance)) +
+      scale_alpha_continuous(guide="none")
   }
 
   # TODO consider Univariate flag using Performance instead of Importance
@@ -457,7 +448,7 @@ plotADMPredictorImportance <- function(predictordata,
 #' @param limit Optional limit of number of predictors. Useful if there are
 #' many predictors to keep the plot readable.
 #' @param maxNameLength Max length of predictor names. Above this length
-#' they will be abbreviated.
+#' they will be abbreviated. NOTE: currently not supported anymore.
 #'
 #' @return A \code{ggplot} object that can either be printed directly, or to
 #' which additional decoration (e.g. coloring or labels) can be added first.
@@ -465,21 +456,23 @@ plotADMPredictorImportance <- function(predictordata,
 #'
 #' @examples
 #' \dontrun{
-#'     plt <- plotADMPredictorImportanceHeatmap(modelPredictorBins, mdls, limit=50) +
+#'     plt <- plotPredictorImportanceHeatmap(modelPredictorBins, mdls, limit=50) +
 #'     theme(axis.text.y = element_text(size=8),
 #'     axis.text.x = element_text(size=8, angle = 45, hjust = 1),
 #'     strip.text = element_text(size=8))
 #'     print(plt)
 #' }
-plotADMPredictorImportanceHeatmap <- function(predictordata,
-                                             modeldata,
-                                             aggregation = intersect(c("Issue","Group","Name","Treatment"), names(modeldata)),
-                                             facets = "ConfigurationName",
-                                             limit = .Machine$integer.max,
-                                             maxNameLength = .Machine$integer.max)
+plotPredictorImportanceHeatmap <- function(datamart,
+                                           aggregation = intersect(c("Issue","Group","Name","Treatment"), names(modeldata)),
+                                           facets = "ConfigurationName",
+                                           limit = .Machine$integer.max,
+                                           maxNameLength = .Machine$integer.max,
+                                           filter = identity)
 {
   EntryType <- meanPerf <- Performance <- PredictorName <- Proposition <- ResponseCount <- NULL # Trick to silence R CMD Check warnings
 
+  modeldata <- filter(datamart$modeldata)
+  predictordata <- datamart$predictordata[ModelID %in% unique(modeldata$ModelID)]
   facets <- plotsCheckFacetsExist(modeldata, facets)
 
   myGoodness <- function(x)
@@ -497,7 +490,7 @@ plotADMPredictorImportanceHeatmap <- function(predictordata,
                                   setdiff(names(predictordata), c(aggregation, facets)), with=F],
                     unique(modeldata[, c("ModelID", aggregation, facets), with=F]),
                     by="ModelID", all.x=F, all.y=F)[, list(Performance = weighted.mean(Performance, 1+ResponseCount, na.rm = T),
-                                                        ResponseCount = sum(ResponseCount)),
+                                                           ResponseCount = sum(ResponseCount)),
                                                     by=c("PredictorName", aggregation, facets)]
 
 
@@ -518,6 +511,11 @@ plotADMPredictorImportanceHeatmap <- function(predictordata,
   # plotdata[[primaryCriterion]] <- factor(plotdata[[primaryCriterion]], levels = primaryCriterionOrder)
   # primaryCriterion <- sym(primaryCriterion)
 
+  if (nrow(plotdata) == 0) {
+    warning("No data to plot")
+    return(NULL)
+  }
+
   ggplot(plotdata[as.integer(PredictorName) <= limit & as.integer(Proposition) <= limit], aes(Proposition, PredictorName)) +
     geom_raster(aes(fill=myGoodness(Performance)), alpha=0.4) +
     scale_fill_gradient2(low=muted("red"), mid="green", high="white", midpoint=0.50) +
@@ -528,6 +526,8 @@ plotADMPredictorImportanceHeatmap <- function(predictordata,
     plotsGetFacets(facets) +
     plotsGetTitles("Predictor Performance", aggregation, facets, limit)
 }
+
+# TODO: if there are overlapping models, e.g. because multiple snapshots, consider adding an error bar
 
 #' Plot ADM Proposition Success Rates
 #'
@@ -549,30 +549,30 @@ plotADMPredictorImportanceHeatmap <- function(predictordata,
 #'
 #' @examples
 #' \dontrun{
-#' plotADMPropositionSuccessRates(mdls[Positives > 10], limit=20, facets="Channel") +
+#' plotPropositionSuccessRates(mdls[Positives > 10], limit=20, facets="Channel") +
 #' scale_fill_continuous_divergingx()
 #' }
-plotADMPropositionSuccessRates <- function(modeldata,
-                                           aggregation=intersect(c("Issue","Group","Name","Treatment"), names(modeldata)),
-                                           facets="ConfigurationName",
-                                           limit = .Machine$integer.max,
-                                           maxNameLength = .Machine$integer.max)
+plotPropositionSuccessRates <- function(datamart,
+                                        aggregation=intersect(c("Issue","Group","Name","Treatment"), names(modeldata)),
+                                        facets="ConfigurationName",
+                                        limit = .Machine$integer.max,
+                                        maxNameLength = .Machine$integer.max,
+                                        filter = identity)
 {
-  Positives <- Proposition <- PropositionRank <- ResponseCount <- SnapshotTime <- `Success Rate` <- NULL # Trick to silence R CMD Check warnings
+  Positives <- Proposition <- PropositionRank <- ResponseCount <- SnapshotTime <- SuccessRate <- NULL # Trick to silence R CMD Check warnings
+  modeldata <- filter(datamart$modeldata)
 
   facets <- plotsCheckFacetsExist(modeldata, facets)
 
-  latestMdls <- modeldata[, .SD[which(SnapshotTime==max(SnapshotTime))], by=c("ModelID")]
-
-  propSuccess <- latestMdls[, list(`Success Rate` = weighted.mean(Positives/ResponseCount, ResponseCount, na.rm = T)),
-                            by=c(aggregation, facets)]
-  propSuccess[, `Success Rate` := ifelse(is.nan(`Success Rate`), 0, `Success Rate`)]
+  propSuccess <- modeldata[, list(SuccessRate = weighted.mean(Positives/ResponseCount, ResponseCount)),
+                           by=c(aggregation, facets)]
+  propSuccess[, SuccessRate := ifelse(is.nan(SuccessRate), 0, SuccessRate)]
   propSuccess$Proposition <- apply(propSuccess[, aggregation, with=F], 1, paste, collapse="/")
-  propSuccess[, PropositionRank := frank(-`Success Rate`, ties.method="first"), by=facets]
+  propSuccess[, PropositionRank := rank(-SuccessRate, ties.method="first"), by=facets]
 
   # propSuccess[, Name := factor(Name, levels=rev(levels(Name)))]
   ggplot(propSuccess[PropositionRank <= limit],
-         aes(`Success Rate`, factor(PropositionRank, levels=rev(sort(unique(PropositionRank)))), fill=`Success Rate`)) +
+         aes(SuccessRate, factor(PropositionRank, levels=rev(sort(unique(PropositionRank)))), fill=SuccessRate)) +
     geom_col() +
     # geom_text(aes(label=sprintf("%.2f%%", 100*`Success Rate`)), color="blue", hjust=0.5, size=2)+
     geom_text(aes(x=0, label=plotsAbbreviateName(Proposition, maxNameLength)), color="black", hjust=0, size=2)+
@@ -583,6 +583,9 @@ plotADMPropositionSuccessRates <- function(modeldata,
     plotsGetFacets(facets, scales="free") +
     plotsGetTitles("Proposition Success Rate", aggregation, facets, limit)
 }
+
+# TODO fix up so can deal with multiple models
+# use standard filter and datamart arguments
 
 #' Create cum gains plot for the model classifier.
 #'
@@ -595,9 +598,9 @@ plotADMPropositionSuccessRates <- function(modeldata,
 #'
 #' @examples
 #' \dontrun{
-#' plotADMCumulativeGains(classifierBinning)
+#' plotCumulativeGains(classifierBinning)
 #' }
-plotADMCumulativeGains <- function(binning)
+plotCumulativeGains <- function(binning)
 {
   BinIndex <- CumPositivesPct <- BinPositives <- CumVolumePct <- BinResponseCount <- NULL  # Trick to silence warnings from R CMD Check
 
@@ -626,6 +629,9 @@ plotADMCumulativeGains <- function(binning)
           axis.text.x = element_text(angle = 45, hjust = 1))
 }
 
+# TODO fix up so can deal with multiple models
+# use standard filter and datamart arguments
+
 #' Create cum lift plot for the model classifier.
 #'
 #' @param binning Binning of the classifier (technically it could
@@ -637,9 +643,9 @@ plotADMCumulativeGains <- function(binning)
 #'
 #' @examples
 #' \dontrun{
-#' plotADMCumulativeLift(classifierBinning)
+#' plotCumulativeLift(classifierBinning)
 #' }
-plotADMCumulativeLift <- function(binning)
+plotCumulativeLift <- function(binning)
 {
   BinIndex <- CumPositivesPct <- BinPositives <- CumVolumePct <- BinResponseCount <- NULL  # Trick to silence warnings from R CMD Check
 
@@ -665,7 +671,9 @@ plotADMCumulativeLift <- function(binning)
           axis.text.x = element_text(angle = 45, hjust = 1))
 }
 
-# TODO perhaps call this plotADMScoreDistribution as an alias
+# TODO perhaps call this plotScoreDistribution as an alias
+# TODO fix up so can deal with multiple models
+# use standard filter and datamart arguments
 
 #' Create binning plot for any predictor.
 #'
@@ -684,9 +692,9 @@ plotADMCumulativeLift <- function(binning)
 #'
 #' @examples
 #' \dontrun{
-#' plotADMBinning(predictorbinning[PredictorName=="NetWealth"])
+#' plotBinning(predictorbinning[PredictorName=="NetWealth"])
 #' }
-plotADMBinning <- function(binning, useSmartLabels = T) # TODO consider adding laplaceSmoothing = F to add 0.5 and 1.0
+plotBinning <- function(binning, useSmartLabels = T) # TODO consider adding laplaceSmoothing = F to add 0.5 and 1.0
 {
   BinIndex <- BinPositives <- BinResponseCount <- BinSymbol <- Positives <- Negatives <- NULL  # Trick to silence warnings from R CMD Check
 
@@ -710,7 +718,7 @@ plotADMBinning <- function(binning, useSmartLabels = T) # TODO consider adding l
     geom_line(aes(y=(BinPositives/BinResponseCount)/secAxisFactor),
               colour="orange", size=2) +
     geom_point(aes(y=(BinPositives/BinResponseCount)/secAxisFactor),
-              size=1) +
+               size=1) +
     geom_hline(data=data.table(Positives = sum(binning$BinPositives),
                                Negatives = sum(binning$BinNegatives)),
                mapping = aes(yintercept = (Positives/(Positives+Negatives))/secAxisFactor),
@@ -731,5 +739,69 @@ plotADMBinning <- function(binning, useSmartLabels = T) # TODO consider adding l
   }
 
   plt
+}
+
+#' HTML snippet with predictor info.
+#'
+#' Prints (cat) HTML snippet with predictor level info from a \code{data.table} with
+#' the predictor binning.
+#'
+#' @param predictorName Name of the predictor.
+#' @param binning Binning of the predictor.
+#' @param extra Optional list with extra key-value pairs added to the list.
+#'
+#' @export
+printADMPredictorInfo <- function(predictorName, binning, extra = list())
+{
+  # predictorinfo <- as.list(modelPredictorBins[PredictorName==f][1])
+
+  kvps <- list( "Univariate Performance (AUC)" = binning$Performance[1],
+                "Status" = binning$EntryType[1],
+                "Total Positives" = sum(binning$BinPositives),
+                "Total Negatives" = sum(binning$BinNegatives),
+                "Overall Propensity" = sprintf("%.2f%%",100*sum(binning$BinPositives)/sum(binning$BinResponseCount)),
+                "Predictor Group" = binning$GroupIndex[1])
+
+  kvps <- c(kvps, extra)
+
+  cat(paste0("\n<p></p>## ", predictorName, "\n<p></p>"))
+  cat("\n<p></p>|Field|Value|\n")
+  cat("|---|---|\n")
+
+  for (key in names(kvps)) {
+    cat(paste0("|", key, "|", kvps[[key]],"|\n"))
+  }
+
+  cat("<p></p>")
+}
+
+#' Creates user friendly table with binning info.
+#'
+#' @param bins Binning of the predictor.
+#'
+#' @return A \code{data.table} table with user friendly binning data.
+#' @export
+userFriendlyADMBinning <- function(bins)
+{
+  if (bins$EntryType[1] == "Classifier") {
+    return (data.table( Index = bins$BinIndex,
+                        Bin = bins$BinSymbol,
+                        Positives = bins$BinPositives,
+                        Negatives = bins$BinNegatives,
+                        `Cum. Total (%)` = rev(100.0*cumsum(rev(bins$BinResponseCount))/sum(bins$BinResponseCount)),
+                        `Propensity (%)` =  100*bins$BinPositives/bins$BinResponseCount,
+                        `Adjusted Propensity (%)` = 100*(0.5+bins$BinPositives)/(1+bins$BinResponseCount),
+                        `Cum. Positives (%)` = rev(100.0*cumsum(rev(bins$BinPositives))/sum(bins$BinPositives)),
+                        `Z-Ratio` = bins$ZRatio,
+                        `Lift (%)` = 100*bins$Lift) )
+  } else {
+    return (data.table( Index = bins$BinIndex,
+                        Bin = bins$BinSymbol,
+                        Positives = bins$BinPositives,
+                        Negatives = bins$BinNegatives,
+                        `Propensity (%)` =  100*bins$BinPositives/(bins$BinResponseCount),
+                        `Z-Ratio` = bins$ZRatio,
+                        `Lift (%)` = 100*bins$Lift) )
+  }
 }
 

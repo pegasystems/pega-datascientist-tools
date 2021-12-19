@@ -43,7 +43,7 @@ theme_set(theme_minimal())
 data(ihsampledata) 
 #ihsampledata <- readDSExport("Data-pxStrategyResult_pxInteractionHistory", "~/Downloads"
 
-cdhtools::applyUniformPegaFieldCasing(ihsampledata)
+cdhtools::standardizeFieldCasing(ihsampledata)
 
 # Both "Accept" and "Accepted" occur as labels - fix that for the reporting
 ihsampledata[Outcome == "Accept", Outcome := "Accepted"]

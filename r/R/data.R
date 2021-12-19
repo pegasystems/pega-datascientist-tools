@@ -25,6 +25,18 @@
 #' @source A sample Pega application
 "admdatamart_binning"
 
+#' Sample ADM Data Mart model and predictor data.
+#'
+#' Standard \code{list} datastructure as produced by \code{ADMDatamart}.
+#'
+#' @format A \code{list} with two \code{data.table} objects.
+#' \describe{
+#'   \item{modeldata}
+#'   \item{predictordata}
+#' }
+#' @source A sample Pega application
+"admdatamart"
+
 #' A small sample of IH data to illustrate how to import and analyze this.
 #'
 #' A \code{data.table} containing a sample of IH data.
@@ -43,8 +55,7 @@
 #' @source CDHSample
 "hds"
 
-# TODO:
-#  Run use_data_raw() if you have code to generate data (R data):
+# Run use_data_raw() if you have code to generate data (R data):
 # usethis::use_data_raw("mydata_set")
 # This will create a data-raw folder.
 # Let’s say you want to make a data set mydata_set:

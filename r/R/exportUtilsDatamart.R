@@ -13,29 +13,6 @@
 DATAMART_MODELTABLE <- "pr_data_dm_admmart_mdl_fact"
 DATAMART_PREDICTORTABLE <- "pr_data_dm_admmart_pred"
 
-# experiment: S4 class to represent ADM datamart
-# http://adv-r.had.co.nz/S4.html
-setClass("ADMDataMart", representation(modelSnapshots = "data.table", # must have
-                                       predictorSnapshots = "data.table", # optional detailed predictor binning
-                                       predictorSnapshotsWithoutBinning = "data.table", # optional predictor data without the binning (intermediate level not in datamart)
-                                       hasMultipleModelSnapshots = "logical",
-                                       hasPredictorSnapshots = "logical",
-                                       hasMultiplePredictorSnapshots = "logical"),
-         prototype(modelSnapshots = NULL, predictorSnapshots = NULL, predictorSnapshotsWithoutBinning = NULL,
-                   hasMultipleModelSnapshots = F, hasPredictorSnapshots = F, hasMultiplePredictorSnapshots = F))
-# or alternatively just simple
-ADMDataMart <- function(modeldata, predictordata=NULL)
-{
-  dm <- list()
-
-  # create list with a couple of attributes
-  # opportunity to do all kinds of processing right here
-  # (uniqueN(mdls$SnapshotTime) < 2)
-
-  return(dm)
-}
-
-
 # Returns a descriptive string representation of the model context for easier debugging
 getDMModelContextAsString <- function(partition)
 {
@@ -195,7 +172,7 @@ readADMDatamartPredictorTable <- function(conn, ModelIDs = NULL, latestOnly=T, v
   }
   predictors <- as.data.table(dbGetQuery(conn, query))
 
-  applyUniformPegaFieldCasing(predictors)
+  standardizeFieldCasing(predictors)
 
   #lastsnapshots <- predictors[, .SD[which(SnapshotTime == max(SnapshotTime))], by=c("ModelID")]
   return(predictors)

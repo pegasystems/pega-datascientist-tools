@@ -17,11 +17,10 @@ params:
     value: "Adaptive Model Report"
     
   predictordatafile:
-    # Full path to ADM predictor binning table data. There is 
-    # flexibility in format: CSV, zipped CSV or dataset export. If you have something
-    # different, you'll need to load, filter and re-write as CSV first.
+    # Full path to ADM predictor binning table data. Can be CSV, zipped CSV,
+    # LD-JSON, parquet or more.
     value: "../../data/pr_data_dm_admmart_pred.csv"
-    
+
   modeldescription:
     # Optional model description typically corresponding to the model info of the indicated model
     value: "Sales Model - PSDISCOUNT100"
@@ -37,7 +36,7 @@ params:
 library(cdhtools)
 
 # include below when developing the library
-# sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source)
+sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source)
 
 library(data.table)
 library(lubridate)
@@ -46,7 +45,6 @@ library(scales)
 library(knitr)
 library(kableExtra)
 library(plotly)
-# library(readxl) - standard support for Excel is a bit tricky, we recommend saving as CSV or read/write in a different R/Python script first
 library(gridExtra)
 
 theme_set(theme_minimal())
@@ -67,88 +65,29 @@ knitr::opts_chunk$set(
 if (!("predictordatafile" %in% names(params))) stop("Predictor binning missing. Please provide through parameter 'predictordatafile'.")
 if (!file.exists(params$predictordatafile)) stop(paste("File does not exist:", params$predictordatafile))
 
-# This read function is a helper for theses off-line reports. It looks at file
-# extensions to figure out whether to read CSV, a model export zip or something
-# else, then also sanitizes and standardizes the output. For specific needs we
-# recommend using readDSExport. If you need to deal with CSV's read with fread then 
-# standardize the casing with "applyUniformPegaFieldCasing" and fix up the
-# date/time fields if necessary.
-modelPredictorBins <- readDatamartFromFile(params$predictordatafile)
+# Subset to just the mpodel ID passed in
+datamart <- ADMDatamart(modeldata = NULL,
+                        predictordata = params$predictordatafile,
+                        filter = function(preds) {
+                          preds <- preds[ModelID == params$modelid]
+                          if (hasMultipleSnapshots(preds)) {
+                              # Take the latest snapshots from the last day. We're doing this carefully as we don't want to report on old bins
+# so just keeping the last day, then per predictor finding the actual last snapshot. This may not work in a situation
+# where not all models are updated frequently.
 
-# make sure there is only ONE model ID or subset to just the one passed in
-if (!(is.null(params$modelid) || (params$modelid %in% c("", "NA", "N/A", "na", "n/a")))) {
-  modelPredictorBins <- modelPredictorBins[ModelID == params$modelid]
-  if (nrow(modelPredictorBins) <= 1) {
-    stop(paste("No data found for model ID", params$modelid))
-  }
-} else {
-  if (length(unique(modelPredictorBins$ModelID)) > 1) {
-    stop(paste0("Expected only a single model ID in the data, got ", 
-                length(unique(modelPredictorBins$ModelID)), ". Pass in a model ID or split the file."))
-  }
+                            lastDay <- max(lubridate::floor_date(preds$SnapshotTime, unit = "days"))
+                            preds <- preds[lubridate::floor_date(SnapshotTime, unit="days") == lastDay]
+                            preds <- filterLatestSnapshotOnly(preds)
+                          }
+                          return(preds)
+                        })
+
+if (nrow(datamart$predictordata) <= 1) {
+  stop(paste("No data found for model ID", params$modelid))
 }
 
-# # in older versions "PredictorType" was called "Type" - keep both
-# if("Type" %in% names(modelPredictorBins) & !"PredictorType" %in% names(modelPredictorBins)) {
-#   modelPredictorBins[, PredictorType := Type]
-# }
-# if(!"Type" %in% names(modelPredictorBins) & "PredictorType" %in% names(modelPredictorBins)) {
-#   modelPredictorBins[, Type := PredictorType]
-# }
-
-# check for presence of required fields
-requiredFields <- c("SnapshotTime","ModelID",
-                    "PredictorName","PredictorType","Type","Performance",
-                    "BinIndex","BinSymbol","BinNegatives","BinPositives","EntryType","ZRatio","Lift")
-requiredFieldsForActualPerformance <- c("BinType", "BinLowerBound","BinUpperBound")
-optionalFields <- c("GroupIndex", requiredFieldsForActualPerformance) # not present in all product versions
-
-if (!all(sapply(requiredFields, function(x) { return(x %in% names(modelPredictorBins)) }))) {
-  stop(paste("Not all required fields present. Expected:", paste(requiredFields, collapse = ", "), 
-             "\ngot:", paste(names(modelPredictorBins), collapse = ", "),
-             "\nmissing:", paste(setdiff(requiredFields, names(modelPredictorBins)) , collapse = ", ")))
-}
-
-# keep only the required + optional fields in the data so to avoid implicit assumptions
-modelPredictorBins <- modelPredictorBins[, intersect(names(modelPredictorBins), c(requiredFields, optionalFields)), with=F]
-
-# Predictor binning can have multiple snapshots. Keeping performance over time but only the last binning.
-hasMultipleSnapshots <- (length(unique(modelPredictorBins$SnapshotTime)) > 1)
-
-if (hasMultipleSnapshots) {
-  predPerformanceOverTime <- unique(modelPredictorBins[, c("PredictorName", "Performance", "SnapshotTime"), with=F])  
-  
-  # Take the latest snapshots from the last day. We're doing this carefully as we don't want to report on old bins
-  # so just keeping the last day, then per predictor finding the actual last snapshot. This may not work in a situation
-  # where not all models are updated frequently.
-  
-  # # # NB we have seen situations where other formats appeared after import/export to Excel - may need to deal w that a la as.POSIXct(strptime(SnapshotTime, format="%Y-%m-%d"))
-  # modelPredictorBins[, snapshot := fromPRPCDateTime(SnapshotTime)] 
-  # if (sum(is.na(modelPredictorBins$snapshot))/nrow(modelPredictorBins) > 0.2) {
-  #   modelPredictorBins[, snapshot := parse_date_time(SnapshotTime, orders=c("%Y-%m-%d %H:%M:%S"))] 
-  #   if (sum(is.na(modelPredictorBins$snapshot))/nrow(modelPredictorBins) > 0.2) {
-  #     stop("Assumed Pega date-time string but resulting in over 20% NA's in snapshot time after conversion. Check that this is valid or update the code that deals with date/time conversion.")
-  #   }
-  # }
-  
-  lastDay <- max(lubridate::floor_date(modelPredictorBins$SnapshotTime, unit = "days"))
-  modelPredictorBins <- modelPredictorBins[lubridate::floor_date(SnapshotTime, unit="days") == lastDay]
-  modelPredictorBins <- modelPredictorBins[, .SD[SnapshotTime == max(SnapshotTime)], by=c("ModelID")]
-}
-
-# recalculate a few fields that are used - use the naming conventions from the data mart
-# NB Performance, Z-Ratio, Lift could have been calculated from the bins but not doing so guarantees consistency with the product reports
-
-modelPredictorBins[, BinResponseCount := (BinPositives+BinNegatives)]
-modelPredictorBins[, Positives := sum(BinPositives), by=PredictorName]
-modelPredictorBins[, Negatives := sum(BinNegatives), by=PredictorName]
-
-# predictor grouping index was not always there, add it as just a sequence number when absent
-if (!("GroupIndex" %in% names(modelPredictorBins))) {
-  modelPredictorBins[, GroupIndex := .GRP, by=PredictorName]
-}
-
-setorder(modelPredictorBins, -Performance, BinIndex)
+modelPredictorBins <- datamart$predictordata
+classifierBinning <- filterClassifierOnly(modelPredictorBins)
 ```
 
 # Model Performance and Score Distribution
@@ -160,8 +99,6 @@ The model scores (sum of the log odds of the Naive Bayes classifier) are mapped 
 The model reports a performance of `r round(modelPredictorBins[EntryType == "Classifier"]$Performance[1],5)` measured in AUC. If supporting data is available, the actual AUC is recalculated using only those bins that fall into the current score range (if available, shown in parentheses in the title and bins not in range greyed out).
 
 ```{r, echo=F, warning=F, error=F}
-classifierBinning <- modelPredictorBins[EntryType == "Classifier"]
-
 actualPerformance <- NULL
 classifierBinning[, inCurrentRange := T]
 
@@ -207,15 +144,15 @@ if (!is.null(actualPerformance)) {
 }
 
 if (nrow(classifierBinning) >= 1 & (sum(classifierBinning$BinNegatives) + sum(classifierBinning$BinPositives) > 0)) {
-  cumGains <- plotADMCumulativeGains(classifierBinning)
+  cumGains <- plotCumulativeGains(classifierBinning)
   
-  cumLift <- plotADMCumulativeLift(classifierBinning)
+  cumLift <- plotCumulativeLift(classifierBinning)
   
   # TODO: add a cum Success rate one. Like lift but w/o the division.
   # TODO: consider ggplot of these, those work just fine
   # TODO: classic one on separate line. Make bars less prominent. Swap y-axes - they're opposite what product does.
   
-  classic <- plotADMBinning(classifierBinning) + ggtitle("Score Distribution")
+  classic <- plotBinning(classifierBinning) + ggtitle("Score Distribution")
   
   #ggplotly(cumGains) - TODO convert to plotly plot as ggplotly doesnt show both axes
 
@@ -289,7 +226,7 @@ if (nrow(classifierBinning) >= 1) {
 Active predictors grouped by category.
 
 ```{r Predictor Category}
-plotADMPredictorImportance(modelPredictorBins, categoryAggregateView = T) +
+plotPredictorImportance(datamart, categoryAggregateView = T) +
   scale_fill_discrete(guide="none")
 ```
 
@@ -353,7 +290,7 @@ for (f in unique(modelPredictorBins[EntryType == "Active"]$PredictorName)) {
     # colour names: http://sape.inf.usi.ch/quick-reference/ggplot2/colour
     
     if (nrow(predictorBinning) > 1) {
-      p <- plotADMBinning(predictorBinning)+ ggtitle(f)
+      p <- plotBinning(predictorBinning)+ ggtitle(f)
       
       print(p)
     }  
