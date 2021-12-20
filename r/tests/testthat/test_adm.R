@@ -1,5 +1,5 @@
 library(testthat)
-library(cdhtools)
+# library(cdhtools)
 
 context("ADM Checks")
 
@@ -106,7 +106,7 @@ test_that("ADMDatamart from tables", {
   expect_equal(nrow(dm$predictordata), 70735)
 
   dm <- ADMDatamart(admdatamart_models, admdatamart_binning,
-                    filter = function(x) { return(x[Channel != "SMS"])})
+                    filterModelData = function(x) { return(x[Channel != "SMS"])})
 
   expect_equal(length(dm), 2)
   expect_equal(nrow(dm$modeldata), 638)

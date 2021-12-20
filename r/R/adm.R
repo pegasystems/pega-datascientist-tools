@@ -34,15 +34,6 @@ standardizeDatamartData <- function(dt)
   # standardized camel casing of fields
   standardizeFieldCasing(dt)
 
-  # # filter to only take latest snapshot
-  # if (latestOnly) {
-  #   if (is.factor(dt$SnapshotTime)) {
-  #     dt <- dt[, .SD[SnapshotTime == max(as.character(SnapshotTime))], by=ModelID] # careful, which.max returns only 1
-  #   } else {
-  #     dt <- dt[, .SD[SnapshotTime == max(SnapshotTime)], by=ModelID] # careful, which.max returns only 1
-  #   }
-  # }
-
   # some fields notoriously returned as char but are numeric
   for (fld in c("Performance", "Positives", "Negatives", "BinLowerBound", "BinUpperBound")) {
     if (fld %in% names(dt)) {
@@ -436,25 +427,6 @@ readFromSource <- function(file, folder, tmpFolder)
   return(dt)
 }
 
-# TODO consider code like this
-# # check for presence of required fields
-# requiredFields <- c("SnapshotTime","ModelID",
-#                     "PredictorName","PredictorType","Type","Performance",
-#                     "BinIndex","BinSymbol","BinNegatives","BinPositives","EntryType","ZRatio","Lift")
-# requiredFieldsForActualPerformance <- c("BinType", "BinLowerBound","BinUpperBound")
-# optionalFields <- c("GroupIndex", requiredFieldsForActualPerformance) # not present in all product versions
-#
-# if (!all(sapply(requiredFields, function(x) { return(x %in% names(modelPredictorBins)) }))) {
-#   stop(paste("Not all required fields present. Expected:", paste(requiredFields, collapse = ", "),
-#              "\ngot:", paste(names(modelPredictorBins), collapse = ", "),
-#              "\nmissing:", paste(setdiff(requiredFields, names(modelPredictorBins)) , collapse = ", ")))
-# }
-#
-# # keep only the required + optional fields in the data so to avoid implicit assumptions
-# modelPredictorBins <- modelPredictorBins[, intersect(names(modelPredictorBins), c(requiredFields, optionalFields)), with=F]
-#
-
-
 #' Generic method to read ADM Datamart data.
 #'
 #' Method is very flexible in the arguments. It can take a \code{data.table}
@@ -463,10 +435,10 @@ readFromSource <- function(file, folder, tmpFolder)
 #'
 #' @param modeldata Location, reference or the actual model table from the
 #' ADM datamart. If not given defaults to the name of the dataset export file
-#' for the datamart model table.
+#' for the datamart model table. To not use it at all, set to FALSE.
 #' @param predictordata Location, reference or the actual predictor binning
 #' table from the ADM datamart. If not given defaults to the name of the dataset export file
-#' for the datamart predictor binning table.
+#' for the datamart predictor binning table. To not use at all, set to FALSE.
 #' @param folder Optional path for the folder in which to look for the model
 #' and predictor data. If first two arguments are not given will try to
 #' interpret the modeldata argument as the folder name and use the default
@@ -510,8 +482,8 @@ readFromSource <- function(file, folder, tmpFolder)
 #' \dontrun{
 #'   datamart <- ADMDatamart("~/Downloads")
 #' }
-ADMDatamart <- function(modeldata = "Data-Decision-ADM-ModelSnapshot_(py)?ModelSnapshots",
-                        predictordata = "Data-Decision-ADM-PredictorBinningSnapshot_(py)?ADMPredictorSnapshots",
+ADMDatamart <- function(modeldata = NULL,
+                        predictordata = NULL,
                         folder = ".",
                         cleanupHookModelData = identity,
                         cleanupHookPredictorData = identity,
@@ -526,19 +498,28 @@ ADMDatamart <- function(modeldata = "Data-Decision-ADM-ModelSnapshot_(py)?ModelS
     Performance <- PredictorName <- ModelID <- EntryType <- Propensity <-
     BinPositives <- BinResponseCount <- NULL # Trick to silence warnings from R CMD Check
 
-  # this makes readADMDatamartModelExport and readADMDatamartPredictorExport obsolete
-
-  # If first arg is a folder assume default for model and predictors. If
-  # second is a folder assume we have no predictor data.
+  # If first arg is a folder then ignore the folder arg and reset modeldata to default.
   if (!is.data.table(modeldata) && !is.data.frame(modeldata)) {
     if (!is.null(modeldata) && dir.exists(modeldata)) {
       folder = modeldata
-      modeldata <- "Data-Decision-ADM-ModelSnapshot_(py)?ModelSnapshots"
-      predictordata <- "Data-Decision-ADM-PredictorBinningSnapshot_(py)?ADMPredictorSnapshots"
-    } else if (!is.null(predictordata) && dir.exists(predictordata)) {
-      folder = predictordata
-      predictordata = NULL
+      modeldata <- NULL
     }
+  }
+
+  # If second arg is a folder assume there is no predictor data
+  if (!is.data.table(predictordata) && !is.data.frame(predictordata)) {
+    if (!is.null(predictordata) && dir.exists(predictordata)) {
+      folder = predictordata
+      predictordata <- F
+    }
+  }
+
+  # Defaults assume model and predictor data are a dataset export
+  if (is.null(modeldata)) {
+    modeldata <- "Data-Decision-ADM-ModelSnapshot_(py)?ModelSnapshots"
+  }
+  if (is.null(predictordata)) {
+    predictordata <- "Data-Decision-ADM-PredictorBinningSnapshot_(py)?ADMPredictorSnapshots"
   }
 
   # Define fields for model and predictor tables that we require, fields that are
@@ -579,7 +560,7 @@ ADMDatamart <- function(modeldata = "Data-Decision-ADM-ModelSnapshot_(py)?ModelS
 
   # Read models
 
-  if (is.null(modeldata)) {
+  if (isFALSE(modeldata)) {
     modelz <- NULL
   } else {
     if (is.data.table(modeldata) | is.data.frame(modeldata)) {
@@ -627,7 +608,7 @@ ADMDatamart <- function(modeldata = "Data-Decision-ADM-ModelSnapshot_(py)?ModelS
 
   # Read Predictor data
 
-  if (is.null(predictordata)) {
+  if (isFALSE(predictordata)) {
     predz <- NULL
   } else {
     if (is.data.table(predictordata) | is.data.frame(predictordata)) {

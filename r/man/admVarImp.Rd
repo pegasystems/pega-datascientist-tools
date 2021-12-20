@@ -4,18 +4,22 @@
 \alias{admVarImp}
 \title{Calculate variable importance from ADM Datamart data.}
 \usage{
-admVarImp(dmModels, dmPredictors, facets = NULL)
+admVarImp(
+  datamart,
+  facets = NULL,
+  filter = function(x) {     filterClassifierOnly(x, reverse = T) }
+)
 }
 \arguments{
-\item{dmModels}{Data frame (or anything else that converts to
-\code{data.table}) with the ADM datamart model data. Only used
-when there are facets, so can be NULL.}
-
-\item{dmPredictors}{Data frame (or anything else that converts to
-\code{data.table}) with the ADM datamart predictor data.}
+\item{datamart}{Data frame with the ADM datamart data. Model data is only
+used when there are facets, so the model part could in principle be NULL.}
 
 \item{facets}{Optional list of names from the model data to aggregate
 up to.}
+
+\item{filter}{Optional filter for the predictor data. Defaults to filter
+out the classifiers, so operates on both active and inactive predictors.
+Pass in \code{filterActiveOnly} to only consider the active predictors.}
 }
 \value{
 A \code{data.table}) with \code{PredictorName}, \code{Importance}
@@ -29,9 +33,8 @@ the univariate predictor performance (AUC).
 }
 \examples{
 \dontrun{
-  models <- readADMDatamartModelExport("~/Downloads")
-  preds <- readADMDatamartPredictorExport("~/Downloads", noBinning = F)
+  dm <- ADMDatamart("~/Downloads")
 
-  varimp <- admVarImp(models, preds)
+  varimp <- admVarImp(dm)
 }
 }

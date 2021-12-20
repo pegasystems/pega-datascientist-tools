@@ -337,13 +337,10 @@ plotPredictorImportance <- function(datamart,
 
   if (showAsBoxPlot) {
     if (activeOnly) {
-      featureImportance <- admVarImp(modeldata,
-                                     predictordata[EntryType=="Active"],
-                                     facets = NULL)
+      featureImportance <- admVarImp(datamart,
+                                     filter = filterActiveOnly)
     } else {
-      featureImportance <- admVarImp(modeldata,
-                                     predictordata[EntryType!="Classifier"],
-                                     facets = NULL)
+      featureImportance <- admVarImp(datamart) # default uses both active and inactive but not classifier
     }
 
     # Now join in any facets - if there are any
@@ -361,12 +358,11 @@ plotPredictorImportance <- function(datamart,
     featureImportance[, PerformanceRank := frank(-PerformanceMedian, ties.method="dense"), by=facets]
   } else {
     if (activeOnly) {
-      featureImportance <- admVarImp(modeldata,
-                                     predictordata[EntryType=="Active"],
+      featureImportance <- admVarImp(datamart,
+                                     filter = filterActiveOnly,
                                      facets = facets)
     } else {
-      featureImportance <- admVarImp(modeldata,
-                                     predictordata[EntryType!="Classifier"],
+      featureImportance <- admVarImp(datamart,
                                      facets = facets)
     }
   }

@@ -1,5 +1,5 @@
 library(testthat)
-library(cdhtools)
+# library(cdhtools)
 library(lubridate)
 
 context("check basic utilities")
@@ -11,11 +11,11 @@ test_that("dataset exports", {
 
   data <- readDSExport("dsexports/Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip")
   expect_equal(nrow(data), 30)
-  expect_equal(ncol(data), 22)
+  expect_equal(ncol(data), 24)
 
   data <- readDSExport("Data-Decision-ADM-ModelSnapshot_All","dsexports")
   expect_equal(nrow(data), 30)
-  expect_equal(ncol(data), 22)
+  expect_equal(ncol(data), 24)
 
   data <- readDSExport("Data-Decision-ADM-PredictorBinningSnapshot_All","dsexports")
   expect_equal(nrow(data), 1755)
@@ -29,45 +29,35 @@ test_that("dataset exports", {
 
 test_that("specialized model data export", {
 
-  expect_error(ADMDatamart(modeldata = "Data-Decision-ADM-ModelSnapshot_All", folder = "dsexports"),
-               "Not all required model fields present")
+  expect_error(ADMDatamart(modeldata = "Data-Decision-ADM-ModelSnapshot_All",
+                           folder = "dsexports"),
+               "Dataset JSON file not found looking for pattern")
 
   data <- ADMDatamart(modeldata = "Data-Decision-ADM-ModelSnapshot_All",
-                      predictordata = NULL,
-                      folder = "dsexports",
-                      cleanupHookModelData = function(mdls) {
-                        mdls[, Direction := "NA"]
-                        mdls[, Channel := "NA"]
-                        return(mdls)
-                      })
+                      predictordata = F,
+                      folder = "dsexports")
 
   expect_equal(nrow(data$modeldata), 30)
   expect_equal(ncol(data$modeldata), 16) # omits internal fields
 
   expect_identical(sort(names(data$modeldata)),
-                   c("ConfigurationName", "Direction", "Group", "Issue",
-                     "ModelID", "Name", "Negatives", "Performance", "Positives",
-                     "ResponseCount", "SnapshotTime", "SuccessRate", "TotalPredictors" ))
+                   sort(c("ConfigurationName", "Direction", "Group", "Issue",
+                     "Channel", "ModelID", "Name", "Negatives", "Performance", "Positives",
+                     "ResponseCount", "SnapshotTime", "SuccessRate",
+                     "ActivePredictors", "TotalPredictors", "AUC" )))
 
-  dataTypes <- as.character(sapply(data$modeldata[, sort(names(data$modeldata)), with=F], class))
-  expect_equal(dataTypes,
-               c("integer", "factor", "factor", "factor", "factor",
-                 "factor", "factor", "numeric", "numeric", "numeric",
-                 "numeric", "numeric", "numeric",
-                 "numeric", "c(\"POSIXct\", \"POSIXt\")", "integer"));
+  expect_equal(sum(sapply(data$modeldata, is.factor)), 7)
+  expect_equal(sum(sapply(data$modeldata, is.numeric)), 8)
+  expect_equal(sum(sapply(data$modeldata, is.POSIXt)), 1)
+  expect_equal(sum(sapply(data$modeldata, is.character)), 0)
 
   data <- ADMDatamart(modeldata = "Data-Decision-ADM-ModelSnapshot_All",
-                      predictordata = NULL,
+                      predictordata = F,
                       folder = "dsexports",
-                      cleanupHookModelData = function(mdls) {
-                        mdls[, Direction := "NA"]
-                        mdls[, Channel := "NA"]
-                        return(mdls)
-                      },
-                      filter = filterLatestSnapshotOnly)
+                      filterModelData = filterLatestSnapshotOnly)
 
-  expect_equal(nrow(data), 15) # only latest snapshot
-  expect_equal(ncol(data), 16)
+  expect_equal(nrow(data$modeldata), 15) # only latest snapshot
+  expect_equal(ncol(data$modeldata), 16)
 })
 
 test_that("model export with JSON names", {
@@ -78,7 +68,7 @@ test_that("model export with JSON names", {
   expect_setequal(unique(m1$pyName),
                   c("{\"Proposition\":\"P1\"}","{\"pyName\":\"SuperSaver\",\"pyTreatment\":\"Bundles_WebTreatment\"}","BasicChecking","P10"))
 
-  m2 <- ADMDatamart(m1, predictordata = NULL)
+  m2 <- ADMDatamart(m1, predictordata = F)
 
   expect_equal(ncol(m2), 20)
   expect_equal(nrow(m2), 361)
