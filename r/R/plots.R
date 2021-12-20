@@ -176,7 +176,7 @@ plotPerformanceSuccessRateBoxPlot <- function(datamart,
                                               facets = c(),
                                               filter = identity)
 {
-  Performance <- Positives <- ResponseCount <- NULL # Trick to silence R CMD Check warnings
+  Positives <- ResponseCount <- AUC <- NULL # Trick to silence R CMD Check warnings
 
   modeldata <- filter(datamart$modeldata)
   facets <- plotsCheckFacetsExist(modeldata, facets)
@@ -213,7 +213,7 @@ plotPerformanceOverTime <- function(datamart,
                                     facets=c("ConfigurationName"),
                                     filter = identity)
 {
-  SnapshotTime <- Performance <- ResponseCount <- Proposition <- NULL  # Trick to silence warnings from R CMD Check
+  SnapshotTime <- Performance <- ResponseCount <- Aggregation <- NULL  # Trick to silence warnings from R CMD Check
 
   modeldata <- filter(datamart$modeldata)
   facets <- plotsCheckFacetsExist(modeldata, facets)
@@ -334,7 +334,7 @@ plotPredictorImportance <- function(datamart,
 {
   Importance <- ImportanceMean <- ImportanceMedian <- ImportanceRank <-
     ResponseCount <- Performance <- PerformanceMean <- PerformanceMedian <-
-    PerformanceRank <- Category <- PredictorName <- NULL  # Trick to silence warnings from R CMD Check
+    PerformanceRank <- Category <- PredictorName <- ModelID <- PredictorCategory <- NULL  # Trick to silence warnings from R CMD Check
 
   modeldata <- filter(datamart$modeldata)
   predictordata <- datamart$predictordata[ModelID %in% unique(modeldata$ModelID)]
@@ -469,7 +469,8 @@ plotPredictorImportanceHeatmap <- function(datamart,
                                            maxNameLength = .Machine$integer.max,
                                            filter = identity)
 {
-  EntryType <- meanPerf <- Performance <- PredictorName <- Proposition <- ResponseCount <- NULL # Trick to silence R CMD Check warnings
+  EntryType <- meanPerf <- Performance <- PredictorName <- Proposition <-
+    ModelID <- PredictorCategory <- ResponseCount <- NULL # Trick to silence R CMD Check warnings
 
   modeldata <- filter(datamart$modeldata)
   predictordata <- datamart$predictordata[ModelID %in% unique(modeldata$ModelID)]
@@ -697,7 +698,7 @@ plotCumulativeLift <- function(binning)
 #' }
 plotBinning <- function(binning, useSmartLabels = T) # TODO consider adding laplaceSmoothing = F to add 0.5 and 1.0
 {
-  BinIndex <- BinPositives <- BinResponseCount <- BinSymbol <- Positives <- Negatives <- NULL  # Trick to silence warnings from R CMD Check
+  BinIndex <- BinPositives <- BinResponseCount <- BinSymbol <- Positives <- Negatives <- Propensity <- NULL  # Trick to silence warnings from R CMD Check
 
   binning[, BinIndex := as.numeric(BinIndex)] # just in case
   setorder(binning, BinIndex)

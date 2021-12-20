@@ -82,5 +82,7 @@ pointing to files in CSV, zipped CSV, (LD)JSON, parquet or dataset export format
 \examples{
 \dontrun{
   datamart <- ADMDatamart("~/Downloads")
+
+  datamart <- ADMDatamart("models.csv", "predictors.csv", folder="adm")
 }
 }

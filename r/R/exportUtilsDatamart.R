@@ -108,7 +108,8 @@ readADMDatamartModelTable <- function(conn, appliesToFilter=NULL, ruleNameFilter
 
   modelz <- rbindlist(allModels)
 
-  modelz <- standardizeDatamartModelData(modelz, latestOnly=latestOnly)
+  standardizeFieldCasing(modelz)
+  modelz <- fixDatamartFieldTypes(modelz)
   modelz <- expandEmbeddedJSONContext(modelz)
 
   return(modelz)
@@ -173,6 +174,7 @@ readADMDatamartPredictorTable <- function(conn, ModelIDs = NULL, latestOnly=T, v
   predictors <- as.data.table(dbGetQuery(conn, query))
 
   standardizeFieldCasing(predictors)
+  predictors <- fixDatamartFieldTypes(predictors)
 
   #lastsnapshots <- predictors[, .SD[which(SnapshotTime == max(SnapshotTime))], by=c("ModelID")]
   return(predictors)

@@ -34,6 +34,8 @@ dropInternalDatamartFields <- function(dt)
 # Drop internal fields
 fixDatamartFieldTypes <- function(dt)
 {
+  SnapshotTime <- NULL # Trick to silence R CMD Check warnings
+
   # some fields notoriously returned as char but are numeric
   for (fld in c("Performance", "Positives", "Negatives", "BinLowerBound", "BinUpperBound")) {
     if (fld %in% names(dt)) {
@@ -101,7 +103,8 @@ expandEmbeddedJSONContext <- function(dt, fieldName = "Name")
 #' @export
 #'
 #' @examples
-#' filterLatestSnapshotOnly(adm_datamart_binning)
+#' data(adm_datamart)
+#' filterLatestSnapshotOnly(adm_datamart$modeldata)
 filterLatestSnapshotOnly <- function(dt)
 {
   ModelID <- NULL # Trick to silence R CMD Check warnings
@@ -126,9 +129,12 @@ filterLatestSnapshotOnly <- function(dt)
 #' @export
 #'
 #' @examples
-#' filterClassifierOnly(adm_datamart_binning)
+#' data(adm_datamart)
+#' filterClassifierOnly(adm_datamart$preditordata)
 filterClassifierOnly <- function(dt, reverse = F)
 {
+  EntryType <- NULL # Trick to silence R CMD Check warnings
+
   if (reverse) {
     return(dt[EntryType!="Classifier"])
   } else {
@@ -145,9 +151,12 @@ filterClassifierOnly <- function(dt, reverse = F)
 #' @export
 #'
 #' @examples
-#' filterActiveOnly(adm_datamart_binning)
+#' data(adm_datamart)
+#' filterActiveOnly(adm_datamart$predictordata)
 filterActiveOnly <- function(dt, reverse = F)
 {
+  EntryType <- NULL # Trick to silence R CMD Check warnings
+
   if (reverse) {
     return(dt[EntryType!="Active"])
   } else {
@@ -164,9 +173,12 @@ filterActiveOnly <- function(dt, reverse = F)
 #' @export
 #'
 #' @examples
-#' filterInactiveOnly(adm_datamart_binning)
+#' data(adm_datamart)
+#' filterInactiveOnly(adm_datamart$predictordata)
 filterInactiveOnly <- function(dt, reverse = F)
 {
+  EntryType <- NULL # Trick to silence R CMD Check warnings
+
   if (reverse) {
     return(dt[EntryType!="Inactive"])
   } else {
@@ -184,9 +196,12 @@ filterInactiveOnly <- function(dt, reverse = F)
 #' @export
 #'
 #' @examples
-#' filterPredictorBinning(adm_datamart_binning)
+#' data(adm_datamart)
+#' filterPredictorBinning(adm_datamart$predictordata)
 filterPredictorBinning <- function(dt)
 {
+  BinIndex <- NULL # Trick to silence R CMD Check warnings
+
   noBinningSkipFields <- c("BinSymbol","BinNegativesPercentage","BinPositivesPercentage",
                            "BinNegatives", "BinPositives", "RelativeBinNegatives", "RelativeBinPositives",
                            "BinResponseCount", "RelativeBinResponseCount", "BinResponseCountPercentage",
@@ -210,7 +225,8 @@ filterPredictorBinning <- function(dt)
 #' @export
 #'
 #' @examples
-#' hasMultipleSnapshots(adm_datamart_models)
+#' data(adm_datamart)
+#' hasMultipleSnapshots(adm_datamart$modeldata)
 hasMultipleSnapshots <- function(dt)
 {
   if (is.null(dt)) return(F)
@@ -240,11 +256,11 @@ readFromSource <- function(file, folder, tmpFolder)
 
     if (endsWith(file, ".json")) {
       # Speedy JSON read through arrow
-      return(as.data.table(read_json_arrow(file)))
+      return(as.data.table(arrow::read_json_arrow(file)))
     }
 
     if (endsWith(file, ".parquet")) {
-      return(as.data.table(read_parquet(file)))
+      return(as.data.table(arrow::read_parquet(file)))
     }
   }
 
@@ -308,6 +324,8 @@ readFromSource <- function(file, folder, tmpFolder)
 #' @examples
 #' \dontrun{
 #'   datamart <- ADMDatamart("~/Downloads")
+#'
+#'   datamart <- ADMDatamart("models.csv", "predictors.csv", folder="adm")
 #' }
 ADMDatamart <- function(modeldata = NULL,
                         predictordata = NULL,
@@ -323,7 +341,7 @@ ADMDatamart <- function(modeldata = NULL,
 {
   ModelData <- SuccessRate <- Positives <- ResponseCount <- AUC <-
     Performance <- PredictorName <- ModelID <- EntryType <- Propensity <-
-    BinPositives <- BinResponseCount <- NULL # Trick to silence warnings from R CMD Check
+    BinPositives <- BinResponseCount <- BinIndex <- GroupIndex <- NULL # Trick to silence warnings from R CMD Check
 
   # If first arg is a folder then ignore the folder arg and reset modeldata to default.
   if (!is.data.table(modeldata) && !is.data.frame(modeldata) && !is.logical(modeldata)) {
@@ -411,6 +429,7 @@ ADMDatamart <- function(modeldata = NULL,
     modelz <- filterModelData(modelz)
     modelz <- expandEmbeddedJSONContext(modelz)
 
+    # TODO: generalize below
     doNotFactorizeFields <- c("ModelID")
     for (f in setdiff(names(modelz)[sapply(modelz, is.character)], doNotFactorizeFields)) {
       modelz[[f]] <- factor(modelz[[f]])
@@ -468,6 +487,7 @@ ADMDatamart <- function(modeldata = NULL,
     }
     predz <- filterPredictorData(predz)
 
+    # TODO: generalize below
     doNotFactorizeFields <- intersect(c("ModelID", "BinSymbol"), names(predz))
     for (f in setdiff(names(predz)[sapply(predz, is.character)], doNotFactorizeFields)) {
       predz[[f]] <- factor(predz[[f]])
@@ -542,7 +562,7 @@ ADMDatamart <- function(modeldata = NULL,
 #' up to.
 #' @param filter Optional filter for the predictor data. Defaults to filter
 #' out the classifiers, so operates on both active and inactive predictors.
-#' Pass in \code{filterActiveOnly} to only consider the active predictors.
+#' See examples.
 #'
 #' @return A \code{data.table}) with \code{PredictorName}, \code{Importance}
 #' and \code{Rank} plus columns for each of the \code{facets} if supplied.
@@ -553,6 +573,8 @@ ADMDatamart <- function(modeldata = NULL,
 #'   dm <- ADMDatamart("~/Downloads")
 #'
 #'   varimp <- admVarImp(dm)
+#'
+#'   varimp <- admVarImp(dm, filter = filterActiveOnly)
 #' }
 admVarImp <- function(datamart, facets = NULL, filter = function(x) {filterClassifierOnly(x, reverse=T)})
 {

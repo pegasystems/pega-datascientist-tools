@@ -99,7 +99,6 @@ Here we "facet" by model rule (ConfigurationName) but you can also leave this
 out or facet by e.g. Channel or Issue.
 
 ```{r fig.height=9, fig.width=9}
-# varimp <- admVarImp(adm_datamart_models_latest, adm_datamart_binning, c("ConfigurationName"))
 plotPredictorImportance(adm_datamart, limit = 30)
 ```
 
