@@ -1,13 +1,13 @@
 library(testthat)
 
-library(rmarkdown)
+# library(rmarkdown)
 
 # Below used in the notebooks. Necessary to repeat?
-library(lubridate)
-library(cdhtools)
-library(data.table)
-library(ggplot2)
-library(colorspace)
+# library(lubridate)
+# library(cdhtools)
+# library(data.table)
+# library(ggplot2)
+# library(colorspace)
 
 context("Verify the R notebooks in the examples folder")
 
@@ -84,6 +84,9 @@ test_that("check not sourcing CDH Tools files directly", {
   if (dir.exists(exampleFolder)) {
     rFilez <- list.files(packageRootFolder, pattern=".Rmd", recursive = T, full.names = T)
     for (rFile in rFilez) {
+      # skip files with .Rcheck in the name
+      if (grepl(".Rcheck", rFile, fixed = T)) next
+
       scanFileForSourceInclusion <- grepl("^[ ]*[^#]*source.*[(|)]", readLines(rFile))
       expect_false(any(scanFileForSourceInclusion),
                    info = paste("Looks like there is a direct include of CDH tools source in", rFile,

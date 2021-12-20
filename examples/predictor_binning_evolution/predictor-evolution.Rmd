@@ -7,6 +7,7 @@ output: html_document
 
 ```{r setup, include = FALSE}
 library(cdhtools)
+
 library(ggplot2)
 library(scales)
 library(colorspace)
@@ -112,6 +113,7 @@ addReqFields <- function(dt)
   dt[, EntryType := "Active"]
   if (!("BinSymbol" %in% names(dt))) dt[, BinSymbol := paste0("[", BinLower, " - ", BinUpper, "]")]
   dt[, Performance := auc_from_bincounts(BinPositives, BinNegatives)]
+  dt[, Propensity := BinPositives/BinResponseCount]
 
   dt  
 }

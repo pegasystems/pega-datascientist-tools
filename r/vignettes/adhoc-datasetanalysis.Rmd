@@ -45,7 +45,7 @@ In Pega, export the dataset and download it to your local filesystem.
 library(cdhtools)
 
 # include below when developing the library
-sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source)
+# sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source)
 
 ihdata <- readDSExport("Data-pxStrategyResult_pxInteractionHistory", "~/Downloads") 
 ```

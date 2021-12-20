@@ -36,7 +36,7 @@ params:
 library(cdhtools)
 
 # include below when developing the library
-sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source)
+# sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source)
 
 library(data.table)
 library(lubridate)
@@ -66,9 +66,9 @@ if (!("predictordatafile" %in% names(params))) stop("Predictor binning missing. 
 if (!file.exists(params$predictordatafile)) stop(paste("File does not exist:", params$predictordatafile))
 
 # Subset to just the mpodel ID passed in
-datamart <- ADMDatamart(modeldata = NULL,
+datamart <- ADMDatamart(modeldata = F,
                         predictordata = params$predictordatafile,
-                        filter = function(preds) {
+                        filterPredictorData = function(preds) {
                           preds <- preds[ModelID == params$modelid]
                           if (hasMultipleSnapshots(preds)) {
                               # Take the latest snapshots from the last day. We're doing this carefully as we don't want to report on old bins
@@ -242,7 +242,7 @@ Number of positives and negatives in each bin and the derived lift and Z-ratio. 
 predSummary <- modelPredictorBins[EntryType != "Classifier", list(Negatives = sum(BinNegatives),
                                                                Positives = sum(BinPositives),
                                                                Active = EntryType[1],
-                                                               Type = PredictorType[1],
+                                                               Type = Type[1],
                                                                Bins = .N,
                                                                Performance = Performance[1],
                                                                Group = GroupIndex[1]), by=PredictorName]

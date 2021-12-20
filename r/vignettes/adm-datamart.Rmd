@@ -44,7 +44,7 @@ a dataset export will be described later.
 library(cdhtools)
 
 # include below when developing the library
-invisible(sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source))
+# invisible(sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source))
 
 data(admdatamart_models)
 data(admdatamart_binning)

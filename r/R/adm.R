@@ -21,19 +21,19 @@ standardizedParseTime <- function(t)
   return(t)
 }
 
-# Drop internal fields, fix types and more
-standardizeDatamartData <- function(dt)
+# Drop internal fields
+dropInternalDatamartFields <- function(dt)
 {
-  FactoryUpdateTime <- SnapshotTime <- ModelID <- NULL # Trick to silence warnings from R CMD Check
-
-  # drop internal fields
   if (any(grepl("^p[x|z]", names(dt), ignore.case = T))) {
     dt[, names(dt)[grepl("^p[x|z]", names(dt), ignore.case = T)] := NULL]
   }
 
-  # standardized camel casing of fields
-  standardizeFieldCasing(dt)
+  return(dt)
+}
 
+# Drop internal fields
+fixDatamartFieldTypes <- function(dt)
+{
   # some fields notoriously returned as char but are numeric
   for (fld in c("Performance", "Positives", "Negatives", "BinLowerBound", "BinUpperBound")) {
     if (fld %in% names(dt)) {
@@ -49,25 +49,11 @@ standardizeDatamartData <- function(dt)
   return(dt)
 }
 
-#' Expand embedded JSON in a column of a data.table into separate columns.
-#'
-#' Mostly
-#' used to expand Name + Treatment that are embedded in the Name field as JSON
-#' strings. Other ADM context key modifications will also show as JSON in the
-#' Name fields, this utility will peel it apart.
-#'
-#' Called as part of the standard model read, but exposed so it can also be
-#' applied when reading data from different sources like a CSV file.
-#'
-#' @param dt The data.table to use
-#' @param fieldName The field name to look for embedded JSON. Defaults to Name.
-#'
-#' @return A data.table with the extra columns. If there is no JSON in the
-#' field returns the original data.table directly.
-#' @export
-#'
-#' @examples
-#' \dontrun{models <- expandEmbeddedJSONContext(models)}
+# Expand embedded JSON in a column of a \code{data.table} into separate columns.
+#
+# Mostly used to expand Name + Treatment that are embedded in the Name field as JSON
+# strings. Other ADM context key modifications will also show as JSON in the
+# Name fields, this utility will peel it apart.
 expandEmbeddedJSONContext <- function(dt, fieldName = "Name")
 {
   isJSON <- OriginalName <- NULL # Trick to silence R CMD Check warnings
@@ -238,165 +224,6 @@ defaultPredictorCategorization <- function(p)
   return (ifelse(hasDot, gsub("^([^.]*)\\..*$", "\\1", p), rep("TopLevel", length(p))))
 }
 
-
-# TODO provide similar func for IH data - even only for demo scenarios that strips off internal fields
-
-# TODO BinType probably does not belong in predictor data w/o bins
-
-#' #' Read export of ADM model data.
-#' #'
-#' #' This is a specialized version of \code{readDSExport}
-#' #' that defaults the dataset name, leaves out the detailed model data (if present) and
-#' #' other internal fields, returns the properties without the py prefixes and converts
-#' #' date fields, and makes sure numeric fields are returned as numerics.
-#' #'
-#' #' @param srcFolder Optional folder to look for the file (defaults to the
-#' #'   current folder)
-#' #' @param instancename Name of the file w/o the timestamp, in Pega format
-#' #'   <Applies To>_<Instance Name>, or the complete filename including timestamp
-#' #'   and zip extension as exported from Pega. Defaults to the Pega generated
-#' #'   name of the dataset: \code{Data-Decision-ADM-ModelSnapshot_pyModelSnapshots}.
-#' #' @param latestOnly If TRUE only the most recent snapshot for every model
-#' #'   is read. Defaults to FALSE, so all model data over time is returned.
-#' #' @param tmpFolder Optional folder to store the unzipped data (defaults to a
-#' #' temp folder)
-#' #'
-#' #' @return A \code{data.table} with the ADM model data
-#' #' @export
-#' #'
-#' #' @examples
-#' #' \dontrun{readADMDatamartModelExport("~/Downloads")}
-#' readADMDatamartModelExport <- function(srcFolder=".",
-#'                                        instancename = "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots",
-#'                                        latestOnly = F,
-#'                                        tmpFolder=tempdir(check = T))
-#' {
-#'   ModelData <- pyModelData <- NULL # Trick to silence R CMD Check warnings
-#'
-#'   if (file.exists(srcFolder) & !dir.exists(srcFolder)) {
-#'     # if just one argument was passed and it happens to be an existing file, try use that
-#'     instancename = srcFolder
-#'     srcFolder = "."
-#'   }
-#'
-#'   modelz <- readDSExport(instancename, srcFolder, tmpFolder=tmpFolder, stringsAsFactors=T)
-#'   if ("pyModelData" %in% names(modelz)) {
-#'     modelz[,pyModelData := NULL]
-#'   }
-#'   if ("ModelData" %in% names(modelz)) {
-#'     modelz[,ModelData := NULL]
-#'   }
-#'
-#'   modelz <- standardizeDatamartModelData(modelz, latestOnly=latestOnly)
-#'   modelz <- expandEmbeddedJSONContext(modelz)
-#'
-#'   return(modelz)
-#' }
-
-#' #' Read export of ADM predictor data.
-#' #'
-#' #' This is a specialized version of \code{readDSExport}
-#' #' that defaults the dataset name, leaves out internal fields and by default omits the
-#' #' predictor binning data. In addition it converts date fields and makes sure
-#' #' the returned fields have the correct type. All string values are returned
-#' #' as factors.
-#' #'
-#' #' @param srcFolder Optional folder to look for the file (defaults to the
-#' #'   current folder)
-#' #' @param instancename Name of the file w/o the timestamp, in Pega format
-#' #'   <Applies To>_<Instance Name>, or the complete filename including timestamp
-#' #'   and zip extension as exported from Pega. Defaults to the Pega generated
-#' #'   name of the dataset: \code{Data-Decision-ADM-PredictorBinningSnapshot_PredictorBinningSnapshot}.
-#' #' @param noBinning If TRUE (the default), skip reading the predictor binning data and just
-#' #'   return predictor level data. For a detailed view with all binning data, set
-#' #'   to FALSE.
-#' #' @param classifierOnly if TRUE only returns the data for the model classifiers.
-#' #'   Default is FALSE, so all predictors are returned. When setting this flag
-#' #'   to TRUE, \code{noBinning} would typically be set to FALSE as the typical
-#' #'   use case is to analyse the score distributions.
-#' #' @param latestOnly If TRUE (the default) only the most recent snapshot for every model
-#' #'   is read. To return all data over time (if available), set to FALSE.
-#' #' @param tmpFolder Optional folder to store the unzipped data (defaults to a
-#' #' temp folder)
-#' #'
-#' #' @return A \code{data.table} with the ADM model data
-#' #' @export
-#' #'
-#' #' @examples
-#' #' \dontrun{readADMDatamartPredictorExport("~/Downloads")}
-#' readADMDatamartPredictorExport <- function(srcFolder=".",
-#'                                            instancename = "Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots",
-#'                                            noBinning = T,
-#'                                            classifierOnly = F,
-#'                                            latestOnly = T,
-#'                                            tmpFolder=tempdir(check = T))
-#' {
-#'   BinIndex <- ModelID <- SnapshotTime <- NULL # Trick to silence R CMD Check warnings
-#'
-#'   noBinningSkipFields <- c("BinSymbol","BinNegativesPercentage","BinPositivesPercentage",
-#'                            "BinNegatives", "BinPositives", "RelativeBinNegatives", "RelativeBinPositives",
-#'                            "BinResponseCount", "RelativeBinResponseCount", "BinResponseCountPercentage",
-#'                            "BinLowerBound", "BinUpperBound", "ZRatio", "Lift", "BinIndex")
-#'
-#'   if (file.exists(srcFolder) & !dir.exists(srcFolder)) {
-#'     # if just one argument was passed and it happens to be an existing file, try use that
-#'     instancename = srcFolder
-#'     srcFolder = "."
-#'   }
-#'
-#'   if (classifierOnly) {
-#'     stop("Not implmemented yet.")
-#'   }
-#'
-#'   if (noBinning) {
-#'     predz <- readDSExport(instancename, srcFolder, tmpFolder=tmpFolder,
-#'                           acceptJSONLines=function(linez) {
-#'                             # require binindex = 1 to be in there,
-#'                             # match both with and without py, upper and lower case
-#'                             return(grepl('"[[:alpha:]]*BinIndex"[[:space:]]*:[[:space:]]*1[^[:digit:]]', linez, ignore.case = T))
-#'                           },
-#'                           stringsAsFactors=T)
-#'
-#'     if (any(grepl("^p[x|z]", names(predz)))) {
-#'       predz[, names(predz)[grepl("^p[x|z]", names(predz))] := NULL] # drop px/pz fields
-#'     }
-#'     standardizeFieldCasing(predz)
-#'
-#'     # double check there really are no other bins left
-#'     if (any(predz$BinIndex > 1)) {
-#'       predz <- predz[BinIndex == 1]
-#'     }
-#'     predz[, BinIndex := NULL] # drop the column
-#'
-#'     predz[, intersect(names(predz), noBinningSkipFields) := NULL]
-#'
-#'   } else {
-#'     predz <- readDSExport(instancename, srcFolder, tmpFolder=tmpFolder)
-#'
-#'     if (any(grepl("^p[x|z]", names(predz)))) {
-#'       predz[, names(predz)[grepl("^p[x|z]", names(predz))] := NULL] # drop px/pz fields
-#'     }
-#'     standardizeFieldCasing(predz)
-#'   }
-#'
-#'   # some fields notoriously returned as char but are numeric
-#'   for (fld in c("Performance", "Positives", "Negatives", "BinLowerBound", "BinUpperBound")) {
-#'     if (fld %in% names(predz)) {
-#'       if (!is.numeric(predz[[fld]])) predz[[fld]] <- as.numeric(as.character(predz[[fld]]))
-#'     }
-#'   }
-#'
-#'   predz[, SnapshotTime := fromPRPCDateTime(SnapshotTime)]
-#'
-#'   if (latestOnly) {
-#'     return(predz[, .SD[SnapshotTime == max(SnapshotTime)], by=ModelID]) # careful: which.max would only return 1 row
-#'   } else {
-#'     return(predz)
-#'   }
-#'
-#'   return(predz)
-#' }
-
 # Read CSV, JSON or parquet file from source
 # TODO: consider reading only specific columns, or dropping specific ones
 readFromSource <- function(file, folder, tmpFolder)
@@ -499,7 +326,7 @@ ADMDatamart <- function(modeldata = NULL,
     BinPositives <- BinResponseCount <- NULL # Trick to silence warnings from R CMD Check
 
   # If first arg is a folder then ignore the folder arg and reset modeldata to default.
-  if (!is.data.table(modeldata) && !is.data.frame(modeldata)) {
+  if (!is.data.table(modeldata) && !is.data.frame(modeldata) && !is.logical(modeldata)) {
     if (!is.null(modeldata) && dir.exists(modeldata)) {
       folder = modeldata
       modeldata <- NULL
@@ -507,7 +334,7 @@ ADMDatamart <- function(modeldata = NULL,
   }
 
   # If second arg is a folder assume there is no predictor data
-  if (!is.data.table(predictordata) && !is.data.frame(predictordata)) {
+  if (!is.data.table(predictordata) && !is.data.frame(predictordata) && !is.logical(predictordata)) {
     if (!is.null(predictordata) && dir.exists(predictordata)) {
       folder = predictordata
       predictordata <- F
@@ -549,11 +376,15 @@ ADMDatamart <- function(modeldata = NULL,
 
   requiredPredictorFields <- c("ModelID", "PredictorName", "Performance", "SnapshotTime",
                                "Type", "EntryType",
-                               "ResponseCount", "Positives", "Negatives", "TotalBins",
-                               # bin level:
-                               "BinType", "BinSymbol", "BinIndex", "BinNegatives", "BinPositives", "BinResponseCount", "BinLowerBound", "BinUpperBound", "BinSymbol", "Lift", "ZRatio")
-  optionalPredictorFields <- c("GroupIndex", "FeatureImportance") # added in later versions
-  additionalPredictorFields <- c("AUC", "Propensity", "PredictorCategory") # additional, not in Datamart
+                               "ResponseCount", "Positives", "Negatives", "TotalBins")
+  optionalPredictorFields <- c(
+    # bin level:
+    "BinType", "BinSymbol", "BinIndex", "BinNegatives", "BinPositives", "BinResponseCount", "BinLowerBound", "BinUpperBound", "BinSymbol", "Lift", "ZRatio",
+    # added in later versions:
+    "GroupIndex", "FeatureImportance",
+    # additional, not in Datamart:
+    "Propensity")
+  additionalPredictorFields <- c("AUC", "PredictorCategory") # additional, not in Datamart
   dropPredictorFields <- function(x) {
     return(setdiff(names(x), c(requiredPredictorFields, optionalPredictorFields, additionalPredictorFields)))
   }
@@ -574,12 +405,18 @@ ADMDatamart <- function(modeldata = NULL,
     }
 
     modelz <- cleanupHookModelData(modelz)
-    modelz <- standardizeDatamartData(modelz)
+    modelz <- dropInternalDatamartFields(modelz)
+    standardizeFieldCasing(modelz)
+    modelz <- fixDatamartFieldTypes(modelz)
     modelz <- filterModelData(modelz)
-
     modelz <- expandEmbeddedJSONContext(modelz)
-    for (f in names(modelz)[sapply(modelz, is.character)]) {
+
+    doNotFactorizeFields <- c("ModelID")
+    for (f in setdiff(names(modelz)[sapply(modelz, is.character)], doNotFactorizeFields)) {
       modelz[[f]] <- factor(modelz[[f]])
+    }
+    for (f in doNotFactorizeFields) {
+      modelz[[f]] <- as.character(modelz[[f]])
     }
 
     # Add fields for common calculations
@@ -620,28 +457,39 @@ ADMDatamart <- function(modeldata = NULL,
     } else {
       predz <- readFromSource(predictordata, folder, tmpFolder)
     }
+
     predz <- cleanupHookPredictorData(predz)
-    predz <- standardizeDatamartData(predz)
+    predz <- dropInternalDatamartFields(predz)
+    standardizeFieldCasing(predz)
+    predz <- fixDatamartFieldTypes(predz)
+
     if (!is.null(modelz)) {
       predz <- predz[ModelID %in% modelz$ModelID]
     }
     predz <- filterPredictorData(predz)
 
-    for (f in names(predz)[sapply(predz, is.character)]) {
+    doNotFactorizeFields <- intersect(c("ModelID", "BinSymbol"), names(predz))
+    for (f in setdiff(names(predz)[sapply(predz, is.character)], doNotFactorizeFields)) {
       predz[[f]] <- factor(predz[[f]])
+    }
+    for (f in doNotFactorizeFields) {
+      predz[[f]] <- as.character(predz[[f]])
     }
 
     # Apply predictor categorization if not present already
     if (!("PredictorCategory" %in% names(predz))) {
-      predCategories <- data.table( PredictorName = levels(predz$PredictorName),
+      predCategories <- data.table( PredictorName = factor(levels(predz$PredictorName), levels = levels(predz$PredictorName)),
                                     PredictorCategory = factor(sapply(levels(predz$PredictorName), predictorCategorization)))
       predz <- merge(predz, predCategories, by="PredictorName")
     }
 
     # Add fields for common calculations
 
-    predz[EntryType != "Classifier", Propensity := BinPositives / BinResponseCount]
-    predz[EntryType == "Classifier", Propensity := (BinPositives+0.5) / (BinResponseCount+1)]
+    if ("BinPositives" %in% names(predz) && "BinResponseCount" %in% names(predz)) {
+      # Bin fields could have been filtered out when looking at the data w/o the binning for exampls
+      predz[EntryType != "Classifier", Propensity := BinPositives / BinResponseCount]
+      predz[EntryType == "Classifier", Propensity := (BinPositives+0.5) / (BinResponseCount+1)]
+    }
     predz[, AUC := 100*Performance]
 
     # predictor grouping index was not always there, add it as just a sequence number when absent
@@ -649,7 +497,12 @@ ADMDatamart <- function(modeldata = NULL,
       predz[, GroupIndex := .GRP, by=PredictorName]
     }
 
-    setorder(predz, -Performance, BinIndex)
+    if ("BinIndex" %in% names(predz)) {
+      # Bin fields could have been filtered out when looking at the data w/o the binning for exampls
+      setorder(predz, -Performance, BinIndex)
+    } else {
+      setorder(predz, -Performance)
+    }
 
     # Remove columns not used in CDH Tools
     # TODO: consider doing much earlier but then be careful with inconsistent naming

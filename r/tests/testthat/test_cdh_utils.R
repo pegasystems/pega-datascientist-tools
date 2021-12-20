@@ -1,10 +1,10 @@
 library(testthat)
 # library(cdhtools)
-library(lubridate)
+# library(lubridate)
 
 context("check basic utilities")
 
-test_that("dataset exports", {
+test_that("checking readDSExport", {
   data <- readDSExport("Data-Decision-ADM-ModelSnapshot_All_20180316T134315_GMT.zip","dsexports")
   expect_equal(nrow(data), 15)
   expect_equal(ncol(data), 22)
@@ -24,144 +24,9 @@ test_that("dataset exports", {
 
   expect_error( readDSExport("Non existing non zip file",""))
   expect_error( readDSExport("Data-Decision-ADM-ModelSnapshot_All_20180316T134315_GMT.zip",""))
+
   readDSExport("Data-Decision-ADM-PredictorBinningSnapshot_All","dsexports", excludeComplexTypes = F)
 })
-
-test_that("specialized model data export", {
-
-  expect_error(ADMDatamart(modeldata = "Data-Decision-ADM-ModelSnapshot_All",
-                           folder = "dsexports"),
-               "Dataset JSON file not found looking for pattern")
-
-  data <- ADMDatamart(modeldata = "Data-Decision-ADM-ModelSnapshot_All",
-                      predictordata = F,
-                      folder = "dsexports")
-
-  expect_equal(nrow(data$modeldata), 30)
-  expect_equal(ncol(data$modeldata), 16) # omits internal fields
-
-  expect_identical(sort(names(data$modeldata)),
-                   sort(c("ConfigurationName", "Direction", "Group", "Issue",
-                     "Channel", "ModelID", "Name", "Negatives", "Performance", "Positives",
-                     "ResponseCount", "SnapshotTime", "SuccessRate",
-                     "ActivePredictors", "TotalPredictors", "AUC" )))
-
-  expect_equal(sum(sapply(data$modeldata, is.factor)), 7)
-  expect_equal(sum(sapply(data$modeldata, is.numeric)), 8)
-  expect_equal(sum(sapply(data$modeldata, is.POSIXt)), 1)
-  expect_equal(sum(sapply(data$modeldata, is.character)), 0)
-
-  data <- ADMDatamart(modeldata = "Data-Decision-ADM-ModelSnapshot_All",
-                      predictordata = F,
-                      folder = "dsexports",
-                      filterModelData = filterLatestSnapshotOnly)
-
-  expect_equal(nrow(data$modeldata), 15) # only latest snapshot
-  expect_equal(ncol(data$modeldata), 16)
-})
-
-test_that("model export with JSON names", {
-  m1 <- readDSExport(instancename="ADM-ModelSnapshots-withJSON-fromCDHSample.zip",
-                     srcFolder="dsexports")
-  expect_equal(ncol(m1), 24)
-  expect_equal(nrow(m1), 361)
-  expect_setequal(unique(m1$pyName),
-                  c("{\"Proposition\":\"P1\"}","{\"pyName\":\"SuperSaver\",\"pyTreatment\":\"Bundles_WebTreatment\"}","BasicChecking","P10"))
-
-  m2 <- ADMDatamart(m1, predictordata = F)
-
-  expect_equal(ncol(m2), 20)
-  expect_equal(nrow(m2), 361)
-  expect_true("Treatment" %in% names(m2))
-  expect_true("Proposition" %in% names(m2))
-  expect_setequal(levels(m2$Name),
-                  c('{"Proposition":"P1"}','BasicChecking','P10','SuperSaver'))
-})
-
-test_that("specialized predictor data export", {
-  data <- readADMDatamartPredictorExport(instancename="Data-Decision-ADM-PredictorBinningSnapshot_All",
-                                         srcFolder="dsexports")
-  expect_equal(nrow(data), 425) # binning skipped by default
-  expect_equal(ncol(data), 15) # omits internal and binning fields
-  expect_identical(sort(names(data)),
-                   c("BinType", "Contents", "EntryType", "ModelID", "Negatives",
-                     "Performance", "Positives", "PredictorName", "RelativeNegatives", "RelativePositives",
-                     "RelativeResponseCount", "ResponseCount", "SnapshotTime",
-                     "TotalBins", "Type"));
-  dataTypes <- as.character(sapply(data[, sort(names(data)), with=F], class))
-  expect_equal(dataTypes,
-               c("factor", "factor", "factor", "factor", "numeric",
-                 "numeric", "numeric", "factor", "numeric", "numeric",
-                 "numeric", "numeric", "c(\"POSIXct\", \"POSIXt\")",
-                 "integer", "factor"));
-
-  data <- readADMDatamartPredictorExport(instancename="Data-Decision-ADM-PredictorBinningSnapshot_All",
-                                         srcFolder="dsexports",
-                                         latestOnly = F)
-  expect_equal(nrow(data), 425) # no binning but all snapshots
-  expect_equal(ncol(data), 15) # omits internal fields
-
-  # compare this to doing it "manually" using the "raw" readDSExport method
-  data2 <- readDSExport("Data-Decision-ADM-PredictorBinningSnapshot_All","dsexports")[pyBinIndex == 1]
-
-  expect_equal(nrow(data2), 425)
-  expect_equal(ncol(data2), 35)
-  expect_equal(sum(!grepl("^p[x|z]", names(data2))), 30) # w/o the internal fields
-  expect_equal( mean(data$ResponseCount), mean(data2$pyResponseCount) )
-  expect_equal( max(data$Positives), max(as.numeric(data2$pyPositives)) )
-
-  data <- readADMDatamartPredictorExport(instancename="Data-Decision-ADM-PredictorBinningSnapshot_All",
-                                         srcFolder="dsexports",
-                                         noBinning = F,
-                                         latestOnly = F)
-  expect_equal(nrow(data), 1755) # binning and all timestamps included
-  expect_equal(ncol(data), 30) # omits internal fields
-
-  data <- readADMDatamartPredictorExport(instancename="Data-Decision-ADM-PredictorBinningSnapshot_All",
-                                         srcFolder="dsexports",
-                                         noBinning = F)
-  expect_equal(nrow(data), 1755) # binning but only latest snapshots
-  expect_equal(ncol(data), 30) # omits internal fields
-})
-
-# test_that("Multi-line JSON files", {
-#
-#   # Models
-#
-#   zipFile <- "../../../data/Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip"
-#   jsonFile <- "data.json"
-#   if(file.exists(jsonFile)) file.remove(jsonFile)
-#   utils::unzip(zipFile, exdir=".")
-#
-#   data <- readDSExport(jsonFile)
-#   expect_equal(nrow(data), 1047)
-#   expect_equal(ncol(data), 27)
-#
-#   data <- readADMDatamartModelExport(jsonFile)
-#   expect_equal(nrow(data), 1047)
-#   expect_equal(ncol(data), 27)
-#
-#   if(file.exists(jsonFile)) file.remove(jsonFile)
-#   expect_error( readDSExport(jsonFile))
-#
-#   # Predictor binning
-#
-#   zipFile <- "../../../data/Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip"
-#   jsonFile <- "data.json"
-#   if(file.exists(jsonFile)) file.remove(jsonFile)
-#   utils::unzip(zipFile, exdir=".")
-#
-#   data <- readDSExport(jsonFile)
-#   expect_equal(nrow(data), 70735)
-#   expect_equal(ncol(data), 36)
-#
-#   data <- readADMDatamartPredictorExport(jsonFile, latestOnly = F, noBinning = F)
-#
-#   expect_equal(nrow(data), 70735)
-#   expect_equal(ncol(data), 36)
-#
-#   # if(file.exists(jsonFile)) file.remove(jsonFile)
-# })
 
 test_that("AUC from binning", {
   expect_equal(auc_from_bincounts( c(3,1,0), c(2,0,1)), 0.75)

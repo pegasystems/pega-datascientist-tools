@@ -699,21 +699,21 @@ plotBinning <- function(binning, useSmartLabels = T) # TODO consider adding lapl
 
   responsesMax <- max(binning$BinResponseCount, na.rm = T)
   if (0 == responsesMax) { responsesMax <- 1 }
-  secAxisFactor <- max(binning$BinPositives/binning$BinResponseCount) / responsesMax
+  secAxisFactor <- max(binning$Propensity) / responsesMax
 
   if (useSmartLabels) {
-    plt <- ggplot(binning, aes(factor(BinIndex), BinPositives/BinResponseCount, group=1))
+    plt <- ggplot(binning, aes(factor(BinIndex), Propensity, group=1))
   } else {
-    plt <- ggplot(binning, aes(BinSymbol, BinPositives/BinResponseCount, group=1))
+    plt <- ggplot(binning, aes(BinSymbol, Propensity, group=1))
   }
 
   plt <- plt +
     geom_col(aes(y=BinResponseCount),
              fill=ifelse(binning$EntryType[1]=="Inactive", "darkgrey", pegaClassifierBlueBar),
              alpha=0.8)+
-    geom_line(aes(y=(BinPositives/BinResponseCount)/secAxisFactor),
+    geom_line(aes(y=Propensity/secAxisFactor),
               colour="orange", size=2) +
-    geom_point(aes(y=(BinPositives/BinResponseCount)/secAxisFactor),
+    geom_point(aes(y=Propensity/secAxisFactor),
                size=1) +
     geom_hline(data=data.table(Positives = sum(binning$BinPositives),
                                Negatives = sum(binning$BinNegatives)),
@@ -729,9 +729,9 @@ plotBinning <- function(binning, useSmartLabels = T) # TODO consider adding lapl
     plt <- plt + scale_x_discrete(name = "",
                                   labels=ifelse(getPredictorType(binning) == "numeric",
                                                 plotsAbbreviateInterval(binning$BinSymbol),
-                                                ifelse(nchar(binning$BinSymbol) <= 25,
+                                                ifelse(nchar(as.character(binning$BinSymbol)) <= 25,
                                                        binning$BinSymbol,
-                                                       paste(substr(binning$BinSymbol, 1, 25), "..."))))
+                                                       paste(substr(as.character(binning$BinSymbol), 1, 25), "..."))))
   }
 
   plt

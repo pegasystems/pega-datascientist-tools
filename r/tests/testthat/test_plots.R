@@ -1,7 +1,7 @@
 library(testthat)
-library(cdhtools)
-library(ggplot2)
-library(scales)
+# library(cdhtools)
+# library(ggplot2)
+# library(scales)
 
 context("Plotting functions")
 
@@ -32,125 +32,105 @@ test_that("Default Predictor Categorization", {
 })
 
 test_that("plotBinning", {
-  data(admdatamart_models)
-  data(admdatamart_binning)
-  dm <- ADMDatamart(admdatamart_models, admdatamart_binning)
+  data(admdatamart)
 
-  p <- plotBinning(admdatamart_binning[PredictorName=="Customer.Age"][ModelID==ModelID[1]])
+  p <- plotBinning(admdatamart$predictordata[PredictorName=="Customer.Age"][ModelID==ModelID[1]])
 
   expect_s3_class(p, "ggplot")
 })
 
 test_that("plotCumulativeGains", {
-  data(admdatamart_models)
-  data(admdatamart_binning)
-  dm <- ADMDatamart(admdatamart_models, admdatamart_binning)
+  data(admdatamart)
 
-  p <- plotCumulativeGains(filterClassifierOnly(admdatamart_binning)[ModelID==ModelID[1]])
+  p <- plotCumulativeGains(filterClassifierOnly(admdatamart$predictordata)[ModelID==ModelID[1]])
 
   expect_s3_class(p, "ggplot")
 })
 
 test_that("plotCumulativeLift", {
-  data(admdatamart_models)
-  data(admdatamart_binning)
-  dm <- ADMDatamart(admdatamart_models, admdatamart_binning)
+  data(admdatamart)
 
-  p <- plotCumulativeLift(filterClassifierOnly(admdatamart_binning)[ModelID==ModelID[1]])
+  p <- plotCumulativeLift(filterClassifierOnly(admdatamart$predictordata)[ModelID==ModelID[1]])
 
   expect_s3_class(p, "ggplot")
 })
 
 test_that("plotPerformanceOverTime", {
-  data(admdatamart_models)
-  data(admdatamart_binning)
-  dm <- ADMDatamart(admdatamart_models, admdatamart_binning)
+  data(admdatamart)
 
-  p <- plotPerformanceOverTime(dm)
+  p <- plotPerformanceOverTime(admdatamart)
 
   expect_s3_class(p, "ggplot")
 
-  p <- plotPerformanceOverTime(dm, aggregation = "Issue", facets = "Group")
+  p <- plotPerformanceOverTime(admdatamart, aggregation = "Issue", facets = "Group")
 
   expect_s3_class(p, "ggplot")
 })
 
 test_that("plotSuccessRateOverTime", {
-  data(admdatamart_models)
-  data(admdatamart_binning)
-  dm <- ADMDatamart(admdatamart_models, admdatamart_binning)
+  data(admdatamart)
 
-  p <- plotSuccessRateOverTime(dm)
+  p <- plotSuccessRateOverTime(admdatamart)
 
   expect_s3_class(p, "ggplot")
 
-  p <- plotSuccessRateOverTime(dm, aggregation = "Name", facets = c("Group", "ConfigurationName"))
+  p <- plotSuccessRateOverTime(admdatamart, aggregation = "Name", facets = c("Group", "ConfigurationName"))
 
   expect_s3_class(p, "ggplot")
 })
 
 test_that("plotPerformanceSuccessRateBoxPlot", {
-  data(admdatamart_models)
-  data(admdatamart_binning)
-  dm <- ADMDatamart(admdatamart_models, admdatamart_binning)
+  data(admdatamart)
 
-  p <- plotPerformanceSuccessRateBoxPlot(dm)
+  p <- plotPerformanceSuccessRateBoxPlot(admdatamart)
 
   expect_s3_class(p, "ggplot")
 
-  p <- plotPerformanceSuccessRateBoxPlot(dm, facets = c("Group", "ConfigurationName"))
+  p <- plotPerformanceSuccessRateBoxPlot(admdatamart, facets = c("Group", "ConfigurationName"))
 
   expect_s3_class(p, "ggplot")
 })
 
 test_that("plotPerformanceSuccessRateBubbleChart", {
-  data(admdatamart_models)
-  data(admdatamart_binning)
-  dm <- ADMDatamart(admdatamart_models, admdatamart_binning)
+  data(admdatamart)
 
-  p <- plotPerformanceSuccessRateBubbleChart(dm)
+  p <- plotPerformanceSuccessRateBubbleChart(admdatamart)
 
   expect_s3_class(p, "ggplot")
 
-  p <- plotPerformanceSuccessRateBubbleChart(dm, aggregation = "Name", facets = "ConfigurationName")
+  p <- plotPerformanceSuccessRateBubbleChart(admdatamart, aggregation = "Name", facets = "ConfigurationName")
 
   expect_s3_class(p, "ggplot")
 })
 
 test_that("plotPredictorImportance", {
-  data(admdatamart_models)
-  data(admdatamart_binning)
-  dm <- ADMDatamart(admdatamart_models, admdatamart_binning)
+  data(admdatamart)
 
-  p <- plotPredictorImportance(dm)
+  p <- plotPredictorImportance(admdatamart)
 
   expect_s3_class(p, "ggplot")
 
-  p <- plotPredictorImportance(dm, categoryAggregateView = T)
+  p <- plotPredictorImportance(admdatamart, categoryAggregateView = T)
 
   expect_s3_class(p, "ggplot")
 })
 
 test_that("plotPredictorImportanceHeatmap", {
-  data(admdatamart_models)
-  data(admdatamart_binning)
-  dm <- ADMDatamart(admdatamart_models, admdatamart_binning)
+  data(admdatamart)
 
-  p <- plotPredictorImportanceHeatmap(dm)
+  p <- plotPredictorImportanceHeatmap(admdatamart)
 
   expect_s3_class(p, "ggplot")
 
-  p <- plotPredictorImportanceHeatmap(dm, aggregation = "Name", facets = "")
+  p <- plotPredictorImportanceHeatmap(admdatamart, aggregation = "Name", facets = "")
 
   expect_s3_class(p, "ggplot")
 })
 
 test_that("plotPropositionSuccessRates", {
-  data(admdatamart_models)
-  data(admdatamart_binning)
-  dm <- ADMDatamart(admdatamart_models, admdatamart_binning)
+  data(admdatamart)
 
-  p <- plotPropositionSuccessRates(dm)
+  p <- plotPropositionSuccessRates(admdatamart)
 
   expect_s3_class(p, "ggplot")
 })

@@ -3,7 +3,18 @@
 \docType{data}
 \name{admdatamart}
 \alias{admdatamart}
-\title{Sample ADM Data Mart model and predictor data.}
+\title{#' Sample model snapshots from the ADM Data Mart.
+#'
+#' A \code{data.table} containing two snapshots of 3 models.
+#'
+#' @format A \code{data.table} with 30 rows and 16 variables:
+#' \describe{
+#'   \item{ModelID}{Model ID}
+#'   \item{SnapshotTime}{Snapshot time}
+#'   ...
+#' }
+#' @source A sample Pega application
+"admdatamart_models"}
 \format{
 A \code{list} with two \code{data.table} objects.
 \describe{
@@ -18,6 +29,22 @@ A sample Pega application
 admdatamart
 }
 \description{
+#' Sample predictor binning snapshots from the ADM Data Mart.
+#'
+#' A \code{data.table} containing a snapshot of the predictor binning of the ADM models in \code{admdatamart_models}.
+#'
+#' @format A \code{data.table} with 1755 rows and 32 variables:
+#' \describe{
+#'   \item{ModelID}{Model ID}
+#'   \item{SnapshotTime}{Snapshot time}
+#'   \item{PredictorName}{Name of the predictor}
+#'   ...
+#' }
+#' @source A sample Pega application
+"admdatamart_binning"
+Sample ADM Data Mart model and predictor data.
+}
+\details{
 Standard \code{list} datastructure as produced by \code{ADMDatamart}.
 }
 \keyword{datasets}

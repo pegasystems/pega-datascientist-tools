@@ -1,8 +1,8 @@
 library(testthat)
-library(cdhtools)
-library(data.table)
-library(jsonlite)
-library(XML)
+# library(cdhtools)
+# library(data.table)
+# library(jsonlite)
+# library(XML)
 
 context("check ADM Factory JSON utilities")
 

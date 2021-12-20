@@ -10,6 +10,83 @@ context("ADM Checks")
 # dmModels <- dmModels[pyConfigurationName %in% c("SalesModel"), !grepl("^px|pz", names(dmModels)), with=F]
 # perfOverview <- getModelPerformanceOverview(dmModels, dmPredictors)
 
+test_that("generic ADMDatamart reading", {
+
+  expect_error(ADMDatamart("Data-Decision-ADM-ModelSnapshot_All", folder = "dsexports"),
+               "Dataset JSON file not found looking for pattern")
+
+  data <- ADMDatamart("Data-Decision-ADM-ModelSnapshot_All", "dsexports")
+
+  expect_true(is.null(data$predictordata))
+  expect_equal(nrow(data$modeldata), 30)
+  expect_equal(ncol(data$modeldata), 16) # omits internal fields
+
+  expect_identical(sort(names(data$modeldata)),
+                   sort(c("ConfigurationName", "Direction", "Group", "Issue",
+                          "Channel", "ModelID", "Name", "Negatives", "Performance", "Positives",
+                          "ResponseCount", "SnapshotTime", "SuccessRate",
+                          "ActivePredictors", "TotalPredictors", "AUC" )))
+
+  expect_equal(sum(sapply(data$modeldata, is.factor)), 6)
+  expect_equal(sum(sapply(data$modeldata, is.numeric)), 8)
+  expect_equal(sum(sapply(data$modeldata, is.POSIXt)), 1)
+  expect_equal(sum(sapply(data$modeldata, is.character)), 1)
+
+  data <- ADMDatamart(modeldata = "Data-Decision-ADM-ModelSnapshot_All",
+                      predictordata = F,
+                      folder = "dsexports",
+                      filterModelData = filterLatestSnapshotOnly)
+
+  expect_equal(nrow(data$modeldata), 15) # only latest snapshot
+  expect_equal(ncol(data$modeldata), 16)
+})
+
+test_that("ADMDatamart predictor reading", {
+
+  # Default reads all snapshots, and includes binning
+  data <- ADMDatamart(modeldata = F, predictordata = "Data-Decision-ADM-PredictorBinningSnapshot_All", folder = "dsexports")
+  expect_equal(nrow(data$predictordata), 1755) # default reads all snapshots, all binning
+  expect_equal(ncol(data$predictordata), 24)
+
+  expect_equal(sum(sapply(data$predictordata, is.factor)), 5)
+  expect_equal(sum(sapply(data$predictordata, is.numeric)), 16)
+  expect_equal(sum(sapply(data$predictordata, is.POSIXt)), 1)
+  expect_equal(sum(sapply(data$predictordata, is.character)), 2)
+
+  # Add filter to drop binning
+  data <- ADMDatamart(modeldata = F, predictordata = "Data-Decision-ADM-PredictorBinningSnapshot_All", folder = "dsexports",
+                      filterPredictorData = filterPredictorBinning)
+  expect_equal(nrow(data$predictordata), 425) # binning fields removed
+  expect_equal(ncol(data$predictordata), 14)
+
+  expect_equal(sum(sapply(data$predictordata, is.factor)), 5)
+  expect_equal(sum(sapply(data$predictordata, is.numeric)), 7)
+  expect_equal(sum(sapply(data$predictordata, is.POSIXt)), 1)
+  expect_equal(sum(sapply(data$predictordata, is.character)), 1)
+})
+
+test_that("parsing JSON names from pyName", {
+
+  # m1 is the "raw" version
+  m1 <- readDSExport(instancename="ADM-ModelSnapshots-withJSON-fromCDHSample.zip",
+                     srcFolder="dsexports")
+  expect_equal(ncol(m1), 24)
+  expect_equal(nrow(m1), 361)
+  expect_false("Treatment" %in% names(m1))
+  expect_false("Proposition" %in% names(m1))
+  expect_setequal(unique(m1$pyName),
+                  c("{\"Proposition\":\"P1\"}","{\"pyName\":\"SuperSaver\",\"pyTreatment\":\"Bundles_WebTreatment\"}","BasicChecking","P10"))
+
+  # m2 is the one where the JSON names should be expanded, resulting in a few extra columns
+  m2 <- ADMDatamart(m1, predictordata = F)
+
+  expect_equal(ncol(m2$modeldata), 18)
+  expect_equal(nrow(m2$modeldata), 361)
+  expect_true("Treatment" %in% names(m2$modeldata))
+  expect_true("Proposition" %in% names(m2$modeldata))
+  expect_setequal(levels(m2$modeldata$Name),
+                  c('{"Proposition":"P1"}','BasicChecking','P10','SuperSaver'))
+})
 
 # This test confirms BUG-417860 stating that ADM performance numbers can be overly
 # optimistic in the beginning.
@@ -97,32 +174,18 @@ test_that("ADMDatamart from DS exports", {
 })
 
 test_that("ADMDatamart from tables", {
-  data(admdatamart_models)
-  data(admdatamart_binning)
-  dm <- ADMDatamart(admdatamart_models, admdatamart_binning)
+  mdls <- readDSExport(instancename = "Data-Decision-ADM-ModelSnapshot_All", srcFolder = "dsexports")
+  prds <- readDSExport(instancename = "Data-Decision-ADM-PredictorBinningSnapshot_All", srcFolder = "dsexports")
+  dm <- ADMDatamart(mdls, prds)
 
   expect_equal(length(dm), 2)
-  expect_equal(nrow(dm$modeldata), 1047)
-  expect_equal(nrow(dm$predictordata), 70735)
+  expect_equal(nrow(dm$modeldata), 30)
+  expect_equal(nrow(dm$predictordata), 1755)
 
-  dm <- ADMDatamart(admdatamart_models, admdatamart_binning,
-                    filterModelData = function(x) { return(x[Channel != "SMS"])})
+  dm <- ADMDatamart(mdls, prds,
+                    filterModelData = function(x) { return(x[!startsWith(Name, "B")])})
 
   expect_equal(length(dm), 2)
-  expect_equal(nrow(dm$modeldata), 638)
-  expect_equal(nrow(dm$predictordata), 34503)
+  expect_equal(nrow(dm$modeldata), 20)
+  expect_equal(nrow(dm$predictordata), 842)
 })
-
-test_that("Filter binning", {
-  data(admdatamart_binning)
-
-  expect_equal(ncol(admdatamart_binning), 36)
-  expect_equal(nrow(admdatamart_binning), 70735)
-
-  preds <- filterPredictorBinning(admdatamart_binning)
-
-  expect_equal(ncol(preds), 21)
-  expect_equal(nrow(preds), 32397)
-
-})
-

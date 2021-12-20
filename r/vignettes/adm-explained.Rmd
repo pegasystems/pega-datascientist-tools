@@ -8,15 +8,15 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
-  
+
 ```{r setup, include = FALSE}
 # knitr options: https://yihui.name/knitr/options/
 knitr::opts_chunk$set(
-collapse = TRUE,
-fig.width = 7,
-fig.height = 5,
-fig.align = "center",
-comment = "#>"
+  collapse = TRUE,
+  fig.width = 7,
+  fig.height = 5,
+  fig.align = "center",
+  comment = "#>"
 )
 
 library(ggplot2)
@@ -37,7 +37,7 @@ We use one of the shipped datamart exports for the example. This is a model very
 library(cdhtools)
 
 # include below when developing the library
-sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source)
+# sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source)
 
 library(data.table)
 
@@ -55,14 +55,19 @@ data.
 # Commented-out chunk useful to find a good example in the data
 modelsGoodPreds <- unique((filterLatestSnapshotOnly(admdatamart$predictordata) [TotalBins>4 & Type=="numeric" & EntryType == "Active"])$ModelID )
 filterLatestSnapshotOnly(admdatamart$modeldata)[ModelID %in% modelsGoodPreds, c("Positives","Performance","ActivePredictors","Name","Channel")][order(-ActivePredictors)]
-print(unique(modelpredictors[TotalBins>4 & Type=="numeric" & EntryType == "Active"]$PredictorName))
+print(unique(admdatamart$predictordata[TotalBins>4 & Type=="numeric" & EntryType == "Active"]$PredictorName))
 ```
 
 ```{r}
 model <- filterLatestSnapshotOnly(admdatamart$modeldata) [Name == "AutoNew36Months" & Channel == "SMS"]
-modelpredictors <- filterLatestSnapshotOnly(admdatamart_binning)[ModelID == model$ModelID & EntryType != "Inactive"]
+modelpredictors <- filterLatestSnapshotOnly(admdatamart$predictordata) [ModelID == model$ModelID & EntryType != "Inactive"]
 
 predictorbinning <- modelpredictors[PredictorName == "IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount"][order(BinIndex)]
+
+# Add back a few fields that will get dropped by the ADMDatamart function.
+predictorbinning[, BinResponseCountPercentage := BinResponseCount/sum(BinResponseCount)]
+predictorbinning[, BinPositivesPercentage := BinPositives/sum(BinPositives)]
+predictorbinning[, BinNegativesPercentage := BinNegatives/sum(BinNegatives)]
 ```
 
 # Model overview
@@ -130,7 +135,7 @@ the number of positives divided by the total. The numbers calculated here match 
 table exactly.
 
 ```{r}
-binningDerived <- predictorbinning[, c(1,3,5)] # copy over only the labels, pos and neg counts
+binningDerived <- predictorbinning[, c("Range/Symbols","Positives","Negatives")] # copy over only the labels, pos and neg counts
 binningDerived[, `Responses %` := (Positives+Negatives)/(sum(Positives)+sum(Negatives))]
 binningDerived[, `Positives %` := Positives/sum(Positives)]
 binningDerived[, `Negatives %` := Negatives/sum(Negatives)]
@@ -304,21 +309,20 @@ Below the classifier mapping. On the x-axis the binned scores (log odds values),
 The score *`r score`* falls in *bin `r scorebin`* of the classifier, so for this set of inputs, the model returns a propensity of `r sprintf("%.2f%%", 100*classifier$AdjustedPropensity[scorebin])`.
 
 ```{r, echo=F}
-successRateMax <- max(classifier$Propensity, na.rm = T)
-if (0 == successRateMax) { successRateMax <- 1 }
-secAxisFactor <- ceiling(max(classifier$BinResponseCount)/successRateMax)
-
-  # geom_col(aes(y=(BinPositives+BinNegatives)/secAxisFactor), classifier[BinIndex == scorebin], fill="steelblue3")+
-  # geom_col(aes(y=(BinPositives+BinNegatives)/secAxisFactor), classifier[BinIndex != scorebin], fill="grey")+
+responsesMax <- max(classifier$BinResponseCount, na.rm = T)
+if (0 == responsesMax) { responsesMax <- 1 }
+secAxisFactor <- max(classifier$BinPositives/classifier$BinResponseCount) / responsesMax
 
 plotBinning(classifier) +
-      geom_col(aes(y=BinResponseCount/secAxisFactor), classifier[BinIndex != scorebin], fill="grey")+
-      geom_col(aes(y=BinResponseCount/secAxisFactor), classifier[BinIndex == scorebin], fill="steelblue3")+
-      geom_line(colour="orange", size=2)+geom_point()+
-    geom_hline(data=classifier[1,], mapping = aes(yintercept = Positives/(Positives+Negatives)),
-               colour="orange", linetype="dashed")+
-  geom_label(data=classifier[scorebin,], 
-             mapping=aes(label=sprintf("Returned Propensity: %.2f%%", 100*AdjustedPropensity)), 
-             y=classifier[scorebin,]$BinPositives/classifier[scorebin,]$BinResponseCount + 0.0002, 
+  geom_col(aes(y=BinResponseCount), classifier[BinIndex != scorebin], fill="grey")+
+  geom_col(aes(y=BinResponseCount), classifier[BinIndex == scorebin], fill="steelblue3")+
+  geom_line(aes(y=Propensity/secAxisFactor), colour="orange", size=2)+
+  geom_point(aes(y=Propensity/secAxisFactor)) +
+  geom_hline(data=classifier[1,], 
+             mapping = aes(yintercept = (Positives/ResponseCount)/secAxisFactor),
+             colour="orange", linetype="dashed") +
+  geom_label(data=classifier[scorebin,],
+             mapping = aes(y=Propensity/secAxisFactor, label=sprintf("Returned Propensity: %.2f%%", 100*AdjustedPropensity)),
+             # y=(classifier[scorebin,]$BinPositives/classifier[scorebin,]$BinResponseCount)/secAxisFactor + 0.0002,
              vjust=0)
 ```

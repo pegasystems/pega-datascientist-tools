@@ -1,8 +1,8 @@
 library(testthat)
-library(cdhtools)
-library(lubridate)
-library(jsonlite)
-library(XML)
+# library(cdhtools)
+# library(lubridate)
+# library(jsonlite)
+# library(XML)
 
 context("ADM2PMML")
 
