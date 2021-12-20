@@ -157,7 +157,7 @@
         <td>
           <p><code><a href="ADMDatamart.html">ADMDatamart()</a></code> </p>
         </td>
-        <td><p>Generic method to read ADM Datamart data into a list structure.</p></td>
+        <td><p>Generic method to read ADM Datamart data.</p></td>
       </tr><tr>
         
         <td>
@@ -179,21 +179,9 @@
       </tr><tr>
         
         <td>
-          <p><code><a href="admdatamart_binning.html">admdatamart_binning</a></code> </p>
+          <p><code><a href="adm_datamart.html">adm_datamart</a></code> </p>
         </td>
-        <td><p>Sample predictor binning snapshots from the ADM Data Mart.</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="admdatamart_models.html">admdatamart_models</a></code> </p>
-        </td>
-        <td><p>Sample model snapshots from the ADM Data Mart.</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="applyUniformPegaFieldCasing.html">applyUniformPegaFieldCasing()</a></code> </p>
-        </td>
-        <td><p>Fix field casing</p></td>
+        <td><p>Sample ADM Data Mart model and predictor data.</p></td>
       </tr><tr>
         
         <td>
@@ -221,9 +209,35 @@
       </tr><tr>
         
         <td>
-          <p><code><a href="expandEmbeddedJSONContext.html">expandEmbeddedJSONContext()</a></code> </p>
+          <p><code><a href="filterActiveOnly.html">filterActiveOnly()</a></code> </p>
         </td>
-        <td><p>Expand embedded JSON in a column of a data.table into separate columns.</p></td>
+        <td><p>Subset the datamart predictor data to only the active predictors.</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="filterClassifierOnly.html">filterClassifierOnly()</a></code> </p>
+        </td>
+        <td><p>Subset the datamart predictor data to only the classifier binning.</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="filterInactiveOnly.html">filterInactiveOnly()</a></code> </p>
+        </td>
+        <td><p>Subset the datamart predictor data to only the inactive predictors.</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="filterLatestSnapshotOnly.html">filterLatestSnapshotOnly()</a></code> </p>
+        </td>
+        <td><p>Subset the provided datamart data to just the latest snapshot per model.</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="filterPredictorBinning.html">filterPredictorBinning()</a></code> </p>
+        </td>
+        <td><p>Remove the binning information from the provided datamart predictor data so
+it only is predictor level, not more detailed. This is commonly used in
+plotting functions.</p></td>
       </tr><tr>
         
         <td>
@@ -265,6 +279,12 @@ of a specific model.</p></td>
       </tr><tr>
         
         <td>
+          <p><code><a href="hasMultipleSnapshots.html">hasMultipleSnapshots()</a></code> </p>
+        </td>
+        <td><p>Check if data has multiple snapshots</p></td>
+      </tr><tr>
+        
+        <td>
           <p><code><a href="hds.html">hds</a></code> </p>
         </td>
         <td><p>A sample export of a Historical Dataset to illustrate how to import and analyze this.</p></td>
@@ -277,75 +297,69 @@ of a specific model.</p></td>
       </tr><tr>
         
         <td>
-          <p><code><a href="latestSnapshotsOnly.html">latestSnapshotsOnly()</a></code> </p>
-        </td>
-        <td><p>Subset the provided datamart data to just the latest snapshot per model.</p></td>
-      </tr><tr>
-        
-        <td>
           <p><code><a href="lift.html">lift()</a></code> </p>
         </td>
         <td><p>Calculates lift from counts of positives and negatives.</p></td>
       </tr><tr>
         
         <td>
-          <p><code><a href="plotADMBinning.html">plotADMBinning()</a></code> </p>
+          <p><code><a href="plotBinning.html">plotBinning()</a></code> </p>
         </td>
         <td><p>Create binning plot for any predictor.</p></td>
       </tr><tr>
         
         <td>
-          <p><code><a href="plotADMCumulativeGains.html">plotADMCumulativeGains()</a></code> </p>
+          <p><code><a href="plotCumulativeGains.html">plotCumulativeGains()</a></code> </p>
         </td>
         <td><p>Create cum gains plot for the model classifier.</p></td>
       </tr><tr>
         
         <td>
-          <p><code><a href="plotADMCumulativeLift.html">plotADMCumulativeLift()</a></code> </p>
+          <p><code><a href="plotCumulativeLift.html">plotCumulativeLift()</a></code> </p>
         </td>
         <td><p>Create cum lift plot for the model classifier.</p></td>
       </tr><tr>
         
         <td>
-          <p><code><a href="plotADMModelPerformanceOverTime.html">plotADMModelPerformanceOverTime()</a></code> </p>
+          <p><code><a href="plotPerformanceOverTime.html">plotPerformanceOverTime()</a></code> </p>
         </td>
         <td><p>Plot ADM Model Performance over time</p></td>
       </tr><tr>
         
         <td>
-          <p><code><a href="plotADMModelSuccessRateOverTime.html">plotADMModelSuccessRateOverTime()</a></code> </p>
-        </td>
-        <td><p>Plot ADM Model Success Rate over time</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="plotADMPerformanceSuccessRateBoxPlot.html">plotADMPerformanceSuccessRateBoxPlot()</a></code> </p>
+          <p><code><a href="plotPerformanceSuccessRateBoxPlot.html">plotPerformanceSuccessRateBoxPlot()</a></code> </p>
         </td>
         <td><p>Create box plot of performance x success rate from ADM datamart model data.</p></td>
       </tr><tr>
         
         <td>
-          <p><code><a href="plotADMPerformanceSuccessRateBubbleChart.html">plotADMPerformanceSuccessRateBubbleChart()</a></code> </p>
+          <p><code><a href="plotPerformanceSuccessRateBubbleChart.html">plotPerformanceSuccessRateBubbleChart()</a></code> </p>
         </td>
         <td><p>Create bubble chart from ADM datamart model data.</p></td>
       </tr><tr>
         
         <td>
-          <p><code><a href="plotADMPredictorImportance.html">plotADMPredictorImportance()</a></code> </p>
+          <p><code><a href="plotPredictorImportance.html">plotPredictorImportance()</a></code> </p>
         </td>
         <td><p>Create boxplots per predictor with performance range in models.</p></td>
       </tr><tr>
         
         <td>
-          <p><code><a href="plotADMPredictorImportanceHeatmap.html">plotADMPredictorImportanceHeatmap()</a></code> </p>
+          <p><code><a href="plotPredictorImportanceHeatmap.html">plotPredictorImportanceHeatmap()</a></code> </p>
         </td>
         <td><p>Performance of predictors per proposition</p></td>
       </tr><tr>
         
         <td>
-          <p><code><a href="plotADMPropositionSuccessRates.html">plotADMPropositionSuccessRates()</a></code> </p>
+          <p><code><a href="plotPropositionSuccessRates.html">plotPropositionSuccessRates()</a></code> </p>
         </td>
         <td><p>Plot ADM Proposition Success Rates</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="plotSuccessRateOverTime.html">plotSuccessRateOverTime()</a></code> </p>
+        </td>
+        <td><p>Plot ADM Model Success Rate over time</p></td>
       </tr><tr>
         
         <td>
@@ -355,21 +369,9 @@ of a specific model.</p></td>
       </tr><tr>
         
         <td>
-          <p><code><a href="readADMDatamartModelExport.html">readADMDatamartModelExport()</a></code> </p>
-        </td>
-        <td><p>Read export of ADM model data.</p></td>
-      </tr><tr>
-        
-        <td>
           <p><code><a href="readADMDatamartModelTable.html">readADMDatamartModelTable()</a></code> </p>
         </td>
         <td><p>Retrieves ADM models from the ADM Datamart.</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="readADMDatamartPredictorExport.html">readADMDatamartPredictorExport()</a></code> </p>
-        </td>
-        <td><p>Read export of ADM predictor data.</p></td>
       </tr><tr>
         
         <td>
@@ -385,16 +387,9 @@ of a specific model.</p></td>
       </tr><tr>
         
         <td>
-          <p><code><a href="readDatamartFromFile.html">readDatamartFromFile()</a></code> </p>
+          <p><code><a href="standardizeFieldCasing.html">standardizeFieldCasing()</a></code> </p>
         </td>
-        <td><p>Generic datamart reader.</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="readNDJSON.html">readNDJSON()</a></code> </p>
-        </td>
-        <td><p>Efficient read of newline-delimited JSON (NDJSON) (aka line-delimited JSON (LDJSON),
-JSON lines (JSONL), multi-line JSON), a common format for big data streaming.</p></td>
+        <td><p>Fix field casing</p></td>
       </tr><tr>
         
         <td>

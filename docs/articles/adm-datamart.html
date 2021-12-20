@@ -90,7 +90,7 @@
       <h1 data-toc-skip>adm-datamart</h1>
                         <h4 class="author">Pega CDH Tools</h4>
             
-            <h4 class="date">2021-12-10</h4>
+            <h4 class="date">2021-12-20</h4>
       
       
       <div class="hidden name"><code>adm-datamart.Rmd</code></div>
@@ -113,21 +113,16 @@
 <code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">cdhtools</span><span class="op">)</span>
 
 <span class="co"># include below when developing the library</span>
-<span class="co"># sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source)</span>
+<span class="co"># invisible(sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source))</span>
 
-<span class="fu"><a href="https://rdrr.io/r/utils/data.html">data</a></span><span class="op">(</span><span class="va">admdatamart_models</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/utils/data.html">data</a></span><span class="op">(</span><span class="va">admdatamart_binning</span><span class="op">)</span></code></pre></div>
+<span class="fu"><a href="https://rdrr.io/r/utils/data.html">data</a></span><span class="op">(</span><span class="va">adm_datamart</span><span class="op">)</span></code></pre></div>
 <div id="data-loading-using-datasets" class="section level2">
 <h2 class="hasAnchor">
 <a href="#data-loading-using-datasets" class="anchor"></a>Data Loading using Datasets</h2>
-<p>To load your own data, export the datasets from Pega, download them to your filesystem and let the <code>cdhtools</code> library import it. In order to be able to process the data universally we also make sure to make the names lower case and make sure the types are as expected by the snippets that follow below. This would also be a good place to zoom in to specific models relevant to your application.</p>
+<p>To load your own data, export the datasets from Pega, download them to your filesystem and let the <code>cdhtools</code> library import it.</p>
+<p>The <code>ADMDatamart</code> function is a very generic function to read the model and optionally predictor data into a simple list structure that is universally used by the <code>cdhtools</code> functions. The most basic usage is to only give it a folder location where you downloaded the dataset exports, but it supports different file types and allows for filtering etc.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">admdatamart_models</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/readADMDatamartModelExport.html">readADMDatamartModelExport</a></span><span class="op">(</span><span class="st">"~/Downloads"</span><span class="op">)</span>
-<span class="va">admdatamart_binning</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/readADMDatamartPredictorExport.html">readADMDatamartPredictorExport</a></span><span class="op">(</span><span class="st">"~/Downloads"</span>, noBinning <span class="op">=</span> <span class="cn">F</span><span class="op">)</span></code></pre></div>
-<p>The data may contain multiple snapshots. For this notebook, we have explicit variables with and without this trend information. Normally you would pass an option to keep all snapshots or not when reading the data, or configure it in Pega to store it in the first place.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">admdatamart_models_latest</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/latestSnapshotsOnly.html">latestSnapshotsOnly</a></span><span class="op">(</span><span class="va">admdatamart_models</span><span class="op">)</span>
-<span class="va">admdatamart_binning_latest</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/latestSnapshotsOnly.html">latestSnapshotsOnly</a></span><span class="op">(</span><span class="va">admdatamart_binning</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span class="va">adm_datamart</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ADMDatamart.html">ADMDatamart</a></span><span class="op">(</span><span class="st">"~/Downloads"</span><span class="op">)</span></code></pre></div>
 </div>
 <div id="data-loading-directly-from-the-database" class="section level2">
 <h2 class="hasAnchor">
@@ -142,55 +137,50 @@
 <div id="bubble-chart-by-issue-and-channel" class="section level2">
 <h2 class="hasAnchor">
 <a href="#bubble-chart-by-issue-and-channel" class="anchor"></a>Bubble chart by Issue and Channel</h2>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="../reference/plotADMPerformanceSuccessRateBubbleChart.html">plotADMPerformanceSuccessRateBubbleChart</a></span><span class="op">(</span><span class="va">admdatamart_models_latest</span>, facets <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"Issue"</span>, <span class="st">"Channel"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> 
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu"><a href="../reference/plotPerformanceSuccessRateBubbleChart.html">plotPerformanceSuccessRateBubbleChart</a></span><span class="op">(</span><span class="va">adm_datamart</span>, facets <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"Issue"</span>, <span class="st">"Channel"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> 
   <span class="fu">scale_x_continuous</span><span class="op">(</span>limits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">50</span>, <span class="fl">70</span><span class="op">)</span>, name <span class="op">=</span> <span class="st">"Performance"</span><span class="op">)</span> <span class="op">+</span>  
   <span class="fu">geom_vline</span><span class="op">(</span>xintercept<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">52</span>,<span class="fl">90</span><span class="op">)</span>, linetype<span class="op">=</span><span class="st">"dashed"</span><span class="op">)</span></code></pre></div>
-<p><img src="adm-datamart_files/figure-html/unnamed-chunk-4-1.png" width="768" style="display: block; margin: auto;"></p>
+<p><img src="adm-datamart_files/figure-html/unnamed-chunk-3-1.png" width="768" style="display: block; margin: auto;"></p>
 </div>
 <div id="aggregated-to-channels" class="section level2">
 <h2 class="hasAnchor">
 <a href="#aggregated-to-channels" class="anchor"></a>Aggregated to Channels</h2>
 <p>We can zoom in into the performance and success rates of the various channels. Here you see that success rates for e-mail are low, as is the average model performance.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="../reference/plotADMPerformanceSuccessRateBoxPlot.html">plotADMPerformanceSuccessRateBoxPlot</a></span><span class="op">(</span><span class="va">admdatamart_models_latest</span>, <span class="st">"Channel"</span><span class="op">)</span> <span class="op">+</span>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu"><a href="../reference/plotPerformanceSuccessRateBoxPlot.html">plotPerformanceSuccessRateBoxPlot</a></span><span class="op">(</span><span class="va">adm_datamart</span>, <span class="st">"Channel"</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu">scale_x_continuous</span><span class="op">(</span>limits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">50</span>, <span class="fl">70</span><span class="op">)</span>, name <span class="op">=</span> <span class="st">"Performance"</span><span class="op">)</span> <span class="op">+</span> <span class="fu">coord_flip</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu">scale_color_discrete_qualitative</span><span class="op">(</span>palette<span class="op">=</span><span class="st">"Harmonic"</span><span class="op">)</span></code></pre></div>
-<p><img src="adm-datamart_files/figure-html/unnamed-chunk-5-1.png" width="480" style="display: block; margin: auto;"> # Predictors</p>
+<p><img src="adm-datamart_files/figure-html/unnamed-chunk-4-1.png" width="480" style="display: block; margin: auto;"> # Predictors</p>
 </div>
 <div id="sensitity-analysis" class="section level2">
 <h2 class="hasAnchor">
 <a href="#sensitity-analysis" class="anchor"></a>Sensitity Analysis</h2>
 <p>Showing the overall predictor contributions to the models.</p>
 <p>Here we “facet” by model rule (ConfigurationName) but you can also leave this out or facet by e.g. Channel or Issue.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co"># varimp &lt;- admVarImp(admdatamart_models_latest, admdatamart_binning, c("ConfigurationName"))</span>
-<span class="fu"><a href="../reference/plotADMPredictorImportance.html">plotADMPredictorImportance</a></span><span class="op">(</span><span class="va">admdatamart_binning</span>, <span class="va">admdatamart_models_latest</span>, limit <span class="op">=</span> <span class="fl">30</span>,
-                           predictorClassifier <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span><span class="op">)</span> <span class="op">{</span> 
-                             <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html">ifelse</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/startsWith.html">startsWith</a></span><span class="op">(</span><span class="va">name</span>, <span class="st">"IH"</span><span class="op">)</span>, <span class="st">"Interaction History"</span>,
-                                    <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html">ifelse</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/startsWith.html">startsWith</a></span><span class="op">(</span><span class="va">name</span>, <span class="st">"Param.Ext"</span><span class="op">)</span>, <span class="st">"External Model"</span>, 
-                                           <span class="fu"><a href="https://rdrr.io/r/base/grep.html">gsub</a></span><span class="op">(</span><span class="st">"([^.])\\..*"</span>, <span class="st">"\\1"</span>, <span class="va">name</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">}</span><span class="op">)</span></code></pre></div>
-<p><img src="adm-datamart_files/figure-html/unnamed-chunk-6-1.png" width="864" style="display: block; margin: auto;"></p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu"><a href="../reference/plotPredictorImportance.html">plotPredictorImportance</a></span><span class="op">(</span><span class="va">adm_datamart</span>, limit <span class="op">=</span> <span class="fl">30</span><span class="op">)</span></code></pre></div>
+<p><img src="adm-datamart_files/figure-html/unnamed-chunk-5-1.png" width="864" style="display: block; margin: auto;"></p>
 </div>
 <div id="predictor-vs-action-heatmap" class="section level2">
 <h2 class="hasAnchor">
 <a href="#predictor-vs-action-heatmap" class="anchor"></a>Predictor vs Action heatmap</h2>
 <p>You can also show the predictor performance in one plot across all predictors for all the selected models. Also arranging by performance in both dimensions gives a quick visual clue of which predictors and which models need attention.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="../reference/plotADMPredictorImportanceHeatmap.html">plotADMPredictorImportanceHeatmap</a></span><span class="op">(</span><span class="va">admdatamart_binning_latest</span>, <span class="va">admdatamart_models_latest</span>, 
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu"><a href="../reference/plotPredictorImportanceHeatmap.html">plotPredictorImportanceHeatmap</a></span><span class="op">(</span><span class="va">adm_datamart</span>, 
                                   aggregation<span class="op">=</span><span class="st">"Name"</span>, limit <span class="op">=</span> <span class="fl">30</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu">theme</span><span class="op">(</span>axis.text.y <span class="op">=</span> <span class="fu">element_text</span><span class="op">(</span>size<span class="op">=</span><span class="fl">6</span><span class="op">)</span>,
         axis.text.x <span class="op">=</span> <span class="fu">element_text</span><span class="op">(</span>size<span class="op">=</span><span class="fl">6</span>, angle <span class="op">=</span> <span class="fl">45</span>, hjust <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></code></pre></div>
-<p><img src="adm-datamart_files/figure-html/unnamed-chunk-7-1.png" width="768" style="display: block; margin: auto;"></p>
+<p><img src="adm-datamart_files/figure-html/unnamed-chunk-6-1.png" width="768" style="display: block; margin: auto;"></p>
 </div>
 <div id="alternative-performance-metrics" class="section level2">
 <h2 class="hasAnchor">
 <a href="#alternative-performance-metrics" class="anchor"></a>Alternative Performance Metrics</h2>
 <p>With all the data available in the datamart, you are not restricted to just reporting. Using the binning information for all of the predictors, you could, for example, calculate the KS score of the models. The KS (Kolmogorov–Smirnov) score is related to the AUC that we use by default, but instead of the areas under the ROC curve, it gives the maximum separation between the true positive and false positive rate.</p>
 <p>The below snippet calculates the KS score for all predictors of all propositions and shows them next to AUC reported by ADM.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">admdatamart_binning_latest</span><span class="op">[</span> , <span class="va">Propensity</span> <span class="op">:=</span> <span class="va">BinPositives</span><span class="op">/</span><span class="op">(</span><span class="va">BinPositives</span><span class="op">+</span><span class="va">BinNegatives</span><span class="op">)</span><span class="op">]</span>
-<span class="fu">setorder</span><span class="op">(</span><span class="va">admdatamart_binning_latest</span>,<span class="va">Propensity</span><span class="op">)</span>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">adm_datamart_binning_latest</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/filterLatestSnapshotOnly.html">filterLatestSnapshotOnly</a></span><span class="op">(</span><span class="va">adm_datamart</span><span class="op">$</span><span class="va">predictordata</span><span class="op">)</span>
+<span class="fu">setorder</span><span class="op">(</span><span class="va">adm_datamart_binning_latest</span>, <span class="va">Propensity</span><span class="op">)</span>
 <span class="va">myKS</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">binning</span><span class="op">)</span>
 <span class="op">{</span>
   <span class="va">Goods</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cumsum.html">cumsum</a></span><span class="op">(</span><span class="va">binning</span><span class="op">$</span><span class="va">BinNegatives</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">binning</span><span class="op">$</span><span class="va">BinNegatives</span><span class="op">)</span>
@@ -199,10 +189,10 @@
   <span class="kw"><a href="https://rdrr.io/r/base/function.html">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ifelse.html">ifelse</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html">is.na</a></span><span class="op">(</span><span class="va">KS</span><span class="op">)</span>,<span class="fl">0</span>,<span class="va">KS</span><span class="op">)</span><span class="op">)</span>
 <span class="op">}</span>
 <span class="va">performanceSummary</span> <span class="op">&lt;-</span> 
-  <span class="fu">left_join</span><span class="op">(</span><span class="va">admdatamart_binning_latest</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>KS <span class="op">=</span> <span class="fu">myKS</span><span class="op">(</span><span class="va">.SD</span><span class="op">)</span>,
+  <span class="fu">left_join</span><span class="op">(</span><span class="va">adm_datamart_binning_latest</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>KS <span class="op">=</span> <span class="fu">myKS</span><span class="op">(</span><span class="va">.SD</span><span class="op">)</span>,
                                            auc <span class="op">=</span> <span class="fu">first</span><span class="op">(</span><span class="va">Performance</span><span class="op">)</span><span class="op">)</span>, 
                                        by<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"ModelID"</span>, <span class="st">"PredictorName"</span>,<span class="st">"EntryType"</span><span class="op">)</span><span class="op">]</span>,
-            <span class="va">admdatamart_models_latest</span>,
+            <span class="fu"><a href="../reference/filterLatestSnapshotOnly.html">filterLatestSnapshotOnly</a></span><span class="op">(</span><span class="va">adm_datamart</span><span class="op">$</span><span class="va">modeldata</span><span class="op">)</span>,
             by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"ModelID"</span><span class="op">)</span><span class="op">)</span>
 
 <span class="co">## Show KS numbers</span>
@@ -216,7 +206,7 @@
   <span class="fu">guides</span><span class="op">(</span>fill<span class="op">=</span><span class="st">"none"</span><span class="op">)</span><span class="op">+</span>
   <span class="fu">theme</span><span class="op">(</span>axis.text.x <span class="op">=</span> <span class="fu">element_text</span><span class="op">(</span>size<span class="op">=</span><span class="fl">6</span>, angle <span class="op">=</span> <span class="fl">45</span>, hjust <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,
         axis.text.y <span class="op">=</span> <span class="fu">element_text</span><span class="op">(</span>size<span class="op">=</span><span class="fl">6</span><span class="op">)</span><span class="op">)</span></code></pre></div>
-<p><img src="adm-datamart_files/figure-html/unnamed-chunk-8-1.png" width="768" style="display: block; margin: auto;"></p>
+<p><img src="adm-datamart_files/figure-html/unnamed-chunk-7-1.png" width="768" style="display: block; margin: auto;"></p>
 </div>
 </div>
 <div id="model-performance" class="section level1">
@@ -226,26 +216,26 @@
 <h2 class="hasAnchor">
 <a href="#standard-model-classifier-plot" class="anchor"></a>Standard Model Classifier plot</h2>
 <p>In the product models are represented by a score distribution plot like below</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">model</span> <span class="op">&lt;-</span> <span class="va">admdatamart_binning_latest</span><span class="op">[</span><span class="va">ModelID</span> <span class="op">%in%</span> <span class="va">admdatamart_models_latest</span><span class="op">[</span><span class="va">Name</span><span class="op">==</span><span class="st">"FirstMortgage"</span><span class="op">]</span><span class="op">$</span><span class="va">ModelID</span><span class="op">]</span>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">model</span> <span class="op">&lt;-</span> <span class="va">adm_datamart_binning_latest</span><span class="op">[</span><span class="va">ModelID</span> <span class="op">%in%</span> <span class="fu"><a href="../reference/filterLatestSnapshotOnly.html">filterLatestSnapshotOnly</a></span><span class="op">(</span><span class="va">adm_datamart</span><span class="op">$</span><span class="va">modeldata</span><span class="op">)</span><span class="op">[</span><span class="va">Name</span><span class="op">==</span><span class="st">"FirstMortgage"</span><span class="op">]</span><span class="op">$</span><span class="va">ModelID</span><span class="op">]</span>
 
-<span class="fu"><a href="../reference/plotADMBinning.html">plotADMBinning</a></span><span class="op">(</span><span class="va">model</span><span class="op">[</span><span class="va">EntryType</span> <span class="op">==</span> <span class="st">"Classifier"</span><span class="op">]</span><span class="op">)</span> <span class="op">+</span>
+<span class="fu"><a href="../reference/plotBinning.html">plotBinning</a></span><span class="op">(</span><span class="fu"><a href="../reference/filterClassifierOnly.html">filterClassifierOnly</a></span><span class="op">(</span><span class="va">model</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu">ggtitle</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">model</span><span class="op">$</span><span class="va">Name</span><span class="op">)</span>, collapse<span class="op">=</span><span class="st">","</span><span class="op">)</span>, subtitle <span class="op">=</span> <span class="st">"Classifier"</span><span class="op">)</span></code></pre></div>
-<p><img src="adm-datamart_files/figure-html/unnamed-chunk-9-1.png" width="480" style="display: block; margin: auto;"></p>
+<p><img src="adm-datamart_files/figure-html/unnamed-chunk-8-1.png" width="480" style="display: block; margin: auto;"></p>
 </div>
 <div id="gains-and-lift-charts" class="section level2">
 <h2 class="hasAnchor">
 <a href="#gains-and-lift-charts" class="anchor"></a>Gains and Lift Charts</h2>
 <p>The same data can be represented as a cumulative gains chart, which indicates the percentage of positive responses as a function of the size of the population targeted.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="../reference/plotADMCumulativeGains.html">plotADMCumulativeGains</a></span> <span class="op">(</span><span class="va">model</span><span class="op">[</span><span class="va">EntryType</span> <span class="op">==</span> <span class="st">"Classifier"</span><span class="op">]</span><span class="op">)</span> <span class="op">+</span>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu"><a href="../reference/plotCumulativeGains.html">plotCumulativeGains</a></span> <span class="op">(</span><span class="fu"><a href="../reference/filterClassifierOnly.html">filterClassifierOnly</a></span><span class="op">(</span><span class="va">model</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu">ggtitle</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">model</span><span class="op">$</span><span class="va">Name</span><span class="op">)</span>, collapse<span class="op">=</span><span class="st">","</span><span class="op">)</span>, subtitle <span class="op">=</span> <span class="st">"Cumulative Gains"</span><span class="op">)</span></code></pre></div>
-<p><img src="adm-datamart_files/figure-html/unnamed-chunk-10-1.png" width="480" style="display: block; margin: auto;"></p>
+<p><img src="adm-datamart_files/figure-html/unnamed-chunk-9-1.png" width="480" style="display: block; margin: auto;"></p>
 <p>A similar view is given by the cumulative lift graphs. This gives insight into what percentage of the customers should be targeted by the models to achieve a certain lift in response rates. Both plots are included in the off-line model reports.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="../reference/plotADMCumulativeLift.html">plotADMCumulativeLift</a></span> <span class="op">(</span><span class="va">model</span><span class="op">[</span><span class="va">EntryType</span> <span class="op">==</span> <span class="st">"Classifier"</span><span class="op">]</span><span class="op">)</span> <span class="op">+</span>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu"><a href="../reference/plotCumulativeLift.html">plotCumulativeLift</a></span> <span class="op">(</span><span class="fu"><a href="../reference/filterClassifierOnly.html">filterClassifierOnly</a></span><span class="op">(</span><span class="va">model</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu">ggtitle</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">model</span><span class="op">$</span><span class="va">Name</span><span class="op">)</span>, collapse<span class="op">=</span><span class="st">","</span><span class="op">)</span>, subtitle <span class="op">=</span> <span class="st">"Lift"</span><span class="op">)</span></code></pre></div>
-<p><img src="adm-datamart_files/figure-html/unnamed-chunk-11-1.png" width="480" style="display: block; margin: auto;"></p>
+<p><img src="adm-datamart_files/figure-html/unnamed-chunk-10-1.png" width="480" style="display: block; margin: auto;"></p>
 </div>
 </div>
 <div id="trend-charts" class="section level1">
@@ -253,29 +243,31 @@
 <a href="#trend-charts" class="anchor"></a>Trend charts</h1>
 <p>Out of the box, model data is stored over time. This allows trend charts to be created for the performance of models.</p>
 <p>The below plots nicely show how the models ramp up over the course of a few hours. We aggregate up to Group level to avoid having too many lines in the plot.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="../reference/plotADMModelPerformanceOverTime.html">plotADMModelPerformanceOverTime</a></span><span class="op">(</span><span class="va">admdatamart_models</span>, aggregation <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"Issue"</span>, <span class="st">"Group"</span><span class="op">)</span>, facets <span class="op">=</span> <span class="st">"Channel"</span><span class="op">)</span></code></pre></div>
-<p><img src="adm-datamart_files/figure-html/unnamed-chunk-12-1.png" width="672" style="display: block; margin: auto;"></p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu"><a href="../reference/plotPerformanceOverTime.html">plotPerformanceOverTime</a></span><span class="op">(</span><span class="va">adm_datamart</span>, aggregation <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"Issue"</span>, <span class="st">"Group"</span><span class="op">)</span>, facets <span class="op">=</span> <span class="st">"Channel"</span><span class="op">)</span></code></pre></div>
+<p><img src="adm-datamart_files/figure-html/unnamed-chunk-11-1.png" width="672" style="display: block; margin: auto;"></p>
 <p>All the plotting functions are fairly straightforward and built on <em>ggplot</em> and <em>data.table</em>. When there is no standard supporting plot function, it is easy enough to write your own. For example, to show the performance of the Age predictor over time and across all models.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">predictorPerformanceTrend</span> <span class="op">&lt;-</span> <span class="va">admdatamart_binning</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/startsWith.html">startsWith</a></span><span class="op">(</span><span class="va">PredictorName</span>, <span class="st">"Customer.A"</span><span class="op">)</span> <span class="op">&amp;</span> <span class="va">BinIndex</span> <span class="op">==</span> <span class="fl">1</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>Performance <span class="op">=</span> <span class="fl">100</span><span class="op">*</span><span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">Performance</span><span class="op">)</span><span class="op">)</span>, by<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"SnapshotTime"</span>,<span class="st">"PredictorName"</span><span class="op">)</span><span class="op">]</span>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">predictorPerformanceTrend</span> <span class="op">&lt;-</span> <span class="va">adm_datamart</span><span class="op">$</span><span class="va">predictordata</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/startsWith.html">startsWith</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html">as.character</a></span><span class="op">(</span><span class="va">PredictorName</span><span class="op">)</span>, <span class="st">"Customer.A"</span><span class="op">)</span> <span class="op">&amp;</span> <span class="va">BinIndex</span> <span class="op">==</span> <span class="fl">1</span>, 
+                                                    <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>AUC <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">AUC</span><span class="op">)</span><span class="op">)</span>, 
+                                                    by<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"SnapshotTime"</span>,<span class="st">"PredictorName"</span><span class="op">)</span><span class="op">]</span>
 
-<span class="fu">ggplot</span><span class="op">(</span><span class="va">predictorPerformanceTrend</span>, <span class="fu">aes</span><span class="op">(</span><span class="va">SnapshotTime</span>, <span class="va">Performance</span>, color<span class="op">=</span><span class="va">PredictorName</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+<span class="fu">ggplot</span><span class="op">(</span><span class="va">predictorPerformanceTrend</span>, <span class="fu">aes</span><span class="op">(</span><span class="va">SnapshotTime</span>, <span class="va">AUC</span>, color<span class="op">=</span><span class="va">PredictorName</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu">geom_line</span><span class="op">(</span>size<span class="op">=</span><span class="fl">1</span><span class="op">)</span> <span class="op">+</span> 
   <span class="fu">ggtitle</span><span class="op">(</span><span class="st">"Performance over Time"</span><span class="op">)</span></code></pre></div>
-<p><img src="adm-datamart_files/figure-html/unnamed-chunk-13-1.png" width="480" style="display: block; margin: auto;"></p>
+<p><img src="adm-datamart_files/figure-html/unnamed-chunk-12-1.png" width="480" style="display: block; margin: auto;"></p>
 </div>
 <div id="predictor-binning-evolution" class="section level1">
 <h1 class="hasAnchor">
 <a href="#predictor-binning-evolution" class="anchor"></a>Predictor Binning Evolution</h1>
 <p>With the detailed binning information available over time, we can show how the binning of a predictor evolves. You see that the number of bins grows as more data becomes available. You also see that this predictor isn’t always active (grey instead of blue).</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">binningOverTime</span> <span class="op">&lt;-</span> <span class="va">admdatamart_binning</span><span class="op">[</span><span class="va">PredictorName</span><span class="op">==</span><span class="st">"Customer.Age"</span> <span class="op">&amp;</span> <span class="va">ModelID</span> <span class="op">==</span> <span class="va">model</span><span class="op">$</span><span class="va">ModelID</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">binningOverTime</span> <span class="op">&lt;-</span> <span class="va">adm_datamart</span><span class="op">$</span><span class="va">predictordata</span><span class="op">[</span><span class="va">PredictorName</span><span class="op">==</span><span class="st">"Customer.Age"</span> <span class="op">&amp;</span> <span class="va">ModelID</span> <span class="op">==</span> <span class="va">model</span><span class="op">$</span><span class="va">ModelID</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span>
 
 <span class="fu">grid.arrange</span><span class="op">(</span>grobs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sort.html">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">binningOverTime</span><span class="op">$</span><span class="va">SnapshotTime</span><span class="op">)</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">t</span><span class="op">)</span> <span class="op">{</span> 
-  <span class="fu"><a href="../reference/plotADMBinning.html">plotADMBinning</a></span><span class="op">(</span><span class="va">binningOverTime</span><span class="op">[</span><span class="va">SnapshotTime</span><span class="op">==</span><span class="va">t</span><span class="op">]</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="../reference/plotBinning.html">plotBinning</a></span><span class="op">(</span><span class="va">binningOverTime</span><span class="op">[</span><span class="va">SnapshotTime</span><span class="op">==</span><span class="va">t</span><span class="op">]</span><span class="op">)</span> <span class="op">+</span>
     <span class="fu">ggtitle</span><span class="op">(</span><span class="va">t</span><span class="op">)</span><span class="op">}</span><span class="op">)</span><span class="op">)</span></code></pre></div>
-<p><img src="adm-datamart_files/figure-html/unnamed-chunk-14-1.png" width="960" style="display: block; margin: auto;"></p>
+<p><img src="adm-datamart_files/figure-html/unnamed-chunk-13-1.png" width="960" style="display: block; margin: auto;"></p>
 </div>
   </div>
 

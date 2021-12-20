@@ -6,7 +6,9 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Expand embedded JSON in a column of a data.table into separate columns. — expandEmbeddedJSONContext • cdhtools</title>
+<title>Remove the binning information from the provided datamart predictor data so
+it only is predictor level, not more detailed. This is commonly used in
+plotting functions. — filterPredictorBinning • cdhtools</title>
 
 
 <!-- jquery -->
@@ -39,11 +41,12 @@
 
 
 
-<meta property="og:title" content="Expand embedded JSON in a column of a data.table into separate columns. — expandEmbeddedJSONContext" />
-<meta property="og:description" content="Mostly
-used to expand Name + Treatment that are embedded in the Name field as JSON
-strings. Other ADM context key modifications will also show as JSON in the
-Name fields, this utility will peel it apart." />
+<meta property="og:title" content="Remove the binning information from the provided datamart predictor data so
+it only is predictor level, not more detailed. This is commonly used in
+plotting functions. — filterPredictorBinning" />
+<meta property="og:description" content="Remove the binning information from the provided datamart predictor data so
+it only is predictor level, not more detailed. This is commonly used in
+plotting functions." />
 
 
 
@@ -133,45 +136,97 @@ Name fields, this utility will peel it apart." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Expand embedded JSON in a column of a data.table into separate columns.</h1>
+    <h1>Remove the binning information from the provided datamart predictor data so
+it only is predictor level, not more detailed. This is commonly used in
+plotting functions.</h1>
     
-    <div class="hidden name"><code>expandEmbeddedJSONContext.Rd</code></div>
+    <div class="hidden name"><code>filterPredictorBinning.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Mostly
-used to expand Name + Treatment that are embedded in the Name field as JSON
-strings. Other ADM context key modifications will also show as JSON in the
-Name fields, this utility will peel it apart.</p>
+    <p>Remove the binning information from the provided datamart predictor data so
+it only is predictor level, not more detailed. This is commonly used in
+plotting functions.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>expandEmbeddedJSONContext</span><span class='op'>(</span><span class='va'>dt</span>, fieldName <span class='op'>=</span> <span class='st'>"Name"</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>filterPredictorBinning</span><span class='op'>(</span><span class='va'>dt</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
       <th>dt</th>
-      <td><p>The data.table to use</p></td>
-    </tr>
-    <tr>
-      <th>fieldName</th>
-      <td><p>The field name to look for embedded JSON. Defaults to Name.</p></td>
+      <td><p>The <code>data.table</code> with the datamart predictor data.</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>A data.table with the extra columns. If there is no JSON in the
-field returns the original data.table directly.</p>
-    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
-
-    <p>Called as part of the standard model read, but exposed so it can also be
-applied when reading data from different sources like a CSV file.</p>
+    <p>A <code>data.table</code> without the predictor binning.</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><div class='input'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='va'>models</span> <span class='op'>&lt;-</span> <span class='fu'>expandEmbeddedJSONContext</span><span class='op'>(</span><span class='va'>models</span><span class='op'>)</span>
-</div></pre>
+    <pre class="examples"><div class='input'><span class='fu'><a href='https://rdrr.io/r/utils/data.html'>data</a></span><span class='op'>(</span><span class='va'>adm_datamart</span><span class='op'>)</span>
+<span class='fu'>filterPredictorBinning</span><span class='op'>(</span><span class='va'>adm_datamart</span><span class='op'>$</span><span class='va'>predictordata</span><span class='op'>)</span>
+</div><div class='output co'>#&gt;                                              PredictorName
+#&gt;     1:               IH.SMS.Outbound.Churned.pxLastGroupID
+#&gt;     2:               IH.SMS.Outbound.Churned.pxLastGroupID
+#&gt;     3: IH.SMS.Outbound.Churned.pxLastOutcomeTime.DaysSince
+#&gt;     4: IH.SMS.Outbound.Churned.pxLastOutcomeTime.DaysSince
+#&gt;     5:    IH.SMS.Outbound.Churned.pyHistoricalOutcomeCount
+#&gt;    ---                                                    
+#&gt; 32393:                          Param.ExtGroupWealthoffers
+#&gt; 32394:                          Param.ExtGroupWealthoffers
+#&gt; 32395:                          Param.ExtGroupWealthoffers
+#&gt; 32396:                          Param.ExtGroupWealthoffers
+#&gt; 32397:                          Param.ExtGroupWealthoffers
+#&gt;                                     ModelID     Type      BinType EntryType
+#&gt;     1: 470485f7-3b20-58f7-a3aa-1f12c2bb99b7 symbolic      MISSING    Active
+#&gt;     2: 470485f7-3b20-58f7-a3aa-1f12c2bb99b7 symbolic      MISSING    Active
+#&gt;     3: 470485f7-3b20-58f7-a3aa-1f12c2bb99b7  numeric      MISSING  Inactive
+#&gt;     4: 470485f7-3b20-58f7-a3aa-1f12c2bb99b7  numeric      MISSING  Inactive
+#&gt;     5: 470485f7-3b20-58f7-a3aa-1f12c2bb99b7  numeric      MISSING  Inactive
+#&gt;    ---                                                                     
+#&gt; 32393: 277a2c48-8888-5b71-911e-443d52c9b50f symbolic EQUIBEHAVIOR  Inactive
+#&gt; 32394: 277a2c48-8888-5b71-911e-443d52c9b50f symbolic EQUIBEHAVIOR  Inactive
+#&gt; 32395: 277a2c48-8888-5b71-911e-443d52c9b50f symbolic EQUIBEHAVIOR  Inactive
+#&gt; 32396: 277a2c48-8888-5b71-911e-443d52c9b50f symbolic EQUIBEHAVIOR  Inactive
+#&gt; 32397: 277a2c48-8888-5b71-911e-443d52c9b50f symbolic EQUIBEHAVIOR  Inactive
+#&gt;               SnapshotTime Performance Positives Negatives TotalBins
+#&gt;     1: 2021-12-20 11:08:58    0.959459         1       148         2
+#&gt;     2: 2021-12-20 11:17:38    0.959459         1       148         2
+#&gt;     3: 2021-12-20 11:08:58    0.959459         1       148         2
+#&gt;     4: 2021-12-20 11:17:38    0.959459         1       148         2
+#&gt;     5: 2021-12-20 11:08:58    0.959459         1       148         2
+#&gt;    ---                                                              
+#&gt; 32393: 2021-12-20 14:19:46    0.500000       484      3988         1
+#&gt; 32394: 2021-12-20 14:57:49    0.500000       536      4440         1
+#&gt; 32395: 2021-12-20 13:45:59    0.500000       370      3104         1
+#&gt; 32396: 2021-12-20 13:49:28    0.500000       429      3551         1
+#&gt; 32397: 2021-12-20 14:52:45    0.500000       484      3988         1
+#&gt;        ResponseCount GroupIndex FeatureImportance PredictorCategory Propensity
+#&gt;     1:           149         29                 0                IH  0.0000000
+#&gt;     2:           149         29                 0                IH  0.0000000
+#&gt;     3:           149         29                 0                IH  0.0000000
+#&gt;     4:           149         29                 0                IH  0.0000000
+#&gt;     5:           149         29                 0                IH  0.0000000
+#&gt;    ---                                                                        
+#&gt; 32393:          4472          2                 0             Param  0.1082290
+#&gt; 32394:          4976          2                 0             Param  0.1077170
+#&gt; 32395:          3474          2                 0             Param  0.1065055
+#&gt; 32396:          3980          2                 0             Param  0.1077889
+#&gt; 32397:          4472          2                 0             Param  0.1082290
+#&gt;            AUC
+#&gt;     1: 95.9459
+#&gt;     2: 95.9459
+#&gt;     3: 95.9459
+#&gt;     4: 95.9459
+#&gt;     5: 95.9459
+#&gt;    ---        
+#&gt; 32393: 50.0000
+#&gt; 32394: 50.0000
+#&gt; 32395: 50.0000
+#&gt; 32396: 50.0000
+#&gt; 32397: 50.0000</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Plot ADM Model Success Rate over time — plotADMModelSuccessRateOverTime • cdhtools</title>
+<title>Sample ADM Data Mart model and predictor data. — adm_datamart • cdhtools</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,8 @@
 
 
 
-<meta property="og:title" content="Plot ADM Model Success Rate over time — plotADMModelSuccessRateOverTime" />
-<meta property="og:description" content="Plot ADM Model Success Rate over time" />
+<meta property="og:title" content="Sample ADM Data Mart model and predictor data. — adm_datamart" />
+<meta property="og:description" content="Standard list datastructure as produced by ADMDatamart." />
 
 
 
@@ -130,51 +130,28 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Plot ADM Model Success Rate over time</h1>
+    <h1>Sample ADM Data Mart model and predictor data.</h1>
     
-    <div class="hidden name"><code>plotADMModelSuccessRateOverTime.Rd</code></div>
+    <div class="hidden name"><code>adm_datamart.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Plot ADM Model Success Rate over time</p>
+    <p>Standard <code>list</code> datastructure as produced by <code>ADMDatamart</code>.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>plotADMModelSuccessRateOverTime</span><span class='op'>(</span>
-  <span class='va'>modeldata</span>,
-  aggregation <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/sets.html'>intersect</a></span><span class='op'>(</span><span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"Issue"</span>, <span class='st'>"Group"</span>, <span class='st'>"Name"</span>, <span class='st'>"Treatment"</span><span class='op'>)</span>, <span class='fu'><a href='https://rdrr.io/r/base/names.html'>names</a></span><span class='op'>(</span><span class='va'>modeldata</span><span class='op'>)</span><span class='op'>)</span>,
-  facets <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"ConfigurationName"</span><span class='op'>)</span>
-<span class='op'>)</span></pre>
+    <pre class="usage"><span class='va'>adm_datamart</span></pre>
 
-    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
-    <table class="ref-arguments">
-    <colgroup><col class="name" /><col class="desc" /></colgroup>
-    <tr>
-      <th>modeldata</th>
-      <td><p>ADM Datamart model data.</p></td>
-    </tr>
-    <tr>
-      <th>aggregation</th>
-      <td><p>Vector of field names to aggregate by. There will be a
-trend line for each combination of these fields. Defaults to
-"Issue","Group","Name","Treatment" (if present).</p></td>
-    </tr>
-    <tr>
-      <th>facets</th>
-      <td><p>Optional vector of additional fields for faceting. Defaults to
-"ConfigurationName"</p></td>
-    </tr>
-    </table>
 
-    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
+    <h2 class="hasAnchor" id="format"><a class="anchor" href="#format"></a>Format</h2>
 
-    <p>A <code>ggplot</code> object that can either be printed directly, or to
-which additional decoration (e.g. coloring or labels) can be added first.</p>
+    <p>A <code>list</code> with two <code>data.table</code> objects.</p><dl>
+  <dt>modeldata</dt><dd><p></p></dd>  <dt>predictordata</dt><dd><p></p></dd>
+</dl>
 
-    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><div class='input'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='op'>{</span>
-<span class='fu'>plotADMModelSuccessRateOverTime</span><span class='op'>(</span><span class='va'>mdls</span><span class='op'>)</span>
-<span class='op'>}</span>
-</div></pre>
+    <h2 class="hasAnchor" id="source"><a class="anchor" href="#source"></a>Source</h2>
+
+    <p>A sample Pega application</p>
+
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

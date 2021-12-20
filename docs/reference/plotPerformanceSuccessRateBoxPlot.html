@@ -6,8 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Efficient read of newline-delimited JSON (NDJSON) (aka line-delimited JSON (LDJSON),
-JSON lines (JSONL), multi-line JSON), a common format for big data streaming. — readNDJSON • cdhtools</title>
+<title>Create box plot of performance x success rate from ADM datamart model data. — plotPerformanceSuccessRateBoxPlot • cdhtools</title>
 
 
 <!-- jquery -->
@@ -40,10 +39,8 @@ JSON lines (JSONL), multi-line JSON), a common format for big data streaming. �
 
 
 
-<meta property="og:title" content="Efficient read of newline-delimited JSON (NDJSON) (aka line-delimited JSON (LDJSON),
-JSON lines (JSONL), multi-line JSON), a common format for big data streaming. — readNDJSON" />
-<meta property="og:description" content="Efficient read of newline-delimited JSON (NDJSON) (aka line-delimited JSON (LDJSON),
-JSON lines (JSONL), multi-line JSON), a common format for big data streaming." />
+<meta property="og:title" content="Create box plot of performance x success rate from ADM datamart model data. — plotPerformanceSuccessRateBoxPlot" />
+<meta property="og:description" content="Create box plot of performance x success rate from ADM datamart model data." />
 
 
 
@@ -133,48 +130,55 @@ JSON lines (JSONL), multi-line JSON), a common format for big data streaming." /
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Efficient read of newline-delimited JSON (NDJSON) (aka line-delimited JSON (LDJSON),
-JSON lines (JSONL), multi-line JSON), a common format for big data streaming.</h1>
+    <h1>Create box plot of performance x success rate from ADM datamart model data.</h1>
     
-    <div class="hidden name"><code>readNDJSON.Rd</code></div>
+    <div class="hidden name"><code>plotPerformanceSuccessRateBoxPlot.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Efficient read of newline-delimited JSON (NDJSON) (aka line-delimited JSON (LDJSON),
-JSON lines (JSONL), multi-line JSON), a common format for big data streaming.</p>
+    <p>Create box plot of performance x success rate from ADM datamart model data.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>readNDJSON</span><span class='op'>(</span><span class='va'>jsonFiles</span>, acceptJSONLines <span class='op'>=</span> <span class='cn'>NULL</span>, dropColumns <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='op'>)</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>plotPerformanceSuccessRateBoxPlot</span><span class='op'>(</span>
+  <span class='va'>datamart</span>,
+  primaryCriterion <span class='op'>=</span> <span class='st'>"ConfigurationName"</span>,
+  facets <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='op'>)</span>,
+  filter <span class='op'>=</span> <span class='va'>identity</span>
+<span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>jsonFiles</th>
-      <td><p>Either a single file with the JSON data, a folder that
-we read the</p></td>
+      <th>datamart</th>
+      <td><p>ADM Datamart model data.</p></td>
     </tr>
     <tr>
-      <th>acceptJSONLines</th>
-      <td><p>Optional filter function. If given, this is applied
-to the lines with JSON data and only those lines for which the function
-returns TRUE will be parsed. This is just for efficiency when reading
-really big files so you can filter rows early. This would most typically
-be used internally when called from <code>readDSExport</code> and related.</p></td>
+      <th>primaryCriterion</th>
+      <td><p>Field to separate by; there will be separate box plots
+for each of the values of this field. Can only be a single field. Defaults
+to "ConfigurationName".</p></td>
     </tr>
     <tr>
-      <th>dropColumns</th>
-      <td><p>Optional list if columns that will be dropped. Dropping
-will happen after converting (batches of) data to <code>data.table</code>.</p></td>
+      <th>facets</th>
+      <td><p>Optional vector of additional fields for faceting. Defaults to empty.</p></td>
+    </tr>
+    <tr>
+      <th>filter</th>
+      <td><p>Optional filter to apply on the model data</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>A <code>data.table</code> with the contents</p>
+    <p>A <code>ggplot</code> object that can either be printed directly, or to
+which additional decoration (e.g. coloring or labels) can be added first.</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><div class='input'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='fu'>readNDJSON</span><span class='op'>(</span><span class='st'>"datamart.json"</span><span class='op'>)</span>
+    <pre class="examples"><div class='input'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='op'>{</span>
+<span class='fu'>plotPerformanceSuccessRateBoxPlot</span><span class='op'>(</span><span class='va'>adm_datamart_models</span>, <span class='st'>"ConfigurationName"</span><span class='op'>)</span> <span class='op'>+</span>
+  <span class='fu'>scale_x_continuous</span><span class='op'>(</span>limits <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='fl'>50</span>, <span class='fl'>70</span><span class='op'>)</span>, name <span class='op'>=</span> <span class='st'>"Performance"</span><span class='op'>)</span> <span class='op'>+</span> <span class='fu'>coord_flip</span><span class='op'>(</span><span class='op'>)</span>
+<span class='op'>}</span>
 </div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

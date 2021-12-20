@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Generic method to read ADM Datamart data into a list structure. — ADMDatamart • cdhtools</title>
+<title>Generic method to read ADM Datamart data. — ADMDatamart • cdhtools</title>
 
 
 <!-- jquery -->
@@ -39,7 +39,7 @@
 
 
 
-<meta property="og:title" content="Generic method to read ADM Datamart data into a list structure. — ADMDatamart" />
+<meta property="og:title" content="Generic method to read ADM Datamart data. — ADMDatamart" />
 <meta property="og:description" content="Method is very flexible in the arguments. It can take a data.table
 for the model data and the predictor data, but the arguments can also be
 pointing to files in CSV, zipped CSV, (LD)JSON, parquet or dataset export formats." />
@@ -132,7 +132,7 @@ pointing to files in CSV, zipped CSV, (LD)JSON, parquet or dataset export format
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Generic method to read ADM Datamart data into a list structure.</h1>
+    <h1>Generic method to read ADM Datamart data.</h1>
     
     <div class="hidden name"><code>ADMDatamart.Rd</code></div>
     </div>
@@ -146,8 +146,15 @@ pointing to files in CSV, zipped CSV, (LD)JSON, parquet or dataset export format
     <pre class="usage"><span class='fu'>ADMDatamart</span><span class='op'>(</span>
   modeldata <span class='op'>=</span> <span class='cn'>NULL</span>,
   predictordata <span class='op'>=</span> <span class='cn'>NULL</span>,
-  folder <span class='op'>=</span> <span class='cn'>NULL</span>,
-  keepSerializedModelData <span class='op'>=</span> <span class='cn'>FALSE</span>
+  folder <span class='op'>=</span> <span class='st'>"."</span>,
+  cleanupHookModelData <span class='op'>=</span> <span class='va'>identity</span>,
+  cleanupHookPredictorData <span class='op'>=</span> <span class='va'>identity</span>,
+  keepSerializedModelData <span class='op'>=</span> <span class='cn'>F</span>,
+  filterModelData <span class='op'>=</span> <span class='va'>identity</span>,
+  filterPredictorData <span class='op'>=</span> <span class='va'>identity</span>,
+  predictorCategorization <span class='op'>=</span> <span class='va'>defaultPredictorCategorization</span>,
+  tmpFolder <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/tempfile.html'>tempdir</a></span><span class='op'>(</span>check <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span>,
+  verbose <span class='op'>=</span> <span class='cn'>F</span>
 <span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -156,17 +163,35 @@ pointing to files in CSV, zipped CSV, (LD)JSON, parquet or dataset export format
     <tr>
       <th>modeldata</th>
       <td><p>Location, reference or the actual model table from the
-ADM datamart.</p></td>
+ADM datamart. If not given defaults to the name of the dataset export file
+for the datamart model table. To not use it at all, set to FALSE.</p></td>
     </tr>
     <tr>
       <th>predictordata</th>
       <td><p>Location, reference or the actual predictor binning
-table from the ADM datamart.</p></td>
+table from the ADM datamart. If not given defaults to the name of the dataset export file
+for the datamart predictor binning table. To not use at all, set to FALSE.</p></td>
     </tr>
     <tr>
       <th>folder</th>
       <td><p>Optional path for the folder in which to look for the model
-and predictor data.</p></td>
+and predictor data. If first two arguments are not given will try to
+interpret the modeldata argument as the folder name and use the default
+dataset export file names.</p></td>
+    </tr>
+    <tr>
+      <th>cleanupHookModelData</th>
+      <td><p>Optional cleanup function to call directly after the
+raw model data has been read from the source file. This is especially helpful
+to clean up data that has been custom exported from a database into an
+Excel or CSV file.</p></td>
+    </tr>
+    <tr>
+      <th>cleanupHookPredictorData</th>
+      <td><p>Optional cleanup function to call directly after the
+raw predictor data has been read from the source file. This is especially helpful
+to clean up data that has been custom exported from a database into an
+Excel or CSV file.</p></td>
     </tr>
     <tr>
       <th>keepSerializedModelData</th>
@@ -174,13 +199,54 @@ and predictor data.</p></td>
 out from the model data as this typically is large and only needed for
 specific use cases.</p></td>
     </tr>
+    <tr>
+      <th>filterModelData</th>
+      <td><p>Post processing filter on the models, defaults to no
+filtering but a custom function can be provided to drop e.g. certain
+channels or issues or perform other clean up activities.</p></td>
+    </tr>
+    <tr>
+      <th>filterPredictorData</th>
+      <td><p>Post processing filter on the predictor data. Defaults
+to no filtering. Filtering on model ID's present in the model data will be
+performed regardless. Potentially useful is to supply <code>filterLatestSnapshotOnly</code>,
+so to keep only the predictor data of the last snapshot - if multiple are
+present.</p></td>
+    </tr>
+    <tr>
+      <th>predictorCategorization</th>
+      <td><p>When passed in, a function that determines
+the category of a predictor. This is then used to set an extra field in
+the predictor data: "PredictorCategory" that holds the predictor category.
+This is useful to globally set the predictor categories instead of having
+to pass it to every individual plot function. The function does not need
+to be vectorized. It is just applied to the levels of a factor and should
+take just a character as an argument. Defaults to a function that returns the text
+before the first dot.</p></td>
+    </tr>
+    <tr>
+      <th>tmpFolder</th>
+      <td><p>Optional folder to store unzipped data (defaults to a temp folder)</p></td>
+    </tr>
+    <tr>
+      <th>verbose</th>
+      <td><p>Flag for verbose logging, defaults to FALSE.</p></td>
+    </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>A list that wraps the the two <code>data.table</code> elements plus
-a few flags that indicate whether there are multiple snapshots or not.</p>
+    <p>A <code>list</code>) with two elements: "modeldata" contains a clean
+<code>data.table</code> with the ADM model data, and "predictordata" contains a
+clean <code>data.table</code> with the ADM predictor snapshots.</p>
 
+    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
+    <pre class="examples"><div class='input'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='op'>{</span>
+  <span class='va'>datamart</span> <span class='op'>&lt;-</span> <span class='fu'>ADMDatamart</span><span class='op'>(</span><span class='st'>"~/Downloads"</span><span class='op'>)</span>
+
+  <span class='va'>datamart</span> <span class='op'>&lt;-</span> <span class='fu'>ADMDatamart</span><span class='op'>(</span><span class='st'>"models.csv"</span>, <span class='st'>"predictors.csv"</span>, folder<span class='op'>=</span><span class='st'>"adm"</span><span class='op'>)</span>
+<span class='op'>}</span>
+</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

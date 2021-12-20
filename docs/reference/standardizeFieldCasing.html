@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Create cum lift plot for the model classifier. — plotADMCumulativeLift • cdhtools</title>
+<title>Fix field casing — standardizeFieldCasing • cdhtools</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,9 @@
 
 
 
-<meta property="og:title" content="Create cum lift plot for the model classifier. — plotADMCumulativeLift" />
-<meta property="og:description" content="Create cum lift plot for the model classifier." />
+<meta property="og:title" content="Fix field casing — standardizeFieldCasing" />
+<meta property="og:description" content="Uniformly sets the field names for data.tables from DB and dataset export,
+capitalizing first letter, fixing common endings." />
 
 
 
@@ -130,36 +131,34 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Create cum lift plot for the model classifier.</h1>
+    <h1>Fix field casing</h1>
     
-    <div class="hidden name"><code>plotADMCumulativeLift.Rd</code></div>
+    <div class="hidden name"><code>standardizeFieldCasing.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Create cum lift plot for the model classifier.</p>
+    <p>Uniformly sets the field names for data.tables from DB and dataset export,
+capitalizing first letter, fixing common endings.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>plotADMCumulativeLift</span><span class='op'>(</span><span class='va'>binning</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>standardizeFieldCasing</span><span class='op'>(</span><span class='va'>dt</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>binning</th>
-      <td><p>Binning of the classifier (technically it could
-be any predictor).</p></td>
+      <th>dt</th>
+      <td><p>Data table to apply to</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>A <code>ggplot</code> object that can either be printed directly, or to
-which additional decoration (e.g. coloring or labels) can be added first.</p>
+    <p>The names of the input are modified by reference</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><div class='input'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='op'>{</span>
-<span class='fu'>plotADMCumulativeLift</span><span class='op'>(</span><span class='va'>classifierBinning</span><span class='op'>)</span>
-<span class='op'>}</span>
+    <pre class="examples"><div class='input'><span class='va'>DT</span> <span class='op'>&lt;-</span> <span class='fu'>data.table</span><span class='fu'>::</span><span class='fu'><a href='https://Rdatatable.gitlab.io/data.table/reference/data.table.html'>data.table</a></span><span class='op'>(</span>id <span class='op'>=</span> <span class='st'>"abc"</span>, pyresponsecount <span class='op'>=</span> <span class='fl'>1234</span><span class='op'>)</span>
+<span class='fu'>standardizeFieldCasing</span><span class='op'>(</span><span class='va'>DT</span><span class='op'>)</span>
 </div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
