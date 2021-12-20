@@ -41,7 +41,7 @@ library(cdhtools)
 
 library(data.table)
 
-data(admdatamart)
+data(adm_datamart)
 ```
 
 For the example we use one particular model: FirstMortgage over SMS. You can
@@ -53,14 +53,14 @@ data.
 
 ```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 # Commented-out chunk useful to find a good example in the data
-modelsGoodPreds <- unique((filterLatestSnapshotOnly(admdatamart$predictordata) [TotalBins>4 & Type=="numeric" & EntryType == "Active"])$ModelID )
-filterLatestSnapshotOnly(admdatamart$modeldata)[ModelID %in% modelsGoodPreds, c("Positives","Performance","ActivePredictors","Name","Channel")][order(-ActivePredictors)]
-print(unique(admdatamart$predictordata[TotalBins>4 & Type=="numeric" & EntryType == "Active"]$PredictorName))
+modelsGoodPreds <- unique((filterLatestSnapshotOnly(adm_datamart$predictordata) [TotalBins>4 & Type=="numeric" & EntryType == "Active"])$ModelID )
+filterLatestSnapshotOnly(adm_datamart$modeldata)[ModelID %in% modelsGoodPreds, c("Positives","Performance","ActivePredictors","Name","Channel")][order(-ActivePredictors)]
+print(unique(adm_datamart$predictordata[TotalBins>4 & Type=="numeric" & EntryType == "Active"]$PredictorName))
 ```
 
 ```{r}
-model <- filterLatestSnapshotOnly(admdatamart$modeldata) [Name == "AutoNew36Months" & Channel == "SMS"]
-modelpredictors <- filterLatestSnapshotOnly(admdatamart$predictordata) [ModelID == model$ModelID & EntryType != "Inactive"]
+model <- filterLatestSnapshotOnly(adm_datamart$modeldata) [Name == "AutoNew36Months" & Channel == "SMS"]
+modelpredictors <- filterLatestSnapshotOnly(adm_datamart$predictordata) [ModelID == model$ModelID & EntryType != "Inactive"]
 
 predictorbinning <- modelpredictors[PredictorName == "IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount"][order(BinIndex)]
 

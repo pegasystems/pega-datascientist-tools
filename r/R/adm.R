@@ -101,7 +101,7 @@ expandEmbeddedJSONContext <- function(dt, fieldName = "Name")
 #' @export
 #'
 #' @examples
-#' filterLatestSnapshotOnly(admdatamart_binning)
+#' filterLatestSnapshotOnly(adm_datamart_binning)
 filterLatestSnapshotOnly <- function(dt)
 {
   ModelID <- NULL # Trick to silence R CMD Check warnings
@@ -126,7 +126,7 @@ filterLatestSnapshotOnly <- function(dt)
 #' @export
 #'
 #' @examples
-#' filterClassifierOnly(admdatamart_binning)
+#' filterClassifierOnly(adm_datamart_binning)
 filterClassifierOnly <- function(dt, reverse = F)
 {
   if (reverse) {
@@ -145,7 +145,7 @@ filterClassifierOnly <- function(dt, reverse = F)
 #' @export
 #'
 #' @examples
-#' filterActiveOnly(admdatamart_binning)
+#' filterActiveOnly(adm_datamart_binning)
 filterActiveOnly <- function(dt, reverse = F)
 {
   if (reverse) {
@@ -164,7 +164,7 @@ filterActiveOnly <- function(dt, reverse = F)
 #' @export
 #'
 #' @examples
-#' filterInactiveOnly(admdatamart_binning)
+#' filterInactiveOnly(adm_datamart_binning)
 filterInactiveOnly <- function(dt, reverse = F)
 {
   if (reverse) {
@@ -184,7 +184,7 @@ filterInactiveOnly <- function(dt, reverse = F)
 #' @export
 #'
 #' @examples
-#' filterPredictorBinning(admdatamart_binning)
+#' filterPredictorBinning(adm_datamart_binning)
 filterPredictorBinning <- function(dt)
 {
   noBinningSkipFields <- c("BinSymbol","BinNegativesPercentage","BinPositivesPercentage",
@@ -210,7 +210,7 @@ filterPredictorBinning <- function(dt)
 #' @export
 #'
 #' @examples
-#' hasMultipleSnapshots(admdatamart_models)
+#' hasMultipleSnapshots(adm_datamart_models)
 hasMultipleSnapshots <- function(dt)
 {
   if (is.null(dt)) return(F)

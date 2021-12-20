@@ -115,10 +115,14 @@ getPredictorType <- function(data)
 #' Creates \code{ggplot} scatterplot from success rate x performance of the
 #' models.
 #'
-#' @param modeldata ADM Datamart model data.
+#' @param datamart ADM Datamart model data.
 #' @param aggregation Vector of field names to aggregate by. Defaults to
 #' "Issue","Group","Name","Treatment" (if present).
 #' @param facets Optional vector of fields for faceting. Defaults to empty.
+#' @param color Name of field to use to color the bubbles. Defaults to "Name"
+#' but you could use for example "Group" or "Issue" instead, or use some
+#' custom field that indicates something else alltogether.
+#' @param filter Optional filter to apply on the model data
 #'
 #' @return A \code{ggplot} object that can either be printed directly, or to
 #' which additional decoration (e.g. coloring or labels) can be added first.
@@ -151,11 +155,12 @@ plotPerformanceSuccessRateBubbleChart <- function(datamart,
 
 #' Create box plot of performance x success rate from ADM datamart model data.
 #'
-#' @param modeldata ADM Datamart model data.
+#' @param datamart ADM Datamart model data.
 #' @param primaryCriterion Field to separate by; there will be separate box plots
 #' for each of the values of this field. Can only be a single field. Defaults
 #' to "ConfigurationName".
 #' @param facets Optional vector of additional fields for faceting. Defaults to empty.
+#' @param filter Optional filter to apply on the model data
 #'
 #' @return A \code{ggplot} object that can either be printed directly, or to
 #' which additional decoration (e.g. coloring or labels) can be added first.
@@ -163,7 +168,7 @@ plotPerformanceSuccessRateBubbleChart <- function(datamart,
 #'
 #' @examples
 #' \dontrun{
-#' plotPerformanceSuccessRateBoxPlot(admdatamart_models, "ConfigurationName") +
+#' plotPerformanceSuccessRateBoxPlot(adm_datamart_models, "ConfigurationName") +
 #'   scale_x_continuous(limits = c(50, 70), name = "Performance") + coord_flip()
 #' }
 plotPerformanceSuccessRateBoxPlot <- function(datamart,
@@ -187,12 +192,13 @@ plotPerformanceSuccessRateBoxPlot <- function(datamart,
 
 #' Plot ADM Model Performance over time
 #'
-#' @param modeldata ADM Datamart model data.
+#' @param datamart ADM Datamart model data.
 #' @param aggregation Vector of field names to aggregate by. There will be a
 #' trend line for each combination of these fields. Defaults to
 #' "Issue","Group","Name","Treatment" (if present).
 #' @param facets Optional vector of additional fields for faceting. Defaults to
 #' "ConfigurationName"
+#' @param filter Optional filter to apply on the model data
 #'
 #' @return A \code{ggplot} object that can either be printed directly, or to
 #' which additional decoration (e.g. coloring or labels) can be added first.
@@ -234,12 +240,13 @@ plotPerformanceOverTime <- function(datamart,
 
 #' Plot ADM Model Success Rate over time
 #'
-#' @param modeldata ADM Datamart model data.
+#' @param datamart ADM Datamart model data.
 #' @param aggregation Vector of field names to aggregate by. There will be a
 #' trend line for each combination of these fields. Defaults to
 #' "Issue","Group","Name","Treatment" (if present).
 #' @param facets Optional vector of additional fields for faceting. Defaults to
 #' "ConfigurationName"
+#' @param filter Optional filter to apply on the model data
 #'
 #' @return A \code{ggplot} object that can either be printed directly, or to
 #' which additional decoration (e.g. coloring or labels) can be added first.
@@ -289,10 +296,7 @@ plotSuccessRateOverTime <- function(datamart,
 #' An additional diamond is added to the boxplots to indicate weighted
 #' performance (by response counts in the models).
 #'
-#' @param predictordata ADM Datamart predictor data. Binning data not used and
-#' can be left out.
-#' @param modeldata Optional ADM Datamart model data, necessary when using
-#' model facets like Channel, ConfigurationName etc.
+#' @param datamart ADM Datamart data.
 #' @param facets Optional vector of additional fields for faceting. Defaults to
 #' "ConfigurationName" if model data present, otherwise empty.
 #' @param limit Optional limit of number of predictors. Useful if there are
@@ -309,6 +313,7 @@ plotSuccessRateOverTime <- function(datamart,
 #' @param activeOnly When TRUE, only considering predictors that are active. When
 #' FALSE, using all predictors. Defaults to TRUE when the limit is positive, to
 #' FALSE when it is negative.
+#' @param filter Optional filter to apply on the model data
 #'
 #' @return A \code{ggplot} object that can either be printed directly, or to
 #' which additional decoration (e.g. coloring or labels) can be added first.
@@ -434,9 +439,7 @@ plotPredictorImportance <- function(datamart,
 #' Creates a visual grid of predictor names vs propositions (configurable) with
 #' colors indicating the strength of the predictor for that proposition.
 #'
-#' @param predictordata ADM Datamart predictor data. Binning data not used and
-#' can be left out.
-#' @param modeldata ADM Datamart model data.
+#' @param datamart ADM Datamart data.
 #' @param aggregation Vector of field names to aggregate by. Defaults to
 #' "Issue","Group","Name","Treatment" (if present).
 #' @param facets Vector of additional fields for faceting. Defaults to
@@ -445,6 +448,7 @@ plotPredictorImportance <- function(datamart,
 #' many predictors to keep the plot readable.
 #' @param maxNameLength Max length of predictor names. Above this length
 #' they will be abbreviated. NOTE: currently not supported anymore.
+#' @param filter Optional filter to apply on the model data
 #'
 #' @return A \code{ggplot} object that can either be printed directly, or to
 #' which additional decoration (e.g. coloring or labels) can be added first.
@@ -530,7 +534,7 @@ plotPredictorImportanceHeatmap <- function(datamart,
 #' Creates a bar char of proposition success rates. Most useful if done per
 #' channel or other field.
 #'
-#' @param modeldata ADM Datamart model data.
+#' @param datamart ADM Datamart data.
 #' @param aggregation Vector of field names to aggregate by. Defaults to
 #' "Issue","Group","Name","Treatment" (if present).
 #' @param facets Vector of additional fields for faceting. Defaults to
@@ -538,6 +542,7 @@ plotPredictorImportanceHeatmap <- function(datamart,
 #' @param limit Optional limit of number of propositions.
 #' @param maxNameLength Max length of predictor names. Above this length
 #' they will be abbreviated.
+#' @param filter Optional filter to apply on the model data
 #'
 #' @return A \code{ggplot} object that can either be printed directly, or to
 #' which additional decoration (e.g. coloring or labels) can be added first.
