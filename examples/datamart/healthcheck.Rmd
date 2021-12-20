@@ -23,16 +23,14 @@ params:
   modelfile:
     # Full path to the source file which should be an export of the ADM model table
     # can be a plain CSV file, a zipped CSV, or the full path of a dataset export
-    #value: "../../data/pr_data_dm_admmart_mdl_fact.csv"
-    value: "~/Downloads/models_VF Ziggo.parquet"
+    value: "../../data/pr_data_dm_admmart_mdl_fact.csv"
 
   predictordatafile:
     # Optional full path to ADM predictor binning table data. If given, the model 
     # overview will also contain predictor plots. Like the model file, there is 
     # flexibility in format: CSV, zipped CSV or dataset export. If you have something
     # different, you'll need to load, filter and re-write as CSV first.
-    #value: "../../data/pr_data_dm_admmart_pred.csv"
-    value: "~/Downloads/preds_VF Ziggo.parquet"
+    value: "../../data/pr_data_dm_admmart_pred.csv"
 
   modellist:
     # Facilitates automatic generation of individual model reports (calling the

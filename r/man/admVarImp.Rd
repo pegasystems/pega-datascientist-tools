@@ -19,7 +19,7 @@ up to.}
 
 \item{filter}{Optional filter for the predictor data. Defaults to filter
 out the classifiers, so operates on both active and inactive predictors.
-Pass in \code{filterActiveOnly} to only consider the active predictors.}
+See examples.}
 }
 \value{
 A \code{data.table}) with \code{PredictorName}, \code{Importance}
@@ -36,5 +36,7 @@ the univariate predictor performance (AUC).
   dm <- ADMDatamart("~/Downloads")
 
   varimp <- admVarImp(dm)
+
+  varimp <- admVarImp(dm, filter = filterActiveOnly)
 }
 }
