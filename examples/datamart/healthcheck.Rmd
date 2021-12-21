@@ -96,12 +96,15 @@ To create stand-alone model reports for individual model instances see the
 if (!("modelfile" %in% names(params))) stop("Model data missing. Please provide through parameter 'modelfile'.")
 if (!file.exists(params$modelfile)) stop(paste("File does not exist:", params$modelfile))
 
-if (params$predictordatafile == "") params$predictordatafile <- NULL
-if (!is.null(params$predictordatafile)) {
-  if (!file.exists(params$predictordatafile)) stop(paste("File does not exist:", params$predictordatafile))  
+if (params$predictordatafile == "") {
+  datamart <- ADMDatamart(params$modelfile, predictordata = F)  
+} else {
+  if (!is.null(params$predictordatafile)) {
+    if (!file.exists(params$predictordatafile)) stop(paste("File does not exist:", params$predictordatafile))  
+  }
+  
+  datamart <- ADMDatamart(params$modelfile, params$predictordatafile)
 }
-
-datamart <- ADMDatamart(params$modelfile, params$predictordatafile)
 
 # standardized coloring for this script
 # see also https://www.nceas.ucsb.edu/sites/default/files/2020-04/colorPaletteCheatsheet.pdf
@@ -746,11 +749,18 @@ generated file.
 
 ```{r}
 if (params$modellist != "") {
-  inclKeys <- availableStandardContextKeys[sapply(availableStandardContextKeys, function(x) {return(length(unique(datamart$modeldata[[x]]))>1)})]
-  modelIDandSanitizedNames <- unique(datamart$modeldata[, list(make.names(apply(.SD, 1, function(x){return(paste(x,collapse="_"))}))), 
+  inclKeys <- availableStandardContextKeys[sapply(availableStandardContextKeys, 
+                                                  function(x) {
+                                                    return(length(unique(datamart$modeldata[[x]]))>1)
+                                                  })]
+  
+  modelIDandSanitizedNames <- unique(datamart$modeldata[, list(make.names(apply(.SD, 1,
+                                                                                function(x) {
+                                                                                  return(paste(x,collapse="_"))
+                                                                                  }))), 
                                                         by=ModelID, .SDcols=inclKeys])
   
-  write.table(modelIDandSanitizedNames, 
+  write.table(modelIDandSanitizedNames[ModelID %in% unique(datamart$predictordata$ModelID)], 
               params$modellist, row.names = F, col.names = F, quote=F, sep=";")
 }
 ```

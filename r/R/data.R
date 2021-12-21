@@ -4,8 +4,8 @@
 #'
 #' @format A \code{list} with two \code{data.table} objects.
 #' \describe{
-#'   \item{modeldata}
-#'   \item{predictordata}
+#'   \item{modeldata}{A \code{data.table} with the sanitized model data}
+#'   \item{predictordata}{A \code{data.table} with the sanitized predictor data}
 #' }
 #'
 #' @source A sample Pega application

@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>cdhtools: Data Science add-ons for Pega. — cdhtools • cdhtools</title>
+<title>cdhtools: Open-sourced Data Science tools for Pega. — cdhtools • cdhtools</title>
 
 
 <!-- jquery -->
@@ -39,9 +39,12 @@
 
 
 
-<meta property="og:title" content="cdhtools: Data Science add-ons for Pega. — cdhtools" />
-<meta property="og:description" content="Various utilities to access and manipulate data from Pega for purposes
-of data analysis, reporting and monitoring." />
+<meta property="og:title" content="cdhtools: Open-sourced Data Science tools for Pega. — cdhtools" />
+<meta property="og:description" content="Open source tooling to help Data Scientists working with CDH analyze Pega
+models, responses and predictors using Python and R. There are utility
+functions to read data, easily create plots and more. See the Wiki of the
+GitHub repository at https://github.com/pegasystems/cdh-datascientist-tools/wiki
+for a more detailed description and example notebooks." />
 
 
 
@@ -131,25 +134,29 @@ of data analysis, reporting and monitoring." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>cdhtools: Data Science add-ons for Pega.</h1>
+    <h1>cdhtools: Open-sourced Data Science tools for Pega.</h1>
     
     <div class="hidden name"><code>cdhtools.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Various utilities to access and manipulate data from Pega for purposes
-of data analysis, reporting and monitoring.</p>
+    <p>Open source tooling to help Data Scientists working with CDH analyze Pega
+models, responses and predictors using Python and R. There are utility
+functions to read data, easily create plots and more. See the Wiki of the
+GitHub repository at <a href='https://github.com/pegasystems/cdh-datascientist-tools/wiki'>https://github.com/pegasystems/cdh-datascientist-tools/wiki</a>
+for a more detailed description and example notebooks.</p>
     </div>
 
 
 
-    <h2 class="hasAnchor" id="style"><a class="anchor" href="#style"></a>Style</h2>
+    <h2 class="hasAnchor" id="a-note-on-style"><a class="anchor" href="#a-note-on-style"></a>A note on style</h2>
 
     
 
 
-<p>The utilities in cdhtools heavily rely on <code>data.table</code> and often return values of this type. <code>data.table</code>
-provides a high-performance version of base R's <code>data.frame</code>, see <a href='https://github.com/Rdatatable/data.table/wiki'>https://github.com/Rdatatable/data.table/wiki</a>.</p>
+<p>The utilities in cdhtools heavily rely on <code>data.table</code> and often expect
+arguments or return values as a <code>data.table</code>. This table library provides
+a high-performance version of base R's <code>data.frame</code>, see <a href='https://github.com/Rdatatable/data.table/wiki'>https://github.com/Rdatatable/data.table/wiki</a>.</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

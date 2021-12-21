@@ -7,4 +7,8 @@ java/DDSUtil/build
 modelreport_files/
 tmp/
 tmp3/
-
+examples/**/*.html
+*.tex
+r/*.csv
+r/tests/testthat/*.html
+r/tests/testthat/*.pdf

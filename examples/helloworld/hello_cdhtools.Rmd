@@ -10,13 +10,12 @@ output: html_document
 This is a basic example of using CDH tools to visualize the ADM datamart.
 
 To run this first install the `cdhtool` library as per instructions from the 
-GitHub repository https://github.com/pegasystems/cdh-datascientist-tools. Follow
-the link to the Wiki from the bottom of the page and find installation 
-instructions there.
+[Wiki](https://github.com/pegasystems/cdh-datascientist-tools/wiki) of the GitHub repository https://github.com/pegasystems/cdh-datascientist-tools.
 
 ```{r message=FALSE, warning=FALSE}
 library(cdhtools)
 library(data.table)
+library(ggplot2)
 ```
 
 Then to run this example, use a sample dataset included or export your own 
@@ -30,7 +29,11 @@ from CSV, parquet etc and has a number of arguments to fine tune the behavior.
 See `?ADMDatamart` for help or use the links in the Wiki.
 
 ```{r}
-datamart <- ADMDatamart("../../data", filterModelData = filterLatestSnapshotOnly)
+# To use the sample dataset:
+# data(adm_datamart)
+# datamart <- adm_datamart
+
+datamart <- ADMDatamart("../../data")
 
 #datamart <- ADMDatamart("~/Downloads")
 ```
@@ -47,11 +50,8 @@ more please see the [Graph Gallery](https://github.com/pegasystems/cdh-datascien
 For example, a Bubble plot with performance vs. success rate split by issue and channel:
 
 ```{r message=FALSE, warning=FALSE}
-library(ggplot2)
-library(scales)
-library(colorspace)
-
 plotPerformanceSuccessRateBubbleChart(datamart, 
+                                      filter = filterLatestSnapshotOnly,
                                       facets=c("Issue", "Channel")) +
   theme_bw()
 ```

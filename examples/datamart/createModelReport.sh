@@ -2,15 +2,19 @@
 
 # Run an R notebook on the given inputfile with predictor binning data
 
-# Source needs to be a CSV file from the predictor binning table with the details of one particular model
-# or the modelid needs to be passed in. The model description is optional and gives a title to the model
-# as this info is not present in the predictor binning data
+# Location of the GIT checkout of the CDH tools
+cdhtools="~/Documents/pega/cdh-datascientist-tools"
+modelreportnotebook="$cdhtools/examples/datamart/modelreport.Rmd"
 
-notebook="./modelreport.Rmd"
-source="../data/pr_data_dm_admmart_pred.csv"
-modelid="7bf31ac7-8562-522f-8f95-7d35e3c7a96f"
+# Predictor data. This can be a CSV or any other of the supported formats.
+source="$cdhtools/data/pr_data_dm_admmart_pred.csv"
+
+# Model ID to use
+modelid="277a2c48-8888-5b71-911e-443d52c9b50f"
 modeldescription="Banner Model - BMOBILEAPP"
+
+# Generated file
 output="`pwd`/$modeldescription.html"
 
-R -e "rmarkdown::render('$notebook',params = list(predictordatafile='$source', modeldescription='$modeldescription', modelid='$modelid'), output_file='$output')"
+R -e "rmarkdown::render('$modelreportnotebook',params = list(predictordatafile='$source', modeldescription='$modeldescription', modelid='$modelid'), output_file='$output')"
 
