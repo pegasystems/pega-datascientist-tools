@@ -49,7 +49,8 @@ class ADMVisualisations:
         table = 'modelData'
         required_columns = {'Performance', 'SuccesRate', 'ResponseCount', 'ModelName'}
         df = self._subset_data(table=table, required_columns=required_columns, query=query, last=last)
-        
+        df['SuccesRate'] *= 100
+        df['Performance'] *= 100
         if annotate:
             gg = sns.relplot(x='Performance', y='SuccesRate', aspect=aspect, data=df, hue='ModelName')
             ax = gg.axes[0,0]
@@ -67,7 +68,8 @@ class ADMVisualisations:
         gg.fig.set_size_inches(figsize[0], figsize[1])
         plt.setp(gg._legend.get_texts(), fontsize='10')
         gg.ax.set_xlabel('Performance')
-        gg.ax.set_xlim(0.48, 1)
+        gg.ax.set_xlim(48, 100)
+        gg.ax.yaxis.set_major_formatter(mtick.PercentFormatter())
         gg._legend.set_bbox_to_anchor(b_to_anchor)
 
     def plotPerformanceAndSuccessRateOverTime(self, day_interval:int=7, query:Union[str, dict]=None, figsize:tuple=(16, 10)) -> plt.figure:
