@@ -4,42 +4,10 @@
 \alias{adm2pmml}
 \title{Generates PMML files from ADM models.}
 \usage{
-adm2pmml(
-  dmModels = NULL,
-  dmPredictors = NULL,
-  dbConn = NULL,
-  forceUseDM = FALSE,
-  appliesToFilter = NULL,
-  ruleNameFilter = NULL,
-  destDir = ".",
-  tmpDir = NULL,
-  verbose = (!is.null(tmpDir))
-)
+adm2pmml(datamart, destDir = ".", tmpDir = NULL, verbose = (!is.null(tmpDir)))
 }
 \arguments{
-\item{dmModels}{Data frame (or anything else that converts to
-\code{data.table}) with the ADM datamart model data}
-
-\item{dmPredictors}{Data frame (or anything else that converts to
-\code{data.table}) with the ADM datamart predictor data. Required if
-\code{dmModels} is given. If \code{dmPredictors} is given but
-\code{dmModels} is not, the assumption will be made that all the predictor
-binning belongs to a single model.}
-
-\item{dbConn}{Database connection. If given, the data will be extracted from
-the internal ADM Factory table unless the \code{forceUseDM} flag is set.}
-
-\item{forceUseDM}{Only in combination with the \code{dbConn} flag. If TRUE,
-will use the ADM datamart tables. If FALSE (the default) will use the ADM
-Factory tables.}
-
-\item{appliesToFilter}{Optional filter for the applies to class of the models
-as a regexp passed on to \code{\link[base:grep]{grepl}} with \code{ignore.case =
-TRUE}, \code{perl = TRUE}, \code{fixed = FALSE}, \code{useBytes = FALSE}.}
-
-\item{ruleNameFilter}{Optional filter for the rule name of the models as a
-regexp passed on to \code{\link[base:grep]{grepl}} with \code{ignore.case =
-TRUE}, \code{perl = TRUE}, \code{fixed = FALSE}, \code{useBytes = FALSE}.}
+\item{datamart}{Model and predictor data from the ADM datamart.}
 
 \item{destDir}{Directory to create the PMML files in. Defaults to the current
 directory.}
@@ -55,27 +23,14 @@ Creates the PMML file(s) in the given destination and returns a list
   of model ID's per file.
 }
 \description{
-Generates PMML files from the ADM models in either the ADM data mart,
-directly from the database or from dataset exports, or from the (internal)
-"Factory" tables. The generated PMML contains all the individual models for
-each model partition inside a big ensemble that selects between them based on
-context keys.
+Every model configuration becomes one big PMML file. The big ensemble contains
+score cards for every model partition. The ensemble switches between the
+models based on context key values.
 }
-\section{Exporting a specific version}{
- When exporting from the datamart, only
-  the models from the most recent model snapshot will be exported, and for
-  each of these, only the most recent of the predictor snapshots of that
-  model will be used. To export specific snapshots subset the data before
-  calling this method.
-}
-
 \examples{
-adm2pmml(verbose=TRUE)
 \dontrun{
-  models <- readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots", "~/Downloads")
-  preds <- readDSExport("Data-Decision-ADM-PredictorBinningSnapshot_AllPredictorSnapshots",
-                        "~/Downloads")
+  dm <- ADMDatamart("~/Downloads")
 
-  adm2pmml(models, preds, verbose=TRUE)
+  adm2pmml(dm, verbose=TRUE)
 }
 }

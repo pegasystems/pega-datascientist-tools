@@ -1,7 +1,7 @@
-pysubjectid,pyName,Country,Age
-CE-1,Dummy,Canada,40
-CE-2,Dummy,Netherlands,22
-CE-3,Dummy,Germany,30
-CE-4,Dummy,UK,50
-CE-5,Dummy,Canada,NA
-CE-6,Dummy,NA,28
+pysubjectid,pyName,pyIssue,pyGroup,pyChannel,pyDirection,Country,Age
+CE-1,Dummy,Dummy,Dummy,Dummy,Dummy,Canada,40
+CE-2,Dummy,Dummy,Dummy,Dummy,Dummy,Netherlands,22
+CE-3,Dummy,Dummy,Dummy,Dummy,Dummy,Germany,30
+CE-4,Dummy,Dummy,Dummy,Dummy,Dummy,UK,50
+CE-5,Dummy,Dummy,Dummy,Dummy,Dummy,Canada,NA
+CE-6,Dummy,Dummy,Dummy,Dummy,Dummy,NA,28

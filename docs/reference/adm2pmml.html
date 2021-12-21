@@ -40,11 +40,9 @@
 
 
 <meta property="og:title" content="Generates PMML files from ADM models. — adm2pmml" />
-<meta property="og:description" content="Generates PMML files from the ADM models in either the ADM data mart,
-directly from the database or from dataset exports, or from the (internal)
-&quot;Factory&quot; tables. The generated PMML contains all the individual models for
-each model partition inside a big ensemble that selects between them based on
-context keys." />
+<meta property="og:description" content="Every model configuration becomes one big PMML file. The big ensemble contains
+score cards for every model partition. The ensemble switches between the
+models based on context key values." />
 
 
 
@@ -140,63 +138,19 @@ context keys." />
     </div>
 
     <div class="ref-description">
-    <p>Generates PMML files from the ADM models in either the ADM data mart,
-directly from the database or from dataset exports, or from the (internal)
-"Factory" tables. The generated PMML contains all the individual models for
-each model partition inside a big ensemble that selects between them based on
-context keys.</p>
+    <p>Every model configuration becomes one big PMML file. The big ensemble contains
+score cards for every model partition. The ensemble switches between the
+models based on context key values.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>adm2pmml</span><span class='op'>(</span>
-  dmModels <span class='op'>=</span> <span class='cn'>NULL</span>,
-  dmPredictors <span class='op'>=</span> <span class='cn'>NULL</span>,
-  dbConn <span class='op'>=</span> <span class='cn'>NULL</span>,
-  forceUseDM <span class='op'>=</span> <span class='cn'>FALSE</span>,
-  appliesToFilter <span class='op'>=</span> <span class='cn'>NULL</span>,
-  ruleNameFilter <span class='op'>=</span> <span class='cn'>NULL</span>,
-  destDir <span class='op'>=</span> <span class='st'>"."</span>,
-  tmpDir <span class='op'>=</span> <span class='cn'>NULL</span>,
-  verbose <span class='op'>=</span> <span class='op'>(</span><span class='op'>!</span><span class='fu'><a href='https://rdrr.io/r/base/NULL.html'>is.null</a></span><span class='op'>(</span><span class='va'>tmpDir</span><span class='op'>)</span><span class='op'>)</span>
-<span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>adm2pmml</span><span class='op'>(</span><span class='va'>datamart</span>, destDir <span class='op'>=</span> <span class='st'>"."</span>, tmpDir <span class='op'>=</span> <span class='cn'>NULL</span>, verbose <span class='op'>=</span> <span class='op'>(</span><span class='op'>!</span><span class='fu'><a href='https://rdrr.io/r/base/NULL.html'>is.null</a></span><span class='op'>(</span><span class='va'>tmpDir</span><span class='op'>)</span><span class='op'>)</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>dmModels</th>
-      <td><p>Data frame (or anything else that converts to
-<code>data.table</code>) with the ADM datamart model data</p></td>
-    </tr>
-    <tr>
-      <th>dmPredictors</th>
-      <td><p>Data frame (or anything else that converts to
-<code>data.table</code>) with the ADM datamart predictor data. Required if
-<code>dmModels</code> is given. If <code>dmPredictors</code> is given but
-<code>dmModels</code> is not, the assumption will be made that all the predictor
-binning belongs to a single model.</p></td>
-    </tr>
-    <tr>
-      <th>dbConn</th>
-      <td><p>Database connection. If given, the data will be extracted from
-the internal ADM Factory table unless the <code>forceUseDM</code> flag is set.</p></td>
-    </tr>
-    <tr>
-      <th>forceUseDM</th>
-      <td><p>Only in combination with the <code>dbConn</code> flag. If TRUE,
-will use the ADM datamart tables. If FALSE (the default) will use the ADM
-Factory tables.</p></td>
-    </tr>
-    <tr>
-      <th>appliesToFilter</th>
-      <td><p>Optional filter for the applies to class of the models
-as a regexp passed on to <code><a href='https://rdrr.io/r/base/grep.html'>grepl</a></code> with <code>ignore.case =
-TRUE</code>, <code>perl = TRUE</code>, <code>fixed = FALSE</code>, <code>useBytes = FALSE</code>.</p></td>
-    </tr>
-    <tr>
-      <th>ruleNameFilter</th>
-      <td><p>Optional filter for the rule name of the models as a
-regexp passed on to <code><a href='https://rdrr.io/r/base/grep.html'>grepl</a></code> with <code>ignore.case =
-TRUE</code>, <code>perl = TRUE</code>, <code>fixed = FALSE</code>, <code>useBytes = FALSE</code>.</p></td>
+      <th>datamart</th>
+      <td><p>Model and predictor data from the ADM datamart.</p></td>
     </tr>
     <tr>
       <th>destDir</th>
@@ -219,22 +173,12 @@ indicating no temp files will be left behind.</p></td>
 
     <p>Creates the PMML file(s) in the given destination and returns a list
   of model ID's per file.</p>
-    <h2 class="hasAnchor" id="exporting-a-specific-version"><a class="anchor" href="#exporting-a-specific-version"></a>Exporting a specific version</h2>
-
-    <p>When exporting from the datamart, only
-  the models from the most recent model snapshot will be exported, and for
-  each of these, only the most recent of the predictor snapshots of that
-  model will be used. To export specific snapshots subset the data before
-  calling this method.</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><div class='input'><span class='fu'>adm2pmml</span><span class='op'>(</span>verbose<span class='op'>=</span><span class='cn'>TRUE</span><span class='op'>)</span>
-</div><div class='output co'>#&gt; [1] "No models available matching the filter criteria"</div><div class='output co'>#&gt; list()</div><div class='input'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='op'>{</span>
-  <span class='va'>models</span> <span class='op'>&lt;-</span> <span class='fu'><a href='readDSExport.html'>readDSExport</a></span><span class='op'>(</span><span class='st'>"Data-Decision-ADM-ModelSnapshot_AllModelSnapshots"</span>, <span class='st'>"~/Downloads"</span><span class='op'>)</span>
-  <span class='va'>preds</span> <span class='op'>&lt;-</span> <span class='fu'><a href='readDSExport.html'>readDSExport</a></span><span class='op'>(</span><span class='st'>"Data-Decision-ADM-PredictorBinningSnapshot_AllPredictorSnapshots"</span>,
-                        <span class='st'>"~/Downloads"</span><span class='op'>)</span>
+    <pre class="examples"><div class='input'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='op'>{</span>
+  <span class='va'>dm</span> <span class='op'>&lt;-</span> <span class='fu'><a href='ADMDatamart.html'>ADMDatamart</a></span><span class='op'>(</span><span class='st'>"~/Downloads"</span><span class='op'>)</span>
 
-  <span class='fu'>adm2pmml</span><span class='op'>(</span><span class='va'>models</span>, <span class='va'>preds</span>, verbose<span class='op'>=</span><span class='cn'>TRUE</span><span class='op'>)</span>
+  <span class='fu'>adm2pmml</span><span class='op'>(</span><span class='va'>dm</span>, verbose<span class='op'>=</span><span class='cn'>TRUE</span><span class='op'>)</span>
 <span class='op'>}</span>
 </div></pre>
   </div>

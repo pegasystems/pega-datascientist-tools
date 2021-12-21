@@ -373,7 +373,7 @@ getNBFormulaWeights <- function(bins)
   # Summarize per predictor
   if (any(bins$PredictorType != "CLASSIFIER")) {
     predMinMaxWeights <- bins[PredictorType != "CLASSIFIER", list(minWeight = min(BinWeight),
-                                                               maxWeight = max(BinWeight)), by=PredictorName]
+                                                                  maxWeight = max(BinWeight)), by=PredictorName]
   } else {
     predMinMaxWeights <- data.table()
   }
@@ -565,8 +565,8 @@ createPMML <- function(modeldata, overallModelName)
 
   # Make sure the predictor binning is according to expectations
   modelSummary <- rbindlist(lapply(modeldata, function(m) {return(m$binning[, list(hasClassifier=any(PredictorType=="CLASSIFIER"),
-                                                                               hasPredictors=any(PredictorType=="NUMERIC" | PredictorType=="SYMBOLIC"),
-                                                                               PredictorNames=paste(unique(PredictorName), collapse = ",")),
+                                                                                   hasPredictors=any(PredictorType=="NUMERIC" | PredictorType=="SYMBOLIC"),
+                                                                                   PredictorNames=paste(unique(PredictorName), collapse = ",")),
                                                                             by=c("ModelID")])}))
   if (!all(modelSummary$hasClassifier)) {
     print(modelSummary)
@@ -591,36 +591,11 @@ createPMML <- function(modeldata, overallModelName)
 
 #' Generates PMML files from ADM models.
 #'
-#' Generates PMML files from the ADM models in either the ADM data mart,
-#' directly from the database or from dataset exports, or from the (internal)
-#' "Factory" tables. The generated PMML contains all the individual models for
-#' each model partition inside a big ensemble that selects between them based on
-#' context keys.
+#' Every model configuration becomes one big PMML file. The big ensemble contains
+#' score cards for every model partition. The ensemble switches between the
+#' models based on context key values.
 #'
-#' @section Exporting a specific version: When exporting from the datamart, only
-#'   the models from the most recent model snapshot will be exported, and for
-#'   each of these, only the most recent of the predictor snapshots of that
-#'   model will be used. To export specific snapshots subset the data before
-#'   calling this method.
-#'
-#' @param dmModels Data frame (or anything else that converts to
-#'   \code{data.table}) with the ADM datamart model data
-#' @param dmPredictors Data frame (or anything else that converts to
-#'   \code{data.table}) with the ADM datamart predictor data. Required if
-#'   \code{dmModels} is given. If \code{dmPredictors} is given but
-#'   \code{dmModels} is not, the assumption will be made that all the predictor
-#'   binning belongs to a single model.
-#' @param dbConn Database connection. If given, the data will be extracted from
-#'   the internal ADM Factory table unless the \code{forceUseDM} flag is set.
-#' @param forceUseDM Only in combination with the \code{dbConn} flag. If TRUE,
-#'   will use the ADM datamart tables. If FALSE (the default) will use the ADM
-#'   Factory tables.
-#' @param appliesToFilter Optional filter for the applies to class of the models
-#'   as a regexp passed on to \code{\link[base:grep]{grepl}} with \code{ignore.case =
-#'   TRUE}, \code{perl = TRUE}, \code{fixed = FALSE}, \code{useBytes = FALSE}.
-#' @param ruleNameFilter Optional filter for the rule name of the models as a
-#'   regexp passed on to \code{\link[base:grep]{grepl}} with \code{ignore.case =
-#'   TRUE}, \code{perl = TRUE}, \code{fixed = FALSE}, \code{useBytes = FALSE}.
+#' @param datamart Model and predictor data from the ADM datamart.
 #' @param destDir Directory to create the PMML files in. Defaults to the current
 #'   directory.
 #' @param tmpDir Directory for temporary files. Defaults to \code{NULL}
@@ -633,143 +608,88 @@ createPMML <- function(modeldata, overallModelName)
 #' @export
 #'
 #' @examples
-#' adm2pmml(verbose=TRUE)
 #' \dontrun{
-#'   models <- readDSExport("Data-Decision-ADM-ModelSnapshot_AllModelSnapshots", "~/Downloads")
-#'   preds <- readDSExport("Data-Decision-ADM-PredictorBinningSnapshot_AllPredictorSnapshots",
-#'                         "~/Downloads")
+#'   dm <- ADMDatamart("~/Downloads")
 #'
-#'   adm2pmml(models, preds, verbose=TRUE)
+#'   adm2pmml(dm, verbose=TRUE)
 #' }
-adm2pmml <- function(dmModels = NULL, dmPredictors = NULL, dbConn = NULL, forceUseDM = FALSE,
-                     appliesToFilter = NULL, ruleNameFilter = NULL,
+adm2pmml <- function(datamart,
                      destDir = ".",
                      tmpDir = NULL, verbose = (!is.null(tmpDir)))
 {
-  AppliesToClass <- ConfigurationName <- ModelID <- ConfigpartitionID <- NULL # Trick to silence R CMD Check warnings
+  ConfigurationName <- ModelID <- ConfigpartitionID <- NULL # Trick to silence R CMD Check warnings
 
+  dmModels <- copy(datamart$modeldata)
+  dmPredictors <- copy(datamart$predictordata)
 
-  generatedPMMLFiles <- list()
-  modelFactory <- NULL
+  # PMML conversion code assumes character types
+  for (f in names(dmPredictors)[sapply(dmPredictors, is.factor)]) dmPredictors[[f]] <- as.character(dmPredictors[[f]])
+  for (f in names(dmModels)[sapply(dmModels, is.factor)]) dmModels[[f]] <- as.character(dmModels[[f]])
 
-  # DM dataset exports
-  if (!is.null(dmModels) & !is.null(dmPredictors)) {
-    standardizeFieldCasing(dmModels)
-    standardizeFieldCasing(dmPredictors)
+  result <- list()
 
-    if(!is.null(appliesToFilter)) {
-      dmModels <- dmModels[ grepl(appliesToFilter, AppliesToClass, ignore.case=T, perl=T) ]
-    }
-    if(!is.null(ruleNameFilter)) {
-      dmModels <- dmModels[ grepl(ruleNameFilter, ConfigurationName, ignore.case=T, perl=T) ]
-    }
-  } else {
-    # Connection --> Datamart
-    if (!is.null(dbConn)) {
-      if (forceUseDM) { # or perhaps if the JSON factory isnt there (e.g. when on a replicated DB)
+  for (admConfigurationName in unique(dmModels$ConfigurationName)) {
+    if (verbose) cat("Processing", admConfigurationName, fill=T)
 
-        dmModels <- readADMDatamartModelTable(dbConn, verbose=verbose)
-        if(!is.null(appliesToFilter)) {
-          dmModels <- dmModels[ grepl(appliesToFilter, AppliesToClass, ignore.case=T, perl=T) ]
-        }
-        if(!is.null(ruleNameFilter)) {
-          dmModels <- dmModels[ grepl(ruleNameFilter, ConfigurationName, ignore.case=T, perl=T) ]
-        }
-        dmPredictors <- readADMDatamartPredictorTable(dbConn, dmModels$ModelID, verbose=verbose)
-      } else {
-        modelFactory <- getModelsFromJSONTable(dbConn, appliesto=appliesToFilter, configurationname=ruleNameFilter, verbose=verbose)
-      }
-      # casing will have been fixed by the db read methods
-    }
+    pmmlFileName <- file.path(destDir, paste(admConfigurationName, "pmml", sep="."))
+
+    # Create list with normalized binning data for every partition
+    models <- unique(dmModels[ConfigurationName == admConfigurationName])
+    modelList <- normalizedBinningFromDatamart(dmPredictors,
+                                               admConfigurationName,
+                                               tmpDir,
+                                               modelsForPartition = models)
+
+    # Create an individual PMML file
+    pmml <- createPMML(modelList, admConfigurationName)
+
+    sink(pmmlFileName)
+    print(pmml)
+    sink()
+
+    result[[pmmlFileName]] <- unique(models$ModelID)
+
+    if (verbose) cat("Generated", pmmlFileName, paste("(", length(modelList), " models)", sep=""), fill=T)
   }
+  # } else if (!is.null(modelFactory)) {
+  #   standardizeFieldCasing(modelFactory)
+  #
+  #   # returns a list of binning, context pairs - we just want to pass this list to the PMML exporter
+  #   for (p in unique(modelFactory$ConfigpartitionID)) {
+  #     # get all model "partitions" for this model rule
+  #     modelPartitions <- modelFactory[ConfigpartitionID==p]
+  #     modelPartitionInfo <- fromJSON(modelPartitions[1]$Configpartition)
+  #     modelPartitionName <- modelPartitionInfo$partition$Purpose
+  #     modelPartitionFullName <- paste(modelPartitionInfo$partition$ClassName, modelPartitionInfo$partition$Purpose, sep="_")
+  #
+  #     if(!is.null(appliesToFilter)) {
+  #       if (!grepl(appliesToFilter, modelPartitionInfo$partition$ClassName, ignore.case=T, perl=T)) next
+  #     }
+  #     if(!is.null(ruleNameFilter)) {
+  #       if (!grepl(ruleNameFilter, modelPartitionInfo$partition$Purpose, ignore.case=T, perl=T)) next
+  #     }
+  #
+  #     if(verbose) {
+  #       print(paste("Processing", modelPartitionFullName))
+  #     }
+  #     pmmlFileName <- paste(destDir, paste(modelPartitionName, "pmml", sep="."), sep="/")
+  #
+  #     modelList <- normalizedBinningFromADMFactory(modelPartitions, modelPartitionFullName, tmpDir)
+  #
+  #     pmml <- createPMML(modelList, modelPartitionFullName)
+  #
+  #     sink(pmmlFileName)
+  #     print(pmml)
+  #     sink()
+  #
+  #     generatedPMMLFiles[[pmmlFileName]] <- unique(modelPartitions$ModelpartitionID)
+  #
+  #     if(verbose) {
+  #       print(paste("Generated",pmmlFileName,paste("(",nrow(modelPartitions)," models)", sep="")))
+  #     }
+  #   }
+  # }
 
-  # ADM datamart, either from DB or from DS exports
-  if (!is.null(dmModels) & !is.null(dmPredictors)) {
-    # Iterate over unique model rules (model configurations). Every single one of these results in a seperate PMML file.
-    modelRules <- unique(dmModels[, c("ConfigurationName", "AppliesToClass"), with=F])
-
-    if(nrow(modelRules)>0) {
-      for (m in seq(nrow(modelRules))) {
-        modelPartitionName <- modelRules$ConfigurationName[m]
-
-        modelPartitionFullName <- paste(modelRules$AppliesToClass[m], modelRules$ConfigurationName[m], sep="_")  # get all model "partitions" for this model rule
-        # pmmlFileName <- paste(destDir, paste(modelRules$ConfigurationName[m], "ds", "pmml", "xml", sep="."), sep="/")
-        pmmlFileName <- paste(destDir, paste(modelRules$ConfigurationName[m], "pmml", sep="."), sep="/")
-
-        if (verbose) {
-          print(paste("Processing", modelPartitionFullName))
-        }
-
-        # Each of the model instances is an instantiation of a model rule for a specific set of context key values
-        modelInstances <- unique(dmModels[ConfigurationName==modelRules$ConfigurationName[m] &
-                                            AppliesToClass==modelRules$AppliesToClass[m]])
-        for (fld in names(modelInstances)) {
-          if (is.factor(modelInstances[[fld]])) {
-            modelInstances[[fld]] <- as.character(modelInstances[[fld]])
-          }
-        }
-
-        modelList <- normalizedBinningFromDatamart(dmPredictors[ModelID %in% modelInstances$ModelID],
-                                            modelPartitionFullName, tmpDir, modelsForPartition=modelInstances)
-
-        pmml <- createPMML(modelList, modelPartitionFullName)
-
-        sink(pmmlFileName)
-        print(pmml)
-        sink()
-
-        generatedPMMLFiles[[pmmlFileName]] <- unique(modelInstances$ModelID)
-
-        if (verbose) {
-          print(paste("Generated",pmmlFileName,paste("(",length(modelList)," models)", sep="")))
-        }
-      }
-    }
-  } else if (!is.null(modelFactory)) {
-    standardizeFieldCasing(modelFactory)
-
-    # returns a list of binning, context pairs - we just want to pass this list to the PMML exporter
-    for (p in unique(modelFactory$ConfigpartitionID)) {
-      # get all model "partitions" for this model rule
-      modelPartitions <- modelFactory[ConfigpartitionID==p]
-      modelPartitionInfo <- fromJSON(modelPartitions[1]$Configpartition)
-      modelPartitionName <- modelPartitionInfo$partition$Purpose
-      modelPartitionFullName <- paste(modelPartitionInfo$partition$ClassName, modelPartitionInfo$partition$Purpose, sep="_")
-
-      if(!is.null(appliesToFilter)) {
-        if (!grepl(appliesToFilter, modelPartitionInfo$partition$ClassName, ignore.case=T, perl=T)) next
-      }
-      if(!is.null(ruleNameFilter)) {
-        if (!grepl(ruleNameFilter, modelPartitionInfo$partition$Purpose, ignore.case=T, perl=T)) next
-      }
-
-      if(verbose) {
-        print(paste("Processing", modelPartitionFullName))
-      }
-      pmmlFileName <- paste(destDir, paste(modelPartitionName, "pmml", sep="."), sep="/")
-
-      modelList <- normalizedBinningFromADMFactory(modelPartitions, modelPartitionFullName, tmpDir)
-
-      pmml <- createPMML(modelList, modelPartitionFullName)
-
-      sink(pmmlFileName)
-      print(pmml)
-      sink()
-
-      generatedPMMLFiles[[pmmlFileName]] <- unique(modelPartitions$ModelpartitionID)
-
-      if(verbose) {
-        print(paste("Generated",pmmlFileName,paste("(",nrow(modelPartitions)," models)", sep="")))
-      }
-    }
-  }
-
-  if (length(generatedPMMLFiles) == 0) {
-    if (verbose) {
-      print("No models available matching the filter criteria")
-    }
-    return(generatedPMMLFiles)
-  } else {
-    return(generatedPMMLFiles[sort(names(generatedPMMLFiles))])
-  }
+  if (length(result)>0) return(result[order(names(result))])
+  return(result)
 }

@@ -311,14 +311,23 @@ test_that("Scorecard reason codes", {
 
   # Convert the simplest model to PMML including reason code options
   predData <- fread(file.path(testFolder, "deeperdive_predictordata.csv"))
+  predData[, responsecount := 0]
   dummyModelData <- data.table(pymodelid = unique(predData$pymodelid),
                                pyconfigurationname = c("simplemodel"),
-                               pyappliestoclass = "Dummy",
-                               pxapplication = "Dummy",
                                pyname = "Dummy",
-                               pysnapshottime = unique(predData$pysnapshottime))
-  pmmlFiles <- adm2pmml(dmModels = dummyModelData,
-                        dmPredictors = predData,
+                               pyissue = "Dummy",
+                               pychannel = "Dummy",
+                               pygroup = "Dummy",
+                               pydirection = "Dummy",
+                               pytotalpredictors = 0,
+                               pyactivepredictors = 0,
+                               pysnapshottime = unique(predData$pysnapshottime),
+                               pypositives = 0,
+                               pynegatives = 0,
+                               pyresponsecount = 0,
+                               pyperformance = 0)
+
+  pmmlFiles <- adm2pmml(ADMDatamart(dummyModelData, predData),
                         destDir = tmpFolder)
 
   expect_equal(length(pmmlFiles), 1)
@@ -363,10 +372,11 @@ test_that("Scorecard reason codes", {
 test_that("Wrapper function using DM exports", {
   context("Wrapper function adm2pmml")
 
-  allModels <- readDSExport("Data-Decision-ADM-ModelSnapshot_All","dsexports")
-  allPredictors <- readDSExport("Data-Decision-ADM-PredictorBinningSnapshot_All","dsexports")
+  dm <- ADMDatamart("Data-Decision-ADM-ModelSnapshot_All",
+                    "Data-Decision-ADM-PredictorBinningSnapshot_All",
+                    "dsexports")
 
-  pmmlFiles <- adm2pmml(allModels, allPredictors)
+  pmmlFiles <- adm2pmml(dm)
 
   expect_equal(length(pmmlFiles), 3)
   expect_equal(names(pmmlFiles)[1], "./BannerModel.pmml")
@@ -376,8 +386,19 @@ test_that("Wrapper function using DM exports", {
   expect_equal(length(pmmlFiles[[2]]), 5)
   expect_equal(length(pmmlFiles[[3]]), 5)
 
-  expect_equal(length(adm2pmml(allModels, allPredictors, ruleNameFilter="^(?!VerySimple).*$", appliesToFilter="PMDSM")), 2)
-  expect_equal(length(adm2pmml(allModels, allPredictors, appliesToFilter="DMSample")), 0)
+  dm2 <- ADMDatamart("Data-Decision-ADM-ModelSnapshot_All",
+                    "Data-Decision-ADM-PredictorBinningSnapshot_All",
+                    "dsexports",
+                    filterModelData = function(mdls) {return(mdls[grepl("^(?!VerySimple).*$", ConfigurationName, perl=T)])})
+
+  expect_equal(length(adm2pmml(dm2)), 2)
+
+  dm3 <- ADMDatamart("Data-Decision-ADM-ModelSnapshot_All",
+                     "Data-Decision-ADM-PredictorBinningSnapshot_All",
+                     "dsexports",
+                     filterModelData = function(mdls) {data.table()})
+
+  expect_equal(length(adm2pmml(dm3)), 0)
 })
 
 

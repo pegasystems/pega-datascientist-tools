@@ -60,6 +60,8 @@ expandEmbeddedJSONContext <- function(dt, fieldName = "Name")
 {
   isJSON <- OriginalName <- NULL # Trick to silence R CMD Check warnings
 
+  if(nrow(dt)==0) return(dt)
+
   if (!is.factor(dt[[fieldName]])) {
     dt[[fieldName]] <- as.factor(dt[[fieldName]])
   }
@@ -429,37 +431,40 @@ ADMDatamart <- function(modeldata = NULL,
     modelz <- filterModelData(modelz)
     modelz <- expandEmbeddedJSONContext(modelz)
 
-    # TODO: generalize below
-    doNotFactorizeFields <- c("ModelID")
-    for (f in setdiff(names(modelz)[sapply(modelz, is.character)], doNotFactorizeFields)) {
-      modelz[[f]] <- factor(modelz[[f]])
+    if (nrow(modelz) > 0) {
+      # TODO: generalize below
+      doNotFactorizeFields <- c("ModelID")
+      for (f in setdiff(names(modelz)[sapply(modelz, is.character)], doNotFactorizeFields)) {
+        modelz[[f]] <- factor(modelz[[f]])
+      }
+      for (f in doNotFactorizeFields) {
+        modelz[[f]] <- as.character(modelz[[f]])
+      }
+
+      # Add fields for common calculations
+
+      modelz[["SuccessRate"]] <- modelz$Positives / modelz$ResponseCount # Using set syntax to avoid data.table copy warning
+      modelz[["AUC"]] <- 100*modelz$Performance
+
+      # Remove columns not used in CDH Tools
+      # TODO: consider doing much earlier but then be careful with inconsistent naming
+      if (length(dropModelFields(modelz, !keepSerializedModelData)) > 0) {
+        if (verbose) warning("Dropping model fields:", paste(dropModelFields(modelz, !keepSerializedModelData), collapse=", "))
+
+        modelz[, dropModelFields(modelz, !keepSerializedModelData) := NULL]
+      }
+
+      # Assert presence of required + additional fields
+      notPresentFields <- setdiff(c(requiredModelFields, additionalModelFields), names(modelz))
+      if (length(notPresentFields) > 0) {
+        stop(paste("Not all required model fields present. Missing:", paste(notPresentFields, collapse=", ")))
+      }
+      if (length(names(modelz)) != length(unique(names(modelz)))) {
+        stop(paste("Duplicate model fields found in:", paste(names(modelz), collapse=", ")))
+      }
+    } else {
+      modelz <- NULL
     }
-    for (f in doNotFactorizeFields) {
-      modelz[[f]] <- as.character(modelz[[f]])
-    }
-
-    # Add fields for common calculations
-
-    modelz[["SuccessRate"]] <- modelz$Positives / modelz$ResponseCount # Using set syntax to avoid data.table copy warning
-    modelz[["AUC"]] <- 100*modelz$Performance
-
-    # Remove columns not used in CDH Tools
-    # TODO: consider doing much earlier but then be careful with inconsistent naming
-    if (length(dropModelFields(modelz, !keepSerializedModelData)) > 0) {
-      if (verbose) warning("Dropping model fields:", paste(dropModelFields(modelz, !keepSerializedModelData), collapse=", "))
-
-      modelz[, dropModelFields(modelz, !keepSerializedModelData) := NULL]
-    }
-
-    # Assert presence of required + additional fields
-    notPresentFields <- setdiff(c(requiredModelFields, additionalModelFields), names(modelz))
-    if (length(notPresentFields) > 0) {
-      stop(paste("Not all required model fields present. Missing:", paste(notPresentFields, collapse=", ")))
-    }
-    if (length(names(modelz)) != length(unique(names(modelz)))) {
-      stop(paste("Duplicate model fields found in:", paste(names(modelz), collapse=", ")))
-    }
-
   }
 
   # Read Predictor data
@@ -487,61 +492,64 @@ ADMDatamart <- function(modeldata = NULL,
     }
     predz <- filterPredictorData(predz)
 
-    # TODO: generalize below
-    doNotFactorizeFields <- intersect(c("ModelID", "BinSymbol"), names(predz))
-    for (f in setdiff(names(predz)[sapply(predz, is.character)], doNotFactorizeFields)) {
-      predz[[f]] <- factor(predz[[f]])
-    }
-    for (f in doNotFactorizeFields) {
-      predz[[f]] <- as.character(predz[[f]])
-    }
+    if (nrow(predz) > 0) {
+      # TODO: generalize below
+      doNotFactorizeFields <- intersect(c("ModelID", "BinSymbol"), names(predz))
+      for (f in setdiff(names(predz)[sapply(predz, is.character)], doNotFactorizeFields)) {
+        predz[[f]] <- factor(predz[[f]])
+      }
+      for (f in doNotFactorizeFields) {
+        predz[[f]] <- as.character(predz[[f]])
+      }
 
-    # Apply predictor categorization if not present already
-    if (!("PredictorCategory" %in% names(predz))) {
-      predCategories <- data.table( PredictorName = factor(levels(predz$PredictorName), levels = levels(predz$PredictorName)),
-                                    PredictorCategory = factor(sapply(levels(predz$PredictorName), predictorCategorization)))
-      predz <- merge(predz, predCategories, by="PredictorName")
-    }
+      # Apply predictor categorization if not present already
+      if (!("PredictorCategory" %in% names(predz))) {
+        predCategories <- data.table( PredictorName = factor(levels(predz$PredictorName), levels = levels(predz$PredictorName)),
+                                      PredictorCategory = factor(sapply(levels(predz$PredictorName), predictorCategorization)))
+        predz <- merge(predz, predCategories, by="PredictorName")
+      }
 
-    # Add fields for common calculations
+      # Add fields for common calculations
 
-    if ("BinPositives" %in% names(predz) && "BinResponseCount" %in% names(predz)) {
-      # Bin fields could have been filtered out when looking at the data w/o the binning for exampls
-      predz[EntryType != "Classifier", Propensity := BinPositives / BinResponseCount]
-      predz[EntryType == "Classifier", Propensity := (BinPositives+0.5) / (BinResponseCount+1)]
-    }
-    predz[, AUC := 100*Performance]
+      if ("BinPositives" %in% names(predz) && "BinResponseCount" %in% names(predz)) {
+        # Bin fields could have been filtered out when looking at the data w/o the binning for exampls
+        predz[EntryType != "Classifier", Propensity := BinPositives / BinResponseCount]
+        predz[EntryType == "Classifier", Propensity := (BinPositives+0.5) / (BinResponseCount+1)]
+      }
+      predz[, AUC := 100*Performance]
 
-    # predictor grouping index was not always there, add it as just a sequence number when absent
-    if (!("GroupIndex" %in% names(predz))) {
-      predz[, GroupIndex := .GRP, by=PredictorName]
-    }
+      # predictor grouping index was not always there, add it as just a sequence number when absent
+      if (!("GroupIndex" %in% names(predz))) {
+        predz[, GroupIndex := .GRP, by=PredictorName]
+      }
 
-    if ("BinIndex" %in% names(predz)) {
-      # Bin fields could have been filtered out when looking at the data w/o the binning for exampls
-      setorder(predz, -Performance, BinIndex)
+      if ("BinIndex" %in% names(predz)) {
+        # Bin fields could have been filtered out when looking at the data w/o the binning for exampls
+        setorder(predz, -Performance, BinIndex)
+      } else {
+        setorder(predz, -Performance)
+      }
+
+      # Remove columns not used in CDH Tools
+      # TODO: consider doing much earlier but then be careful with inconsistent naming
+      if (length(dropPredictorFields(predz)) > 0) {
+        if (verbose) warning("Dropping predictor fields:", paste(dropPredictorFields(predz), collapse=", "))
+
+        predz[, dropPredictorFields(predz) := NULL]
+      }
+
+      # Assert presence of required + additional fields
+      notPresentFields <- setdiff(c(requiredPredictorFields, additionalPredictorFields), names(predz))
+      if (length(notPresentFields) > 0) {
+        print(head(predz))
+        stop(paste("Not all required predictor fields present. Missing:", paste(notPresentFields, collapse=", ")))
+      }
+      if (length(names(predz)) != length(unique(names(predz)))) {
+        stop(paste("Duplicate predictor fields found in:", paste(names(predz), collapse=", ")))
+      }
     } else {
-      setorder(predz, -Performance)
+      predz <- NULL
     }
-
-    # Remove columns not used in CDH Tools
-    # TODO: consider doing much earlier but then be careful with inconsistent naming
-    if (length(dropPredictorFields(predz)) > 0) {
-      if (verbose) warning("Dropping predictor fields:", paste(dropPredictorFields(predz), collapse=", "))
-
-      predz[, dropPredictorFields(predz) := NULL]
-    }
-
-    # Assert presence of required + additional fields
-    notPresentFields <- setdiff(c(requiredPredictorFields, additionalPredictorFields), names(predz))
-    if (length(notPresentFields) > 0) {
-      print(head(predz))
-      stop(paste("Not all required predictor fields present. Missing:", paste(notPresentFields, collapse=", ")))
-    }
-    if (length(names(predz)) != length(unique(names(predz)))) {
-      stop(paste("Duplicate predictor fields found in:", paste(names(predz), collapse=", ")))
-    }
-
   }
 
 
