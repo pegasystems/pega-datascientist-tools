@@ -25,8 +25,27 @@ test_that("checking readDSExport", {
   expect_error( readDSExport("Non existing non zip file",""))
   expect_error( readDSExport("Data-Decision-ADM-ModelSnapshot_All_20180316T134315_GMT.zip",""))
 
-  readDSExport("Data-Decision-ADM-PredictorBinningSnapshot_All","dsexports", excludeComplexTypes = F)
+  data <- readDSExport("Data-Decision-ADM-PredictorBinningSnapshot_All","dsexports", excludeComplexTypes = F)
+  expect_equal(nrow(data), 1755)
+  expect_equal(ncol(data), 35)
+
+  data <- readDSExport(file.path("dsexports", "Data-Decision-ADM-ModelSnapshot_All_20180316T134315_GMT.json"))
+  expect_equal(nrow(data), 15)
+  expect_equal(ncol(data), 22)
 })
+
+test_that("write DS export", {
+  data <- readDSExport("Data-Decision-ADM-ModelSnapshot_All_20180316T134315_GMT.zip","dsexports")
+
+  writeDSExport(data, filename = file.path("dsexports", "rewritten.zip"))
+  data2 <- readDSExport(file.path("dsexports", "rewritten.zip"))
+
+  expect_equal(nrow(data2), nrow(data))
+  expect_equal(ncol(data2), ncol(data))
+  expect_equal(names(data2), names(data))
+  expect_equal(data2, data)
+})
+
 
 test_that("AUC from binning", {
   expect_equal(auc_from_bincounts( c(3,1,0), c(2,0,1)), 0.75)

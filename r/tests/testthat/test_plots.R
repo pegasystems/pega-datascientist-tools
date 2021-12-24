@@ -134,3 +134,21 @@ test_that("plotPropositionSuccessRates", {
 
   expect_s3_class(p, "ggplot")
 })
+
+test_that("userFriendlyADMBinning", {
+  data <- ADMDatamart("Data-Decision-ADM-ModelSnapshot_All_20180316T134315_GMT.zip",
+                      "Data-Decision-ADM-PredictorBinningSnapshot_All_20180316T135050_GMT.zip", "dsexports",
+                      cleanupHookModelData = function(mdls) { mdls[, c("Channel", "Direction") := "NA"]},
+                      filterModelData = function(mdls) { return(mdls[ModelID == "0e5e83b4-6313-5fb2-8947-5e83e37437e9"])})
+
+  ufb <- userFriendlyADMBinning(filterClassifierOnly(data$predictordata))
+
+  expect_equal(nrow(ufb), 38)
+  expect_equal(ncol(ufb), 10)
+
+  ufb <- userFriendlyADMBinning(data$predictordata[PredictorName == "PERSONALFIELD2"])
+
+  expect_equal(nrow(ufb), 10)
+  expect_equal(ncol(ufb), 7)
+
+})

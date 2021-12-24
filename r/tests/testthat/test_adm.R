@@ -189,3 +189,29 @@ test_that("ADMDatamart from tables", {
   expect_equal(nrow(dm$modeldata), 20)
   expect_equal(nrow(dm$predictordata), 842)
 })
+
+test_that("hasMultipleSnapshots", {
+  data <- ADMDatamart("Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip",
+                      "Data-Decision-ADM-PredictorBinningSnapshot_All_20180316T135050_GMT.zip", "dsexports",
+                      cleanupHookModelData = function(mdls) { mdls[, c("Channel", "Direction") := "NA"]})
+
+  expect_true(hasMultipleSnapshots(data$modeldata))
+  expect_false(hasMultipleSnapshots(data$predictordata))
+})
+
+test_that("Filtering", {
+  data <- ADMDatamart(modeldata = F,
+                      "Data-Decision-ADM-PredictorBinningSnapshot_All_20180316T135050_GMT.zip", "dsexports")
+
+  expect_equal(nrow(data$predictordata), 1755)
+  expect_equal(ncol(data$predictordata), 24)
+  expect_equal(nrow(filterActiveOnly(data$predictordata)), 643)
+  expect_equal(nrow(filterActiveOnly(data$predictordata, reverse = T)), 1112)
+  expect_equal(nrow(filterInactiveOnly(data$predictordata)), 853)
+  expect_equal(nrow(filterInactiveOnly(data$predictordata, reverse = T)), 902)
+  expect_equal(nrow(filterClassifierOnly(data$predictordata)), 259)
+  expect_equal(nrow(filterClassifierOnly(data$predictordata, reverse = T)), 1496)
+  expect_equal(nrow(filterPredictorBinning(data$predictordata)), 425)
+  expect_equal(ncol(filterPredictorBinning(data$predictordata)), 15)
+})
+
