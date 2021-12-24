@@ -23,11 +23,11 @@
   </a>
 </p>
 
-Open source tooling help Data Scientists working with CDH analyze Pega models and conduct impactful analyses.
+Open source tooling that helps Data Scientists working with CDH to analyze Pega models and conduct impactful analyses.
 
 We release this under the Apache 2.0 license and welcome contributing back, preferably through pull requests, but just submitting an Issue or sending a note to the authors is fine too.
 
-The tools help to do analysis on DSM/CDH, pull data from the platform, easily build meaningful plots and more. Tooling exists in both R and Python, mostly in the form of notebooks, although not all functionality is identical in both languages. See the [CDH Graph Gallery](https://github.com/pegasystems/cdh-datascientist-tools/wiki/CDH-Graph-Gallery) for a sample of the graphs you can build to help get insights from the platform. Or jump right into the examples in [R](https://pegasystems.github.io/cdh-datascientist-tools/articles/index.html) and [Python](https://github.com/pegasystems/cdh-datascientist-tools/tree/master/python).
+The tools help to do analysis on DSM/CDH, pull data from the platform, easily build meaningful plots and more. Tooling exists in both R and Python, as an R package and as notebooks and scripts for Python. See the [CDH Graph Gallery](https://github.com/pegasystems/cdh-datascientist-tools/wiki/CDH-Graph-Gallery) for a sample of the graphs you can build to help get insights from the platform. Or jump right into the examples in [R vignettes](https://pegasystems.github.io/cdh-datascientist-tools/articles/index.html) and [Python and R example notebooks](https://github.com/pegasystems/cdh-datascientist-tools/tree/master/examples).
 
 
 
