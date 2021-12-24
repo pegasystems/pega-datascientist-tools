@@ -40,8 +40,6 @@ modelEvidenceFieldName <- "Evidence"
 modelPerformanceFieldName <- "Performance"
 modelIDFieldName <- "Model ID"
 
-nrExplanations <- 3 # return top-3 reason codes
-
 BINTYPES <- c("MISSING", "SYMBOL", "INTERVAL", "REMAININGSYMBOLS")
 BINNINGTABLEFIELDS <- c("ModelID", "PredictorName", "PredictorType",
                         "BinLabel", "BinLowerBound", "BinUpperBound", "BinType", "BinPos", "BinNeg", "BinIndex",
@@ -60,6 +58,13 @@ createSymArray <- function(a)
     # no need to quote - saves a lot of space in the generated XML
     xmlNode("Array", attrs=c(type="string"), xmlTextNode(paste(a, collapse=" ")))
   }
+}
+
+explainOutputs <- function(n)
+{
+  if (n < 1) return(c())
+
+  paste("Explain",seq(n),sep="-")
 }
 
 # Single numeric bin
@@ -94,11 +99,11 @@ createSinglePredictorBin <- function(predictorBin)
                           "REMAININGSYMBOLS" = "Remaining Symbols",
                           # Otherwise
                           summarizeMultiple(predictorBin$BinLabel))
-  reasonCode <- paste(predictorBin$PredictorName,reasonLabel,
-                      round(predictorBin$BinWeight),
-                      round(predictorBin$minWeight),
-                      round(predictorBin$avgWeight),
-                      round(predictorBin$maxWeight), sep="|")
+  reasonCode <- paste(predictorBin$PredictorName, reasonLabel,
+                      paste0("score=",round(predictorBin$BinWeight)),
+                      paste0("min=",round(predictorBin$minWeight)),
+                      paste0("avg=",round(predictorBin$avgWeight)),
+                      paste0("max=",round(predictorBin$maxWeight)), sep="|")
 
   # multiple symbols will be grouped together
   if (nrow(predictorBin) > 1) {
@@ -167,7 +172,7 @@ createClassifierBins <- function(classifierBins)
 
 # Create a scorecard entry for a single predictor. The bins need to be complete and in the right order.
 # Multiple symbol bins with the same score will be combined.
-createPredictorNode <- function(predictorBins)
+createPredictorNode <- function(predictorBins, explanations)
 {
   binGroup <- BinType <- NULL # Trick to silence R CMD Check warnings
 
@@ -183,11 +188,14 @@ createPredictorNode <- function(predictorBins)
     predictorBins[binGroup == predictorBins$binGroup[which(predictorBins$BinType=="REMAININGSYMBOLS")],
                   binGroup := max(predictorBins$binGroup)+1 ] # make the group that Remaining is in the last one
   }
-  xmlNode("Characteristic", attrs=c(name=paste(predictorBins$PredictorName[1], "score", sep = "___"),
-                                    reasonCode=predictorBins$PredictorName[1],
-                                    baselineScore=predictorBins$minWeight[1]),
+  xmlNode("Characteristic", attrs=c(name = paste(predictorBins$PredictorName[1], "score", sep = "___"),
+                                    reasonCode = predictorBins$PredictorName[1],
+                                    baselineScore = switch(explanations$baselineMethod,
+                                                           "min"  = predictorBins$minWeight[1],
+                                                           "max"  = predictorBins$maxWeight[1],
+                                                           "mean" = predictorBins$avgWeight[1], 0)),
           .children = lapply(sort(unique(predictorBins$binGroup)),
-                             function(i) {return(createSinglePredictorBin(predictorBins[binGroup==i]))}))
+                             function(i) { createSinglePredictorBin(predictorBins[binGroup==i]) }))
 }
 
 # Returns a data table in the style of the predictor table with names and types of the context keys
@@ -210,7 +218,7 @@ getContextKeyDefinitions <- function(modeldata)
 }
 
 # Mining schema for the overall model. Very similar to the data dictionary, but contains usage instead of type info.
-createMiningSchema <- function(modeldata)
+createMiningSchema <- function(modeldata, explanations)
 {
   PredictorName <- PredictorType <- NULL # Trick to silence R CMD Check warnings
 
@@ -223,7 +231,7 @@ createMiningSchema <- function(modeldata)
                     modelEvidenceFieldName,
                     modelPerformanceFieldName,
                     modelIDFieldName,
-                    sapply(seq(nrExplanations), function(x){return(paste("Explain",x,sep="-"))}))
+                    explainOutputs(explanations$nrExplanations))
 
   xmlNode("MiningSchema",
           .children = c(lapply(outputfields,
@@ -239,7 +247,7 @@ createMiningSchema <- function(modeldata)
 }
 
 # Binning of the model "classifier" (score to propensity mapping)
-createOutputs <- function(classifierBins, scaleOffset = 0, scaleFactor = 1, isScorecard)
+createOutputs <- function(classifierBins, scaleOffset = 0, scaleFactor = 1, isScorecard, explanations)
 {
   scoreOutputs <- list(xmlNode("OutputField",
                                attrs=c(name=modelScoreFieldName, feature="predictedValue", dataType="double", optype="continuous")),
@@ -263,17 +271,19 @@ createOutputs <- function(classifierBins, scaleOffset = 0, scaleFactor = 1, isSc
                                 attrs=c(name=modelIDFieldName, feature="transformedValue", dataType="string", optype="categorical"),
                                 xmlNode("Constant",
                                         xmlTextNode(classifierBins$ModelID[1]))))
-  if (nrExplanations > 0) {
+  if (explanations$nrExplanations > 0) {
     if (isScorecard) {
       # Reason code fields will be actual scorecard reason codes
-      reasonCodes <- lapply(seq(nrExplanations),
+      reasonCodes <- lapply(seq(explanations$nrExplanations),
                             function(x){return(xmlNode("OutputField",
-                                                       attrs=c("name"=paste("Explain",x,sep="-"), "feature"="reasonCode", "rank"=x)))})
+                                                       attrs=c("name"=paste("Explain",x,sep="-"),
+                                                               "feature"="reasonCode", "rank"=x)))})
     } else {
       # Reason codes are just normal fields when it's not a scorecard
-      reasonCodes <-  lapply(seq(nrExplanations),
+      reasonCodes <-  lapply(seq(explanations$nrExplanations),
                              function(x){return(xmlNode("OutputField",
-                                                        attrs=c("name"=paste("Explain",x,sep="-"), feature="transformedValue", dataType="string", optype="categorical"),
+                                                        attrs=c("name"=paste("Explain",x,sep="-"),
+                                                                feature="transformedValue", dataType="string", optype="categorical"),
                                                         xmlNode("Constant",
                                                                 xmlTextNode("Context Mismatch"))))})
 
@@ -286,7 +296,7 @@ createOutputs <- function(classifierBins, scaleOffset = 0, scaleFactor = 1, isSc
 }
 
 # Default model (TreeModel) for models that do not have any active predictors (in which case there still is a classifier).
-createEmptyScorecard <- function(classifierBins, modelName)
+createEmptyScorecard <- function(classifierBins, modelName, explanations)
 {
   if (nrow(classifierBins) <= 1) {
     if (is.na(classifierBins$BinUpperBound) & is.na(classifierBins$BinLowerBound)) {
@@ -299,13 +309,13 @@ createEmptyScorecard <- function(classifierBins, modelName)
                   xmlNode("MiningField",
                           # As of PMML 4.2, this is deprecated and it has been replaced by the usage type target.
                           attrs=c(name=modelScoreFieldName, invalidValueTreatment="asIs", usageType="predicted"))),
-          createOutputs(classifierBins, isScorecard = F),
+          createOutputs(classifierBins, isScorecard = F, explanations = explanations),
 
           xmlNode("Node", attrs=c(score="0"), xmlNode("True")))
 }
 
 # Default model (TreeModel) for non-matching context keys.
-createDefaultModel <- function(modelName)
+createDefaultModel <- function(modelName, explanations)
 {
   defaultClassifierBins <- data.table(ModelID = "Default",
                                       BinLowerBound = 0,
@@ -319,7 +329,7 @@ createDefaultModel <- function(modelName)
                   xmlNode("MiningField",
                           # As of PMML 4.2, this is deprecated and it has been replaced by the usage type target.
                           attrs=c(name=modelScoreFieldName, invalidValueTreatment="asIs", usageType="predicted"))),
-          createOutputs(defaultClassifierBins, isScorecard = F),
+          createOutputs(defaultClassifierBins, isScorecard = F, explanations = explanations),
 
           xmlNode("Node", attrs=c(score="0"), xmlNode("True")))
 }
@@ -403,7 +413,7 @@ getNBFormulaWeights <- function(bins)
 }
 
 # Creates a single scorecard, for a single "partition" of the ADM rule
-createScorecard <- function(modelbins, modelName)
+createScorecard <- function(modelbins, modelName, explanations)
 {
   avgWeight <- BinNeg <- BinPos <- BinWeight <- maxWeight <- minWeight <- PredictorName <- PredictorType <- NULL # Trick to silence R CMD Check warnings
 
@@ -428,20 +438,26 @@ createScorecard <- function(modelbins, modelName)
   }
 
   if (hasNoPredictors) {
-    return(createEmptyScorecard(modelbins[PredictorType=="CLASSIFIER"], modelName))
+    return(createEmptyScorecard(modelbins[PredictorType=="CLASSIFIER"], modelName, explanations = explanations))
   }
   xmlNode("Scorecard", attrs=c("modelName"=modelName, functionName="regression",
                                algorithmName="PEGA Adaptive Decisioning",
-                               useReasonCodes="true", baselineMethod="min", reasonCodeAlgorithm="pointsAbove",
+                               useReasonCodes = explanations$useReasonCodes,
+                               # baselineScore not here but in the individual predictor nodes (http://dmg.org/pmml/v4-1/Scorecard.html)
+                               reasonCodeAlgorithm = explanations$reasonCodeAlgorithm,
+                               baselineMethod = explanations$baselineMethod,
                                initialScore=scWeight),
           xmlNode("MiningSchema",
                   .children = lapply(sort(unique(modelbins[PredictorType != "CLASSIFIER"]$PredictorName)),
                                      function(pred) {return(xmlNode("MiningField",
                                                                     attrs=c(name=pred, usageType="active", invalidValueTreatment="asIs")))})),
-          createOutputs(modelbins[PredictorType=="CLASSIFIER"], scaleOffset, scaleFactor, isScorecard = T),
+          createOutputs(modelbins[PredictorType=="CLASSIFIER"], scaleOffset, scaleFactor, isScorecard = T, explanations = explanations),
           createModelDescription(modelbins[PredictorType=="CLASSIFIER"]),
           xmlNode("Characteristics", .children=lapply(unique(modelbins[PredictorType != "CLASSIFIER"]$PredictorName),
-                                                      function(predictor) {return(createPredictorNode(modelbins[PredictorName==predictor]))})))
+                                                      function(predictor) {
+                                                        return(createPredictorNode(modelbins[PredictorName==predictor],
+                                                                                   explanations = explanations))
+                                                      })))
 }
 
 # Creates the PMML Header with timestamp etc
@@ -454,7 +470,7 @@ createHeaderNode <- function(modelName)
 
 # Creates the overall data dictionary. This includes the superset of all active predictors and context keys, but also the
 # standard output fields (score, propensity etc). These seem to be necessary in the data dictionary as well - not 100% sure why.
-createDataDictionaryNode <- function(modeldata)
+createDataDictionaryNode <- function(modeldata, explanations)
 {
   PredictorName <- PredictorType <- NULL # Trick to silence R CMD Check warnings
 
@@ -466,9 +482,9 @@ createDataDictionaryNode <- function(modeldata)
                                              modelEvidenceFieldName,
                                              modelPerformanceFieldName,
                                              modelIDFieldName,
-                                             sapply(seq(nrExplanations), function(x){return(paste("Explain",x,sep="-"))})),
+                                             explainOutputs(explanations$nrExplanations)),
                              PredictorType=c("NUMERIC", "NUMERIC", "NUMERIC", "INTEGER", "NUMERIC", "SYMBOLIC",
-                                             rep("SYMBOLIC", nrExplanations)))
+                                             rep("SYMBOLIC", explanations$nrExplanations)))
   dataDict <- rbindlist(list(outputfields,
                              getContextKeyDefinitions(modeldata),
                              predictors))
@@ -500,21 +516,23 @@ createSegmentPredicate <- function(contextKVPs)
 }
 
 # creates complex PMML embedded in an overall MiningModel segmented by context key values
-createModelPartitions <- function(modeldata, overallModelName)
+createModelPartitions <- function(modeldata, overallModelName, explanations)
 {
   segments <- lapply(names(modeldata),
                      function(ModelID) {
                        return(xmlNode("Segment", attrs=c(id=ModelID),
                                       createSegmentPredicate(modeldata[[ModelID]]$context),
                                       createScorecard(modeldata[[ModelID]]$binning,
-                                                      paste(overallModelName, ModelID, sep="_"))))})
+                                                      paste(overallModelName, ModelID, sep="_"),
+                                                      explanations = explanations)))})
 
   segments[[1+length(segments)]] <- xmlNode("Segment", attrs=c(id="default"),
                                             xmlNode("True"),
-                                            createDefaultModel(modelName = paste(overallModelName, "default", sep="_")))
+                                            createDefaultModel(modelName = paste(overallModelName, "default", sep="_"),
+                                                               explanations = explanations))
 
   xmlNode("MiningModel", attrs=c(functionName="regression"),
-          createMiningSchema(modeldata),
+          createMiningSchema(modeldata, explanations = explanations),
           xmlNode("Segmentation", attrs=c("multipleModelMethod"="selectFirst"), .children = segments))
 }
 
@@ -526,7 +544,7 @@ isValidModel <- function(singlemodeldata)
 
 # Creates single PMML Segment model with multiple embedded Scorecards. Each segment is defined
 # by the context key values. Input is a list of context-binning tuples.
-createPMML <- function(modeldata, overallModelName)
+createPMML <- function(modeldata, overallModelName, explanations = reasonCodesAboveMin(3))
 {
   BinType <- PredictorName <- PredictorType <- NULL # Trick to silence R CMD Check warnings
 
@@ -579,14 +597,90 @@ createPMML <- function(modeldata, overallModelName)
     # Single scorecard when no context and there is only 1 model
     xmlNode("PMML", attrs=c("xmlns"="http://www.dmg.org/PMML-4_1", "version"="4.1"),
             createHeaderNode(overallModelName),
-            createDataDictionaryNode(modeldata),
-            createScorecard(modeldata[[1]]$binning, overallModelName))
+            createDataDictionaryNode(modeldata, explanations = explanations),
+            createScorecard(modeldata[[1]]$binning, overallModelName, explanations = explanations))
   } else {
     xmlNode("PMML", attrs=c("xmlns"="http://www.dmg.org/PMML-4_1", "version"="4.1"),
             createHeaderNode(overallModelName),
-            createDataDictionaryNode(modeldata),
-            createModelPartitions(modeldata, overallModelName))
+            createDataDictionaryNode(modeldata, explanations = explanations),
+            createModelPartitions(modeldata, overallModelName, explanations = explanations))
   }
+}
+
+#' PMML Scorecard Reason code specification
+#'
+#' Returns a datastructure to pass to \code{adm2pmml} and \code{createPMML} that
+#' will result in reason codes in the PMML file for points above the minimum value.
+#'
+#' @param n Number of explanations
+#'
+#' @return A list with data elements used by the underlying implementation
+#' @export
+#'
+#' @examples
+#'    reasonCodesAboveMin(5)
+reasonCodesAboveMin <- function(n=3) {
+  return(list(useReasonCodes=ifelse(n>0,"true","false"),
+              baselineMethod="min",
+              reasonCodeAlgorithm="pointsAbove",
+              nrExplanations=n))
+}
+
+#' PMML Scorecard Reason code specification
+#'
+#' Returns a datastructure to pass to \code{adm2pmml} and \code{createPMML} that
+#' will result in reason codes in the PMML file for points below the maximum value.
+#'
+#' @param n Number of explanations
+#'
+#' @return A list with data elements used by the underlying implementation
+#' @export
+#'
+#' @examples
+#'    reasonCodesBelowMax(5)
+reasonCodesBelowMax <- function(n=3) {
+  return(list(useReasonCodes=ifelse(n>0,"true","false"),
+              baselineMethod="max",
+              reasonCodeAlgorithm="pointsBelow",
+              nrExplanations=n))
+}
+
+#' PMML Scorecard Reason code specification
+#'
+#' Returns a datastructure to pass to \code{adm2pmml} and \code{createPMML} that
+#' will result in reason codes in the PMML file for points above the mean value.
+#'
+#' @param n Number of explanations
+#'
+#' @return A list with data elements used by the underlying implementation
+#' @export
+#'
+#' @examples
+#'    reasonCodesAboveMean(5)
+reasonCodesAboveMean <- function(n=3) {
+  return(list(useReasonCodes=ifelse(n>0,"true","false"),
+              baselineMethod="mean",
+              reasonCodeAlgorithm="pointsAbove",
+              nrExplanations=n))
+}
+
+#' PMML Scorecard Reason code specification
+#'
+#' Returns a datastructure to pass to \code{adm2pmml} and \code{createPMML} that
+#' will result in reason codes in the PMML file for points below the mean value.
+#'
+#' @param n Number of explanations
+#'
+#' @return A list with data elements used by the underlying implementation
+#' @export
+#'
+#' @examples
+#'    reasonCodesBelowMean(5)
+reasonCodesBelowMean <- function(n=3) {
+  return(list(useReasonCodes=ifelse(n>0,"true","false"),
+              baselineMethod="mean",
+              reasonCodeAlgorithm="pointsBelow",
+              nrExplanations=n))
 }
 
 #' Generates PMML files from ADM models.
@@ -602,6 +696,8 @@ createPMML <- function(modeldata, overallModelName)
 #'   indicating no temp files will be left behind.
 #' @param verbose Whether to print the steps it's performing. Defaults to
 #'   \code{TRUE} if the \code{tmpDir} is set.
+#' @param explanations Data structure that represents the type and number
+#' of explanations as returned by the \code{reasonCodes...} functions.
 #'
 #' @return Creates the PMML file(s) in the given destination and returns a list
 #'   of model ID's per file.
@@ -612,10 +708,14 @@ createPMML <- function(modeldata, overallModelName)
 #'   dm <- ADMDatamart("~/Downloads")
 #'
 #'   adm2pmml(dm, verbose=TRUE)
+#'
+#'   adm2pmml(dm, verbose=TRUE, explanations = reasonCodesAboveMean(4))
+#'
 #' }
 adm2pmml <- function(datamart,
                      destDir = ".",
-                     tmpDir = NULL, verbose = (!is.null(tmpDir)))
+                     tmpDir = NULL, verbose = (!is.null(tmpDir)),
+                     explanations = reasonCodesAboveMin(3))
 {
   ConfigurationName <- ModelID <- ConfigpartitionID <- NULL # Trick to silence R CMD Check warnings
 
@@ -641,7 +741,7 @@ adm2pmml <- function(datamart,
                                                modelsForPartition = models)
 
     # Create an individual PMML file
-    pmml <- createPMML(modelList, admConfigurationName)
+    pmml <- createPMML(modelList, admConfigurationName, explanations = explanations)
 
     sink(pmmlFileName)
     print(pmml)

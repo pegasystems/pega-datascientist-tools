@@ -91,7 +91,7 @@
       <h1 data-toc-skip>adm-explained</h1>
                         <h4 class="author">Pega CDH Tools</h4>
             
-            <h4 class="date">2021-12-21</h4>
+            <h4 class="date">2021-12-24</h4>
       
       
       <div class="hidden name"><code>adm-explained.Rmd</code></div>
@@ -100,23 +100,18 @@
 
     
     
-<div id="adm-model-report-dissected" class="section level1">
+<div id="adm-model-report-explained" class="section level1">
 <h1 class="hasAnchor">
-<a href="#adm-model-report-dissected" class="anchor"></a>ADM Model Report Dissected</h1>
+<a href="#adm-model-report-explained" class="anchor"></a>ADM Model Report Explained</h1>
 <p>This notebook shows exactly how all the values in an ADM model report are calculated. It also shows how the propensity is calculated for a particular customer.</p>
 <p>We use one of the shipped datamart exports for the example. This is a model very similar to one used in some of the ADM PowerPoint/Excel deep dive examples. To load your own data, see the vignette on ADM reporting for examples.</p>
-<p>For the example we use one particular model: FirstMortgage over SMS. You can use your own data and select a different model.</p>
-<p>To explain the ADM model report, we use the “AnnualIncome” predictor as an example. This too can be swapped for any other predictor when using different data.</p>
+<p>For the example we use one particular model: <em>AutoNew36Months</em> over <em>SMS</em>. You can use your own data and select a different model.</p>
+<p>To explain the ADM model report, we use one of the <em>IH</em> predictors as an example. Swap for any other predictor when using different data.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/filterLatestSnapshotOnly.html">filterLatestSnapshotOnly</a></span><span class="op">(</span><span class="va">adm_datamart</span><span class="op">$</span><span class="va">modeldata</span><span class="op">)</span> <span class="op">[</span><span class="va">Name</span> <span class="op">==</span> <span class="st">"AutoNew36Months"</span> <span class="op">&amp;</span> <span class="va">Channel</span> <span class="op">==</span> <span class="st">"SMS"</span><span class="op">]</span>
 <span class="va">modelpredictors</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/filterLatestSnapshotOnly.html">filterLatestSnapshotOnly</a></span><span class="op">(</span><span class="va">adm_datamart</span><span class="op">$</span><span class="va">predictordata</span><span class="op">)</span> <span class="op">[</span><span class="va">ModelID</span> <span class="op">==</span> <span class="va">model</span><span class="op">$</span><span class="va">ModelID</span> <span class="op">&amp;</span> <span class="va">EntryType</span> <span class="op">!=</span> <span class="st">"Inactive"</span><span class="op">]</span>
 
-<span class="va">predictorbinning</span> <span class="op">&lt;-</span> <span class="va">modelpredictors</span><span class="op">[</span><span class="va">PredictorName</span> <span class="op">==</span> <span class="st">"IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount"</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html">order</a></span><span class="op">(</span><span class="va">BinIndex</span><span class="op">)</span><span class="op">]</span>
-
-<span class="co"># Add back a few fields that will get dropped by the ADMDatamart function.</span>
-<span class="va">predictorbinning</span><span class="op">[</span>, <span class="va">BinResponseCountPercentage</span> <span class="op">:=</span> <span class="va">BinResponseCount</span><span class="op">/</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">BinResponseCount</span><span class="op">)</span><span class="op">]</span>
-<span class="va">predictorbinning</span><span class="op">[</span>, <span class="va">BinPositivesPercentage</span> <span class="op">:=</span> <span class="va">BinPositives</span><span class="op">/</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">BinPositives</span><span class="op">)</span><span class="op">]</span>
-<span class="va">predictorbinning</span><span class="op">[</span>, <span class="va">BinNegativesPercentage</span> <span class="op">:=</span> <span class="va">BinNegatives</span><span class="op">/</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">BinNegatives</span><span class="op">)</span><span class="op">]</span></code></pre></div>
+<span class="va">predictorbinning</span> <span class="op">&lt;-</span> <span class="va">modelpredictors</span><span class="op">[</span><span class="va">PredictorName</span> <span class="op">==</span> <span class="st">"IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount"</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html">order</a></span><span class="op">(</span><span class="va">BinIndex</span><span class="op">)</span><span class="op">]</span></code></pre></div>
 </div>
 <div id="model-overview" class="section level1">
 <h1 class="hasAnchor">
@@ -815,7 +810,7 @@ MISSING
                                                     <span class="va">predictorbinning</span><span class="op">$</span><span class="va">Negatives</span><span class="op">[</span><span class="va">r</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">}</span><span class="op">)</span><span class="op">)</span>
 
 <span class="fu"><a href="https://rdrr.io/pkg/pROC/man/plot.roc.html">plot.roc</a></span><span class="op">(</span><span class="va">response</span>, <span class="va">prediction</span>, print.auc<span class="op">=</span><span class="cn">T</span>, col<span class="op">=</span><span class="st">"darkgreen"</span>, levels<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="cn">T</span>,<span class="cn">F</span><span class="op">)</span>, direction<span class="op">=</span><span class="st">"&gt;"</span><span class="op">)</span></code></pre></div>
-<p><img src="adm-explained_files/figure-html/unnamed-chunk-13-1.png" width="672" style="display: block; margin: auto;"></p>
+<p><img src="adm-explained_files/figure-html/unnamed-chunk-14-1.png" width="672" style="display: block; margin: auto;"></p>
 <p>There is also a convenient function in <em>cdhtools</em> to calculate it directly from the positives and negatives:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu">cdhtools</span><span class="fu">::</span><span class="fu"><a href="../reference/auc_from_bincounts.html">auc_from_bincounts</a></span><span class="op">(</span><span class="va">predictorbinning</span><span class="op">$</span><span class="va">Positives</span>, <span class="va">predictorbinning</span><span class="op">$</span><span class="va">Negatives</span><span class="op">)</span>
@@ -830,8 +825,8 @@ MISSING
 <span class="va">binningDerived</span><span class="op">[</span>, <span class="va">negFraction</span> <span class="op">:=</span> <span class="va">Negatives</span><span class="op">/</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">Negatives</span><span class="op">)</span><span class="op">]</span>
 <span class="va">binningDerived</span><span class="op">[</span>, <span class="va">`Log odds`</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html">log</a></span><span class="op">(</span><span class="va">posFraction</span><span class="op">/</span><span class="va">negFraction</span><span class="op">)</span><span class="op">]</span>
 <span class="va">binningDerived</span><span class="op">[</span>, <span class="va">`Modified Log odds`</span> <span class="op">:=</span> 
-                 <span class="fu"><a href="https://rdrr.io/r/base/Log.html">log</a></span><span class="op">(</span><span class="va">Positives</span><span class="op">+</span><span class="fl">1</span><span class="op">/</span><span class="va">.N</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html">log</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">Positives</span><span class="op">+</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span> <span class="op">-</span> 
-                 <span class="fu"><a href="https://rdrr.io/r/base/Log.html">log</a></span><span class="op">(</span><span class="va">Negatives</span><span class="op">+</span><span class="fl">1</span><span class="op">/</span><span class="va">.N</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html">log</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">Negatives</span><span class="op">+</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></code></pre></div>
+                 <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html">log</a></span><span class="op">(</span><span class="va">Positives</span><span class="op">+</span><span class="fl">1</span><span class="op">/</span><span class="va">.N</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html">log</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">Positives</span><span class="op">+</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">-</span> 
+                 <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html">log</a></span><span class="op">(</span><span class="va">Negatives</span><span class="op">+</span><span class="fl">1</span><span class="op">/</span><span class="va">.N</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html">log</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">Negatives</span><span class="op">+</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></code></pre></div>
 <table class="table table table-striped">
 <thead><tr>
 <th style="text-align:left;">
@@ -1809,9 +1804,9 @@ Lift (%)
 <div id="final-propensity" class="section level1">
 <h1 class="hasAnchor">
 <a href="#final-propensity" class="anchor"></a>Final propensity</h1>
-<p>Below the classifier mapping. On the x-axis the binned scores (log odds values), on the y-axis the Success Rates. Note the returned propensities are following a slightly adjusted formula, see the table above. The bin that contains the calculated score is highlighted.</p>
+<p>Below the classifier mapping. On the x-axis the binned scores (log odds values), on the y-axis the Propensity. Note the returned propensities are following a slightly adjusted formula, see the table above. The bin that contains the calculated score is highlighted.</p>
 <p>The score <em>-0.1094691</em> falls in <em>bin 7</em> of the classifier, so for this set of inputs, the model returns a propensity of 1.70%.</p>
-<p><img src="adm-explained_files/figure-html/unnamed-chunk-19-1.png" width="672" style="display: block; margin: auto;"></p>
+<p><img src="adm-explained_files/figure-html/unnamed-chunk-20-1.png" width="672" style="display: block; margin: auto;"></p>
 </div>
   </div>
 

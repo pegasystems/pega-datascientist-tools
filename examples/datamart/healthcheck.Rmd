@@ -74,6 +74,8 @@ knitr::opts_chunk$set(
 )
 ```
 
+# ADM Datamart Health Check
+
 This notebook gives a generic and global overview of the Adaptive Models 
 and predictors.
 
@@ -90,6 +92,7 @@ as well as other formats supported by Pandoc (e.g. Word).
 
 To create stand-alone model reports for individual model instances see the 
 *modelreport* notebook.
+
 
 ```{r Read Model Data, echo=F, error=F, warning=FALSE, include=F}
 
@@ -693,7 +696,7 @@ best performing propositions are on the left. Green indicates good performance, 
 too good to be true.
 
 
-```{r Predictors vs Propos, fig.height=8, fig.width=8}
+```{r Predictors vs Propositions}
 if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
   for (c in levels(datamart$modeldata$ConfigurationName)) {
     # applicableModels <- filterLatestSnapshotOnly(mdls) [ConfigurationName==c]

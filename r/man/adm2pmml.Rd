@@ -4,7 +4,13 @@
 \alias{adm2pmml}
 \title{Generates PMML files from ADM models.}
 \usage{
-adm2pmml(datamart, destDir = ".", tmpDir = NULL, verbose = (!is.null(tmpDir)))
+adm2pmml(
+  datamart,
+  destDir = ".",
+  tmpDir = NULL,
+  verbose = (!is.null(tmpDir)),
+  explanations = reasonCodesAboveMin(3)
+)
 }
 \arguments{
 \item{datamart}{Model and predictor data from the ADM datamart.}
@@ -17,6 +23,9 @@ indicating no temp files will be left behind.}
 
 \item{verbose}{Whether to print the steps it's performing. Defaults to
 \code{TRUE} if the \code{tmpDir} is set.}
+
+\item{explanations}{Data structure that represents the type and number
+of explanations as returned by the \code{reasonCodes...} functions.}
 }
 \value{
 Creates the PMML file(s) in the given destination and returns a list
@@ -32,5 +41,8 @@ models based on context key values.
   dm <- ADMDatamart("~/Downloads")
 
   adm2pmml(dm, verbose=TRUE)
+
+  adm2pmml(dm, verbose=TRUE, explanations = reasonCodesAboveMean(4))
+
 }
 }

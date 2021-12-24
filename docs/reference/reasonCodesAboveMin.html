@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Generates PMML files from ADM models. — adm2pmml • cdhtools</title>
+<title>PMML Scorecard Reason code specification — reasonCodesAboveMin • cdhtools</title>
 
 
 <!-- jquery -->
@@ -39,10 +39,9 @@
 
 
 
-<meta property="og:title" content="Generates PMML files from ADM models. — adm2pmml" />
-<meta property="og:description" content="Every model configuration becomes one big PMML file. The big ensemble contains
-score cards for every model partition. The ensemble switches between the
-models based on context key values." />
+<meta property="og:title" content="PMML Scorecard Reason code specification — reasonCodesAboveMin" />
+<meta property="og:description" content="Returns a datastructure to pass to adm2pmml and createPMML that
+will result in reason codes in the PMML file for points above the minimum value." />
 
 
 
@@ -132,69 +131,45 @@ models based on context key values." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Generates PMML files from ADM models.</h1>
+    <h1>PMML Scorecard Reason code specification</h1>
     
-    <div class="hidden name"><code>adm2pmml.Rd</code></div>
+    <div class="hidden name"><code>reasonCodesAboveMin.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Every model configuration becomes one big PMML file. The big ensemble contains
-score cards for every model partition. The ensemble switches between the
-models based on context key values.</p>
+    <p>Returns a datastructure to pass to <code>adm2pmml</code> and <code>createPMML</code> that
+will result in reason codes in the PMML file for points above the minimum value.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>adm2pmml</span><span class='op'>(</span>
-  <span class='va'>datamart</span>,
-  destDir <span class='op'>=</span> <span class='st'>"."</span>,
-  tmpDir <span class='op'>=</span> <span class='cn'>NULL</span>,
-  verbose <span class='op'>=</span> <span class='op'>(</span><span class='op'>!</span><span class='fu'><a href='https://rdrr.io/r/base/NULL.html'>is.null</a></span><span class='op'>(</span><span class='va'>tmpDir</span><span class='op'>)</span><span class='op'>)</span>,
-  explanations <span class='op'>=</span> <span class='fu'><a href='reasonCodesAboveMin.html'>reasonCodesAboveMin</a></span><span class='op'>(</span><span class='fl'>3</span><span class='op'>)</span>
-<span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>reasonCodesAboveMin</span><span class='op'>(</span>n <span class='op'>=</span> <span class='fl'>3</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>datamart</th>
-      <td><p>Model and predictor data from the ADM datamart.</p></td>
-    </tr>
-    <tr>
-      <th>destDir</th>
-      <td><p>Directory to create the PMML files in. Defaults to the current
-directory.</p></td>
-    </tr>
-    <tr>
-      <th>tmpDir</th>
-      <td><p>Directory for temporary files. Defaults to <code>NULL</code>
-indicating no temp files will be left behind.</p></td>
-    </tr>
-    <tr>
-      <th>verbose</th>
-      <td><p>Whether to print the steps it's performing. Defaults to
-<code>TRUE</code> if the <code>tmpDir</code> is set.</p></td>
-    </tr>
-    <tr>
-      <th>explanations</th>
-      <td><p>Data structure that represents the type and number
-of explanations as returned by the <code>reasonCodes...</code> functions.</p></td>
+      <th>n</th>
+      <td><p>Number of explanations</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>Creates the PMML file(s) in the given destination and returns a list
-  of model ID's per file.</p>
+    <p>A list with data elements used by the underlying implementation</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><div class='input'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='op'>{</span>
-  <span class='va'>dm</span> <span class='op'>&lt;-</span> <span class='fu'><a href='ADMDatamart.html'>ADMDatamart</a></span><span class='op'>(</span><span class='st'>"~/Downloads"</span><span class='op'>)</span>
-
-  <span class='fu'>adm2pmml</span><span class='op'>(</span><span class='va'>dm</span>, verbose<span class='op'>=</span><span class='cn'>TRUE</span><span class='op'>)</span>
-
-  <span class='fu'>adm2pmml</span><span class='op'>(</span><span class='va'>dm</span>, verbose<span class='op'>=</span><span class='cn'>TRUE</span>, explanations <span class='op'>=</span> <span class='fu'><a href='reasonCodesAboveMean.html'>reasonCodesAboveMean</a></span><span class='op'>(</span><span class='fl'>4</span><span class='op'>)</span><span class='op'>)</span>
-
-<span class='op'>}</span>
-</div></pre>
+    <pre class="examples"><div class='input'>   <span class='fu'>reasonCodesAboveMin</span><span class='op'>(</span><span class='fl'>5</span><span class='op'>)</span>
+</div><div class='output co'>#&gt; $useReasonCodes
+#&gt; [1] "true"
+#&gt; 
+#&gt; $baselineMethod
+#&gt; [1] "min"
+#&gt; 
+#&gt; $reasonCodeAlgorithm
+#&gt; [1] "pointsAbove"
+#&gt; 
+#&gt; $nrExplanations
+#&gt; [1] 5
+#&gt; </div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

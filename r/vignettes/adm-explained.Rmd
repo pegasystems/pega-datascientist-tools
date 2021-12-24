@@ -25,7 +25,7 @@ library(scales)
 theme_set(theme_minimal())
 ```
 
-# ADM Model Report Dissected
+# ADM Model Report Explained
 
 This notebook shows exactly how all the values in an ADM model report are
 calculated. It also shows how the propensity is calculated for a particular
@@ -44,12 +44,11 @@ library(data.table)
 data(adm_datamart)
 ```
 
-For the example we use one particular model: FirstMortgage over SMS. You can
+For the example we use one particular model: *AutoNew36Months* over *SMS*. You can
 use your own data and select a different model.
 
-To explain the ADM model report, we use the "AnnualIncome" predictor as an
-example. This too can be swapped for any other predictor when using different
-data.
+To explain the ADM model report, we use one of the *IH* predictors as an
+example. Swap for any other predictor when using different data.
 
 ```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 # Commented-out chunk useful to find a good example in the data
@@ -63,7 +62,9 @@ model <- filterLatestSnapshotOnly(adm_datamart$modeldata) [Name == "AutoNew36Mon
 modelpredictors <- filterLatestSnapshotOnly(adm_datamart$predictordata) [ModelID == model$ModelID & EntryType != "Inactive"]
 
 predictorbinning <- modelpredictors[PredictorName == "IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount"][order(BinIndex)]
+```
 
+```{r include=F}
 # Add back a few fields that will get dropped by the ADMDatamart function.
 predictorbinning[, BinResponseCountPercentage := BinResponseCount/sum(BinResponseCount)]
 predictorbinning[, BinPositivesPercentage := BinPositives/sum(BinPositives)]
@@ -233,8 +234,8 @@ binningDerived[, posFraction := Positives/sum(Positives)]
 binningDerived[, negFraction := Negatives/sum(Negatives)]
 binningDerived[, `Log odds` := log(posFraction/negFraction)]
 binningDerived[, `Modified Log odds` := 
-                 log(Positives+1/.N) - log(sum(Positives+1)) - 
-                 log(Negatives+1/.N) + log(sum(Negatives+1))]
+                 (log(Positives+1/.N) - log(sum(Positives+1))) - 
+                 (log(Negatives+1/.N) - log(sum(Negatives+1)))]
 ```
 
 ```{r, echo=F}
@@ -257,7 +258,7 @@ Below an example. From all the active predictors of the model for `r model$name`
 binning <- modelpredictors[EntryType=="Active", c("PredictorName", "BinSymbol", "BinIndex", "BinPositives", "BinNegatives", "Type","BinLowerBound", "BinUpperBound"), with=F]
 setnames(binning, c("Name", "Value", "Bin", "Positives", "Negatives", "Type", "lobound", "hibound"))
 
-binning[, `Log odds` := log(Positives+1/.N) - log(sum(Positives+1)) - log(Negatives+1/.N) + log(sum(Negatives+1)), by=Name]
+binning[, `Log odds` := (log(Positives+1/.N) - log(sum(Positives+1))) - (log(Negatives+1/.N) - log(sum(Negatives+1))), by=Name]
 
 binning[,nbins := max(Bin), by=Name]
 binning <- binning[Bin == trunc(nbins/2)] # take middle bin
@@ -304,7 +305,7 @@ kable(classifierTable) %>%
 
 # Final propensity
 
-Below the classifier mapping. On the x-axis the binned scores (log odds values), on the y-axis the Success Rates. Note the returned propensities are following a slightly adjusted formula, see the table above. The bin that contains the calculated score is highlighted.
+Below the classifier mapping. On the x-axis the binned scores (log odds values), on the y-axis the Propensity. Note the returned propensities are following a slightly adjusted formula, see the table above. The bin that contains the calculated score is highlighted.
 
 The score *`r score`* falls in *bin `r scorebin`* of the classifier, so for this set of inputs, the model returns a propensity of `r sprintf("%.2f%%", 100*classifier$AdjustedPropensity[scorebin])`.
 

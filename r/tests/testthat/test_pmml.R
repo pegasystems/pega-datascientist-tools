@@ -125,9 +125,9 @@ compareCSV <- function(dmCSV, jsonCSV)
 pmml_unittest <- function(testName)
 {
   testFolder <- "d"
-  #tmpFolder <- tempdir()
-  tmpFolder <- paste(testFolder, "tmp", sep="/")
-  if (!dir.exists(tmpFolder)) dir.create(tmpFolder)
+  #outFolder <- tempdir()
+  outFolder <- paste(testFolder, "tmp", sep="/")
+  if (!dir.exists(outFolder)) dir.create(outFolder)
 
   context(paste("ADM2PMML", testName))
 
@@ -151,13 +151,13 @@ pmml_unittest <- function(testName)
     jsonFiles <- list.files(path = jsonFolder, pattern = "^.*\\.json", full.names = T)
     partitions <- data.table(pymodelpartitionid = sub("^.*json[^.]*\\.(.*)\\.json", "\\1", jsonFiles),
                              pyfactory = sapply(jsonFiles, readr::read_file))
-    modelList <- normalizedBinningFromADMFactory(partitions, testName, tmpFolder,
+    modelList <- normalizedBinningFromADMFactory(partitions, testName, outFolder,
                                           forceLowerCasePredictorNames=T)
 
     pmml <- createPMML(modelList, testName)
 
-    pmmlFile <- file.path(tmpFolder, paste(testName, "json", "pmml", "xml", sep="."))
-    outputFile <- file.path(tmpFolder, paste(testName, "json", "output", "csv", sep="."))
+    pmmlFile <- file.path(outFolder, paste(testName, "json", "pmml", "xml", sep="."))
+    outputFile <- file.path(outFolder, paste(testName, "json", "output", "csv", sep="."))
 
     verify_results(pmml, pmmlFile, inputFile, outputFile)
   }
@@ -174,24 +174,24 @@ pmml_unittest <- function(testName)
     if (file.exists(modelDataFile)) {
       modelData <- data.table(read.csv(modelDataFile, stringsAsFactors = F)) # fread adds extra double-quotes for JSON strings, thus using simple read.csv
       standardizeFieldCasing(modelData)
-      modelList <- normalizedBinningFromDatamart(predictorData, testName, tmpFolder, modelData, useLowercaseContextKeys=TRUE)
+      modelList <- normalizedBinningFromDatamart(predictorData, testName, outFolder, modelData, useLowercaseContextKeys=TRUE)
     } else {
-      modelList <- normalizedBinningFromDatamart(predictorData, testName, tmpFolder, useLowercaseContextKeys=TRUE)
+      modelList <- normalizedBinningFromDatamart(predictorData, testName, outFolder, useLowercaseContextKeys=TRUE)
     }
 
     pmml <- createPMML(modelList, testName)
 
-    pmmlFile <- file.path(tmpFolder, paste(testName, "dm", "pmml", "xml", sep="."))
-    outputFile <- file.path(tmpFolder, paste(testName, "dm", "output", "csv", sep="."))
+    pmmlFile <- file.path(outFolder, paste(testName, "dm", "pmml", "xml", sep="."))
+    outputFile <- file.path(outFolder, paste(testName, "dm", "output", "csv", sep="."))
 
     verify_results(pmml, pmmlFile, inputFile, outputFile)
   }
 
   if (file.exists(jsonFolder) & file.exists(predictorDataFile)) {
     cat("   compare binning of all predictors in intermediate CSVs", fill=T)
-    dmCSVFiles <- list.files(path = tmpFolder, pattern = paste("^", testName, "\\.dm.*\\.csv", sep=""), full.names = T)
-    jsonCSVFiles <- list.files(path = tmpFolder, pattern = paste("^", testName, "\\.json.*\\.csv", sep=""), full.names = T)
-    outputFiles <- list.files(path = tmpFolder, pattern = paste("output\\.csv$", sep=""), full.names = T)
+    dmCSVFiles <- list.files(path = outFolder, pattern = paste("^", testName, "\\.dm.*\\.csv", sep=""), full.names = T)
+    jsonCSVFiles <- list.files(path = outFolder, pattern = paste("^", testName, "\\.json.*\\.csv", sep=""), full.names = T)
+    outputFiles <- list.files(path = outFolder, pattern = paste("output\\.csv$", sep=""), full.names = T)
     dmBinningFiles <- setdiff(dmCSVFiles, outputFiles)
     jsonBinningFiles <- setdiff(jsonCSVFiles, outputFiles)
 
@@ -299,73 +299,6 @@ test_that("Issue with a single classifier bin", {
   pmml_unittest("singleclassifierbin")
 })
 
-# Reason codes
-
-test_that("Scorecard reason codes", {
-  context("Scorecard reason codes")
-
-  testFolder <- "d"
-  # tmpFolder <- tempdir()
-  tmpFolder <- paste(testFolder, "tmp2", sep="/")
-  if (!dir.exists(tmpFolder)) dir.create(tmpFolder)
-
-  # Convert the simplest model to PMML including reason code options
-  predData <- fread(file.path(testFolder, "deeperdive_predictordata.csv"))
-  predData[, responsecount := 0]
-  dummyModelData <- data.table(pymodelid = unique(predData$pymodelid),
-                               pyconfigurationname = c("simplemodel"),
-                               pyname = "Dummy",
-                               pyissue = "Dummy",
-                               pychannel = "Dummy",
-                               pygroup = "Dummy",
-                               pydirection = "Dummy",
-                               pytotalpredictors = 0,
-                               pyactivepredictors = 0,
-                               pysnapshottime = unique(predData$pysnapshottime),
-                               pypositives = 0,
-                               pynegatives = 0,
-                               pyresponsecount = 0,
-                               pyperformance = 0)
-
-  pmmlFiles <- adm2pmml(ADMDatamart(dummyModelData, predData),
-                        destDir = tmpFolder)
-
-  expect_equal(length(pmmlFiles), 1)
-
-  # Run with inputs. The inputs include the same 3 cases that are detailed in the deeper dive Excel sheet
-  run_jpmml(file.path(tmpFolder, "simplemodel.pmml"),
-            file.path(testFolder, "deeperdive_inputs_reasoncodetests.csv"),
-            file.path(tmpFolder, "deeperdive_output.csv"))
-
-  # Check the outputs contain reason codes
-  expect_true(0 == file.access(file.path(tmpFolder, "deeperdive_output.csv"), mode=4))
-  output <- fread(file = file.path(tmpFolder, "deeperdive_output.csv"))
-
-  # By default 3 reason codes
-  expect_equal(length(intersect( names(output), c("Explain-1", "Explain-2", "Explain-3") )), 3)
-
-  # Each reason code should have 6 elements with the score between min and max
-  output[, paste("r1", c("pred", "binlabel", "score", "min", "avg", "max"), sep="_") := tstrsplit(`Explain-1`, split="|", fixed=T)]
-  output[, paste("r2", c("pred", "binlabel", "score", "min", "avg", "max"), sep="_") := tstrsplit(`Explain-2`, split="|", fixed=T)]
-  output[, paste("r3", c("pred", "binlabel", "score", "min", "avg", "max"), sep="_") := tstrsplit(`Explain-3`, split="|", fixed=T)]
-
-  expect_true(all(output[r1_pred != "Context Mismatch"][, (r1_score >= r1_min) & (r1_score <= r1_max)]), "All scores should be between min and max")
-  expect_true(all(output[r1_pred != "Context Mismatch"][, (r1_avg >= r1_min) & (r1_avg <= r1_max)]), "All average scores should be between min and max")
-
-  # For the first test case, first and second reason codes as expected
-  expect_equal(output$r1_pred, c(rep("Country",5), "Age")) # Age only shows up if Country is missing when using points above minimum
-  expect_equal(output$r2_pred, c(rep("Age",5), "Country"))
-  expect_equal(output$r3_pred, rep("N/A",6))
-
-  # now need to verify the 2 or 3 modes
-  # useReasonCodes="true", baselineMethod="min", reasonCodeAlgorithm="pointsAbove"
-  # useReasonCodes="true", baselineMethod="max", reasonCodeAlgorithm="pointsBelow"
-  # useReasonCodes="true", baselineMethod="mean", reasonCodeAlgorithm="pointsAbove"
-  # useReasonCodes="true", baselineMethod="mean", reasonCodeAlgorithm="pointsBelow"
-
-  # reasonCodeAlgorithm: May be "pointsAbove" or "pointsBelow", describing how reason codes shall be ranked,
-  # relative to the baseline score of each Characteristic, or as set at the top-level scorecard.
-})
 
 # Check user facing wrapper function
 
@@ -401,5 +334,103 @@ test_that("Wrapper function using DM exports", {
   expect_equal(length(adm2pmml(dm3)), 0)
 })
 
+# Reason codes
 
+scorePMMLWithReasonCodes <- function(explanations)
+{
+  testFolder <- "d"
+  # outFolder <- tempdir()
+  outFolder <- paste(testFolder, "tmp2", sep="/")
+  if (!dir.exists(outFolder)) dir.create(outFolder)
+
+  # Convert the simplest model to PMML including reason code options
+  predData <- fread(file.path(testFolder, "deeperdive_predictordata.csv"))
+  predData[, responsecount := 0]
+  dummyModelData <- data.table(pymodelid = unique(predData$pymodelid),
+                               pyconfigurationname = c("simplemodel"),
+                               pyname = "Dummy",
+                               pyissue = "Dummy",
+                               pychannel = "Dummy",
+                               pygroup = "Dummy",
+                               pydirection = "Dummy",
+                               pytotalpredictors = 0,
+                               pyactivepredictors = 0,
+                               pysnapshottime = unique(predData$pysnapshottime),
+                               pypositives = 0,
+                               pynegatives = 0,
+                               pyresponsecount = 0,
+                               pyperformance = 0)
+
+  pmmlFile <- adm2pmml(ADMDatamart(dummyModelData, predData),
+                        destDir = outFolder,
+                       explanations = explanations)
+
+  expect_equal(length(pmmlFile), 1)
+  expect_equal(basename(names(pmmlFile)), "simplemodel.pmml")
+
+  # Run with inputs. The inputs include the same 3 cases that are detailed in the deeper dive Excel sheet
+  run_jpmml(file.path(outFolder, "simplemodel.pmml"),
+            file.path(testFolder, "deeperdive_inputs_reasoncodetests.csv"),
+            file.path(outFolder, "deeperdive_output.csv"))
+
+  # Check the outputs contain reason codes
+  expect_true(0 == file.access(file.path(outFolder, "deeperdive_output.csv"), mode=4))
+  output <- fread(file = file.path(outFolder, "deeperdive_output.csv"))
+
+  # Drop duplicate columns. For some reason the JPMML runner repeats many.
+  outputNames <- names(output)
+  output[, which(sapply(2:length(outputNames), function(i){ outputNames[i] %in% outputNames[1:(i-1)] })) := NULL ]
+
+  # By default 3 reason codes. Note the output repeats some of the fields.
+  expect_equal(sum(startsWith(names(output), "Explain-")), explanations$nrExplanations)
+
+  # Flatten all reason codes. Each reason code should have 6 elements:
+  # First predictor name and bin label. Then four values for score, min
+  # average and max, all four prefixed with a label, e.g. "score-100".
+  getValueForReasonKVP <- function(x) { return(gsub(".*=(.*)", "\\1", x)) }
+  reasonKVPnames <- c("predictor", "value", "score", "min", "avg", "max")
+  for (i in seq_len(explanations$nrExplanations)) {
+    output[, paste(paste0("r", i), reasonKVPnames, sep="_") := lapply(tstrsplit(output[[paste0("Explain-", i)]], split="|", fixed=T),
+                                                                      getValueForReasonKVP)]
+  }
+  # output[, paste("r2", reasonKVPnames, sep="_") := lapply(tstrsplit(`Explain-2`, split="|", fixed=T), getValueForReasonKVP)]
+
+  # Generic tests
+  if (explanations$nrExplanations > 0) {
+    expect_true(all(output[`Explain-1` != "N/A"][, (r1_score >= r1_min) & (r1_score <= r1_max)]), "All scores should be between min and max")
+    expect_true(all(output[`Explain-1` != "N/A"][, (r1_avg >= r1_min) & (r1_avg <= r1_max)]), "All average scores should be between min and max")
+  }
+
+  return(output)
+}
+
+test_that("Scorecard reason codes", {
+  # context("Scorecard reason codes")
+
+  scores <- scorePMMLWithReasonCodes(reasonCodesAboveMin(3))
+  write.csv(scores, file.path("d", "tmp2", "deeperdive_output_3_above_min.csv"))
+  expect_equal(scores$r1_predictor, c(rep("Country",5), "Age")) # Age only shows up if Country is missing when using points above minimum
+  expect_equal(scores$r2_predictor, c(rep("Age",5), "Country"))
+  expect_equal(scores$r3_predictor, rep("N/A",6))
+
+  scores <- scorePMMLWithReasonCodes(reasonCodesBelowMax(0))
+  write.csv(scores, file.path("d", "tmp2", "deeperdive_output_3_no_reasoncodes.csv"))
+  expect_false(any(startsWith(names(scores), "Explain-")))
+
+  scores <- scorePMMLWithReasonCodes(reasonCodesBelowMax(5))
+  write.csv(scores, file.path("d", "tmp2", "deeperdive_output_3_below_max.csv"))
+  expect_equal(scores$r1_predictor, c("Country", "Age", "Country", "Country", "Country", "Country"))
+  expect_equal(scores$r2_predictor, c("Age", "Country", "Age", "Age", "Age", "Age"))
+
+  # For points relative to mean we need to evaluate above and below separately
+  scores <- scorePMMLWithReasonCodes(reasonCodesAboveMean(2))
+  write.csv(scores, file.path("d", "tmp2", "deeperdive_output_3_above_mean.csv"))
+  expect_equal(scores$r1_predictor, c("Country", "Country", "N/A", "Country", "Country", "Age"))
+  expect_equal(scores$r2_predictor, c("N/A", "Age", "N/A", "N/A", "N/A", "N/A"))
+
+  scores <- scorePMMLWithReasonCodes(reasonCodesBelowMean(2))
+  write.csv(scores, file.path("d", "tmp2", "deeperdive_output_3_below_mean.csv"))
+  expect_equal(scores$r1_predictor, c("Age", "N/A", "Age", "Age", "Age", "Country"))
+  expect_equal(scores$r2_predictor, c("N/A", "N/A", "Country", "N/A", "N/A", "N/A"))
+})
 
