@@ -155,7 +155,8 @@ a full file name to the export or to a JSON file that you unpacked yourself.</p>
   tmpFolder <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/tempfile.html'>tempdir</a></span><span class='op'>(</span>check <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span>,
   excludeComplexTypes <span class='op'>=</span> <span class='cn'>T</span>,
   acceptJSONLines <span class='op'>=</span> <span class='cn'>NULL</span>,
-  stringsAsFactors <span class='op'>=</span> <span class='cn'>F</span>
+  stringsAsFactors <span class='op'>=</span> <span class='cn'>F</span>,
+  verbose <span class='op'>=</span> <span class='cn'>F</span>
 <span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -165,9 +166,7 @@ a full file name to the export or to a JSON file that you unpacked yourself.</p>
       <th>instancename</th>
       <td><p>Name of the file w/o the timestamp, in Pega format
 &lt;Applies To&gt;_&lt;Instance Name&gt;, or the complete filename of the dataset
-export file, or a specific JSON file. If none of these work it will try
-to interpret the instancename as a pattern to <code>list.files</code> to match
-multiple JSON files.</p></td>
+export file, or a specific JSON file.</p></td>
     </tr>
     <tr>
       <th>srcFolder</th>
@@ -193,6 +192,10 @@ really big files so you can filter rows early.</p></td>
     <tr>
       <th>stringsAsFactors</th>
       <td><p>Logical (default is FALSE). Convert all character columns to factors?</p></td>
+    </tr>
+    <tr>
+      <th>verbose</th>
+      <td><p>Flag for verbose logging, defaults to FALSE.</p></td>
     </tr>
     </table>
 

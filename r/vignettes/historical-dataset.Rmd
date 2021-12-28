@@ -12,11 +12,11 @@ vignette: >
 ```{r setup, include = FALSE}
 # knitr options: https://yihui.name/knitr/options/
 knitr::opts_chunk$set(
-collapse = TRUE,
-# fig.width = 7,
-# fig.height = 5,
-fig.align = "center",
-comment = "#>"
+  collapse = TRUE,
+  fig.width = 7,
+  # fig.height = 5,
+  fig.align = "center",
+  comment = "#>"
 )
 
 library(data.table)
@@ -39,17 +39,20 @@ To enable this feature please see the Pega documentation.
 Once enabled, the system will start generating datafiles in the repository. These
 are in multi-line JSON format.
 
-In this example we use a dataset that is included in the package (*hds*). To read 
-your own JSON files from a repository, you could use the 
-*readDSExport* function. This supports reading multiple JSON files from a folder. 
+In this example we use a dataset that is included in the package (*hds*).
 
 ```{r}
 library(cdhtools)
 
 data(hds)
+```
 
-# To read your own Historical Data from the JSON files in a repository use:
-# hds <- readDSExport("\\.json$", "data")
+To read your own Historical Data files from a repository 
+use the "arrow" library for fast reading of LDJSON.
+
+```{r eval=FALSE, echo=TRUE}
+hds <- rbindlist(lapply(list.files("data/hds", "*.json", full.names = T),
+                 arrow::read_json_arrow))
 ```
 
 ## Fields

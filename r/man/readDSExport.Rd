@@ -10,15 +10,14 @@ readDSExport(
   tmpFolder = tempdir(check = T),
   excludeComplexTypes = T,
   acceptJSONLines = NULL,
-  stringsAsFactors = F
+  stringsAsFactors = F,
+  verbose = F
 )
 }
 \arguments{
 \item{instancename}{Name of the file w/o the timestamp, in Pega format
 <Applies To>_<Instance Name>, or the complete filename of the dataset
-export file, or a specific JSON file. If none of these work it will try
-to interpret the instancename as a pattern to \code{list.files} to match
-multiple JSON files.}
+export file, or a specific JSON file.}
 
 \item{srcFolder}{Optional folder to look for the file (defaults to the
 current folder)}
@@ -34,6 +33,8 @@ returns TRUE will be parsed. This is just for efficiency when reading
 really big files so you can filter rows early.}
 
 \item{stringsAsFactors}{Logical (default is FALSE). Convert all character columns to factors?}
+
+\item{verbose}{Flag for verbose logging, defaults to FALSE.}
 }
 \value{
 A \code{data.table} with the contents

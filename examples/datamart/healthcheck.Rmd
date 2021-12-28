@@ -193,7 +193,7 @@ the first `r params$max_models_in_list`.
 ## Empty and Immature Models
 
 ```{r CategorizeModels}
-models4MaturityChecks <- datamart$modeldata
+models4MaturityChecks <- copy(datamart$modeldata)
 
 models4MaturityChecks[, isEmpty := ResponseCount == 0]
 models4MaturityChecks[, noPositives := ResponseCount > 0 & Positives == 0]

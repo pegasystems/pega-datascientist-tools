@@ -81,9 +81,7 @@ standardizeFieldCasing <- function(dt)
 #'
 #' @param instancename Name of the file w/o the timestamp, in Pega format
 #'   <Applies To>_<Instance Name>, or the complete filename of the dataset
-#'   export file, or a specific JSON file. If none of these work it will try
-#'   to interpret the instancename as a pattern to \code{list.files} to match
-#'   multiple JSON files.
+#'   export file, or a specific JSON file.
 #' @param srcFolder Optional folder to look for the file (defaults to the
 #'   current folder)
 #' @param tmpFolder Optional folder to store the unzipped data (defaults to a temp folder)
@@ -94,6 +92,7 @@ standardizeFieldCasing <- function(dt)
 #'   returns TRUE will be parsed. This is just for efficiency when reading
 #'   really big files so you can filter rows early.
 #' @param stringsAsFactors Logical (default is FALSE). Convert all character columns to factors?
+#' @param verbose Flag for verbose logging, defaults to FALSE.
 #'
 #' @return A \code{data.table} with the contents
 #' @export
@@ -106,20 +105,27 @@ standardizeFieldCasing <- function(dt)
 #' \dontrun{readDSExport("~/Downloads/Data-Decision-ADM-ModelSnapshot_All_20180316T135038_GMT.zip")}
 #' \dontrun{readDSExport("SampleApp-SR_DecisionResults.json", "data")}
 #' \dontrun{readDSExport("json$", "create_hds/data")}
-readDSExport <- function(instancename, srcFolder=".", tmpFolder=tempdir(check = T), excludeComplexTypes=T, acceptJSONLines=NULL, stringsAsFactors=F)
+readDSExport <- function(instancename, srcFolder=".",
+                         tmpFolder=tempdir(check = T),
+                         excludeComplexTypes=T,
+                         acceptJSONLines=NULL,
+                         stringsAsFactors=F,
+                         verbose=F)
 {
   jsonFile <- NULL
   errorReason <- ""
 
   if(endsWith(instancename, ".json")) {
-    errorReason <- "looking for existing JSON file"
+    errorReason <- "reading existing JSON file"
 
     # See if it is a single, existing, JSON file
     if (file.exists(instancename)) {
       jsonFile <- instancename
+      if (verbose) cat(errorReason, jsonFile, fill=T)
       multiLineJSON <- readLines(jsonFile)
     } else if (file.exists(file.path(srcFolder,instancename))) {
         jsonFile <- file.path(srcFolder,instancename)
+        if (verbose) cat(errorReason, jsonFile, fill=T)
         multiLineJSON <- readLines(jsonFile)
     }
   } else {
@@ -128,15 +134,16 @@ readDSExport <- function(instancename, srcFolder=".", tmpFolder=tempdir(check = 
     zipFile <- instancename
 
     if(endsWith(instancename, ".zip")) {
-      errorReason <- "looking for existing ZIP file"
+      errorReason <- "reading existing ZIP file"
 
       if (file.exists(instancename)) {
         zipFile <- instancename
       } else if (file.exists(file.path(srcFolder,instancename))) {
         zipFile <- file.path(srcFolder,instancename)
       }
+      if (verbose) cat(errorReason, zipFile, fill=T)
     } else {
-      errorReason <- "looking for most recent dataset export ZIP file"
+      errorReason <- "reading most recent dataset export ZIP file"
 
       # See if it is just a base name of the instance, then find the most
       # recent file by appending the date and "zip" extension according to
@@ -145,10 +152,12 @@ readDSExport <- function(instancename, srcFolder=".", tmpFolder=tempdir(check = 
       zipFile <- paste(srcFolder,
                        rev(sort(list.files(path=srcFolder, pattern=paste("^", instancename, "_.*\\.zip$", sep=""))))[1],
                        sep="/")
+      if (verbose) cat(errorReason, zipFile, fill=T)
     }
 
     if (file.exists(zipFile)) {
-      errorReason <- "looking for data.json file in standard dataset export"
+      errorReason <- "unzipping data.json from standard dataset export"
+      if (verbose) cat(errorReason, zipFile, fill=T)
 
       jsonFile <- file.path(tmpFolder,"data.json")
       if(file.exists(jsonFile)) file.remove(jsonFile)
@@ -162,18 +171,21 @@ readDSExport <- function(instancename, srcFolder=".", tmpFolder=tempdir(check = 
       file.remove(jsonFile)
     }
   }
-
-  if (is.null(jsonFile)) {
-    errorReason <- paste("looking for pattern to match", instancename)
-
-    # Try to interpret the filename as a pattern.
-    jsonFile <- list.files(pattern = instancename, path = srcFolder, full.names = T)
-    if (length(jsonFile) > 0) {
-      multiLineJSON <- unlist(sapply(jsonFile, readLines))
-    } else {
-      jsonFile <- NULL
-    }
-  }
+#
+#   Deprecated option. Users should just use arrow directly to read JSON.
+#
+#   if (is.null(jsonFile)) {
+#     errorReason <- paste("looking for pattern to match", instancename)
+#     if (verbose) cat(errorReason, fill=T)
+#
+#     # Try to interpret the filename as a pattern.
+#     jsonFile <- list.files(pattern = instancename, path = srcFolder, full.names = T)
+#     if (length(jsonFile) > 0) {
+#       multiLineJSON <- unlist(sapply(jsonFile, readLines, warn=F))
+#     } else {
+#       jsonFile <- NULL
+#     }
+#  }
 
   if (is.null(jsonFile)) {
     stop(paste("Dataset JSON file not found", errorReason))

@@ -61,6 +61,7 @@ expandEmbeddedJSONContext <- function(dt, fieldName = "Name")
   isJSON <- OriginalName <- NULL # Trick to silence R CMD Check warnings
 
   if(nrow(dt)==0) return(dt)
+  if(!(fieldName %in% names(dt))) return(dt)
 
   if (!is.factor(dt[[fieldName]])) {
     dt[[fieldName]] <- as.factor(dt[[fieldName]])
@@ -244,30 +245,38 @@ defaultPredictorCategorization <- function(p)
 
 # Read CSV, JSON or parquet file from source
 # TODO: consider reading only specific columns, or dropping specific ones
-readFromSource <- function(file, folder, tmpFolder)
+readFromSource <- function(file, folder, tmpFolder, verbose)
 {
-  # Use folder only if file itself doesnt exist
-  if (!file.exists(file) & file.exists(file.path(folder, file))) {
-    file <- file.path(folder, file)
-  }
-
+  fullfile <- NULL
   if (file.exists(file)) {
+    fullfile <- file
+  } else {
+    if (file.exists(file.path(folder, file))) {
+      fullfile <- file.path(folder, file)
+    }
+  }
+  if (!is.null(fullfile) & !endsWith(file, ".zip")) {
+    if (verbose) cat("Reading file:", fullfile, fill=T)
+
     if (endsWith(file, ".csv")) {
-      return(fread(file))
+      return(fread(fullfile))
     }
 
     if (endsWith(file, ".json")) {
       # Speedy JSON read through arrow
-      return(as.data.table(arrow::read_json_arrow(file)))
+      return(as.data.table(arrow::read_json_arrow(fullfile)))
     }
 
     if (endsWith(file, ".parquet")) {
-      return(as.data.table(arrow::read_parquet(file)))
+      return(as.data.table(arrow::read_parquet(fullfile)))
     }
+
+    stop("Unsupported file type: ", fullfile)
   }
 
   # Generic dataset read
-  dt <- readDSExport(file, folder, tmpFolder=tmpFolder, stringsAsFactors=T)
+  if (verbose) cat("Reading as dataset export:", file, "folder:", folder, fill=T)
+  dt <- readDSExport(file, folder, tmpFolder=tmpFolder, stringsAsFactors=T, verbose=verbose)
 
   return(dt)
 }
@@ -369,16 +378,30 @@ ADMDatamart <- function(modeldata = NULL,
     predictordata <- "Data-Decision-ADM-PredictorBinningSnapshot_(py)?ADMPredictorSnapshots"
   }
 
+  if (verbose) {
+    if (!is.data.table(modeldata) && !is.data.frame(modeldata)) {
+      cat("Looking for model data file:", modeldata, fill=T)
+    } else {
+      cat("Model data provided as table", fill=T)
+    }
+    if (!is.data.table(predictordata) && !is.data.frame(predictordata)) {
+      cat("Looking for predictor data file:", predictordata, fill=T)
+    } else {
+      cat("Predictor data provided as table", fill=T)
+    }
+  }
+
   # Define fields for model and predictor tables that we require, fields that are
   # added, and fields that are optional - typically added in later releases.
   # This is used to subset the data to just those fields and verify that all
   # required fields are present. This is especially helpful when dealing with
   # custom dataset exports from the database, via CSV etc.
   requiredModelFields <- c("ModelID", "ConfigurationName","SnapshotTime",
-                           "Issue", "Group", "Name", "Direction", "Channel",
+
                            "TotalPredictors", "ActivePredictors", "Negatives", "Positives", "ResponseCount",
                            "Performance", "ResponseCount")
-  optionalModelFields <- c("ModelData", "ModelVersion") # added in later releases
+  optionalModelFields <- c("Issue", "Group", "Name", "Direction", "Channel", # context keys are not mandatory
+                           "ModelData", "ModelVersion") # added in later releases
   additionalModelFields <- c("AUC", "SuccessRate") # additional, not in Datamart
   dropModelFields <- function(x, dropSerializedModelData) {
     # Hard-coded list because the names of (x) may contain just about anything
@@ -421,7 +444,7 @@ ADMDatamart <- function(modeldata = NULL,
         modelz <- as.data.table(modeldata)
       }
     } else {
-      modelz <- readFromSource(modeldata, folder, tmpFolder)
+      modelz <- readFromSource(modeldata, folder, tmpFolder, verbose = verbose)
     }
 
     modelz <- cleanupHookModelData(modelz)
@@ -479,7 +502,7 @@ ADMDatamart <- function(modeldata = NULL,
         predz <- as.data.table(predictordata)
       }
     } else {
-      predz <- readFromSource(predictordata, folder, tmpFolder)
+      predz <- readFromSource(predictordata, folder, tmpFolder, verbose = verbose)
     }
 
     predz <- cleanupHookPredictorData(predz)

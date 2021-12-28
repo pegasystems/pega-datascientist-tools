@@ -10,11 +10,7 @@ context("ADM Checks")
 # dmModels <- dmModels[pyConfigurationName %in% c("SalesModel"), !grepl("^px|pz", names(dmModels)), with=F]
 # perfOverview <- getModelPerformanceOverview(dmModels, dmPredictors)
 
-test_that("generic ADMDatamart reading", {
-
-  expect_error(ADMDatamart("Data-Decision-ADM-ModelSnapshot_All", folder = "dsexports"),
-               "Dataset JSON file not found looking for pattern")
-
+test_that("read ADM Datamart", {
   data <- ADMDatamart("Data-Decision-ADM-ModelSnapshot_All", "dsexports")
 
   expect_true(is.null(data$predictordata))
@@ -40,6 +36,52 @@ test_that("generic ADMDatamart reading", {
   expect_equal(nrow(data$modeldata), 15) # only latest snapshot
   expect_equal(ncol(data$modeldata), 16)
 })
+
+test_that("ADM Datamart positional arguments", {
+  d <- ADMDatamart("dsexports")
+  expect_equal(nrow(d$modeldata), 20)
+  expect_equal(nrow(d$predictordata), 1648)
+
+  d <- ADMDatamart("Data-Decision-ADM-ModelSnapshot_pyModelSnapshots", "dsexports")
+  expect_equal(nrow(d$modeldata), 20)
+  expect_null(d$predictordata)
+
+  d <- ADMDatamart("Data-Decision-ADM-ModelSnapshot_pyModelSnapshots", folder = "dsexports")
+  expect_equal(nrow(d$modeldata), 20)
+  expect_equal(nrow(d$predictordata), 1648)
+
+  d <- ADMDatamart("Data-Decision-ADM-ModelSnapshot_All", "dsexports")
+  expect_equal(nrow(d$modeldata), 30)
+  expect_null(d$predictordata)
+
+  d <- ADMDatamart("Data-Decision-ADM-ModelSnapshot_All", folder = "dsexports")
+  expect_equal(nrow(d$modeldata), 30)
+  expect_equal(nrow(d$predictordata), 1755)
+
+  d <- ADMDatamart(modeldata = "Data-Decision-ADM-ModelSnapshot_All", folder = "dsexports")
+  expect_equal(nrow(d$modeldata), 30)
+  expect_equal(nrow(d$predictordata), 1755)
+
+  d <- ADMDatamart("Data-Decision-ADM-ModelSnapshot_MyModelSnapshots_20211227T115918_GMT.zip", "dsexports")
+  expect_equal(nrow(d$modeldata), 1)
+  expect_null(d$predictordata)
+
+  d <- ADMDatamart("Data-Decision-ADM-ModelSnapshot_MyModelSnapshots_20211227T115918_GMT.zip", folder = "dsexports")
+  expect_equal(nrow(d$modeldata), 1)
+  expect_null(d$predictordata) # because the standard predictor data there is not compatible with this model data it will be nulled
+
+  d <- ADMDatamart(modeldata = "Data-Decision-ADM-ModelSnapshot_MyModelSnapshots_20211227T115918_GMT.zip", folder = "dsexports")
+  expect_equal(nrow(d$modeldata), 1)
+  expect_null(d$predictordata) # because the standard predictor data there is not compatible with this model data it will be nulled
+
+  expect_error(ADMDatamart("Data-Decision-ADM-ModelSnapshot_DoesNotExist", folder = "dsexports"),
+               "Dataset JSON file not found")
+
+  expect_error(ADMDatamart("test_score_ranges.RData", folder = "dsexports"),
+               "Unsupported file type")
+
+})
+
 
 test_that("ADMDatamart predictor reading", {
 
@@ -86,6 +128,18 @@ test_that("parsing JSON names from pyName", {
   expect_true("Proposition" %in% names(m2$modeldata))
   expect_setequal(levels(m2$modeldata$Name),
                   c('{"Proposition":"P1"}','BasicChecking','P10','SuperSaver'))
+})
+
+test_that("Reading data from models wo context", {
+  # This model has no context keys at all, not even Name
+  data <- ADMDatamart("Data-Decision-ADM-ModelSnapshot_MyModelSnapshots",
+                      "Data-Decision-ADM-PredictorBinningSnapshot_MyPredictorSnapshots", folder = "dsexports")
+
+  expect_equal(ncol(data$modeldata), 11)
+  expect_equal(nrow(data$modeldata), 1)
+  expect_equal(ncol(data$predictordata), 24)
+  expect_equal(nrow(data$predictordata), 55)
+
 })
 
 # This test confirms BUG-417860 stating that ADM performance numbers can be overly
