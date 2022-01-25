@@ -87,7 +87,7 @@ class ADMDatamart(ADMVisualisations):
             model_filename = kwargs.pop('model_filename', 'modelData')
             df1, self.renamed_model, self.missing_model = self._import_utils(model_filename, path, overwrite_mapping, subset, query=query, verbose=verbose)
         if df1 is not None:
-            df1['SuccesRate'] = df1['Positives'] / df1['ResponseCount'] if df1 is not None else None
+            df1['SuccessRate'] = df1['Positives'] / df1['ResponseCount'] if df1 is not None else None
         
         if predictor_df is not None:
             df2, self.renamed_preds, self.missing_preds = self._import_utils(name=predictor_df, subset=subset, query=query, verbose=verbose)
