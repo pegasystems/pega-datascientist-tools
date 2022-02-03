@@ -47,14 +47,14 @@ class ADMVisualisations:
         """
 
         table = 'modelData'
-        required_columns = {'Performance', 'SuccesRate', 'ResponseCount', 'ModelName'}
+        required_columns = {'Performance', 'SuccessRate', 'ResponseCount', 'ModelName'}
         df = self._subset_data(table=table, required_columns=required_columns, query=query, last=last)
-        df['SuccesRate'] *= 100
+        df['SuccessRate'] *= 100
         df['Performance'] *= 100
         if annotate:
-            gg = sns.relplot(x='Performance', y='SuccesRate', aspect=aspect, data=df, hue='ModelName')
+            gg = sns.relplot(x='Performance', y='SuccessRate', aspect=aspect, data=df, hue='ModelName')
             ax = gg.axes[0,0]
-            for idx,row in df[['Performance', 'SuccesRate', 'ResponseCount']].sort_values(
+            for idx,row in df[['Performance', 'SuccessRate', 'ResponseCount']].sort_values(
                 'ResponseCount').reset_index(drop=True).reset_index().fillna(-1).iterrows():
                 if row[1]!=-1 and row[2]!=-1 and row[3]!=-1:
     #                     space = (gg.ax.get_xticks()[2]-gg.ax.get_xticks()[1])/((row[0]+15)/(row[0]+1))
@@ -62,7 +62,7 @@ class ADMVisualisations:
             c = gg._legend.get_children()[0].get_children()[1].get_children()[0]
             c._children = c._children[0:df['ModelName'].count()+1]
         else:
-            gg = sns.relplot(x='Performance', y='SuccesRate', size='ResponseCount',
+            gg = sns.relplot(x='Performance', y='SuccessRate', size='ResponseCount',
                                 data=df, hue='ModelName',  sizes=sizes, aspect=aspect)
 
         gg.fig.set_size_inches(figsize[0], figsize[1])
@@ -192,13 +192,13 @@ class ADMVisualisations:
         """
         table = 'modelData'
         multi_snapshot = True
-        required_columns = {'ModelID', 'ModelName', 'SnapshotTime', 'ResponseCount', 'SuccesRate'}
+        required_columns = {'ModelID', 'ModelName', 'SnapshotTime', 'ResponseCount', 'SuccessRate'}
         df = self._subset_data(table, required_columns, query, multi_snapshot=multi_snapshot)
         assert day_interval < df['SnapshotTime'].nunique(), f"Day interval ({day_interval}) cannot be larger than the number of snapshots ({df['SnapshotTime'].nunique()})"
         
         fig, ax = plt.subplots(figsize=figsize)
-        df['SuccesRate'] *= 100
-        sns.pointplot(x='SnapshotTime', y='SuccesRate', data=df, hue='ModelID', marker="o", ax=ax)
+        df['SuccessRate'] *= 100
+        sns.pointplot(x='SnapshotTime', y='SuccessRate', data=df, hue='ModelID', marker="o", ax=ax)
         print('Pointplot generated')
         modelnames = df[['ModelID', 'ModelName']].drop_duplicates().set_index('ModelID').to_dict()['ModelName']
         print('Modelnames generated')
@@ -215,7 +215,7 @@ class ADMVisualisations:
         for i in ax.get_xmajorticklabels():
             i.set_rotation(90)
 
-    def plotPropositionSuccesRates(self, query:Union[str, dict]=None, figsize:tuple=(12, 8)) -> plt.figure:
+    def plotPropositionSuccessRates(self, query:Union[str, dict]=None, figsize:tuple=(12, 8)) -> plt.figure:
         """Shows all latest proposition success rates
         A bar plot to show the success rate of all latest model instances (propositions)
         For reading simplicity, latest success rate is also annotated next to each bar
@@ -236,12 +236,12 @@ class ADMVisualisations:
         """
         table = 'modelData'
         last = True
-        required_columns = {'ModelName', 'SuccesRate'}
+        required_columns = {'ModelName', 'SuccessRate'}
         df = self._subset_data(table, required_columns, query, last=last)
 
         f, ax = plt.subplots(figsize=figsize)
-        df['SuccesRate'] *= 100
-        bplot = sns.barplot(x='SuccesRate', y='ModelName', data=df.sort_values('SuccesRate', ascending=False), ax=ax)
+        df['SuccessRate'] *= 100
+        bplot = sns.barplot(x='SuccessRate', y='ModelName', data=df.sort_values('SuccessRate', ascending=False), ax=ax)
         ax.xaxis.set_major_formatter(mtick.PercentFormatter())
         for p in bplot.patches:
             bplot.annotate("{:0.2%}".format(p.get_width()/100.0), (p.get_width(), p.get_y()+p.get_height()/2),
