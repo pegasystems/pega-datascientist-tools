@@ -1,5 +1,5 @@
 ---
-title: "`r params$title`"
+title: "Analysis of Model Executions in pxDecisionResults"
 author: "Pega CDH Tools"
 date: "`r Sys.Date()`"
 output:
@@ -9,9 +9,6 @@ output:
   pdf_document: default
 always_allow_html: true
 params:
-  title:
-    value: "Example pxDR Decision Results Analysis"
-    
   source:
     # Full path to pxDR dataset export zip
     # value: "~/Downloads/Data-Decision-Results_pxDecisionResults_20220112T162055_GMT.zip"
@@ -23,12 +20,10 @@ params:
 
     # with bug fixes
     # value: "~/Downloads/Data-Decision-Results_pxDecisionResults_20220128T163121_GMT.zip"
-    value: "~/Downloads/Data-Decision-Results_pxDecisionResults_20220201T085415_GMT.zip"
+    # value: "~/Downloads/Data-Decision-Results_pxDecisionResults_20220201T085415_GMT.zip"
     
-    
-  topNpropositions:
-    value: 40
-    
+    value: "../../data/pxdr/Data-Decision-Results_pxDecisionResults_20220112T162055_GMT.zip"
+
   topNinteractions:
     value: 10
 
@@ -54,6 +49,7 @@ library(scales)
 library(knitr)
 library(kableExtra)
 library(bit64)
+library(plotly)
 
 theme_set(theme_light())
 ```
@@ -65,9 +61,8 @@ Detailed analysis of the **pxDR** decision results with a focus on the
 a strategy. 
 
 For analysis purposes you would typically first truncate
-it, run a data flow for just a limited number of interactions, then 
-export the **pxDecisionResults** dataset.
-
+the **pxDecisionResults** dataset, then run a data flow for just a limited 
+number of interactions, then export the dataset.
 
 # Load data
 
@@ -75,14 +70,17 @@ Read the data. pxDR is a nested structure so making sure to include embedded
 complex types.
 
 ```{r}
-pxDR <- readDSExport(params$source, excludeComplexTypes = F)
-pxDR[["pxUpdateDateTime"]] <- as.integer64(pxDR$pxUpdateDateTime)
+pxDR <- copy(readDSExport(params$source, excludeComplexTypes = F))
+pxDR[, pxUpdateDateTime := as.integer64(pxUpdateDateTime)]
+
 dim(pxDR)
 ```
 
-# Showing the first `r params$params$topNdecisions` decision results for all `r length(pxDR)` interactions
+# Number of Model Excecution Results 
 
-```{r}
+## Preview of the first `r params$params$topNdecisions` decision results
+
+```{r include=FALSE}
 splitModelExecutionReferences <- function(mrefs)
 {
   sapply(strsplit(mrefs,",",fixed=T),as.integer)  
@@ -93,35 +91,20 @@ countStringModelExecutionReferences <- function(mrefs)
   ifelse(sapply(mrefs, is.na), 0L,
          sapply(strsplit(mrefs,",",fixed=T),length))  
 }
-
-decisionResults <- rbindlist(pxDR$pxDecisionResults, fill = T)[, c("pyOutcome", "pyPropensity", "pyName", "pyChannel", 
-                                                                   "pzModelExecutionReferences", "pyModelPropensity", 
-                                                                   "pxDecisionTime", "pxInteractionID")]
-
-cdhtools::standardizeFieldCasing(decisionResults)
-
-decisionResults[, pxDRindex := unlist(sapply(seq(nrow(pxDR)), function(i){rep(i, nrow(pxDR$pxDecisionResults[[i]]))}))]
-decisionResults[, nMERs := countStringModelExecutionReferences(Modelexecutionreferences) ]
-
-decisionResults[order(DecisionTime)] %>% head(params$topNdecisions) %>% kbl() %>% kable_paper("hover", full_width = T)
 ```
 
-## Proposition Distribution
-
-Showing the tope `r params$topNpropositions` propositions.
-
 ```{r}
-propositionDistributionSummary <- 
-  decisionResults[, .(N=.N), by=c("Name", "Channel")]
-propositionDistributionSummary[, Total := sum(N), by=Name]
-propositionDistributionSummary[, Rank := rank(Total)]
-setorder(propositionDistributionSummary, -Rank)
-propositionDistributionSummary[, Name := factor(Name, unique(Name))]
+decisionResults <- rbindlist(pxDR$pxDecisionResults, 
+                             fill = T)[, c("pyOutcome", "pyPropensity", "pyName", "pyChannel", 
+                                           "pzModelExecutionReferences", "pyModelPropensity", 
+                                           "pxDecisionTime", "pxInteractionID")]
 
-ggplot(propositionDistributionSummary[as.integer(Name)<=params$topNpropositions], aes(Name, N, fill=Channel)) + geom_col() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 0)) +
-  scale_fill_discrete_qualitative() +
-  ggtitle("Number of Propositions", subtitle = paste("top", params$topNpropositions))
+decisionResults[, pxDRindex := unlist(sapply(seq(nrow(pxDR)), function(i){rep(i, nrow(pxDR$pxDecisionResults[[i]]))}))]
+decisionResults[, nModelExecutionResults := countStringModelExecutionReferences(pzModelExecutionReferences) ]
+setorder(decisionResults, pxDecisionTime)
+
+decisionResults %>% 
+  head(params$topNdecisions) %>% kbl() %>% kable_paper("hover", full_width = T)
 ```
 
 ## Totals across all `r length(pxDR)` interactions
@@ -130,36 +113,19 @@ ggplot(propositionDistributionSummary[as.integer(Name)<=params$topNpropositions]
 pxDR[, nDecisionResults := sapply(pxDecisionResults, nrow)]
 pxDR[, nModelExecutionResults := sapply(pxModelExecutionResults, nrow)]
 
-data.table( Interactions = nrow(pxDR),
-            DecisionResults = sum(pxDR$nDecisionResults),
-            ModelExecutionResults = sum(pxDR$nModelExecutionResults)) %>% 
+data.table( `Number of Interactions` = nrow(pxDR),
+            `Number of DecisionResults` = sum(pxDR$nDecisionResults),
+            `Number of ModelExecutionResults` = sum(pxDR$nModelExecutionResults)) %>% 
   kbl() %>% kable_paper("hover", full_width = T)
 ```
 
-## Number of Decision Results and Model Executions for the first `r params$topNinteractions` interactions
+## Totals per interaction for the first `r params$topNinteractions` interactions
 
 Showing the first couple of records along with the number of decision 
 results and the total number of unique model execution results.
 
 ```{r}
 pxDR[, c("pxVersion", "pxInteractionID", "pxSubjectID", "nDecisionResults", "nModelExecutionResults", "pxUpdateDateTime")][order(pxUpdateDateTime)] %>% head(params$topNinteractions) %>% 
-  kbl() %>% kable_paper("hover", full_width = T)
-```
-
-## Decision Results split by Outcome for all decisions
-
-Decision results and model executions split by outcome. In addition showing
-which decision results have no propensity attached.
-
-
-```{r}
-
-decisionResults[, .(`Decision Results` = .N, 
-                    `Decision Results w/o Model Propensities` = sum(is.na(Modelpropensity)),
-                    `Decision Results w/o Propensities` = sum(is.na(Propensity)),
-                    `Model Execution Results` = 
-                      sum(countStringModelExecutionReferences(Modelexecutionreferences))),
-                by="Outcome"][order(-`Model Execution Results`)] %>% 
   kbl() %>% kable_paper("hover", full_width = T)
 ```
 
@@ -173,36 +139,46 @@ a two-stage prediction 5 and if there are additional models involved in
 evaluating a prediction, more.
 
 ```{r}
-
-plt <- ggplot(decisionResults, aes(as.factor(nMERs), fill=Outcome)) + 
+plt <- ggplot(decisionResults, aes(as.factor(nModelExecutionResults), fill=pyOutcome)) + 
   geom_bar() +
-  ggtitle("Total Number of Model Execution Results by Outcome") +
+  ggtitle("Number of Decision Results per nr of Model Execution Results", subtitle = "split by Outcome") +
   scale_fill_discrete_qualitative() +
-  xlab("Model Execution Results") 
-# +scale_y_continuous(limits=c(0,2000))
+  xlab("Model Execution Results") +
+  ylab("# Decision Results") +
+  scale_y_continuous(limits=c(0,nrow(decisionResults))) # scale to max to make it easier to compare plots from different runs
 
 plotly::ggplotly(plt)
 ```
 
 ## Decision Results by Channel and Outcome
 
-Showing the number of decision results for each channel and outcome combination,
-also highlighting the number of decision results w/o a propensity.
-
-Which propositions do not have outcomes depends on the customer attributes.
+Showing the number of decision results and models executed for 
+each channel and outcome combination.
 
 ```{r}
-ggplot(decisionResults[, .(N = .N, NoPropensity = sum(is.na(Modelpropensity))), by=c("Channel", "Outcome")], 
-       aes(Outcome, Channel, label=paste(N, NoPropensity, sep="/"))) + 
-  geom_raster(fill="lightgrey") +
+plt <- ggplot(decisionResults[, .(N = .N, nModelExecutionResults = sum(nModelExecutionResults)), 
+                              by=c("pyChannel", "pyOutcome")], 
+              aes(pyOutcome, pyChannel, label=paste(N, nModelExecutionResults, sep="\n"))) + 
+  geom_raster(aes(fill = pyOutcome, alpha = N)) +
   geom_text(size=3) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  ggtitle("Decision results by Channel and Outcome")
+  ggtitle("Decision results by Channel and Outcome", 
+          subtitle = "showing # of decision results and # of model executions")
+
+plotly::ggplotly(plt)
 ```
 
-# Types of Model execution results for all interactions
+# Details of the Model Execution Results
 
-```{r}
+ADM models, Predictive Models and Predictions all have different details
+in the model execution results.
+
+## Decision Results split by Type of Model execution
+
+The summary below shows the number of decision results split by type of
+model execution, and per outcome.
+
+```{r include=FALSE}
 modelExecutionDetailsFromJSON <- function(modelExecutionJSON) 
 {
   if (is.na(modelExecutionJSON) || length(modelExecutionJSON)==0) {
@@ -219,70 +195,64 @@ modelExecutionDetailsFromJSON <- function(modelExecutionJSON)
                     negatives = paste(unlist(mer_list[["negativeOutcomes"]]), collapse = "/"),
                     rule = paste(mer_list[["ruleClass"]], mer_list[["ruleName"]], sep = ":")))  
 }
+```
 
-modelExecutionSummary <- rbindlist(lapply(seq(nrow(decisionResults)),
-                                          function(i) {
-                                            merJSONs <- as.data.table(pxDR[decisionResults[i, pxDRindex]]$pxModelExecutionResults[[1]])
-                                            
-                                            results <- rbindlist(lapply(merJSONs[splitModelExecutionReferences(decisionResults[i, Modelexecutionreferences]),]$pxModelExecutionResults, 
-                                                                        modelExecutionDetailsFromJSON), 
-                                                                 use.names = T, fill = T)
-                                            
-                                            results[, Outcome := decisionResults[i, Outcome]]
-                                            results
-                                          } ), use.names = T, fill = T)
+```{r}
+modelExecutionSummary <- 
+  rbindlist(lapply(seq(nrow(decisionResults)),
+                   function(i) {
+                     merJSONs <- as.data.table(pxDR[decisionResults[i, pxDRindex]]$pxModelExecutionResults[[1]])
+                     
+                     results <- rbindlist(lapply(merJSONs[splitModelExecutionReferences(decisionResults[i, pzModelExecutionReferences]), 
+                                                          pxModelExecutionResults], 
+                                                 modelExecutionDetailsFromJSON), 
+                                          use.names = T, fill = T)
+                     
+                     results[, pyOutcome := decisionResults[i, pyOutcome]]
+                     
+                     results
+                   } ), use.names = T, fill = T)
 
-dcast(modelExecutionSummary, modelType+component+positives+negatives+rule ~ Outcome, fun.aggregate = length) %>%
+dcast(modelExecutionSummary, modelType+component+positives+negatives+rule ~ pyOutcome, fun.aggregate = length) %>%
   kbl() %>% kable_paper("hover", full_width = T)
 ```
 
-# Analysis of one specific interaction
+## Raw JSON of the Model Execution Results of one decision
 
-Analyzing one specific interaction. One interaction is usually for one
-customer.
+In the evaluation of every decision a number of models / predictions can 
+be hit / executed.
+
+Here we pick out one decision (every interaction has a number of decision results,
+and every decision result has a number of model executions) and show the
+raw JSON content of these.
+
+The interaction is specified by a parameter as an index.
 
 ```{r}
-interactionID <- pxDR[params$indexOfSelectedInteraction]$pxInteractionID
-# modelExecutionResults <- as.data.table(pxDR[params$indexOfSelectedInteraction]$pxModelExecutionResults[[1]])
+interactionOfInterest <- pxDR[params$indexOfSelectedInteraction]$pxInteractionID
 
-
-interactionID
+interactionOfInterest
 ```
 
-## Model execution results for one decision result of interaction `r interactionID`
-
-Picking one that has many model references.
+For the decision result of that interaction we pick the first one with the
+largest number of decision results.
 
 ```{r}
-modelExecutionReferences <- splitModelExecutionReferences(decisionResults[interactionID==InteractionID, Modelexecutionreferences])
-srOfInterest <- which.max(sapply(modelExecutionReferences, length))
+srOfInterest <- decisionResults[interactionOfInterest == pxInteractionID][which.max(decisionResults[interactionOfInterest == pxInteractionID, 
+                                                                                                    nModelExecutionResults])]
 
-modelExecutionReferences[[srOfInterest]]
+srOfInterest$pzModelExecutionReferences
 ```
 
-## List of Model Execution Results for one SR
-
-Lookup the model execution result data for SR `r srOfInterest`
-
 ```{r}
-# pxDR belonging to selected decision result
-pxDRIndex <- decisionResults[interactionID==InteractionID][srOfInterest, pxDRindex]
+rawJSON <- as.data.table(pxDR[srOfInterest$pxDRindex]$pxModelExecutionResults[[1]])
 
-# JSON representations of all MERS of this interaction
-merJSONs <- as.data.table(pxDR[pxDRIndex]$pxModelExecutionResults[[1]])
-
-rbindlist(lapply(merJSONs[modelExecutionReferences[[srOfInterest]],]$pxModelExecutionResults, 
-                                                                        modelExecutionDetailsFromJSON), 
-                                                                 use.names = T, fill = T) %>% 
-  kbl() %>% kable_paper("hover", full_width = T)
-```
-
-## Raw JSON for the same Model Execution Results
-
-```{r}
-x <- sapply(merJSONs[modelExecutionReferences[[srOfInterest]],]$pxModelExecutionResults, function(x){ cat(fill=T); cat(jsonlite::minify(x), fill=T)})
-
-
+dummy <- sapply(rawJSON[as.integer(splitModelExecutionReferences(srOfInterest$pzModelExecutionReferences)), 
+                        pxModelExecutionResults], 
+                function(x) { 
+                  cat(fill=T)
+                  cat(jsonlite::minify(x), fill=T)
+                })
 ```
 
 

@@ -11,7 +11,9 @@ always_allow_html: true
 params:
   source:
     # Full path to pxDR dataset export zip
-    value: "~/Downloads/Data-Decision-Results_pxDecisionResults_20220112T162055_GMT.zip"
+    value: "../../data/pxdr/Data-Decision-Results_pxDecisionResults_20220112T162055_GMT.zip"
+    
+    # ~/Downloads/Data-Decision-Results_pxDecisionResults_20220112T162055_GMT.zip"
 
   topNpropositions:
     value: 40
@@ -106,4 +108,11 @@ ggplot(propositionDistributionSummary[as.integer(pyName)<=params$topNproposition
   scale_fill_discrete_qualitative() +
   ggtitle("Number of Propositions", subtitle = paste("top", params$topNpropositions))
 ```
+# Propensity ranges
+
+```{r}
+ggplot(decisionResults, aes(pyPropensity, pyChannel, color=pyChannel)) +
+  geom_boxplot()
+```
+
 
