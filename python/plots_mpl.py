@@ -13,7 +13,79 @@ import matplotlib.patches as mpatches
 import matplotlib.dates as mdates
 import matplotlib.ticker as mtick
 
-class ADMVisualisations:
+from plot_base import VizBase
+
+
+class ADMVisualisations(VizBase):
+    
+    @staticmethod
+    def distribution_graph(df: pd.DataFrame, title: str, figsize: tuple) -> plt.figure:
+        """Generic method to generate distribution graphs given data and graph size
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            The input data
+        title : str
+            Title of graph
+        figsize : tuple
+            Size of graph
+
+        Returns
+        -------
+        plt.figure
+            The generated figure
+        """
+        required_columns = {
+            "BinIndex",
+            "BinSymbol",
+            "BinResponseCount",
+            "BinPropensity",
+        }
+        assert required_columns.issubset(df.columns)
+        pd.options.mode.chained_assignment = None
+        order = df.sort_values("BinIndex")["BinSymbol"]
+        fig, ax = plt.subplots(figsize=figsize)
+        df.loc[:,"BinPropensity"] *= 100
+        sns.barplot(
+            x="BinSymbol",
+            y="BinResponseCount",
+            data=df,
+            ax=ax,
+            color="blue",
+            order=order,
+        )
+        ax1 = ax.twinx()
+        ax1.plot(
+            df.sort_values("BinIndex")["BinSymbol"],
+            df.sort_values("BinIndex")["BinPropensity"],
+            color="orange",
+            marker="o",
+        )
+        for i in ax.get_xmajorticklabels():
+            i.set_rotation(90)
+        labels = [
+            i.get_text()[0:24] + "..." if len(i.get_text()) > 25 else i.get_text()
+            for i in ax.get_xticklabels()
+        ]
+        ax.set_xticks(ax.get_xticks())
+        ax.set_xticklabels(labels)
+        ax.set_ylabel("Responses")
+        ax.set_xlabel("Range")
+        ax1.set_ylabel("Propensity (%)")
+        ax1.yaxis.set_major_formatter(mtick.PercentFormatter())
+        patches = [
+            mpatches.Patch(color="blue", label="Responses"),
+            mpatches.Patch(color="orange", label="Propensity"),
+        ]
+        ax.legend(
+            handles=patches,
+            bbox_to_anchor=(1.05, 1),
+            loc=2,
+            borderaxespad=0.5,
+            frameon=True,
+        )
+        ax.set_title(title)
 
     def plotPerformanceSuccessRateBubbleChart(self, annotate:bool=False, sizes:tuple=(10, 2000), aspect:int=3, b_to_anchor:tuple=(1.1,0.7), last=True, query:Union[str, dict]=None, figsize:tuple=(20, 5)) -> plt.figure:
         """Creates bubble chart similar to ADM OOTB reports
@@ -318,12 +390,12 @@ class ADMVisualisations:
         required_columns = {'PredictorName', 'ModelName', 'BinIndex', 'BinSymbol', 'BinResponseCount', 'BinPropensity'}
         df = self._subset_data(table, required_columns, query, last=last).reset_index()
         if predictors:
-            df = df[df['PredictorName'].isin(predictors)]
+            df = df.query(f"PredictorName == {predictors}")
         if modelids is not None: 
-            df = df[df['ModelID'].isin(modelids)] 
+            df = df.query(f"ModelID == {modelids}")
         model_name = df['ModelName'].unique()[0]
         for pred in df['PredictorName'].unique():
-            _df = df[df['PredictorName']==pred]
+            _df = df.query(f'PredictorName == {[pred]}')
             title = 'Model name: '+model_name+'\n Predictor name: '+pred
             self.distribution_graph(_df, title, figsize)
 

@@ -14,8 +14,11 @@ import re
 import numpy as np
 from sklearn.metrics import roc_auc_score
 import datetime
+from io import BytesIO
+import urllib.request
+import http
 
-def readDSExport(file: Union[pd.DataFrame, str], path: str='.', verbose: bool=True, **kwargs) -> pd.DataFrame:
+def readDSExport(filename: Union[pd.DataFrame, str], path: str='.', verbose: bool=True, force_pandas=False, **kwargs) -> pd.DataFrame:
     """Read a Pega dataset export file.
     Can accept either a Pandas DataFrame or one of the following formats:
     - .csv
@@ -28,7 +31,7 @@ def readDSExport(file: Union[pd.DataFrame, str], path: str='.', verbose: bool=Tr
 
     Parameters
     ----------
-    file : [pd.DataFrame, str]
+    filename : [pd.DataFrame, str]
         Either a Pandas DataFrame with the source data (for compatibility),
         or a string, in which case it can either be:
         - The name of the file (if a custom name) or
@@ -48,51 +51,82 @@ def readDSExport(file: Union[pd.DataFrame, str], path: str='.', verbose: bool=Tr
             
     Examples: 
         >>> df = readDSExport(file = 'modelData', path = './datamart')
-        >>> df = readDSExport(file = ModelSnapshot.json, path = 'data/ADMData')
+        >>> df = readDSExport(file = 'ModelSnapshot.json', path = 'data/ADMData')
 
         >>> df = pd.read_csv('file.csv')
         >>> df = readDSExport(file = df)
     
     """
-    if isinstance(file, pd.DataFrame):
-        return file
+    if isinstance(filename, pd.DataFrame):
+        return filename
 
-    if os.path.isfile(path + '/' + file):
-        file = f"{path}/{file}"
+    is_url = False
+
+    if os.path.isfile(path + '/' + filename):
+        file = f"{path}/{filename}"
     else:
-        file = get_latest_file(path, file)
-        if file is None:
-            return None
-    
-    if verbose: print(f"Importing: {file}")
+        file = get_latest_file(path, filename)
+        if file == 'dir_not_found':
+            import requests
+            try: 
+                response = requests.get(f'{path}/{filename}')
+                is_url = True if response.status_code == 200 else False
+            except:
+                is_url = False
+            if is_url: 
+                file = f"{path}/{filename}"
+                if file.split(".")[-1] == 'zip':
+                    file = urllib.request.urlopen(f"{path}/{filename}")
+                if verbose: print('File found through URL')
+    if file in [None, 'dir_not_found']:
+        if verbose: print(f'File {filename} not found in dir {path}')
+        return None
 
-    if file[-7:] == 'parquet':
+    if isinstance(file, str):
+        extension = file.split(".")[-1]
+    elif isinstance(file, http.client.HTTPResponse):
+        extension = 'zipped'
+
+    if verbose: print(f"Importing: {path}/{filename}") if is_url else print(f"Importing: {file}")
+
+    if extension == 'parquet':
         try: 
             import pyarrow.parquet as pq
             return pq.read_table(file).to_pandas()
         except ImportError:
             print("You need to import pyarrow to read parquet files.")
-    if file[-3:] == 'csv':
+    if extension == 'csv':
         try:
+            if force_pandas or is_url: raise ImportError('Forcing pandas.')
             from pyarrow import csv
-            return csv.read_csv(file, **kwargs).to_pandas()
+            return csv.read_csv(file, parse_options=csv.ParseOptions(delimiter=kwargs.get('sep', ','))).to_pandas()
         except ImportError:
-            print("Can't import pyarrow, so defaulting to pandas. For faster imports, please install pyarrow.")
+            if not is_url:
+                if verbose: print("Can't import pyarrow, so defaulting to pandas. For faster imports, please install pyarrow.")
             return pd.read_csv(file, **kwargs)
         except OSError:
             raise FileNotFoundError(f"File {file} is not found.")
-    elif file[-4:] == 'json':
+    elif extension == 'json':
         try:
+            if force_pandas: raise ImportError('Forcing pandas.')
             from pyarrow import json
             return json.read_json(file, **kwargs).to_pandas()
         except ImportError:
-            print("Can't import pyarrow, so defaulting to pandas. For faster imports, please install pyarrow.")
-            return pd.read_json(file, **kwargs)
+            if verbose: print("Can't import pyarrow, so defaulting to pandas. For faster imports, please install pyarrow.")
+
+            try: 
+                return pd.read_json(file, lines=True, **kwargs)
+            except ValueError:
+                return pd.read_json(file, **kwargs)
         except OSError:
             raise FileNotFoundError(f"File {file} is not found.")
     else: 
         try:
-            return readZippedFile(file=file)
+            if is_url and extension == 'zipped':
+                return readZippedFile(file=BytesIO(file.read()))
+            elif extension == 'zip':
+                return readZippedFile(file=file)
+            else: return FileNotFoundError(f"File {file} is not found.")
         except OSError:
             raise FileNotFoundError(f"File {file} is not found.")
 
@@ -120,19 +154,24 @@ def readZippedFile(file: str, verbose: bool = False) -> pd.DataFrame:
         files = z.namelist()
         if verbose: print(files)
         if 'data.json' in files:
-            with z.open('data.json') as file:
+            with z.open('data.json') as zippedfile:
                 try:
                     from pyarrow import json
-                    return json.read_json(file).to_pandas()
+                    return json.read_json(zippedfile).to_pandas()
                 except ImportError:
-                    return pd.read_json(file)
+                    try: 
+                        dataset = pd.read_json(zippedfile, lines=True)
+                        return dataset
+                    except ValueError:
+                        dataset = pd.read_json(zippedfile)
+                        return dataset
         if 'csv.json' in files:
-            with z.open('data.csv') as file:
+            with z.open('data.csv') as zippedfile:
                 try: 
                     from pyarrow import csv
-                    return csv.read_json(file).to_pandas()
+                    return csv.read_json(zippedfile).to_pandas()
                 except ImportError:
-                    return pd.read_csv(file)
+                    return pd.read_csv(zippedfile)
         else:
             raise FileNotFoundError("Cannot find a 'data' file in the zip folder.")
 
@@ -159,6 +198,8 @@ def get_latest_file(path: str, target: str, verbose: bool=False) -> str:
     str
         The most recent file given the file name criteria.
     """
+    if target not in {'modelData', 'predictorData'}: 
+        return 'dir_not_found'
 
     #NOTE remove some default names
     default_model_names = [
@@ -176,6 +217,7 @@ def get_latest_file(path: str, target: str, verbose: bool=False) -> str:
     ]
     supported = ['.json', '.csv', '.zip', '.parquet']
 
+
     files_dir = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
     files_dir = [f for f in files_dir if os.path.splitext(f)[-1].lower() in supported]
     if verbose: print(files_dir)
@@ -192,7 +234,7 @@ def get_latest_file(path: str, target: str, verbose: bool=False) -> str:
             if len(match)>0:
                 matches.append(match[0])
     if len(matches) == 0:
-        print(f"Unable to find data for {target}. Please check if the data is available.")
+        if verbose: print(f"Unable to find data for {target}. Please check if the data is available.")
         return None
 
     paths = [os.path.join(path, name) for name in matches]
