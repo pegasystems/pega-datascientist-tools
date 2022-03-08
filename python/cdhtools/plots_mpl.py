@@ -1,3 +1,5 @@
+from .plot_base import VizBase
+
 from typing import NoReturn, Tuple, Union
 
 from matplotlib.lines import Line2D
@@ -13,7 +15,6 @@ import matplotlib.patches as mpatches
 import matplotlib.dates as mdates
 import matplotlib.ticker as mtick
 
-from plot_base import VizBase
 
 
 class ADMVisualisations(VizBase):

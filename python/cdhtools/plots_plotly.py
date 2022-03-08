@@ -1,3 +1,5 @@
+from .plot_base import VizBase
+
 from typing import NoReturn, Tuple, Union
 from pathlib import Path
 
@@ -8,7 +10,6 @@ from copy import deepcopy
 import plotly.express as px
 import plotly.graph_objects as go
 
-from plot_base import VizBase
 
 class ADMVisualisations(VizBase):
 

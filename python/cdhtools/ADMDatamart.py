@@ -1,14 +1,13 @@
+from . import cdh_utils
+from .plots_plotly import ADMVisualisations as plotly_plot
+from .plots_mpl import ADMVisualisations as mpl_plot
 from datetime import timedelta
 import numpy as np
-import cdh_utils
-from plots_plotly import ADMVisualisations as plotly_plot
-from plots_mpl import ADMVisualisations as mpl_plot
 import pandas as pd
 import re
 import copy
 from typing import Optional, Tuple, Union
 import json
-from tqdm import tqdm
 
 def ADMDatamart(path, plotting_engine='plotly', *args, **kwargs):
     """Wrapper function to allow for dynamic inheritance order"""

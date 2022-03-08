@@ -1,4 +1,4 @@
-from ADMDatamart import ADMDatamart
+from .ADMDatamart import ADMDatamart
 
 def CDHSample(plotting_engine='plotly', query=None):
     path = 'https://raw.githubusercontent.com/pegasystems/cdh-datascientist-tools/master/data'
