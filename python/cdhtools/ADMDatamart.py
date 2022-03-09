@@ -560,7 +560,7 @@ def ADMDatamart(path, plotting_engine='plotly', *args, **kwargs):
             if active_only and "PredictorName" in df.columns:
                 df = self._apply_query(df, "EntryType == 'Active'")
 
-            return df[required_columns]
+            return df[list(required_columns)]
 
         @staticmethod
         def load_if_json(extracted, default_col='pyname'):
