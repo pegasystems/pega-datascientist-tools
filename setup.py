@@ -19,7 +19,7 @@ setuptools.setup(
     license='Apache-2.0',
     packages=['cdhtools'],
     package_dir={'':'python'},
-    install_requires=['pandas', 'plotly', 'seaborn', 'sklearn', 'requests', 'nbformat'],
+    install_requires=['pandas', 'plotly>=5.5.0', 'seaborn', 'sklearn', 'requests', 'nbformat', 'jupyterlab', 'ipywidgets'],
     keywords=['pega', 'pegasystems', 'cdh', 'cdhtools', 'customer decision hub', 'datascientist', 'tools'],
     python_required=">=3.6",
     classifiers=[
