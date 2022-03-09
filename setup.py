@@ -5,10 +5,10 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name='cdhtools',
-    version='0.9.0',
+    version='0.9.1',
     author='Stijn Kas',
     author_email='stijn.kas@pega.com',
-    description='Testing installation of Package',
+    description='Open source tooling that helps Data Scientists working with CDH to analyze Pega models and conduct impactful analyses.',
     long_description=long_description,
     long_description_content_type="text/markdown",
     url='https://github.com/pegasystems/cdh-datascientist-tools',
@@ -19,10 +19,12 @@ setuptools.setup(
     license='Apache-2.0',
     packages=['cdhtools'],
     package_dir={'':'python'},
-    install_requires=['pandas', 'plotly', 'seaborn', 'sklearn', 'requests', 'tqdm', 'nbformat'],
+    install_requires=['pandas', 'plotly', 'seaborn', 'sklearn', 'requests', 'nbformat'],
     keywords=['pega', 'pegasystems', 'cdh', 'cdhtools', 'customer decision hub', 'datascientist', 'tools'],
     python_required=">=3.6",
     classifiers=[
-        'Development Status :: 4 - Beta'
+        'Development Status :: 4 - Beta',
+        'Intended Audience :: Developers',
+        'Programming Language :: Python :: 3'
     ]
 )
