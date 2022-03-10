@@ -9,11 +9,13 @@ import copy
 from typing import Optional, Tuple, Union
 import json
 
-def ADMDatamart(path, plotting_engine='plotly', *args, **kwargs):
+
+def ADMDatamart(path, plotting_engine="plotly", *args, **kwargs):
     """Wrapper function to allow for dynamic inheritance order"""
-    if plotting_engine == 'plotly':
+    if plotting_engine == "plotly":
         bases = (plotly_plot, mpl_plot)
-    else: bases = (mpl_plot, plotly_plot)
+    else:
+        bases = (mpl_plot, plotly_plot)
 
     class ADMDatamart(*bases):
         """Main class for importing, preprocessing and structuring Pega ADM Datamart snapshot data."""
@@ -66,12 +68,14 @@ def ADMDatamart(path, plotting_engine='plotly', *args, **kwargs):
             if self.modelData is not None and self.predictorData is not None:
                 self.combinedData = self.get_combined_data()
             else:
-                if kwargs.get('verbose', True): 
+                if kwargs.get("verbose", True):
                     print(
-                    "Could not be combined. Do you have both model data and predictor data?"
-                )            
-                
-            self.facets = kwargs.get('facets', ['Channel', 'Direction', 'Issue', 'Group'])
+                        "Could not be combined. Do you have both model data and predictor data?"
+                    )
+
+            self.facets = kwargs.get(
+                "facets", ["Channel", "Direction", "Issue", "Group"]
+            )
 
         def import_data(
             self,
@@ -115,7 +119,7 @@ def ADMDatamart(path, plotting_engine='plotly', *args, **kwargs):
                     subset,
                     query=query,
                     verbose=verbose,
-                    **kwargs
+                    **kwargs,
                 )
             if df1 is not None:
                 df1["SuccessRate"] = (
@@ -124,7 +128,11 @@ def ADMDatamart(path, plotting_engine='plotly', *args, **kwargs):
 
             if predictor_df is not None:
                 df2, self.renamed_preds, self.missing_preds = self._import_utils(
-                    name=predictor_df, subset=subset, query=query, verbose=verbose, **kwargs
+                    name=predictor_df,
+                    subset=subset,
+                    query=query,
+                    verbose=verbose,
+                    **kwargs,
                 )
             else:
                 df2, self.renamed_preds, self.missing_preds = self._import_utils(
@@ -134,7 +142,7 @@ def ADMDatamart(path, plotting_engine='plotly', *args, **kwargs):
                     subset,
                     query=query,
                     verbose=verbose,
-                    **kwargs
+                    **kwargs,
                 )
             if df2 is not None:
                 if "BinResponseCount" not in df2.columns:
@@ -170,10 +178,12 @@ def ADMDatamart(path, plotting_engine='plotly', *args, **kwargs):
             subset=True,
             query=None,
             verbose=True,
-            **kwargs
+            **kwargs,
         ):
             if isinstance(name, str):
-                df = cdh_utils.readDSExport(filename=name, path=path, verbose=verbose, **kwargs)
+                df = cdh_utils.readDSExport(
+                    filename=name, path=path, verbose=verbose, **kwargs
+                )
             else:
                 df = name
             if not isinstance(df, pd.DataFrame):
@@ -181,33 +191,39 @@ def ADMDatamart(path, plotting_engine='plotly', *args, **kwargs):
             overwrite_mapping = {}
             self.model_snapshots = True
 
-            if kwargs.get('prequery', None) is not None: 
-                try: 
-                    df = df.query(kwargs.get('prequery')) 
-                except: 
-                    if verbose: print('Error with prequery'); 
+            if kwargs.get("prequery", None) is not None:
+                try:
+                    df = df.query(kwargs.get("prequery"))
+                except:
+                    if verbose:
+                        print("Error with prequery")
                     pass
 
-            if kwargs.get('drop_cols', None) is not None: 
-                for i in kwargs.get('drop_cols'): 
-                    try: 
-                        df.drop(i, axis=1, inplace=True) 
-                    except: 
-                        if verbose: print('Error dropping column', i); 
+            if kwargs.get("drop_cols", None) is not None:
+                for i in kwargs.get("drop_cols"):
+                    try:
+                        df.drop(i, axis=1, inplace=True)
+                    except:
+                        if verbose:
+                            print("Error dropping column", i)
                         pass
 
-            if kwargs.get('extract_treatment', None) is not None and kwargs.get('extract_treatment') in df.columns:
-                extract_col = kwargs.get('extract_treatment')
-                if verbose: print("Extracting treatments...")
+            if (
+                kwargs.get("extract_treatment", None) is not None
+                and kwargs.get("extract_treatment") in df.columns
+            ):
+                extract_col = kwargs.get("extract_treatment")
+                if verbose:
+                    print("Extracting treatments...")
                 extracted = df[extract_col]
                 self.extracted = self.extract_treatments(extracted, extract_col)
-                df.loc[:,extract_col] = self.extracted[extract_col.lower()]
+                df.loc[:, extract_col] = self.extracted[extract_col.lower()]
                 for column in self.extracted.columns:
                     if column != extract_col.lower():
                         df.insert(0, column, self.extracted[column])
-                        capitalized = self._capitalize([column,''])[0]
-                        overwrite_mapping[capitalized]= capitalized
-            
+                        capitalized = self._capitalize([column, ""])[0]
+                        overwrite_mapping[capitalized] = capitalized
+
             df.columns = self._capitalize(list(df.columns))
             df, renamed, missing = self._available_columns(df, overwrite_mapping)
 
@@ -231,8 +247,6 @@ def ADMDatamart(path, plotting_engine='plotly', *args, **kwargs):
                         )
 
             return df, renamed, missing
-
-            
 
         def _available_columns(
             self, df: pd.DataFrame, overwrite_mapping: Optional[dict] = None
@@ -278,7 +292,7 @@ def ADMDatamart(path, plotting_engine='plotly', *args, **kwargs):
                 "Type": ["Type"],
                 "BinPositivesPercentage": ["BinPositivesPercentage"],
                 "BinNegativesPercentage": ["BinNegativesPercentage"],
-                "BinResponseCountPercentage": ["BinResponseCountPercentage"]
+                "BinResponseCountPercentage": ["BinResponseCountPercentage"],
             }  # NOTE: these default names are already capitalized properly, with py/px/pz removed.
 
             if overwrite_mapping is not None or len(overwrite_mapping) > 0:
@@ -401,33 +415,32 @@ def ADMDatamart(path, plotting_engine='plotly', *args, **kwargs):
             try:
                 df["SnapshotTime"] = pd.to_datetime(df["SnapshotTime"])
             except Exception:
-                if verbose: print("Warning: Unable to format timestamps.")
+                if verbose:
+                    print("Warning: Unable to format timestamps.")
 
             return df
 
-
-        def last(self, table='modelData') -> pd.DataFrame:
+        def last(self, table="modelData") -> pd.DataFrame:
 
             if isinstance(table, pd.DataFrame):
                 return self._last(table)
 
             if isinstance(table, str):
-                assert table in {'modelData', 'predictorData', 'combinedData'}
+                assert table in {"modelData", "predictorData", "combinedData"}
                 return self._last(getattr(self, table))
-                
 
         @staticmethod
         def _last(df: pd.DataFrame) -> pd.DataFrame:
             """Property to retrieve only the last values for a given dataframe."""
             # NOTE Maybe we don't need to groupby predictorname
-            if 'PredictorName' in df.columns:
+            if "PredictorName" in df.columns:
                 return (
                     df.sort_values("SnapshotTime")
                     .groupby(["ModelID", "PredictorName", "BinIndex"])
                     .last()
                     .reset_index()
                 )
-            if 'PredictorName' not in df.columns:
+            if "PredictorName" not in df.columns:
                 return df.sort_values("SnapshotTime").groupby(["ModelID"]).last()
 
         def get_combined_data(
@@ -465,7 +478,9 @@ def ADMDatamart(path, plotting_engine='plotly', *args, **kwargs):
                 if predictorData is None
                 else predictorData
             )
-            combined = models.merge(preds, on="ModelID", how="right", suffixes=("", "Bin"))
+            combined = models.merge(
+                preds, on="ModelID", how="right", suffixes=("", "Bin")
+            )
             return combined
 
         @staticmethod
@@ -539,7 +554,9 @@ def ADMDatamart(path, plotting_engine='plotly', *args, **kwargs):
             pd.DataFrame
                 The subsetted dataframe
             """
-            assert hasattr(self, table), f"This visualisation requires {table}, but that table isn't in this dataset."
+            assert hasattr(
+                self, table
+            ), f"This visualisation requires {table}, but that table isn't in this dataset."
 
             df = getattr(self, table)
 
@@ -563,11 +580,11 @@ def ADMDatamart(path, plotting_engine='plotly', *args, **kwargs):
             return df[list(required_columns)]
 
         @staticmethod
-        def load_if_json(extracted, default_col='pyname'):
+        def load_if_json(extracted, default_col="pyname"):
             try:
                 return json.loads(extracted.lower())
             except:
-                return {default_col.lower():extracted}
+                return {default_col.lower(): extracted}
 
         def extract_treatments(self, df, extract_col):
             loaded = df.apply(self.load_if_json, extract_col)
@@ -702,17 +719,26 @@ def ADMDatamart(path, plotting_engine='plotly', *args, **kwargs):
                 .reset_index()
                 .merge(
                     df[
-                        ["ModelID", "Issue", "Group", "Channel", "Direction", "ModelName"]
+                        [
+                            "ModelID",
+                            "Issue",
+                            "Group",
+                            "Channel",
+                            "Direction",
+                            "ModelName",
+                        ]
                     ].drop_duplicates(),
                     on="ModelID",
                 )
             )
-            return df.sort_values(["PredictorName", "Impact(%)"], ascending=[False, False])
+            return df.sort_values(
+                ["PredictorName", "Impact(%)"], ascending=[False, False]
+            )
 
         def select_n():
             raise NotImplemented
 
-        def model_summary(self, by='ModelID', query=None, **kwargs):
+        def model_summary(self, by="ModelID", query=None, **kwargs):
             """Convenience method to automatically generate a summary over models
             By default, it summarizes ResponseCount, Performance, SuccessRate & Positives by model ID.
             It also adds weighted means for Performance and SuccessRate,
@@ -742,8 +768,8 @@ def ADMDatamart(path, plotting_engine='plotly', *args, **kwargs):
                 "Positives",
             }
 
-            facets = kwargs.get('facets', self.facets)
-            assert required_columns.issubset(set(data.columns)|set(facets))
+            facets = kwargs.get("facets", self.facets)
+            assert required_columns.issubset(set(data.columns) | set(facets))
 
             def weighed_average(grp, weights="ResponseCount"):
                 return grp.multiply(grp[weights], axis=0).sum() / grp[weights].sum()
@@ -783,90 +809,147 @@ def ADMDatamart(path, plotting_engine='plotly', *args, **kwargs):
             summary.insert(
                 2,
                 (by, "percentage_without_responses"),
-                summary[(by, "count_without_responses")]
-                / summary[(by, "count")],
+                summary[(by, "count_without_responses")] / summary[(by, "count")],
             )
             summary.insert(8, ("Performance", "weighted_mean"), weighted_perf)
             summary.insert(11, ("SuccessRate", "weighted_mean"), weighted_succ)
 
             summary = summary.fillna(0)
-            summary[('Performance', 'weighted_mean')] = summary[('Performance', 'weighted_mean')].replace(0, 0.5)
+            summary[("Performance", "weighted_mean")] = summary[
+                ("Performance", "weighted_mean")
+            ].replace(0, 0.5)
 
             return summary
-        
+
         @staticmethod
         def pivot_df(df):
             df1 = df.query('PredictorName != "Classifier"')
-            pivot_df = df1.pivot_table(index='ModelName', columns='PredictorName', values='PerformanceBin')
-            dedup = df1[['ModelName', 'PredictorName', 'PerformanceBin']].drop_duplicates()
-            pred_order = list(dedup.groupby('PredictorName').agg({'PerformanceBin':'mean'}).fillna(0).sort_values('PerformanceBin', ascending=False).index)
-            mod_order = list(dedup.groupby('ModelName').agg({'PerformanceBin':'mean'}).fillna(0).sort_values('PerformanceBin', ascending=False).index)
+            pivot_df = df1.pivot_table(
+                index="ModelName", columns="PredictorName", values="PerformanceBin"
+            )
+            dedup = df1[
+                ["ModelName", "PredictorName", "PerformanceBin"]
+            ].drop_duplicates()
+            pred_order = list(
+                dedup.groupby("PredictorName")
+                .agg({"PerformanceBin": "mean"})
+                .fillna(0)
+                .sort_values("PerformanceBin", ascending=False)
+                .index
+            )
+            mod_order = list(
+                dedup.groupby("ModelName")
+                .agg({"PerformanceBin": "mean"})
+                .fillna(0)
+                .sort_values("PerformanceBin", ascending=False)
+                .index
+            )
             pivot_df = (pivot_df[pred_order]).reindex(mod_order)
             return pivot_df
-        
+
         @staticmethod
-        def response_gain_df(df, by='Channel'):
-            responseGainData = df.groupby([by, 'ModelID']).agg({'ResponseCount':'max'}).sort_values([by, 'ResponseCount'], ascending=False)
-            responseGainData['TotalResponseFraction'] = responseGainData.groupby(by)['ResponseCount'].transform(pd.Series.cumsum) / responseGainData.groupby(by)['ResponseCount'].transform(pd.Series.sum)
+        def response_gain_df(df, by="Channel"):
+            responseGainData = (
+                df.groupby([by, "ModelID"])
+                .agg({"ResponseCount": "max"})
+                .sort_values([by, "ResponseCount"], ascending=False)
+            )
+            responseGainData.loc[:, "TotalResponseFraction"] = responseGainData.groupby(
+                by
+            )["ResponseCount"].transform(pd.Series.cumsum) / responseGainData.groupby(
+                by
+            )[
+                "ResponseCount"
+            ].transform(
+                pd.Series.sum
+            )
             responseGainData = responseGainData.fillna(0)
-            responseGainData['TotalModelsFraction'] = (responseGainData.groupby(by).cumcount()+1) / responseGainData.groupby(by).count()['ResponseCount']
+            responseGainData.loc[:, "TotalModelsFraction"] = (
+                responseGainData.groupby(by).cumcount() + 1
+            ) / responseGainData.groupby(by).count()["ResponseCount"]
             responseGainData = responseGainData.reset_index()
             return responseGainData
-        
-        @staticmethod
-        def models_by_positives_df(df, by='Channel'):
-            modelsByPositives = df[[by, 'Positives', 'ModelID']]
-            modelsByPositives['PositivesBin'] = pd.cut(modelsByPositives['Positives'], bins=[list(range(0,210, 10)) + [np.inf]][0], right=False)
-            order = modelsByPositives['PositivesBin'].sort_values()
-            order = order.unique().astype(str)
-            modelsByPositives['PositivesBin'] = modelsByPositives['PositivesBin'].astype(str).astype('category')
-            modelsByPositives['PositivesBin'].cat.set_categories(order, inplace=True)
 
-            modelsByPositives = modelsByPositives.groupby([by, 'PositivesBin']).agg(
-                Positives = ('Positives', 'min'),
-                ModelCount = ('ModelID', 'nunique')) \
+        @staticmethod
+        def models_by_positives_df(df, by="Channel"):
+            modelsByPositives = df[[by, "Positives", "ModelID"]]
+            modelsByPositives.loc[:, "PositivesBin"] = pd.cut(
+                modelsByPositives["Positives"],
+                bins=[list(range(0, 210, 10)) + [np.inf]][0],
+                right=False,
+            )
+            order = modelsByPositives["PositivesBin"].sort_values()
+            order = order.unique().astype(str)
+            modelsByPositives.loc[:, "PositivesBin"] = (
+                modelsByPositives["PositivesBin"].astype(str).astype("category")
+            )
+            modelsByPositives.loc[:, "PositivesBin"] = modelsByPositives[
+                "PositivesBin"
+            ].cat.set_categories(order)
+
+            modelsByPositives = (
+                modelsByPositives.groupby([by, "PositivesBin"])
+                .agg(Positives=("Positives", "min"), ModelCount=("ModelID", "nunique"))
                 .fillna(0)
-            modelsByPositives['cumModels'] = modelsByPositives['ModelCount'] / modelsByPositives.groupby(by)['ModelCount'].transform(pd.Series.sum)
+            )
+            modelsByPositives["cumModels"] = modelsByPositives[
+                "ModelCount"
+            ] / modelsByPositives.groupby(by)["ModelCount"].transform(pd.Series.sum)
             modelsByPositives = modelsByPositives.reset_index()
-            modelsByPositives = modelsByPositives.sort_values('PositivesBin')
+            modelsByPositives = modelsByPositives.sort_values("PositivesBin")
             return modelsByPositives
 
         def get_model_stats(self, last=True):
 
             if not hasattr(self, "modelData"):
-                return 'No model data to analyze.'
+                return "No model data to analyze."
 
             data = self.last(self.modelData) if last else self.modelData
 
             ret = dict()
-            
-            ret['models_n_snapshots']        = data.SnapshotTime.nunique()
-            ret['models_total']              = len(data)
-            ret['models_empty']              = data.query("ResponseCount == 0")
-            ret['models_nopositives']        = data.query("ResponseCount > 0 & Positives == 0")
-            ret['models_isimmature']         = data.query("Positives > 0 & Positives < 200")
-            ret['models_noperformance']      = data.query("Positives >= 200 & Performance == 0.5")
-            ret['models_n_nonperforming']    = len(ret['models_empty']) + \
-                                                len(ret['models_nopositives']) + \
-                                                len(ret['models_isimmature']) + \
-                                                len(ret['models_noperformance'])
-            ret['models_missing_channel']    = data.query('Channel=="NULL"')
-            ret['models_missing_group']      = data.query('Group=="NULL"')
-            ret['models_missing_issue']      = data.query('Issue=="NULL"')
-            ret['models_missing_direction']  = data.query('Direction=="NULL"')
-            ret['models_bottom_left']        = data.query('Performance == 0.5 & (SuccessRate.isnull() | SuccessRate == 0)')
-            ret['responses_per_model']       = pd.concat([
-                                                data.ResponseCount.value_counts().sort_index(),
-                                                data.ResponseCount.value_counts(normalize=True).mul(100).round(1).astype(str).sort_index() + '%'], 
-                                                axis=1)
-                    
+
+            ret["models_n_snapshots"] = data.SnapshotTime.nunique()
+            ret["models_total"] = len(data)
+            ret["models_empty"] = data.query("ResponseCount == 0")
+            ret["models_nopositives"] = data.query("ResponseCount > 0 & Positives == 0")
+            ret["models_isimmature"] = data.query("Positives > 0 & Positives < 200")
+            ret["models_noperformance"] = data.query(
+                "Positives >= 200 & Performance == 0.5"
+            )
+            ret["models_n_nonperforming"] = (
+                len(ret["models_empty"])
+                + len(ret["models_nopositives"])
+                + len(ret["models_isimmature"])
+                + len(ret["models_noperformance"])
+            )
+            ret["models_missing_channel"] = data.query('Channel=="NULL"')
+            ret["models_missing_group"] = data.query('Group=="NULL"')
+            ret["models_missing_issue"] = data.query('Issue=="NULL"')
+            ret["models_missing_direction"] = data.query('Direction=="NULL"')
+            ret["models_bottom_left"] = data.query(
+                "Performance == 0.5 & (SuccessRate.isnull() | SuccessRate == 0)"
+            )
+            ret["responses_per_model"] = pd.concat(
+                [
+                    data.ResponseCount.value_counts().sort_index(),
+                    data.ResponseCount.value_counts(normalize=True)
+                    .mul(100)
+                    .round(1)
+                    .astype(str)
+                    .sort_index()
+                    + "%",
+                ],
+                axis=1,
+            )
+
             self.model_stats = ret
             return ret
 
         def describe_models(self, **kwargs):
-            if not hasattr(self, 'model_stats'): self.get_model_stats(last=True)
-            assert {'models_total', 'models_empty'}.issubset(self.model_stats.keys())
-            show_all_missing = kwargs.pop('show_all_missing', True)
+            if not hasattr(self, "model_stats"):
+                self.get_model_stats(last=True)
+            assert {"models_total", "models_empty"}.issubset(self.model_stats.keys())
+            show_all_missing = kwargs.pop("show_all_missing", True)
             ret = ""
             ret += f"""From all {self.model_stats['models_total']} models:
     {len(self.model_stats['models_empty'])} ({round(len(self.model_stats['models_empty'])/self.model_stats['models_total']*100,2)}%) models have never recieved a response.
@@ -875,7 +958,12 @@ def ADMDatamart(path, plotting_engine='plotly', *args, **kwargs):
     {len(self.model_stats['models_noperformance'])} ({round(len(self.model_stats['models_noperformance'])/self.model_stats['models_total']*100,2)}%) models have recieved over 200 responses but still show minimum performance.
     Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.model_stats['models_n_nonperforming']/self.model_stats['models_total']*100)}%) models do not perform as well as they could be.\n\n"""
 
-            for key in self.model_stats.keys() & {'models_missing_channel', 'models_missing_group', 'models_missing_issue', 'models_missing_direction'}:
+            for key in self.model_stats.keys() & {
+                "models_missing_channel",
+                "models_missing_group",
+                "models_missing_issue",
+                "models_missing_direction",
+            }:
                 if len(self.model_stats[key]) > 0 or show_all_missing:
                     ret += f"{len(self.model_stats[key])} ({round(len(self.model_stats[key])/self.model_stats['models_total']*100,2)}%) {' '.join(key.split('_'))} attribute.\n"
 
