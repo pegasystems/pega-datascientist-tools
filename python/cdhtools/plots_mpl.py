@@ -344,8 +344,10 @@ class ADMVisualisations(VizBase):
         frame = legend.get_frame()
         frame.set_facecolor("lightgrey")
 
-    def plotSuccessRateOverTime(
+    def plotOverTime(
         self,
+        metric="SuccessRate",
+        by="ModelID",
         day_interval: int = 7,
         query: Union[str, dict] = None,
         figsize: tuple = (16, 10),
@@ -374,6 +376,7 @@ class ADMVisualisations(VizBase):
             "ModelName",
             "SnapshotTime",
             "ResponseCount",
+            "Performance",
             "SuccessRate",
         }
         df = self._subset_data(
@@ -384,10 +387,8 @@ class ADMVisualisations(VizBase):
         ), f"Day interval ({day_interval}) cannot be larger than the number of snapshots ({df['SnapshotTime'].nunique()})"
 
         fig, ax = plt.subplots(figsize=figsize)
-        df.loc[:, "SuccessRate"] *= 100
-        sns.pointplot(
-            x="SnapshotTime", y="SuccessRate", data=df, hue="ModelID", marker="o", ax=ax
-        )
+        df.loc[:, metric] *= 100
+        sns.pointplot(x="SnapshotTime", y=metric, data=df, hue=by, marker="o", ax=ax)
         print("Pointplot generated")
         modelnames = (
             df[["ModelID", "ModelName"]]

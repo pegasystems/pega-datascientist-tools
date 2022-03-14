@@ -1,7 +1,6 @@
 from .plot_base import VizBase
 
 from typing import NoReturn, Tuple, Union
-from pathlib import Path
 
 import pandas as pd
 import numpy as np
@@ -9,9 +8,34 @@ from copy import deepcopy
 
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 
 class ADMVisualisations(VizBase):
+    @staticmethod
+    def distribution_graph(df, title, *args):
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        fig.add_trace(
+            go.Bar(x=df["BinSymbol"], y=df["BinResponseCount"], name="Responses")
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=df["BinSymbol"],
+                y=df["BinPropensity"],
+                yaxis="y2",
+                name="Propensity",
+                mode="lines+markers",
+            )
+        )
+        fig.update_layout(
+            template="none", title=title, xaxis_title="Range", yaxis_title="Responses"
+        )
+        fig.layout.yaxis2.tickformat = ",.0%"
+        fig.layout.yaxis2.zeroline = False
+        fig.update_yaxes(showgrid=False)
+
+        return fig
+
     def plotPerformanceSuccessRateBubbleChart(
         self,
         last=True,
@@ -137,37 +161,9 @@ class ADMVisualisations(VizBase):
 
             figlist.append(fig)
             if show_each:
-                fig.show()
+                fig.show(kwargs.get("image_format", None))
 
         return figlist if len(figlist) > 1 else figlist[0]
-
-    # def plotPerformanceAndSuccessRateOverTime(self, day_interval:int=7, query:Union[str, dict]=None, figsize:tuple=(16, 10)):
-    #     """Shows responses and performance of models over time
-    #     Reponses are on the y axis and the performance of the model is indicated by heatmap.
-    #     x axis is date
-
-    #     Parameters
-    #     ----------
-    #     day_interval : int
-    #         Interval of tick labels along x axis
-    #     query : Union[str, dict]
-    #         The query to supply to _apply_query
-    #         If a string, uses the default Pandas query function
-    #         Else, a dict of lists where the key is column name in the dataframe
-    #         and the corresponding value is a list of values to keep in the dataframe
-    #     figsize : tuple
-    #         Size of graph
-
-    #     Returns
-    #     -------
-    #     plt.figure
-    #     """
-    #     table = 'modelData'
-    #     multi_snapshot = True
-    #     required_columns = {'ModelName', 'SnapshotTime', 'ModelID', 'Performance', 'ResponseCount'}
-    #     df = self._subset_data(table, required_columns, query, multi_snapshot=multi_snapshot)
-
-    #     raise NotImplementedError("This visualisation is not yet implemented.")
 
     # def plotResponseCountMatrix(self, lookback=15, fill_null_days=False, query:Union[str, dict]=None, figsize=(14, 10)):
     #     """Creates a calendar heatmap
@@ -202,128 +198,292 @@ class ADMVisualisations(VizBase):
 
     #     raise NotImplementedError("This visualisation is not yet implemented.")
 
-    # def plotSuccessRateOverTime(self, day_interval:int=7, query:Union[str, dict]=None, figsize:tuple=(16, 10)):
-    #     """Shows success rate of models over time
-    #     Parameters
-    #     ----------
-    #     day_interval (int):
-    #         interval of tick labels along x axis
-    #     query : Union[str, dict]
-    #         The query to supply to _apply_query
-    #         If a string, uses the default Pandas query function
-    #         Else, a dict of lists where the key is column name in the dataframe
-    #         and the corresponding value is a list of values to keep in the dataframe
-    #     figsize : tuple
-    #         Size of graph
+    def plotOverTime(
+        self,
+        metric="Performance",
+        by="ModelID",
+        to_html=False,
+        file_title=None,
+        file_path=None,
+        query: Union[str, dict] = None,
+        show_each=False,
+        facets=None,
+        **kwargs,
+    ):
+        """Shows metric of models over time
+        Parameters
+        ----------
+        query : Union[str, dict]
+            The query to supply to _apply_query
+            If a string, uses the default Pandas query function
+            Else, a dict of lists where the key is column name in the dataframe
+            and the corresponding value is a list of values to keep in the dataframe
 
-    #     Returns
-    #     -------
-    #     plt.figure
-    #     """
-    #     table = 'modelData'
-    #     multi_snapshot = True
-    #     required_columns = {'ModelID', 'ModelName', 'SnapshotTime', 'ResponseCount', 'SuccessRate'}
-    #     df = self._subset_data(table, required_columns, query, multi_snapshot=multi_snapshot)
-    #     assert day_interval < df['SnapshotTime'].nunique(), f"Day interval ({day_interval}) cannot be larger than the number of snapshots ({df['SnapshotTime'].nunique()})"
+        Returns
+        -------
+        plt.figure
+        """
 
-    #     raise NotImplementedError("This visualisation is not yet implemented.")
+        table = "modelData"
+        multi_snapshot = True
+        required_columns = {
+            "ModelID",
+            "ModelName",
+            "SnapshotTime",
+            "ResponseCount",
+            "Performance",
+            "SuccessRate",
+            "Positives",
+        }.union(set(self.facets))
+        df = self._subset_data(
+            table, required_columns, query, multi_snapshot=multi_snapshot
+        )
+        if isinstance(facets, str) or facets is None:
+            facets = [facets]
 
-    # def plotPropositionSuccessRates(self, query:Union[str, dict]=None, figsize:tuple=(12, 8)):
-    #     """Shows all latest proposition success rates
-    #     A bar plot to show the success rate of all latest model instances (propositions)
-    #     For reading simplicity, latest success rate is also annotated next to each bar
+        figlist = []
+        for facet in facets:
+            title = "over all models" if facet == None else f"per {facet}"
+            if len(df) > 500:
+                print(
+                    f"Warning: plotting this much data ({len(df)} rows) will probably be slow while not providing many insights. Consider filtering the data by either limiting the number of models, filtering on SnapshotTime or facetting."
+                )
+            fig = px.line(
+                df,
+                x="SnapshotTime",
+                y=metric,
+                color=by,
+                hover_data=["ModelName", "Performance", "SuccessRate"],
+                markers=True,
+                title=f'{metric} over time, per {by} {title} {kwargs.get("title","")}',
+                facet_col=facet,
+                facet_col_wrap=5,
+                template="none",
+                # hover_name = 'ModelName', #NOTE check this
+                **kwargs,
+            )
+            if kwargs.get("hide_legend", False):
+                fig.update_layout(showlegend=False)
+            if query != None:
+                fig.layout.title.text += f"<br><sup>Query:{query}</sup>"
 
-    #     Parameters
-    #     ----------
-    #     query : Union[str, dict]
-    #         The query to supply to _apply_query
-    #         If a string, uses the default Pandas query function
-    #         Else, a dict of lists where the key is column name in the dataframe
-    #         and the corresponding value is a list of values to keep in the dataframe
-    #     figsize : tuple
-    #         Size of graph
+            filename = filename = f"Lines_over_time_"
+            if file_title is not None:
+                filename += f"{file_title}_"
+            filename += title
 
-    #     Returns
-    #     -------
-    #     plt.figure
-    #     """
-    #     table = 'modelData'
-    #     last = True
-    #     required_columns = {'ModelName', 'SuccessRate'}
-    #     df = self._subset_data(table, required_columns, query, last=last)
+            file_path = "findings" if file_path == None else file_path
 
-    #     raise NotImplementedError("This visualisation is not yet implemented.")
+            if to_html:
+                fig.write_html(f"{file_path}/{filename}.html")
 
-    # def plotScoreDistribution(self, show_zero_responses:bool=False, query:Union[str, dict]=None, figsize:tuple=(14, 10)):
-    #     """Show score distribution similar to ADM out-of-the-box report
-    #     Shows a score distribution graph per model. If certain models selected,
-    #     only those models will be shown.
-    #     the only difference between this graph and the one shown on ADM
-    #     report is that, here the raw number of responses are shown on left y-axis whereas in
-    #     ADM reports, the percentage of responses are shown
+            figlist.append(fig)
+            if show_each:
+                fig.show(kwargs.get("image_format", None))
 
-    #     Parameters
-    #     ----------
-    #     show_zero_responses:bool
-    #         Whether to include bins with no responses at all
-    #     query : Union[str, dict]
-    #         The query to supply to _apply_query
-    #         If a string, uses the default Pandas query function
-    #         Else, a dict of lists where the key is column name in the dataframe
-    #         and the corresponding value is a list of values to keep in the dataframe
-    #     figsize : tuple
-    #         Size of graph
+        return figlist if len(figlist) > 1 else figlist[0]
 
-    #     Returns
-    #     -------
-    #     plt.figure
-    #     """
-    #     table = 'combinedData'
-    #     required_columns = {'PredictorName', 'ModelName', 'BinIndex', 'BinSymbol', 'BinResponseCount', 'BinPropensity'}
-    #     df = self._subset_data(table, required_columns, query)
+    def plotPropositionSuccessRates(
+        self,
+        metric="SuccessRate",
+        by="ModelName",
+        show_error=True,
+        to_html=False,
+        file_title=None,
+        file_path=None,
+        query: Union[str, dict] = None,
+        show_each=False,
+        facets=None,
+        **kwargs,
+    ):
+        """Shows all latest proposition success rates
+        A bar plot to show the success rate of all latest model instances (propositions)
+        For reading simplicity, latest success rate is also annotated next to each bar
 
-    #     df = df[df['PredictorName']=='Classifier']
-    #     if df.ModelName.nunique() > 10:
-    #         if input(f"""WARNING: you are about to create {df.index.nunique()} plots because there are that many models.
-    #         This will take a while, and will probably slow down your system. Are you sure? Type 'Yes' to proceed.""") != 'Yes':
-    #             print("Cancelling. Set your 'query' parameter more strictly to generate fewer images")
-    #             return None
-    #     raise NotImplementedError("This visualisation is not yet implemented.")
+        Parameters
+        ----------
+        query : Union[str, dict]
+            The query to supply to _apply_query
+            If a string, uses the default Pandas query function
+            Else, a dict of lists where the key is column name in the dataframe
+            and the corresponding value is a list of values to keep in the dataframe
 
-    # def plotPredictorBinning(self, predictors:list=None, modelids:str=None, query:Union[str, dict]=None, figsize:tuple=(10, 5)):
-    #     """ Show predictor graphs for a given model
-    #     For a given model (query) shows all its predictors' graphs. If certain predictors
-    #     selected, only those predictor graphs will be shown
 
-    #     Parameters
-    #     ----------
-    #     predictors : list
-    #         List of predictors to show their graphs, optional
-    #     ModelID : str
-    #         List of model IDs to subset on, optional
-    #     query : Union[str, dict]
-    #         The query to supply to _apply_query
-    #         If a string, uses the default Pandas query function
-    #         Else, a dict of lists where the key is column name in the dataframe
-    #         and the corresponding value is a list of values to keep in the dataframe
-    #     figsize : tuple
-    #         Size of graph
+        Returns
+        -------
+        plt.figure
+        """
 
-    #     Returns
-    #     -------
-    #     plt.figure
-    #     """
+        table = "modelData"
+        last = True
+        required_columns = (
+            {"ModelName", "SuccessRate"}.union(self.facets).union({metric})
+        )
+        df = self._subset_data(table, required_columns, query, last=last).reset_index()
+        if isinstance(facets, str) or facets is None:
+            facets = [facets]
+        figlist = []
+        for facet in facets:
+            title = "over all models" if facet == None else f"per {facet}"
+            fig = px.histogram(
+                df,
+                x=metric,
+                y=by,
+                color=by,
+                histfunc="avg",
+                title=f'{metric} of each proposition {title} {kwargs.get("title","")}',
+                template="none",
+            )
+            fig.update_yaxes(categoryorder="total ascending")
+            fig.update_layout(showlegend=False)
+            fig.update_yaxes(dtick=1, automargin=True)
+            if query != None:
+                fig.layout.title.text += f"<br><sup>Query:{query}</sup>"
 
-    #     table = 'combinedData'
-    #     last = True
-    #     required_columns = {'PredictorName', 'ModelName', 'BinIndex', 'BinSymbol', 'BinResponseCount', 'BinPropensity'}
-    #     df = self._subset_data(table, required_columns, query, last=last).reset_index()
-    #     if predictors:
-    #         df = df[df['PredictorName'].isin(predictors)]
-    #     if modelids is not None:
-    #         df = df[df['ModelID'].isin(modelids)]
-    #     model_name = df['ModelName'].unique()[0]
-    #     raise NotImplementedError("This visualisation is not yet implemented.")
+            if by == "ModelName" and show_error:
+                stds = np.nan_to_num(df.groupby("ModelName")[metric].std(), 0)
+                for index, x in np.ndenumerate(stds):
+                    fig.data[index[0]]["error_x"] = {"array": [x], "valueminus": 0}
+
+            filename = filename = f"Proposition_{metric}"
+            if file_title is not None:
+                filename += f"{file_title}_"
+            filename += title
+
+            file_path = "findings" if file_path == None else file_path
+
+            if to_html:
+                fig.write_html(f"{file_path}/{filename}.html")
+
+            figlist.append(fig)
+            if show_each:
+                fig.show(kwargs.get("image_format", None))
+
+        return figlist if len(figlist) > 1 else figlist[0]
+
+    def plotScoreDistribution(
+        self,
+        show_zero_responses: bool = False,
+        query: Union[str, dict] = None,
+    ):
+        """Show score distribution similar to ADM out-of-the-box report
+        Shows a score distribution graph per model. If certain models selected,
+        only those models will be shown.
+        the only difference between this graph and the one shown on ADM
+        report is that, here the raw number of responses are shown on left y-axis whereas in
+        ADM reports, the percentage of responses are shown
+
+        Parameters
+        ----------
+        show_zero_responses:bool
+            Whether to include bins with no responses at all
+        query : Union[str, dict]
+            The query to supply to _apply_query
+            If a string, uses the default Pandas query function
+            Else, a dict of lists where the key is column name in the dataframe
+            and the corresponding value is a list of values to keep in the dataframe
+        Returns
+        -------
+        plt.figure
+        """
+        table = "combinedData"
+        required_columns = {
+            "PredictorName",
+            "ModelName",
+            "BinIndex",
+            "BinSymbol",
+            "BinResponseCount",
+            "BinPropensity",
+        }
+        df = self._subset_data(table, required_columns, query)
+
+        df = df[df["PredictorName"] == "Classifier"]
+        groups = df.groupby("ModelName")
+        if groups.ngroups > 10:
+            if (
+                input(
+                    f"""WARNING: you are about to create {df.index.nunique()} plots because there are that many models. 
+            This will take a while, and will probably slow down your system. Are you sure? Type 'Yes' to proceed."""
+                )
+                != "Yes"
+            ):
+                print(
+                    "Cancelling. Set your 'query' parameter more strictly to generate fewer images"
+                )
+                return None
+
+        for name, group in groups:
+            if not show_zero_responses:
+                if not group["BinResponseCount"].any():
+                    pass
+            return self.distribution_graph(group, f"Model name: {name}")
+
+    def plotPredictorBinning(
+        self,
+        predictors: list = None,
+        modelid: str = None,
+        to_html=False,
+        file_title=None,
+        file_path=None,
+        show_each=False,
+        query=None,
+        facets=None,
+        **kwargs,
+    ):
+        """Show predictor graphs for a given model
+        For a given model (query) shows all its predictors' graphs. If certain predictors
+        selected, only those predictor graphs will be shown
+
+        Parameters
+        ----------
+        predictors : list
+            List of predictors to show their graphs, optional
+        modelid : str
+            Model IDs to subset on, optional
+        query : Union[str, dict]
+            The query to supply to _apply_query
+            If a string, uses the default Pandas query function
+            Else, a dict of lists where the key is column name in the dataframe
+            and the corresponding value is a list of values to keep in the dataframe
+        figsize : tuple
+            Size of graph
+
+        Returns
+        -------
+        plt.figure
+        """
+
+        table = "combinedData"
+        last = True
+        required_columns = {
+            "PredictorName",
+            "ModelName",
+            "BinIndex",
+            "BinSymbol",
+            "BinResponseCount",
+            "BinPropensity",
+            "ModelID",
+        }
+        df = self._subset_data(table, required_columns, query, last=last).reset_index()
+        if predictors:
+            df = df.query(f"PredictorName == {predictors}")
+        if modelid is not None:
+            df = df.query(f"ModelID == {modelid}")
+        assert (
+            df.reset_index()["ModelID"].nunique() == 1
+        ), "Please only supply one model ID"
+
+        modelName = df["ModelName"][0]
+
+        figlist = []
+        for name, group in df.groupby("PredictorName"):
+            title = f"Model name: {modelName}<br>Predictor name: {name}"
+            fig = self.distribution_graph(group, title)
+            figlist.append(fig)
+            if show_each:
+                fig.show(kwargs.get("image_format", None))
+
+        return figlist if len(figlist) > 1 else figlist[0]
 
     def plotPredictorPerformance(
         self,
@@ -461,7 +621,7 @@ class ADMVisualisations(VizBase):
 
             figlist.append(fig)
             if show_each:
-                fig.show()
+                fig.show(kwargs.get("image_format", None))
 
         return figlist if len(figlist) > 1 else figlist[0]
 
@@ -506,6 +666,8 @@ class ADMVisualisations(VizBase):
         -------
         px.Figure
         """
+        # NOTE: Unable to add text to image, not sure why.
+
         table = "combinedData"
         last = kwargs.get("last", True)
         required_columns = {"PredictorName", "ModelName", "PerformanceBin"}
@@ -558,37 +720,9 @@ class ADMVisualisations(VizBase):
                 fig.write_html(f"{file_path}/{filename}.html")
             figlist.append(fig)
             if show_each:
-                fig.show()
+                fig.show(kwargs.get("image_format", None))
 
         return figlist if len(figlist) > 1 else figlist[0]
-
-    # def plotImpactInfluence(self, ModelID:str=None, query:Union[str, dict]=None, figsize:tuple=(12, 5)):
-    #     """Calculate the impact and influence of a given model's predictors
-
-    #     Parameters
-    #     ----------
-    #     modelID : str
-    #         The selected model ID
-    #     query : Union[str, dict]
-    #         The query to supply to _apply_query
-    #         If a string, uses the default Pandas query function
-    #         Else, a dict of lists where the key is column name in the dataframe
-    #         and the corresponding value is a list of values to keep in the dataframe
-    #     figsize : tuple
-    #         size of graph
-
-    #     Returns
-    #     -------
-    #     plt.figure
-    #     """
-    #     table = 'combinedData'
-    #     last = True
-    #     required_columns = {'ModelID', 'PredictorName', 'ModelName', 'PerformanceBin', 'BinPositivesPercentage', 'BinNegativesPercentage', 'BinResponseCountPercentage', 'Issue', 'Group', 'Channel', 'Direction'}
-    #     df = self._subset_data(table, required_columns, query, last=last).reset_index()
-    #     df = self._calculate_impact_influence(df, ModelID=ModelID)[[
-    #         'ModelID', 'PredictorName', 'Impact(%)', 'Influence(%)']].set_index(
-    #         ['ModelID', 'PredictorName']).stack().reset_index().rename(columns={'level_2':'metric', 0:'value'})
-    #     raise NotImplementedError("This visualisation is not yet implemented.")
 
     def plotResponseGain(
         self,
@@ -661,7 +795,7 @@ class ADMVisualisations(VizBase):
         if to_html:
             fig.write_html(f"{file_path}/{filename}.html")
         if show:
-            fig.show()
+            fig.show(kwargs.get("image_format", None))
         return fig
 
     def plotModelsByPositives(
@@ -735,7 +869,7 @@ class ADMVisualisations(VizBase):
         if to_html:
             fig.write_html(f"{file_path}/{filename}.html")
         if show:
-            fig.show()
+            fig.show(kwargs.get("image_format", None))
         return fig
 
     def plotTreeMap(
@@ -962,5 +1096,5 @@ class ADMVisualisations(VizBase):
             fig.write_html(f"{file_path}/{filename}.html")
 
         if show:
-            fig.show()
+            fig.show(kwargs.get("image_format", None))
         return fig
