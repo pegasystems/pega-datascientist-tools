@@ -77,7 +77,7 @@ def readDSExport(
             import requests
 
             try:
-                response = requests.get(os.path.join(path, filename))
+                response = requests.get(f"{path}/{filename}")
                 is_url = True if response.status_code == 200 else False
             except:
                 is_url = False
