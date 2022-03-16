@@ -1,4 +1,5 @@
 import sys
+import os
 import pytest
 import zipfile
 import pandas as pd
@@ -11,12 +12,12 @@ from cdhtools import cdh_utils
 # Tests for get_latest_file function
 def test_find_default_model():
     file = cdh_utils.get_latest_file(path="data", target="modelData")
-    assert file == "data/pr_data_dm_admmart_mdl_fact.csv"
+    assert os.path.join(file) == os.path.join("data/pr_data_dm_admmart_mdl_fact.csv")
 
 
 def test_find_default_predictors():
     file = cdh_utils.get_latest_file(path="data", target="predictorData")
-    assert file == "data/pr_data_dm_admmart_pred.csv"
+    assert os.path.join(file) == os.path.join("data/pr_data_dm_admmart_pred.csv")
 
 
 def test_file_not_found():

@@ -66,7 +66,7 @@ def test_end_to_end():
             ].dtypes
         )
     )
-    assert datamart.modelData.Positives.dtype == "int64"
+    assert datamart.modelData.Positives.dtype == "int"
     assert is_datetime(datamart.modelData.SnapshotTime.dtype)
 
     assert datamart.facets == ["Channel", "Direction", "Issue", "Group"]
