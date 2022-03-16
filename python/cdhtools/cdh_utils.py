@@ -69,22 +69,22 @@ def readDSExport(
 
     is_url = False
 
-    if os.path.isfile(path + "/" + filename):
-        file = f"{path}/{filename}"
+    if os.path.isfile(os.path.join(path, filename)):
+        file = os.path.join(path, filename)
     else:
         file = get_latest_file(path, filename)
         if file == "Target not found":
             import requests
 
             try:
-                response = requests.get(f"{path}/{filename}")
+                response = requests.get(os.path.join(path, filename))
                 is_url = True if response.status_code == 200 else False
             except:
                 is_url = False
             if is_url:
                 file = f"{path}/{filename}"
                 if file.split(".")[-1] == "zip":
-                    file = urllib.request.urlopen(f"{path}/{filename}")
+                    file = urllib.request.urlopen(os.path.join(path, filename))
                 if verbose:
                     print("File found through URL")
     if file in [None, "Target not found"]:
@@ -98,7 +98,7 @@ def readDSExport(
         extension = "zipped"
 
     if verbose:
-        print(f"Importing: {path}/{filename}") if is_url else print(
+        print(f"Importing: {os.path.join(path,filename)}") if is_url else print(
             f"Importing: {file}"
         )
 
