@@ -82,7 +82,7 @@ def readDSExport(
             except:
                 is_url = False
             if is_url:
-                file = f"{path}/{filename}"
+                file = os.path.join(path, filename)
                 if file.split(".")[-1] == "zip":
                     file = urllib.request.urlopen(os.path.join(path, filename))
                 if verbose:

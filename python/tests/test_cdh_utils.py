@@ -12,12 +12,12 @@ from cdhtools import cdh_utils
 # Tests for get_latest_file function
 def test_find_default_model():
     file = cdh_utils.get_latest_file(path="data", target="modelData")
-    assert os.path.join(file) == os.path.join("data/pr_data_dm_admmart_mdl_fact.csv")
+    assert os.path.join(file) == os.path.join("data", "pr_data_dm_admmart_mdl_fact.csv")
 
 
 def test_find_default_predictors():
     file = cdh_utils.get_latest_file(path="data", target="predictorData")
-    assert os.path.join(file) == os.path.join("data/pr_data_dm_admmart_pred.csv")
+    assert os.path.join(file) == os.path.join("data", "pr_data_dm_admmart_pred.csv")
 
 
 def test_file_not_found():
@@ -33,13 +33,16 @@ def test_wrong_filename():
 # Tests for readZippedFile function
 def test_only_imports_zips():
     with pytest.raises(zipfile.BadZipFile):
-        cdh_utils.readZippedFile("data/pr_data_dm_admmart_mdl_fact.csv")
+        cdh_utils.readZippedFile("data", "pr_data_dm_admmart_mdl_fact.csv")
 
 
 def test_import_produces_dataframe():
     assert isinstance(
         cdh_utils.readZippedFile(
-            "data/Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip"
+            os.path.join(
+                "data",
+                "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
+            )
         ),
         pd.DataFrame,
     )
@@ -47,13 +50,19 @@ def test_import_produces_dataframe():
 
 def test_read_modelData():
     assert cdh_utils.readZippedFile(
-        "data/Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip"
+        os.path.join(
+            "data",
+            "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
+        )
     ).shape == (20, 23)
 
 
 def test_read_predictorData():
     assert cdh_utils.readZippedFile(
-        "data/Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210101T010000_GMT.zip"
+        os.path.join(
+            "data",
+            "Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210101T010000_GMT.zip",
+        )
     ).shape == (1755, 35)
 
 
@@ -73,7 +82,10 @@ def test_read_zip_from_url():
 @pytest.fixture
 def test_data():
     return cdh_utils.readZippedFile(
-        "data/Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip"
+        os.path.join(
+            "data",
+            "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
+        )
     )
 
 
