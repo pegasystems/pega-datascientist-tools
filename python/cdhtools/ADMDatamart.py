@@ -10,7 +10,7 @@ from typing import Optional, Tuple, Union
 import json
 
 
-def ADMDatamart(path, plotting_engine="plotly", *args, **kwargs):
+def ADMDatamart(path=".", plotting_engine="plotly", *args, **kwargs):
     """Wrapper function to allow for dynamic inheritance order"""
     if plotting_engine == "plotly":
         bases = (plotly_plot, mpl_plot)
@@ -188,7 +188,8 @@ def ADMDatamart(path, plotting_engine="plotly", *args, **kwargs):
                 df = name
             if not isinstance(df, pd.DataFrame):
                 return None, None, None
-            overwrite_mapping = {}
+            if not isinstance(overwrite_mapping, dict):
+                overwrite_mapping = {}
             self.model_snapshots = True
 
             if kwargs.get("prequery", None) is not None:
@@ -215,8 +216,7 @@ def ADMDatamart(path, plotting_engine="plotly", *args, **kwargs):
                 extract_col = kwargs.get("extract_treatment")
                 if verbose:
                     print("Extracting treatments...")
-                extracted = df[extract_col]
-                self.extracted = self.extract_treatments(extracted, extract_col)
+                self.extracted = self.extract_treatments(df, extract_col)
                 df.loc[:, extract_col] = self.extracted[extract_col.lower()]
                 for column in self.extracted.columns:
                     if column != extract_col.lower():
@@ -226,12 +226,9 @@ def ADMDatamart(path, plotting_engine="plotly", *args, **kwargs):
 
             df.columns = self._capitalize(list(df.columns))
             df, renamed, missing = self._available_columns(df, overwrite_mapping)
-
             if subset:
                 df = df[renamed.values()]
-
             df = self._set_types(df, verbose)
-
             if query is not None:
                 try:
                     df = self._apply_query(df, query)
@@ -295,18 +292,18 @@ def ADMDatamart(path, plotting_engine="plotly", *args, **kwargs):
                 "BinResponseCountPercentage": ["BinResponseCountPercentage"],
             }  # NOTE: these default names are already capitalized properly, with py/px/pz removed.
 
-            if overwrite_mapping is not None or len(overwrite_mapping) > 0:
+            if overwrite_mapping is not None and len(overwrite_mapping) > 0:
                 old_keys = list(overwrite_mapping.keys())
                 new_keys = self._capitalize(list(old_keys))
                 for i, _ in enumerate(new_keys):
                     overwrite_mapping[new_keys[i]] = overwrite_mapping.pop(old_keys[i])
 
                 for key, name in overwrite_mapping.items():
+                    name = self._capitalize([name])[0]
                     if key not in default_names.keys():
                         default_names[key] = [name]
                     else:
                         default_names[key].insert(0, name)
-
             variables = copy.deepcopy(default_names)
             for key, values in default_names.items():
                 variables[key] = [name for name in values if name in df.columns]
@@ -441,7 +438,12 @@ def ADMDatamart(path, plotting_engine="plotly", *args, **kwargs):
                     .reset_index()
                 )
             if "PredictorName" not in df.columns:
-                return df.sort_values("SnapshotTime").groupby(["ModelID"]).last()
+                return (
+                    df.sort_values("SnapshotTime")
+                    .groupby(["ModelID"])
+                    .last()
+                    .reset_index()
+                )
 
         def get_combined_data(
             self,
@@ -580,15 +582,21 @@ def ADMDatamart(path, plotting_engine="plotly", *args, **kwargs):
             return df[list(required_columns)]
 
         @staticmethod
-        def load_if_json(extracted, default_col="pyname"):
+        def load_if_json(extracted, extract_col="pyname"):
             try:
-                return json.loads(extracted.lower())
+                ret = json.loads(extracted)
+                return {k.lower(): v for k, v in ret.items()}
             except:
-                return {default_col.lower(): extracted}
+                return {extract_col.lower(): extracted}
 
         def extract_treatments(self, df, extract_col):
-            loaded = df.apply(self.load_if_json, extract_col)
-            return pd.json_normalize(loaded)
+            try:
+                df = pd.json_normalize(df[extract_col], max_level=1)
+                df.columns = [col.lower() for col in df.columns]
+                return df
+            except:
+                loaded = df[extract_col].apply(self.load_if_json, extract_col)
+                return pd.json_normalize(loaded)
 
         @staticmethod
         def _create_sign_df(df: pd.DataFrame) -> pd.DataFrame:

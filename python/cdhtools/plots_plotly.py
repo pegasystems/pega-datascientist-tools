@@ -81,6 +81,7 @@ class ADMVisualisations(VizBase):
 
         table = "modelData"
         required_columns = {
+            "ModelID",
             "Performance",
             "SuccessRate",
             "ResponseCount",
@@ -317,7 +318,7 @@ class ADMVisualisations(VizBase):
         table = "modelData"
         last = True
         required_columns = (
-            {"ModelName", "SuccessRate"}.union(self.facets).union({metric})
+            {"ModelID", "ModelName", "SuccessRate"}.union(self.facets).union({metric})
         )
         df = self._subset_data(table, required_columns, query, last=last).reset_index()
         if isinstance(facets, str) or facets is None:
