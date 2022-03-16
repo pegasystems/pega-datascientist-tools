@@ -73,8 +73,7 @@ jobs:
           pip install pytest-cov
 
       - name: Run Python tests
-        working-directory: ./python
-        run: pytest --cov=./ --cov-report=xml
+        run: pytest --cov=./python --cov-report=xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2
