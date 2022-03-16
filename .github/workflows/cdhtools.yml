@@ -23,9 +23,8 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { os: windows-latest, r: "release" }
-          - { os: macOS-latest, r: "release" }
-          - { os: macOS-latest, python: "3.10.2" }
+          - { os: windows-latest, r: "release", python: 3.10.2}
+          - { os: macOS-latest, r: "release" , python: 3.10.2}
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
