@@ -95,8 +95,6 @@ def checks(df):
     "Very simple convienence function to check if it is a dataframe with rows."
     if isinstance(df, pd.DataFrame) and len(df) > 0:
         return True
-    else:
-        return False
 
 
 def test_dataframe_returns_itself(test_data):
