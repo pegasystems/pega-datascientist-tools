@@ -33,7 +33,9 @@ def test_wrong_filename():
 # Tests for readZippedFile function
 def test_only_imports_zips():
     with pytest.raises(zipfile.BadZipFile):
-        cdh_utils.readZippedFile("data", "pr_data_dm_admmart_mdl_fact.csv")
+        cdh_utils.readZippedFile(
+            os.path.join("data", "pr_data_dm_admmart_mdl_fact.csv")
+        )
 
 
 def test_import_produces_dataframe():
