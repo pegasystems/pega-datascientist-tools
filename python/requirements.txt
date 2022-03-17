@@ -1,1 +1,8 @@
-.
+pandas
+plotly>=5.5.0
+seaborn
+sklearn
+requests
+nbformat
+jupyterlab
+ipywidgets

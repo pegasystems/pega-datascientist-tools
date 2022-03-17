@@ -1,3 +1,4 @@
+import sys
 import os
 import pytest
 import zipfile
@@ -5,6 +6,7 @@ import pandas as pd
 from io import BytesIO
 import urllib.request
 
+sys.path.append("python")
 from cdhtools import cdh_utils
 
 # Tests for get_latest_file function
