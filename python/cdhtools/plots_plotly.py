@@ -1,6 +1,10 @@
-from .plot_base import VizBase
-
+from re import I
 from typing import NoReturn, Tuple, Union
+
+# Don't want to, but Plotly needs to update in order to remove FutureWarnings.
+import warnings
+
+warnings.simplefilter(action="ignore", category=FutureWarning)
 
 import pandas as pd
 import numpy as np
@@ -11,7 +15,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 
-class ADMVisualisations(VizBase):
+class ADMVisualisations:
     @staticmethod
     def distribution_graph(df, title, *args):
         fig = make_subplots(specs=[[{"secondary_y": True}]])
@@ -36,9 +40,9 @@ class ADMVisualisations(VizBase):
 
         return fig
 
-    def plotPerformanceSuccessRateBubbleChart(
-        self,
-        last=True,
+    @staticmethod
+    def PerformanceSuccessRateBubbleChart(
+        df,
         add_bottom_left_text=True,
         to_html=False,
         file_title: str = None,
@@ -46,6 +50,7 @@ class ADMVisualisations(VizBase):
         query: Union[str, dict] = None,
         show_each=False,
         facets=None,
+        context_keys=None,
         **kwargs,
     ):
         """Creates bubble chart similar to ADM OOTB reports
@@ -79,17 +84,6 @@ class ADMVisualisations(VizBase):
         px.Figure
         """
 
-        table = "modelData"
-        required_columns = {
-            "ModelID",
-            "Performance",
-            "SuccessRate",
-            "ResponseCount",
-            "ModelName",
-        }.union(set(self.facets))
-        df = self._subset_data(
-            table=table, required_columns=required_columns, query=query, last=last
-        )
         if isinstance(facets, str) or facets is None:
             facets = [facets]
 
@@ -97,16 +91,9 @@ class ADMVisualisations(VizBase):
         bubble_size = kwargs.pop("bubble_size", 1)
         for facet in facets:
             title = "over all models" if facet == None else f"per {facet}"
-            df1 = deepcopy(df)
-            df1[["Performance", "SuccessRate"]] = df1[
-                ["Performance", "SuccessRate"]
-            ].apply(
-                lambda x: round(x * 100, kwargs.pop("round", 5))
-            )  # fix to use .loc
-            df1 = df1.reset_index()
-
+            # df1 = deepcopy(df)
             fig = px.scatter(
-                df1,
+                df,
                 x="Performance",
                 y="SuccessRate",
                 color="Performance",
@@ -114,7 +101,7 @@ class ADMVisualisations(VizBase):
                 facet_col=facet,
                 facet_col_wrap=5,
                 hover_name="ModelName",
-                hover_data=["ModelID"] + self.facets,
+                hover_data=["ModelID"] + context_keys,
                 title=f'Bubble Chart {title} {kwargs.get("title","")}',
                 color_continuous_scale="Bluered",
                 template="none",
@@ -128,7 +115,7 @@ class ADMVisualisations(VizBase):
                 if len(fig.layout.annotations) > 0:
                     for i in range(0, len(fig.layout.annotations)):
                         oldtext = fig.layout.annotations[i].text.split("=")
-                        subset = df1[df1[oldtext[0]] == oldtext[1]]
+                        subset = df[df[oldtext[0]] == oldtext[1]]
                         bottomleft = len(
                             subset.query(
                                 "Performance == 50 & (SuccessRate.isnull() | SuccessRate == 0)",
@@ -141,12 +128,12 @@ class ADMVisualisations(VizBase):
 
                 else:
                     bottomleft = len(
-                        df1.query(
+                        df.query(
                             "Performance == 50 & (SuccessRate.isnull() | SuccessRate == 0)",
                             engine="python",
                         )
                     )
-                    newtext = f"{len(df1)} models: {bottomleft} ({round(bottomleft/len(df1)*100, 2)}%) at (50,0)"
+                    newtext = f"{len(df)} models: {bottomleft} ({round(bottomleft/len(df)*100, 2)}%) at (50,0)"
                     fig.layout.title.text += f"<br><sup>{newtext}</sup>"
                     fig.data[0].marker.size *= bubble_size
 
@@ -199,8 +186,9 @@ class ADMVisualisations(VizBase):
 
     #     raise NotImplementedError("This visualisation is not yet implemented.")
 
-    def plotOverTime(
-        self,
+    @staticmethod
+    def OverTime(
+        df,
         metric="Performance",
         by="ModelID",
         to_html=False,
@@ -225,20 +213,6 @@ class ADMVisualisations(VizBase):
         plt.figure
         """
 
-        table = "modelData"
-        multi_snapshot = True
-        required_columns = {
-            "ModelID",
-            "ModelName",
-            "SnapshotTime",
-            "ResponseCount",
-            "Performance",
-            "SuccessRate",
-            "Positives",
-        }.union(set(self.facets))
-        df = self._subset_data(
-            table, required_columns, query, multi_snapshot=multi_snapshot
-        )
         if isinstance(facets, str) or facets is None:
             facets = [facets]
 
@@ -284,8 +258,9 @@ class ADMVisualisations(VizBase):
 
         return figlist if len(figlist) > 1 else figlist[0]
 
-    def plotPropositionSuccessRates(
-        self,
+    @staticmethod
+    def PropositionSuccessRates(
+        df,
         metric="SuccessRate",
         by="ModelName",
         show_error=True,
@@ -315,12 +290,6 @@ class ADMVisualisations(VizBase):
         plt.figure
         """
 
-        table = "modelData"
-        last = True
-        required_columns = (
-            {"ModelID", "ModelName", "SuccessRate"}.union(self.facets).union({metric})
-        )
-        df = self._subset_data(table, required_columns, query, last=last).reset_index()
         if isinstance(facets, str) or facets is None:
             facets = [facets]
         figlist = []
@@ -362,8 +331,9 @@ class ADMVisualisations(VizBase):
 
         return figlist if len(figlist) > 1 else figlist[0]
 
-    def plotScoreDistribution(
+    def ScoreDistribution(
         self,
+        df,
         show_zero_responses: bool = False,
         query: Union[str, dict] = None,
     ):
@@ -387,48 +357,19 @@ class ADMVisualisations(VizBase):
         -------
         plt.figure
         """
-        table = "combinedData"
-        required_columns = {
-            "PredictorName",
-            "ModelName",
-            "BinIndex",
-            "BinSymbol",
-            "BinResponseCount",
-            "BinPropensity",
-        }
-        df = self._subset_data(table, required_columns, query)
-
-        df = df[df["PredictorName"] == "Classifier"]
-        groups = df.groupby("ModelName")
-        if groups.ngroups > 10:
-            if (
-                input(
-                    f"""WARNING: you are about to create {df.index.nunique()} plots because there are that many models. 
-            This will take a while, and will probably slow down your system. Are you sure? Type 'Yes' to proceed."""
-                )
-                != "Yes"
-            ):
-                print(
-                    "Cancelling. Set your 'query' parameter more strictly to generate fewer images"
-                )
-                return None
-
-        for name, group in groups:
+        for name, group in df:
             if not show_zero_responses:
                 if not group["BinResponseCount"].any():
                     pass
-            return self.distribution_graph(group, f"Model name: {name}")
+            return self.distribution_graph(group, f"Model ID: {name}")
 
-    def plotPredictorBinning(
+    def PredictorBinning(
         self,
+        df,
+        modelName,
         predictors: list = None,
         modelid: str = None,
-        to_html=False,
-        file_title=None,
-        file_path=None,
         show_each=False,
-        query=None,
-        facets=None,
         **kwargs,
     ):
         """Show predictor graphs for a given model
@@ -453,29 +394,10 @@ class ADMVisualisations(VizBase):
         -------
         plt.figure
         """
-
-        table = "combinedData"
-        last = True
-        required_columns = {
-            "PredictorName",
-            "ModelName",
-            "BinIndex",
-            "BinSymbol",
-            "BinResponseCount",
-            "BinPropensity",
-            "ModelID",
-        }
-        df = self._subset_data(table, required_columns, query, last=last).reset_index()
-        if predictors:
-            df = df.query(f"PredictorName == {predictors}")
-        if modelid is not None:
-            df = df.query(f"ModelID == {modelid}")
-        assert (
-            df.reset_index()["ModelID"].nunique() == 1
-        ), "Please only supply one model ID"
-
-        modelName = df["ModelName"][0]
-
+        if show_each and df.PredictorName.nunique() > 10:
+            print(
+                f"Warning: will create {df.PredictorName.nunique()} plots. Set 'show_each' argument to False to return plots as list, so you can view them one by one."
+            )
         figlist = []
         for name, group in df.groupby("PredictorName"):
             title = f"Model name: {modelName}<br>Predictor name: {name}"
@@ -486,9 +408,9 @@ class ADMVisualisations(VizBase):
 
         return figlist if len(figlist) > 1 else figlist[0]
 
-    def plotPredictorPerformance(
-        self,
-        top_n=0,
+    def PredictorPerformance(
+        df,
+        order,
         to_html=False,
         file_title=None,
         file_path=None,
@@ -527,43 +449,12 @@ class ADMVisualisations(VizBase):
         -------
         px.Figure
         """
-        table = "combinedData"
-        last = True
-        required_columns = {"Channel", "PredictorName", "PerformanceBin"}
-        df = self._subset_data(table, required_columns, query, last=last)
+        # TODO: perhaps get top n & order per facet.
         if isinstance(facets, str) or facets is None:
             facets = [facets]
-
         figlist = []
-        if top_n > 0:
-            topn = (
-                df.groupby(["Channel", "PredictorName"])["PerformanceBin"]
-                .mean()
-                .sort_values(ascending=False)
-                .head(top_n)
-                .index.get_level_values(1)
-                .tolist()
-            )
-            df = df.query(f"PredictorName == {topn}")
-
         for facet in facets:
             title = "over all models" if facet == None else f"per {facet}"
-
-            df = df[df["PredictorName"] != "Classifier"].reset_index(drop=True)
-            df["Legend"] = pd.Series(
-                [
-                    i.split(".")[0] if len(i.split(".")) > 1 else "Primary"
-                    for i in df["PredictorName"]
-                ]
-            )
-            order = (
-                df.groupby("PredictorName")["PerformanceBin"]
-                .mean()
-                .fillna(0)
-                .sort_values(ascending=False)[::-1]
-                .index
-            )
-            df = df.sort_values("PerformanceBin")
 
             fig = px.box(
                 df,
@@ -626,9 +517,8 @@ class ADMVisualisations(VizBase):
 
         return figlist if len(figlist) > 1 else figlist[0]
 
-    def plotPredictorPerformanceHeatmap(
-        self,
-        top_n=0,
+    def PredictorPerformanceHeatmap(
+        df,
         to_html=False,
         file_title=None,
         file_path=None,
@@ -668,17 +558,8 @@ class ADMVisualisations(VizBase):
         px.Figure
         """
         # NOTE: Unable to add text to image, not sure why.
-
-        table = "combinedData"
-        last = kwargs.get("last", True)
-        required_columns = {"PredictorName", "ModelName", "PerformanceBin"}
-        df = self._subset_data(table, required_columns, query, last=last)
-        pivot_df = self.pivot_df(df)
-        if top_n > 0:
-            pivot_df = pivot_df.iloc[:, :top_n]
         if isinstance(facets, str) or facets is None:
             facets = [facets]
-
         figlist = []
         for facet in facets:
             title = "over all models" if facet == None else f"per {facet}"
@@ -691,7 +572,7 @@ class ADMVisualisations(VizBase):
             ), f"Visualisation requires plotly version 5.5.0 or later (you have version {plotly.__version__}): please upgrade to a newer version."
 
             fig = px.imshow(
-                pivot_df.T,
+                df.T,
                 text_auto=".0%",
                 aspect="auto",
                 color_continuous_scale=[
@@ -725,8 +606,8 @@ class ADMVisualisations(VizBase):
 
         return figlist if len(figlist) > 1 else figlist[0]
 
-    def plotResponseGain(
-        self,
+    def ResponseGain(
+        df,
         by="Channel",
         to_html=False,
         file_title=None,
@@ -765,14 +646,9 @@ class ADMVisualisations(VizBase):
         px.Figure
         """
 
-        table = "modelData"
-        last = True
-        required_columns = {by, "ResponseCount"}
-        df = self._subset_data(table, required_columns, query, last=last)
-        responseGainData = self.response_gain_df(df, by=by)
         title = "Cumulative Responses by Models"
         fig = px.line(
-            responseGainData,
+            df,
             x="TotalModelsFraction",
             y="TotalResponseFraction",
             color=by,
@@ -799,8 +675,8 @@ class ADMVisualisations(VizBase):
             fig.show(kwargs.get("image_format", None))
         return fig
 
-    def plotModelsByPositives(
-        self,
+    def ModelsByPositives(
+        df,
         by="Channel",
         to_html=False,
         file_title=None,
@@ -839,14 +715,9 @@ class ADMVisualisations(VizBase):
         px.Figure
         """
 
-        table = "modelData"
-        last = True
-        required_columns = {by, "Positives"}
-        df = self._subset_data(table, required_columns, query, last=last)
-        modelsByPositives = self.models_by_positives_df(df.reset_index(), by=by)
         title = "Percentage of models vs number of positive responses"
         fig = px.line(
-            modelsByPositives.query("ModelCount>0"),
+            df.query("ModelCount>0"),
             x="PositivesBin",
             y="cumModels",
             color=by,
@@ -854,9 +725,7 @@ class ADMVisualisations(VizBase):
             title=f'Percentage of models vs number of positive responses {kwargs.get("title","")}<br><sup>By {by}</sup>',
             labels={"cumModels": "Percentage of Models", "PositivesBin": "Positives"},
             template="none",
-            category_orders={
-                "PositivesBin": modelsByPositives["PositivesBin"].unique().tolist()
-            },
+            category_orders={"PositivesBin": df["PositivesBin"].unique().tolist()},
         )
         fig.layout.yaxis.tickformat = ",.0%"
         if query != None:
@@ -873,12 +742,17 @@ class ADMVisualisations(VizBase):
             fig.show(kwargs.get("image_format", None))
         return fig
 
-    def plotTreeMap(
-        self,
-        color="performance_weighted",
-        by="ModelID",
+    def TreeMap(
+        df,
+        color,
+        values,
+        title,
+        reverse_scale,
+        log,
+        midpoint,
+        format,
+        context_keys,
         value_in_text=True,
-        midpoint=None,
         to_html=False,
         file_title=None,
         file_path=None,
@@ -930,123 +804,10 @@ class ADMVisualisations(VizBase):
         px.Figure
         """
 
-        plotfacets = [px.Constant("All contexts")] + kwargs.get("facets", self.facets)
-
-        summary = self.model_summary(by=by, query=query)
-
-        plotsummary = summary[
-            [
-                (by, "count"),
-                (by, "percentage_without_responses"),
-                ("ResponseCount", "sum"),
-                ("SuccessRate", "mean"),
-                ("Performance", "weighted_mean"),
-                ("Positives", "sum"),
-            ]
-        ]
-        plotsummary = plotsummary.reset_index()
-        plotsummary.columns = self.facets + [
-            "Model count",
-            "Percentage without responses",
-            "Response Count sum",
-            "Success Rate mean",
-            "Performance weighted mean",
-            "Positives sum",
-        ]
+        context_keys = [px.Constant("All contexts")] + context_keys
         colorscale = ["#d91c29", "#F76923", "#20aa50"]
-        if "OmniChannel" in plotsummary["Issue"].unique():
-            print(
-                "WARNING: This plot does not work for OmniChannel models. For that reason, we filter those out by default."
-            )
-            plotsummary = plotsummary.query('Issue != "OmniChannel"')
 
-        options = {
-            "responsecount": [
-                "Response Count sum",
-                "Model count",
-                "Responses per model, per context key combination",
-                False,
-                False,
-                None,
-            ],
-            "responsecount_log": [
-                "Response Count sum",
-                "Model count",
-                "Log responses per model, per context key combination",
-                False,
-                True,
-                None,
-            ],
-            "positives": [
-                "Positives sum",
-                "Model count",
-                "Positives per model, per context key combination",
-                False,
-                False,
-                None,
-            ],
-            "positives_log": [
-                "Positives sum",
-                "Model count",
-                "Log Positives per model, per context key combination",
-                False,
-                True,
-                None,
-            ],
-            "percentage_without_responses": [
-                "Percentage without responses",
-                "Model count",
-                "Percentage without responses, per context key combination",
-                True,
-                False,
-                None,
-            ],
-            "performance_weighted": [
-                "Performance weighted mean",
-                "Model count",
-                "Weighted mean performance, per context key combination",
-                False,
-                False,
-                None,
-            ],
-            "successrate": [
-                "Success Rate mean",
-                "Model count",
-                "Success rate, per context key combination",
-                False,
-                False,
-                0.5,
-            ],
-        }
-        if isinstance(color, int):
-            color = list(options.keys())[color]
-
-        # manual override section, supply kwargs to override one or multiple of these options
-        options[color] = kwargs.get("override", options[color])
-        options[color][0] = kwargs.get("color_col", options[color][0])
-        options[color][1] = kwargs.get("groupby_col", options[color][1])
-        options[color][2] = kwargs.get("title", options[color][2])
-        options[color][3] = kwargs.get("reverse_scale", options[color][3])
-        options[color][4] = kwargs.get("log", options[color][4])
-
-        format = "%" if color in list(options.keys())[4:] else ""
-
-        # log scale for colors
-        if options[color][4]:
-            options[color][0] = np.where(
-                np.log(plotsummary[options[color][0]]) == -np.inf,
-                0,
-                np.log(plotsummary[options[color][0]]),
-            )
-        else:
-            options[color][0] = plotsummary[options[color][0]]
-
-        if midpoint is not None:
-            options[color][5] = midpoint
-        if options[color][5] is not None:
-            midpoint = options[color][0].quantile(options[color][5])
-            colorscale = [(0, "#d91c29"), (midpoint, "#F76923"), (1, "#20aa50")]
-        elif color == "performance_weighted":
+        if color == "performance_weighted":
             colorscale = [
                 (0, "#d91c29"),
                 (kwargs.get("midpoint", 0.01), "#F76923"),
@@ -1054,6 +815,19 @@ class ADMVisualisations(VizBase):
                 (0.8, "#20aa50"),
                 (1, "#20aa50"),
             ]
+
+        elif log:
+            color = np.where(
+                np.log(df[color]) == -np.inf,
+                0,
+                np.log(df[color]),
+            )
+        else:
+            color = df[color]
+
+        if midpoint is not None:
+            midpoint = color.quantile(midpoint)
+            colorscale = [(0, "#d91c29"), (midpoint, "#F76923"), (1, "#20aa50")]
 
         hover_data = {
             "Model count": ":.d",
@@ -1065,17 +839,16 @@ class ADMVisualisations(VizBase):
         }
 
         fig = px.treemap(
-            plotsummary,
-            path=plotfacets,
-            color=options[color][0],
-            values=options[color][1],
-            title=f"{options[color][2]}",
+            df,
+            path=context_keys,
+            color=color,
+            values=values,
+            title=f"{title}",
             hover_data=hover_data,
             color_continuous_scale=colorscale,
         )
-        fig.update_coloraxes(reversescale=options[color][3])
-        if query != None:
-            fig.layout.title.text += f"<br><sup>Query: {query}</sup>"
+        fig.update_coloraxes(reversescale=reverse_scale)
+
         if value_in_text:
             fig.update_traces(text=fig.data[0].marker.colors.round(3))
             fig.data[0].textinfo = "label+text"
@@ -1087,11 +860,14 @@ class ADMVisualisations(VizBase):
                 uniformtext_minsize=kwargs.get("min_text_size"), uniformtext_mode="hide"
             )
 
+        if query != None:
+            fig.layout.title.text += f"<br><sup>Query: {query}</sup>"
+
         if to_html:
             filename = (
-                f"modelTreemap{options[color][2]}"
+                f"modelTreemap{title}"
                 if file_title == None
-                else f"modelTreemap{file_title}_{options[color][2]}"
+                else f"modelTreemap{file_title}_{title}"
             )
             file_path = "findings" if file_path == None else file_path
             fig.write_html(f"{file_path}/{filename}.html")
