@@ -1,6 +1,3 @@
-import sys
-
-sys.path.append("python")
 from cdhtools import ADMDatamart
 
 from pandas.api.types import is_datetime64_any_dtype as is_datetime
