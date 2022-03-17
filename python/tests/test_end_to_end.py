@@ -69,7 +69,7 @@ def test_end_to_end():
     assert datamart.modelData.Positives.dtype == "int"
     assert is_datetime(datamart.modelData.SnapshotTime.dtype)
 
-    assert datamart.facets == ["Channel", "Direction", "Issue", "Group"]
+    assert datamart.context_keys == ["Channel", "Direction", "Issue", "Group"]
     assert datamart.missing_model == [
         "PredictorName",
         "EntryType",

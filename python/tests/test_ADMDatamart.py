@@ -250,7 +250,7 @@ def test_init_models_only(cdhsample_models):
     assert output.modelData is not None
     assert output.modelData.shape == (20, 11)
     assert not hasattr(output, "combinedData")
-    assert output.facets == ["Channel", "Direction", "Issue", "Group"]
+    assert output.context_keys == ["Channel", "Direction", "Issue", "Group"]
 
 
 def test_init_preds_only(cdhsample_predictors):
@@ -258,7 +258,7 @@ def test_init_preds_only(cdhsample_predictors):
     assert output.predictorData is not None
     assert output.predictorData.shape == (1755, 19)
     assert not hasattr(output, "combinedData")
-    assert output.facets == ["Channel", "Direction", "Issue", "Group"]
+    assert output.context_keys == ["Channel", "Direction", "Issue", "Group"]
 
 
 def test_init_both(cdhsample_models, cdhsample_predictors):
@@ -268,4 +268,4 @@ def test_init_both(cdhsample_models, cdhsample_predictors):
     assert output.predictorData is not None
     assert output.predictorData.shape == (1755, 19)
     assert output.combinedData.shape == (1755, 29)
-    assert output.facets == ["Channel", "Direction", "Issue", "Group"]
+    assert output.context_keys == ["Channel", "Direction", "Issue", "Group"]
