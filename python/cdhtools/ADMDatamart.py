@@ -187,7 +187,7 @@ class ADMDatamart(Plots):
         **kwargs,
     ):
         extract_col = kwargs.pop("extract_treatment", None)
-
+        drop_cols = kwargs.pop("drop_cols", None)
         if isinstance(name, str):
             df = cdh_utils.readDSExport(
                 filename=name, path=path, verbose=verbose, **kwargs
@@ -211,8 +211,8 @@ class ADMDatamart(Plots):
                     print("Error with prequery")
                 pass
 
-        if kwargs.get("drop_cols", None) is not None:
-            for i in kwargs.get("drop_cols"):
+        if drop_cols is not None:
+            for i in drop_cols:
                 try:
                     df.drop(i, axis=1, inplace=True)
                 except:
