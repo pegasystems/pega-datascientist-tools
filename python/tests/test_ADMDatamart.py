@@ -15,8 +15,9 @@ def test():
     """Fixture to serve as class to call functions from."""
     return ADMDatamart(
         path="data",
-        model_filename="data/Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
-        predictor_filename="data/Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210101T010000_GMT.zip",
+        model_filename="Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
+        predictor_filename="Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210101T010000_GMT.zip",
+        context_keys=["Issue", "Group", "Channel"],
     )
 
 
@@ -131,11 +132,30 @@ def test_extract_treatment(test, data):
     assert list(output["ModelName"]) == ["ABC", "abc", "NormalName"]
 
 
+def test_extract_treatment_all_json(test, data):
+    df = deepcopy(data).reset_index(drop=True)
+    df.loc[:, "pyname"] = [
+        '{"pyName": "ABC", "pyTreatment": "XYZ"}',
+        '{"pyName": "abc", "pyTreatment": "xyz"}',
+        '{"pyName": "ABCD", "pyTreatment": "XYZ1"}',
+    ]
+    output, renamed, missing = test._import_utils(name=df, extract_treatment="pyname")
+    assert list(output["ModelName"]) == ["ABC", "abc", "ABCD"]
+
+
 def test_import_with_prequery(test, data):
     prequery = "pymodelid != 'model2'"
     output, renamed, missing = test._import_utils(name=data, prequery=prequery)
     assert output.shape == (2, 3)
     assert "model2" not in output["ModelID"]
+
+
+def test_import_with_wrong_prequery(test, data):
+    prequery = "non-existant-column != 'unknown'"
+    output, renamed, missing = test._import_utils(
+        name=data, prequery=prequery, verbose=True
+    )
+    assert output.shape == (3, 3)
 
 
 def test_import_with_query(test, data):
@@ -150,10 +170,83 @@ def test_import_with_query(test, data):
     assert list(output["Performance"]) == [0.7, 0.9]
 
 
+def test_old_query(test):
+    filtered = test._apply_query(deepcopy(test.modelData), query={"Channel": ["Email"]})
+    assert filtered.shape == (11, 11)
+    assert filtered.shape != test.modelData.shape
+
+
+def test_error_old_query_1(test):
+    with pytest.raises(TypeError):
+        test._apply_query(deepcopy(test.modelData), query=["Email"])
+
+
+def test_error_old_query_2(test):
+    with pytest.raises(ValueError):
+        test._apply_query(deepcopy(test.modelData), query={"Channel": "Email"})
+
+
+def test_import_with_wrong_query(test, data):
+    query = "non-existant-column != 'unknown'"
+    output, renamed, missing = test._import_utils(name=data, query=query)
+    assert output.shape == (3, 3)
+
+
 def test_no_subset(test, data):
     output, renamed, missing = test._import_utils(name=data, subset=False)
     assert "Junk" in output.columns
     assert output.shape == (3, 5)
+
+
+def test_set_types_fails(test):
+    df = pd.DataFrame(
+        {
+            "Positives": [1, 2, "3b"],
+            "Negatives": ["0", 2, 4],
+            "SnapshotTime": [
+                "2022-03-01 05:00:00",
+                "2022-03-01 05:00:00",
+                "2022-14-01 05:00:00",
+            ],
+        }
+    )
+    output = test._set_types(df)
+    assert output.shape == (3, 3)
+
+
+def test_pdc_fix(test):
+    pdc_extract = pd.DataFrame(
+        {
+            "pxObjClass": "Code-Pega-List",
+            "pxResults": [
+                {
+                    "Channel": "Web",
+                    "Direction": "Inbound",
+                    "Group": "Cards",
+                    "Issue": "Sales",
+                    "ModelClass": "Data-Decision-Request-Customer",
+                    "ModelID": "abcdefgh",
+                    "ModelName": "OmniAdaptiveModel",
+                    "ModelType": "AdaptiveModel",
+                    "Name": "ExampleModelName",
+                    "Negatives": "100.000",
+                    "Performance": "0.800",
+                    "Positives": "200.000",
+                    "pxObjClass": "Pega-Data-CDHSnapshot-Models",
+                    "pzInsKey": "NotUsed",
+                    "ResponseCount": "300.000",
+                    "SnapshotTime": "20220301T000000.000 GMT",
+                    "TotalPositives": "200.000",
+                    "TotalResponses": "300.000",
+                }
+            ],
+        }
+    )
+    output = ADMDatamart(model_df=pdc_extract)
+    assert output.modelData.shape == (1, 11)
+
+
+# More of the end-to-end main function tests
 
 
 @pytest.fixture
@@ -245,6 +338,11 @@ def test_import_both_from_file_manual(test):
     assert "BinAdjustedPropensity" in preds.columns
 
 
+def test_drop_BinResponseCount(test):
+    models, preds = test.import_data(path="data", drop_cols=["BinResponseCount"])
+    assert preds.shape == (70735, 19)
+
+
 def test_init_models_only(cdhsample_models):
     output = ADMDatamart(model_df=cdhsample_models)
     assert output.modelData is not None
@@ -269,3 +367,21 @@ def test_init_both(cdhsample_models, cdhsample_predictors):
     assert output.predictorData.shape == (1755, 19)
     assert output.combinedData.shape == (1755, 29)
     assert output.context_keys == ["Channel", "Direction", "Issue", "Group"]
+
+
+def test_describe_models(test):
+    test.describe_models()
+
+
+def test_describe_models_without_models():
+    test = ADMDatamart("data", model_filename=None)
+    assert test.modelData is None
+    with pytest.raises(ValueError):
+        test.describe_models()
+
+def test_model_summary(test):
+    assert test.model_summary().shape == (3,15)
+
+def test_PredictorCategorization(test):
+    with pytest.raises(NotImplementedError):
+        test.defaultPredictorCategorization('Not yet done.')

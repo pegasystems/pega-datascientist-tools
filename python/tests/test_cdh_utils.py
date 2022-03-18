@@ -5,6 +5,9 @@ import zipfile
 import pandas as pd
 from io import BytesIO
 import urllib.request
+import datetime
+from pytz import timezone
+
 
 sys.path.append("python")
 from cdhtools import cdh_utils
@@ -150,3 +153,33 @@ def test_import_zipped_json_pandas():
     path = "data"
     models = "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip"
     assert checks(cdh_utils.readDSExport(path=path, filename=models, force_pandas=True))
+
+
+def test_safe_range_auc():
+    assert cdh_utils.safe_range_auc(0.8) == 0.8
+    assert cdh_utils.safe_range_auc(0.4) == 0.6
+
+
+def test_auc_from_probs():
+    assert cdh_utils.auc_from_probs([1, 1, 0], [0.6, 0.2, 0.2]) == 0.75
+
+
+def test_auc_from_bincounts():
+    assert cdh_utils.auc_from_bincounts([3, 1, 0], [2, 0, 1]) == 0.75
+
+
+def test_auc2gini():
+    assert cdh_utils.auc2GINI(0.8232) == 0.6464000000000001
+
+
+def test_fromPRPCDateTime():
+    assert (
+        cdh_utils.fromPRPCDateTime("20180316T134127.847 GMT", True)
+        == "2018-03-16 13:41:27 GMT"
+    )
+    assert cdh_utils.fromPRPCDateTime(
+        "20180316T134127.847 GMT", False
+    ) == datetime.datetime(2018, 3, 16, 13, 41, 27, 847, tzinfo=timezone('GMT'))
+
+def test_toPRPCDateTime():
+    assert cdh_utils.toPRPCDateTime(datetime.datetime(2018, 3, 16, 13, 41, 27, 847, tzinfo=timezone('GMT'))) == '2018-03-16 13:41:27.000'
