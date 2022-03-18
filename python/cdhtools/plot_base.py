@@ -283,7 +283,7 @@ class Plots:
         df = self._subset_data(table, required_columns, query)
 
         df = df[df["PredictorName"] == "Classifier"]
-        df = df.groupby("ModelID")
+        df = df.groupby(by)
         if df.ngroups > 10:
             if (
                 input(
@@ -559,7 +559,7 @@ class Plots:
         query=None,
         **kwargs,
     ):
-        if kwargs.get("plotting_engine") != "plotly":
+        if kwargs.get("plotting_engine", self.plotting_engine) != "plotly":
             print("Plot is only available in Plotly.")
         df = self.model_summary(by=by, query=query)
         df = df[
@@ -648,6 +648,8 @@ class Plots:
 
         if isinstance(color_var, int):
             color_var = list(defaults.keys())[color_var]
+        else:
+            color_var = color_var.lower()
         color = kwargs.get("color_col", defaults[color_var][0])
         values = kwargs.get("groupby_col", defaults[color_var][1])
         title = kwargs.get("title", defaults[color_var][2])

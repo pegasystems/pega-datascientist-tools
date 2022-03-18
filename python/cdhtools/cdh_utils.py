@@ -113,11 +113,15 @@ def readDSExport(
         try:
             if force_pandas or is_url:
                 raise ImportError("Forcing pandas.")
-            from pyarrow import csv
+            from pyarrow import csv, ArrowInvalid
 
-            return csv.read_csv(
-                file, parse_options=csv.ParseOptions(delimiter=kwargs.get("sep", ","))
-            ).to_pandas()
+            try:
+                return csv.read_csv(
+                    file,
+                    parse_options=csv.ParseOptions(delimiter=kwargs.get("sep", ",")),
+                ).to_pandas()
+            except ArrowInvalid:
+                raise ImportError()
         except ImportError:
             if not is_url:
                 if verbose:
@@ -131,9 +135,12 @@ def readDSExport(
         try:
             if force_pandas:
                 raise ImportError("Forcing pandas.")
-            from pyarrow import json
+            from pyarrow import json, ArrowInvalid
 
-            return json.read_json(file, **kwargs).to_pandas()
+            try:
+                return json.read_json(file, **kwargs).to_pandas()
+            except ArrowInvalid:
+                raise ImportError()
         except ImportError:
             if verbose:
                 print(
