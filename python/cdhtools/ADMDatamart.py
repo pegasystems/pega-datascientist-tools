@@ -130,6 +130,7 @@ class ADMDatamart(Plots):
             df1["SuccessRate"] = (
                 df1["Positives"] / df1["ResponseCount"] if df1 is not None else None
             )
+            df1["SuccessRate"] = df1["SuccessRate"].fillna(0)
 
         if predictor_df is not None:
             df2, self.renamed_preds, self.missing_preds = self._import_utils(
@@ -185,6 +186,8 @@ class ADMDatamart(Plots):
         verbose=True,
         **kwargs,
     ):
+        extract_col = kwargs.pop("extract_treatment", None)
+
         if isinstance(name, str):
             df = cdh_utils.readDSExport(
                 filename=name, path=path, verbose=verbose, **kwargs
@@ -193,6 +196,9 @@ class ADMDatamart(Plots):
             df = name
         if not isinstance(df, pd.DataFrame):
             return None, None, None
+
+        df = self.fix_pdc(df)
+
         if not isinstance(overwrite_mapping, dict):
             overwrite_mapping = {}
         self.model_snapshots = True
@@ -214,17 +220,15 @@ class ADMDatamart(Plots):
                         print("Error dropping column", i)
                     pass
 
-        if (
-            kwargs.get("extract_treatment", None) is not None
-            and kwargs.get("extract_treatment") in df.columns
-        ):
-            extract_col = kwargs.get("extract_treatment")
+        if extract_col is not None and extract_col in df.columns:
+
             if verbose:
                 print("Extracting treatments...")
             self.extracted = self.extract_treatments(df, extract_col)
-            df.loc[:, extract_col] = self.extracted[extract_col.lower()]
+            self.extracted.columns = ["ModelName", "Treatment"]
+            df.loc[:, extract_col] = self.extracted["ModelName"]
             for column in self.extracted.columns:
-                if column != extract_col.lower():
+                if column != "ModelName":
                     df.insert(0, column, self.extracted[column])
                     capitalized = self._capitalize([column, ""])[0]
                     overwrite_mapping[capitalized] = capitalized
@@ -398,7 +402,7 @@ class ADMDatamart(Plots):
         ):
             df[col] = df[col].astype(str)
 
-        for col in {"Positives", "Negatives"} & set(df.columns):
+        for col in {"Positives", "Negatives", "ResponseCount"} & set(df.columns):
             try:
                 df[col] = df[col].astype(float).astype(int)
             except:
@@ -484,6 +488,14 @@ class ADMDatamart(Plots):
         )
         combined = models.merge(preds, on="ModelID", how="right", suffixes=("", "Bin"))
         return combined
+
+    @staticmethod
+    def fix_pdc(df):
+        if not list(df.columns) == ["pxObjClass", "pxResults"]:
+            return df
+        df = pd.json_normalize(df["pxResults"]).dropna()
+        df = df.rename(columns={"ModelName": "Configuration"})
+        return df.reset_index(drop=True)
 
     @staticmethod
     def defaultPredictorCategorization(name: str) -> str:
