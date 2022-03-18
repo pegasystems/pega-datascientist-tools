@@ -317,7 +317,7 @@ class ADMVisualisations:
         plt.figure
         """
         assert (
-            day_interval < df["SnapshotTime"].nunique()
+            day_interval <= df["SnapshotTime"].nunique()
         ), f"Day interval ({day_interval}) cannot be larger than the number of snapshots ({df['SnapshotTime'].nunique()})"
 
         fig, ax = plt.subplots(figsize=figsize)

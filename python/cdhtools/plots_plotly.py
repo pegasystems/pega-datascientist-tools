@@ -1,4 +1,3 @@
-from re import I
 from typing import NoReturn, Tuple, Union
 
 # Don't want to, but Plotly needs to update in order to remove FutureWarnings.
@@ -6,9 +5,7 @@ import warnings
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
-import pandas as pd
 import numpy as np
-from copy import deepcopy
 
 import plotly.express as px
 import plotly.graph_objects as go
@@ -17,7 +14,7 @@ from plotly.subplots import make_subplots
 
 class ADMVisualisations:
     @staticmethod
-    def distribution_graph(df, title, *args):
+    def distribution_graph(df, title):
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(
             go.Bar(x=df["BinSymbol"], y=df["BinResponseCount"], name="Responses")
@@ -215,6 +212,7 @@ class ADMVisualisations:
 
         if isinstance(facets, str) or facets is None:
             facets = [facets]
+        hide_legend = kwargs.pop("hide_legend", False)
 
         figlist = []
         for facet in facets:
@@ -237,7 +235,7 @@ class ADMVisualisations:
                 # hover_name = 'ModelName', #NOTE check this
                 **kwargs,
             )
-            if kwargs.get("hide_legend", False):
+            if hide_legend:
                 fig.update_layout(showlegend=False)
             if query != None:
                 fig.layout.title.text += f"<br><sup>Query:{query}</sup>"
@@ -307,13 +305,13 @@ class ADMVisualisations:
             fig.update_yaxes(categoryorder="total ascending")
             fig.update_layout(showlegend=False)
             fig.update_yaxes(dtick=1, automargin=True)
-            if query != None:
-                fig.layout.title.text += f"<br><sup>Query:{query}</sup>"
-
             if by == "ModelName" and show_error:
                 stds = np.nan_to_num(df.groupby("ModelName")[metric].std(), 0)
                 for index, x in np.ndenumerate(stds):
                     fig.data[index[0]]["error_x"] = {"array": [x], "valueminus": 0}
+
+            if query != None:
+                fig.layout.title.text += f"<br><sup>Query:{query}</sup>"
 
             filename = filename = f"Proposition_{metric}"
             if file_title is not None:

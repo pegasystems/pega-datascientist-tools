@@ -42,9 +42,10 @@ class Plots:
         pd.DataFrame
             The subsetted dataframe
         """
-        assert hasattr(
-            self, table
-        ), f"This visualisation requires {table}, but that table isn't in this dataset."
+        if not hasattr(self, table) or getattr(self, table) is None:
+            raise self.NotApplicableError(
+                f"This visualisation requires {table}, but that table isn't in this dataset."
+            )
 
         df = getattr(self, table)
 
@@ -55,9 +56,10 @@ class Plots:
         df = self._apply_query(df, query)
 
         if multi_snapshot and not last:
-            assert (
-                df["SnapshotTime"].nunique() > 1
-            ), "There is only one snapshot, so this visualisation doesn't make sense."
+            if not df["SnapshotTime"].nunique() > 1:
+                raise self.NotApplicableError(
+                    "There is only one snapshot, so this visualisation doesn't make sense."
+                )
 
         if last:
             df = self.last(df)
@@ -116,9 +118,9 @@ class Plots:
         )
 
     def plotPerformanceAndSuccessRateOverTime(
-        self, day_inverval=7, query=None, **kwargs
+        self, day_interval=7, query=None, **kwargs
     ):
-        if kwargs.get("plotting_engine") != "matplotlib":
+        if kwargs.get("plotting_engine", self.plotting_engine) != "matplotlib":
             print("Plot is only available in matplotlib.")
 
         table = "modelData"
@@ -134,7 +136,12 @@ class Plots:
         df = self._subset_data(
             table, required_columns, query, multi_snapshot=multi_snapshot
         )
-        return mpl.PerformanceAndSuccessRateOverTime(df, day_interval=7, **kwargs)
+        if kwargs.pop("return_df", False):
+            return df
+
+        return mpl.PerformanceAndSuccessRateOverTime(
+            df, day_interval=day_interval, **kwargs
+        )
 
     def plotOverTime(
         self,
@@ -186,6 +193,9 @@ class Plots:
     def plotResponseCountMatrix(
         self, lookback=15, fill_null_days=False, query=None, **kwargs
     ):
+        if kwargs.get("plotting_engine", self.plotting_engine) != "matplotlib":
+            print("Plot is only available in matplotlib.")
+
         table = "modelData"
         multi_snapshot = True
         required_columns = {"ModelID", "ModelName", "SnapshotTime", "ResponseCount"}
@@ -193,7 +203,7 @@ class Plots:
             table, required_columns, query=query, multi_snapshot=multi_snapshot
         )
         assert (
-            lookback < df["SnapshotTime"].nunique()
+            lookback <= df["SnapshotTime"].nunique()
         ), f"Lookback ({lookback}) cannot be larger than the number of snapshots {df['SnapshotTime'].nunique()}"
 
         annot_df, heatmap_df = self._create_heatmap_df(
@@ -462,16 +472,12 @@ class Plots:
             "BinPositivesPercentage",
             "BinNegativesPercentage",
             "BinResponseCountPercentage",
-            "Issue",
-            "Group",
-            "Channel",
-            "Direction",
-        }
+        }.union(self.context_keys)
         df = self._subset_data(table, required_columns, query, last=last).reset_index()
         df = (
-            self._calculate_impact_influence(df, ModelID=ModelID)[
-                ["ModelID", "PredictorName", "Impact(%)", "Influence(%)"]
-            ]
+            self._calculate_impact_influence(
+                df, context_keys=self.context_keys, ModelID=ModelID
+            )[["ModelID", "PredictorName", "Impact(%)", "Influence(%)"]]
             .set_index(["ModelID", "PredictorName"])
             .stack()
             .reset_index()
@@ -650,16 +656,17 @@ class Plots:
             color_var = list(defaults.keys())[color_var]
         else:
             color_var = color_var.lower()
-        color = kwargs.get("color_col", defaults[color_var][0])
-        values = kwargs.get("groupby_col", defaults[color_var][1])
-        title = kwargs.get("title", defaults[color_var][2])
-        reverse_scale = kwargs.get("reverse_scale", defaults[color_var][3])
-        log = kwargs.get("log", defaults[color_var][4])
+        color = kwargs.pop("color_col", defaults[color_var][0])
+        values = kwargs.pop("groupby_col", defaults[color_var][1])
+        title = kwargs.pop("title", defaults[color_var][2])
+        reverse_scale = kwargs.pop("reverse_scale", defaults[color_var][3])
+        log = kwargs.pop("log", defaults[color_var][4])
         if midpoint is not None:
             midpoint = defaults[color_var][5]
 
         format = "%" if color in list(defaults.keys())[4:] else ""
-
+        if kwargs.pop("return_df", False):
+            return df
         return plotly.TreeMap(
             df=df,
             color=color,

@@ -499,7 +499,7 @@ class ADMDatamart(Plots):
 
     @staticmethod
     def defaultPredictorCategorization(name: str) -> str:
-        raise NotImplemented
+        raise NotImplementedError("Will be added soon.")
 
     @staticmethod
     def _apply_query(df, query: Union[str, dict] = None) -> pd.DataFrame:
@@ -541,12 +541,15 @@ class ADMDatamart(Plots):
 
     def extract_treatments(self, df, extract_col):
         try:
-            df = pd.json_normalize(df[extract_col], max_level=1)
+            df = pd.json_normalize(df[extract_col].apply(json.loads), max_level=1)
             df.columns = [col.lower() for col in df.columns]
             return df
         except:
             loaded = df[extract_col].apply(self.load_if_json, extract_col)
             return pd.json_normalize(loaded)
+
+    class NotApplicableError(ValueError):
+        pass
 
     @staticmethod
     def _create_sign_df(df: pd.DataFrame) -> pd.DataFrame:
@@ -619,9 +622,6 @@ class ADMDatamart(Plots):
         df = self._apply_query(df, query)
         required_columns = {"ModelID", "SnapshotTime", "ResponseCount"}
         assert required_columns.issubset(df.columns)
-        assert (
-            df["SnapshotTime"].nunique() > 1
-        ), "There is only one snapshot, so this visualisation doesn't make sense."
 
         df = (
             df[["ModelID", "SnapshotTime", "ResponseCount"]]
@@ -631,8 +631,7 @@ class ADMDatamart(Plots):
         df["Date"] = pd.Series([i.date() for i in df["SnapshotTime"]])
         df = df[df["Date"] > (df["Date"].max() - timedelta(lookback))]
         if df.shape[0] < 1:
-            print("no data within lookback range")
-            return pd.DataFrame()
+            raise ValueError(("No data within lookback range"))
 
         idx = (
             df.groupby(["ModelID", "Date"])["SnapshotTime"].transform(max)
@@ -645,18 +644,20 @@ class ADMDatamart(Plots):
                 df.set_index("Date")
                 .groupby("ModelID")
                 .apply(lambda d: d.reindex(idx_date))
-                .drop("ModelID", axis=1)
-                .reset_index("ModelID")
+                # .drop("ModelID", axis=1)
+                # .reset_index("ModelID")
                 .reset_index()
                 .rename(columns={"index": "Date"})
             )
-            df["Date"] = df["Date"].dt.date
+            df["Date"] = pd.to_datetime(df["Date"]).dt.date
         df_annot = df.pivot(columns="Date", values="ResponseCount", index="ModelID")
         df_sign = self._create_sign_df(df_annot)
         return (df_annot, df_sign)
 
     @staticmethod
-    def _calculate_impact_influence(df: pd.DataFrame, ModelID: str = None):
+    def _calculate_impact_influence(
+        df: pd.DataFrame, context_keys=None, ModelID: str = None
+    ):
         def _ImpactInfluence(X):
             d = {}
             d["Impact(%)"] = X["absIc"].max()
@@ -671,28 +672,17 @@ class ADMDatamart(Plots):
         df["absIc"] = np.abs(
             df["BinPositivesPercentage"] - df["BinNegativesPercentage"]
         )
+        mergelist = ["ModelID", "ModelName"] + context_keys
         df = (
             df.groupby(["ModelID", "PredictorName"])
             .apply(_ImpactInfluence)
             .reset_index()
             .merge(
-                df[
-                    [
-                        "ModelID",
-                        "Issue",
-                        "Group",
-                        "Channel",
-                        "Direction",
-                        "ModelName",
-                    ]
-                ].drop_duplicates(),
+                df[mergelist].drop_duplicates(),
                 on="ModelID",
             )
         )
         return df.sort_values(["PredictorName", "Impact(%)"], ascending=[False, False])
-
-    def select_n():
-        raise NotImplemented
 
     def model_summary(self, by="ModelID", query=None, **kwargs):
         """Convenience method to automatically generate a summary over models
@@ -852,9 +842,8 @@ class ADMDatamart(Plots):
         return modelsByPositives
 
     def get_model_stats(self, last=True):
-
-        if not hasattr(self, "modelData"):
-            return "No model data to analyze."
+        if self.modelData is None:
+            raise ValueError("No model data to analyze.")
 
         data = self.last(self.modelData) if last else self.modelData
 
@@ -874,10 +863,8 @@ class ADMDatamart(Plots):
             + len(ret["models_isimmature"])
             + len(ret["models_noperformance"])
         )
-        ret["models_missing_channel"] = data.query('Channel=="NULL"')
-        ret["models_missing_group"] = data.query('Group=="NULL"')
-        ret["models_missing_issue"] = data.query('Issue=="NULL"')
-        ret["models_missing_direction"] = data.query('Direction=="NULL"')
+        for key in self.context_keys:
+            ret[f"models_missing_{key}"] = data.query(f'{key}=="NULL"')
         ret["models_bottom_left"] = data.query(
             "Performance == 0.5 & (SuccessRate.isnull() | SuccessRate == 0)"
         )
@@ -903,20 +890,17 @@ class ADMDatamart(Plots):
         assert {"models_total", "models_empty"}.issubset(self.model_stats.keys())
         show_all_missing = kwargs.pop("show_all_missing", True)
         ret = ""
-        ret += f"""From all {self.model_stats['models_total']} models:
-{len(self.model_stats['models_empty'])} ({round(len(self.model_stats['models_empty'])/self.model_stats['models_total']*100,2)}%) models have never recieved a response.
-{len(self.model_stats['models_nopositives'])} ({round(len(self.model_stats['models_nopositives'])/self.model_stats['models_total']*100,2)}%) models have been used but never recieved a 'positive' response.
-{len(self.model_stats['models_isimmature'])} ({round(len(self.model_stats['models_isimmature'])/self.model_stats['models_total']*100,2)}%) models are still in an 'immature' phase of learning (Positives between 1 and 200).
-{len(self.model_stats['models_noperformance'])} ({round(len(self.model_stats['models_noperformance'])/self.model_stats['models_total']*100,2)}%) models have recieved over 200 responses but still show minimum performance.
-Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.model_stats['models_n_nonperforming']/self.model_stats['models_total']*100)}%) models do not perform as well as they could be.\n\n"""
+        nmodels = self.model_stats.pop("models_total")
+        ret += f"""From all {nmodels} models:
+{len(self.model_stats['models_empty'])} ({round(len(self.model_stats['models_empty'])/nmodels*100,2)}%) models have never recieved a response.
+{len(self.model_stats['models_nopositives'])} ({round(len(self.model_stats['models_nopositives'])/nmodels*100,2)}%) models have been used but never recieved a 'positive' response.
+{len(self.model_stats['models_isimmature'])} ({round(len(self.model_stats['models_isimmature'])/nmodels*100,2)}%) models are still in an 'immature' phase of learning (Positives between 1 and 200).
+{len(self.model_stats['models_noperformance'])} ({round(len(self.model_stats['models_noperformance'])/nmodels*100,2)}%) models have recieved over 200 responses but still show minimum performance.
+Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.model_stats['models_n_nonperforming']/nmodels*100)}%) models do not perform as well as they could be.\n\n"""
 
-        for key in self.model_stats.keys() & {
-            "models_missing_channel",
-            "models_missing_group",
-            "models_missing_issue",
-            "models_missing_direction",
-        }:
-            if len(self.model_stats[key]) > 0 or show_all_missing:
-                ret += f"{len(self.model_stats[key])} ({round(len(self.model_stats[key])/self.model_stats['models_total']*100,2)}%) {' '.join(key.split('_'))} attribute.\n"
+        for key in self.model_stats.keys():
+            if not isinstance(self.model_stats[key], int):
+                if len(self.model_stats[key]) > 0 or show_all_missing:
+                    ret += f"{len(self.model_stats[key])} ({round(len(self.model_stats[key])/nmodels*100,2)}%) {' '.join(key.split('_'))} attribute.\n"
 
         return ret
