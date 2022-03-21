@@ -85,9 +85,7 @@ def test_plotTreeMap_options2(test):
 
 
 def test_post_plot(test):
-    test.plotPerformanceSuccessRateBubbleChart(
-        query='Channel=="Web"', to_html=True, show_each=True
-    )
+    test.plotPerformanceSuccessRateBubbleChart(query='Channel=="Web"', show_each=True)
 
 
 def test_bubble_cdhsample(Sample):
