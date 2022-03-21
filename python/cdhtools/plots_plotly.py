@@ -54,14 +54,14 @@ class ADMVisualisations:
         if query != None:
             fig.layout.title.text += f"<br><sup>Query: {query}</sup>"
 
-        if to_html:
+        if to_html:  # pragma: no cover
             filename = (
                 f"{name}_{title}"
                 if file_title == None
                 else f"{name}_{file_title}_{title}"
             )
-            fig.write_html(f"{file_path}/{filename}.html")  # pragma: no cover
-        if show_each:
+            fig.write_html(f"{file_path}/{filename}.html")
+        if show_each:  # pragma: no cover
             fig.show(image_format)
         return fig
 
