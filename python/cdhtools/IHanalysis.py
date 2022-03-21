@@ -44,7 +44,7 @@ def get_all_times_inds(df):
     return idx_time
 
 
-def get_total_outcome(df, outcome, rollup):
+def get_total_outcome(df, outcome, rollup):  # pragma: no cover
     if type(outcome) == list:
         _df_all = pd.DataFrame()
         for i in outcome:
@@ -155,7 +155,7 @@ def plot_daily_cumulative_accept_rate(df, pos, neg, **kwargs):
 
 
 def get_daily_graph(df, x, y, **kwargs):
-    if "figsize" in kwargs.keys():
+    if "figsize" in kwargs.keys():  # pragma: no cover
         figsize = kwargs["figsize"]
     else:
         figsize = (12, 5)
@@ -182,7 +182,7 @@ def get_daily_graph(df, x, y, **kwargs):
             label="Outlier",
             zorder=3,
         )
-        if outlier_df.shape[0] > 0:
+        if outlier_df.shape[0] > 0:  # pragma: no cover
             plt.legend()
     if "ylabel" in kwargs.keys():
         ax.set_ylabel(kwargs["ylabel"], fontsize=13)
@@ -202,7 +202,7 @@ def get_daily_graph(df, x, y, **kwargs):
 
 
 def plot_outcome_count_time(df, outcome, time, **kwargs):
-    if time.lower() == "daily":
+    if time.lower() == "daily":  # pragma: no cover
         gra = "Date"
     elif time.lower() == "weekly":
         gra = "Week"
@@ -431,14 +431,18 @@ def plot_share_delta_graph(df, outcome, level, dates):
         _df["Date Range_recent"].unique()[0].split(" to ")[0]
         == _df["Date Range_recent"].unique()[0].split(" to ")[1]
     ):
-        recent_date = str(_df["Date Range_recent"].unique()[0].split(" to ")[0])
+        recent_date = str(
+            _df["Date Range_recent"].unique()[0].split(" to ")[0]
+        )  # pragma: no cover
     else:
         recent_date = str(_df["Date Range_recent"].unique()[0])
     if (
         _df["Date Range_earlier"].unique()[0].split(" to ")[0]
         == _df["Date Range_earlier"].unique()[0].split(" to ")[1]
     ):
-        earlier_date = str(_df["Date Range_earlier"].unique()[0].split(" to ")[0])
+        earlier_date = str(
+            _df["Date Range_earlier"].unique()[0].split(" to ")[0]
+        )  # pragma: no cover
     else:
         earlier_date = str(_df["Date Range_earlier"].unique()[0])
     ax.set_title(
