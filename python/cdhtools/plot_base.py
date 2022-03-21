@@ -326,7 +326,13 @@ class Plots:
             df = df.query(f"PredictorName in {predictors}")
 
         model = df["ModelID"].unique()
-        assert len(model) == 1, "Please only supply one model ID"
+        if len(model) != 1:
+            if len(model) == 0:
+                print(
+                    "No model found. Please check if model ID is also in the combined data set."
+                )
+            else:
+                "Please only supply one model ID."
 
         modelName = model[0]
 
@@ -351,7 +357,9 @@ class Plots:
         )()
         table = "combinedData"
         last = True
-        required_columns = {"Channel", "PredictorName", "PerformanceBin", "Type"}
+        required_columns = {"Channel", "PredictorName", "PerformanceBin", "Type"}.union(
+            self.context_keys
+        )
         df = self._subset_data(table, required_columns, query, last=last)
         df = df.query("PredictorName != 'Classifier'")
 

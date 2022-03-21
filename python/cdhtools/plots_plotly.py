@@ -60,7 +60,7 @@ class ADMVisualisations:
                 if file_title == None
                 else f"{name}_{file_title}_{title}"
             )
-            fig.write_html(f"{file_path}/{filename}.html")
+            fig.write_html(f"{file_path}/{filename}.html")  # pragma: no cover
         if show_each:
             fig.show(image_format)
         return fig
@@ -128,7 +128,7 @@ class ADMVisualisations:
             fig.update_traces(marker=dict(line=dict(color="black")))
 
             if add_bottom_left_text:
-                if len(fig.layout.annotations) > 0: 
+                if len(fig.layout.annotations) > 0:
                     for i in range(0, len(fig.layout.annotations)):
                         oldtext = fig.layout.annotations[i].text.split("=")
                         subset = df[df[oldtext[0]] == oldtext[1]]
@@ -325,7 +325,7 @@ class ADMVisualisations:
         figlist = []
         for name, group in df:
             if not show_zero_responses:
-                if not group["BinResponseCount"].any(): # pragma: no cover
+                if not group["BinResponseCount"].any():  # pragma: no cover
                     pass
             fig = self.distribution_graph(
                 group,
@@ -367,7 +367,9 @@ class ADMVisualisations:
         -------
         plt.figure
         """
-        if kwargs.get("show_each", False) and df.PredictorName.nunique() > 10: # pragma: no cover
+        if (
+            kwargs.get("show_each", False) and df.PredictorName.nunique() > 10
+        ):  # pragma: no cover
             print(
                 f"Warning: will create {df.PredictorName.nunique()} plots. Set 'show_each' argument to False to return plots as list, so you can view them one by one."
             )
@@ -457,7 +459,7 @@ class ADMVisualisations:
                 "rgb(175,161,156)",
             ]
 
-            if len(fig.data) > 9: # pragma: no cover
+            if len(fig.data) > 9:  # pragma: no cover
                 colors = px.colors.qualitative.Alphabet
 
             for i in range(len(fig.data)):
