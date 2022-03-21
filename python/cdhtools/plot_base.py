@@ -48,6 +48,8 @@ class Plots:
             )
 
         df = getattr(self, table)
+        if table != 'predictorData':
+            required_columns = required_columns.union(self.context_keys)
 
         assert required_columns.issubset(
             df.columns
@@ -124,7 +126,7 @@ class Plots:
             "ResponseCount",
             "Performance",
             "SuccessRate",
-        }.union(set(self.context_keys))
+        }
         df = self._subset_data(
             table, required_columns, query, multi_snapshot=multi_snapshot
         )
@@ -157,7 +159,7 @@ class Plots:
             "Performance",
             "SuccessRate",
             "Positives",
-        }.union(set(self.context_keys))
+        }
         df = self._subset_data(
             table, required_columns, query, multi_snapshot=multi_snapshot
         )
@@ -234,11 +236,7 @@ class Plots:
 
         table = "modelData"
         last = True
-        required_columns = (
-            {"ModelID", "ModelName", "SuccessRate"}
-            .union(self.context_keys)
-            .union({metric})
-        )
+        required_columns = {"ModelID", "ModelName", "SuccessRate"}.union({metric})
         df = self._subset_data(table, required_columns, query, last=last)
 
         if kwargs.pop("return_df", False):
@@ -328,11 +326,11 @@ class Plots:
         model = df["ModelID"].unique()
         if len(model) != 1:
             if len(model) == 0:
-                print(
+                raise ValueError(
                     "No model found. Please check if model ID is also in the combined data set."
                 )
             else:
-                "Please only supply one model ID."
+                raise ValueError("Please only supply one model ID.")
 
         modelName = model[0]
 
@@ -357,9 +355,7 @@ class Plots:
         )()
         table = "combinedData"
         last = True
-        required_columns = {"Channel", "PredictorName", "PerformanceBin", "Type"}.union(
-            self.context_keys
-        )
+        required_columns = {"Channel", "PredictorName", "PerformanceBin", "Type"}
         df = self._subset_data(table, required_columns, query, last=last)
         df = df.query("PredictorName != 'Classifier'")
 
@@ -442,7 +438,7 @@ class Plots:
             "BinPositivesPercentage",
             "BinNegativesPercentage",
             "BinResponseCountPercentage",
-        }.union(self.context_keys)
+        }
         df = self._subset_data(table, required_columns, query, last=last).reset_index()
         df = (
             self._calculate_impact_influence(
