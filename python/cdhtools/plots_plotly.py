@@ -38,14 +38,37 @@ class ADMVisualisations:
         return fig
 
     @staticmethod
+    def post_plot(
+        fig,
+        name,
+        query=None,
+        title=None,
+        file_title=None,
+        file_path="findings",
+        show_each=False,
+        image_format=None,
+        to_html=False,
+        **kwargs,
+    ):
+
+        if query != None:
+            fig.layout.title.text += f"<br><sup>Query: {query}</sup>"
+
+        if to_html:
+            filename = (
+                f"{name}_{title}"
+                if file_title == None
+                else f"{name}_{file_title}_{title}"
+            )
+            fig.write_html(f"{file_path}/{filename}.html")
+        if show_each:
+            fig.show(image_format)
+        return fig
+
     def PerformanceSuccessRateBubbleChart(
+        self,
         df,
         add_bottom_left_text=True,
-        to_html=False,
-        file_title: str = None,
-        file_path: str = None,
-        query: Union[str, dict] = None,
-        show_each=False,
         facets=None,
         context_keys=None,
         **kwargs,
@@ -88,7 +111,6 @@ class ADMVisualisations:
         bubble_size = kwargs.pop("bubble_size", 1)
         for facet in facets:
             title = "over all models" if facet == None else f"per {facet}"
-            # df1 = deepcopy(df)
             fig = px.scatter(
                 df,
                 x="Performance",
@@ -99,17 +121,14 @@ class ADMVisualisations:
                 facet_col_wrap=5,
                 hover_name="ModelName",
                 hover_data=["ModelID"] + context_keys,
-                title=f'Bubble Chart {title} {kwargs.get("title","")}',
+                title=f'Bubble Chart {title} {kwargs.get("title_text","")}',
                 color_continuous_scale="Bluered",
                 template="none",
             )
             fig.update_traces(marker=dict(line=dict(color="black")))
 
-            if query != None:
-                fig.layout.title.text += f"<br><sup>Query: {query}</sup>"
-
             if add_bottom_left_text:
-                if len(fig.layout.annotations) > 0:
+                if len(fig.layout.annotations) > 0: 
                     for i in range(0, len(fig.layout.annotations)):
                         oldtext = fig.layout.annotations[i].text.split("=")
                         subset = df[df[oldtext[0]] == oldtext[1]]
@@ -134,19 +153,9 @@ class ADMVisualisations:
                     fig.layout.title.text += f"<br><sup>{newtext}</sup>"
                     fig.data[0].marker.size *= bubble_size
 
-            filename = (
-                f"Bubble_{title}"
-                if file_title == None
-                else f"Bubble_{file_title}_{title}"
-            )
-            file_path = "findings" if file_path == None else file_path
-
-            if to_html:
-                fig.write_html(f"{file_path}/{filename}.html")
+            fig = self.post_plot(fig, name="Bubble", title=title, **kwargs)
 
             figlist.append(fig)
-            if show_each:
-                fig.show(kwargs.get("image_format", None))
 
         return figlist if len(figlist) > 1 else figlist[0]
 
@@ -183,16 +192,11 @@ class ADMVisualisations:
 
     #     raise NotImplementedError("This visualisation is not yet implemented.")
 
-    @staticmethod
     def OverTime(
+        self,
         df,
         metric="Performance",
         by="ModelID",
-        to_html=False,
-        file_title=None,
-        file_path=None,
-        query: Union[str, dict] = None,
-        show_each=False,
         facets=None,
         **kwargs,
     ):
@@ -228,45 +232,26 @@ class ADMVisualisations:
                 color=by,
                 hover_data=["ModelName", "Performance", "SuccessRate"],
                 markers=True,
-                title=f'{metric} over time, per {by} {title} {kwargs.get("title","")}',
+                title=f'{metric} over time, per {by} {title} {kwargs.get("title_text","")}',
                 facet_col=facet,
                 facet_col_wrap=5,
                 template="none",
-                # hover_name = 'ModelName', #NOTE check this
-                **kwargs,
             )
             if hide_legend:
                 fig.update_layout(showlegend=False)
-            if query != None:
-                fig.layout.title.text += f"<br><sup>Query:{query}</sup>"
 
-            filename = filename = f"Lines_over_time_"
-            if file_title is not None:
-                filename += f"{file_title}_"
-            filename += title
-
-            file_path = "findings" if file_path == None else file_path
-
-            if to_html:
-                fig.write_html(f"{file_path}/{filename}.html")
+            fig = self.post_plot(fig, name="Lines_over_time", title=title, **kwargs)
 
             figlist.append(fig)
-            if show_each:
-                fig.show(kwargs.get("image_format", None))
 
         return figlist if len(figlist) > 1 else figlist[0]
 
-    @staticmethod
     def PropositionSuccessRates(
+        self,
         df,
         metric="SuccessRate",
         by="ModelName",
         show_error=True,
-        to_html=False,
-        file_title=None,
-        file_path=None,
-        query: Union[str, dict] = None,
-        show_each=False,
         facets=None,
         **kwargs,
     ):
@@ -299,7 +284,7 @@ class ADMVisualisations:
                 y=by,
                 color=by,
                 histfunc="avg",
-                title=f'{metric} of each proposition {title} {kwargs.get("title","")}',
+                title=f'{metric} of each proposition {title} {kwargs.get("title_text","")}',
                 template="none",
             )
             fig.update_yaxes(categoryorder="total ascending")
@@ -310,31 +295,13 @@ class ADMVisualisations:
                 for index, x in np.ndenumerate(stds):
                     fig.data[index[0]]["error_x"] = {"array": [x], "valueminus": 0}
 
-            if query != None:
-                fig.layout.title.text += f"<br><sup>Query:{query}</sup>"
-
-            filename = filename = f"Proposition_{metric}"
-            if file_title is not None:
-                filename += f"{file_title}_"
-            filename += title
-
-            file_path = "findings" if file_path == None else file_path
-
-            if to_html:
-                fig.write_html(f"{file_path}/{filename}.html")
+            fig = self.post_plot(fig, name="Success_rates", title=title, **kwargs)
 
             figlist.append(fig)
-            if show_each:
-                fig.show(kwargs.get("image_format", None))
 
         return figlist if len(figlist) > 1 else figlist[0]
 
-    def ScoreDistribution(
-        self,
-        df,
-        show_zero_responses: bool = False,
-        query: Union[str, dict] = None,
-    ):
+    def ScoreDistribution(self, df, show_zero_responses: bool = False, **kwargs):
         """Show score distribution similar to ADM out-of-the-box report
         Shows a score distribution graph per model. If certain models selected,
         only those models will be shown.
@@ -355,19 +322,27 @@ class ADMVisualisations:
         -------
         plt.figure
         """
+        figlist = []
         for name, group in df:
             if not show_zero_responses:
-                if not group["BinResponseCount"].any():
+                if not group["BinResponseCount"].any(): # pragma: no cover
                     pass
-            return self.distribution_graph(group, f"Model ID: {name}")
+            fig = self.distribution_graph(
+                group,
+                f"Classifier score distribution<br><sup>For model ID {name}</sup>",
+            )
+            fig = self.post_plot(
+                fig,
+                name="Score_distribution",
+                **kwargs,
+            )
+            figlist.append(fig)
+        return figlist if len(figlist) > 1 else figlist[0]
 
     def PredictorBinning(
         self,
         df,
         modelName,
-        predictors: list = None,
-        modelid: str = None,
-        show_each=False,
         **kwargs,
     ):
         """Show predictor graphs for a given model
@@ -392,7 +367,7 @@ class ADMVisualisations:
         -------
         plt.figure
         """
-        if show_each and df.PredictorName.nunique() > 10:
+        if kwargs.get("show_each", False) and df.PredictorName.nunique() > 10: # pragma: no cover
             print(
                 f"Warning: will create {df.PredictorName.nunique()} plots. Set 'show_each' argument to False to return plots as list, so you can view them one by one."
             )
@@ -400,20 +375,15 @@ class ADMVisualisations:
         for name, group in df.groupby("PredictorName"):
             title = f"Model name: {modelName}<br>Predictor name: {name}"
             fig = self.distribution_graph(group, title)
+            fig = self.post_plot(fig, name="Predictor_binning", **kwargs)
             figlist.append(fig)
-            if show_each:
-                fig.show(kwargs.get("image_format", None))
 
         return figlist if len(figlist) > 1 else figlist[0]
 
     def PredictorPerformance(
+        self,
         df,
         order,
-        to_html=False,
-        file_title=None,
-        file_path=None,
-        show_each=False,
-        query=None,
         facets=None,
         **kwargs,
     ):
@@ -461,7 +431,7 @@ class ADMVisualisations:
                 color="Legend",
                 color_discrete_map={"Primary": "Yellow", "Param": "Black"},
                 template="none",
-                title=f"Predictor performance {title} {kwargs.get('title','')}",
+                title=f"Predictor performance {title} {kwargs.get('title_text','')}",
                 facet_col=facet,
                 facet_col_wrap=5,
                 labels={
@@ -487,7 +457,7 @@ class ADMVisualisations:
                 "rgb(175,161,156)",
             ]
 
-            if len(fig.data) > 9:
+            if len(fig.data) > 9: # pragma: no cover
                 colors = px.colors.qualitative.Alphabet
 
             for i in range(len(fig.data)):
@@ -496,32 +466,15 @@ class ADMVisualisations:
             fig.update_layout(
                 boxgap=0, boxgroupgap=0, legend_title_text="Predictor type"
             )
-
-            if query != None:
-                fig.layout.title.text += f"<br><sup>Query: {query}</sup>"
-            filename = (
-                f"predictor_box_{title}"
-                if file_title == None
-                else f"predictor_box_{file_title}_{title}"
-            )
-            file_path = "findings" if file_path == None else file_path
-
-            if to_html:
-                fig.write_html(f"{file_path}/{filename}.html")
+            fig = self.post_plot(fig, name="Predictor_performance", **kwargs)
 
             figlist.append(fig)
-            if show_each:
-                fig.show(kwargs.get("image_format", None))
 
         return figlist if len(figlist) > 1 else figlist[0]
 
     def PredictorPerformanceHeatmap(
+        self,
         df,
-        to_html=False,
-        file_title=None,
-        file_path=None,
-        show_each=False,
-        query=None,
         facets=None,
         **kwargs,
     ):
@@ -582,36 +535,21 @@ class ADMVisualisations:
                 ],
                 facet_col=facet,
                 facet_col_wrap=5,
-                title=f'Top predictors {title} {kwargs.get("title","")}',
+                title=f'Top predictors {title} {kwargs.get("title_text","")}',
                 range_color=[0.5, 1],
             )
             fig.update_yaxes(dtick=1, automargin=True)
             fig.update_xaxes(dtick=1, tickangle=kwargs.get("tickangle", None))
 
-            if query != None:
-                fig.layout.title.text += f"<br><sup>Query: {query}</sup>"
-            filename = (
-                f"predictor_heatmap_{title}"
-                if file_title == None
-                else f"predictor_heatmap_{file_title}_{title}"
-            )
-            file_path = "findings" if file_path == None else file_path
-            if to_html:
-                fig.write_html(f"{file_path}/{filename}.html")
+            fig = self.post_plot(fig, name="Predictor_performance_heatmap", **kwargs)
             figlist.append(fig)
-            if show_each:
-                fig.show(kwargs.get("image_format", None))
 
         return figlist if len(figlist) > 1 else figlist[0]
 
     def ResponseGain(
+        self,
         df,
         by="Channel",
-        to_html=False,
-        file_title=None,
-        file_path=None,
-        show=False,
-        query=None,
         **kwargs,
     ):
         """Plots the cumulative response per model, subsetted by 'by'
@@ -654,33 +592,18 @@ class ADMVisualisations:
                 "TotalResponseFraction": "Percentage of Responses",
                 "TotalModelsFraction": "Percentage of Models",
             },
-            title=f'{title} {kwargs.get("title","")}<br><sup>by {by}</sup>',
+            title=f'{title} {kwargs.get("title_text","")}<br><sup>by {by}</sup>',
             template="none",
         )
         fig.layout.yaxis.tickformat = ",.0%"
         fig.layout.xaxis.tickformat = ",.0%"
-        if query != None:
-            fig.layout.title.text += f"<br><sup>Query: {query}</sup>"
-        filename = (
-            f"responseGain{title}"
-            if file_title == None
-            else f"responseGain{file_title}_{title}"
-        )
-        file_path = "findings" if file_path == None else file_path
-        if to_html:
-            fig.write_html(f"{file_path}/{filename}.html")
-        if show:
-            fig.show(kwargs.get("image_format", None))
+        fig = self.post_plot(fig, name="Response_gain", **kwargs)
         return fig
 
     def ModelsByPositives(
+        self,
         df,
         by="Channel",
-        to_html=False,
-        file_title=None,
-        file_path=None,
-        show=False,
-        query=None,
         **kwargs,
     ):
         """Plots the percentage of models vs the number of positive responses
@@ -720,27 +643,17 @@ class ADMVisualisations:
             y="cumModels",
             color=by,
             markers=True,
-            title=f'Percentage of models vs number of positive responses {kwargs.get("title","")}<br><sup>By {by}</sup>',
+            title=f'Percentage of models vs number of positive responses {kwargs.get("title_text","")}<br><sup>By {by}</sup>',
             labels={"cumModels": "Percentage of Models", "PositivesBin": "Positives"},
             template="none",
             category_orders={"PositivesBin": df["PositivesBin"].unique().tolist()},
         )
         fig.layout.yaxis.tickformat = ",.0%"
-        if query != None:
-            fig.layout.title.text += f"<br><sup>Query: {query}</sup>"
-        filename = (
-            f"modelsByPositives{title}"
-            if file_title == None
-            else f"modelsByPositives{file_title}_{title}"
-        )
-        file_path = "findings" if file_path == None else file_path
-        if to_html:
-            fig.write_html(f"{file_path}/{filename}.html")
-        if show:
-            fig.show(kwargs.get("image_format", None))
+        fig = self.post_plot(fig, name="Models_by_positives", **kwargs)
         return fig
 
     def TreeMap(
+        self,
         df,
         color,
         values,
@@ -751,11 +664,6 @@ class ADMVisualisations:
         format,
         context_keys,
         value_in_text=True,
-        to_html=False,
-        file_title=None,
-        file_path=None,
-        show=False,
-        query=None,
         **kwargs,
     ):
         """Plots a treemap to view performance over multiple context keys
@@ -805,7 +713,7 @@ class ADMVisualisations:
         context_keys = [px.Constant("All contexts")] + context_keys
         colorscale = ["#d91c29", "#F76923", "#20aa50"]
 
-        if color == "performance_weighted":
+        if color == "Performance weighted mean":
             colorscale = [
                 (0, "#d91c29"),
                 (kwargs.get("midpoint", 0.01), "#F76923"),
@@ -824,7 +732,7 @@ class ADMVisualisations:
             color = df[color]
 
         if midpoint is not None:
-            midpoint = color.quantile(midpoint)
+            midpoint = np.quantile(color, midpoint)
             colorscale = [(0, "#d91c29"), (midpoint, "#F76923"), (1, "#20aa50")]
 
         hover_data = {
@@ -855,21 +763,7 @@ class ADMVisualisations:
 
         if kwargs.get("min_text_size", None) is not None:
             fig.update_layout(
-                uniformtext_minsize=kwargs.get("min_text_size"), uniformtext_mode="hide"
+                uniformtext_minsize=kwargs.pop("min_text_size"), uniformtext_mode="hide"
             )
-
-        if query != None:
-            fig.layout.title.text += f"<br><sup>Query: {query}</sup>"
-
-        if to_html:
-            filename = (
-                f"modelTreemap{title}"
-                if file_title == None
-                else f"modelTreemap{file_title}_{title}"
-            )
-            file_path = "findings" if file_path == None else file_path
-            fig.write_html(f"{file_path}/{filename}.html")
-
-        if show:
-            fig.show(kwargs.get("image_format", None))
+        fig = self.post_plot(fig, name="TreeMap", **kwargs)
         return fig

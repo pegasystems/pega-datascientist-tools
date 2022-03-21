@@ -76,14 +76,15 @@ class ADMVisualisations:
             frameon=True,
         )
         ax.set_title(title)
+        return ax
 
     def PerformanceSuccessRateBubbleChart(
+        self,
         df,
         annotate: bool = False,
         sizes: tuple = (10, 2000),
         aspect: int = 3,
         b_to_anchor: tuple = (1.1, 0.7),
-        query: Union[str, dict] = None,
         figsize: tuple = (20, 5),
         **kwargs,
     ) -> plt.figure:
@@ -161,8 +162,10 @@ class ADMVisualisations:
         gg.ax.set_xlim(48, 100)
         gg.ax.yaxis.set_major_formatter(mtick.PercentFormatter())
         gg._legend.set_bbox_to_anchor(b_to_anchor)
+        return gg
 
     def PerformanceAndSuccessRateOverTime(
+        self,
         df,
         day_interval: int = 7,
         query: Union[str, dict] = None,
@@ -223,8 +226,10 @@ class ADMVisualisations:
         cbar.ax.get_yaxis().labelpad = 20
         cbar.ax.set_ylabel("Model Performance (AUC)")
         print("Maximum AUC across all models: %.2f" % df["Performance"].max())
+        return ax
 
     def ResponseCountMatrix(
+        self,
         annot_df,
         heatmap_df,
         lookback=15,
@@ -289,8 +294,10 @@ class ADMVisualisations:
         )
         frame = legend.get_frame()
         frame.set_facecolor("lightgrey")
+        return ax
 
     def OverTime(
+        self,
         df,
         metric="Performance",
         by="ModelID",
@@ -345,8 +352,10 @@ class ADMVisualisations:
         print("Setting rotations")
         for i in ax.get_xmajorticklabels():
             i.set_rotation(90)
+        return ax
 
     def PropositionSuccessRates(
+        self,
         df,
         metric,
         by,
@@ -391,6 +400,7 @@ class ADMVisualisations:
                 ha="left",
                 va="center",
             )
+        return ax
 
     def ScoreDistribution(
         self,
@@ -426,7 +436,7 @@ class ADMVisualisations:
 
         for name, group in df:
             if not show_zero_responses:
-                if not group["BinResponseCount"].any():
+                if not group["BinResponseCount"].any():  # pragma: no cover
                     pass
             self.distribution_graph(group, f"Model ID:{name}", figsize)
 
@@ -465,7 +475,12 @@ class ADMVisualisations:
             self.distribution_graph(data, title, figsize)
 
     def PredictorPerformance(
-        df, order, query: Union[str, dict] = None, figsize: tuple = (6, 12), **kwargs
+        self,
+        df,
+        order,
+        query: Union[str, dict] = None,
+        figsize: tuple = (6, 12),
+        **kwargs,
     ) -> plt.figure:
         """Shows a box plot of predictor performance
 
@@ -502,7 +517,7 @@ class ADMVisualisations:
         value_dict = dict(df[["PredictorName", "Legend"]].drop_duplicates().values)
         type_dict = dict(df[["PredictorName", "Type"]].drop_duplicates().values)
         boxes = ax.artists
-        for i in range(len(boxes)):
+        for i in range(len(boxes)):  # pragma: no cover
             boxes[i].set_facecolor(cl_dict[value_dict[order[i]]])
             if type_dict[order[i]].lower() == "symbolic":
                 boxes[i].set_linestyle("--")
@@ -533,9 +548,10 @@ class ADMVisualisations:
         plt.gca().add_artist(legend_type)
         legend._legend_box.align = "left"
         legend_type._legend_box.align = "left"
+        return ax
 
     def PredictorPerformanceHeatmap(
-        df, query: Union[str, dict] = None, figsize=(14, 10), **kwargs
+        self, df, query: Union[str, dict] = None, figsize=(14, 10), **kwargs
     ) -> plt.figure:
         """Shows a heatmap plot of predictor performance across models
 
@@ -574,8 +590,10 @@ class ADMVisualisations:
         )
         bottom, top = ax.get_ylim()
         ax.set_ylim(bottom + 0.5, top - 0.5)
+        return ax
 
     def ImpactInfluence(
+        self,
         df,
         ModelID: str = None,
         query: Union[str, dict] = None,
@@ -605,3 +623,4 @@ class ADMVisualisations:
         sns.barplot(x="PredictorName", y="value", data=df, hue="metric", ax=ax)
         ax.legend(bbox_to_anchor=(1.01, 1), loc=2)
         ax.set_ylabel("Metrics")
+        return ax

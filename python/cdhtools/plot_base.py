@@ -73,17 +73,13 @@ class Plots:
         self,
         last=True,
         add_bottom_left_text=True,
-        to_html=False,
-        file_title: str = None,
-        file_path: str = None,
         query: Union[str, dict] = None,
-        show_each=False,
         facets=None,
         **kwargs,
     ):
         plotting_engine = self.get_engine(
             kwargs.pop("plotting_engine", self.plotting_engine)
-        )
+        )()
 
         table = "modelData"
         required_columns = {
@@ -103,17 +99,13 @@ class Plots:
 
         if kwargs.pop("return_df", False):
             return df
-
+        print(df, add_bottom_left_text, kwargs, self.context_keys)
         return plotting_engine.PerformanceSuccessRateBubbleChart(
             df=df,
             add_bottom_left_text=add_bottom_left_text,
-            to_html=to_html,
-            file_title=to_html,
-            file_path=file_path,
-            query=query,
-            show_each=show_each,
             facets=facets,
             context_keys=self.context_keys,
+            query=query,
             **kwargs,
         )
 
@@ -139,25 +131,21 @@ class Plots:
         if kwargs.pop("return_df", False):
             return df
 
-        return mpl.PerformanceAndSuccessRateOverTime(
-            df, day_interval=day_interval, **kwargs
+        return mpl().PerformanceAndSuccessRateOverTime(
+            df, day_interval=day_interval, query=query, **kwargs
         )
 
     def plotOverTime(
         self,
         metric="Performance",
         by="ModelID",
-        to_html=False,
-        file_title=None,
-        file_path=None,
         query: Union[str, dict] = None,
-        show_each=False,
         facets=None,
         **kwargs,
     ):
         plotting_engine = self.get_engine(
             kwargs.pop("plotting_engine", self.plotting_engine)
-        )
+        )()
 
         table = "modelData"
         multi_snapshot = True
@@ -181,11 +169,7 @@ class Plots:
             df=df,
             metric=metric,
             by=by,
-            to_html=to_html,
-            file_title=file_title,
-            file_path=file_path,
             query=query,
-            show_each=show_each,
             facets=facets,
             **kwargs,
         )
@@ -227,7 +211,7 @@ class Plots:
         )
         if kwargs.pop("return_df", False):
             return df
-        return mpl.ResponseCountMatrix(
+        return mpl().ResponseCountMatrix(
             annot_df=annot_df, heatmap_df=heatmap_df, query=query, **kwargs
         )
 
@@ -246,7 +230,7 @@ class Plots:
     ):
         plotting_engine = self.get_engine(
             kwargs.get("plotting_engine", self.plotting_engine)
-        )
+        )()
 
         table = "modelData"
         last = True
@@ -311,19 +295,14 @@ class Plots:
             return df
 
         return plotting_engine.ScoreDistribution(
-            df=df, show_zero_responses=show_zero_responses, query=query
+            df=df, show_zero_responses=show_zero_responses, query=query, **kwargs
         )
 
     def plotPredictorBinning(
         self,
         predictors: list = None,
         modelid: str = None,
-        to_html=False,
-        file_title=None,
-        file_path=None,
-        show_each=False,
         query=None,
-        facets=None,
         **kwargs,
     ):
         plotting_engine = self.get_engine(
@@ -356,25 +335,20 @@ class Plots:
         return plotting_engine.PredictorBinning(
             df=df,
             modelName=modelName,
-            predictors=predictors,
-            modelid=modelid,
-            show_each=show_each,
+            query=query,
+            **kwargs,
         )
 
     def plotPredictorPerformance(
         self,
         top_n=0,
-        to_html=False,
-        file_title=None,
-        file_path=None,
-        show_each=False,
         query=None,
         facets=None,
         **kwargs,
     ):
         plotting_engine = self.get_engine(
             kwargs.get("plotting_engine", self.plotting_engine)
-        )
+        )()
         table = "combinedData"
         last = True
         required_columns = {"Channel", "PredictorName", "PerformanceBin", "Type"}
@@ -412,29 +386,21 @@ class Plots:
         return plotting_engine.PredictorPerformance(
             df=df,
             order=order,
-            to_html=to_html,
-            file_title=file_title,
-            file_path=file_path,
-            show_each=show_each,
-            query=query,
             facets=facets,
+            query=query,
             **kwargs,
         )
 
     def plotPredictorPerformanceHeatmap(
         self,
         top_n=0,
-        to_html=False,
-        file_title=None,
-        file_path=None,
-        show_each=False,
         query=None,
         facets=None,
         **kwargs,
     ):
         plotting_engine = self.get_engine(
             kwargs.get("plotting_engine", self.plotting_engine)
-        )
+        )()
         table = "combinedData"
         required_columns = {"PredictorName", "ModelName", "PerformanceBin"}
         df = self._subset_data(table, required_columns, query, last=True)
@@ -449,12 +415,8 @@ class Plots:
 
         return plotting_engine.PredictorPerformanceHeatmap(
             df,
-            to_html=to_html,
-            file_title=file_title,
-            file_path=file_path,
-            show_each=show_each,
-            query=query,
             facets=facets,
+            query=query,
             **kwargs,
         )
 
@@ -487,15 +449,11 @@ class Plots:
         if kwargs.pop("return_df", False):
             return df
 
-        return mpl.ImpactInfluence(df=df, ModelID=ModelID, **kwargs)
+        return mpl().ImpactInfluence(df=df, ModelID=ModelID, query=query, **kwargs)
 
     def plotResponseGain(
         self,
         by="Channel",
-        to_html=False,
-        file_title=None,
-        file_path=None,
-        show=False,
         query=None,
         **kwargs,
     ):
@@ -511,24 +469,11 @@ class Plots:
         if kwargs.pop("return_df", False):
             return df
 
-        return plotly.ResponseGain(
-            df,
-            by,
-            to_html=to_html,
-            file_title=file_title,
-            file_path=file_path,
-            show=show,
-            query=query,
-            **kwargs,
-        )
+        return plotly().ResponseGain(df, by, **kwargs)
 
     def plotModelsByPositives(
         self,
         by="Channel",
-        to_html=False,
-        file_title=None,
-        file_path=None,
-        show=False,
         query=None,
         **kwargs,
     ):
@@ -541,13 +486,9 @@ class Plots:
         df = self.models_by_positives_df(df, by=by)
         if kwargs.pop("return_df", False):
             return df
-        return plotly.ModelsByPositives(
+        return plotly().ModelsByPositives(
             df,
             by="Channel",
-            to_html=to_html,
-            file_title=file_title,
-            file_path=file_path,
-            show=show,
             query=query,
             **kwargs,
         )
@@ -558,10 +499,6 @@ class Plots:
         by="ModelID",
         value_in_text=True,
         midpoint=None,
-        to_html=False,
-        file_title=None,
-        file_path=None,
-        show=False,
         query=None,
         **kwargs,
     ):
@@ -664,10 +601,10 @@ class Plots:
         if midpoint is not None:
             midpoint = defaults[color_var][5]
 
-        format = "%" if color in list(defaults.keys())[4:] else ""
+        format = "%" if color_var in list(defaults.keys())[4:] else ""
         if kwargs.pop("return_df", False):
             return df
-        return plotly.TreeMap(
+        return plotly().TreeMap(
             df=df,
             color=color,
             values=values,
@@ -678,10 +615,6 @@ class Plots:
             format=format,
             context_keys=self.context_keys,
             value_in_text=value_in_text,
-            to_html=to_html,
-            file_title=file_title,
-            file_path=file_path,
-            show=show,
             query=query,
             **kwargs,
         )
