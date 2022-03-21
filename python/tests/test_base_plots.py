@@ -1,5 +1,7 @@
 import pytest
 import sys
+import pandas as pd
+from copy import deepcopy
 
 sys.path.append("python")
 from cdhtools import ADMDatamart, datasets
@@ -163,5 +165,23 @@ def test_ModelsByPositives_data(test):
 def test_TreeMap_data(test):
     df = test.plotTreeMap(4, return_df=True, midpoint=0.6)
 
+
 def test_TreeMap_2(test):
-    df = test.plotTreeMap('SuccessRate', plotting_engine = 'matplotlib')
+    df = test.plotTreeMap("SuccessRate", plotting_engine="matplotlib")
+
+
+def test_TreeMap_with_omnichannel(test):
+    test = deepcopy(test)
+    to_add = (
+        ["test"]
+        + ["OmniChannel"]
+        + (["test"] * 3)
+        + [0]
+        + ["test"]
+        + [0]
+        + [pd.to_datetime("2021-01-27 11:50:42.258000+00:00")]
+        + [0]
+        + [0]
+    )
+    test.modelData.loc[len(test.modelData)] = to_add
+    df = test.plotTreeMap("SuccessRate")

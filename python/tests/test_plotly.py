@@ -18,8 +18,19 @@ def test():
     )
 
 
+@pytest.fixture
+def Sample():
+    return ADMDatamart(path="data")
+
+
 def test_plotPerformanceSuccessRateBubbleChart(test):
     test.plotPerformanceSuccessRateBubbleChart(add_bottom_left_text=True)
+
+
+def test_plotPerformanceSuccessRateBubbleChart_facetted(test):
+    test.plotPerformanceSuccessRateBubbleChart(
+        add_bottom_left_text=True, facets=["Issue", "Group"]
+    )
 
 
 def test_plotOverTime(test):
@@ -59,8 +70,34 @@ def test_plotModelsByPositives(test):
 
 
 def test_plotTreeMap(test):
-    test.plotTreeMap()
+    for i in range(0, 6):
+        test.plotTreeMap(i, value_in_text=True)
 
 
 def test_plotTreeMap_options(test):
-    test.plotTreeMap("performance_weighted", log=True, midpoint=0.55, min_text_size=11)
+    test.plotTreeMap(
+        "performance_weighted", log=True, min_text_size=11, value_in_text=True
+    )
+
+
+def test_plotTreeMap_options2(test):
+    test.plotTreeMap("successrate", midpoint=0.5, min_text_size=11, value_in_text=True)
+
+
+def test_post_plot(test):
+    test.plotPerformanceSuccessRateBubbleChart(
+        query='Channel=="Web"', to_html=True, show_each=True
+    )
+
+
+def test_bubble_cdhsample(Sample):
+    Sample.plotPerformanceSuccessRateBubbleChart(add_bottom_left_text=True)
+
+
+def test_overtime_cdhsample(Sample):
+    Sample.plotOverTime()
+
+
+def test_scoredist_cdhsample(Sample, monkeypatch):
+    monkeypatch.setattr("builtins.input", lambda _: "Yes")
+    Sample.plotScoreDistribution()

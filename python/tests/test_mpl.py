@@ -10,6 +10,8 @@ import sys
 
 sys.path.append("python")
 from cdhtools import ADMDatamart
+import seaborn
+import matplotlib
 
 
 @pytest.fixture
@@ -24,27 +26,39 @@ def test():
     )
 
 
+def mpl_checks(fun, **args):
+    df = fun(return_df=True, **args)
+    plt = fun(**args)
+    if isinstance(plt, seaborn.axisgrid.FacetGrid):
+        assert df.equals(plt.data)
+    else:
+        assert hasattr(plt, "plot")
+
+
 def test_plotPerformanceSuccessRateBubbleChart(test):
-    test.plotPerformanceSuccessRateBubbleChart(annotate=True)
+    mpl_checks(test.plotPerformanceSuccessRateBubbleChart, annotate=True)
+
+def test_plotPerformanceSuccessRateBubbleChart_not_annotated(test):
+    mpl_checks(test.plotPerformanceSuccessRateBubbleChart)
 
 
 def test_plotPerformanceAndSuccessRateOverTime(test):
-    test.plotPerformanceAndSuccessRateOverTime()
+    mpl_checks(test.plotPerformanceAndSuccessRateOverTime)
 
 
 def test_plotResponseCountMatrix(test):
-    test.plotResponseCountMatrix(lookback=2)
+    mpl_checks(test.plotResponseCountMatrix, lookback=2)
 
 
 def test_plotOverTime(test):
-    test.plotOverTime(day_interval=2)
+    mpl_checks(test.plotOverTime, day_interval=2)
 
 
 def test_plotPropositionSuccessRates(test):
-    test.plotPropositionSuccessRates()
+    mpl_checks(test.plotPropositionSuccessRates)
 
 
-def test_plotScoreDistribution(test, monkeypatch):
+def test_plotScoreDistribution(test, monkeypatch, capsys):
     monkeypatch.setattr("builtins.input", lambda _: "Yes")
     test.plotScoreDistribution()
 
@@ -57,12 +71,12 @@ def test_plotPredictorBinning(test):
 
 
 def test_PredictorPerformance(test):
-    test.plotPredictorPerformance(top_n=5)
+    mpl_checks(test.plotPredictorPerformance, top_n=5)
 
 
 def test_plotPredictorPerformanceHeatmap(test):
-    test.plotPredictorPerformanceHeatmap(top_n=5)
+    mpl_checks(test.plotPredictorPerformanceHeatmap, top_n=5)
 
 
 def test_plotImpactInfluence(test):
-    test.plotImpactInfluence()
+    mpl_checks(test.plotImpactInfluence)

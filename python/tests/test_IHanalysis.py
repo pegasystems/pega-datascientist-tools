@@ -7,8 +7,9 @@ from cdhtools.cdh_utils import readDSExport
 
 import matplotlib.pyplot as plt
 
-#This is not a good set of tests - just running to make sure we don't run into errors
-#The IHanalysis code is not actively maintained, so no point in exhaustively testing.
+# This is not a good set of tests - just running to make sure we don't run into errors
+# The IHanalysis code is not actively maintained, so no point in too exhaustively testing.
+
 
 @pytest.fixture
 def init():
@@ -82,7 +83,7 @@ def test_no_errors(init):
     plot_outcome_share_graph(
         df[df["pyChannel"] == "Web"], "Accepted", "pyName", "pyGroup"
     )
-    get_outcome_share_time(df, outcome='Accepted', level='pyName', time='yearly')
+    get_outcome_share_time(df, outcome="Accepted", level="pyName", time="yearly")
 
     click_share_name_daily = get_outcome_share_time(
         df[df["pyChannel"] == "Web"], "Clicked", "pyName", time="daily"
@@ -100,7 +101,7 @@ def test_no_errors(init):
         click_share_name_weekly[click_share_name_weekly["pyName"] == "UPlusGold"],
         "Week",
         "Clicked Share (%)",
-        **{"shrinkTicks": True, "ylabel":'test', "ylim":20}
+        **{"shrinkTicks": True, "ylabel": "test", "ylim": 20}
     )
     click_share_direction_daily = get_outcome_share_time(
         df, "Accepted", "pyDirection", time="daily"

@@ -4,6 +4,7 @@ import pytest
 import zipfile
 import pandas as pd
 from io import BytesIO
+import numpy as np
 import urllib.request
 import datetime
 from pytz import timezone
@@ -158,10 +159,20 @@ def test_import_zipped_json_pandas():
 def test_safe_range_auc():
     assert cdh_utils.safe_range_auc(0.8) == 0.8
     assert cdh_utils.safe_range_auc(0.4) == 0.6
+    assert cdh_utils.safe_range_auc(np.nan) == 0.5
 
 
 def test_auc_from_probs():
     assert cdh_utils.auc_from_probs([1, 1, 0], [0.6, 0.2, 0.2]) == 0.75
+    assert (
+        cdh_utils.auc_from_probs(
+            [
+                1,
+            ],
+            [0.6],
+        )
+        == 0.5
+    )
 
 
 def test_auc_from_bincounts():
@@ -179,7 +190,21 @@ def test_fromPRPCDateTime():
     )
     assert cdh_utils.fromPRPCDateTime(
         "20180316T134127.847 GMT", False
-    ) == datetime.datetime(2018, 3, 16, 13, 41, 27, 847, tzinfo=timezone('GMT'))
+    ) == datetime.datetime(2018, 3, 16, 13, 41, 27, 847, tzinfo=timezone("GMT"))
+    assert (
+        cdh_utils.fromPRPCDateTime("20180316T134127.847345", True)
+        == "2018-03-16 13:41:27 "
+    )
+    assert (
+        cdh_utils.fromPRPCDateTime("20180316T134127.8", True) == "2018-03-16 13:41:27 "
+    )
+    assert cdh_utils.fromPRPCDateTime("20180316T134127", True) == "2018-03-16 13:41:27 "
+
 
 def test_toPRPCDateTime():
-    assert cdh_utils.toPRPCDateTime(datetime.datetime(2018, 3, 16, 13, 41, 27, 847, tzinfo=timezone('GMT'))) == '2018-03-16 13:41:27.000'
+    assert (
+        cdh_utils.toPRPCDateTime(
+            datetime.datetime(2018, 3, 16, 13, 41, 27, 847, tzinfo=timezone("GMT"))
+        )
+        == "2018-03-16 13:41:27.000"
+    )
