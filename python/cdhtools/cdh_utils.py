@@ -115,7 +115,7 @@ def readDSExport(
                 raise ImportError("Forcing pandas.")
             from pyarrow import csv, ArrowInvalid
 
-            try:
+            try:  # pragma: no cover
                 return csv.read_csv(
                     file,
                     parse_options=csv.ParseOptions(delimiter=kwargs.get("sep", ",")),
@@ -151,7 +151,7 @@ def readDSExport(
                 return pd.read_json(file, lines=True, **kwargs)
             except ValueError:
                 return pd.read_json(file, **kwargs)
-        except OSError: # pragma: no cover
+        except OSError:  # pragma: no cover
             raise FileNotFoundError(f"File {file} is not found.")
     else:
         try:
@@ -195,7 +195,7 @@ def readZippedFile(file: str, verbose: bool = False) -> pd.DataFrame:
                 try:
                     from pyarrow import json
 
-                    return json.read_json(zippedfile).to_pandas()
+                    return json.read_json(zippedfile).to_pandas() # pragma: no cover
                 except ImportError:  # pragma: no cover
                     try:
                         dataset = pd.read_json(zippedfile, lines=True)
