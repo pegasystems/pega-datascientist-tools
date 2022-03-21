@@ -136,6 +136,21 @@ def test_PredictorBinning_data(test):
     )
 
 
+def test_plotPredictorBinning_none_found(test):
+    with pytest.raises(ValueError):
+        test.plotPredictorBinning(
+            modelid="unknown",
+            predictors=["AGE"],
+        )
+
+
+def test_plotPredictorBinning_too_many_found(test):
+    with pytest.raises(ValueError):
+        test.plotPredictorBinning(
+            predictors=["AGE"],
+        )
+
+
 def test_PredictorPerformance_data(test):
     df = test.plotPredictorPerformance(return_df=True, top_n=5)
 
