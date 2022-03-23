@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="cdhtools",
-    version="2.0",
+    version="2.0.0",
     author="Stijn Kas",
     author_email="stijn.kas@pega.com",
     description="Open source tooling that helps Data Scientists working with CDH to analyze Pega models and conduct impactful analyses.",
