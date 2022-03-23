@@ -50,13 +50,13 @@ def test_end_to_end():
     }
     assert set(datamart.predictorData.columns) == predcols
 
-    assert datamart.combinedData.shape == (4865, 30)
+    assert datamart.combinedData.shape == (4626, 30)
     assert set(datamart.combinedData.columns) == modelcols.union(predcols).union(
         {"PerformanceBin", "PositivesBin", "ResponseCountBin", "SnapshotTimeBin"}
     )
 
     assert datamart.last().shape == (70, 12)
-    assert datamart.last("predictorData").shape == (4865, 19)
+    assert datamart.last("predictorData").shape == (4576, 19)
 
     assert all(
         item == "object"

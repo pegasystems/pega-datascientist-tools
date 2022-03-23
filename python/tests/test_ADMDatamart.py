@@ -365,7 +365,7 @@ def test_init_both(cdhsample_models, cdhsample_predictors):
     assert output.modelData.shape == (20, 11)
     assert output.predictorData is not None
     assert output.predictorData.shape == (1755, 19)
-    assert output.combinedData.shape == (1755, 29)
+    assert output.combinedData.shape == (1648, 29)
     assert output.context_keys == ["Channel", "Direction", "Issue", "Group"]
 
 
@@ -379,9 +379,11 @@ def test_describe_models_without_models():
     with pytest.raises(ValueError):
         test.describe_models()
 
+
 def test_model_summary(test):
-    assert test.model_summary().shape == (3,15)
+    assert test.model_summary().shape == (3, 15)
+
 
 def test_PredictorCategorization(test):
-    with pytest.raises(NotImplementedError):
-        test.defaultPredictorCategorization('Not yet done.')
+    assert test.defaultPredictorCategorization("Customer.Variable") == "Customer"
+    assert test.defaultPredictorCategorization("Variable") == "Variable"

@@ -123,11 +123,6 @@ def test_ScoreDistribution_data(test, monkeypatch):
     assert test.plotScoreDistribution(return_df=True) is not None
 
 
-def test_ScoreDistribution_no(test, monkeypatch):
-    monkeypatch.setattr("builtins.input", lambda _: "No")
-    assert test.plotScoreDistribution(return_df=True) == None
-
-
 def test_PredictorBinning_data(test):
     df = test.plotPredictorBinning(
         return_df=True,
@@ -139,15 +134,7 @@ def test_PredictorBinning_data(test):
 def test_plotPredictorBinning_none_found(test):
     with pytest.raises(ValueError):
         test.plotPredictorBinning(
-            modelid="unknown",
-            predictors=["AGE"],
-        )
-
-
-def test_plotPredictorBinning_too_many_found(test):
-    with pytest.raises(ValueError):
-        test.plotPredictorBinning(
-            predictors=["AGE"],
+            modelids=["unknown"], predictors=["AGE"], return_df=True
         )
 
 

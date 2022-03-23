@@ -41,15 +41,15 @@ def test_plotPropositionSuccessRates(test):
     test.plotPropositionSuccessRates()
 
 
-def test_plotScoreDistribution(test, monkeypatch):
-    monkeypatch.setattr("builtins.input", lambda _: "Yes")
-    test.plotScoreDistribution()
+def test_plotScoreDistribution(test):
+    test.plotScoreDistribution(show_each=False)
 
 
 def test_plotPredictorBinning(test):
     test.plotPredictorBinning(
         modelid="03053052-28c8-5af8-901e-87e857979b3c",
         predictors=["AGE"],
+        show_each=False,
     )
 
 

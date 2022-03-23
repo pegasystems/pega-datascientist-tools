@@ -58,7 +58,7 @@ def test_plotPropositionSuccessRates(test):
     mpl_checks(test.plotPropositionSuccessRates)
 
 
-def test_plotScoreDistribution(test, monkeypatch, capsys):
+def test_plotScoreDistribution(test, monkeypatch):
     monkeypatch.setattr("builtins.input", lambda _: "Yes")
     test.plotScoreDistribution()
 
