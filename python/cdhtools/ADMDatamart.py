@@ -485,6 +485,7 @@ class ADMDatamart(Plots):
             "BinSymbol",
             "ResponseCountPercentage",
             "ConfigurationName",
+            "Configuration",
         ]
         fields = [re.sub("^p(x|y|z)", "", field.lower()) for field in fields]
         for word in capitalizeEndWords:
