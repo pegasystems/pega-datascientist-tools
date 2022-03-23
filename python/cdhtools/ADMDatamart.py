@@ -610,7 +610,7 @@ class ADMDatamart(Plots):
             if predictorData is None
             else predictorData
         )
-        combined = models.merge(preds, on="ModelID", how="left", suffixes=("", "Bin"))
+        combined = models.merge(preds, on="ModelID", how="inner", suffixes=("", "Bin"))
         return combined
 
     @staticmethod

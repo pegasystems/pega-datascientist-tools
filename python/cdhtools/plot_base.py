@@ -663,7 +663,7 @@ class Plots:
                 .tolist()
             )
 
-            df = df.query(f"PredictorName == {topn}")
+            df = df.query(f"PredictorName == {topn}").reset_index(drop=True)
         asc = plotting_engine.__module__.split(".")[1] == "plots_mpl"
         order = (
             df.groupby("PredictorName")["PerformanceBin"]
