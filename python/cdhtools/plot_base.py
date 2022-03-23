@@ -787,7 +787,7 @@ class Plots:
         -------
         plt.Axes
         """
-        if kwargs.get("plotting_engine") != "mpl":
+        if kwargs.get("plotting_engine", self.plotting_engine) != "mpl":
             print("Plot is only available in matplotlib.")
 
         table = "combinedData"
@@ -856,7 +856,7 @@ class Plots:
         -------
         go.FigureWidget
         """
-        if kwargs.get("plotting_engine") != "plotly":
+        if kwargs.get("plotting_engine", self.plotting_engine) != "plotly":
             print("Plot is only available in Plotly.")
 
         table = "modelData"
@@ -908,7 +908,7 @@ class Plots:
          -------
         go.FigureWidget
         """
-        if kwargs.get("plotting_engine") != "plotly":
+        if kwargs.get("plotting_engine", self.plotting_engine) != "plotly":
             print("Plot is only available in Plotly.")
         table = "modelData"
         last = True

@@ -946,7 +946,7 @@ class ADMDatamart(Plots):
 
     @staticmethod
     def models_by_positives_df(df: pd.DataFrame, by: str = "Channel") -> pd.DataFrame:
-        modelsByPositives = df[[by, "Positives", "ModelID"]]
+        modelsByPositives = df[[by, "Positives", "ModelID"]].reset_index()
         modelsByPositives.loc[:, "PositivesBin"] = pd.cut(
             modelsByPositives["Positives"],
             bins=[list(range(0, 210, 10)) + [np.inf]][0],

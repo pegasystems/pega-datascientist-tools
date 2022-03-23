@@ -44,7 +44,7 @@ class ADMVisualisations:
         query=None,
         title=None,
         file_title=None,
-        file_path="findings",
+        file_path=".",
         show_each=False,
         image_format=None,
         to_html=False,
@@ -57,7 +57,7 @@ class ADMVisualisations:
         if to_html:  # pragma: no cover
             filename = (
                 f"{name}_{title}"
-                if file_title == None
+                if file_title is None
                 else f"{name}_{file_title}_{title}"
             )
             fig.write_html(f"{file_path}/{filename}.html")
