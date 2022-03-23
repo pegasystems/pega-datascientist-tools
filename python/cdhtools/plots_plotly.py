@@ -342,7 +342,6 @@ class ADMVisualisations:
     def PredictorBinning(
         self,
         df,
-        modelName,
         **kwargs,
     ):
         """Show predictor graphs for a given model
@@ -374,11 +373,13 @@ class ADMVisualisations:
                 f"Warning: will create {df.PredictorName.nunique()} plots. Set 'show_each' argument to False to return plots as list, so you can view them one by one."
             )
         figlist = []
-        for name, group in df.groupby("PredictorName"):
-            title = f"Model name: {modelName}<br>Predictor name: {name}"
-            fig = self.distribution_graph(group, title)
-            fig = self.post_plot(fig, name="Predictor_binning", **kwargs)
-            figlist.append(fig)
+        for modelid, modelidgroup in df.groupby("ModelID"):
+            modelname = modelidgroup.ModelName.unique()[0]
+            for predictor, predictorgroup in modelidgroup.groupby("PredictorName"):
+                title = f"Model name: {modelname}<br><sup>Model ID: {modelid}<br>Predictor name: {predictor}</sup>"
+                fig = self.distribution_graph(predictorgroup, title)
+                fig = self.post_plot(fig, name="Predictor_binning", **kwargs)
+                figlist.append(fig)
 
         return figlist if len(figlist) > 1 else figlist[0]
 
@@ -713,16 +714,19 @@ class ADMVisualisations:
         """
 
         context_keys = [px.Constant("All contexts")] + context_keys
-        colorscale = ["#d91c29", "#F76923", "#20aa50"]
+        colorscale = kwargs.pop("colorscale", ["#d91c29", "#F76923", "#20aa50"])
+
+        range_color = None
 
         if color == "Performance weighted mean":
             colorscale = [
                 (0, "#d91c29"),
                 (kwargs.get("midpoint", 0.01), "#F76923"),
-                (kwargs.get("acceptable", 0.6), "#20aa50"),
+                (kwargs.get("acceptable", 0.6) / 2, "#20aa50"),
                 (0.8, "#20aa50"),
-                (1, "#20aa50"),
+                (1, "#0000FF"),
             ]
+            range_color = [0.5, 1]
 
         elif log:
             color = np.where(
@@ -735,7 +739,11 @@ class ADMVisualisations:
 
         if midpoint is not None:
             midpoint = np.quantile(color, midpoint)
-            colorscale = [(0, "#d91c29"), (midpoint, "#F76923"), (1, "#20aa50")]
+            colorscale = [
+                (0, colorscale[0]),
+                (midpoint, colorscale[1]),
+                (1, colorscale[2]),
+            ]
 
         hover_data = {
             "Model count": ":.d",
@@ -754,6 +762,7 @@ class ADMVisualisations:
             title=f"{title}",
             hover_data=hover_data,
             color_continuous_scale=colorscale,
+            range_color=range_color,
         )
         fig.update_coloraxes(reversescale=reverse_scale)
 

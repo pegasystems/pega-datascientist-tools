@@ -443,7 +443,6 @@ class ADMVisualisations:
     def PredictorBinning(
         self,
         df,
-        modelName,
         query: Union[str, dict] = None,
         figsize: tuple = (10, 5),
         **kwargs,
@@ -470,9 +469,12 @@ class ADMVisualisations:
         -------
         plt.figure
         """
-        for pred, data in df.groupby("PredictorName"):
-            title = f"Model name: {modelName}\nPredictor name: {pred}"
-            self.distribution_graph(data, title, figsize)
+
+        for modelid, modelidgroup in df.groupby("ModelID"):
+            modelname = modelidgroup.ModelName.unique()[0]
+            for predictor, predictorgroup in modelidgroup.groupby("PredictorName"):
+                title = f"Model name: {modelname}\nModel ID: {modelid}\nPredictor name: {predictor}"
+                self.distribution_graph(predictorgroup, title, figsize)
 
     def PredictorPerformance(
         self,

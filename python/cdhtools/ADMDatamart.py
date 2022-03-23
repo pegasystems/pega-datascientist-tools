@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import re
 import copy
-from typing import Optional, Tuple, Union
+from typing import NoReturn, Optional, Tuple, Union
 import json
 
 
@@ -19,7 +19,7 @@ class ADMDatamart(Plots):
         self,
         path: str = ".",
         overwrite_mapping: Optional[dict] = None,
-        query=None,
+        query: Union[str, dict[str, list]] = None,
         plotting_engine="plotly",
         **kwargs,
     ):
@@ -27,15 +27,26 @@ class ADMDatamart(Plots):
 
         Parameters
         ----------
-        path : str
+        path : str, default = "."
             The path of the data files
-            Default = current path ('.')
-        overwrite_mapping : dict
+        overwrite_mapping : dict, default = None
             A dictionary to overwrite default feature names in the input data
-            Default = None
+        query : Union[str, dict], default = None
+            The query to supply to _apply_query
+            If a string, uses the default Pandas query function
+            Else, a dict of lists where the key is the column name of the dataframe
+            and the corresponding value is a list of values to keep in the dataframe
+            Can be applied to an individual function, or used here to apply to the whole dataset
+        plotting_engine : str, default = "plotly"
+            Either 'mpl' for matplotlib, or 'plotly' for plotly.
+            Determines what package to use for plotting.
+            Can also be supplied to most plotting functions directly.
+
 
         Keyword arguments
         -----------------
+        verbose : bool
+            Whether to print out information during importing
         model_filename : str
             The name, or extended filepath, towards the model file
         predictor_filename : str
@@ -44,8 +55,41 @@ class ADMDatamart(Plots):
             Optional override to supply a dataframe instead of a file
         predictor_df : pd.DataFrame
             Optional override to supply a dataframe instead of a file
-        subset : bool
-            Whether to only select the renamed columns or retain them all
+        subset : bool, default = True
+            Whether to only select the renamed columns,
+            set to False to keep all columns
+        drop_cols = list
+            Supply columns to drop from the dataframe
+        prequery : str
+            A way to apply a query to the data before any preprocessing
+            Uses the Pandas querying function, and beware that the columns
+            have not been renamed, so use the original naming
+        context_keys : list
+            Which columns to use as context keys
+        extract_treatment : str
+            Treatments are typically hidden within the pyName column,
+            extract_treatment can expand that cell to also show treatments.
+            To extract, give the column name as the 'extract_treatment' argument
+        force_pandas : bool
+            If pyarrow is installed, you can force the import through Pandas
+
+        Additional keyword arguments
+        ----------------------------
+        Depending on the importing function, typically it is possible to
+        supply more arguments. For instance, if the importing is done through
+        Pandas (because pyarrow is not installed or through force_pandas),
+        you can supply the column separator from the pandas function as a keyword argument
+
+        Properties
+        ----------
+        modelData : pd.DataFrame
+            If available, holds the preprocessed data about the models
+        predictorData : pd.DataFrame
+            If available, holds the preprocessed data about the predictor binning
+        combinedData : pd.DataFrame
+            If both modelData and predictorData are available,
+            holds the merged data about the models and predictors
+
 
         Examples
         --------
@@ -89,10 +133,17 @@ class ADMDatamart(Plots):
         subset: bool = True,
         model_df: Optional[pd.DataFrame] = None,
         predictor_df: Optional[pd.DataFrame] = None,
-        query: Union[str, dict] = None,
+        query: Union[str, dict[str, list]] = None,
         **kwargs,
-    ) -> pd.DataFrame:
+    ) -> Union[pd.DataFrame, pd.DataFrame]:
         """Method to automatically import & format the relevant data.
+
+        The method first imports the model data, and then the predictor data.
+        If model_df or predictor_df is supplied, it will use those instead
+        After reading, some additional values (such as success rate) are
+        automatically computed.
+        Lastly, if there are missing columns from both datasets,
+        this will be printed to the user if verbose is True.
 
         Parameters
         ----------
@@ -102,11 +153,23 @@ class ADMDatamart(Plots):
         overwrite_mapping : dict
             A dictionary to overwrite default feature names in the input data
             Default = None
+        subset : bool, default = True
+            Whether to only select the renamed columns,
+            set to False to keep all columns
+        model_df : pd.DataFrame
+            Optional override to supply a dataframe instead of a file
+        predictor_df : pd.DataFrame
+            Optional override to supply a dataframe instead of a file
+        query : Union[str, dict], default = None
+            The query to supply to _apply_query
+            If a string, uses the default Pandas query function
+            Else, a dict of lists where the key is the column name of the dataframe
+            and the corresponding value is a list of values to keep in the dataframe
 
         Returns
         -------
-        pd.DataFrame
-            A merged dataframe with all available data
+        (pd.DataFrame, pd.DataFrame)
+            The model data and predictor binning data as dataframes
         """
         verbose = kwargs.pop("verbose", True)
         model_filename = kwargs.pop("model_filename", "modelData")
@@ -150,6 +213,7 @@ class ADMDatamart(Plots):
                 verbose=verbose,
                 **kwargs,
             )
+        # print("HEBBEN WE TIMESTAMPS?", df2.SnapshotTime.head(3))
         if df2 is not None:
             if "BinResponseCount" not in df2.columns:
                 df2["BinResponseCount"] = df2["BinPositives"] + df2["BinNegatives"]
@@ -161,7 +225,6 @@ class ADMDatamart(Plots):
             df2["BinAdjustedPropensity"] = (0.5 + df2["BinPositives"]) / (
                 1 + df2["BinResponseCount"]
             )
-
         if df1 is not None and df2 is not None:
             total_missing = set(self.missing_model) & set(self.missing_preds) - set(
                 df1.columns
@@ -178,14 +241,61 @@ class ADMDatamart(Plots):
 
     def _import_utils(
         self,
-        name,
-        path=None,
-        overwrite_mapping=None,
-        subset=True,
-        query=None,
-        verbose=True,
+        name: Union[str, pd.DataFrame],
+        path: str = None,
+        overwrite_mapping: dict = None,
+        subset: bool = True,
+        query: Union[str, dict[str, list]] = None,
+        verbose: bool = True,
         **kwargs,
-    ):
+    ) -> Tuple[pd.DataFrame, dict, dict]:
+        """Handler function to interface to the cdh_utils methods
+
+        Parameters
+        ----------
+        name : Union[str, pd.DataFrame]
+            One of {modelData, predictorData}
+            or a dataframe
+        path: str, default = None
+            The path of the data file
+        overwrite_mapping : dict, default = None
+            A dictionary to overwrite default feature names in the input data
+        subset : bool, default = True
+            Whether to only select the renamed columns,
+            set to False to keep all columns
+        query : Union[str, dict], default = None
+            The query to supply to _apply_query
+            If a string, uses the default Pandas query function
+            Else, a dict of lists where the key is the column name of the dataframe
+            and the corresponding value is a list of values to keep in the dataframe
+        verbose : bool
+            Whether to print out information during importing
+
+        Keyword arguments
+        -----------------
+        drop_cols = list
+            Supply columns to drop from the dataframe
+        prequery : str
+            A way to apply a query to the data before any preprocessing
+            Uses the Pandas querying function, and beware that the columns
+            have not been renamed, so use the original naming
+        extract_treatment : str
+            Treatments are typically hidden within the pyName column,
+            extract_treatment can expand that cell to also show treatments.
+            To extract, give the column name as the 'extract_treatment' argument
+
+        Additional keyword arguments
+        -----------------
+        See readDSExport in cdh_utils
+
+        Returns
+        -------
+        (pd.DataFrame, dict, dict)
+            The requested dataframe,
+            The renamed columns
+            The columns missing in both dataframes
+        """
+
         extract_col = kwargs.pop("extract_treatment", None)
         drop_cols = kwargs.pop("drop_cols", None)
         if isinstance(name, str):
@@ -196,7 +306,6 @@ class ADMDatamart(Plots):
             df = name
         if not isinstance(df, pd.DataFrame):
             return None, None, None
-
         df = self.fix_pdc(df)
 
         if not isinstance(overwrite_mapping, dict):
@@ -237,7 +346,9 @@ class ADMDatamart(Plots):
         df, renamed, missing = self._available_columns(df, overwrite_mapping)
         if subset:
             df = df[renamed.values()]
+
         df = self._set_types(df, verbose)
+
         if query is not None:
             try:
                 df = self._apply_query(df, query)
@@ -251,7 +362,6 @@ class ADMDatamart(Plots):
                 and thus can't be succesful for the other one. That should be fine
                 as the other table is likely queried correctly."""
                     )
-
         return df, renamed, missing
 
     def _available_columns(
@@ -390,6 +500,8 @@ class ADMDatamart(Plots):
         ----------
         df : pd.DataFrame
             The input dataframe
+        verbose: bool, default = True
+            Whether to print out issues with casting variable types
 
         Returns
         -------
@@ -427,6 +539,19 @@ class ADMDatamart(Plots):
         return df
 
     def last(self, table="modelData") -> pd.DataFrame:
+        """Convenience function to get the last values for a table
+
+        Parameters
+        ----------
+        table : str, default = modelData
+            Which table to get the last values for
+            One of {modelData, predictorData, combinedData}
+
+        Returns
+        -------
+        pd.DataFrame
+            The last snapshot for each model
+        """
 
         if isinstance(table, pd.DataFrame):
             return self._last(table)
@@ -437,16 +562,16 @@ class ADMDatamart(Plots):
 
     @staticmethod
     def _last(df: pd.DataFrame) -> pd.DataFrame:
-        """Property to retrieve only the last values for a given dataframe."""
+        """Method to retrieve only the last values for a given dataframe."""
         # NOTE Maybe we don't need to groupby predictorname
+        df = copy.deepcopy(df)
         if "PredictorName" in df.columns:
-            return (
-                df.sort_values("SnapshotTime")
-                .groupby(["ModelID", "PredictorName", "BinIndex"])
-                .last()
-                .reset_index()
+            lastTimestamp = str(
+                list(df.sort_values("SnapshotTime")["SnapshotTime"][-1:])[0]
             )
-        if "PredictorName" not in df.columns:
+            return df.query(f"SnapshotTime == '{lastTimestamp}'")
+
+        elif "PredictorName" not in df.columns:
             return (
                 df.sort_values("SnapshotTime").groupby(["ModelID"]).last().reset_index()
             )
@@ -471,7 +596,6 @@ class ADMDatamart(Plots):
         pd.DataFrame
             The combined dataframe
         """
-        # TODO: actives only as parameter
         models = (
             self.last(self.modelData)
             if last
@@ -486,11 +610,11 @@ class ADMDatamart(Plots):
             if predictorData is None
             else predictorData
         )
-        combined = models.merge(preds, on="ModelID", how="right", suffixes=("", "Bin"))
+        combined = models.merge(preds, on="ModelID", how="left", suffixes=("", "Bin"))
         return combined
 
     @staticmethod
-    def fix_pdc(df):
+    def fix_pdc(df: pd.DataFrame) -> pd.DataFrame:
         if not list(df.columns) == ["pxObjClass", "pxResults"]:
             return df
         df = pd.json_normalize(df["pxResults"]).dropna()
@@ -498,8 +622,8 @@ class ADMDatamart(Plots):
         return df.reset_index(drop=True)
 
     @staticmethod
-    def defaultPredictorCategorization(name: str) -> str:
-        raise NotImplementedError("Will be added soon.")
+    def defaultPredictorCategorization(x: str) -> str:
+        return x.split(".")[0] if len(x.split(".")) > 0 else "Primary"
 
     @staticmethod
     def _apply_query(df, query: Union[str, dict] = None) -> pd.DataFrame:
@@ -533,6 +657,7 @@ class ADMDatamart(Plots):
 
     @staticmethod
     def load_if_json(extracted, extract_col="pyname"):
+        """Either extracts the whole column, or just the json strings"""
         try:
             ret = json.loads(extracted)
             return {k.lower(): v for k, v in ret.items()}
@@ -540,6 +665,7 @@ class ADMDatamart(Plots):
             return {extract_col.lower(): extracted}
 
     def extract_treatments(self, df, extract_col):
+        """Simple function to extract treatments from column"""
         try:
             df = pd.json_normalize(df[extract_col].apply(json.loads), max_level=1)
             df.columns = [col.lower() for col in df.columns]
@@ -656,8 +782,8 @@ class ADMDatamart(Plots):
 
     @staticmethod
     def _calculate_impact_influence(
-        df: pd.DataFrame, context_keys=None, ModelID: str = None
-    ):
+        df: pd.DataFrame, context_keys: list = None, ModelID: str = None
+    ) -> pd.DataFrame:
         def _ImpactInfluence(X):
             d = {}
             d["Impact(%)"] = X["absIc"].max()
@@ -684,7 +810,9 @@ class ADMDatamart(Plots):
         )
         return df.sort_values(["PredictorName", "Impact(%)"], ascending=[False, False])
 
-    def model_summary(self, by="ModelID", query=None, **kwargs):
+    def model_summary(
+        self, by: str = "ModelID", query: Union[str, dict] = None, **kwargs
+    ):
         """Convenience method to automatically generate a summary over models
         By default, it summarizes ResponseCount, Performance, SuccessRate & Positives by model ID.
         It also adds weighted means for Performance and SuccessRate,
@@ -692,6 +820,8 @@ class ADMDatamart(Plots):
 
         Parameters
         ----------
+        by: str, default = ModelID
+            By what column to summarize the models
         query : Union[str, dict]
             The query to supply to _apply_query
             If a string, uses the default Pandas query function
@@ -768,7 +898,8 @@ class ADMDatamart(Plots):
         return summary
 
     @staticmethod
-    def pivot_df(df):
+    def pivot_df(df: pd.DataFrame) -> pd.DataFrame:
+        """Simple function to extract pivoted information"""
         df1 = df.query('PredictorName != "Classifier"')
         pivot_df = df1.pivot_table(
             index="ModelName", columns="PredictorName", values="PerformanceBin"
@@ -792,7 +923,8 @@ class ADMDatamart(Plots):
         return pivot_df
 
     @staticmethod
-    def response_gain_df(df, by="Channel"):
+    def response_gain_df(df: pd.DataFrame, by: str = "Channel") -> pd.DataFrame:
+        """Simple function to extract the response gain per model"""
         responseGainData = (
             df.groupby([by, "ModelID"])
             .agg({"ResponseCount": "max"})
@@ -813,7 +945,7 @@ class ADMDatamart(Plots):
         return responseGainData
 
     @staticmethod
-    def models_by_positives_df(df, by="Channel"):
+    def models_by_positives_df(df: pd.DataFrame, by: str = "Channel") -> pd.DataFrame:
         modelsByPositives = df[[by, "Positives", "ModelID"]]
         modelsByPositives.loc[:, "PositivesBin"] = pd.cut(
             modelsByPositives["Positives"],
@@ -841,7 +973,7 @@ class ADMDatamart(Plots):
         modelsByPositives = modelsByPositives.sort_values("PositivesBin")
         return modelsByPositives
 
-    def get_model_stats(self, last=True):
+    def get_model_stats(self, last: bool = True) -> dict:
         if self.modelData is None:
             raise ValueError("No model data to analyze.")
 
@@ -884,13 +1016,15 @@ class ADMDatamart(Plots):
         self.model_stats = ret
         return ret
 
-    def describe_models(self, **kwargs):
+    def describe_models(self, **kwargs) -> NoReturn:
+        """Convenience method to quickly summarize the models"""
         if not hasattr(self, "model_stats"):
             self.get_model_stats(last=True)
-        assert {"models_total", "models_empty"}.issubset(self.model_stats.keys())
-        show_all_missing = kwargs.pop("show_all_missing", True)
+        assert {"models_empty"}.issubset(self.model_stats.keys())
+        show_all_missing = kwargs.get("show_all_missing", True)
+        nmodels = self.model_stats.get("models_total")
+
         ret = ""
-        nmodels = self.model_stats.pop("models_total")
         ret += f"""From all {nmodels} models:
 {len(self.model_stats['models_empty'])} ({round(len(self.model_stats['models_empty'])/nmodels*100,2)}%) models have never recieved a response.
 {len(self.model_stats['models_nopositives'])} ({round(len(self.model_stats['models_nopositives'])/nmodels*100,2)}%) models have been used but never recieved a 'positive' response.

@@ -17,13 +17,14 @@ import datetime
 from io import BytesIO
 import urllib.request
 import http
+import pytz
 
 
 def readDSExport(
     filename: Union[pd.DataFrame, str],
     path: str = ".",
     verbose: bool = True,
-    force_pandas=False,
+    force_pandas: bool = False,
     **kwargs,
 ) -> pd.DataFrame:
     """Read a Pega dataset export file.
@@ -43,9 +44,9 @@ def readDSExport(
         or a string, in which case it can either be:
         - The name of the file (if a custom name) or
         - Whether we want to look for 'modelData' or 'predictorData' in the path folder.
-    path : str, default='.'
+    path : str, default = '.'
         The location of the file
-    verbose : bool, default=True
+    verbose : bool, default = True
         Whether to print out which file will be imported
 
     Keyword arguments:
@@ -195,7 +196,7 @@ def readZippedFile(file: str, verbose: bool = False) -> pd.DataFrame:
                 try:
                     from pyarrow import json
 
-                    return json.read_json(zippedfile).to_pandas() # pragma: no cover
+                    return json.read_json(zippedfile).to_pandas()  # pragma: no cover
                 except ImportError:  # pragma: no cover
                     try:
                         dataset = pd.read_json(zippedfile, lines=True)
@@ -229,7 +230,7 @@ def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
     target : str in ['modelData', 'predictorData']
         Whether to look for data about the predictive models ('modelData')
         or the predictor bins ('predictorData')
-    verbose : bool, default=False
+    verbose : bool, default = False
         Whether to print all found files before comparing name criteria for debugging purposes
 
     Returns
@@ -288,7 +289,17 @@ def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
         return None
 
     paths = [os.path.join(path, name) for name in matches]
-    return max(paths, key=os.path.getctime)  # TODO check for latest timestamp
+
+    def f(x):
+        try:
+            return fromPRPCDateTime(re.search("\d.*GMT", x)[0].replace("_", " "))
+        except:
+            return pytz.timezone("GMT").localize(
+                datetime.datetime.fromtimestamp(os.path.getctime(x))
+            )
+
+    dates = np.array([f(i) for i in paths])
+    return paths[np.argmax(dates)]  
 
 
 def safe_range_auc(auc: float) -> float:
@@ -413,7 +424,6 @@ def fromPRPCDateTime(
         >>> fromPRPCDateTime("20180316T184127.846")
         >>> fromPRPCDateTime("20180316T184127.846", True)
     """
-    import pytz
 
     timezonesplits = x.split(" ")
 
