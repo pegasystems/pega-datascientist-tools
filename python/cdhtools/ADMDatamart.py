@@ -307,6 +307,8 @@ class ADMDatamart(Plots):
         if not isinstance(df, pd.DataFrame):
             return None, None, None
         df = self.fix_pdc(df)
+        self.after_pdf_fix = df
+        print(df.columns)
 
         if not isinstance(overwrite_mapping, dict):
             overwrite_mapping = {}
@@ -392,7 +394,7 @@ class ADMDatamart(Plots):
             "Direction": ["Direction"],
             "ModelName": ["Name", "ModelName"],
             "Positives": ["Positives"],
-            "Configuration": ["ConfigurationName"],
+            "Configuration": ["ConfigurationName", "Configuration"],
             "ResponseCount": ["Response", "Responses", "ResponseCount"],
             "SnapshotTime": ["ModelSnapshot", "SnapshotTime"],
             "PredictorName": ["PredictorName"],
@@ -419,10 +421,8 @@ class ADMDatamart(Plots):
 
             for key, name in overwrite_mapping.items():
                 name = self._capitalize([name])[0]
-                if key not in default_names.keys():
-                    default_names[key] = [name]
-                else:
-                    default_names[key].insert(0, name)
+                default_names[key] = [name]
+
         variables = copy.deepcopy(default_names)
         for key, values in default_names.items():
             variables[key] = [name for name in values if name in df.columns]
@@ -619,7 +619,16 @@ class ADMDatamart(Plots):
         if not list(df.columns) == ["pxObjClass", "pxResults"]:
             return df
         df = pd.json_normalize(df["pxResults"]).dropna()
-        df = df.rename(columns={"ModelName": "Configuration"})
+        df.rename(
+            columns={
+                "ModelName": "Configuration",
+                "ResponseCount": "DailyResponseCount",
+                "Positives": "DailyPositives",
+                "TotalPositives": "Positives",
+                "TotalResponses": "ResponseCount",
+            },
+            inplace=True,
+        )
         return df.reset_index(drop=True)
 
     @staticmethod
