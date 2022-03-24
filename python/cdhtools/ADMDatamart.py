@@ -213,7 +213,6 @@ class ADMDatamart(Plots):
                 verbose=verbose,
                 **kwargs,
             )
-        # print("HEBBEN WE TIMESTAMPS?", df2.SnapshotTime.head(3))
         if df2 is not None:
             if "BinResponseCount" not in df2.columns:
                 df2["BinResponseCount"] = df2["BinPositives"] + df2["BinNegatives"]
@@ -308,7 +307,6 @@ class ADMDatamart(Plots):
             return None, None, None
         df = self.fix_pdc(df)
         self.after_pdf_fix = df
-        print(df.columns)
 
         if not isinstance(overwrite_mapping, dict):
             overwrite_mapping = {}
