@@ -527,19 +527,22 @@ class ADMVisualisations:
 
             fig = px.imshow(
                 df.T,
-                text_auto=".0%",
+                text_auto=kwargs.get("text_format", ".0%"),
                 aspect="auto",
-                color_continuous_scale=[
-                    (0, "#d91c29"),
-                    (kwargs.get("midpoint", 0.01), "#F76923"),
-                    (kwargs.get("acceptable", 0.6) / 2, "#20aa50"),
-                    (0.8, "#20aa50"),
-                    (1, "#0000FF"),
-                ],
+                color_continuous_scale=kwargs.get(
+                    "colorscale",
+                    [
+                        (0, "#d91c29"),
+                        (kwargs.get("midpoint", 0.01), "#F76923"),
+                        (kwargs.get("acceptable", 0.6) / 2, "#20aa50"),
+                        (0.8, "#20aa50"),
+                        (1, "#0000FF"),
+                    ],
+                ),
                 facet_col=facet,
                 facet_col_wrap=5,
                 title=f'Top predictors {title} {kwargs.get("title_text","")}',
-                range_color=[0.5, 1],
+                range_color=kwargs.get("range", [0.5, 1]),
             )
             fig.update_yaxes(dtick=1, automargin=True)
             fig.update_xaxes(dtick=1, tickangle=kwargs.get("tickangle", None))

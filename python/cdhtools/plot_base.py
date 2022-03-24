@@ -599,6 +599,7 @@ class Plots:
     def plotPredictorPerformance(
         self,
         top_n: int = 0,
+        active_only: bool = False,
         query: Union[str, dict] = None,
         facets: Optional[list] = None,
         **kwargs,
@@ -610,8 +611,10 @@ class Plots:
 
         Parameters
         ----------
-        top_n:
+        top_n: int, default = 0
             How many of the top predictors to show in the plot
+        active_only: bool, default = False
+            Whether to only plot active predictors
         query: Union[str, dict], default = None
             The query to supply to _apply_query
             If a string, uses the default Pandas query function
@@ -650,7 +653,9 @@ class Plots:
         table = "combinedData"
         last = True
         required_columns = {"Channel", "PredictorName", "PerformanceBin", "Type"}
-        df = self._subset_data(table, required_columns, query, last=last)
+        df = self._subset_data(
+            table, required_columns, query, last=last, active_only=active_only
+        )
         df = df.query("PredictorName != 'Classifier'").reset_index(drop=True)
 
         if top_n > 0:
@@ -691,6 +696,7 @@ class Plots:
     def plotPredictorPerformanceHeatmap(
         self,
         top_n: int = 0,
+        active_only: bool = False,
         query: Union[str, dict] = None,
         facets: list = None,
         **kwargs,
@@ -702,8 +708,10 @@ class Plots:
 
         Parameters
         ----------
-        top_n:
+        top_n: int, default = 0
             How many of the top predictors to show in the plot
+        active_only: bool, default = False
+            Whether to only plot active predictors
         query: Union[str, dict], default = None
             The query to supply to _apply_query
             If a string, uses the default Pandas query function
@@ -737,7 +745,9 @@ class Plots:
         )()
         table = "combinedData"
         required_columns = {"PredictorName", "ModelName", "PerformanceBin"}
-        df = self._subset_data(table, required_columns, query, last=True)
+        df = self._subset_data(
+            table, required_columns, query, active_only=active_only, last=True
+        )
         df = df[df["PredictorName"] != "Classifier"].reset_index(drop=True)
 
         df = self.pivot_df(df)
