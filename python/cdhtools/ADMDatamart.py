@@ -330,17 +330,9 @@ class ADMDatamart(Plots):
                     pass
 
         if extract_col is not None and extract_col in df.columns:
-
-            if verbose:
-                print("Extracting treatments...")
-            self.extracted = self.extract_treatments(df, extract_col)
-            self.extracted.columns = ["ModelName", "Treatment"]
-            df.loc[:, extract_col] = self.extracted["ModelName"]
-            for column in self.extracted.columns:
-                if column != "ModelName":
-                    df.insert(0, column, self.extracted[column])
-                    capitalized = self._capitalize([column, ""])[0]
-                    overwrite_mapping[capitalized] = capitalized
+            df, overwrite_mapping = self.extract_treatments(
+                df.reset_index(drop=True), overwrite_mapping, extract_col, **kwargs
+            )
 
         df.columns = self._capitalize(list(df.columns))
         df, renamed, missing = self._available_columns(df, overwrite_mapping)
@@ -663,16 +655,29 @@ class ADMDatamart(Plots):
                 df = df[df[col].isin(val)]
         return df
 
-    @staticmethod
-    def load_if_json(extracted, extract_col="pyname"):
-        """Either extracts the whole column, or just the json strings"""
-        try:
-            ret = json.loads(extracted)
-            return {k.lower(): v for k, v in ret.items()}
-        except:
-            return {extract_col.lower(): extracted}
+    def extract_treatments(
+        self,
+        df,
+        overwrite_mapping,
+        extract_col,
+        names_of_extracts=["ModelName", "Treatment"],
+        verbose=True,
+        **kwargs,
+    ):
 
-    def extract_treatments(self, df, extract_col):
+        if verbose:
+            print("Extracting treatments...")
+        self.extracted = self._extract(df, extract_col)
+        self.extracted.columns = names_of_extracts
+        for column in self.extracted.columns:
+            if column in df:
+                df.drop(columns=column)
+            df.insert(0, column, self.extracted[column])
+            overwrite_mapping[column] = column
+
+        return df, overwrite_mapping
+
+    def _extract(self, df, extract_col):
         """Simple function to extract treatments from column"""
         try:
             df = pd.json_normalize(df[extract_col].apply(json.loads), max_level=1)
@@ -681,6 +686,15 @@ class ADMDatamart(Plots):
         except:
             loaded = df[extract_col].apply(self.load_if_json, extract_col)
             return pd.json_normalize(loaded)
+
+    @staticmethod
+    def load_if_json(extracted, extract_col="pyname"):
+        """Either extracts the whole column, or just the json strings"""
+        try:
+            ret = json.loads(extracted)
+            return {k.lower(): v for k, v in ret.items()}
+        except:
+            return {extract_col.lower(): extracted}
 
     class NotApplicableError(ValueError):
         pass

@@ -1015,7 +1015,7 @@ class Plots:
             "Performance weighted mean",
             "Positives sum",
         ]
-        if "OmniChannel" in df["Issue"].unique():
+        if "issue" in df.columns and "OmniChannel" in df["Issue"].unique():
             print(
                 "WARNING: This plot does not work for OmniChannel models. For that reason, we filter those out by default."
             )

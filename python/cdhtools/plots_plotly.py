@@ -327,9 +327,10 @@ class ADMVisualisations:
             if not show_zero_responses:
                 if not group["BinResponseCount"].any():  # pragma: no cover
                     pass
+            group = group.sort_values("BinIndex")
             fig = self.distribution_graph(
                 group,
-                f"Classifier score distribution<br><sup>For model ID {name}</sup>",
+                f"Classifier score distribution<br><sup>Model name: {group.ModelName.unique()[0]}<Br>Model ID {name}</sup>",
             )
             fig = self.post_plot(
                 fig,

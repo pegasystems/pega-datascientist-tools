@@ -243,7 +243,7 @@ def test_pdc_fix(test):
         }
     )
     output = ADMDatamart(model_df=pdc_extract)
-    assert output.modelData.shape == (1, 11)
+    assert output.modelData.shape == (1, 12)
 
 
 # More of the end-to-end main function tests
