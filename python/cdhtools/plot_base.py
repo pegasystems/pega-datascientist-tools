@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional, Union, Dict
 import pandas as pd
 from .plots_mpl import ADMVisualisations as mpl
 from .plots_plotly import ADMVisualisations as plotly
@@ -7,11 +7,57 @@ import plotly.graph_objs as go
 
 
 class Plots:
+    def __init__(self):
+        self.hasModels = self.modelData is not None
+        self.hasPredictorBinning = self.predictorData is not None
+        self.hasCombined = hasattr(self, "combinedData")
+        if self.hasModels:
+            self.hasMultipleSnapshots = self.modelData["SnapshotTime"].nunique() > 1
+
+    @property
+    def AvailableVisualisations(self):
+        return pd.DataFrame.from_dict(
+            {
+                "plotPerformanceSuccessRateBubbleChart": [1, 0, 0],
+                "plotPerformanceAndSuccessRateOverTime": [1, 0, 1],
+                "plotOverTime": [1, 0, 1],
+                "plotResponseCountMatrix": [1, 0, 1],
+                "plotPropositionSuccessRates": [1, 0, 0],
+                "plotScoreDistribution": [1, 1, 0],
+                "plotPredictorBinning": [1, 1, 0],
+                "plotPredictorPerformance": [1, 1, 0],
+                "plotPredictorPerformanceHeatmap": [1, 1, 0],
+                "plotImpactInfluence": [1, 1, 0],
+                "plotResponseGain": [1, 0, 0],
+                "plotModelsByPositives": [1, 0, 0],
+                "plotTreeMap": [1, 0, 0],
+            },
+            orient="index",
+            columns=["modelData", "predictorData", "Multiple snapshots"],
+        )
+
+    @property
+    def ApplicableVisualisations(self):
+        df = self.AvailableVisualisations
+        if not self.hasModels:
+            df = df.query("modelData == 0")
+        if not self.hasPredictorBinning:
+            df = df.query("predictorData == 0")
+        if not self.hasMultipleSnapshots:
+            df = df.query("`Multiple snapshots` == 0")
+        return list(df.index)
+
+    def plotApplicable(self):
+        allplots = []
+        for plot in self.ApplicableVisualisations:
+            allplots.append(eval(str("self." + plot))())
+        return allplots
+
     def _subset_data(
         self,
         table: str,
         required_columns: set,
-        query: Union[str, dict[str, list]] = None,
+        query: Union[str, Dict[str, list]] = None,
         multi_snapshot: bool = False,
         last: bool = False,
         active_only: bool = False,

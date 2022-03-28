@@ -1,4 +1,4 @@
-from typing import NoReturn, Tuple, Union
+from typing import Dict
 
 # Don't want to, but Plotly needs to update in order to remove FutureWarnings.
 import warnings
@@ -31,6 +31,7 @@ class ADMVisualisations:
         fig.update_layout(
             template="none", title=title, xaxis_title="Range", yaxis_title="Responses"
         )
+        fig.update_yaxes(title_text="Propensity", secondary_y=True)
         fig.layout.yaxis2.tickformat = ",.0%"
         fig.layout.yaxis2.zeroline = False
         fig.update_yaxes(showgrid=False)
@@ -225,6 +226,7 @@ class ADMVisualisations:
                 print(
                     f"Warning: plotting this much data ({len(df)} rows) will probably be slow while not providing many insights. Consider filtering the data by either limiting the number of models, filtering on SnapshotTime or facetting."
                 )
+            df = df.sort_values(by="SnapshotTime")
             fig = px.line(
                 df,
                 x="SnapshotTime",
@@ -525,7 +527,8 @@ class ADMVisualisations:
             assert version.parse(plotly.__version__) >= version.parse(
                 "5.5.0"
             ), f"Visualisation requires plotly version 5.5.0 or later (you have version {plotly.__version__}): please upgrade to a newer version."
-
+            if kwargs.get("reindex", None) is not None:
+                df = df.reindex(kwargs["reindex"])
             fig = px.imshow(
                 df.T,
                 text_auto=kwargs.get("text_format", ".0%"),
@@ -543,7 +546,7 @@ class ADMVisualisations:
                 facet_col=facet,
                 facet_col_wrap=5,
                 title=f'Top predictors {title} {kwargs.get("title_text","")}',
-                range_color=kwargs.get("range", [0.5, 1]),
+                range_color=kwargs.get("range_color", [0.5, 1]),
             )
             fig.update_yaxes(dtick=1, automargin=True)
             fig.update_xaxes(dtick=1, tickangle=kwargs.get("tickangle", None))
@@ -730,7 +733,7 @@ class ADMVisualisations:
                 (0.8, "#20aa50"),
                 (1, "#0000FF"),
             ]
-            range_color = [0.5, 1]
+            range_color = kwargs.get("range_color", [0.5, 1])
 
         elif log:
             color = np.where(

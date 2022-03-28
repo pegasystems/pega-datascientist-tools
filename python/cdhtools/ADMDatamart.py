@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import re
 import copy
-from typing import NoReturn, Optional, Tuple, Union
+from typing import NoReturn, Optional, Tuple, Union, Dict
 import json
 
 
@@ -19,7 +19,7 @@ class ADMDatamart(Plots):
         self,
         path: str = ".",
         overwrite_mapping: Optional[dict] = None,
-        query: Union[str, dict[str, list]] = None,
+        query: Union[str, Dict[str, list]] = None,
         plotting_engine="plotly",
         **kwargs,
     ):
@@ -102,6 +102,9 @@ class ADMDatamart(Plots):
                     predictor_filename = "PredictorData.csv")
 
         """
+        self.context_keys = kwargs.pop(
+            "context_keys", ["Channel", "Direction", "Issue", "Group"]
+        )
         self.modelData, self.predictorData = self.import_data(
             path, overwrite_mapping=overwrite_mapping, query=query, **kwargs
         )
@@ -113,18 +116,24 @@ class ADMDatamart(Plots):
                     "Could not be combined. Do you have both model data and predictor data?"
                 )
 
-        self.context_keys = kwargs.get(
-            "context_keys", ["Channel", "Direction", "Issue", "Group"]
-        )
-
         self.plotting_engine = plotting_engine
+        super().__init__()
 
     @staticmethod
     def get_engine(plotting_engine):
-        if plotting_engine == "plotly":
+        if not isinstance(plotting_engine, str):
+            return plotting_engine
+        elif plotting_engine == "plotly":
             return plotly_plot
-        else:
+        elif plotting_engine in {"mpl", "matplotlib", "seaborn"}:
             return mpl_plot
+        else:
+            msg = (
+                f"Plotting engine {plotting_engine} not known. "
+                "Please supply your own class with function names corresponding to plot_base.py "
+                "or give one of the following strings: {'plotly', 'mpl', 'matplotlib', 'seaborn'}."
+            )
+            raise ValueError(msg)
 
     def import_data(
         self,
@@ -133,7 +142,7 @@ class ADMDatamart(Plots):
         subset: bool = True,
         model_df: Optional[pd.DataFrame] = None,
         predictor_df: Optional[pd.DataFrame] = None,
-        query: Union[str, dict[str, list]] = None,
+        query: Union[str, Dict[str, list]] = None,
         **kwargs,
     ) -> Union[pd.DataFrame, pd.DataFrame]:
         """Method to automatically import & format the relevant data.
@@ -230,10 +239,10 @@ class ADMDatamart(Plots):
             ) - set(df2.columns)
             if len(total_missing) > 0 and verbose:
                 print(
-                    f"""Missing required field values. 
-                Please check if they are available in the data, 
-                and supply a custom mapping if the naming is different from default. 
-                Missing values: {total_missing}"""
+                    "Missing expected field values.\n",
+                    "Please check if they are available in the data,\n",
+                    "and supply a custom mapping if the naming is different from default.\n",
+                    f"Missing values: {total_missing}",
                 )
 
         return df1, df2
@@ -244,7 +253,7 @@ class ADMDatamart(Plots):
         path: str = None,
         overwrite_mapping: dict = None,
         subset: bool = True,
-        query: Union[str, dict[str, list]] = None,
+        query: Union[str, Dict[str, list]] = None,
         verbose: bool = True,
         **kwargs,
     ) -> Tuple[pd.DataFrame, dict, dict]:
@@ -331,7 +340,7 @@ class ADMDatamart(Plots):
 
         if extract_col is not None and extract_col in df.columns:
             df, overwrite_mapping = self.extract_treatments(
-                df.reset_index(drop=True), overwrite_mapping, extract_col, **kwargs
+                df.reset_index(drop=True), overwrite_mapping, extract_col
             )
 
         df.columns = self._capitalize(list(df.columns))
@@ -660,20 +669,17 @@ class ADMDatamart(Plots):
         df,
         overwrite_mapping,
         extract_col,
-        names_of_extracts=["ModelName", "Treatment"],
         verbose=True,
-        **kwargs,
     ):
 
         if verbose:
             print("Extracting treatments...")
         self.extracted = self._extract(df, extract_col)
-        self.extracted.columns = names_of_extracts
+        df.columns = [i.lower() for i in df.columns]
         for column in self.extracted.columns:
-            if column in df:
-                df.drop(columns=column)
-            df.insert(0, column, self.extracted[column])
-            overwrite_mapping[column] = column
+            df.loc[:, column] = self.extracted[column]
+            if column.lower() != "pyname":
+                overwrite_mapping[column] = column
 
         return df, overwrite_mapping
 

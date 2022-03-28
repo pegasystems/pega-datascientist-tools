@@ -352,7 +352,7 @@ def test_init_models_only(cdhsample_models):
 
 
 def test_init_preds_only(cdhsample_predictors):
-    output = ADMDatamart(predictor_df=cdhsample_predictors)
+    output = ADMDatamart(model_filename=None, predictor_df=cdhsample_predictors)
     assert output.predictorData is not None
     assert output.predictorData.shape == (1755, 19)
     assert not hasattr(output, "combinedData")
