@@ -10,7 +10,7 @@ name: cdhtools
 on:
   push:
     branches:
-      - packaging
+      - master
   pull_request: null
 
 jobs:
