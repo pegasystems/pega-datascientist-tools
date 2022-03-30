@@ -53,6 +53,19 @@ class Plots:
             allplots.append(eval(str("self." + plot))())
         return allplots
 
+    @staticmethod
+    def top_n(df, top_n):
+        if top_n > 0:
+            topn = (
+                df.sort_values("PerformanceBin", ascending=False)
+                .groupby("PredictorName")
+                .mean()
+                .nlargest(top_n, "PerformanceBin")
+                .index.tolist()
+            )
+            df = df.query(f"PredictorName == {topn}").reset_index(drop=True)
+        return df
+
     def _subset_data(
         self,
         table: str,
@@ -704,17 +717,7 @@ class Plots:
         )
         df = df.query("PredictorName != 'Classifier'").reset_index(drop=True)
 
-        if top_n > 0:
-            topn = (
-                df.groupby(["Channel", "PredictorName"])["PerformanceBin"]
-                .mean()
-                .sort_values(ascending=False)
-                .head(top_n)
-                .index.get_level_values(1)
-                .tolist()
-            )
-
-            df = df.query(f"PredictorName == {topn}").reset_index(drop=True)
+        df = self.top_n(df, top_n)
         asc = plotting_engine.__module__.split(".")[1] == "plots_mpl"
         order = (
             df.groupby("PredictorName")["PerformanceBin"]

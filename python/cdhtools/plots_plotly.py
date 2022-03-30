@@ -426,6 +426,9 @@ class ADMVisualisations:
         # TODO: perhaps get top n & order per facet.
         if isinstance(facets, str) or facets is None:
             facets = [facets]
+
+        colormap = df.Legend.unique()
+
         figlist = []
         for facet in facets:
             title = "over all models" if facet == None else f"per {facet}"
@@ -435,7 +438,6 @@ class ADMVisualisations:
                 x="PerformanceBin",
                 y="PredictorName",
                 color="Legend",
-                color_discrete_map={"Primary": "Yellow", "Param": "Black"},
                 template="none",
                 title=f"Predictor performance {title} {kwargs.get('title_text','')}",
                 facet_col=facet,
@@ -467,7 +469,10 @@ class ADMVisualisations:
                 colors = px.colors.qualitative.Alphabet
 
             for i in range(len(fig.data)):
-                fig.data[i].fillcolor = colors[i]
+                color = fig.data[i].legendgroup
+                fig.data[i].fillcolor = colors[
+                    np.where(colormap == color)[0].tolist()[0]
+                ]
 
             fig.update_layout(
                 boxgap=0, boxgroupgap=0, legend_title_text="Predictor type"
