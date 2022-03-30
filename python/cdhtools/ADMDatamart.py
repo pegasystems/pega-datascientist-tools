@@ -922,7 +922,7 @@ class ADMDatamart(Plots):
         summary[("Performance", "weighted_mean")] = summary[
             ("Performance", "weighted_mean")
         ].replace(0, 0.5)
-
+        summary = summary.astype({"ResponseCount": float, "Positives": float})
         return summary
 
     @staticmethod
