@@ -465,7 +465,7 @@ class ADMVisualisations:
                 "rgb(175,161,156)",
             ]
 
-            if len(fig.data) > 9:  # pragma: no cover
+            if len(colormap) > 9:  # pragma: no cover
                 colors = px.colors.qualitative.Alphabet
 
             for i in range(len(fig.data)):
