@@ -49,10 +49,12 @@ execution mode in the dataflow specifies to keep the decision results
 
 This dataset can be exported for detailed analysis. Many reports in the 
 product are also based on the same data. VBD is one reporting and 
-aggregating mechanism on top of it.
+aggregating mechanism on top of it. The decision results are typically also 
+stored in IH and - indirectly - in the IH summaries.
 
 This notebook just shows the basics of importing this data and doing a
-(trivial) analysis.
+(trivial) analysis. Such detailed analysis is occasionally needed for 
+deeper analysis.
 
 Note that pxDecisionResults is typically very large so often not (easily)
 exportable. For analysis purposes you would typically first truncate

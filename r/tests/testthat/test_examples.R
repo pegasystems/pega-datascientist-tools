@@ -35,13 +35,12 @@ test_that("example folder exists", {
 
 test_that("expected R notebooks are there", {
   if (dir.exists(exampleFolder)) {
-    # So below will be skipped on Github actions for now
+    # Below will be skipped on Github actions for now because it only sees
+    # the R project folder, not the example folder sibling.
 
     notebooks <- list.files(exampleFolder, pattern=".Rmd", recursive = T, full.names = T)
 
-    # TODO: expecting two more (at least) now since move of off-line reports
-
-    expect_equal(7, length(notebooks), info="Number of R notebooks")
+    expect_equal(10, length(notebooks), info="Number of R notebooks")
   }
 })
 
@@ -87,11 +86,17 @@ test_that("check not sourcing CDH Tools files directly", {
       # skip files with .Rcheck in the name
       if (grepl(".Rcheck", rFile, fixed = T)) next
 
-      scanFileForSourceInclusion <- grepl("^[ ]*[^#]*source.*[(|)]", readLines(rFile))
+      scanFileForSourceInclusion <- grepl("^[ ]*[^#]*source[[:space:]]*[(|)]", readLines(rFile))
       expect_false(any(scanFileForSourceInclusion),
                    info = paste("Looks like there is a direct include of CDH tools source in", rFile,
                                 "at lines",
                                 paste(which(scanFileForSourceInclusion), collapse = ", ")))
+
+      if (any(scanFileForSourceInclusion)) {
+        grFile <<- rFile
+        print(grFile)
+        stop("Direct includes")
+      }
     }
   }
 })
