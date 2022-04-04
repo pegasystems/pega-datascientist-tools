@@ -310,6 +310,9 @@ plotSuccessRateOverTime <- function(datamart,
 #' by median. When FALSE will show as a simple bar chart and use the weighted
 #' mean (weighted by response count, which is more accurate than the box plot
 #' view).
+#' @param showAsImportance Show as univariate performance (with a meaningful
+#' x-axis) or show as global feature importance (with the x-axis a relative
+#' measure). Defaults to showing univariate importance.
 #' @param activeOnly When TRUE, only considering predictors that are active. When
 #' FALSE, using all predictors. Defaults to TRUE when the limit is positive, to
 #' FALSE when it is negative.
@@ -329,6 +332,7 @@ plotPredictorImportance <- function(datamart,
                                     categoryAggregateView = F,
                                     maxNameLength = .Machine$integer.max,
                                     showAsBoxPlot = T,
+                                    showAsImportance = F,
                                     activeOnly = (limit > 0),
                                     filter = identity)
 {
@@ -388,6 +392,15 @@ plotPredictorImportance <- function(datamart,
     return(NULL)
   }
 
+  # bit of a hack - the actual plot code continues to use "importance" but here we switch
+  # between importance and univariate performance by simply overwriting
+  if (!showAsImportance) {
+    featureImportance[, Importance := 100*Performance]
+    featureImportance[, ImportanceMedian := 100*PerformanceMedian]
+    featureImportance[, ImportanceMean := 100*PerformanceMean]
+    featureImportance[, ImportanceRank := PerformanceRank]
+  }
+
   categoryOrder <- featureImportance[, list(ImportanceMedian = median(Importance)), by=PredictorCategory][order(ImportanceMedian)]
   featureImportance[, PredictorCategory := factor(PredictorCategory, levels = categoryOrder$PredictorCategory)]
 
@@ -408,6 +421,12 @@ plotPredictorImportance <- function(datamart,
     # plt <- ggplot(featureImportance[ImportanceRank <= abs(limit)], aes(Importance, PredictorName))
   }
 
+  if (showAsImportance) {
+    plt <- plt + scale_x_continuous(limits = c(0,100), name = "Importance")
+  } else {
+    plt <- plt + scale_x_continuous(limits = c(50,NA), name = "Performance")
+  }
+
   # Aesthetics
   if (showAsBoxPlot) {
     plt <- plt + geom_boxplot(aes(fill=PredictorCategory, alpha=ImportanceMean), lwd=0.5, outlier.size = 0.1) +
@@ -417,18 +436,16 @@ plotPredictorImportance <- function(datamart,
       scale_alpha_continuous(guide="none")
   }
 
-  # TODO consider Univariate flag using Performance instead of Importance
-  # plt <- plt + xlim(c(50,NA)) +
-  #   scale_y_discrete(limits=rev, name="")
-
   # Faceting
   plt <- plt + plotsGetFacets(facets)
 
   # Titles
   if (categoryAggregateView) {
-    plt <- plt + plotsGetTitles("Predictor Category Importance", "", facets)
+    plt <- plt + plotsGetTitles(paste("Predictor Category",
+                                      ifelse(showAsImportance, "Importance", "Performance")), "", facets)
   } else {
-    plt <- plt + plotsGetTitles("Predictor Importance", "", facets, limit)
+    plt <- plt + plotsGetTitles(paste("Predictor",
+                                      ifelse(showAsImportance, "Importance", "Performance")), "", facets, limit)
   }
 
   return(plt)

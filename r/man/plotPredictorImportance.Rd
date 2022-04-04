@@ -11,6 +11,7 @@ plotPredictorImportance(
   categoryAggregateView = F,
   maxNameLength = .Machine$integer.max,
   showAsBoxPlot = T,
+  showAsImportance = F,
   activeOnly = (limit > 0),
   filter = identity
 )
@@ -35,6 +36,10 @@ they will be abbreviated.}
 by median. When FALSE will show as a simple bar chart and use the weighted
 mean (weighted by response count, which is more accurate than the box plot
 view).}
+
+\item{showAsImportance}{Show as univariate performance (with a meaningful
+x-axis) or show as global feature importance (with the x-axis a relative
+measure). Defaults to showing univariate importance.}
 
 \item{activeOnly}{When TRUE, only considering predictors that are active. When
 FALSE, using all predictors. Defaults to TRUE when the limit is positive, to

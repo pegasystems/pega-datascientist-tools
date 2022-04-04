@@ -1,4 +1,4 @@
-pandoc: 2.11.4
+pandoc: 2.14.0.3
 pkgdown: 1.6.1
 pkgdown_sha: ~
 articles:
@@ -8,5 +8,5 @@ articles:
   historical-dataset: historical-dataset.html
   ih-reporting: ih-reporting.html
   snapshots-to-scorecards: snapshots-to-scorecards.html
-last_built: 2021-12-28T12:43Z
+last_built: 2022-04-04T09:58Z
 

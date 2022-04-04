@@ -269,3 +269,11 @@ test_that("Filtering", {
   expect_equal(ncol(filterPredictorBinning(data$predictordata)), 15)
 })
 
+test_that("Predictor Categorization", {
+  expect_equal(defaultPredictorCategorization("Customer.Age"), "Customer")
+  expect_equal(defaultPredictorCategorization(""), "TopLevel")
+  expect_equal(defaultPredictorCategorization(c("Customer.Age", "Customer.Income", "Context.Clicks", "ChurnScore"),
+                                              topLevelLabel="Primary"),
+                                              c("Customer", "Customer", "Context", "Primary"))
+}
+)

@@ -236,11 +236,24 @@ hasMultipleSnapshots <- function(dt)
   return ((uniqueN(dt$SnapshotTime) > 1))
 }
 
-# Returns predictor category as the element before the first dot, or "TopLevel" if there is no dot.
-defaultPredictorCategorization <- function(p)
+#' Default predictor categorization. Return a category label given a predictor
+#' name.
+#'
+#' Returns predictor category as the text before the first dot, or the
+#' given label for toplevel if there is no dot.
+#'
+#' @param p Predictor name
+#' @param topLevelLabel Label for the items w/o a dot, defaults to "TopLevel"
+#'
+#' @return Name of the predictor category
+#' @export
+#'
+#' @examples
+#' defaultPredictorCategorization(c("Customer.Age", "ExternalScores.S1", "Income"))
+defaultPredictorCategorization <- function(p, topLevelLabel = "TopLevel")
 {
   hasDot <- grepl(".", p, fixed = T)
-  return (ifelse(hasDot, gsub("^([^.]*)\\..*$", "\\1", p), rep("TopLevel", length(p))))
+  return (ifelse(hasDot, gsub("^([^.]*)\\..*$", "\\1", p), rep(topLevelLabel, length(p))))
 }
 
 # Read CSV, JSON or parquet file from source

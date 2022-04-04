@@ -73,7 +73,7 @@ performance (by response counts in the models)." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">cdhtools</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.0.0</span>
       </span>
     </div>
 
@@ -148,6 +148,7 @@ performance (by response counts in the models).</p>
   categoryAggregateView <span class='op'>=</span> <span class='cn'>F</span>,
   maxNameLength <span class='op'>=</span> <span class='va'>.Machine</span><span class='op'>$</span><span class='va'>integer.max</span>,
   showAsBoxPlot <span class='op'>=</span> <span class='cn'>T</span>,
+  showAsImportance <span class='op'>=</span> <span class='cn'>F</span>,
   activeOnly <span class='op'>=</span> <span class='op'>(</span><span class='va'>limit</span> <span class='op'>&gt;</span> <span class='fl'>0</span><span class='op'>)</span>,
   filter <span class='op'>=</span> <span class='va'>identity</span>
 <span class='op'>)</span></pre>
@@ -186,6 +187,12 @@ they will be abbreviated.</p></td>
 by median. When FALSE will show as a simple bar chart and use the weighted
 mean (weighted by response count, which is more accurate than the box plot
 view).</p></td>
+    </tr>
+    <tr>
+      <th>showAsImportance</th>
+      <td><p>Show as univariate performance (with a meaningful
+x-axis) or show as global feature importance (with the x-axis a relative
+measure). Defaults to showing univariate importance.</p></td>
     </tr>
     <tr>
       <th>activeOnly</th>
