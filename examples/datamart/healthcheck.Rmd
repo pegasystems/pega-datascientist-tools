@@ -32,6 +32,12 @@ params:
     # different, you'll need to load, filter and re-write as CSV first.
     value: "../../data/pr_data_dm_admmart_pred.csv"
 
+  # perhaps consider supporting something like this, for now you would do this in 
+  # a separate script then call this notebook
+  # predictorclassification:
+  #   value: "External Scores = ^Param[.]Scores, Customer = ^Customer[.]"
+  #   # lapply(strsplit(params$predictorclassification, split = ","), function(s) {return(lapply(strsplit(s, "="), trimws))})
+    
   modellist:
     # Facilitates automatic generation of individual model reports (calling the
     # off-line model report notebook). Optional. When given, is the name of a 
@@ -115,7 +121,8 @@ scale_color_Channel <- scale_colour_brewer(limits=levels(datamart$modeldata$Chan
                                            name="Channel", palette="Set1", drop=T)
 scale_fill_Channel <- scale_fill_brewer(limits=levels(datamart$modeldata$Channel), 
                                         name="Channel", palette="Set1", drop=T)
-scale_fill_PredictorCategory <- scale_fill_discrete_qualitative(limits=levels(datamart$predictordata$PredictorCategory), 
+scale_fill_PredictorCategory <- scale_fill_discrete_qualitative(palette="Dark 3",
+                                                                limits=levels(datamart$predictordata$PredictorCategory), 
                                                                 name="Predictor Category", drop=T)
 
 # myColors <- brewer.pal(3, "Spectral")
@@ -128,6 +135,30 @@ scale_fill_PredictorCategory <- scale_fill_discrete_qualitative(limits=levels(da
 # library(RColorBrewer)
 # par(mar=c(3,4,2,2))
 # display.brewer.all()
+
+aggregateTreeData <- function(dt, hierarchy = intersect(c("Direction", "Channel", "Issue", "Group", "Name"), names(dt)))
+{
+  treeData <- rbindlist(lapply(0 : length(hierarchy), function(i) {
+    if (i == 0) {
+      groupingLevels <- "" # data.table supports groupby ""
+    } else {
+      groupingLevels <- hierarchy[1:i]
+    }
+    dt[, .(ResponseCount = sum(as.double(ResponseCount)),
+           MaxResponseCount = max(as.double(ResponseCount)),
+           Positives = sum(Positives),
+           SuccessRate = sum(Positives)/sum(ResponseCount),
+           Performance = weighted.mean(AUC, ResponseCount, na.rm=T),
+           TreeNodeID = paste0("/", paste(lapply(.BY, as.character), collapse="/")),
+           TreeLabel = ifelse(i==0, "All Models", as.character(lapply(.BY, as.character)[i])),
+           TreeNodeParent = ifelse(i==0, "", 
+                                   ifelse(i==1, "/",
+                                          paste0("/",
+                                                 paste(lapply(.BY, as.character)[1:(i-1)],
+                                                       collapse="/"))))), 
+       by=eval(groupingLevels)]  
+  }), fill = T)
+}
 ```
 
 # Overview of the Propositions
@@ -153,6 +184,26 @@ p <- plotPropositionSuccessRates(datamart,
 
 # ggplotly(p) %>% layout(showlegend=FALSE) # plotly no use here given the way the plot is constructed
 p
+```
+
+## Interactive Chart of Success Rates
+
+Interactive chart with all success rates. Whiter is lower success rates,
+green is higher. Indicated values are percentages.
+
+```{r}
+treeData <- aggregateTreeData(filterLatestSnapshotOnly(datamart$modeldata))
+
+fig <- plot_ly(
+  type="treemap",
+  ids=treeData$TreeNodeID,
+  labels=treeData$TreeLabel,
+  parents=treeData$TreeNodeParent,
+  values=round(100*treeData$SuccessRate,3),
+  marker=list(colorscale='Greens', reversescale = T),
+  textinfo="label+value"
+)
+fig %>% layout(title = "Success Rate")
 ```
 
 ## Proposition Success Rates over Time
@@ -314,6 +365,8 @@ if (!hasMultipleSnapshots(datamart$modeldata))
 }
 ```
 
+
+
 ## Model Performance
 
 ### Model Performance vs Proposition Success Rates (the Bubble Chart)
@@ -389,6 +442,28 @@ if (!hasMultipleSnapshots(datamart$modeldata))
 }
 ```
 
+### Model performance of all the actions (interactive Treemap)
+
+Using an interactive treemap to visualize the performance per group.
+
+```{r}
+treeData <- aggregateTreeData(filterLatestSnapshotOnly(datamart$modeldata))
+
+fig <- plot_ly(
+  type="treemap",
+  ids=treeData$TreeNodeID,
+  labels=treeData$TreeLabel,
+  parents=treeData$TreeNodeParent,
+  values=round(treeData$Performance,2),
+  # see https://plotly.com/r/builtin-colorscales/
+  # https://plotly.com/r/reference/#heatmap-colorscale
+  # https://plotly.com/r/treemaps/
+  # https://plotly.com/r/colorscales/
+  marker=list(colorscale="Viridis", reversescale = F),
+  textinfo="label+value"
+)
+fig %>% layout(title = "Model Performance")
+```
 
 ## Which Models drive most of the Volume
 
@@ -411,7 +486,7 @@ this is expected.
 
 ```{r fig.height=3, fig.width=8}
 responseGainData <- 
-  filterLatestSnapshotOnly(datamart$modeldata) [, list(Responses = max(ResponseCount), Positives = max(Positives)), 
+  filterLatestSnapshotOnly(datamart$modeldata) [, list(Responses = max(as.double(ResponseCount)), Positives = max(Positives)), 
                                                 by=c("Channel", "ModelID")]
 responseGainData <- rbindlist(list(copy(responseGainData)[, Label := "All responses"],
                                    copy(responseGainData)[, Label := "Just the Positive responses"]))
@@ -426,8 +501,8 @@ responseGainData[Label == "Just the Positive responses", TotalModelsFraction := 
 
 # make it start at 0,0
 responseGainData <- rbindlist(list(responseGainData, 
-               responseGainData[, list(TotalResponseFraction = 0, TotalModelsFraction = 0, Responses = 0, Positives = 0), 
-                 by=c("Channel", "ModelID", "Label")]), use.names = T)
+                                   responseGainData[, list(TotalResponseFraction = 0, TotalModelsFraction = 0, Responses = 0, Positives = 0), 
+                                                    by=c("Channel", "ModelID", "Label")]), use.names = T)
 
 plt <- ggplot(responseGainData, aes(TotalModelsFraction, TotalResponseFraction, color=Channel)) + 
   geom_line(size=1) +
@@ -440,6 +515,8 @@ plt <- ggplot(responseGainData, aes(TotalModelsFraction, TotalResponseFraction, 
 
 ggplotly(plt)
 ```
+
+
 
 ### Models with largest number of responses (positive or negative).
 
@@ -501,7 +578,7 @@ of AUC. Much higher AUC's are unlikely.
 ```{r fig.height=5, fig.width=8, message=FALSE, warning=FALSE}
 cumAUCOverVolumeData <- 
   filterLatestSnapshotOnly(datamart$modeldata) [, list(Performance = 100*max(Performance), 
-                                                       ResponseCount = max(ResponseCount)), 
+                                                       ResponseCount = max(as.double(ResponseCount))), 
                                                 by=c("Channel", "ModelID")]
 cumAUCOverVolumeData[, TotalResponses := sum(ResponseCount), by=Channel]
 cumAUCOverVolumeData[, PerformanceBin := cut(Performance, breaks=15)]
@@ -592,8 +669,8 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
   
   propensityDistributionData <- classifiers[,list(RelVolume = sum(BinResponseCount)/TotalVolume, 
                                                   BinVolume = sum(BinResponseCount),
-                           Propensity = max(Propensity)), 
-                     by=c("Channel", "PropensityRange", "TotalVolume")]
+                                                  Propensity = max(Propensity)), 
+                                            by=c("Channel", "PropensityRange", "TotalVolume")]
   propensityDistributionData[, CumVolume := cumsum(BinVolume), by=c("Channel")]
   propensityDistributionData[, CumFraction := 1 - CumVolume/TotalVolume]
   
@@ -644,12 +721,10 @@ The predictors are categorized (by color) by the "source". By default this takes
 just the first part before the dot, so this typically distinguishes between
 Customer, Account and IH, for example.
 
-## Predictor Importance across all models
+## Predictor Importance across all models per configuration
 
-Box plots of the predictor importance. Note that the plots use actual
-feature importance - so the importance of the predictors in the models. This
-is not exactly the same as the univariate predictor performance that you see
-in Pega, but typically the two are highly correlated.
+Box plots of the predictor importance. Importance can be shown either as
+a global feature importance or simply as the univariate predictor importance. 
 
 ```{r Univariate Predictors Boxplot}
 if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
@@ -660,12 +735,14 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
     if ("PredictorCategory" %in% names(datamart$predictordata)) {
       plt <- plotPredictorImportance(datamart,
                                      limit = params$max_predictors_in_plot, 
+                                     showAsImportance = F,
                                      filter = function(mdls) {
                                        filterLatestSnapshotOnly(mdls) [ConfigurationName==c]
                                      })
     } else {
       plt <- plotPredictorImportance(datamart,
                                      limit = params$max_predictors_in_plot,
+                                     showAsImportance = F,
                                      filter = function(mdls) {
                                        filterLatestSnapshotOnly(mdls) [ConfigurationName==c]
                                      })
@@ -688,13 +765,20 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
 ## Importance by Predictor Category
 
 Aggregating up to the category of the predictors. This gives a view at
-a glance of how well e.g. interaction history or contextual data is doing.
+a glance of how well e.g. interaction history, external model scores or contextual data are doing.
+
+By default the categorization takes the text before the first dot as the 
+predictor category, but this can easily be customized when reading the
+datamart data.
+
+### Split by Channel
 
 ```{r Univariate Predictor Category Boxplot}
 if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
   plt <- plotPredictorImportance(datamart,  
                                  categoryAggregateView = T,
                                  facets = c("Channel", "ConfigurationName"),
+                                 showAsImportance = T,
                                  filter = function(mdls) {filterLatestSnapshotOnly(mdls)} ) +
     scale_fill_PredictorCategory
   print(plt)
@@ -702,6 +786,35 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
   cat("Predictor analysis will only be available when predictor binning data is available.", fill=T)
 }
 ```
+
+### Only split by Configuration
+
+Although the same could be achieved using the standard `plotPredictorImportance` 
+method, now that we only split by Configuration this allows for a more compact visualization using
+a stacked bar chart.
+
+```{r fig.height=5, fig.width=8}
+if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
+  predCategoryOverview <- merge(filterActiveOnly(datamart$predictordata), 
+                                unique(datamart$modeldata[,c("ModelID", "ConfigurationName")]), 
+                                by="ModelID", all.x=F, all.y=F)[,.(Count = .N, Performance = sum(Performance-0.5)), by=c("PredictorCategory","ConfigurationName")]
+  # weighted.mean(Performance,ResponseCount)
+  plt <- ggplot(predCategoryOverview,
+                aes(ConfigurationName, Performance, fill=PredictorCategory)) +
+    geom_col(position = position_fill()) +
+    scale_y_continuous(labels = scales::percent_format()) +
+    theme(axis.text.x = element_text(angle = 45, hjust=1)) +
+    scale_fill_PredictorCategory +
+    coord_flip() + theme(legend.position="top") +
+    ggtitle("Contribution of different sources") +
+    xlab("Model")
+  
+  ggplotly(plt)
+} else {
+  cat("Predictor analysis will only be available when predictor binning data is available.", fill=T)
+}
+```
+
 
 ## Bad predictors across all models
 
@@ -712,12 +825,11 @@ note we advise to be careful with predictor removal. Only remove if there is
 clearly no future value to other propositions as well or if there is always a 
 related predictor that performs better.
 
-TODO: maybe view this one as performance, not importance
-
 ```{r}
 if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
   plotPredictorImportance(datamart, facets=NULL, 
                           limit = -params$max_predictors_in_plot,
+                          showAsImportance = F,
                           filter = function(mdls) {filterLatestSnapshotOnly(mdls)}) +
     scale_fill_PredictorCategory
 } else {
@@ -745,7 +857,7 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
     scale_linetype_discrete(name="Status") +
     ylab("")+ xlab("") + 
     facet_wrap(. ~ ConfigurationName, strip.position = "right") +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    # theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
     ggtitle("Number of Predictors per Model", subtitle = "by Type and per model configuration")
   
   plt
@@ -778,7 +890,7 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
     if (is.null(plt)) {
       warning("Empty plot for configuration", c)
     } else {
-       print(plt)
+      print(plt)
     }
   }
 } else {
@@ -791,11 +903,62 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
 Many technical issues manifest themselves in one or more of the analyses 
 before. A few specific issues are analysed below.
 
-## Missing values (TODO)
-
-TODO: add analysis of predictors with high number of missing values across the models
+## Missing values
 
 If a predictor is low performing: are there too many missing values? This could point to a technical problem
+
+### TODO: review for colors and usefulness
+
+We could viz this in a tree map. Hierarchy is then just model configuration --> predictor category --> predictor name
+
+Missing % is number of missing vs all responses, really just a filter on model data
+
+This (currently) only shows the fields that have any missing values
+
+```{r}
+if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
+  missingData <- filterLatestSnapshotOnly(datamart$predictordata) [, .(ResponseCount = max(as.numeric(ResponseCount)), 
+                                                                       Missing = max(c(0,BinResponseCount[BinType=="MISSING"]))), 
+                                                                   by=c("PredictorName", "PredictorCategory", "ModelID", "Type")]
+  
+  missingData[, MissingPct := Missing/ResponseCount]
+  missingData <- merge(missingData, unique(datamart$modeldata[, c("ModelID", "ConfigurationName")]))
+  
+  head(missingData)
+} else {
+  cat("Predictor analysis will only be available when predictor binning data is available.", fill=T)
+}
+```
+```{r}
+if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
+  hierarchy <- c("ConfigurationName", "PredictorCategory", "PredictorName")
+  mainLabel <- "Missing data in Adaptive Models"
+  
+  missingDataTree <- rbindlist(lapply(seq(length(hierarchy)), function(i) {
+    missingData[, .(ResponseCount = sum(ResponseCount),
+                    Missing = sum(Missing),
+                    MissingPct = sum(Missing) / sum(ResponseCount),
+                    TreeNodeID = paste(lapply(.BY, as.character), collapse="/"),
+                    TreeLabel = as.character(lapply(.BY, as.character)[i]),
+                    TreeNodeParent = ifelse(i==1, mainLabel, paste(lapply(.BY, as.character)[1:(i-1)], collapse="/"))), 
+                by=eval(hierarchy[1:i])]  
+  }), fill = T)
+  
+  
+  fig <- plot_ly(
+    type="treemap",
+    ids=missingDataTree$TreeNodeID,
+    labels=missingDataTree$TreeLabel,
+    parents=missingDataTree$TreeNodeParent,
+    values=ifelse(is.na(missingDataTree$MissingPct), 0, round(missingDataTree$MissingPct*100,2)),
+    marker=list(colorscale='YlOrRd', reversescale = T),
+    textinfo="label+value"
+  )
+  fig # %>% layout(uniformtext=list(minsize=6, mode='hide'))
+} else {
+  cat("Predictor analysis will only be available when predictor binning data is available.", fill=T)
+}
+```
 
 ## Recent Response counts (TODO)
 
@@ -805,7 +968,7 @@ they are increasing from day to day or at least not decreasing.
 # Appendix - all the models
 
 ```{r}
-datamart$modeldata[, list(Snapshots = .N, Responses = max(ResponseCount)), by=c(availableStandardContextKeys, "ModelID")] #[order(ConfigurationName, Name)]
+datamart$modeldata[, list(Snapshots = .N, Responses = max(as.double(ResponseCount))), by=c(availableStandardContextKeys, "ModelID")] #[order(ConfigurationName, Name)]
 ```
 
 A list of all the models is written to a file `r params$modellist` so a script
@@ -826,7 +989,7 @@ if (params$modellist != "") {
   modelIDandSanitizedNames <- unique(datamart$modeldata[, list(make.names(apply(.SD, 1,
                                                                                 function(x) {
                                                                                   return(paste(x,collapse="_"))
-                                                                                  }))), 
+                                                                                }))), 
                                                         by=ModelID, .SDcols=inclKeys])
   
   write.table(modelIDandSanitizedNames[ModelID %in% unique(datamart$predictordata$ModelID)], 
