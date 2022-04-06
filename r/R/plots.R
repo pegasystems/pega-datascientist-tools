@@ -388,7 +388,7 @@ plotPredictorImportance <- function(datamart,
   # featureImportance[, AbbreviatedPredictorName := NULL]
 
   if (nrow(featureImportance) == 0) {
-    warning("No data to plot")
+    warning("No data to plotPredictorImportance")
     return(NULL)
   }
 
@@ -778,7 +778,7 @@ printADMPredictorInfo <- function(predictorName, binning, extra = list())
                 "Status" = binning$EntryType[1],
                 "Total Positives" = sum(binning$BinPositives),
                 "Total Negatives" = sum(binning$BinNegatives),
-                "Overall Propensity" = sprintf("%.2f%%",100*sum(binning$BinPositives)/sum(binning$BinResponseCount)),
+                "Base Propensity" = sprintf("%.2f%%",100*sum(binning$BinPositives)/sum(binning$BinResponseCount)),
                 "Predictor Group" = binning$GroupIndex[1])
 
   kvps <- c(kvps, extra)

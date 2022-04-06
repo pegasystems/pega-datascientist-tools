@@ -659,14 +659,22 @@ admVarImp <- function(datamart, facets = NULL, filter = function(x) {filterClass
                                                            ResponseCount = sum(ResponseCount)),
                                                     by=c("PredictorName", "PredictorCategory", facets)]
 
-    aggregateFeatureImportance[, Importance := Importance*100.0/max(Importance), by=facets]
+    if (nrow(aggregateFeatureImportance) > 0) {
+      aggregateFeatureImportance[, Importance := Importance*100.0/max(Importance), by=facets]
+    } else {
+      aggregateFeatureImportance[, Importance := 1.0, by=facets]
+    }
     aggregateFeatureImportance[, ImportanceRank := frank(-Importance, ties.method = "dense"), by=facets]
     aggregateFeatureImportance[, PerformanceRank := frank(-Performance, ties.method = "dense"), by=facets]
     setorder(aggregateFeatureImportance, ImportanceRank)
 
     return(aggregateFeatureImportance)
   } else {
-    featureImportance[, Importance := Importance*100.0/max(Importance), by="ModelID"]
+    if (nrow(featureImportance) > 0) {
+      featureImportance[, Importance := Importance*100.0/max(Importance), by="ModelID"]
+    } else {
+      featureImportance[, Importance := 1.0, by="ModelID"]
+    }
     featureImportance[, ImportanceRank := frank(-Importance, ties.method = "dense"), by="ModelID"]
     featureImportance[, PerformanceRank := frank(-Performance, ties.method = "dense"), by="ModelID"]
     setorder(featureImportance, ImportanceRank)

@@ -17,9 +17,9 @@ params:
     value: "Adaptive Model Report"
     
   predictordatafile:
-    # Full path to ADM predictor binning table data. Can be CSV, zipped CSV,
-    # LD-JSON, parquet or more.
-    value: "../../data/pr_data_dm_admmart_pred.csv"
+   # Full path to ADM predictor binning table data. Can be CSV, zipped CSV,
+   # LD-JSON, parquet or more.
+   value: "../../data/pr_data_dm_admmart_pred.csv"
 
   modeldescription:
     # Optional model description typically corresponding to the model info of the indicated model
@@ -29,7 +29,9 @@ params:
     # Model ID that is used to filter the predictor binning table data. If the
     # binning data only contains a single Model ID it can be left empty.
     value: "68e1d164-81e3-5da0-816c-0bbc3c20ac6c" # default
-    # value: "N/A"
+    
+  # Showing the binning of the predictors for all or only for the active ones.
+  predictordetails_activeonly: true
 ---
 
 ```{r, echo=F, warning=F, error=F, include=FALSE}
@@ -40,7 +42,7 @@ library(cdhtools)
 
 library(data.table)
 library(lubridate)
-# library(ggplot2)
+library(ggplot2)
 library(scales)
 library(knitr)
 library(kableExtra)
@@ -65,16 +67,31 @@ knitr::opts_chunk$set(
 if (!("predictordatafile" %in% names(params))) stop("Predictor binning missing. Please provide through parameter 'predictordatafile'.")
 if (!file.exists(params$predictordatafile)) stop(paste("File does not exist:", params$predictordatafile))
 
-# Subset to just the mpodel ID passed in
 datamart <- ADMDatamart(modeldata = F,
-                        predictordata = params$predictordatafile,
+                        predictordata = params$predictordatafile, # TODO: could be more protective against using model data by mistake (missing columns...)
                         filterPredictorData = function(preds) {
-                          preds <- preds[ModelID == params$modelid]
+                          if (!is.null(params$modelid)) {
+                            if (params$modelid != "") {
+                              preds <- preds[ModelID == params$modelid]
+                            } else {
+                              if (length(unique(preds$ModelID)) > 1) {
+                                stop("No model ID specified but found multiple model instances in the data.")
+                              }
+                            }
+                          } else {
+                            if (length(unique(preds$ModelID)) > 1) {
+                              stop("No model ID specified but found multiple model instances in the data.")
+                            }
+                          }
+                          if (length(unique(preds$ModelID)) != 1) {
+                            stop(paste("Expected one model in the data but got", length(unique(preds$ModelID))))
+                          }
+                          
                           if (hasMultipleSnapshots(preds)) {
-                              # Take the latest snapshots from the last day. We're doing this carefully as we don't want to report on old bins
-# so just keeping the last day, then per predictor finding the actual last snapshot. This may not work in a situation
-# where not all models are updated frequently.
-
+                            # Take the latest snapshots from the last day. We're doing this carefully as we don't want to report on old bins
+                            # so just keeping the last day, then per predictor finding the actual last snapshot. This may not work in a situation
+                            # where not all models are updated frequently.
+                            
                             lastDay <- max(lubridate::floor_date(preds$SnapshotTime, unit = "days"))
                             preds <- preds[lubridate::floor_date(SnapshotTime, unit="days") == lastDay]
                             preds <- filterLatestSnapshotOnly(preds)
@@ -96,7 +113,7 @@ The model scores (sum of the log odds of the Naive Bayes classifier) are mapped 
 
 ## Model Performance
 
-The model reports a performance of `r round(modelPredictorBins[EntryType == "Classifier"]$Performance[1],5)` measured in AUC. If supporting data is available, the actual AUC is recalculated using only those bins that fall into the current score range (if available, shown in parentheses in the title and bins not in range greyed out).
+The model reports a performance of **`r round(modelPredictorBins[EntryType == "Classifier"]$Performance[1],5)`** measured in AUC. This AUC is calculated from the bins of the Classifier.
 
 ```{r, echo=F, warning=F, error=F}
 actualPerformance <- NULL
@@ -110,9 +127,9 @@ classifierBinning[, inCurrentRange := T]
 # }
 ```
 
-|Total Positives|Total Negatives|Total Responses|Overall Propensity|
-|--------------:|--------------:|--------------:|-----------------:|
-|`r sum(classifierBinning$BinPositives)`|`r sum(classifierBinning$BinNegatives)`|`r sum(classifierBinning$BinResponseCount)`|`r sprintf("%.2f%%", 100*sum(classifierBinning$BinPositives)/sum(classifierBinning$BinResponseCount))`|
+|Total Positives|Total Negatives|Total Responses|Success Rate|AUC|
+|--------------:|--------------:|--------------:|-----------------:|-----------------:|
+|`r sum(classifierBinning$BinPositives)`|`r sum(classifierBinning$BinNegatives)`|`r sum(classifierBinning$BinResponseCount)`|`r sprintf("%.2f%%", 100*sum(classifierBinning$BinPositives)/sum(classifierBinning$BinResponseCount))`|`r round(modelPredictorBins[EntryType == "Classifier"]$Performance[1],5)`|
 
 ```{r, results="asis", echo=F, warning=F, error=F, fig.align = "center"}
 if (nrow(classifierBinning) < 1) {
@@ -120,21 +137,16 @@ if (nrow(classifierBinning) < 1) {
 }
 ```
 
-## Cumulative Gains and Lift charts
+## Score Distribution
 
-Below are alternative ways to view the Classifier.
+The Score Distribution shows the volume and average propensity in every bin of the 
+score ranges of the Classifier.
 
-The Cumulative Gains chart shows the percentage of he overall cases in the "positive" category gained by targeting a percentage of the total number of cases. For example, this view shows how large a percentage of the total expected responders you target by targeting only the top decile.
+Note the interactive plot below (created with Plotly) does not render well 
+when viewed in portals like Sharepoint or Box, and will also not render to PDF. 
+Make sure to open the HTML file in a browser.
 
-The Lift chart is derived from this and shows the ratio of the cumulative gain and the targeted volume.
-
-```{r, fig.align = "left", fig.width=8, fig.height=3}
-# right align is nicer but plotly doesnt do that
-
-# for inspiration on the charts:
-# see http://dmg.org/pmml/v4-0-1/ModelExplanation.html#gainscharts
-# and https://www.ibm.com/support/knowledgecenter/de/SSLVMB_24.0.0/spss/tutorials/mlp_bankloan_outputtype_02.html
-
+```{r fig.align="center", fig.width=8, results="asis"}
 subtitle <- paste0("Performance: ", round(classifierBinning$Performance[1],5), " (AUC)")
 if (!is.null(actualPerformance)) {
   if (round(classifierBinning$Performance[1],5) != round(classifierBinning$Performance[1],5)) {
@@ -142,30 +154,6 @@ if (!is.null(actualPerformance)) {
                        " (AUC) (actual: ", round(actualPerformance$actual_performance,5),")")
   }
 }
-
-if (nrow(classifierBinning) >= 1 & (sum(classifierBinning$BinNegatives) + sum(classifierBinning$BinPositives) > 0)) {
-  cumGains <- plotCumulativeGains(classifierBinning)
-  
-  cumLift <- plotCumulativeLift(classifierBinning)
-  
-  # TODO: add a cum Success rate one. Like lift but w/o the division.
-  # TODO: consider ggplot of these, those work just fine
-  # TODO: classic one on separate line. Make bars less prominent. Swap y-axes - they're opposite what product does.
-  
-  classic <- plotBinning(classifierBinning) + ggtitle("Score Distribution")
-  
-  #ggplotly(cumGains) - TODO convert to plotly plot as ggplotly doesnt show both axes
-
-  grid.arrange(cumGains, cumLift, classic, nrow=1)
-}
-```
-
-## Score Distribution
-
-The Score Distribution shows the volume and average success rate in every bin of the score ranges of the Classifier. Same plot as before but
-this is an interactive one, using Plotly.
-
-```{r fig.align="center", fig.width=8, results="asis"}
 
 # Using a native Plotly version of the graph to make the hover-over work. Just 
 # plotlygg(p) doesnt work perfectly, unfortunately.
@@ -213,7 +201,8 @@ if (nrow(classifierBinning) >= 1) {
 
 Propensity is defined as $\frac{positives}{positives+negatives}$ per bin. 
 
-The adjusted propensity that is returned is a small modification (Laplace smoothing) to this and calculated as $\frac{0.5+positives}{1+positives+negatives}$ so empty models return a propensity of 0.5.
+The adjusted propensity that is returned is a small modification (*Laplace smoothing*) to this and calculated as $\frac{0.5+positives}{1+positives+negatives}$ so new models initially return a propensity of 0.5. This helps 
+to address the cold start problem when introducing new actions.
 
 ```{r, echo=F, warning=F, error=F, include=T}
 if (nrow(classifierBinning) >= 1) {
@@ -221,9 +210,43 @@ if (nrow(classifierBinning) >= 1) {
 }
 ```
 
+
+## Cumulative Gains and Lift charts
+
+Below are alternative ways to view the Classifier.
+
+The Cumulative Gains chart shows the percentage of he overall cases in the "positive" category gained by targeting a percentage of the total number of cases. For example, this view shows how large a percentage of the total expected responders you target by targeting only the top decile.
+
+The Lift chart is derived from this and shows the ratio of the cumulative gain and the targeted volume.
+
+```{r, fig.align = "left", fig.width=8, fig.height=3}
+# right align is nicer but plotly doesnt do that
+
+# for inspiration on the charts:
+# see http://dmg.org/pmml/v4-0-1/ModelExplanation.html#gainscharts
+# and https://www.ibm.com/support/knowledgecenter/de/SSLVMB_24.0.0/spss/tutorials/mlp_bankloan_outputtype_02.html
+
+if (nrow(classifierBinning) >= 1 & (sum(classifierBinning$BinNegatives) + sum(classifierBinning$BinPositives) > 0)) {
+  cumGains <- plotCumulativeGains(classifierBinning)
+  
+  cumLift <- plotCumulativeLift(classifierBinning)
+  
+  # TODO: add a cum Success rate one. Like lift but w/o the division.
+  # TODO: consider ggplot of these, those work just fine
+  # TODO: classic one on separate line. Make bars less prominent. Swap y-axes - they're opposite what product does.
+  
+  classic <- plotBinning(classifierBinning) + ggtitle("Score Distribution")
+  
+  #ggplotly(cumGains) - TODO convert to plotly plot as ggplotly doesnt show both axes
+  
+  grid.arrange(cumGains, cumLift, classic, nrow=1)
+}
+```
+
 # Performance by Predictor Category
 
-Active predictors grouped by category.
+Showing the performance across all predictors. The predictor categories default to the string before the first dot. This 
+can be customized when reading the data for a particular customer.
 
 ```{r Predictor Category}
 plotPredictorImportance(datamart, categoryAggregateView = T) +
@@ -232,7 +255,11 @@ plotPredictorImportance(datamart, categoryAggregateView = T) +
 
 # Predictor Overview
 
-Number of positives and negatives in each bin and the derived lift and Z-ratio. If grouping information is available, strongly correlated predictors are grouped, with the highest performance predictor groups on top. Groups are indicated by indentation.
+Showing all the predictors for this model. Predictors are sorted by performance
+and grouped if they are correlated (shown subtly with an indentation).
+
+The negatives and postives count are usually the same across all the predictors
+but will be different when predictors have been removed or added.
 
 ```{r echo=F, error=F, include=T}
 
@@ -240,12 +267,12 @@ Number of positives and negatives in each bin and the derived lift and Z-ratio. 
 # TODO - consider colouring the predictor names by part before first dot ; unless there are > 10 of those
 
 predSummary <- modelPredictorBins[EntryType != "Classifier", list(Negatives = sum(BinNegatives),
-                                                               Positives = sum(BinPositives),
-                                                               Active = EntryType[1],
-                                                               Type = Type[1],
-                                                               Bins = .N,
-                                                               Performance = Performance[1],
-                                                               Group = GroupIndex[1]), by=PredictorName]
+                                                                  Positives = sum(BinPositives),
+                                                                  Active = EntryType[1],
+                                                                  Type = Type[1],
+                                                                  Bins = .N,
+                                                                  Performance = Performance[1],
+                                                                  Group = GroupIndex[1]), by=PredictorName]
 names(predSummary)[1] <- "Predictor"
 if (nrow(predSummary) == 0) {
   cat("The model has no predictors", fill=T)
@@ -261,17 +288,19 @@ if (nrow(predSummary) == 0) {
 ```
 
 
-# Binning of the active Predictors
+# Binning of the Predictors
 
 Binning of all individual predictors. Predictors are listed in the same order as in the summary above.
+Here we show `r ifelse(params$predictordetails_activeonly, "only the active", "all")` predictors. This 
+can be configured with one of the parameters in the Yaml header of this notebook.
 
 ```{r, results="asis", fig.height = 4, fig.width = 6, fig.align = "center"}
 
 # to print all instead of only the active ones, change condition to: EntryType != "Classifier"
 
-for (f in unique(modelPredictorBins[EntryType == "Active"]$PredictorName)) {
+for (f in unique(modelPredictorBins[!params$predictordetails_activeonly | EntryType == "Active"]$PredictorName)) {
   predictorBinning <- modelPredictorBins[PredictorName==f]
-
+  
   if (nrow(predictorBinning) < 1) {
     cat("<p style='color:Red;'>NO data available for", f, "for date:", max(modelPredictorBins$SnapshotTime), "</p>", fill=T)
   } else {
@@ -286,7 +315,7 @@ for (f in unique(modelPredictorBins[EntryType == "Active"]$PredictorName)) {
     
     # Table prelude with some overall info about the predictor
     printADMPredictorInfo(f, predictorBinning, extraPredInfo)
-
+    
     # colour names: http://sape.inf.usi.ch/quick-reference/ggplot2/colour
     
     if (nrow(predictorBinning) > 1) {
