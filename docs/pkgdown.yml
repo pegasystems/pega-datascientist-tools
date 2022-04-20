@@ -8,5 +8,6 @@ articles:
   historical-dataset: historical-dataset.html
   ih-reporting: ih-reporting.html
   snapshots-to-scorecards: snapshots-to-scorecards.html
-last_built: 2022-04-04T09:58Z
+  thompson-sampling-explained: thompson-sampling-explained.html
+last_built: 2022-04-20T13:02Z
 
