@@ -58,6 +58,20 @@ jobs:
         uses: codecov/codecov-action@v2
         with:
           fail_ci_if_error: true
+
+  Python_docs:
+    runs-on: ubuntu-latest
+    
+    name: Generating Python docs
+    
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ammaraskar/sphinx-action@master
+        with:
+          docs-folder: "python/docs/"
   
   R:
     runs-on: ${{ matrix.os }}
@@ -104,3 +118,4 @@ jobs:
         run: |
           covr::codecov()
         shell: Rscript {0}
+
