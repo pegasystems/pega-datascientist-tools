@@ -13,7 +13,86 @@ import json
 
 
 class ADMDatamart(Plots):
-    """Main class for importing, preprocessing and structuring Pega ADM Datamart snapshot data."""
+    """Main class for importing, preprocessing and structuring Pega ADM Datamart snapshot data. 
+    Gets all available data, properly names and merges into one main dataframe
+
+    Parameters
+    ----------
+    path : str, default = "."
+        The path of the data files
+    overwrite_mapping : dict, default = None
+        A dictionary to overwrite default feature names in the input data
+    query : Union[str, dict], default = None
+        The query to supply to _apply_query
+        If a string, uses the default Pandas query function
+        Else, a dict of lists where the key is the column name of the dataframe
+        and the corresponding value is a list of values to keep in the dataframe
+        Can be applied to an individual function, or used here to apply to the whole dataset
+    plotting_engine : str, default = "plotly"
+        Either 'mpl' for matplotlib, or 'plotly' for plotly.
+        Determines what package to use for plotting.
+        Can also be supplied to most plotting functions directly.
+
+
+    Keyword arguments
+    -----------------
+    verbose : bool
+        Whether to print out information during importing
+    model_filename : str
+        The name, or extended filepath, towards the model file
+    predictor_filename : str
+        The name, or extended filepath, towards the predictors file
+    model_df : pd.DataFrame
+        Optional override to supply a dataframe instead of a file
+    predictor_df : pd.DataFrame
+        Optional override to supply a dataframe instead of a file
+    subset : bool, default = True
+        Whether to only select the renamed columns,
+        set to False to keep all columns
+    drop_cols = list
+        Supply columns to drop from the dataframe
+    prequery : str
+        A way to apply a query to the data before any preprocessing
+        Uses the Pandas querying function, and beware that the columns
+        have not been renamed, so use the original naming
+    context_keys : list
+        Which columns to use as context keys
+    extract_treatment : str
+        Treatments are typically hidden within the pyName column,
+        extract_treatment can expand that cell to also show treatments.
+        To extract, give the column name as the 'extract_treatment' argument
+    force_pandas : bool
+        If pyarrow is installed, you can force the import through Pandas
+
+    Notes
+    ----------------------------
+    Depending on the importing function, typically it is possible to
+    supply more arguments. For instance, if the importing is done through
+    Pandas (because pyarrow is not installed or through force_pandas),
+    you can supply the column separator from the pandas function as a keyword argument
+
+    Attributes
+    ----------
+    modelData : pd.DataFrame
+        If available, holds the preprocessed data about the models
+    predictorData : pd.DataFrame
+        If available, holds the preprocessed data about the predictor binning
+    combinedData : pd.DataFrame
+        If both modelData and predictorData are available,
+        holds the merged data about the models and predictors
+
+
+    Examples
+    --------
+    >>> Data =  ADMDatamart(f"/CDHSample")
+    >>> Data =  ADMDatamart(f"Data/Adaptive Models & Predictors Export",
+                model_filename = "Data-Decision-ADM-ModelSnapshot_AdaptiveModelSnapshotRepo20201110T085543_GMT/data.json",
+                predictor_filename = "Data-Decision-ADM-PredictorBinningSnapshot_PredictorBinningSnapshotRepo20201110T084825_GMT/data.json")
+    >>> Data =  ADMDatamart(f"Data/files",
+                model_filename = "ModelData.csv",
+                predictor_filename = "PredictorData.csv")
+
+    """
 
     def __init__(
         self,
@@ -23,85 +102,7 @@ class ADMDatamart(Plots):
         plotting_engine="plotly",
         **kwargs,
     ):
-        """Gets all available data, properly names and merges into one main dataframe
-
-        Parameters
-        ----------
-        path : str, default = "."
-            The path of the data files
-        overwrite_mapping : dict, default = None
-            A dictionary to overwrite default feature names in the input data
-        query : Union[str, dict], default = None
-            The query to supply to _apply_query
-            If a string, uses the default Pandas query function
-            Else, a dict of lists where the key is the column name of the dataframe
-            and the corresponding value is a list of values to keep in the dataframe
-            Can be applied to an individual function, or used here to apply to the whole dataset
-        plotting_engine : str, default = "plotly"
-            Either 'mpl' for matplotlib, or 'plotly' for plotly.
-            Determines what package to use for plotting.
-            Can also be supplied to most plotting functions directly.
-
-
-        Keyword arguments
-        -----------------
-        verbose : bool
-            Whether to print out information during importing
-        model_filename : str
-            The name, or extended filepath, towards the model file
-        predictor_filename : str
-            The name, or extended filepath, towards the predictors file
-        model_df : pd.DataFrame
-            Optional override to supply a dataframe instead of a file
-        predictor_df : pd.DataFrame
-            Optional override to supply a dataframe instead of a file
-        subset : bool, default = True
-            Whether to only select the renamed columns,
-            set to False to keep all columns
-        drop_cols = list
-            Supply columns to drop from the dataframe
-        prequery : str
-            A way to apply a query to the data before any preprocessing
-            Uses the Pandas querying function, and beware that the columns
-            have not been renamed, so use the original naming
-        context_keys : list
-            Which columns to use as context keys
-        extract_treatment : str
-            Treatments are typically hidden within the pyName column,
-            extract_treatment can expand that cell to also show treatments.
-            To extract, give the column name as the 'extract_treatment' argument
-        force_pandas : bool
-            If pyarrow is installed, you can force the import through Pandas
-
-        Additional keyword arguments
-        ----------------------------
-        Depending on the importing function, typically it is possible to
-        supply more arguments. For instance, if the importing is done through
-        Pandas (because pyarrow is not installed or through force_pandas),
-        you can supply the column separator from the pandas function as a keyword argument
-
-        Properties
-        ----------
-        modelData : pd.DataFrame
-            If available, holds the preprocessed data about the models
-        predictorData : pd.DataFrame
-            If available, holds the preprocessed data about the predictor binning
-        combinedData : pd.DataFrame
-            If both modelData and predictorData are available,
-            holds the merged data about the models and predictors
-
-
-        Examples
-        --------
-        >>> Data =  ADMDatamart(f"/CDHSample")
-        >>> Data =  ADMDatamart(f"Data/Adaptive Models & Predictors Export",
-                    model_filename = "Data-Decision-ADM-ModelSnapshot_AdaptiveModelSnapshotRepo20201110T085543_GMT/data.json",
-                    predictor_filename = "Data-Decision-ADM-PredictorBinningSnapshot_PredictorBinningSnapshotRepo20201110T084825_GMT/data.json")
-        >>> Data =  ADMDatamart(f"Data/files",
-                    model_filename = "ModelData.csv",
-                    predictor_filename = "PredictorData.csv")
-
-        """
+        
         self.context_keys = kwargs.pop(
             "context_keys", ["Channel", "Direction", "Issue", "Group"]
         )
@@ -632,7 +633,7 @@ class ADMDatamart(Plots):
 
     @staticmethod
     def defaultPredictorCategorization(x: str) -> str:
-        return x.split(".")[0] if len(x.split(".")) > 0 else "Primary"
+        return x.split(".")[0] if len(x.split(".")) > 1 else "Primary"
 
     @staticmethod
     def _apply_query(df, query: Union[str, dict] = None) -> pd.DataFrame:

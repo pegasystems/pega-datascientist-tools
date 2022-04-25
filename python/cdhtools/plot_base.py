@@ -141,7 +141,7 @@ class Plots:
         facets: Optional[list] = None,
         **kwargs,
     ) -> Union[plt.Axes, go.FigureWidget]:
-        """Creates bubble chart similar to ADM OOTB
+        """Creates bubble chart similar to ADM OOTB.
 
         Parameters
         ----------
@@ -168,8 +168,8 @@ class Plots:
             If set to True, returns the dataframe instead of the plot
             Can be useful for debugging or replicating the plots
 
-        Additional keyword arguments
-        ----------------------------
+        Notes
+        -----
         See the docs for either the matplotlib plots (plots_mpl.py) or the
         plotly plots (plots_plotly.py). Some visualisations have parameters
         that differ slightly between the two, and plotly has an additional
@@ -239,7 +239,7 @@ class Plots:
             If set to True, returns the dataframe instead of the plot
             Can be useful for debugging or replicating the plots
 
-        Additional keyword arguments
+        Notes
         ----------------------------
         See the docs for the matplotlib plots (plots_mpl.py).
 
@@ -304,8 +304,8 @@ class Plots:
             If set to True, returns the dataframe instead of the plot
             Can be useful for debugging or replicating the plots
 
-        Additional keyword arguments
-        ----------------------------
+        Notes
+        -----
         See the docs for either the matplotlib plots (plots_mpl.py) or the
         plotly plots (plots_plotly.py). Some visualisations have parameters
         that differ slightly between the two, and plotly has an additional
@@ -376,8 +376,8 @@ class Plots:
             If set to True, returns the dataframe instead of the plot
             Can be useful for debugging or replicating the plots
 
-        Additional keyword arguments
-        ----------------------------
+        Notes
+        -----
         See the docs for the matplotlib plots (plots_mpl.py).
 
         Returns
@@ -458,8 +458,8 @@ class Plots:
             If set to True, returns the dataframe instead of the plot
             Can be useful for debugging or replicating the plots
 
-        Additional keyword arguments
-        ----------------------------
+        Notes
+        -----
         See the docs for either the matplotlib plots (plots_mpl.py) or the
         plotly plots (plots_plotly.py). Some visualisations have parameters
         that differ slightly between the two, and plotly has an additional
@@ -522,8 +522,8 @@ class Plots:
             If set to True, returns the dataframe instead of the plot
             Can be useful for debugging or replicating the plots
 
-        Additional keyword arguments
-        ----------------------------
+        Notes
+        -----
         See the docs for either the matplotlib plots (plots_mpl.py) or the
         plotly plots (plots_plotly.py). Some visualisations have parameters
         that differ slightly between the two, and plotly has an additional
@@ -777,8 +777,8 @@ class Plots:
             If set to True, returns the dataframe instead of the plot
             Can be useful for debugging or replicating the plots
 
-        Additional keyword arguments
-        ----------------------------
+        Notes
+        -----
         See the docs for either the matplotlib plots (plots_mpl.py) or the
         plotly plots (plots_plotly.py). Some visualisations have parameters
         that differ slightly between the two, and plotly has an additional
@@ -838,8 +838,8 @@ class Plots:
             If set to True, returns the dataframe instead of the plot
             Can be useful for debugging or replicating the plots
 
-        Additional keyword arguments
-        ----------------------------
+        Notes
+        -----
         See the docs for the matplotlib plots (plots_mpl.py).
 
         Returns
@@ -905,8 +905,8 @@ class Plots:
             If set to True, returns the dataframe instead of the plot
             Can be useful for debugging or replicating the plots
 
-        Additional keyword arguments
-        ----------------------------
+        Notes
+        -----
         See the docs for the plotly plots (plots_plotly.py).
         Plotly has an additional post_plot function defining some more actions,
         such as writing to html automatically or displaying figures while facetting.
@@ -937,34 +937,34 @@ class Plots:
     ) -> go.FigureWidget:
         """Plots the percentage of models vs the number of positive responses
 
-         Parameters
-         ----------
-         by: str, default = Channel
-             The column to calculate the model percentage by
-         query: Union[str, dict], default = None
-             The query to supply to _apply_query
-             If a string, uses the default Pandas query function
-             Else, a dict of lists where the key is the column name of the dataframe
-             and the corresponding value is a list of values to keep in the dataframe
-         facets: list, default = None
-             Whether to add facets to the plot, should be a list of columns
+        Parameters
+        ----------
+        by: str, default = Channel
+            The column to calculate the model percentage by
+        query: Union[str, dict], default = None
+            The query to supply to _apply_query
+            If a string, uses the default Pandas query function
+            Else, a dict of lists where the key is the column name of the dataframe
+            and the corresponding value is a list of values to keep in the dataframe
+        facets: list, default = None
+            Whether to add facets to the plot, should be a list of columns
 
-         Keyword arguments
-         -----------------
-         plotting_engine: str
-             This chart is only supported in plotly
-         return_df : bool
-             If set to True, returns the dataframe instead of the plot
-             Can be useful for debugging or replicating the plots
+        Keyword arguments
+        -----------------
+        plotting_engine: str
+            This chart is only supported in plotly
+        return_df : bool
+            If set to True, returns the dataframe instead of the plot
+            Can be useful for debugging or replicating the plots
 
-         Additional keyword arguments
-         ----------------------------
-         See the docs for the plotly plots (plots_plotly.py).
-         Plotly has an additional post_plot function defining some more actions,
-         such as writing to html automatically or displaying figures while facetting.
+        Notes
+        -----
+        See the docs for the plotly plots (plots_plotly.py).
+        Plotly has an additional post_plot function defining some more actions,
+        such as writing to html automatically or displaying figures while facetting.
 
-         Returns
-         -------
+        Returns
+        -------
         go.FigureWidget
         """
         if kwargs.get("plotting_engine", self.plotting_engine) != "plotly":
@@ -994,52 +994,52 @@ class Plots:
     ) -> go.FigureWidget:
         """Plots a treemap to view performance over multiple context keys
 
-         Parameters
-         ----------
-         color : str, default = performance_weighted
-             The column to set as the color of the squares
-             One out of:
-             {responsecount, responsecount_log, positives,
-             positives_log, percentage_without_responses,
-             performance_weighted, successrate}
-         by: str, default = Channel
-             The column to use as the size of the squares
-         value_in_text: bool, default = True
-             Whether to print the values of the swuares in the squares
-         midpoint : Optional[float]
-             A parameter to assert more control over the color distribution
-             Set near 0 to give lower values a 'higher' color
-             Set near 1 to give higher values a 'lower' color
-             Necessary for, for example, Success Rate, where rates lie very far apart
-             If not supplied in such cases, there is no difference in the color
-             between low values such as 0.001 and 0.1, so midpoint should be set low
-         query: Union[str, dict], default = None
-             The query to supply to _apply_query
-             If a string, uses the default Pandas query function
-             Else, a dict of lists where the key is the column name of the dataframe
-             and the corresponding value is a list of values to keep in the dataframe
-         facets: list, default = None
-             Whether to add facets to the plot, should be a list of columns
+        Parameters
+        ----------
+        color : str, default = performance_weighted
+            The column to set as the color of the squares
+            One out of:
+            {responsecount, responsecount_log, positives,
+            positives_log, percentage_without_responses,
+            performance_weighted, successrate}
+        by: str, default = Channel
+            The column to use as the size of the squares
+        value_in_text: bool, default = True
+            Whether to print the values of the swuares in the squares
+        midpoint : Optional[float]
+            A parameter to assert more control over the color distribution
+            Set near 0 to give lower values a 'higher' color
+            Set near 1 to give higher values a 'lower' color
+            Necessary for, for example, Success Rate, where rates lie very far apart
+            If not supplied in such cases, there is no difference in the color
+            between low values such as 0.001 and 0.1, so midpoint should be set low
+        query: Union[str, dict], default = None
+            The query to supply to _apply_query
+            If a string, uses the default Pandas query function
+            Else, a dict of lists where the key is the column name of the dataframe
+            and the corresponding value is a list of values to keep in the dataframe
+        facets: list, default = None
+            Whether to add facets to the plot, should be a list of columns
 
-         Keyword arguments
-         -----------------
-         colorscale: list
-             Give a list of hex values to override the default colors
-             Should consist of three colors: 'low', 'neutral' and 'high'
-         plotting_engine: str
-             This chart is only supported in plotly
-         return_df : bool
-             If set to True, returns the dataframe instead of the plot
-             Can be useful for debugging or replicating the plots
+        Keyword arguments
+        -----------------
+        colorscale: list
+            Give a list of hex values to override the default colors
+            Should consist of three colors: 'low', 'neutral' and 'high'
+        plotting_engine: str
+            This chart is only supported in plotly
+        return_df : bool
+            If set to True, returns the dataframe instead of the plot
+            Can be useful for debugging or replicating the plots
 
-         Additional keyword arguments
-         ----------------------------
-         See the docs for the plotly plots (plots_plotly.py).
-         Plotly has an additional post_plot function defining some more actions,
-         such as writing to html automatically or displaying figures while facetting.
+        Notes
+        -----
+        See the docs for the plotly plots (plots_plotly.py).
+        Plotly has an additional post_plot function defining some more actions,
+        such as writing to html automatically or displaying figures while facetting.
 
-         Returns
-         -------
+        Returns
+        -------
         go.FigureWidget
         """
         if kwargs.get("plotting_engine", self.plotting_engine) != "plotly":
