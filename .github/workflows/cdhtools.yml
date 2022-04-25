@@ -68,8 +68,7 @@ jobs:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: ammaraskar/sphinx-action@master
+      - name: Make docs
         run: |
           (cd python/docs && make clean html)
             
