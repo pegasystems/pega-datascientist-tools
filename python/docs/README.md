@@ -14,4 +14,4 @@ Building the docs is done through the Makefile: it
 
 To generate a new version of the docs, simply navigate to the top-level folder and run the following command:
 
-(cd python/docs && make html)
+`(cd python/docs && make html)`
