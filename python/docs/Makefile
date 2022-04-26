@@ -16,7 +16,18 @@ help:
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
+
+# First we move the example files into the docs folder
+# Then we clear the top-level docs Python folder of any pre-existing docs
+# Next we run the sphinx-build command
+# Then we clean up the articles folder,
+# Move the docs into the top-level docs folder
+# And finally remove the buildinfo so we do a clean build every time
+
 %: Makefile
 	cp ../../examples/datamart/Example_ADM_Analysis.ipynb ../../examples/graph_gallery/graph_gallery.ipynb ../../examples/helloworld/hello_cdhtools.ipynb ../../examples/valuefinder/* source/articles
+	rm -r ../../docs/Python/*
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 	rm source/articles/*
+	mv build/html/* ../../docs/Python
+	rm build/html/.buildinfo

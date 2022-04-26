@@ -58,32 +58,6 @@ jobs:
         uses: codecov/codecov-action@v2
         with:
           fail_ci_if_error: true
-
-  Python_docs:
-    runs-on: ubuntu-latest
-    
-    name: Generating Python docs
-    
-    env:
-      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-
-    steps:
-      - name: Make docs
-        run: |
-          (cd python/docs && make clean html)
-            
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v1
-        with:
-          name: html-docs
-          path: python/docs/build/html/
-
-      - name: Deploy
-        uses: peaceiris/actions-gh-pages@v3
-        if: github.ref == 'refs/heads/main'
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: python/docs/build/html
   
   R:
     runs-on: ${{ matrix.os }}
