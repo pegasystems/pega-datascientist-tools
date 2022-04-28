@@ -22,7 +22,7 @@ Welcome to cdhtools's Python documentation!
    Getting Started <https://github.com/pegasystems/cdh-datascientist-tools/wiki#using-the-python-tools>   
    Changelog <https://github.com/pegasystems/cdh-datascientist-tools/releases>
    GitHub Repository <https://github.com/pegasystems/cdh-datascientist-tools>
-   R Documentation <https://stijnkas.github.io/cdh-datascientist-tools/R/index.html>
+   R Documentation <https://pegasystems.github.io/cdh-datascientist-tools/R/index.html>
 
 .. toctree::
    :maxdepth: 1
