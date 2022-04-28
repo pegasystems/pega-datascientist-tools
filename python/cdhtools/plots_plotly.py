@@ -100,6 +100,7 @@ class ADMVisualisations:
             For example, if facets == 'Channel', a bubble plot is made for each channel
             Depending on show_each, every chart is either shown or not
             If more than one facet is visualised, they are returned in a list
+
         Returns
         -------
         px.Figure
@@ -202,6 +203,7 @@ class ADMVisualisations:
         **kwargs,
     ):
         """Shows metric of models over time
+        
         Parameters
         ----------
         query : Union[str, dict]
@@ -258,6 +260,7 @@ class ADMVisualisations:
         **kwargs,
     ):
         """Shows all latest proposition success rates
+
         A bar plot to show the success rate of all latest model instances (propositions)
         For reading simplicity, latest success rate is also annotated next to each bar
 
@@ -305,6 +308,7 @@ class ADMVisualisations:
 
     def ScoreDistribution(self, df, show_zero_responses: bool = False, **kwargs):
         """Show score distribution similar to ADM out-of-the-box report
+
         Shows a score distribution graph per model. If certain models selected,
         only those models will be shown.
         the only difference between this graph and the one shown on ADM
@@ -320,10 +324,12 @@ class ADMVisualisations:
             If a string, uses the default Pandas query function
             Else, a dict of lists where the key is column name in the dataframe
             and the corresponding value is a list of values to keep in the dataframe
+
         Returns
         -------
         plt.figure
         """
+
         figlist = []
         for name, group in df:
             if not show_zero_responses:
@@ -348,6 +354,7 @@ class ADMVisualisations:
         **kwargs,
     ):
         """Show predictor graphs for a given model
+
         For a given model (query) shows all its predictors' graphs. If certain predictors
         selected, only those predictor graphs will be shown
 
@@ -369,6 +376,7 @@ class ADMVisualisations:
         -------
         plt.figure
         """
+
         if (
             kwargs.get("show_each", False) and df.PredictorName.nunique() > 10
         ):  # pragma: no cover
@@ -423,6 +431,7 @@ class ADMVisualisations:
         -------
         px.Figure
         """
+
         # TODO: perhaps get top n & order per facet.
         if isinstance(facets, str) or facets is None:
             facets = [facets]
@@ -519,6 +528,7 @@ class ADMVisualisations:
         -------
         px.Figure
         """
+
         # NOTE: Unable to add text to image, not sure why.
         if isinstance(facets, str) or facets is None:
             facets = [facets]
@@ -682,6 +692,7 @@ class ADMVisualisations:
         **kwargs,
     ):
         """Plots a treemap to view performance over multiple context keys
+
         Parameters
         ----------
         color : str

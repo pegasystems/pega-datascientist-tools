@@ -386,4 +386,4 @@ def test_model_summary(test):
 
 def test_PredictorCategorization(test):
     assert test.defaultPredictorCategorization("Customer.Variable") == "Customer"
-    assert test.defaultPredictorCategorization("Variable") == "Variable"
+    assert test.defaultPredictorCategorization("Variable") == "Primary"

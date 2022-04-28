@@ -1,0 +1,378 @@
+:py:mod:`cdhtools.ADMDatamart`
+==============================
+
+.. py:module:: cdhtools.ADMDatamart
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   cdhtools.ADMDatamart.ADMDatamart
+
+
+
+
+.. py:class:: ADMDatamart(path: str = '.', overwrite_mapping: Optional[dict] = None, query: Union[str, Dict[str, list]] = None, plotting_engine='plotly', **kwargs)
+
+   Bases: :py:obj:`cdhtools.plot_base.Plots`
+
+   Main class for importing, preprocessing and structuring Pega ADM Datamart snapshot data.
+   Gets all available data, properly names and merges into one main dataframe
+
+   :param path: The path of the data files
+   :type path: str, default = "."
+   :param overwrite_mapping: A dictionary to overwrite default feature names in the input data
+   :type overwrite_mapping: dict, default = None
+   :param query: The query to supply to _apply_query
+                 If a string, uses the default Pandas query function
+                 Else, a dict of lists where the key is the column name of the dataframe
+                 and the corresponding value is a list of values to keep in the dataframe
+                 Can be applied to an individual function, or used here to apply to the whole dataset
+   :type query: Union[str, dict], default = None
+   :param plotting_engine: Either 'mpl' for matplotlib, or 'plotly' for plotly.
+                           Determines what package to use for plotting.
+                           Can also be supplied to most plotting functions directly.
+   :type plotting_engine: str, default = "plotly"
+
+   :keyword verbose: Whether to print out information during importing
+   :kwtype verbose: bool
+   :keyword model_filename: The name, or extended filepath, towards the model file
+   :kwtype model_filename: str
+   :keyword predictor_filename: The name, or extended filepath, towards the predictors file
+   :kwtype predictor_filename: str
+   :keyword model_df: Optional override to supply a dataframe instead of a file
+   :kwtype model_df: pd.DataFrame
+   :keyword predictor_df: Optional override to supply a dataframe instead of a file
+   :kwtype predictor_df: pd.DataFrame
+   :keyword subset: Whether to only select the renamed columns,
+                    set to False to keep all columns
+   :kwtype subset: bool, default = True
+   :keyword drop_cols = list: Supply columns to drop from the dataframe
+   :keyword prequery: A way to apply a query to the data before any preprocessing
+                      Uses the Pandas querying function, and beware that the columns
+                      have not been renamed, so use the original naming
+   :kwtype prequery: str
+   :keyword context_keys: Which columns to use as context keys
+   :kwtype context_keys: list
+   :keyword extract_treatment: Treatments are typically hidden within the pyName column,
+                               extract_treatment can expand that cell to also show treatments.
+                               To extract, give the column name as the 'extract_treatment' argument
+   :kwtype extract_treatment: str
+   :keyword force_pandas: If pyarrow is installed, you can force the import through Pandas
+   :kwtype force_pandas: bool
+
+   .. rubric:: Notes
+
+   Depending on the importing function, typically it is possible to
+   supply more arguments. For instance, if the importing is done through
+   Pandas (because pyarrow is not installed or through force_pandas),
+   you can supply the column separator from the pandas function as a keyword argument
+
+   .. attribute:: modelData
+
+      If available, holds the preprocessed data about the models
+
+      :type: pd.DataFrame
+
+   .. attribute:: predictorData
+
+      If available, holds the preprocessed data about the predictor binning
+
+      :type: pd.DataFrame
+
+   .. attribute:: combinedData
+
+      If both modelData and predictorData are available,
+      holds the merged data about the models and predictors
+
+      :type: pd.DataFrame
+
+   .. rubric:: Examples
+
+   >>> Data =  ADMDatamart(f"/CDHSample")
+   >>> Data =  ADMDatamart(f"Data/Adaptive Models & Predictors Export",
+               model_filename = "Data-Decision-ADM-ModelSnapshot_AdaptiveModelSnapshotRepo20201110T085543_GMT/data.json",
+               predictor_filename = "Data-Decision-ADM-PredictorBinningSnapshot_PredictorBinningSnapshotRepo20201110T084825_GMT/data.json")
+   >>> Data =  ADMDatamart(f"Data/files",
+               model_filename = "ModelData.csv",
+               predictor_filename = "PredictorData.csv")
+
+   .. py:method:: get_engine(plotting_engine)
+      :staticmethod:
+
+
+   .. py:method:: import_data(self, path: Optional[str] = '.', overwrite_mapping: Optional[dict] = None, subset: bool = True, model_df: Optional[pandas.DataFrame] = None, predictor_df: Optional[pandas.DataFrame] = None, query: Union[str, Dict[str, list]] = None, **kwargs) -> Union[pandas.DataFrame, pandas.DataFrame]
+
+      Method to automatically import & format the relevant data.
+
+      The method first imports the model data, and then the predictor data.
+      If model_df or predictor_df is supplied, it will use those instead
+      After reading, some additional values (such as success rate) are
+      automatically computed.
+      Lastly, if there are missing columns from both datasets,
+      this will be printed to the user if verbose is True.
+
+      :param path: The path of the data files
+                   Default = current path (',')
+      :type path: str
+      :param overwrite_mapping: A dictionary to overwrite default feature names in the input data
+                                Default = None
+      :type overwrite_mapping: dict
+      :param subset: Whether to only select the renamed columns,
+                     set to False to keep all columns
+      :type subset: bool, default = True
+      :param model_df: Optional override to supply a dataframe instead of a file
+      :type model_df: pd.DataFrame
+      :param predictor_df: Optional override to supply a dataframe instead of a file
+      :type predictor_df: pd.DataFrame
+      :param query: The query to supply to _apply_query
+                    If a string, uses the default Pandas query function
+                    Else, a dict of lists where the key is the column name of the dataframe
+                    and the corresponding value is a list of values to keep in the dataframe
+      :type query: Union[str, dict], default = None
+
+      :returns: The model data and predictor binning data as dataframes
+      :rtype: (pd.DataFrame, pd.DataFrame)
+
+
+   .. py:method:: _import_utils(self, name: Union[str, pandas.DataFrame], path: str = None, overwrite_mapping: dict = None, subset: bool = True, query: Union[str, Dict[str, list]] = None, verbose: bool = True, **kwargs) -> Tuple[pandas.DataFrame, dict, dict]
+
+      Handler function to interface to the cdh_utils methods
+
+      :param name: One of {modelData, predictorData}
+                   or a dataframe
+      :type name: Union[str, pd.DataFrame]
+      :param path: The path of the data file
+      :type path: str, default = None
+      :param overwrite_mapping: A dictionary to overwrite default feature names in the input data
+      :type overwrite_mapping: dict, default = None
+      :param subset: Whether to only select the renamed columns,
+                     set to False to keep all columns
+      :type subset: bool, default = True
+      :param query: The query to supply to _apply_query
+                    If a string, uses the default Pandas query function
+                    Else, a dict of lists where the key is the column name of the dataframe
+                    and the corresponding value is a list of values to keep in the dataframe
+      :type query: Union[str, dict], default = None
+      :param verbose: Whether to print out information during importing
+      :type verbose: bool
+
+      :keyword drop_cols = list: Supply columns to drop from the dataframe
+      :keyword prequery: A way to apply a query to the data before any preprocessing
+                         Uses the Pandas querying function, and beware that the columns
+                         have not been renamed, so use the original naming
+      :kwtype prequery: str
+      :keyword extract_treatment: Treatments are typically hidden within the pyName column,
+                                  extract_treatment can expand that cell to also show treatments.
+                                  To extract, give the column name as the 'extract_treatment' argument
+      :kwtype extract_treatment: str
+      :keyword Additional keyword arguments:
+      :keyword -----------------:
+      :keyword See readDSExport in cdh_utils:
+
+      :returns: The requested dataframe,
+                The renamed columns
+                The columns missing in both dataframes
+      :rtype: (pd.DataFrame, dict, dict)
+
+
+   .. py:method:: _available_columns(self, df: pandas.DataFrame, overwrite_mapping: Optional[dict] = None) -> Tuple[pandas.DataFrame, dict, list]
+
+      Based on the default names for variables, rename available data to proper formatting
+
+      :param df: Input dataframe
+      :type df: pd.DataFrame
+      :param overwrite_mapping: If given, adds 'search terms' to the default names to look for
+                                If an extra variable is given which is not in default_names, it will also be included
+      :type overwrite_mapping: dict
+
+      :returns: The original dataframe, but renamed for the found columns &
+                The original and updated names for all renamed columns &
+                The variables that were not found in the table
+      :rtype: (pd.DataFrame, dict, list)
+
+
+   .. py:method:: _capitalize(fields: list) -> list
+      :staticmethod:
+
+      Applies automatic capitalization, aligned with the R couterpart.
+
+      :param fields: A list of names
+      :type fields: list
+
+      :returns: **fields** -- The input list, but each value properly capitalized
+      :rtype: list
+
+
+   .. py:method:: _set_types(df: pandas.DataFrame, verbose=True) -> pandas.DataFrame
+      :staticmethod:
+
+      A method to change columns to their proper type
+
+      :param df: The input dataframe
+      :type df: pd.DataFrame
+      :param verbose: Whether to print out issues with casting variable types
+      :type verbose: bool, default = True
+
+      :returns: The input dataframe, but the proper typing applied
+      :rtype: pd.DataFrame
+
+
+   .. py:method:: last(self, table='modelData') -> pandas.DataFrame
+
+      Convenience function to get the last values for a table
+
+      :param table: Which table to get the last values for
+                    One of {modelData, predictorData, combinedData}
+      :type table: str, default = modelData
+
+      :returns: The last snapshot for each model
+      :rtype: pd.DataFrame
+
+
+   .. py:method:: _last(df: pandas.DataFrame) -> pandas.DataFrame
+      :staticmethod:
+
+      Method to retrieve only the last values for a given dataframe.
+
+
+   .. py:method:: get_combined_data(self, modelData: pandas.DataFrame = None, predictorData: pandas.DataFrame = None, last=True) -> pandas.DataFrame
+
+      Combines the model data and predictor data into one dataframe.
+
+      :param modelData: Optional dataframe to override 'self.modelData' for merging
+      :type modelData: pd.DataFrame
+      :param predictorData: Optional dataframe to override 'self.predictorData' for merging
+      :type predictorData: pd.DataFrame
+
+      :returns: The combined dataframe
+      :rtype: pd.DataFrame
+
+
+   .. py:method:: fix_pdc(df: pandas.DataFrame) -> pandas.DataFrame
+      :staticmethod:
+
+
+   .. py:method:: defaultPredictorCategorization(x: str) -> str
+      :staticmethod:
+
+
+   .. py:method:: _apply_query(df, query: Union[str, dict] = None) -> pandas.DataFrame
+      :staticmethod:
+
+      Given an input pandas dataframe, it filters the dataframe based on input query
+
+      :param query: If a string, uses the default Pandas query function
+                    Else, a dict of lists where the key is column name in the dataframe
+                    and the corresponding value is a list of values to keep in the dataframe
+      :type query: Union[str or dict]
+
+      :returns: Filtered Pandas DataFrame
+      :rtype: pd.DataFrame
+
+
+   .. py:method:: extract_treatments(self, df, overwrite_mapping, extract_col, verbose=True)
+
+
+   .. py:method:: _extract(self, df, extract_col)
+
+      Simple function to extract treatments from column
+
+
+   .. py:method:: load_if_json(extracted, extract_col='pyname')
+      :staticmethod:
+
+      Either extracts the whole column, or just the json strings
+
+
+   .. py:method:: _create_sign_df(df: pandas.DataFrame) -> pandas.DataFrame
+      :staticmethod:
+
+      Generates dataframe to show whether responses decreased/increased from day to day
+      For a given dataframe where columns are dates and rows are model names,
+      subtracts each day's value from the previous day's value per model. Then masks the data.
+      If decreased (desired situtation), it will put 1 in the cell, if no change, it will
+      put 0, and if decreased it will put -1. This dataframe then could be used in the heatmap
+
+      :param df: This typically is pivoted ModelData
+      :type df: pd.DataFrame
+
+      :returns: The dataframe with signs for increase or decrease in day to day
+      :rtype: pd.DataFrame
+
+
+   .. py:method:: _create_heatmap_df(self, df: pandas.DataFrame, lookback: int = 5, query: Union[str, dict] = None, fill_null_days: bool = False) -> Tuple[pandas.DataFrame, pandas.DataFrame]
+
+      Generates dataframes needed to plot calendar heatmap
+      The method generates two dataframes where one is used to annotate the heatmap
+      and the other is used to apply colors based on the sign dataframe.
+      If there are multiple snapshots per day, the latest one will be selected
+
+      :param lookback: Defines how many days to look back at data from the last snapshot
+      :type lookback: int
+      :param query: The query to supply to _apply_query
+                    If a string, uses the default Pandas query function
+                    Else, a dict of lists where the key is column name in the dataframe
+                    and the corresponding value is a list of values to keep in the dataframe
+      :type query: Union[str, dict]
+      :param fill_null_days: If True, null values will be generated in the dataframe for
+                             days where there is no model snapshot
+      :type fill_null_days: bool
+
+      :returns: Tuple of annotate and sign dataframes
+      :rtype: Tuple[pd.DataFrame, pd.DataFrame]
+
+
+   .. py:method:: _calculate_impact_influence(df: pandas.DataFrame, context_keys: list = None, ModelID: str = None) -> pandas.DataFrame
+      :staticmethod:
+
+
+   .. py:method:: model_summary(self, by: str = 'ModelID', query: Union[str, dict] = None, **kwargs)
+
+      Convenience method to automatically generate a summary over models
+      By default, it summarizes ResponseCount, Performance, SuccessRate & Positives by model ID.
+      It also adds weighted means for Performance and SuccessRate,
+      And adds the count of models without responses and the percentage.
+
+      :param by: By what column to summarize the models
+      :type by: str, default = ModelID
+      :param query: The query to supply to _apply_query
+                    If a string, uses the default Pandas query function
+                    Else, a dict of lists where the key is column name in the dataframe
+                    and the corresponding value is a list of values to keep in the dataframe
+      :type query: Union[str, dict]
+
+      :returns: Groupby dataframe over all models
+      :rtype: pd.DataFrame
+
+
+   .. py:method:: pivot_df(df: pandas.DataFrame) -> pandas.DataFrame
+      :staticmethod:
+
+      Simple function to extract pivoted information
+
+
+   .. py:method:: response_gain_df(df: pandas.DataFrame, by: str = 'Channel') -> pandas.DataFrame
+      :staticmethod:
+
+      Simple function to extract the response gain per model
+
+
+   .. py:method:: models_by_positives_df(df: pandas.DataFrame, by: str = 'Channel') -> pandas.DataFrame
+      :staticmethod:
+
+
+   .. py:method:: get_model_stats(self, last: bool = True) -> dict
+
+
+   .. py:method:: describe_models(self, **kwargs) -> NoReturn
+
+      Convenience method to quickly summarize the models
+
+
+

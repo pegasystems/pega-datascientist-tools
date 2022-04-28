@@ -1,0 +1,567 @@
+<!doctype html>
+<html class="no-js">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+<link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
+
+    <link rel="shortcut icon" href="../../../_static/pegasystems-inc-vector-logo.svg"/><meta name="generator" content="sphinx-4.5.0, furo 2022.04.07"/>
+        <title>cdhtools.cdh_utils - CDHTools</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?digest=68f4518137b9aefe99b631505a2064c3c42c9852" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+
+</head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../index.html"><div class="brand">CDHTools</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand centered" href="../../../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../_static/pegasystems-inc-vector-logo.svg" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">CDHTools</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
+  <input class="sidebar-search" placeholder=Search name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Articles</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../articles/graph_gallery.html">Graph Gallery</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../tutorial_notebooks.html">Tutorial notebooks</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../articles/hello_cdhtools.html">Hello CDH Tools</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../examples.html">Example notebooks</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../articles/Example_ADM_Analysis.html">Example ADM analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../articles/vf_analysis.html">ValueFinder analysis</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pegasystems/cdh-datascientist-tools/wiki#getting-started-with-the-python-tools">Installation</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pegasystems/cdh-datascientist-tools/wiki#using-the-python-tools">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pegasystems/cdh-datascientist-tools/releases">Changelog</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pegasystems/cdh-datascientist-tools">GitHub Repository</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://pegasystems.github.io/cdh-datascientist-tools/R/index.html">R Documentation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2 current has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cdhtools</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../ADMDatamart/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cdhtools.ADMDatamart</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../IHanalysis/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cdhtools.IHanalysis</span></code></a></li>
+<li class="toctree-l3 current current-page"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cdhtools.cdh_utils</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../datasets/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cdhtools.datasets</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../plot_base/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cdhtools.plot_base</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../plots_mpl/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cdhtools.plots_mpl</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../plots_plotly/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cdhtools.plots_plotly</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container"><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <section id="module-cdhtools.cdh_utils">
+<span id="cdhtools-cdh-utils"></span><h1><a class="reference internal" href="#module-cdhtools.cdh_utils" title="cdhtools.cdh_utils"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cdhtools.cdh_utils</span></code></a><a class="headerlink" href="#module-cdhtools.cdh_utils" title="Permalink to this headline">#</a></h1>
+<p>cdhtools: Data Science add-ons for Pega.</p>
+<p>Various utilities to access and manipulate data from Pega for purposes
+of data analysis, reporting and monitoring.</p>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this headline">#</a></h2>
+<section id="functions">
+<h3>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">#</a></h3>
+<div class="table-wrapper"><table class="autosummary longtable docutils align-default">
+<colgroup>
+<col style="width: 10%"/>
+<col style="width: 90%"/>
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cdhtools.cdh_utils.readDSExport" title="cdhtools.cdh_utils.readDSExport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readDSExport</span></code></a>(filename: Union[pandas.DataFrame, str], path: str = '.', verbose: bool = True, force_pandas: bool = False, **kwargs) → pandas.DataFrame</p></td>
+<td><p>Read a Pega dataset export file.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cdhtools.cdh_utils.readZippedFile" title="cdhtools.cdh_utils.readZippedFile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readZippedFile</span></code></a>(file: str, verbose: bool = False) → pandas.DataFrame</p></td>
+<td><p>Read a zipped file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cdhtools.cdh_utils.get_latest_file" title="cdhtools.cdh_utils.get_latest_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_latest_file</span></code></a>(path: str, target: str, verbose: bool = False) → str</p></td>
+<td><p>Convenience method to find the latest model snapshot.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cdhtools.cdh_utils.safe_range_auc" title="cdhtools.cdh_utils.safe_range_auc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">safe_range_auc</span></code></a>(auc: float) → float</p></td>
+<td><p>Internal helper to keep auc a safe number between 0.5 and 1.0 always.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cdhtools.cdh_utils.auc_from_probs" title="cdhtools.cdh_utils.auc_from_probs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auc_from_probs</span></code></a>(groundtruth: List[int], probs: List[float]) → List[float]</p></td>
+<td><p>Calculates AUC from an array of truth values and predictions.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cdhtools.cdh_utils.auc_from_bincounts" title="cdhtools.cdh_utils.auc_from_bincounts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auc_from_bincounts</span></code></a>(pos: List[int], neg: List[int]) → float</p></td>
+<td><p>Calculates AUC from counts of positives and negatives directly</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cdhtools.cdh_utils.auc2GINI" title="cdhtools.cdh_utils.auc2GINI"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auc2GINI</span></code></a>(auc: float) → float</p></td>
+<td><p>Convert AUC performance metric to GINI</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cdhtools.cdh_utils.fromPRPCDateTime" title="cdhtools.cdh_utils.fromPRPCDateTime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fromPRPCDateTime</span></code></a>(x: str, return_string: bool = False) → Union[datetime.datetime, str]</p></td>
+<td><p>Convert from a Pega date-time string.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cdhtools.cdh_utils.toPRPCDateTime" title="cdhtools.cdh_utils.toPRPCDateTime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">toPRPCDateTime</span></code></a>(x: datetime.datetime) → str</p></td>
+<td><p>Convert to a Pega date-time string</p></td>
+</tr>
+</tbody>
+</table></div>
+<dl class="py function">
+<dt class="sig sig-object py" id="cdhtools.cdh_utils.readDSExport">
+<span class="sig-prename descclassname"><span class="pre">cdhtools.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">readDSExport</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">pandas.DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'.'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_pandas</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="headerlink" href="#cdhtools.cdh_utils.readDSExport" title="Permalink to this definition">#</a></dt>
+<dd><p>Read a Pega dataset export file.
+Can accept either a Pandas DataFrame or one of the following formats:
+- .csv
+- .json
+- .zip (zipped json or CSV)</p>
+<p>It automatically infers the default file names for both model data as well as predictor data.
+If you supply either ‘modelData’ or ‘predictorData’ as the ‘file’ argument, it will search for them.
+If you supply the full name of the file in the ‘path’ directory, it will import that instead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<em>[</em><em>pd.DataFrame</em><em>, </em><em>str</em><em>]</em>) – Either a Pandas DataFrame with the source data (for compatibility),
+or a string, in which case it can either be:
+- The name of the file (if a custom name) or
+- Whether we want to look for ‘modelData’ or ‘predictorData’ in the path folder.</p></li>
+<li><p><strong>path</strong> (<em>str</em><em>, </em><em>default = '.'</em>) – The location of the file</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>default = True</em>) – Whether to print out which file will be imported</p></li>
+<li><p><strong>arguments</strong> (<em>Keyword</em>) – Any arguments to plug into the read csv or json function, from either PyArrow or Pandas.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul>
+<li><p><em>pd.DataFrame</em> – The read data from the given file</p></li>
+<li><p><em>Examples</em> – &gt;&gt;&gt; df = readDSExport(file = ‘modelData’, path = ‘./datamart’)
+&gt;&gt;&gt; df = readDSExport(file = ‘ModelSnapshot.json’, path = ‘data/ADMData’)</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">'file.csv'</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">readDSExport</span><span class="p">(</span><span class="n">file</span> <span class="o">=</span> <span class="n">df</span><span class="p">)</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py function">
+<dt class="sig sig-object py" id="cdhtools.cdh_utils.readZippedFile">
+<span class="sig-prename descclassname"><span class="pre">cdhtools.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">readZippedFile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="headerlink" href="#cdhtools.cdh_utils.readZippedFile" title="Permalink to this definition">#</a></dt>
+<dd><p>Read a zipped file.
+Reads a dataset export file as exported and downloaded from Pega. The export
+file is formatted as a zipped multi-line JSON file or CSV file
+and the data is read into a pandas dataframe.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file</strong> (<em>str</em>) – The full path to the file</p></li>
+<li><p><strong>verbose</strong> (<em>str</em><em>, </em><em>default=False</em>) – Whether to print the names of the files within the unzipped file for debugging purposes</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A pandas dataframe with the contents.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py function">
+<dt class="sig sig-object py" id="cdhtools.cdh_utils.get_latest_file">
+<span class="sig-prename descclassname"><span class="pre">cdhtools.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">get_latest_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#cdhtools.cdh_utils.get_latest_file" title="Permalink to this definition">#</a></dt>
+<dd><p>Convenience method to find the latest model snapshot.
+It has a set of default names to search for and finds all files who match it.
+Once it finds all matching files in the directory, it chooses the most recent one.
+It only looks at .json, .csv and .zip files for now, as they are supported.
+Needs a path to the directory and a target of either ‘modelData’ or ‘predictorData’.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<em>str</em>) – The filepath where the data is stored</p></li>
+<li><p><strong>target</strong> (<em>str in</em><em> [</em><em>'modelData'</em><em>, </em><em>'predictorData'</em><em>]</em>) – Whether to look for data about the predictive models (‘modelData’)
+or the predictor bins (‘predictorData’)</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>default = False</em>) – Whether to print all found files before comparing name criteria for debugging purposes</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The most recent file given the file name criteria.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py function">
+<dt class="sig sig-object py" id="cdhtools.cdh_utils.safe_range_auc">
+<span class="sig-prename descclassname"><span class="pre">cdhtools.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">safe_range_auc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">auc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#cdhtools.cdh_utils.safe_range_auc" title="Permalink to this definition">#</a></dt>
+<dd><p>Internal helper to keep auc a safe number between 0.5 and 1.0 always.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>auc</strong> (<em>float</em>) – The AUC (Area Under the Curve) score</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>‘Safe’ AUC score, between 0.5 and 1.0</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py function">
+<dt class="sig sig-object py" id="cdhtools.cdh_utils.auc_from_probs">
+<span class="sig-prename descclassname"><span class="pre">cdhtools.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">auc_from_probs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">groundtruth</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cdhtools.cdh_utils.auc_from_probs" title="Permalink to this definition">#</a></dt>
+<dd><p>Calculates AUC from an array of truth values and predictions.
+Calculates the area under the ROC curve from an array of truth values and
+predictions, making sure to always return a value between 0.5 and 1.0 and
+will return 0.5 in case of any issues.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>groundtruth</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – The ‘true’ values, Positive values must be represented as
+True or 1. Negative values must be represented as False or 0.</p></li>
+<li><p><strong>probs</strong> (<em>List</em><em>[</em><em>float</em><em>]</em>) – The predictions, as a numeric vector as the same length as groundtruth</p></li>
+<li><p><strong>Returns</strong> (<em>List</em><em>[</em><em>float</em><em>]</em>) – The AUC as a value between 0.5 and 1, return 0.5 if there are any issues
+with the data</p></li>
+<li><p><strong>Examples</strong> – <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">auc_from_probs</span><span class="p">(</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.6</span><span class="p">,</span><span class="mf">0.2</span><span class="p">,</span><span class="mf">0.2</span><span class="p">])</span>
+</pre></div>
+</div>
+</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py function">
+<dt class="sig sig-object py" id="cdhtools.cdh_utils.auc_from_bincounts">
+<span class="sig-prename descclassname"><span class="pre">cdhtools.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">auc_from_bincounts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#cdhtools.cdh_utils.auc_from_bincounts" title="Permalink to this definition">#</a></dt>
+<dd><p>Calculates AUC from counts of positives and negatives directly
+This is an efficient calculation of the AUC directly from an array of positives
+and negatives. It makes sure to always return a value between 0.5 and 1.0
+and will return 0.5 in case of any issues.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pos</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – Vector with counts of the positive responses</p></li>
+<li><p><strong>neg</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – Vector with counts of the negative responses</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>float</em> – The AUC as a value between 0.5 and 1, return 0.5 if there are any issues
+with the data.</p></li>
+<li><p><em>Examples</em> – &gt;&gt;&gt; auc_from_bincounts([3,1,0], [2,0,1])</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py function">
+<dt class="sig sig-object py" id="cdhtools.cdh_utils.auc2GINI">
+<span class="sig-prename descclassname"><span class="pre">cdhtools.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">auc2GINI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">auc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#cdhtools.cdh_utils.auc2GINI" title="Permalink to this definition">#</a></dt>
+<dd><p>Convert AUC performance metric to GINI</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>auc</strong> (<em>float</em>) – The AUC (number between 0.5 and 1)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>float</em> – GINI metric, a number between 0 and 1</p></li>
+<li><p><em>Examples</em> – &gt;&gt;&gt; auc2GINI(0.8232)</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py function">
+<dt class="sig sig-object py" id="cdhtools.cdh_utils.fromPRPCDateTime">
+<span class="sig-prename descclassname"><span class="pre">cdhtools.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">fromPRPCDateTime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">datetime.datetime</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cdhtools.cdh_utils.fromPRPCDateTime" title="Permalink to this definition">#</a></dt>
+<dd><p>Convert from a Pega date-time string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>str</em>) – String of Pega date-time</p></li>
+<li><p><strong>return_string</strong> (<em>bool</em><em>, </em><em>default=False</em>) – If True it will return the date in string format. If
+False it will return in datetime type</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>Union[datetime.datetime, str]</em> – The converted date in datetime format or string.</p></li>
+<li><p><em>Examples</em> – &gt;&gt;&gt; fromPRPCDateTime(“20180316T134127.847 GMT”)
+&gt;&gt;&gt; fromPRPCDateTime(“20180316T134127.847 GMT”, True)
+&gt;&gt;&gt; fromPRPCDateTime(“20180316T184127.846”)
+&gt;&gt;&gt; fromPRPCDateTime(“20180316T184127.846”, True)</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py function">
+<dt class="sig sig-object py" id="cdhtools.cdh_utils.toPRPCDateTime">
+<span class="sig-prename descclassname"><span class="pre">cdhtools.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">toPRPCDateTime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime.datetime</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#cdhtools.cdh_utils.toPRPCDateTime" title="Permalink to this definition">#</a></dt>
+<dd><p>Convert to a Pega date-time string</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>datetime.datetime</em>) – A datetime object</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>str</em> – A string representation in the format used by Pega</p></li>
+<li><p><em>Examples</em> – &gt;&gt;&gt; toPRPCDateTime(datetime.datetime.now())</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2022, Pegasystems
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/pegasystems/cdh-datascientist-tools" aria-label="GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            </a>
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            Contents
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cdhtools.cdh_utils</span></code></a><ul>
+<li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
+<li><a class="reference internal" href="#functions">Functions</a><ul>
+<li><a class="reference internal" href="#cdhtools.cdh_utils.readDSExport">readDSExport</a></li>
+<li><a class="reference internal" href="#cdhtools.cdh_utils.readZippedFile">readZippedFile</a></li>
+<li><a class="reference internal" href="#cdhtools.cdh_utils.get_latest_file">get_latest_file</a></li>
+<li><a class="reference internal" href="#cdhtools.cdh_utils.safe_range_auc">safe_range_auc</a></li>
+<li><a class="reference internal" href="#cdhtools.cdh_utils.auc_from_probs">auc_from_probs</a></li>
+<li><a class="reference internal" href="#cdhtools.cdh_utils.auc_from_bincounts">auc_from_bincounts</a></li>
+<li><a class="reference internal" href="#cdhtools.cdh_utils.auc2GINI">auc2GINI</a></li>
+<li><a class="reference internal" href="#cdhtools.cdh_utils.fromPRPCDateTime">fromPRPCDateTime</a></li>
+<li><a class="reference internal" href="#cdhtools.cdh_utils.toPRPCDateTime">toPRPCDateTime</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/scripts/furo.js"></script>
+    <script src="../../../_static/clipboard.min.js"></script>
+    <script src="../../../_static/copybutton.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    </body>
+</html>

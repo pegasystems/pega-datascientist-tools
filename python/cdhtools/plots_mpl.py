@@ -173,6 +173,7 @@ class ADMVisualisations:
         **kwargs,
     ) -> plt.figure:
         """Shows responses and performance of models over time
+
         Reponses are on the y axis and the performance of the model is indicated by heatmap.
         x axis is date
 
@@ -239,6 +240,7 @@ class ADMVisualisations:
         **kwargs,
     ) -> plt.figure:
         """Creates a calendar heatmap
+
         x axis shows model names and y axis the dates. Data in each cell is the total number
         of responses. The color indicates where responses increased/decreased or
         did not change compared to the previous day
@@ -262,6 +264,7 @@ class ADMVisualisations:
         -------
         plt.figure
         """
+
         f, ax = plt.subplots(figsize=figsize)
         myColors = ["r", "orange", "w"]
         colorText = ["Decreased", "No Change", "Increased or NA"]
@@ -307,6 +310,7 @@ class ADMVisualisations:
         **kwargs,
     ) -> plt.figure:
         """Shows success rate of models over time
+
         Parameters
         ----------
         day_interval (int):
@@ -323,6 +327,7 @@ class ADMVisualisations:
         -------
         plt.figure
         """
+
         assert (
             day_interval <= df["SnapshotTime"].nunique()
         ), f"Day interval ({day_interval}) cannot be larger than the number of snapshots ({df['SnapshotTime'].nunique()})"
@@ -364,6 +369,7 @@ class ADMVisualisations:
         **kwargs,
     ) -> plt.figure:
         """Shows all latest proposition success rates
+
         A bar plot to show the success rate of all latest model instances (propositions)
         For reading simplicity, latest success rate is also annotated next to each bar
 
@@ -411,6 +417,7 @@ class ADMVisualisations:
         **kwargs,
     ) -> plt.figure:
         """Show score distribution similar to ADM out-of-the-box report
+
         Shows a score distribution graph per model. If certain models selected,
         only those models will be shown.
         the only difference between this graph and the one shown on ADM
@@ -448,6 +455,7 @@ class ADMVisualisations:
         **kwargs,
     ) -> plt.figure:
         """Show predictor graphs for a given model
+        
         For a given model (query) shows all its predictors' graphs. If certain predictors
         selected, only those predictor graphs will be shown
 
@@ -571,6 +579,7 @@ class ADMVisualisations:
         -------
         plt.figure
         """
+
         cmap = colors.LinearSegmentedColormap.from_list(
             "mycmap",
             [
