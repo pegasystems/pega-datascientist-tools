@@ -28,6 +28,7 @@ setuptools.setup(
         "nbformat",
         "jupyterlab",
         "ipywidgets",
+        "pydot"
     ],
     keywords=[
         "pega",
