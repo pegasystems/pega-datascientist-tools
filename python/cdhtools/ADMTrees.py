@@ -109,7 +109,7 @@ class ADMTrees:
         try:
             with open(file) as f:
                 data = separate_txt_sections(f)
-        except FileNotFoundError:
+        except (FileNotFoundError, OSError):
             try:
                 response = requests.get(file)
                 is_url = True if response.status_code == 200 else False
