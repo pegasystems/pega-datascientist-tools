@@ -14,9 +14,13 @@ Functions
 .. autoapisummary::
 
    cdhtools.datasets.CDHSample
+   cdhtools.datasets.SampleTrees
 
 
 
 .. py:function:: CDHSample(plotting_engine='plotly', query=None)
+
+
+.. py:function:: SampleTrees()
 
 

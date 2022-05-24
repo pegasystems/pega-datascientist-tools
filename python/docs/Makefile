@@ -25,7 +25,7 @@ help:
 # And finally remove the buildinfo so we do a clean build every time
 
 %: Makefile
-	cp ../../examples/datamart/Example_ADM_Analysis.ipynb ../../examples/graph_gallery/graph_gallery.ipynb ../../examples/helloworld/hello_cdhtools.ipynb ../../examples/valuefinder/* source/articles
+	cp ../../examples/datamart/Example_ADM_Analysis.ipynb ../../examples/graph_gallery/graph_gallery.ipynb ../../examples/helloworld/hello_cdhtools.ipynb ../../examples/valuefinder/* ../../examples/adm/AGBModelVisualisation.ipynb source/articles
 	rm -r ../../docs/Python/*
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 	rm source/articles/*

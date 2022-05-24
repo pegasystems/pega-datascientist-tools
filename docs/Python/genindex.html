@@ -169,6 +169,7 @@
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="examples.html">Example notebooks</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="articles/Example_ADM_Analysis.html">Example ADM analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="articles/AGBModelVisualisation.html">Analyzing ADM Decision Trees</a></li>
 <li class="toctree-l2"><a class="reference internal" href="articles/vf_analysis.html">ValueFinder analysis</a></li>
 </ul>
 </li>
@@ -186,6 +187,7 @@
 <li class="toctree-l1 has-children"><a class="reference internal" href="autoapi/index.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2 has-children"><a class="reference internal" href="autoapi/cdhtools/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cdhtools</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="autoapi/cdhtools/ADMDatamart/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cdhtools.ADMDatamart</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="autoapi/cdhtools/ADMTrees/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cdhtools.ADMTrees</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="autoapi/cdhtools/IHanalysis/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cdhtools.IHanalysis</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="autoapi/cdhtools/cdh_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cdhtools.cdh_utils</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="autoapi/cdhtools/datasets/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cdhtools.datasets</span></code></a></li>
@@ -231,7 +233,7 @@
           
 <section class="genindex-section">
   <h1 id="index">Index</h1>
-  <div class="genindex-jumpbox"><a href="#_"><strong>_</strong></a> | <a href="#A"><strong>A</strong></a> | <a href="#C"><strong>C</strong></a> | <a href="#D"><strong>D</strong></a> | <a href="#E"><strong>E</strong></a> | <a href="#F"><strong>F</strong></a> | <a href="#G"><strong>G</strong></a> | <a href="#I"><strong>I</strong></a> | <a href="#L"><strong>L</strong></a> | <a href="#M"><strong>M</strong></a> | <a href="#O"><strong>O</strong></a> | <a href="#P"><strong>P</strong></a> | <a href="#R"><strong>R</strong></a> | <a href="#S"><strong>S</strong></a> | <a href="#T"><strong>T</strong></a></div>
+  <div class="genindex-jumpbox"><a href="#_"><strong>_</strong></a> | <a href="#A"><strong>A</strong></a> | <a href="#C"><strong>C</strong></a> | <a href="#D"><strong>D</strong></a> | <a href="#E"><strong>E</strong></a> | <a href="#F"><strong>F</strong></a> | <a href="#G"><strong>G</strong></a> | <a href="#I"><strong>I</strong></a> | <a href="#L"><strong>L</strong></a> | <a href="#M"><strong>M</strong></a> | <a href="#O"><strong>O</strong></a> | <a href="#P"><strong>P</strong></a> | <a href="#R"><strong>R</strong></a> | <a href="#S"><strong>S</strong></a> | <a href="#T"><strong>T</strong></a> | <a href="#W"><strong>W</strong></a></div>
 </section>
 <section id="_" class="genindex-section">
   <h2>_</h2>
@@ -267,18 +269,30 @@
           <li><a href="autoapi/cdhtools/ADMDatamart/index.html#cdhtools.ADMDatamart.ADMDatamart._create_heatmap_df">(cdhtools.ADMDatamart.ADMDatamart method)</a>
 </li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMDatamart._create_sign_df">_create_sign_df() (cdhtools.ADMDatamart static method)</a>
 
         <ul>
           <li><a href="autoapi/cdhtools/ADMDatamart/index.html#cdhtools.ADMDatamart.ADMDatamart._create_sign_df">(cdhtools.ADMDatamart.ADMDatamart static method)</a>
 </li>
         </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees._depth">_depth() (cdhtools.ADMTrees method)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees._depth">(cdhtools.ADMTrees.ADMTrees method)</a>
+</li>
+        </ul></li>
         <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMDatamart._extract">_extract() (cdhtools.ADMDatamart method)</a>
 
         <ul>
           <li><a href="autoapi/cdhtools/ADMDatamart/index.html#cdhtools.ADMDatamart.ADMDatamart._extract">(cdhtools.ADMDatamart.ADMDatamart method)</a>
+</li>
+        </ul></li>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees._fillChildNodeIDs">_fillChildNodeIDs() (cdhtools.ADMTrees static method)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees._fillChildNodeIDs">(cdhtools.ADMTrees.ADMTrees static method)</a>
 </li>
         </ul></li>
         <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMDatamart._import_utils">_import_utils() (cdhtools.ADMDatamart method)</a>
@@ -315,6 +329,12 @@
           <li><a href="autoapi/cdhtools/ADMDatamart/index.html#cdhtools.ADMDatamart.ADMDatamart">(class in cdhtools.ADMDatamart)</a>
 </li>
         </ul></li>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees">ADMTrees (class in cdhtools)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees">(class in cdhtools.ADMTrees)</a>
+</li>
+        </ul></li>
         <li><a href="autoapi/cdhtools/plots_mpl/index.html#cdhtools.plots_mpl.ADMVisualisations">ADMVisualisations (class in cdhtools.plots_mpl)</a>
 
         <ul>
@@ -323,6 +343,12 @@
         </ul></li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.allValuesPerSplit">allValuesPerSplit (cdhtools.ADMTrees attribute)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.allValuesPerSplit">(cdhtools.ADMTrees.ADMTrees attribute)</a>
+</li>
+        </ul></li>
         <li><a href="autoapi/cdhtools/plot_base/index.html#cdhtools.plot_base.Plots.ApplicableVisualisations">ApplicableVisualisations (cdhtools.plot_base.Plots property)</a>
 </li>
         <li><a href="autoapi/cdhtools/cdh_utils/index.html#cdhtools.cdh_utils.auc2GINI">auc2GINI() (in module cdhtools.cdh_utils)</a>
@@ -359,6 +385,13 @@
 
         <ul>
           <li><a href="autoapi/cdhtools/ADMDatamart/index.html#module-cdhtools.ADMDatamart">module</a>
+</li>
+        </ul></li>
+        <li>
+    cdhtools.ADMTrees
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#module-cdhtools.ADMTrees">module</a>
 </li>
         </ul></li>
         <li>
@@ -481,6 +514,18 @@
   <h2>G</h2>
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.gainsPerSplit">gainsPerSplit (cdhtools.ADMTrees attribute)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.gainsPerSplit">(cdhtools.ADMTrees.ADMTrees attribute)</a>
+</li>
+        </ul></li>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.gainsPerTree">gainsPerTree (cdhtools.ADMTrees attribute)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.gainsPerTree">(cdhtools.ADMTrees.ADMTrees attribute)</a>
+</li>
+        </ul></li>
         <li><a href="autoapi/cdhtools/IHanalysis/index.html#cdhtools.IHanalysis.get_accept_rate">get_accept_rate() (in module cdhtools.IHanalysis)</a>
 </li>
         <li><a href="autoapi/cdhtools/IHanalysis/index.html#cdhtools.IHanalysis.get_accept_rate_time">get_accept_rate_time() (in module cdhtools.IHanalysis)</a>
@@ -499,8 +544,6 @@
 </li>
         <li><a href="autoapi/cdhtools/IHanalysis/index.html#cdhtools.IHanalysis.get_delta_df">get_delta_df() (in module cdhtools.IHanalysis)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMDatamart.get_engine">get_engine() (cdhtools.ADMDatamart static method)</a>
 
         <ul>
@@ -521,6 +564,74 @@
 </li>
         <li><a href="autoapi/cdhtools/IHanalysis/index.html#cdhtools.IHanalysis.get_total_outcome_share_per_level">get_total_outcome_share_per_level() (in module cdhtools.IHanalysis)</a>
 </li>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.getAllValuesPerSplit">getAllValuesPerSplit() (cdhtools.ADMTrees method)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.getAllValuesPerSplit">(cdhtools.ADMTrees.ADMTrees method)</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.getAllVisitedNodes">getAllVisitedNodes() (cdhtools.ADMTrees method)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.getAllVisitedNodes">(cdhtools.ADMTrees.ADMTrees method)</a>
+</li>
+        </ul></li>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.getGainsPerSplit">getGainsPerSplit() (cdhtools.ADMTrees method)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.getGainsPerSplit">(cdhtools.ADMTrees.ADMTrees method)</a>
+</li>
+        </ul></li>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.getGroupedGainsPerSplit">getGroupedGainsPerSplit() (cdhtools.ADMTrees method)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.getGroupedGainsPerSplit">(cdhtools.ADMTrees.ADMTrees method)</a>
+</li>
+        </ul></li>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.getNodesRecursively">getNodesRecursively() (cdhtools.ADMTrees method)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.getNodesRecursively">(cdhtools.ADMTrees.ADMTrees method)</a>
+</li>
+        </ul></li>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.getPredictors">getPredictors() (cdhtools.ADMTrees method)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.getPredictors">(cdhtools.ADMTrees.ADMTrees method)</a>
+</li>
+        </ul></li>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.getSplitsRecursively">getSplitsRecursively() (cdhtools.ADMTrees method)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.getSplitsRecursively">(cdhtools.ADMTrees.ADMTrees method)</a>
+</li>
+        </ul></li>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.getTreeRepresentation">getTreeRepresentation() (cdhtools.ADMTrees method)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.getTreeRepresentation">(cdhtools.ADMTrees.ADMTrees method)</a>
+</li>
+        </ul></li>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.getTreeStats">getTreeStats() (cdhtools.ADMTrees method)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.getTreeStats">(cdhtools.ADMTrees.ADMTrees method)</a>
+</li>
+        </ul></li>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.getVisitedNodes">getVisitedNodes() (cdhtools.ADMTrees method)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.getVisitedNodes">(cdhtools.ADMTrees.ADMTrees method)</a>
+</li>
+        </ul></li>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.groupedGainsPerSplit">groupedGainsPerSplit (cdhtools.ADMTrees attribute)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.groupedGainsPerSplit">(cdhtools.ADMTrees.ADMTrees attribute)</a>
+</li>
+        </ul></li>
     </ul></td>
   </tr></table>
 </section>
@@ -539,6 +650,12 @@
         </ul></li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.import_model">import_model() (cdhtools.ADMTrees method)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.import_model">(cdhtools.ADMTrees.ADMTrees method)</a>
+</li>
+        </ul></li>
         <li><a href="autoapi/cdhtools/IHanalysis/index.html#cdhtools.IHanalysis.initial_prep">initial_prep() (in module cdhtools.IHanalysis)</a>
 </li>
     </ul></td>
@@ -553,6 +670,12 @@
 
         <ul>
           <li><a href="autoapi/cdhtools/ADMDatamart/index.html#cdhtools.ADMDatamart.ADMDatamart.last">(cdhtools.ADMDatamart.ADMDatamart method)</a>
+</li>
+        </ul></li>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.learning_rate">learning_rate (cdhtools.ADMTrees attribute)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.learning_rate">(cdhtools.ADMTrees.ADMTrees attribute)</a>
 </li>
         </ul></li>
     </ul></td>
@@ -571,6 +694,12 @@
   <h2>M</h2>
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.model">model (cdhtools.ADMTrees attribute)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.model">(cdhtools.ADMTrees.ADMTrees attribute)</a>
+</li>
+        </ul></li>
         <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMDatamart.model_summary">model_summary() (cdhtools.ADMDatamart method)</a>
 
         <ul>
@@ -591,6 +720,8 @@
         </ul></li>
         <li><a href="autoapi/cdhtools/plots_plotly/index.html#cdhtools.plots_plotly.ADMVisualisations.ModelsByPositives">ModelsByPositives() (cdhtools.plots_plotly.ADMVisualisations method)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li>
     module
 
@@ -598,6 +729,8 @@
           <li><a href="autoapi/cdhtools/index.html#module-cdhtools">cdhtools</a>
 </li>
           <li><a href="autoapi/cdhtools/ADMDatamart/index.html#module-cdhtools.ADMDatamart">cdhtools.ADMDatamart</a>
+</li>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#module-cdhtools.ADMTrees">cdhtools.ADMTrees</a>
 </li>
           <li><a href="autoapi/cdhtools/cdh_utils/index.html#module-cdhtools.cdh_utils">cdhtools.cdh_utils</a>
 </li>
@@ -634,6 +767,18 @@
   <h2>P</h2>
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.parseSplitValues">parseSplitValues() (cdhtools.ADMTrees method)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.parseSplitValues">(cdhtools.ADMTrees.ADMTrees method)</a>
+</li>
+        </ul></li>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.parseSplitValuesWithSpaces">parseSplitValuesWithSpaces() (cdhtools.ADMTrees static method)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.parseSplitValuesWithSpaces">(cdhtools.ADMTrees.ADMTrees static method)</a>
+</li>
+        </ul></li>
         <li><a href="autoapi/cdhtools/plots_mpl/index.html#cdhtools.plots_mpl.ADMVisualisations.PerformanceAndSuccessRateOverTime">PerformanceAndSuccessRateOverTime() (cdhtools.plots_mpl.ADMVisualisations method)</a>
 </li>
         <li><a href="autoapi/cdhtools/plots_mpl/index.html#cdhtools.plots_mpl.ADMVisualisations.PerformanceSuccessRateBubbleChart">PerformanceSuccessRateBubbleChart() (cdhtools.plots_mpl.ADMVisualisations method)</a>
@@ -662,6 +807,12 @@
 </li>
         <li><a href="autoapi/cdhtools/plot_base/index.html#cdhtools.plot_base.Plots.plotApplicable">plotApplicable() (cdhtools.plot_base.Plots method)</a>
 </li>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.plotContributionPerTree">plotContributionPerTree() (cdhtools.ADMTrees method)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.plotContributionPerTree">(cdhtools.ADMTrees.ADMTrees method)</a>
+</li>
+        </ul></li>
         <li><a href="autoapi/cdhtools/plot_base/index.html#cdhtools.plot_base.Plots.plotImpactInfluence">plotImpactInfluence() (cdhtools.plot_base.Plots method)</a>
 </li>
         <li><a href="autoapi/cdhtools/plot_base/index.html#cdhtools.plot_base.Plots.plotModelsByPositives">plotModelsByPositives() (cdhtools.plot_base.Plots method)</a>
@@ -674,10 +825,10 @@
 </li>
         <li><a href="autoapi/cdhtools/plot_base/index.html#cdhtools.plot_base.Plots.plotPredictorBinning">plotPredictorBinning() (cdhtools.plot_base.Plots method)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/cdhtools/plot_base/index.html#cdhtools.plot_base.Plots.plotPredictorPerformance">plotPredictorPerformance() (cdhtools.plot_base.Plots method)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/cdhtools/plot_base/index.html#cdhtools.plot_base.Plots.plotPredictorPerformanceHeatmap">plotPredictorPerformanceHeatmap() (cdhtools.plot_base.Plots method)</a>
 </li>
         <li><a href="autoapi/cdhtools/plot_base/index.html#cdhtools.plot_base.Plots.plotPropositionSuccessRates">plotPropositionSuccessRates() (cdhtools.plot_base.Plots method)</a>
@@ -690,6 +841,18 @@
 </li>
         <li><a href="autoapi/cdhtools/plot_base/index.html#cdhtools.plot_base.Plots.plotScoreDistribution">plotScoreDistribution() (cdhtools.plot_base.Plots method)</a>
 </li>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.plotSplitsPerVariable">plotSplitsPerVariable() (cdhtools.ADMTrees method)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.plotSplitsPerVariable">(cdhtools.ADMTrees.ADMTrees method)</a>
+</li>
+        </ul></li>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.plotTree">plotTree() (cdhtools.ADMTrees method)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.plotTree">(cdhtools.ADMTrees.ADMTrees method)</a>
+</li>
+        </ul></li>
         <li><a href="autoapi/cdhtools/plot_base/index.html#cdhtools.plot_base.Plots.plotTreeMap">plotTreeMap() (cdhtools.plot_base.Plots method)</a>
 </li>
         <li><a href="autoapi/cdhtools/plots_plotly/index.html#cdhtools.plots_plotly.ADMVisualisations.post_plot">post_plot() (cdhtools.plots_plotly.ADMVisualisations static method)</a>
@@ -716,6 +879,18 @@
 
         <ul>
           <li><a href="autoapi/cdhtools/plots_plotly/index.html#cdhtools.plots_plotly.ADMVisualisations.PredictorPerformanceHeatmap">(cdhtools.plots_plotly.ADMVisualisations method)</a>
+</li>
+        </ul></li>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.predictors">predictors (cdhtools.ADMTrees attribute)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.predictors">(cdhtools.ADMTrees.ADMTrees attribute)</a>
+</li>
+        </ul></li>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.properties">properties (cdhtools.ADMTrees attribute)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.properties">(cdhtools.ADMTrees.ADMTrees attribute)</a>
 </li>
         </ul></li>
         <li><a href="autoapi/cdhtools/plots_mpl/index.html#cdhtools.plots_mpl.ADMVisualisations.PropositionSuccessRates">PropositionSuccessRates() (cdhtools.plots_mpl.ADMVisualisations method)</a>
@@ -762,16 +937,30 @@
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/cdhtools/cdh_utils/index.html#cdhtools.cdh_utils.safe_range_auc">safe_range_auc() (in module cdhtools.cdh_utils)</a>
 </li>
+        <li><a href="autoapi/cdhtools/datasets/index.html#cdhtools.datasets.SampleTrees">SampleTrees() (in module cdhtools.datasets)</a>
+</li>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.score">score() (cdhtools.ADMTrees method)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.score">(cdhtools.ADMTrees.ADMTrees method)</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/cdhtools/plots_mpl/index.html#cdhtools.plots_mpl.ADMVisualisations.ScoreDistribution">ScoreDistribution() (cdhtools.plots_mpl.ADMVisualisations method)</a>
 
         <ul>
           <li><a href="autoapi/cdhtools/plots_plotly/index.html#cdhtools.plots_plotly.ADMVisualisations.ScoreDistribution">(cdhtools.plots_plotly.ADMVisualisations method)</a>
 </li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/cdhtools/IHanalysis/index.html#cdhtools.IHanalysis.select_date_range_lookback">select_date_range_lookback() (in module cdhtools.IHanalysis)</a>
 </li>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.splitsPerTree">splitsPerTree (cdhtools.ADMTrees attribute)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.splitsPerTree">(cdhtools.ADMTrees.ADMTrees attribute)</a>
+</li>
+        </ul></li>
     </ul></td>
   </tr></table>
 </section>
@@ -782,12 +971,38 @@
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/cdhtools/plot_base/index.html#cdhtools.plot_base.Plots.top_n">top_n() (cdhtools.plot_base.Plots static method)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/cdhtools/cdh_utils/index.html#cdhtools.cdh_utils.toPRPCDateTime">toPRPCDateTime() (in module cdhtools.cdh_utils)</a>
 </li>
         <li><a href="autoapi/cdhtools/plots_plotly/index.html#cdhtools.plots_plotly.ADMVisualisations.TreeMap">TreeMap() (cdhtools.plots_plotly.ADMVisualisations method)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.trees">trees (cdhtools.ADMTrees attribute)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.trees">(cdhtools.ADMTrees.ADMTrees attribute)</a>
+</li>
+        </ul></li>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.treeStats">treeStats (cdhtools.ADMTrees attribute)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.treeStats">(cdhtools.ADMTrees.ADMTrees attribute)</a>
+</li>
+        </ul></li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="W" class="genindex-section">
+  <h2>W</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="autoapi/cdhtools/index.html#cdhtools.ADMTrees.workaround_import">workaround_import() (cdhtools.ADMTrees method)</a>
+
+        <ul>
+          <li><a href="autoapi/cdhtools/ADMTrees/index.html#cdhtools.ADMTrees.ADMTrees.workaround_import">(cdhtools.ADMTrees.ADMTrees method)</a>
+</li>
+        </ul></li>
     </ul></td>
   </tr></table>
 </section>
