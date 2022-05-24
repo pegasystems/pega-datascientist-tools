@@ -6,3 +6,4 @@ requests
 nbformat
 jupyterlab
 ipywidgets
+pydot
