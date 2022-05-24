@@ -24,12 +24,12 @@ params:
   modeldescription:
     # Optional model description typically corresponding to the model info of the indicated model
     value: "Sales Model - PSDISCOUNT100"
-    
+
   modelid:
     # Model ID that is used to filter the predictor binning table data. If the
     # binning data only contains a single Model ID it can be left empty.
     value: "68e1d164-81e3-5da0-816c-0bbc3c20ac6c" # default
-    
+
   # Showing the binning of the predictors for all or only for the active ones.
   predictordetails_activeonly: true
 ---
@@ -115,18 +115,6 @@ The model scores (sum of the log odds of the Naive Bayes classifier) are mapped 
 
 The model reports a performance of **`r round(modelPredictorBins[EntryType == "Classifier"]$Performance[1],5)`** measured in AUC. This AUC is calculated from the bins of the Classifier.
 
-```{r, echo=F, warning=F, error=F}
-actualPerformance <- NULL
-classifierBinning[, inCurrentRange := T]
-
-# TODO: commented out because it depends heavily on names of fields that have recently changed
-# if (all(sapply(requiredFieldsForActualPerformance, function(f) {return(f %in% names(modelPredictorBins))}))) {
-#   # TODO consider try/catch because this one easily fails
-#   actualPerformance <- getModelPerformanceOverview(dmPredictors = modelPredictorBins)
-#   classifierBinning[, inCurrentRange := (BinIndex >= actualPerformance$actual_score_bin_min & BinIndex <= actualPerformance$actual_score_bin_max)]
-# }
-```
-
 |Total Positives|Total Negatives|Total Responses|Success Rate|AUC|
 |--------------:|--------------:|--------------:|-----------------:|-----------------:|
 |`r sum(classifierBinning$BinPositives)`|`r sum(classifierBinning$BinNegatives)`|`r sum(classifierBinning$BinResponseCount)`|`r sprintf("%.2f%%", 100*sum(classifierBinning$BinPositives)/sum(classifierBinning$BinResponseCount))`|`r round(modelPredictorBins[EntryType == "Classifier"]$Performance[1],5)`|
@@ -148,15 +136,9 @@ Make sure to open the HTML file in a browser.
 
 ```{r fig.align="center", fig.width=8, results="asis"}
 subtitle <- paste0("Performance: ", round(classifierBinning$Performance[1],5), " (AUC)")
-if (!is.null(actualPerformance)) {
-  if (round(classifierBinning$Performance[1],5) != round(classifierBinning$Performance[1],5)) {
-    subtitle <- paste0("Performance: ", round(classifierBinning$Performance[1],5), 
-                       " (AUC) (actual: ", round(actualPerformance$actual_performance,5),")")
-  }
-}
 
 # Using a native Plotly version of the graph to make the hover-over work. Just 
-# plotlygg(p) doesnt work perfectly, unfortunately.
+# ggplotly(p) doesnt work perfectly, unfortunately.
 
 classifierBinning[, propensity := 100*BinPositives/BinResponseCount]
 
@@ -166,26 +148,20 @@ pegaClassifierYellowLine <- "EF8B08"
 if (nrow(classifierBinning) >= 1) {
   ply <- plot_ly(classifierBinning) %>%
     add_bars(x = ~BinIndex, y = ~BinResponseCount, 
-             color = ~factor(inCurrentRange, levels=c(T, F)), 
-             colors = c(pegaClassifierBlueBar, "darkgrey"),
+             colors = pegaClassifierBlueBar,
              alpha = 0.8,
              hoverinfo = "text", 
-             text = ~paste0("Score Range: ", BinSymbol, "\nResponses: ", BinResponseCount, "\nSuccess Rate: ", sprintf("%.2f%%", propensity)),
+             text = ~paste0("Score Range: ", BinSymbol, "\nResponses: ", BinResponseCount, "\nPropensity: ", sprintf("%.2f%%", propensity)),
              yaxis = 'y') %>%
     add_lines(x = ~BinIndex, y = ~propensity,
               line = list(color = pegaClassifierYellowLine, width = 4),
               yaxis = 'y2') %>%
-    add_markers(x = ~BinIndex[(classifierBinning$inCurrentRange)], y = ~propensity[(classifierBinning$inCurrentRange)],
+    add_markers(x = ~BinIndex, y = ~propensity,
                 marker = list(color="black"),
-                hoverinfo = "text", text = ~sprintf("%.2f%%", propensity[(classifierBinning$inCurrentRange)]),
-                yaxis = 'y2') %>%
-    # outside the current range
-    add_markers(x = ~BinIndex[(!classifierBinning$inCurrentRange)], y = ~propensity[(!classifierBinning$inCurrentRange)],
-                marker = list(color="darkgrey"),
-                hoverinfo = "text", text = ~sprintf("%.2f%%", propensity[(!classifierBinning$inCurrentRange)]),
+                hoverinfo = "text", text = ~sprintf("%.2f%%", propensity),
                 yaxis = 'y2') %>%
     layout(title = paste0("Score Distribution of the Classifier"),
-           xaxis = list(title = ""), # to put values instead of bin indices: , tickangle = -45, tickmode = "array", tickvals = ~bin, ticktext = ~BinSymbol
+           xaxis = list(title = "Bin Index"), # to put values instead of bin indices: , tickangle = -45, tickmode = "array", tickvals = ~bin, ticktext = ~BinSymbol
            yaxis = list(side = 'left', title = "Responses"),
            yaxis2 = list(side = 'right', overlaying = "y", title = 'Propensity (%)', 
                          showgrid = FALSE, zeroline = FALSE, automargin = TRUE, rangemode = "tozero"),
@@ -261,6 +237,9 @@ and grouped if they are correlated (shown subtly with an indentation).
 The negatives and postives count are usually the same across all the predictors
 but will be different when predictors have been removed or added.
 
+For Adaptive Gradient Boosting models ("AGB") the number of positives and 
+negatives is not set
+
 ```{r echo=F, error=F, include=T}
 
 # TODO - the grouping could be displayed in more fancy ways using kableExtra options for grouping
@@ -279,7 +258,11 @@ if (nrow(predSummary) == 0) {
 } else {
   predSummary[, maxGroupPerformance := max(Performance), by=Group]
   setorder(predSummary, -maxGroupPerformance, -Performance)
-  predSummary[, isFirstOfGroup := seq(.N)==1, by=Group]
+  if (uniqueN(predSummary$Group) > 1) {
+    predSummary[, isFirstOfGroup := seq(.N)==1, by=Group]
+  } else {
+    predSummary[, isFirstOfGroup := T]
+  }
   
   kable(predSummary[,-c("maxGroupPerformance", "isFirstOfGroup")]) %>%
     kable_styling() %>%
@@ -306,7 +289,7 @@ for (f in unique(modelPredictorBins[!params$predictordetails_activeonly | EntryT
   } else {
     
     # Find other predictors in the same group
-    correlatedPreds <- predSummary[Group == predSummary[Predictor==f]$Group & Predictor != f]
+    correlatedPreds <- predSummary[Group != 0 & Group == predSummary[Predictor==f]$Group & Predictor != f]
     if (nrow(correlatedPreds) > 0) { 
       extraPredInfo <- list("Correlated Predictors" = paste(sort(correlatedPreds$Predictor), collapse = ", "))
     } else {

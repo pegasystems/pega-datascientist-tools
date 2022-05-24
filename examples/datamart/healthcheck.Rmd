@@ -47,12 +47,11 @@ params:
     value: ""
   
   # Number of propositions, models and predictors to put in lists and plots
-  max_propositions_in_plot:
-    value: 20
-  max_models_in_list:
-    value: 50
-  max_predictors_in_plot:
-    value: 30
+  max_propositions_in_plot: 20
+  min_responses_to_show_propositions: 100
+  min_positives_for_maturity: 200
+  max_models_in_list: 50
+  max_predictors_in_plot: 30
 ---
 
 
@@ -82,7 +81,7 @@ knitr::opts_chunk$set(
 
 # ADM Datamart Health Check
 
-This notebook gives a generic and global overview of the Adaptive Models 
+This notebook gives a generic and global overview of the Adaptive models 
 and predictors.
 
 The goals is to provide a first-level scan of the models after which a 
@@ -90,11 +89,11 @@ deeper and more customer specific deeper dive can be done.
 
 Some of the plots provide some interactivity. For best viewing results, open the 
 HTML in a browser. Viewing the HTML from platforms like e.g. Sharepoint or 
-Github will loose the interactive charts. However as a backup, non-interactive, 
-static, plots are also provided.
+Github will loose the interactive charts.
 
 The default notebook output is a single-page HTML. You can also export to PDF 
-as well as other formats supported by Pandoc (e.g. Word).
+as well as other formats supported by Pandoc (e.g. Word) but you would loose
+the interactivity.
 
 To create stand-alone model reports for individual model instances see the 
 *modelreport* notebook.
@@ -161,23 +160,28 @@ aggregateTreeData <- function(dt, hierarchy = intersect(c("Direction", "Channel"
 }
 ```
 
-# Overview of the Propositions
+# Overview of the Actions
 
 Propositions, also referred to as offers or actions with treatments, are
 the most granular perspective on the adaptive models.
 
-## Proposition Success Rates across Channels
+## Proposition Success Rates per Channel
 
 Showing the current success rate of the propositions. Different channels usually 
 have very different success rates. Just showing the top `r params$max_propositions_in_plot`
-here and limiting to the propositions that have received at least 100 responses. 
+here and limiting to the propositions that have received at least `r params$min_responses_to_show_propositions`` responses. 
 
 Look out for propositions that stand out, having a far higher success rate
-than the rest. Check with business if that is expected.
+than the rest. Check with business if that is expected. 
+
+Variation in the set of offered propositions
+across customers is also an important metric but not one that can be derived
+from the Adaptive Model data - this requires analysis of the actual interactions.
+
 
 ```{r Plot Proposition Success Rates}
 p <- plotPropositionSuccessRates(datamart, 
-                                 filter=function(mdls){ filterLatestSnapshotOnly(mdls)[ResponseCount >= 100] }, 
+                                 filter=function(mdls){ filterLatestSnapshotOnly(mdls)[ResponseCount >= as.integer(params$min_responses_to_show_propositions)] }, 
                                  limit=params$max_propositions_in_plot, 
                                  facets="Channel") + 
   scale_fill_continuous_divergingx()
@@ -186,7 +190,7 @@ p <- plotPropositionSuccessRates(datamart,
 p
 ```
 
-## Interactive Chart of Success Rates
+## All Success Rates (interactive chart)
 
 Interactive chart with all success rates. Whiter is lower success rates,
 green is higher. Indicated values are percentages.
@@ -206,7 +210,7 @@ fig <- plot_ly(
 fig %>% layout(title = "Success Rate")
 ```
 
-## Proposition Success Rates over Time
+## Success Rates over Time
 
 Showing how the proposition success rates evolved over time. Again split by
 Channel but now also by model configuration. Usually there are separate model
@@ -228,144 +232,24 @@ if (!hasMultipleSnapshots(datamart$modeldata))
 }
 ```
 
-
 # Overview of Adaptive Models
 
-There are a total of `r nrow(filterLatestSnapshotOnly(datamart$modeldata))` models 
-in the latest snapshot.
+There are a total of **`r nrow(filterLatestSnapshotOnly(datamart$modeldata))` models**  in the latest snapshot.
 
-In the sections below we check which of these models have reached certain
-reliability (or "maturity") thresholds. This is based on heuristics on both
-the number of positives (> 200 considered mature) and performance.
+Recommended best practice is to have multiple treatments for an action. Too few
+gives less opportunity for personalization of the interactions.
 
-## Empty and Immature Models
-
-```{r CategorizeModels}
-models4MaturityChecks <- copy(datamart$modeldata)
-
-models4MaturityChecks[, isEmpty := ResponseCount == 0]
-models4MaturityChecks[, noPositives := ResponseCount > 0 & Positives == 0]
-models4MaturityChecks[, isImmature := Positives > 0 & Positives < 200]
-models4MaturityChecks[, noPerformance := Positives >= 200 & Performance == 0.5]
-
-availableStandardContextKeys <- intersect(c("ConfigurationName", "Issue","Group","Name","Channel","Direction","Treatment"), names(models4MaturityChecks))
-fieldsForModelAnalysis <- c(availableStandardContextKeys, c("ResponseCount", "Positives", "Negatives", "Performance"))
-
-setorderv(models4MaturityChecks, availableStandardContextKeys)
-
-modelsNeverUsed <- filterLatestSnapshotOnly(models4MaturityChecks)[(isEmpty), fieldsForModelAnalysis, with=F]
-modelsNoPositives <- filterLatestSnapshotOnly(models4MaturityChecks)[(noPositives), fieldsForModelAnalysis, with=F]
-modelsImmature <- filterLatestSnapshotOnly(models4MaturityChecks)[(isImmature), fieldsForModelAnalysis, with=F]
-modelsNoPerformance <- filterLatestSnapshotOnly(models4MaturityChecks)[(noPerformance), fieldsForModelAnalysis, with=F]
-```
-
-### Models that have never been used
-
-These models have no responses at all: no positives but also no negatives. The
-the models for these actions/treatments exist, so they must have been created
-in the evaluation of the actions/treatments, but they never were never selected
-in the strategy prioritization.
-
-Showing first `r min(nrow(modelsNeverUsed), params$max_models_in_list)` from total of `r nrow(modelsNeverUsed)`.
+The standard configuration for Baysian models is to have one model per treatment.
 
 ```{r}
-modelsNeverUsed %>% 
-  head(params$max_models_in_list) %>% 
-  kbl() %>%
-  kable_paper(c("striped", "hover"), full_width = F) %>% 
-  scroll_box(height = "300px")
+# Name and Treatment will be separate columns when read properly via ADMDatamart
+groupingCols <- intersect(c("ConfigurationName", "Direction", "Channel"), names(datamart$modeldata))
+
+actionsOverview <- filterLatestSnapshotOnly(datamart$modeldata)[, .(Treatments = .N), 
+                                                                by=c(groupingCols, "Name")]
+
+actionsOverview[, .(`Number of Actions` = .N, `Number of Models` = sum(Treatments), `Average number of Treatments per Action` = mean(Treatments)), by=groupingCols][order(Direction, Channel, ConfigurationName)]
 ```
-
-### Models that have have been used but never received a positive response
-
-These models have been used but never received a "positive" response. This means
-the action/treatments that these models represent have been selected, so an
-"impression" has been made to the customer, but they never received a "positive"
-response.
-
-Showing first `r min(nrow(modelsNoPositives), params$max_models_in_list)` from total of `r nrow(modelsNoPositives)`.
-
-```{r}
-modelsNoPositives %>% 
-  head(params$max_models_in_list) %>% 
-  kbl() %>%
-  kable_paper(c("striped", "hover"), full_width = F) %>% 
-  scroll_box(height = "300px")
-```
-
-
-### Models that are still in an immature phase of learning
-
-These models have received at least one positive response but not enough yet to
-be qualified to be fully "mature" - a concept that matters especially for 
-outbound channels.
-
-We show the "reach" of these actions as the percentage of the population that
-would be selected by the standard maturity capping algorithm in the NBA
-framework (which selects 2% for new models and 100% for models with 200 or 
-more positive responses).
-
-Showing first `r min(nrow(modelsImmature), params$max_models_in_list)` from total of `r nrow(modelsImmature)`.
-
-```{r}
-modelsImmature[, -"ResponseCount"][, Reach := sprintf("%.2f%%", 100.0*(0.02+0.98*pmin(200, Positives)/200))] %>% 
-  head(params$max_models_in_list) %>% 
-  kbl() %>%
-  kable_paper(c("striped", "hover"), full_width = T) %>% 
-  scroll_box(height = "300px")
-```
-
-
-### Models that have received sufficient responses but are still at their minimum performance
-
-These models also have received over 200 positives but still show the minimum
-model performance. This could be an indication of data problems, or not having the
-right predictors but may also be caused by technical aspects like the order of
-the responses to the model.
-
-Showing first `r min(nrow(modelsNoPerformance), params$max_models_in_list)` from total of `r nrow(modelsNoPerformance)`.
-
-```{r}
-modelsNoPerformance %>% 
-  head(params$max_models_in_list) %>% 
-  kbl() %>%
-  kable_paper(c("striped", "hover"), full_width = F) %>% 
-  scroll_box(height = "300px")
-```
-
-
-### Number of Empty/Immature Models over time
-
-The number of empty or immature models over time. Empty is defined as having
-no responses at all. Immature is defined as having < 200 positives, and no
-performance means model performance is still the initial 0.5 value while having
-matured already according to the definition.
-
-```{r Number of Empty or Immature models over time, message=FALSE, warning=FALSE}
-if (!hasMultipleSnapshots(datamart$modeldata))
-{
-  cat("Trend plots will only be available when the model data contains multiple snapshots.", fill=T)
-} else {
-  
-  immatureModelsByChannel <- models4MaturityChecks[, list(`Empty Models` = length(unique(ModelID[(isEmpty)])), 
-                                                          `Models w/o Positives` = length(unique(ModelID[(noPositives)])), 
-                                                          `Immature Models` = length(unique(ModelID[(isImmature)])), 
-                                                          `Models w/o Performance` = length(unique(ModelID[(noPerformance)])),
-                                                          `Number of non-empty Models` = length(unique(ModelID[(!isEmpty)]))), 
-                                                   by=c("Channel", "SnapshotTime")]
-  
-  ggplot(melt(immatureModelsByChannel, c("Channel", "SnapshotTime"), 
-              variable.name="Count", value.name="N"),
-         aes(SnapshotTime, N, color=Count)) + 
-    geom_line(size=1) + xlab("") + ylab("Count") +
-    scale_color_discrete_qualitative() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    facet_wrap(. ~ Channel) +
-    ggtitle("Immature and Empty Models", subtitle = "by Channel")
-}
-```
-
-
 
 ## Model Performance
 
@@ -413,7 +297,7 @@ plt <- plotPerformanceSuccessRateBubbleChart(datamart,
                                              filter = function(mdls)
                                              { 
                                                m <- filterLatestSnapshotOnly(mdls)[ResponseCount >= 100] 
-                                               m[, OhMyGoodness := (cdhtools::auc2GINI(Performance) + pmin(Positives, 200) * (1.0/200))/2]
+                                               m[, OhMyGoodness := (cdhtools::auc2GINI(Performance) + pmin(Positives, as.integer(params$min_positives_for_maturity)) * (1.0/as.integer(params$min_positives_for_maturity)))/2]
                                                return(m)
                                              }, 
                                              facets = c("ConfigurationName", "Channel"),
@@ -465,254 +349,6 @@ fig <- plot_ly(
 fig %>% layout(title = "Model Performance")
 ```
 
-## Which Models drive most of the Volume
-
-### Analysis of skewness of the Responses
-
-Showing the cumulative response count vs the number of models. Is there a 
-larger percentage of models that take the vast majority of the responses?
-
-If this line strongly deviates from the diagonal it means that relatively few
-models drive the majority of the responses.
-
-In the left-hand plot we look at all responses, which really means that we are looking
-at "impressions" mostly. The right-hand plot looks at just the positives. Typically,
-the positives are driven more strongly by the models so often you see more
-skewness in that one.
-
-However very skewed results may be caused by prioritization elements like 
-levers and weights and can be a reason to check in with business and verify that
-this is expected.
-
-```{r fig.height=3, fig.width=8}
-responseGainData <- 
-  filterLatestSnapshotOnly(datamart$modeldata) [, list(Responses = max(as.double(ResponseCount)), Positives = max(Positives)), 
-                                                by=c("Channel", "ModelID")]
-responseGainData <- rbindlist(list(copy(responseGainData)[, Label := "All responses"],
-                                   copy(responseGainData)[, Label := "Just the Positive responses"]))
-
-
-setorder(responseGainData, Channel, -Responses)
-responseGainData[Label == "All responses", TotalResponseFraction := cumsum(Responses) / sum(Responses) , by=Channel]
-responseGainData[Label == "All responses", TotalModelsFraction := seq(.N)/.N , by=Channel]
-setorder(responseGainData, Channel, -Positives)
-responseGainData[Label == "Just the Positive responses", TotalResponseFraction := cumsum(Positives) / sum(Positives) , by=Channel]
-responseGainData[Label == "Just the Positive responses", TotalModelsFraction := seq(.N)/.N , by=Channel]
-
-# make it start at 0,0
-responseGainData <- rbindlist(list(responseGainData, 
-                                   responseGainData[, list(TotalResponseFraction = 0, TotalModelsFraction = 0, Responses = 0, Positives = 0), 
-                                                    by=c("Channel", "ModelID", "Label")]), use.names = T)
-
-plt <- ggplot(responseGainData, aes(TotalModelsFraction, TotalResponseFraction, color=Channel)) + 
-  geom_line(size=1) +
-  scale_color_Channel +
-  scale_x_continuous(name="Percentage of Models", labels = scales::percent, limits = c(0,1)) +
-  scale_y_continuous(name="Percentage of Responses", labels = scales::percent, limits = c(0,1)) +
-  facet_grid(. ~ Label) +
-  geom_abline(slope=1, intercept=0, color="grey", linetype="dashed") +
-  ggtitle("Cumulative Responses by Models", subtitle = "by Channel")
-
-ggplotly(plt)
-```
-
-
-
-### Models with largest number of responses (positive or negative).
-
-Zooming in into the models that drive most of the responses, here we list the 
-top `r params$max_propositions_in_plot` models with the highest number of responses.
-
-```{r fig.height=8, fig.width=8}
-topNResponses <- filterLatestSnapshotOnly(datamart$modeldata) [frank(-ResponseCount, ties.method="dense") <= params$max_propositions_in_plot][order(-ResponseCount)]
-topNResponses[, Label := apply(topNResponses[,availableStandardContextKeys,with=F], 1, paste, collapse="/")]
-topNResponses[, Rank := factor(seq(.N), levels=rev(seq(.N)))]
-
-ggplot(topNResponses,
-       aes(Rank, ResponseCount, fill=Channel)) +
-  geom_col() +
-  geom_text(aes(y=0,label=Label), size=3, hjust=0) +
-  coord_flip() +
-  scale_fill_Channel +
-  ggtitle(paste("Top", params$max_propositions_in_plot, "highest Responses"))
-```
-
-### Models with largest number of positive responses.
-
-And these are the `r params$max_propositions_in_plot` models with the largest
-number of positives.
-
-```{r fig.height=8, fig.width=8}
-topNPositives <- filterLatestSnapshotOnly(datamart$modeldata) [frank(-Positives, ties.method="dense") <= params$max_propositions_in_plot][order(-Positives)]
-topNPositives[, Label := apply(topNPositives[,availableStandardContextKeys,with=F], 1, paste, collapse="/")]
-topNPositives[, Rank := factor(seq(.N), levels=rev(seq(.N)))]
-
-ggplot(topNPositives,
-       aes(Rank, Positives, fill=Channel)) +
-  geom_col() +
-  geom_text(aes(y=0,label=Label), size=3, hjust=0) +
-  coord_flip() +
-  scale_fill_Channel +
-  ggtitle(paste("Top", params$max_propositions_in_plot, "highest Positives"))
-```
-
-
-
-
-### Analysis of Performance vs Volume
-
-Is most volume driven by models that have a good predictive performance? Ideally
-yes, so the targeting of the customers is optimal. If a lot of volume is driven
-by models that are not very predictive, this could be a reason to look into
-the available predictor data.
-
-The plot below shows this relation. Horizontally the model performance (the
-AUC, ranging from 50 to 100 as Pega usually scales this), descretized into a 
-number of ranges, and vertically the percentage of responses.
-
-A lot of volume on the first bins, where the performance is minimal, means
-that a lot of immature models are used. This is sub-optimal in terms of 
-targeting. Ideally there is a smooth curve with a peak in the 60-70 range
-of AUC. Much higher AUC's are unlikely.
-
-```{r fig.height=5, fig.width=8, message=FALSE, warning=FALSE}
-cumAUCOverVolumeData <- 
-  filterLatestSnapshotOnly(datamart$modeldata) [, list(Performance = 100*max(Performance), 
-                                                       ResponseCount = max(as.double(ResponseCount))), 
-                                                by=c("Channel", "ModelID")]
-cumAUCOverVolumeData[, TotalResponses := sum(ResponseCount), by=Channel]
-cumAUCOverVolumeData[, PerformanceBin := cut(Performance, breaks=15)]
-
-plt <- ggplot(cumAUCOverVolumeData[, list(N = sum(ResponseCount)/TotalResponses), 
-                                   by=c("PerformanceBin", "Channel")], 
-              aes(PerformanceBin, N, color=Channel)) + 
-  #geom_col(position = position_dodge()) +
-  geom_smooth(aes(group=Channel), se = F) +
-  scale_color_Channel +
-  scale_y_continuous(name="Percentage of Responses", labels = scales::percent) +
-  xlab("Model Performance") +
-  theme(axis.text.x=element_text(angle=45, hjust=1)) +
-  ggtitle("Distribution of Volume vs Model Performance", subtitle = "by Channel")
-
-ggplotly(plt)
-```
-
-### Positives vs. Number of Models
-
-Ideally, all models have received plenty of responses which will make them
-"mature" and makes sure they are as predictive as possible.
-
-Often we see that there is a significant percentage of models that are still
-relatively new and have not received much feedback (yet). Below graph shows
-the percentages of models that have fewer than 200 positives.
-
-Having many on the left-hand side (with very low or perhaps no positives) may
-or not be a problem. The models may still be there in the datamart but might
-represent actions/treatments that are not active.
-
-```{r fig.height=5, fig.width=8, message=FALSE}
-modelsByPositives <- filterLatestSnapshotOnly(datamart$modeldata)
-modelsByPositives[, PositivesBin := cut(Positives, breaks=c(seq(0,200,by=10), Inf), 
-                                        right=F)]
-modelsByPositives <- modelsByPositives[, list(Positives = min(Positives), 
-                                              Models = uniqueN(ModelID)),
-                                       by=c("Channel", "PositivesBin")]
-setorder(modelsByPositives, Positives)
-modelsByPositives[, cumModels := Models/sum(Models), by="Channel"]
-
-plt <- ggplot(modelsByPositives, aes(PositivesBin, cumModels, color=Channel)) + 
-  geom_line(aes(group=Channel), size=1) + geom_point() +
-  scale_color_Channel +
-  scale_y_continuous(name="Percentage of Models", labels = scales::percent) +
-  theme(axis.text.x=element_text(angle=45, hjust=1)) +
-  xlab("Positives") +
-  ggtitle("Percentage of models vs number of positive responses", subtitle = "by Channel")
-
-ggplotly(plt)
-```
-
-
-## Propensity Analysis
-
-The distribution of propensities returned by the models is yet a different angle.
-
-Higher propensities clearly indicate the offers are more attractive - people
-apparenty click/accept/convert more often.
-
-
-### Propensity distribution
-
-In a more emphathetic setup, you would expect that the distribution of the 
-propensities leans towards the right-hand side: more volume to more attractive 
-offers, although the relation is of course more complex, we are not just blindly pushing the offers with the
-highest success rates, but take a personalized approach.
-
-Often however, multiple factors are included in the prioritization, changing this
-picture.
-
-Note that the propensity bins are not of equal width. Propensities are typically
-very low so with an equal width distribution, almost all volume would be in the
-first bins. The binning here is based on (roughly) equal volume across all data.
-
-So when one of the graphs shows more volume on the left, that is to be 
-interpreted as relative to the other graphs.
-
-```{r Propensity distribution, fig.height=3, fig.width=8, message=FALSE, warning=FALSE}
-if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
-  classifiers <- merge(filterClassifierOnly(datamart$predictordata), 
-                       unique(datamart$modeldata[,c("ModelID","Channel")]), by="ModelID")
-  # classifiers[, Propensity := (0.5+BinPositives)/(1+BinResponseCount)]
-  classifiers[, PropensityRange := Hmisc::cut2(Propensity, g=15)]
-  classifiers[, TotalVolume := sum(BinResponseCount), by="Channel"]
-  
-  setorder(classifiers, Channel, PropensityRange)
-  
-  propensityDistributionData <- classifiers[,list(RelVolume = sum(BinResponseCount)/TotalVolume, 
-                                                  BinVolume = sum(BinResponseCount),
-                                                  Propensity = max(Propensity)), 
-                                            by=c("Channel", "PropensityRange", "TotalVolume")]
-  propensityDistributionData[, CumVolume := cumsum(BinVolume), by=c("Channel")]
-  propensityDistributionData[, CumFraction := 1 - CumVolume/TotalVolume]
-  
-  ggplot(propensityDistributionData,
-         aes(PropensityRange, RelVolume, fill=Channel, group=Channel)) +
-    geom_col() + geom_smooth(se=F) +
-    theme(axis.text.x=element_text(angle=45, hjust=1, size=7)) +
-    facet_wrap(. ~ Channel, strip.position = "right") + #, scales = "free_x") +
-    xlab("Propensity") +
-    scale_y_continuous(name="Volume", labels = scales::percent) +
-    scale_fill_Channel + 
-    ggtitle("Volume vs. Propensity") 
-} else {
-  cat("Propensity analysis will only be available when predictor binning data is available.", fill=T)
-}
-```
-
-### Propensity thresholding
-
-If you would apply a threshold on the propensities, in the plot below you see
-the portion of the customers that you would reach based on the propensities
-from the models.
-
-Note that in CDH, prioritization typically includes value and often also 
-weights and levers that are not taken into account in this view.
-
-```{r Cumulative Propensity distribution, fig.height=5, fig.width=8, message=FALSE, warning=FALSE}
-if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
-  
-  plt <- ggplot(propensityDistributionData, aes(Propensity, CumFraction)) +
-    geom_line(aes(color=Channel, group=Channel), size=1) +
-    scale_color_Channel +
-    scale_y_continuous(name="Fraction of Customers", labels = scales::percent) +
-    ggtitle("Cumulative Volume reached by thresholding on Propensity") +
-    xlab("Propensity Threshold")
-  
-  ggplotly(plt)
-} else {
-  cat("Propensity analysis will only be available when predictor binning data is available.", fill=T)
-}
-```
-
 # Analysis of Predictors
 
 This analysis focuses on finding which are top predictors that are driving the models. 
@@ -732,26 +368,18 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
     # applicableModels <- filterLatestSnapshotOnly(datamart$modeldata) [ConfigurationName==c]
     # applicablePredictorBins <- modelPredictorBins[ModelID %in% applicableModels$ModelID & EntryType=="Active"]
     
-    if ("PredictorCategory" %in% names(datamart$predictordata)) {
-      plt <- plotPredictorImportance(datamart,
-                                     limit = params$max_predictors_in_plot, 
-                                     showAsImportance = F,
-                                     filter = function(mdls) {
-                                       filterLatestSnapshotOnly(mdls) [ConfigurationName==c]
-                                     })
-    } else {
-      plt <- plotPredictorImportance(datamart,
-                                     limit = params$max_predictors_in_plot,
-                                     showAsImportance = F,
-                                     filter = function(mdls) {
-                                       filterLatestSnapshotOnly(mdls) [ConfigurationName==c]
-                                     })
-    }
+    plt <- plotPredictorImportance(datamart,
+                                   limit = params$max_predictors_in_plot, 
+                                   showAsImportance = F,
+                                   filter = function(mdls) {
+                                     filterLatestSnapshotOnly(mdls) [ConfigurationName==c]
+                                   })
+    
     if (is.null(plt)) {
       warning("Empty plot for configuration", c)
     } else {
       plt <- plt + ggtitle("Predictor Performance", 
-                           subtitle = paste0("(Top", params$max_predictors_in_plot, " ", c, ")")) +
+                           subtitle = paste0("(Top ", params$max_predictors_in_plot, " from ", uniqueN(filterClassifierOnly(datamart$predictordata[ModelID %in% unique(datamart$modeldata[ConfigurationName == c]$ModelID)], reverse=T)$PredictorName), " in ", c, ")")) +
         scale_fill_PredictorCategory
       print(plt)
     }
@@ -827,11 +455,15 @@ related predictor that performs better.
 
 ```{r}
 if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
-  plotPredictorImportance(datamart, facets=NULL, 
+  plt <- plotPredictorImportance(datamart, facets=NULL, 
                           limit = -params$max_predictors_in_plot,
                           showAsImportance = F,
-                          filter = function(mdls) {filterLatestSnapshotOnly(mdls)}) +
-    scale_fill_PredictorCategory
+                          filter = function(mdls) {filterLatestSnapshotOnly(mdls)})
+  
+  plt <- plt + ggtitle("Predictors with Low Performance", 
+                           subtitle = paste0("(Bottom ", params$max_predictors_in_plot, " from total ", uniqueN(filterClassifierOnly(datamart$predictordata, reverse=T)$PredictorName), ")")) +
+        scale_fill_PredictorCategory
+      print(plt)
 } else {
   cat("Predictor analysis will only be available when predictor binning data is available.", fill=T)
 }
@@ -898,11 +530,6 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
 }
 ```
 
-# Technical Issues
-
-Many technical issues manifest themselves in one or more of the analyses 
-before. A few specific issues are analysed below.
-
 ## Missing values
 
 If a predictor is low performing: are there too many missing values? This could point to a technical problem
@@ -960,10 +587,433 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
 }
 ```
 
-## Recent Response counts (TODO)
+# Responses
 
-TODO: analysis of the response counts of the last X days so to show whether
-they are increasing from day to day or at least not decreasing.
+In the sections below we check which of these models have reached certain
+reliability (or "maturity") thresholds. This is based on heuristics on both
+the number of positives (> `r params$min_positives_for_maturity` considered mature) and performance.
+
+## Empty and Immature Models
+
+```{r CategorizeModels}
+models4MaturityChecks <- copy(datamart$modeldata)
+
+models4MaturityChecks[, isEmpty := ResponseCount == 0]
+models4MaturityChecks[, noPositives := ResponseCount > 0 & Positives == 0]
+models4MaturityChecks[, isImmature := Positives > 0 & Positives < as.integer(params$min_positives_for_maturity)]
+models4MaturityChecks[, noPerformance := Positives >= as.integer(params$min_positives_for_maturity) & Performance == 0.5]
+
+availableStandardContextKeys <- intersect(c("ConfigurationName", "Issue","Group","Name","Channel","Direction","Treatment"), names(models4MaturityChecks))
+fieldsForModelAnalysis <- c(availableStandardContextKeys, c("ResponseCount", "Positives", "Negatives", "Performance"))
+
+setorderv(models4MaturityChecks, availableStandardContextKeys)
+
+modelsNeverUsed <- filterLatestSnapshotOnly(models4MaturityChecks)[(isEmpty), fieldsForModelAnalysis, with=F]
+modelsNoPositives <- filterLatestSnapshotOnly(models4MaturityChecks)[(noPositives), fieldsForModelAnalysis, with=F]
+modelsImmature <- filterLatestSnapshotOnly(models4MaturityChecks)[(isImmature), fieldsForModelAnalysis, with=F]
+modelsNoPerformance <- filterLatestSnapshotOnly(models4MaturityChecks)[(noPerformance), fieldsForModelAnalysis, with=F]
+```
+
+### Models that have never been used
+
+These models have no responses at all: no positives but also no negatives. The
+models for these actions/treatments exist, so they must have been created
+in the evaluation of the actions/treatments, but they were never selected
+to show to the customer, so never received any responses.
+
+Often these represent actions that never made it into production and were
+only used to test out logic. But it could also be that the response mechanism
+is broken. It could for example be caused by outcome labels that are returned by the channel application not matching the configuration of the adaptive models.
+
+Showing first `r min(nrow(modelsNeverUsed), params$max_models_in_list)` from total of `r nrow(modelsNeverUsed)`.
+
+```{r}
+modelsNeverUsed %>% 
+  head(params$max_models_in_list) %>% 
+  kbl() %>%
+  kable_paper(c("striped", "hover"), full_width = F) %>% 
+  scroll_box(height = "300px")
+```
+
+### Models that have have been used but never received a positive response
+
+These models have been used but never received a "positive" response. This means
+the action/treatments that these models represent have been selected, so an
+"impression" has been made to the customer, but they never received a "positive"
+response.
+
+This could be because no customer found the proposition attractive, but it could
+also be because the response loop is not working correctly. Possibly Pega "believes" the user received the action but the actual channel application did never show
+it.
+
+Showing first `r min(nrow(modelsNoPositives), params$max_models_in_list)` from total of `r nrow(modelsNoPositives)`.
+
+```{r}
+modelsNoPositives %>% 
+  head(params$max_models_in_list) %>% 
+  kbl() %>%
+  kable_paper(c("striped", "hover"), full_width = F) %>% 
+  scroll_box(height = "300px")
+```
+
+
+### Models that are still in an immature phase of learning
+
+These models have received at least one positive response but not enough yet to
+be qualified to be fully "mature" - a concept that matters especially for 
+outbound channels.
+
+These actions are typically new and still in early phases of learning.
+
+We show the "reach" of these actions as the percentage of the population that
+would be selected by the standard maturity capping algorithm in the NBA
+framework (which selects 2% for new models and 100% for models with `r params$min_positives_for_maturity` or 
+more positive responses).
+
+Showing first `r min(nrow(modelsImmature), params$max_models_in_list)` from total of `r nrow(modelsImmature)`.
+
+```{r}
+modelsImmature[, -"ResponseCount"][, Reach := sprintf("%.2f%%", 100.0*(0.02+0.98*pmin(as.integer(params$min_positives_for_maturity), Positives)/as.integer(params$min_positives_for_maturity)))] %>% 
+  head(params$max_models_in_list) %>% 
+  kbl() %>%
+  kable_paper(c("striped", "hover"), full_width = T) %>% 
+  scroll_box(height = "300px")
+```
+
+
+### Models that have received sufficient responses but are still at their minimum performance
+
+These models also have received over `r params$min_positives_for_maturity` positives but still show the minimum
+model performance. 
+
+This could be an indication of data problems, or not having the
+right predictors but may also be caused by technical aspects like the order of
+the responses to the model.
+
+Showing first `r min(nrow(modelsNoPerformance), params$max_models_in_list)` from total of `r nrow(modelsNoPerformance)`.
+
+```{r}
+modelsNoPerformance %>% 
+  head(params$max_models_in_list) %>% 
+  kbl() %>%
+  kable_paper(c("striped", "hover"), full_width = F) %>% 
+  scroll_box(height = "300px")
+```
+
+
+### Number of Empty/Immature Models over time
+
+In the analysis below we count the number of models in each of the groups analysed before and show how that count changes over time. The expectation is that the number of "non-empty" models increases steadily and the other lines are more or less stable.
+
+Empty is defined as having
+no responses at all. Immature is defined as having < `r params$min_positives_for_maturity` positives, and no
+performance means model performance is still the initial 0.5 value while having
+matured already according to the definition.
+
+```{r Number of Empty or Immature models over time, message=FALSE, warning=FALSE}
+if (!hasMultipleSnapshots(datamart$modeldata))
+{
+  cat("Trend plots will only be available when the model data contains multiple snapshots.", fill=T)
+} else {
+  
+  immatureModelsByChannel <- models4MaturityChecks[, list(`Empty Models` = length(unique(ModelID[(isEmpty)])), 
+                                                          `Models w/o Positives` = length(unique(ModelID[(noPositives)])), 
+                                                          `Immature Models` = length(unique(ModelID[(isImmature)])), 
+                                                          `Models w/o Performance` = length(unique(ModelID[(noPerformance)])),
+                                                          `Number of non-empty Models` = length(unique(ModelID[(!isEmpty)]))), 
+                                                   by=c("Channel", "SnapshotTime")]
+  
+  ggplot(melt(immatureModelsByChannel, c("Channel", "SnapshotTime"), 
+              variable.name="Count", value.name="N"),
+         aes(SnapshotTime, N, color=Count)) + 
+    geom_line(size=1) + xlab("") + ylab("Count") +
+    scale_color_discrete_qualitative() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    facet_wrap(. ~ Channel) +
+    ggtitle("Immature and Empty Models", subtitle = "by Channel")
+}
+```
+
+## Number of Responses over time
+
+Showing the response rate over time. You would expect this to be more or 
+less constant, only changing if there is a sudden change in targeted population.
+
+Big spikes and very noisy behavior may be caused by changes in the setup.
+
+```{r}
+responseRates <- datamart$modeldata[, SnapshotTimeDay := ceiling_date(SnapshotTime, unit="days")] [, .(ResponseCount = sum(ResponseCount)), by=c("SnapshotTimeDay", "Channel", "ConfigurationName")][order(SnapshotTimeDay)]
+
+responseRates[, PrevResponseCount := shift(ResponseCount), by=c("Channel", "ConfigurationName")]
+responseRates[, DeltaResponseCount := ResponseCount - PrevResponseCount]
+responseRates[, ResponseRate := DeltaResponseCount/(24*60)] # per minute
+
+if (uniqueN(responseRates$SnapshotTimeDay) <= 1)
+{
+  cat("Resonse rate analysis only available when there are multiple days of snapshots.", fill=T)
+} else {
+  ggplot(responseRates[!is.na(ResponseRate) & (ResponseRate > 0)], aes(SnapshotTimeDay, ResponseRate, colour=Channel)) +
+    geom_line() +
+    scale_color_Channel +
+    facet_wrap(. ~ ConfigurationName, scales="free_y") +
+    ggtitle("Responses per minute") +
+    xlab("Date") + ylab("Response Rate")
+}
+```
+
+
+
+# Which Models drive most of the Volume
+
+## Analysis of skewness of the Responses
+
+Showing the cumulative response count vs the number of models. Is there a 
+larger percentage of models that take the vast majority of the responses?
+
+If this line strongly deviates from the diagonal it means that relatively few
+models drive the majority of the responses.
+
+In the left-hand plot we look at all responses, which really means that we are looking
+at "impressions" mostly. The right-hand plot looks at just the positives. Typically,
+the positives are driven more strongly by the models so often you see more
+skewness in that one.
+
+However very skewed results may be caused by prioritization elements like 
+levers and weights and can be a reason to check in with business and verify that
+this is expected.
+
+```{r fig.height=3, fig.width=8}
+responseGainData <- 
+  filterLatestSnapshotOnly(datamart$modeldata) [, list(Responses = max(as.double(ResponseCount)), Positives = max(Positives)), 
+                                                by=c("Channel", "ModelID")]
+responseGainData <- rbindlist(list(copy(responseGainData)[, Label := "All responses"],
+                                   copy(responseGainData)[, Label := "Just the Positive responses"]))
+
+
+setorder(responseGainData, Channel, -Responses)
+responseGainData[Label == "All responses", TotalResponseFraction := cumsum(Responses) / sum(Responses) , by=Channel]
+responseGainData[Label == "All responses", TotalModelsFraction := seq(.N)/.N , by=Channel]
+setorder(responseGainData, Channel, -Positives)
+responseGainData[Label == "Just the Positive responses", TotalResponseFraction := cumsum(Positives) / sum(Positives) , by=Channel]
+responseGainData[Label == "Just the Positive responses", TotalModelsFraction := seq(.N)/.N , by=Channel]
+
+# make it start at 0,0
+responseGainData <- rbindlist(list(responseGainData, 
+                                   responseGainData[, list(TotalResponseFraction = 0, TotalModelsFraction = 0, Responses = 0, Positives = 0), 
+                                                    by=c("Channel", "ModelID", "Label")]), use.names = T)
+
+plt <- ggplot(responseGainData, aes(TotalModelsFraction, TotalResponseFraction, color=Channel)) + 
+  geom_line(size=1) +
+  scale_color_Channel +
+  scale_x_continuous(name="Percentage of Models", labels = scales::percent, limits = c(0,1)) +
+  scale_y_continuous(name="Percentage of Responses", labels = scales::percent, limits = c(0,1)) +
+  facet_grid(. ~ Label) +
+  geom_abline(slope=1, intercept=0, color="grey", linetype="dashed") +
+  ggtitle("Cumulative Responses by Models", subtitle = "by Channel")
+
+ggplotly(plt)
+```
+
+
+
+## Models with largest number of responses (positive or negative).
+
+Zooming in into the models that drive most of the responses, here we list the 
+top `r params$max_propositions_in_plot` models with the highest number of responses.
+
+```{r fig.height=8, fig.width=8}
+topNResponses <- filterLatestSnapshotOnly(datamart$modeldata) [frank(-ResponseCount, ties.method="dense") <= params$max_propositions_in_plot][order(-ResponseCount)]
+topNResponses[, Label := apply(topNResponses[,availableStandardContextKeys,with=F], 1, paste, collapse="/")]
+topNResponses[, Rank := factor(seq(.N), levels=rev(seq(.N)))]
+
+ggplot(topNResponses,
+       aes(Rank, ResponseCount, fill=Channel)) +
+  geom_col() +
+  geom_text(aes(y=0,label=Label), size=3, hjust=0) +
+  coord_flip() +
+  scale_fill_Channel +
+  ggtitle(paste("Top", params$max_propositions_in_plot, "highest Responses"))
+```
+
+## Models with largest number of positive responses.
+
+And these are the `r params$max_propositions_in_plot` models with the largest
+number of positives.
+
+```{r fig.height=8, fig.width=8}
+topNPositives <- filterLatestSnapshotOnly(datamart$modeldata) [frank(-Positives, ties.method="dense") <= params$max_propositions_in_plot][order(-Positives)]
+topNPositives[, Label := apply(topNPositives[,availableStandardContextKeys,with=F], 1, paste, collapse="/")]
+topNPositives[, Rank := factor(seq(.N), levels=rev(seq(.N)))]
+
+ggplot(topNPositives,
+       aes(Rank, Positives, fill=Channel)) +
+  geom_col() +
+  geom_text(aes(y=0,label=Label), size=3, hjust=0) +
+  coord_flip() +
+  scale_fill_Channel +
+  ggtitle(paste("Top", params$max_propositions_in_plot, "highest Positives"))
+```
+
+
+
+
+## Analysis of Performance vs Volume
+
+Is most volume driven by models that have a good predictive performance? Ideally
+yes, so the targeting of the customers is optimal. If a lot of volume is driven
+by models that are not very predictive, this could be a reason to look into
+the available predictor data.
+
+The plot below shows this relation. Horizontally the model performance (the
+AUC, ranging from 50 to 100 as Pega usually scales this), descretized into a 
+number of ranges, and vertically the percentage of responses.
+
+A lot of volume on the first bins, where the performance is minimal, means
+that a lot of immature models are used. This is sub-optimal in terms of 
+targeting. Ideally there is a smooth curve with a peak in the 60-80 range
+of AUC. Much higher AUC's are possibly indicative of immature models or even
+outcome leakers (although that is effectively prevented by the standard
+delayed learning pattern). AUC's below 60 are not uncommon but should be 
+investigated - consider different predictors or outcomes.
+ 
+```{r fig.height=5, fig.width=8, message=FALSE, warning=FALSE}
+cumAUCOverVolumeData <- 
+  filterLatestSnapshotOnly(datamart$modeldata) [, list(Performance = 100*max(Performance), 
+                                                       ResponseCount = max(as.double(ResponseCount))), 
+                                                by=c("Channel", "ModelID")]
+cumAUCOverVolumeData[, TotalResponses := sum(ResponseCount), by=Channel]
+cumAUCOverVolumeData[, PerformanceBin := cut(Performance, breaks=15)]
+
+plt <- ggplot(cumAUCOverVolumeData[, list(N = sum(ResponseCount)/TotalResponses), 
+                                   by=c("PerformanceBin", "Channel")], 
+              aes(PerformanceBin, N, color=Channel)) + 
+  #geom_col(position = position_dodge()) +
+  geom_smooth(aes(group=Channel), se = F, method = "loess") +
+  scale_color_Channel +
+  scale_y_continuous(name="Percentage of Responses", labels = scales::percent) +
+  xlab("Model Performance") +
+  theme(axis.text.x=element_text(angle=45, hjust=1)) +
+  ggtitle("Distribution of Volume vs Model Performance", subtitle = "by Channel")
+
+ggplotly(plt)
+```
+
+## Positives vs. Number of Models
+
+Ideally, all models have received plenty of responses which will make them
+"mature" and makes sure they are as predictive as possible.
+
+Often we see that there is a significant percentage of models that are still
+relatively new and have not received much feedback (yet). Below graph shows
+the percentages of models that have fewer than `r params$min_positives_for_maturity` positives.
+
+Having many on the left-hand side (with very low or perhaps no positives) may
+or not be a problem. The models may still be there in the datamart but might
+represent actions/treatments that are not active.
+
+```{r fig.height=5, fig.width=8, message=FALSE}
+modelsByPositives <- filterLatestSnapshotOnly(datamart$modeldata)
+modelsByPositives[, PositivesBin := cut(Positives, breaks=c(seq(0,as.integer(params$min_positives_for_maturity),by=10), Inf), 
+                                        right=F)]
+modelsByPositives <- modelsByPositives[, list(Positives = min(Positives), 
+                                              Models = uniqueN(ModelID)),
+                                       by=c("Channel", "PositivesBin")]
+setorder(modelsByPositives, Positives)
+modelsByPositives[, cumModels := Models/sum(Models), by="Channel"]
+
+plt <- ggplot(modelsByPositives, aes(PositivesBin, cumModels, color=Channel)) + 
+  geom_line(aes(group=Channel), size=1) + geom_point() +
+  scale_color_Channel +
+  scale_y_continuous(name="Percentage of Models", labels = scales::percent) +
+  theme(axis.text.x=element_text(angle=45, hjust=1)) +
+  xlab("Positives") +
+  ggtitle("Percentage of models vs number of positive responses", subtitle = "by Channel")
+
+ggplotly(plt)
+```
+
+
+# Propensity Analysis
+
+The distribution of propensities returned by the models is yet a different angle.
+
+Higher propensities clearly indicate the offers are more attractive - people
+apparenty click/accept/convert more often.
+
+
+## Propensity distribution
+
+In a more emphathetic setup, you would expect that the distribution of the 
+propensities leans towards the right-hand side: more volume to more attractive 
+offers, although the relation is of course more complex, we are not just blindly pushing the offers with the
+highest success rates, but take a personalized approach.
+
+Often however, multiple factors are included in the prioritization, changing this
+picture.
+
+Note that the propensity bins are not of equal width. Propensities are typically
+very low so with an equal width distribution, almost all volume would be in the
+first bins. The binning here is based on (roughly) equal volume across all data.
+
+So when one of the graphs shows more volume on the left, that is to be 
+interpreted as relative to the other graphs.
+
+```{r Propensity distribution, fig.height=3, fig.width=8, message=FALSE, warning=FALSE}
+if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
+  classifiers <- merge(filterClassifierOnly(datamart$predictordata), 
+                       unique(datamart$modeldata[,c("ModelID","Channel")]), by="ModelID")
+  # classifiers[, Propensity := (0.5+BinPositives)/(1+BinResponseCount)]
+  classifiers[, PropensityRange := Hmisc::cut2(Propensity, g=15)]
+  classifiers[, TotalVolume := sum(BinResponseCount), by="Channel"]
+  
+  setorder(classifiers, Channel, PropensityRange)
+  
+  propensityDistributionData <- classifiers[,list(RelVolume = sum(BinResponseCount)/TotalVolume, 
+                                                  BinVolume = sum(BinResponseCount),
+                                                  Propensity = max(Propensity)), 
+                                            by=c("Channel", "PropensityRange", "TotalVolume")]
+  propensityDistributionData[, CumVolume := cumsum(BinVolume), by=c("Channel")]
+  propensityDistributionData[, CumFraction := 1 - CumVolume/TotalVolume]
+  
+  ggplot(propensityDistributionData,
+         aes(PropensityRange, RelVolume, fill=Channel, group=Channel)) +
+    geom_col() + geom_smooth(se=F, method = "loess") +
+    theme(axis.text.x=element_text(angle=45, hjust=1, size=7)) +
+    facet_wrap(. ~ Channel, strip.position = "right") + #, scales = "free_x") +
+    xlab("Propensity") +
+    scale_y_continuous(name="Volume", labels = scales::percent) +
+    scale_fill_Channel + 
+    ggtitle("Volume vs. Propensity") 
+} else {
+  cat("Propensity analysis will only be available when predictor binning data is available.", fill=T)
+}
+```
+
+## Propensity thresholding
+
+If you would apply a threshold on the propensities, in the plot below you see
+the portion of the customers that you would reach based on the propensities
+from the models.
+
+Note that in CDH, prioritization typically includes value and often also 
+weights and levers that are not taken into account in this view.
+
+```{r Cumulative Propensity distribution, fig.height=5, fig.width=8, message=FALSE, warning=FALSE}
+if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
+  
+  plt <- ggplot(propensityDistributionData, aes(Propensity, CumFraction)) +
+    geom_line(aes(color=Channel, group=Channel), size=1) +
+    scale_color_Channel +
+    scale_y_continuous(name="Fraction of Customers", labels = scales::percent) +
+    ggtitle("Cumulative Volume reached by thresholding on Propensity") +
+    xlab("Propensity Threshold")
+  
+  ggplotly(plt)
+} else {
+  cat("Propensity analysis will only be available when predictor binning data is available.", fill=T)
+}
+```
+
 
 # Appendix - all the models
 
