@@ -407,7 +407,7 @@ class ADMTrees:
                 childs[len(counter)] = {"left": 0, "right": 0}
 
             if not checked:
-                for node, children in reversed(childs.items()):
+                for node, children in reversed(list(childs.items())):
                     if children["left"] == 0:
                         childs[node]["left"] = len(counter)
                         break
