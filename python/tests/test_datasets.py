@@ -5,3 +5,6 @@ from cdhtools import datasets
 def test_import_CDHSample():
     Sample = datasets.CDHSample()
     assert Sample.modelData.shape == (1047,12)
+
+def test_import_SampleTrees():
+    datasets.SampleTrees()

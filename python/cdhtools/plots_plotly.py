@@ -203,7 +203,7 @@ class ADMVisualisations:
         **kwargs,
     ):
         """Shows metric of models over time
-        
+
         Parameters
         ----------
         query : Union[str, dict]

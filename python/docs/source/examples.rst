@@ -9,4 +9,5 @@ Here you can find some example analyses.
    :caption: Notebooks included:
 
    articles/Example_ADM_Analysis
+   articles/AGBModelVisualisation
    articles/vf_analysis
