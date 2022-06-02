@@ -33,6 +33,7 @@ We release this under the Apache 2.0 license and welcome contributing back, pref
 
 The tools help to do analysis on DSM/CDH, pull data from the platform, easily build meaningful plots and more. Tooling exists in both R and Python, as an R package and as notebooks and scripts for Python. See the [CDH Graph Gallery](https://github.com/pegasystems/cdh-datascientist-tools/wiki/CDH-Graph-Gallery) for a sample of the graphs you can build to help get insights from the platform. Or jump right into the examples in [R vignettes](https://pegasystems.github.io/cdh-datascientist-tools/R/articles/index.html), in [Python notebooks](https://pegasystems.github.io/cdh-datascientist-tools/Python/examples.html) or [browse the example folder](https://github.com/pegasystems/cdh-datascientist-tools/tree/master/examples).
 
+This is a fork to test out Value Finder scripts before pushing them to the main repository - so it's easier to experiment with updated code and docs. You can clone this repository in the exact same way as the main one, just replace pegasystems with StijnKas in the pip install command.
 
 # Getting Started
 
