@@ -7,3 +7,6 @@ nbformat
 jupyterlab
 ipywidgets
 pydot
+tqdm
+pyarrow
+polars
