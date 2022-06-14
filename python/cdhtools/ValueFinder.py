@@ -53,13 +53,16 @@ class ValueFinder:
 
         keep_cols = [
             "pyStage",
+            "pyIssue",
+            "pyGroup",
+            "pyChannel",
+            "pyDirection",
             "CustomerID",
             "pyName",
             "pyWorkID",
             "pyModelPropensity",
             "pyPropensity",
             "FinalPropensity",
-            "pyIssue",
         ]
         self.df = kwargs.pop("df", df)
         if self.df is None:
@@ -514,7 +517,7 @@ class ValueFinder:
         fig.update_layout(legend_title_text="Status")
         return fig
 
-    def plotFunnelChart(self, level: str = "Action"):
+    def plotFunnelChart(self, level: str = "Action", query=None):
         """Plots the funnel of actions or issues per stage.
 
         Parameters
@@ -526,13 +529,16 @@ class ValueFinder:
         """
         funneldf = pd.DataFrame()
         if level.casefold() in {"action", "name", "pyname"}:
-            level = "pyName"
+            level, cat = "pyName", "Actions"
         elif level.casefold() in {"issue", "pyissue"}:
-            level = "pyIssue"
+            level, cat = "pyIssue", "Issues"
+        elif level.casefold() in {"group", "pygroup"}:
+            level, cat = "pyGroup", "Groups"
         ncat = "all"
         for stage in self.NBADStages:
+            temp = self.df if query is None else self.df.filter(query)
             temp = (
-                self.df.filter(pl.col("pyStage") == stage)[level]
+                temp.filter(pl.col("pyStage") == stage)[level]
                 .value_counts()
                 .rename({level: "Name", "counts": "Count"})
                 .to_pandas()
@@ -545,7 +551,6 @@ class ValueFinder:
                 )
             else:
                 funneldf = pd.concat([funneldf, temp], axis=0).sort_values(["Name"])
-        cat = "Issues" if level == "pyIssue" else "Actions"
         fig = px.funnel(
             funneldf,
             y="Count",

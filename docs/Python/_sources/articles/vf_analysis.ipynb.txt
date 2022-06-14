@@ -66,6 +66,7 @@
             "outputs": [],
             "source": [
                 "from cdhtools import ValueFinder, datasets\n",
+                "import polars as pl\n",
                 "vf = datasets.SampleValueFinder()"
             ]
         },
@@ -91,7 +92,7 @@
             "cell_type": "markdown",
             "metadata": {},
             "source": [
-                "This is already enough information to generate the same piechart as shown in platform. Simply call the `plotPieCharts()` function on the data:"
+                "This is already enough information to generate the same piechart as shown in platform, but to replicate the same values, we would need to compute the propensity threshold. In this case, the quantile of `0.052` of the propensity distribution seems to represent the same counts as in platform. With that, simply call the `plotPieCharts()` function on the data:"
             ]
         },
         {
@@ -118,7 +119,7 @@
             "metadata": {},
             "outputs": [],
             "source": [
-                "vf.plotPropensityTreshold()"
+                "vf.plotPropensityThreshold()"
             ]
         },
         {
@@ -184,7 +185,7 @@
             "cell_type": "markdown",
             "metadata": {},
             "source": [
-                "Lastly, it may also be interesting to instead look at the actions themselves, throughout the stages. Simply call the `plotFunnelChart()` function for an overview of this funnel effect throughout each stage. As a rule of thumb, if there are only a few actions in each stage, this is not a good sign. If certain actions are completely filtered out from one stage to the next, it may also be a warning of agressive filtering. "
+                "Lastly, it may also be interesting to instead look at the actions themselves, throughout the stages. Simply call the `plotFunnelChart()` function for an overview of this funnel effect throughout each stage. As a rule of thumb, if there are only a few actions in each stage, this is not a good sign. If certain actions are completely filtered out from one stage to the next, it may also be a warning of agressive filtering. In this case, let's also use the 'query' functionality to only look at actions in the `'Sales'` issue."
             ]
         },
         {
@@ -193,14 +194,14 @@
             "metadata": {},
             "outputs": [],
             "source": [
-                "vf.plotFunnelChart('Actions')"
+                "vf.plotFunnelChart('Action', query=pl.col('pyIssue')=='Sales')"
             ]
         },
         {
             "cell_type": "markdown",
             "metadata": {},
             "source": [
-                "Of course this is quite a lot of information. If instead we want to look at the distribution of *issues* over each stage, simply supply the `level` parameters as `'Issues'`:"
+                "Of course this is quite a lot of information. If instead we want to look at the distribution of *issues* over each stage, simply supply the `level` parameters as `'Issue'`:"
             ]
         },
         {
@@ -209,7 +210,23 @@
             "metadata": {},
             "outputs": [],
             "source": [
-                "vf.plotFunnelChart('Issues')"
+                "vf.plotFunnelChart('Issue')"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "Lastly, it may also be interesting to look at the distribution of groups over the different stages. Here, let's again filter on the `'Sales'` issue only."
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "vf.plotFunnelChart('Group', query=pl.col('pyIssue')=='Sales')"
             ]
         }
     ],
