@@ -32,7 +32,7 @@ def test_plotDistributionPerThreshold_propensity(test):
     test.plotDistributionPerThreshold('Propensity')
 
 def test_plotFunnelChartActions(test):
-    test.plotFunnelChart('Actions')
+    test.plotFunnelChart('Action')
 
 def test_plotFunnelChartIssues(test):
-    test.plotFunnelChart('Issues')
+    test.plotFunnelChart('Issue')

@@ -514,7 +514,7 @@ class ValueFinder:
         fig.update_layout(legend_title_text="Status")
         return fig
 
-    def plotFunnelChart(self, level: str = "Actions"):
+    def plotFunnelChart(self, level: str = "Action"):
         """Plots the funnel of actions or issues per stage.
 
         Parameters
@@ -525,9 +525,9 @@ class ValueFinder:
             - If 'Issues', plots the distribution of issues
         """
         funneldf = pd.DataFrame()
-        if level.casefold() == "actions":
+        if level.casefold() in {"action", "name", "pyname"}:
             level = "pyName"
-        elif level.casefold() == "issues":
+        elif level.casefold() in {"issue", "pyissue"}:
             level = "pyIssue"
         ncat = "all"
         for stage in self.NBADStages:
@@ -545,16 +545,16 @@ class ValueFinder:
                 )
             else:
                 funneldf = pd.concat([funneldf, temp], axis=0).sort_values(["Name"])
-
+        cat = "Issues" if level == "pyIssue" else "Actions"
         fig = px.funnel(
             funneldf,
             y="Count",
             x="Stage",
             color="Name",
             text="Name",
-            title=f"Distribution of {level} over the stages",
+            title=f"Distribution of {cat.casefold()} over the stages",
             template="none",
             category_orders={"Name": self.NBADStages},
         )
-        fig.update_layout(legend_title_text="Issue")
+        fig.update_layout(legend_title_text=cat)
         return fig
