@@ -29,7 +29,8 @@ setuptools.setup(
         "jupyterlab",
         "ipywidgets",
         "pydot",
-        "polars"
+        "polars",
+        "tqdm"
     ],
     keywords=[
         "pega",
