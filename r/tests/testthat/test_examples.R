@@ -95,7 +95,7 @@ test_that("check not sourcing CDH Tools files directly", {
       if (any(scanFileForSourceInclusion)) {
         grFile <<- rFile
         print(grFile)
-        stop("Direct includes")
+        stop("Direct includes found")
       }
     }
   }
