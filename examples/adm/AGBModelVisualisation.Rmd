@@ -10,6 +10,7 @@ always_allow_html: true
 params:
   modeldownload:
     value: "../../data/agb/IHmodelbeforeRetrain.txt"
+    # value: "../../data/agb/ModelExportExample.json"
 ---
 
 ```{r setup, include=FALSE}
@@ -40,27 +41,40 @@ model snapshots stored there.
 
 Read the JSON model from an ADM AGB tree exported from Pega.
 
-NOTE: currently the export is a mix of Java and JSON. This is to be fixed but
-ad interim this script does the necessary postprocessing. See
-https://agilestudio.pega.com/prweb/AgileStudio/app/agilestudio/story/US-451648
-for fixing the export format.
+In early versions (prior to 8.7.3) the model export was a mix of text
+and JSON. Later versions have proper JSON. When reading in we try to be 
+careful and skip over the non-JSON if it seems to be an old version.
 
 ```{r}
 linez <- readLines(params$modeldownload)
-modelStart <- which(startsWith(linez, "model=AdaptiveBoostScoringModel{"))
-jsonStart <- which(startsWith(linez, "model={"))
+if (linez[1] != "{") {
+  # Old format
+  
+  modelStart <- which(startsWith(linez, "model=AdaptiveBoostScoringModel{"))
+  jsonStart <- which(startsWith(linez, "model={"))
 
-meta <- strsplit(linez[(modelStart+1):(jsonStart-1)], "=", fixed=T)
-modelJSON <- paste("{", paste(linez[(jsonStart+1) : (length(linez)-1) ], collapse = "\n"), "}")
+  meta <- strsplit(linez[(modelStart+1):(jsonStart-1)], "=", fixed=T)
+  modelJSONText <- paste("{", paste(linez[(jsonStart+1) : (length(linez)-1) ], collapse = "\n"), "}")
+  modelJSON <- fromJSON(modelJSONText, flatten = F, simplifyVector = F, simplifyDataFrame = F, simplifyMatrix = F)
+  
+  modelMetaInfo <- data.table( Attribute = sapply(meta, function(x) x[[1]]), 
+                             Value = sapply(meta, function(x) paste(x[2:length(x)], collapse=" = ")))
+
+} else {
+  # New all JSON format
+  
+  allJSON <- fromJSON(paste(linez, collapse = "\n"), flatten = F, simplifyVector = F, simplifyDataFrame = F, simplifyMatrix = F)
+  modelJSON <- allJSON$model
+  
+  modelMetaInfo <- data.table(Attribute = setdiff(names(allJSON), "model"))
+  modelMetaInfo[ , Value := toJSON(allJSON[[Attribute]]), by=Attribute]
+}
 ```
 
 
 # Meta data about the model
 
 ```{r}
-modelMetaInfo <- data.table( Attribute = sapply(meta, function(x) x[[1]]), 
-                             Value = sapply(meta, function(x) paste(x[2:length(x)], collapse=" = ")))
-
 modelMetaInfo %>% kable() %>% kable_classic()
 ```
 
@@ -70,7 +84,6 @@ The model consists of a number of trees. They are all under a single
 booster node (currently).
 
 ```{r include=FALSE}
-modelJSON <- fromJSON(modelJSON, flatten = F, simplifyVector = F, simplifyDataFrame = F, simplifyMatrix = F)
 forest <- modelJSON$boosters[[1]]$trees
 ```
 
@@ -114,8 +127,6 @@ splits <- function(tree) {
 gain <- function(tree) {
   return(tree$gain)
 }
-
-
 
 tbl <- data.table( tree = seq(length(forest)),
                    maxDepth = sapply(forest, maxDepth),
@@ -184,16 +195,4 @@ ggplot(head(varImp,20), aes(Importance, split)) +
   ggtitle("AGB Var Importance", subtitle = params$modeldownload) +
   ylab("")
 ```
-# TODO
-
-For the model data in the ADM model table, see for an example the modeldata.json
-in the chat. The lookup of index to predictor is via the Index field in the 
-inputsEncoder.
-
-Relevant viz over time is the depth of the trees - so facetted by tree number
-and x-axis is the time.
-
-When more ready turn this into a vignette instead of just an example script.
-
-
 
