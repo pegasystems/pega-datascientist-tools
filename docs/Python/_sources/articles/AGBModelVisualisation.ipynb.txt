@@ -1,0 +1,417 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "nbsphinx": "hidden"
+   },
+   "source": [
+    "## Link to article\n",
+    "\n",
+    "This notebook is included in the documentation, where the interactive Plotly charts show up. See:\n",
+    "https://pegasystems.github.io/cdh-datascientist-tools/Python/articles/graph_gallery.html"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Analyzing ADM Decision Trees\n",
+    "\n",
+    "With the introduction of ADM Gradient Boosting, we now support tree-based models in ADM as an alternative to the traditional Bayesian approach. In prediction studio, there is some information on the predictors, the model performance et cetera. However, it is also possible to export the trees themselves to analyze them further. This example demonstrates some of the info you can extract yourself, including a visualisation of the actual trees - which also allows you to check the exact 'path' a prediction used through each individual tree. \n",
+    "\n",
+    "On a gradient boosting model page in prediction studio, you can download an export of the model under the 'actions' button in the top right. We've also shipped an example file of a pre-built tree in the data folder, and a 'dataset' to automatically import it from the internet. That is what we will be using for this example.\n",
+    "\n",
+    "## Imports"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "nbsphinx": "hidden"
+   },
+   "outputs": [],
+   "source": [
+    "# These lines are only for rendering in the docs, and are hidden through Jupyter tags\n",
+    "# Do not run if you're running the notebook seperately\n",
+    "\n",
+    "import plotly.io as pio\n",
+    "pio.renderers.default='notebook_connected'\n",
+    "\n",
+    "import sys\n",
+    "sys.path.append('../../../')\n",
+    "\n",
+    "import warnings\n",
+    "warnings.simplefilter('ignore', SyntaxWarning)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from cdhtools import ADMTrees, datasets"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Importing your own model export\n",
+    "To import your own model, simply feed the path to the ADMTrees class. There are no additional parameters."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# ADMTrees(\"path/to/model_download.json\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "For this example we will use the shipped example dataset, which you can simply import with the following line:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "Trees = datasets.SampleTrees()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Exploring the ADMTrees class\n",
+    "\n",
+    "The raw export has quite a lot of information stored in it, which is not all easily accessible. For example, looking at the 'properties' attribute, we can see the configuration of the model."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "Trees.properties"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Most of this information is not particularly useful - but for example, you can find the maximum numbef of trees, the maximum depth of the trees and the outcome to label mapping. Information about the predictors is also stored here, which is extracted in the 'predictors' attribute."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "Trees.predictors"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Naturally, the raw trees are stored here too. They are stored in the 'model' attribute, in a list with each tree in json format. Let's look at a single tree."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "Trees.model[42]"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Each node has a 'score': the contribution to the final score, over all trees. Non-leaf nodes naturally have splits, which are expressed as a string. These can be inequality, equality or set splits. For example, we may see a split on Age being smaller than 42, but also pyName being one of {P1, P2, P3, P4, P6}. If this split evaluates to True, we follow the tree to the left node. Naturally, if it evaluates to False we follow to the right node. Lastly, each split also has a gain. This describes how well that split discriminates by splitting to the left and right nodes. \n",
+    "\n",
+    "Later we will revisit this tree structure, because for visualisation we need to slightly reformat it. But first, by nature of a boosting algorithm, looking at a single tree does not provide enough information to fully understand the model. For this, there are some properties of the ADMTrees class to look across trees. To start, we can call TreeStats to get an overview of the contribution of each tree to the final model."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "Trees.treeStats.sample(5)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "In TreeStats, the index is the 'ID' of the tree, based on its position in the order of the 'model' attribute. The score corresponds to the score of the top-level node of that tree, and the 'depth' and 'nsplits' describe how deep the tree is, and how many splits are performed in total. For each split, the gain is added to the list in the 'gains' column. The mean of all splits in a tree is computed in the 'meangains' column.\n",
+    "\n",
+    "Some info about individual trees is also stored in attributes, such as the splits and gains for each tree."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(Trees.splitsPerTree[42])\n",
+    "print(Trees.gainsPerTree[42])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Variables\n",
+    "Now, if we are interested in the contribution and distribution of the splits per variable, we can look at the raw data in the groupedGainsPerSplit attribute, which returns a DataFrame, grouped by the split. In the 'gains' column you see a list of all of the gains produced by this split, and the 'n' column says how often this split is performed."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "Trees.groupedGainsPerSplit"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Raw data is sometimes useful, but it's better to visualise. For this, simply call plotSplitsPerVariable(), which will produce a plot of the distribution of splits for each variable. Here, the orange line denotes the number of times the given split is performed, while the blue boxes display the distribution of gains corresponding to that split. By suppling a set of predictors as the 'subset' argument, not all predictors are plotted.\n",
+    "\n",
+    "**Note 1:** Given that the gains can differ drastically between splits, some plots may not be very useful as-is. However, since they are Plotly plots they are interactive: hover over the data to see the raw numbers, and select a region within the plot to zoom in.\n",
+    "**Note 2:** For categorical splits especially, the axis labels are typically not very readable. Even while hovering, there may be too much information. This is simply by nature of these splits. In this case, it may be more useful to look at the raw data in the groupedGainsPerSplit dataframe."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "Trees.plotSplitsPerVariable();"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Visualising the trees\n",
+    "\n",
+    "With the provided tree structures, it is also possible to visualise each tree individually. While of course each individual tree is used for scoring and thus one tree is on average only 1/50th of the total contribution, this still provides useful information of the inner workings of the algorithm. In the background, we transform the raw tree structure to a node and edges-based json structure, where each node gets an ID, and their child and parent nodes are linked"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "Trees.getTreeRepresentation(42)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Then, we can visualise the tree as such:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "Trees.plotTree(42);"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Plot prediction path\n",
+    "\n",
+    "With this tree, of course we can also show how a tree would score a set of input data 'x'. Simply pass a dictionary with variable:value pairs to plotTree's \"highlighted\" parameter, and that path is highlighted:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "Trees.plotTree(42, highlighted = {\"IH.PegaBatch.E2E Test.Accept.pyHistoricalOutcomeCount\":2, \"pyName\":\"P2\", \"Age\": 52});"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Or more useful; define x first and then feed that as the highlighted parameter."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "x = {'Age': 49,\n",
+    " 'CustomerName': 'FrancinaKunze',\n",
+    " 'EyeColor': 'LightYellow',\n",
+    " 'IH.PegaBatch.E2E Test.Accept.pxLastOutcomeTime.DaysSince': 4,\n",
+    " 'IH.PegaBatch.E2E Test.Accept.pyHistoricalOutcomeCount': 3,\n",
+    " 'IH.PegaBatch.E2E Test.Decline.pxLastOutcomeTime.DaysSince': 2,\n",
+    " 'IH.PegaBatch.E2E Test.Decline.pyHistoricalOutcomeCount': 300,\n",
+    " 'Income': 38778,\n",
+    " 'NumX': 63,\n",
+    " 'Occupation': 'Communityeducationofficer',\n",
+    " 'pyName': 'P1'}\n",
+    " \n",
+    "Trees.plotTree(42, highlighted=x);"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Thus far we've only look at tree 42, but of course we can plot different trees as well. This is also where these visualisations aren't always as useful, because the trees can get quite large and hard to read:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "Trees.plotTree(4, highlighted=x);"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Note it is possible to export these trees by calling functions on the raw model, such as 'write_png' or 'write_pdf':\n",
+    "\n",
+    "```python\n",
+    "Trees.plotTree(4, highlighted=x).write_png('Tree.png')\n",
+    "Trees.plotTree(4, highlighted=x).write_pdf('Tree.pdf')\n",
+    "```\n",
+    "\n",
+    "## Replicating scores\n",
+    "Lastly, with a given x and each scoring tree both stored, we can replicate the score the models would give to that customer by simply letting each tree predict a score. By calling 'getAllVisitedNodes', we get an overview of all visited nodes, each split that was performed and the scores contributed by each individual tree. By default this is sorted by their scores. This also gives us an idea of the relative 'importance' of each tree for the final prediction. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "scores = Trees.getAllVisitedNodes(x)\n",
+    "scores"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Now, to get to the final score we simply sum up the scores, and then normalize them to a range between 0 and 1:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import math\n",
+    "1/(1+math.exp(-scores['score'].sum()))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "And to simplify this even further, simply call the 'score' function to get the final score."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "Trees.score(x)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Finally, we can also plot the contribution of each tree towards the final propensity of the prediction. Simply call the plotContributionPerTree function with a given x. This shows, for each individual tree, the scores, the cumulative mean of those scores and the running propensity. Here you can clearly see that the average score is quite negative, so as we would expect the final propensity is also quite low."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "Trees.plotContributionPerTree(x);"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "These are the current features of the ADMTrees class. As always, if you have suggestions, please do not hesitate to open a GitHub issue or pull request!"
+   ]
+  }
+ ],
+ "metadata": {
+  "interpreter": {
+   "hash": "7e1998ff7f8aa20ada591c520b972326324e5ea05489af9e422744c7c09f6dad"
+  },
+  "kernelspec": {
+   "display_name": "Python 3.10.2 64-bit",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.10.2"
+  },
+  "orig_nbformat": 4
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}

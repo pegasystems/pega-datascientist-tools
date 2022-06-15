@@ -13,9 +13,13 @@
   <a href="https://codecov.io/gh/pegasystems/cdh-datascientist-tools">
     <img src="https://codecov.io/gh/pegasystems/cdh-datascientist-tools/branch/master/graph/badge.svg"/>
   </a>
-  <!-- Documentation -->
+  <!-- Wiki -->
   <a href="https://github.com/pegasystems/cdh-datascientist-tools/wiki">
     <img src="https://img.shields.io/badge/wiki-up-success" alt="wiki">
+  </a>
+  <!-- Documentation -->
+  <a href="https://pegasystems.github.io/cdh-datascientist-tools/">
+    <img src="https://img.shields.io/badge/Documentation-Up-brightgreen" alt="docs">
   </a>
   <!-- License -->
   <a href="https://github.com/pegasystems/cdh-datascientist-tools/blob/master/LICENSE">
@@ -32,7 +36,7 @@ The tools help to do analysis on DSM/CDH, pull data from the platform, easily bu
 
 # Getting Started
 
-For instructions and information, see the [CDH Tools Wiki page](https://github.com/pegasystems/cdh-datascientist-tools/wiki).
+For instructions and information, see the [CDH Tools Wiki page](https://github.com/pegasystems/cdh-datascientist-tools/wiki). For further examples and the API reference, see the [Documentation](https://pegasystems.github.io/cdh-datascientist-tools/).
 
 # Contributing
 

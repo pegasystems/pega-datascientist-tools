@@ -171,6 +171,7 @@
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../examples.html">Example notebooks</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../articles/Example_ADM_Analysis.html">Example ADM analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../articles/AGBModelVisualisation.html">Analyzing ADM Decision Trees</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../articles/vf_analysis.html">ValueFinder analysis</a></li>
 </ul>
 </li>
@@ -188,6 +189,7 @@
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2 current has-children current-page"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cdhtools</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="ADMDatamart/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cdhtools.ADMDatamart</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADMTrees/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cdhtools.ADMTrees</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="IHanalysis/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cdhtools.IHanalysis</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="cdh_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cdhtools.cdh_utils</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="datasets/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cdhtools.datasets</span></code></a></li>
@@ -237,6 +239,7 @@
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="ADMDatamart/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cdhtools.ADMDatamart</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="ADMTrees/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cdhtools.ADMTrees</span></code></a></li>
 <li class="toctree-l1"><a class="reference internal" href="IHanalysis/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cdhtools.IHanalysis</span></code></a></li>
 <li class="toctree-l1"><a class="reference internal" href="cdh_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cdhtools.cdh_utils</span></code></a></li>
 <li class="toctree-l1"><a class="reference internal" href="datasets/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">cdhtools.datasets</span></code></a></li>
@@ -258,6 +261,9 @@
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#cdhtools.ADMDatamart" title="cdhtools.ADMDatamart"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ADMDatamart</span></code></a></p></td>
 <td><p>Main class for importing, preprocessing and structuring Pega ADM Datamart snapshot data.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cdhtools.ADMTrees" title="cdhtools.ADMTrees"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ADMTrees</span></code></a></p></td>
+<td><p>Functions for ADM Gradient boosting</p></td>
 </tr>
 </tbody>
 </table></div>
@@ -729,6 +735,339 @@ or a string, in which case it can either be:
 <dt class="sig sig-object py" id="cdhtools.CDHSample">
 <span class="sig-prename descclassname"><span class="pre">cdhtools.</span></span><span class="sig-name descname"><span class="pre">CDHSample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plotting_engine</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'plotly'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cdhtools.CDHSample" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
+<dl class="py class">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cdhtools.</span></span><span class="sig-name descname"><span class="pre">ADMTrees</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cdhtools.ADMTrees" title="Permalink to this definition">#</a></dt>
+<dd><p>Functions for ADM Gradient boosting</p>
+<p>ADM Gradient boosting models consist of multiple trees,
+which build upon each other in a ‘boosting’ fashion.
+This class provides some functions to extract data from
+these trees, such as the features on which the trees split,
+important values for these features, statistics about the trees,
+or visualising each individual tree.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>file</strong> (<em>str</em>) – The input file as a json (see notes)</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.trees">
+<span class="sig-name descname"><span class="pre">trees</span></span><a class="headerlink" href="#cdhtools.ADMTrees.trees" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>Dict</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.properties">
+<span class="sig-name descname"><span class="pre">properties</span></span><a class="headerlink" href="#cdhtools.ADMTrees.properties" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>Dict</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.learning_rate">
+<span class="sig-name descname"><span class="pre">learning_rate</span></span><a class="headerlink" href="#cdhtools.ADMTrees.learning_rate" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.model">
+<span class="sig-name descname"><span class="pre">model</span></span><a class="headerlink" href="#cdhtools.ADMTrees.model" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>Dict</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.treeStats">
+<span class="sig-name descname"><span class="pre">treeStats</span></span><a class="headerlink" href="#cdhtools.ADMTrees.treeStats" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>Dict</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.splitsPerTree">
+<span class="sig-name descname"><span class="pre">splitsPerTree</span></span><a class="headerlink" href="#cdhtools.ADMTrees.splitsPerTree" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>Dict</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.gainsPerTree">
+<span class="sig-name descname"><span class="pre">gainsPerTree</span></span><a class="headerlink" href="#cdhtools.ADMTrees.gainsPerTree" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>Dict</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.gainsPerSplit">
+<span class="sig-name descname"><span class="pre">gainsPerSplit</span></span><a class="headerlink" href="#cdhtools.ADMTrees.gainsPerSplit" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.groupedGainsPerSplit">
+<span class="sig-name descname"><span class="pre">groupedGainsPerSplit</span></span><a class="headerlink" href="#cdhtools.ADMTrees.groupedGainsPerSplit" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>Dict</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.predictors">
+<span class="sig-name descname"><span class="pre">predictors</span></span><a class="headerlink" href="#cdhtools.ADMTrees.predictors" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>Set</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.allValuesPerSplit">
+<span class="sig-name descname"><span class="pre">allValuesPerSplit</span></span><a class="headerlink" href="#cdhtools.ADMTrees.allValuesPerSplit" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>Dict</p>
+</dd>
+</dl>
+</dd></dl>
+<p class="rubric">Notes</p>
+<p>The input file is the extracted json file of the ‘save model’
+action in Prediction Studio. The Datamart column ‘pyModelData’
+also contains this information, but it is compressed and
+the values for each split is encoded. Using the ‘save model’
+button, only that data is decompressed and decoded.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.import_model">
+<span class="sig-name descname"><span class="pre">import_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cdhtools.ADMTrees.import_model" title="Permalink to this definition">#</a></dt>
+<dd><p>Imports the ‘regular’ json file</p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.workaround_import">
+<span class="sig-name descname"><span class="pre">workaround_import</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cdhtools.ADMTrees.workaround_import" title="Permalink to this definition">#</a></dt>
+<dd><p>Imports the ‘old’ txt file, with json embedded in it.</p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees._depth">
+<span class="sig-name descname"><span class="pre">_depth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#cdhtools.ADMTrees._depth" title="Permalink to this definition">#</a></dt>
+<dd><p>Calculates the depth of the tree, used in TreeStats.</p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.parseSplitValues">
+<span class="sig-name descname"><span class="pre">parseSplitValues</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cdhtools.ADMTrees.parseSplitValues" title="Permalink to this definition">#</a></dt>
+<dd><p>Parses the raw ‘split’ string into its three components.</p>
+<p>Once the split is parsed, Python can use it to evaluate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> (<em>str</em>) – The raw ‘split’ string</p></li>
+<li><p><strong>Returns</strong> – Tuple[str, str, str]
+The variable on which the split is done,
+The direction of the split (&lt; or ‘in’)
+The value on which to split</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.parseSplitValuesWithSpaces">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">parseSplitValuesWithSpaces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cdhtools.ADMTrees.parseSplitValuesWithSpaces" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.getPredictors">
+<span class="sig-name descname"><span class="pre">getPredictors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#cdhtools.ADMTrees.getPredictors" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.getGainsPerSplit">
+<span class="sig-name descname"><span class="pre">getGainsPerSplit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">pandas.DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cdhtools.ADMTrees.getGainsPerSplit" title="Permalink to this definition">#</a></dt>
+<dd><p>Function to compute the gains of each split in each tree.</p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.getGroupedGainsPerSplit">
+<span class="sig-name descname"><span class="pre">getGroupedGainsPerSplit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="headerlink" href="#cdhtools.ADMTrees.getGroupedGainsPerSplit" title="Permalink to this definition">#</a></dt>
+<dd><p>Function to get the gains per split, grouped by split.</p>
+<p>It adds some additional information, such as the possible values,
+the mean gains, and the number of times the split is performed.</p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.getSplitsRecursively">
+<span class="sig-name descname"><span class="pre">getSplitsRecursively</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tree</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">splits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gains</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cdhtools.ADMTrees.getSplitsRecursively" title="Permalink to this definition">#</a></dt>
+<dd><p>Recursively finds splits and their gains for each node.</p>
+<p>By Python’s mutatable list mechanic, the easiest way to achieve
+this is to explicitly supply the function with empty lists.
+Therefore, the ‘splits’ and ‘gains’ parameter expect
+empty lists when initially called.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tree</strong> (<em>Dict</em>) – </p></li>
+<li><p><strong>splits</strong> (<em>List</em>) – </p></li>
+<li><p><strong>gains</strong> (<em>List</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>Tuple[List, List]</em></p></li>
+<li><p><em>Each split, and its corresponding gain</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.plotSplitsPerVariable">
+<span class="sig-name descname"><span class="pre">plotSplitsPerVariable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Set</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cdhtools.ADMTrees.plotSplitsPerVariable" title="Permalink to this definition">#</a></dt>
+<dd><p>Plots the splits for each variable in the tree.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>subset</strong> (<em>Optional</em><em>[</em><em>Set</em><em>]</em>) – Optional parameter to subset the variables to plot</p></li>
+<li><p><strong>show</strong> (<em>bool</em>) – Whether to display each plot</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>plt.figure</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.getTreeStats">
+<span class="sig-name descname"><span class="pre">getTreeStats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="headerlink" href="#cdhtools.ADMTrees.getTreeStats" title="Permalink to this definition">#</a></dt>
+<dd><p>Generate a dataframe with useful stats for each tree</p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.getAllValuesPerSplit">
+<span class="sig-name descname"><span class="pre">getAllValuesPerSplit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#cdhtools.ADMTrees.getAllValuesPerSplit" title="Permalink to this definition">#</a></dt>
+<dd><p>Generate a dictionary with the possible values for each split</p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.getNodesRecursively">
+<span class="sig-name descname"><span class="pre">getNodesRecursively</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tree</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nodelist</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">counter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">childs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cdhtools.ADMTrees.getNodesRecursively" title="Permalink to this definition">#</a></dt>
+<dd><p>Recursively walks through each node, used for tree representation.</p>
+<p>Again, nodelist, counter and childs expects
+empty dict, dict and list parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tree</strong> (<em>Dict</em>) – </p></li>
+<li><p><strong>nodelist</strong> (<em>Dict</em>) – </p></li>
+<li><p><strong>counter</strong> (<em>Dict</em>) – </p></li>
+<li><p><strong>childs</strong> (<em>List</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>Tuple[Dict, List]</em></p></li>
+<li><p><em>The dictionary of nodes and the list of child nodes</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees._fillChildNodeIDs">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_fillChildNodeIDs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nodeinfo</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">childs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#cdhtools.ADMTrees._fillChildNodeIDs" title="Permalink to this definition">#</a></dt>
+<dd><p>Utility function to add child info to nodes</p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.getTreeRepresentation">
+<span class="sig-name descname"><span class="pre">getTreeRepresentation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tree_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#cdhtools.ADMTrees.getTreeRepresentation" title="Permalink to this definition">#</a></dt>
+<dd><p>Generates a more usable tree representation.</p>
+<p>In this tree representation, each node has an ID,
+and its attributes are the attributes,
+with parent and child nodes added as well.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tree_number</strong> (<em>int</em>) – The number of the tree, in order of the original json</p></li>
+<li><p><strong>returns</strong> (<em>Dict</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.plotTree">
+<span class="sig-name descname"><span class="pre">plotTree</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tree_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">highlighted</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">pydot.Graph</span></span></span><a class="headerlink" href="#cdhtools.ADMTrees.plotTree" title="Permalink to this definition">#</a></dt>
+<dd><p>Plots the chosen decision tree.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tree_number</strong> (<em>int</em>) – The number of the tree to visualise</p></li>
+<li><p><strong>highlighted</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>, </em><em>List</em><em>]</em>) – Optional parameter to highlight nodes in green
+If a dictionary, it expects an ‘x’: i.e., features
+with their corresponding values.
+If a list, expects a list of node IDs for that tree.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>pydot.Graph</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.getVisitedNodes">
+<span class="sig-name descname"><span class="pre">getVisitedNodes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">treeID</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_all</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cdhtools.ADMTrees.getVisitedNodes" title="Permalink to this definition">#</a></dt>
+<dd><p>Finds all visited nodes for a given tree, given an x</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>treeID</strong> (<em>int</em>) – The ID of the tree</p></li>
+<li><p><strong>x</strong> (<em>Dict</em>) – Features to split on, with their values</p></li>
+<li><p><strong>save_all</strong> (<em>bool</em><em>, </em><em>default = False</em>) – Whether to save all gains for each individual split</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The list of visited nodes,
+The score of the final leaf node,
+The gains for each split in the visited nodes</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>List, float, List</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.getAllVisitedNodes">
+<span class="sig-name descname"><span class="pre">getAllVisitedNodes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="headerlink" href="#cdhtools.ADMTrees.getAllVisitedNodes" title="Permalink to this definition">#</a></dt>
+<dd><p>Loops through each tree, and records the scoring info</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>Dict</em>) – Features to split on, with their values</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.score">
+<span class="sig-name descname"><span class="pre">score</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#cdhtools.ADMTrees.score" title="Permalink to this definition">#</a></dt>
+<dd><p>Computes the score for a given x</p>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cdhtools.ADMTrees.plotContributionPerTree">
+<span class="sig-name descname"><span class="pre">plotContributionPerTree</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cdhtools.ADMTrees.plotContributionPerTree" title="Permalink to this definition">#</a></dt>
+<dd><p>Plots the contribution of each tree towards the final propensity.</p>
+</dd></dl>
+</dd></dl>
 </section>
 </section>
 </section>
@@ -814,6 +1153,40 @@ or a string, in which case it can either be:
 </li>
 <li><a class="reference internal" href="#cdhtools.readDSExport">readDSExport</a></li>
 <li><a class="reference internal" href="#cdhtools.CDHSample">CDHSample</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees">ADMTrees</a><ul>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.trees">trees</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.properties">properties</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.learning_rate">learning_rate</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.model">model</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.treeStats">treeStats</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.splitsPerTree">splitsPerTree</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.gainsPerTree">gainsPerTree</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.gainsPerSplit">gainsPerSplit</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.groupedGainsPerSplit">groupedGainsPerSplit</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.predictors">predictors</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.allValuesPerSplit">allValuesPerSplit</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.import_model">import_model</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.workaround_import">workaround_import</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees._depth">_depth</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.parseSplitValues">parseSplitValues</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.parseSplitValuesWithSpaces">parseSplitValuesWithSpaces</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.getPredictors">getPredictors</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.getGainsPerSplit">getGainsPerSplit</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.getGroupedGainsPerSplit">getGroupedGainsPerSplit</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.getSplitsRecursively">getSplitsRecursively</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.plotSplitsPerVariable">plotSplitsPerVariable</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.getTreeStats">getTreeStats</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.getAllValuesPerSplit">getAllValuesPerSplit</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.getNodesRecursively">getNodesRecursively</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees._fillChildNodeIDs">_fillChildNodeIDs</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.getTreeRepresentation">getTreeRepresentation</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.plotTree">plotTree</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.getVisitedNodes">getVisitedNodes</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.getAllVisitedNodes">getAllVisitedNodes</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.score">score</a></li>
+<li><a class="reference internal" href="#cdhtools.ADMTrees.plotContributionPerTree">plotContributionPerTree</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
