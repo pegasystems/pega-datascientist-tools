@@ -23,18 +23,14 @@ params:
   modelfile:
     # Full path to the source file which should be an export of the ADM model table
     # can be a plain CSV file, a zipped CSV, or the full path of a dataset export
-    # value: "../../data/pr_data_dm_admmart_mdl_fact.csv"
-    # value: "/Users/perdo/.datamartcache/models_LMMS.parquet"
-    value: "~/Downloads/Trimmed_Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20220527T095614_GMT.zip"
+    value: "../../data/pr_data_dm_admmart_mdl_fact.csv"
 
   predictordatafile:
     # Optional full path to ADM predictor binning table data. If given, the model 
     # overview will also contain predictor plots. Like the model file, there is 
     # flexibility in format: CSV, zipped CSV or dataset export. If you have something
     # different, you'll need to load, filter and re-write as CSV first.
-    # value: "../../data/pr_data_dm_admmart_pred.csv"
-    # value: "/Users/perdo/.datamartcache/preds_LMMS.parquet"
-    value: "/Users/perdo/Library/CloudStorage/OneDrive-SharedLibraries-PegasystemsInc/AI Chapter Data Sets - Documents/Customers/LMMS/DataMart - 14th June 2022/Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20220614T134334_GMT.zip"
+    value: "../../data/pr_data_dm_admmart_pred.csv"
 
   # perhaps consider supporting something like this, for now you would do this in 
   # a separate script then call this notebook
@@ -86,11 +82,10 @@ knitr::opts_chunk$set(
 # ADM Datamart Health Check
 
 This document gives a generic and global overview of the Adaptive models 
-and predictors. It is generated from an R notebook in the [CDH Tools] 
-(https://github.com/pegasystems/cdh-datascientist-tools). That repository
+and predictors. It is generated from an R notebook in the [CDH Tools](https://github.com/pegasystems/cdh-datascientist-tools). That repository
 of tools and scripts also contains a notebook to generate stand-alone
 model reports for individual models, please refer 
-to the [Wiki] (https://github.com/pegasystems/cdh-datascientist-tools/wiki).
+to the [Wiki](https://github.com/pegasystems/cdh-datascientist-tools/wiki).
 
 This document provides a first-level scan of the models after which a 
 deeper and more customer specific deeper dive can be done.
@@ -168,6 +163,15 @@ aggregateTreeData <- function(dt, hierarchy = intersect(c("Direction", "Channel"
 
 Propositions, also referred to as offers or actions with treatments, are
 the most granular perspective on the adaptive models.
+
+| Item |  |  |
+| --- | --- | --- |
+| Number of unique Actions | `r uniqueN(datamart$modeldata$Name)` | |
+| Number of unique Treatments | `r uniqueN(datamart$modeldata$Treatment)` | |
+| Number of unique Issues | `r uniqueN(datamart$modeldata$Issue)` | `r paste(sort(unique(datamart$modeldata$Issue)), collapse=", ")` |
+| Average number of Groups per Issue | `r mean(datamart$modeldata[, .(Groups = uniqueN(Group)), by="Issue"]$Groups)` | `r paste(sort(unique(datamart$modeldata$Group)), collapse=", ")` |
+| Number of unique Channels | `r uniqueN(datamart$modeldata$Channel)` | `r paste(sort(unique(datamart$modeldata$Channel)), collapse=", ")` |
+
 
 ## Proposition Success Rates per Channel
 
