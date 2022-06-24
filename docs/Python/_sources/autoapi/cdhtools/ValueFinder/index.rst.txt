@@ -45,7 +45,7 @@ Classes
 
       :param th: The threshold to consider an action 'good'.
                  If a customer has actions with propensity above this,
-                 the customer is considered 'Well Served'.
+                 the customer has at least one relevant action.
                  If not given, will default to 5th quantile.
       :type th: Optional[float]
       :param verbose: Whether to print out the execution times

@@ -1104,7 +1104,7 @@ Supports pandas or polars dataframes or pyarrow tables</p></li>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>th</strong> (<em>Optional</em><em>[</em><em>float</em><em>]</em>) – The threshold to consider an action ‘good’.
 If a customer has actions with propensity above this,
-the customer is considered ‘Well Served’.
+the customer has at least one relevant action.
 If not given, will default to 5th quantile.</p></li>
 <li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>default = True</em>) – Whether to print out the execution times</p></li>
 </ul>
@@ -1382,6 +1382,5 @@ One of: {‘Quantile’, ‘Propensity’}</p>
     <script src="../../_static/clipboard.min.js"></script>
     <script src="../../_static/copybutton.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-    <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.20.0/dist/embed-amd.js"></script>
     </body>
 </html>

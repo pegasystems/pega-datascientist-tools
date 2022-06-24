@@ -108,7 +108,7 @@ class ValueFinder:
         th: Optional[float]
             The threshold to consider an action 'good'.
             If a customer has actions with propensity above this,
-            the customer is considered 'Well Served'.
+            the customer has at least one relevant action.
             If not given, will default to 5th quantile.
         verbose: bool, default = True
             Whether to print out the execution times
@@ -130,8 +130,8 @@ class ValueFinder:
             )
             .with_columns(
                 [
-                    (pl.col("MaxModelPropensity") >= th).alias("isWellServed"),
-                    (pl.col("MaxModelPropensity") < th).alias("isNotWellServed"),
+                    (pl.col("MaxModelPropensity") >= th).alias("relevantActions"),
+                    (pl.col("MaxModelPropensity") < th).alias("irrelevantActions"),
                 ]
             )
         )
@@ -162,9 +162,9 @@ class ValueFinder:
             customersummary.groupby("pyStage")
             .agg(
                 [
-                    pl.sum("isWellServed"),
-                    pl.sum("isNotWellServed"),
-                    pl.count("isWellServed").alias("NoActions"),
+                    pl.sum("relevantActions"),
+                    pl.sum("irrelevantActions"),
+                    pl.count("relevantActions").alias("NoActions"),
                 ]
             )
             .with_column((self.ncust - pl.col("NoActions")).alias("NoActions"))
@@ -219,10 +219,10 @@ class ValueFinder:
                             self.maxPropPerCustomer.with_columns(
                                 [
                                     (pl.col("MaxModelPropensity") >= th).alias(
-                                        "isWellServed"
+                                        "relevantActions"
                                     ),
                                     (pl.col("MaxModelPropensity") < th).alias(
-                                        "isNotWellServed"
+                                        "irrelevantActions"
                                     ),
                                 ]
                             )
@@ -230,9 +230,9 @@ class ValueFinder:
                         .groupby("pyStage")
                         .agg(
                             [
-                                pl.sum("isWellServed"),
-                                pl.sum("isNotWellServed"),
-                                pl.count("isWellServed").alias("NoActions"),
+                                pl.sum("relevantActions"),
+                                pl.sum("irrelevantActions"),
+                                pl.count("relevantActions").alias("NoActions"),
                             ]
                         )
                         .with_column(
@@ -425,7 +425,11 @@ class ValueFinder:
                 fig.add_trace(
                     go.Pie(
                         values=list(data.to_numpy())[0],
-                        labels=list(data.columns),
+                        labels=list(data.rename({
+                            "relevantActions": "At least one relevant action",
+                            "irrelevantActions": "Only irrelevant actions",
+                            "NoActions": "Without actions",
+                        }).columns),
                         name=stage,
                         visible=visible,
                         sort=False,
@@ -506,7 +510,11 @@ class ValueFinder:
             df.append(data[1].with_column(pl.lit(target2).alias(target)))
         df = pl.concat(df).to_pandas().set_index(target)
         fig = px.area(
-            df,
+            df.rename(columns={
+                            "relevantActions": "At least one relevant action",
+                            "irrelevantActions": "Only irrelevant actions",
+                            "NoActions": "Without actions",
+                        }),
             color_discrete_sequence=["#219e3f", "#fca52e", "#cd001f"],
             facet_col="pyStage",
             title=f"Distribution of offers per stage",
