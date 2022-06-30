@@ -567,7 +567,7 @@ class ValueFinder:
             text="Name",
             title=f"Distribution of {cat.casefold()} over the stages",
             template="none",
-            category_orders={"Name": self.NBADStages},
         )
+        fig.update_xaxes(categoryorder='array', categoryarray=self.NBADStages)
         fig.update_layout(legend_title_text=cat)
         return fig
