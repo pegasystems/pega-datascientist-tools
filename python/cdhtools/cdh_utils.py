@@ -18,6 +18,7 @@ from io import BytesIO
 import urllib.request
 import http
 import pytz
+import requests
 
 
 def readDSExport(
@@ -299,7 +300,7 @@ def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
             )
 
     dates = np.array([f(i) for i in paths])
-    return paths[np.argmax(dates)]  
+    return paths[np.argmax(dates)]
 
 
 def safe_range_auc(auc: float) -> float:
@@ -472,3 +473,24 @@ def toPRPCDateTime(x: datetime.datetime) -> str:
     """
 
     return x.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+
+
+def readClientCredentialFile(credentialFile):
+    outputdict = {}
+    with open(credentialFile) as f:
+        for idx, line in enumerate(f.readlines()):
+            if (idx % 2) == 0:
+                key = line.rstrip("\n")
+            else:
+                outputdict[key] = line.rstrip("\n")
+        return outputdict
+
+
+def getToken(credentialFile, verify=True, **kwargs):
+    creds = readClientCredentialFile(credentialFile)
+    return requests.post(
+        url=kwargs.get("URL", creds["Access token endpoint"]),
+        data={"grant_type": "client_credentials"},
+        auth=(creds["Client ID"], creds["Client Secret"]),
+        verify=verify,
+    ).json()["access_token"]
