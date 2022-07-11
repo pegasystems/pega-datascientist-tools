@@ -280,7 +280,7 @@ def test_import_models_only(test, cdhsample_models):
 
 def test_import_predictors_only(test, cdhsample_predictors):
     assert cdhsample_predictors.shape == (1755, 35)
-    models, preds = test.import_data(predictor_df=deepcopy(cdhsample_predictors))
+    models, preds = test.import_data(predictor_df=deepcopy(cdhsample_predictors), model_filename=None)
     assert models == None
     assert preds.shape == (1755, 19)
 
