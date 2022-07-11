@@ -1,8 +1,9 @@
 from . import cdh_utils
-
+from .ADMTrees import ADMTreesModel, MultiTrees, ADMTrees
 from .plots_plotly import ADMVisualisations as plotly_plot
 from .plots_mpl import ADMVisualisations as mpl_plot
 from .plot_base import Plots
+
 from datetime import timedelta
 import numpy as np
 import pandas as pd
@@ -13,7 +14,7 @@ import json
 
 
 class ADMDatamart(Plots):
-    """Main class for importing, preprocessing and structuring Pega ADM Datamart snapshot data. 
+    """Main class for importing, preprocessing and structuring Pega ADM Datamart snapshot data.
     Gets all available data, properly names and merges into one main dataframe
 
     Parameters
@@ -51,6 +52,8 @@ class ADMDatamart(Plots):
         set to False to keep all columns
     drop_cols = list
         Supply columns to drop from the dataframe
+    include_cols = list
+        Supply columns to include with the dataframe
     prequery : str
         A way to apply a query to the data before any preprocessing
         Uses the Pandas querying function, and beware that the columns
@@ -102,7 +105,7 @@ class ADMDatamart(Plots):
         plotting_engine="plotly",
         **kwargs,
     ):
-        
+
         self.context_keys = kwargs.pop(
             "context_keys", ["Channel", "Direction", "Issue", "Group"]
         )
@@ -282,8 +285,10 @@ class ADMDatamart(Plots):
 
         Keyword arguments
         -----------------
-        drop_cols = list
+        drop_cols : list
             Supply columns to drop from the dataframe
+        include_cols : list
+            Supply columns to include with the dataframe
         prequery : str
             A way to apply a query to the data before any preprocessing
             Uses the Pandas querying function, and beware that the columns
@@ -345,7 +350,7 @@ class ADMDatamart(Plots):
             )
 
         df.columns = self._capitalize(list(df.columns))
-        df, renamed, missing = self._available_columns(df, overwrite_mapping)
+        df, renamed, missing = self._available_columns(df, overwrite_mapping, **kwargs)
         if subset:
             df = df[renamed.values()]
 
@@ -367,7 +372,7 @@ class ADMDatamart(Plots):
         return df, renamed, missing
 
     def _available_columns(
-        self, df: pd.DataFrame, overwrite_mapping: Optional[dict] = None
+        self, df: pd.DataFrame, overwrite_mapping: Optional[dict] = None, **kwargs
     ) -> Tuple[pd.DataFrame, dict, list]:
         """Based on the default names for variables, rename available data to proper formatting
 
@@ -378,6 +383,11 @@ class ADMDatamart(Plots):
         overwrite_mapping : dict
             If given, adds 'search terms' to the default names to look for
             If an extra variable is given which is not in default_names, it will also be included
+
+        Keyword arguments
+        -----------------
+        include_cols : list
+            Supply columns to include with the dataframe
 
         Returns
         -------
@@ -412,6 +422,10 @@ class ADMDatamart(Plots):
             "BinNegativesPercentage": ["BinNegativesPercentage"],
             "BinResponseCountPercentage": ["BinResponseCountPercentage"],
         }  # NOTE: these default names are already capitalized properly, with py/px/pz removed.
+        
+        if len(kwargs.get('include_cols', []))>0:
+            for i in kwargs.pop('include_cols', []):
+                overwrite_mapping[i] = i
 
         if overwrite_mapping is not None and len(overwrite_mapping) > 0:
             old_keys = list(overwrite_mapping.keys())
@@ -705,6 +719,59 @@ class ADMDatamart(Plots):
 
     class NotApplicableError(ValueError):
         pass
+    
+    def get_AGB_models(
+        self,
+        last: bool = False,
+        by: str = "Configuration",
+        query: Union[str, dict] = None,
+        verbose:bool = False,
+    ) -> dict[str : Union[MultiTrees, ADMTreesModel]]:
+        """Method to automatically extract AGB models.
+        
+        Recommended to subset using the querying functionality
+        to cut down on execution time, because it checks for each
+        model ID. If you only have AGB models remaining after the query,
+        it will only return proper AGB models.
+        
+        Parameters
+        ----------
+        last: bool, default = False
+            Whether to only look at the last snapshot for each model
+        by: str, default = 'Configuration'
+            Which column to determine unique models with
+        query: Union[str, dict], default = None
+            The pandas query to apply to the modelData frame
+        verbose: bool, default = False
+            Whether to print out information while importing
+        
+        """
+        df = self.modelData
+        if query is not None: df = self._apply_query(df, query)
+        if df["ModelID"].nunique() == 0:
+            raise ValueError("No models found.")
+
+        if df["ModelID"].nunique() == 1:
+            try:
+                if last:
+                    return ADMTrees(self.last(df))
+                else:
+                    return ADMTrees(df)
+            except:
+                raise ValueError("Model is not an ADM Gradient Boosting model.")
+
+        multipleTrees = dict()
+        for by, modelData in df.query("Modeldata == Modeldata").groupby(by):
+            try:
+                if last:
+                    modelData = self.last(modelData)
+                multipleTrees.update({by: ADMTrees(modelData)})
+                if verbose: print(f"{by} model found")
+            except:
+                if verbose:
+                    print(f"{by} does not seem like an AGB model")
+                pass
+        return multipleTrees
 
     @staticmethod
     def _create_sign_df(df: pd.DataFrame) -> pd.DataFrame:

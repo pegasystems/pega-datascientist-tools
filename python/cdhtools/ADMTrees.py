@@ -12,10 +12,41 @@ from plotly.subplots import make_subplots
 from statistics import mean
 from math import exp
 import requests
+import collections
 import urllib.request
+import zlib
+import base64
+import multiprocessing
+from dataclasses import dataclass
 
 
 class ADMTrees:
+    def __new__(self, file, n_threads=6, **kwargs):
+        if isinstance(file, pd.DataFrame):
+            if len(file) > 1:
+                return self.getMultiTrees(file=file, n_threads=n_threads)
+            else:
+                return ADMTrees(file["Modeldata"][0])
+        else:
+            return ADMTreesModel(file, **kwargs)
+
+    @staticmethod
+    def getMultiTrees(file, n_threads=6):
+        with multiprocessing.Pool(n_threads) as p:
+            return MultiTrees(
+                dict(
+                    zip(
+                        file["SnapshotTime"].tolist(),
+                        p.map(
+                            ADMTreesModel,
+                            [row["Modeldata"] for _, row in file.iterrows()],
+                        ),
+                    )
+                )
+            )
+
+
+class ADMTreesModel:
     """Functions for ADM Gradient boosting
 
     ADM Gradient boosting models consist of multiple trees,
@@ -54,11 +85,12 @@ class ADMTrees:
     button, only that data is decompressed and decoded.
     """
 
-    def __init__(self, file: str):
+    def __init__(self, file: str, **kwargs):
         try:
-            self.import_model(file)
+            self._import_model(file)
         except:
-            self.workaround_import(file)
+            self._workaround_import(file)
+        self._post_import_cleanup(**kwargs)
         self.predictors = self.getPredictors()
         self.treeStats = self.getTreeStats()
         (
@@ -68,23 +100,40 @@ class ADMTrees:
         ) = self.getGainsPerSplit()
         self.groupedGainsPerSplit = self.getGroupedGainsPerSplit()
         self.allValuesPerSplit = self.getAllValuesPerSplit()
+        self.splitsPerVariableType = self.computeCategorizationOverTime()
 
-    def import_model(self, file: str):
+    def _import_model(self, file: str):
         """Imports the 'regular' json file"""
-        with open(file) as f:
-            self.trees = json.load(f)
+        if isinstance(file, str):
+            try:
+                with open(file) as f:
+                    self.trees = json.load(f)
+            except:
+                # model is embedded in pyModelData
+                self.trees = json.loads(zlib.decompress(base64.b64decode(file)))
+                try:
+                    self.model = self.trees["model"]["boosters"][0]["trees"]
+                except:
+                    self.model = self.trees["model"]["model"]["boosters"][0]["trees"]
+                self._decodeTrees()
+        else:
+            self.trees = file
+
         self.properties = {
             prop[0]: prop[1] for prop in self.trees.items() if prop[0] != "model"
         }
-        self.learning_rate = self.properties["configuration"]["parameters"][
-            "learningRateEta"
-        ]
+        try:
+            self.learning_rate = self.properties["configuration"]["parameters"][
+                "learningRateEta"
+            ]
+        except:
+            print("Could not find the learning rate in the model.")
         try:
             self.model = self.trees["model"]["boosters"][0]["trees"]
         except:
             self.model = self.trees["model"]["model"]["boosters"][0]["trees"]
 
-    def workaround_import(self, file: str):
+    def _workaround_import(self, file: str):
         """Imports the 'old' txt file, with json embedded in it."""
 
         def separate_txt_sections(f, decode=False):
@@ -116,7 +165,7 @@ class ADMTrees:
             except:
                 is_url = False
             if is_url:
-                data = separate_txt_sections(urllib.request.urlopen(file), decode=True)
+                data = self._import_model(urllib.request.urlopen(file), decode=True)
             else:
                 raise FileNotFoundError(file)
 
@@ -126,6 +175,85 @@ class ADMTrees:
         for i in "".join(data["config"]).split(","):
             if i.startswith(" parameters"):
                 self.learning_rate = i.split("=")[-1]
+
+    def _decodeTrees(self):
+        def quantileDecoder(encoder: dict, index: int, verbose=False):
+            return encoder["summary"]["list"][index - 1].split("=")[0]
+
+        def stringDecoder(encoder: dict, index: int, sign, verbose=False):
+            def set_types(split):
+                split = split.split("=")
+                split[1] = int(split[1])
+                return tuple(reversed(split))
+
+            valuelist = collections.OrderedDict(
+                sorted([set_types(i) for i in encoder["symbols"]])
+            )
+            splitvalues = list()
+            for key, value in valuelist.items():
+                if verbose:
+                    print(key, value, index)
+                if int(key) == index - 129 and index == 129 and sign == "<":
+                    splitvalues.append("Missing")
+                    break
+                elif eval(f"{int(key)}{sign}{index-129}"):
+                    splitvalues.append(value)
+                else:
+                    pass
+            output = ", ".join(splitvalues)
+            return output
+
+        def decodeSplit(split: str, verbose=False):
+            if not isinstance(split, str):
+                return split
+
+            predictor, sign, splitval = split.split(" ")
+
+            if sign == "LT":
+                sign = "<"
+            elif sign == "EQ":
+                sign = "=="
+            else:
+                print("For now, only supporting less than and equality splits")
+                raise ValueError((predictor, sign, splitval))
+            variable = encoderkeys[int(predictor)]
+            encoder = encoders[variable]
+            variableType = list(encoder["encoder"].keys())[0]
+            to_decode = list(encoder["encoder"].values())[0]
+            if variableType == "quantileArray":
+                val = quantileDecoder(to_decode, int(splitval))
+            if variableType == "stringTranslator":
+                val = stringDecoder(
+                    to_decode, int(splitval), sign=sign, verbose=verbose
+                )
+                if val == "Missing":
+                    sign, val = "is", "Missing"
+                else:
+                    val = "{ " + val + " }"
+                    sign = "in"
+            return f"{variable} {sign} {val}"
+
+        encoders = self.trees["model"]["model"]["inputsEncoder"]["encoders"]
+        encoderkeys = collections.OrderedDict()
+        for encoder in encoders:
+            encoderkeys[encoder["value"]["index"]] = encoder["key"]
+        encoders = {encoder["key"]: encoder["value"] for encoder in encoders}
+
+        def decodeAllTrees(ob, func):
+            if isinstance(ob, collections.abc.Mapping):
+                return {k: decodeAllTrees(v, func) for k, v in ob.items()}
+            else:
+                return func(ob)
+
+        for i, model in enumerate(self.model):
+            self.model[i] = decodeAllTrees(model, decodeSplit)
+
+    def _post_import_cleanup(self, **kwargs):
+        try:
+            self.context_keys = self.properties["configuration"]["contextKeys"]
+        except:
+            print("Could not find context keys.")
+            self.context_keys = kwargs.get("context_keys", None)
 
     def _depth(self, d: Dict) -> Dict:
         """Calculates the depth of the tree, used in TreeStats."""
@@ -196,15 +324,19 @@ class ADMTrees:
         try:
             predictors = self.properties["configuration"]["predictors"]
         except:
-            predictors = []
-            for i in self.properties.split("=")[4].split(
-                "com.pega.decision.adm.client.PredictorInfo: "
-            ):
-                if i.startswith("{"):
-                    if i.endswith("ihSummaryPredictors"):
-                        predictors += [i.split("], ihSummaryPredictors")[0]]
-                    else:
-                        predictors += [i[:-2]]
+            try:
+                predictors = []
+                for i in self.properties.split("=")[4].split(
+                    "com.pega.decision.adm.client.PredictorInfo: "
+                ):
+                    if i.startswith("{"):
+                        if i.endswith("ihSummaryPredictors"):
+                            predictors += [i.split("], ihSummaryPredictors")[0]]
+                        else:
+                            predictors += [i[:-2]]
+            except:
+                print("Could not find the predictors.")
+                return None
         predictorsDict = {}
         for predictor in predictors:
             if isinstance(predictor, str):
@@ -631,4 +763,134 @@ class ADMTrees:
         fig.update_xaxes(zeroline=False)
         if show:
             fig.show()  # pragma: no cover
+        return fig
+
+    def predictorCategorization(self, x: str, context_keys=None):
+        context_keys = context_keys if context_keys is not None else self.context_keys
+        if context_keys is None:
+            context_keys = set()
+        if len(x.split(".")) > 1:
+            return x.split(".")[0]
+        elif x in context_keys:
+            return x
+        else:
+            return "Primary"
+
+    def computeCategorizationOverTime(
+        self, predictorCategorization=None, context_keys=None
+    ):
+        context_keys = context_keys if context_keys is not None else self.context_keys
+        predictorCategorization = (
+            predictorCategorization
+            if predictorCategorization is not None
+            else self.predictorCategorization
+        )
+        splitsPerTree = list()
+        for splits in self.splitsPerTree.values():
+            counter = collections.Counter()
+            for split in splits:
+                counter.update(
+                    [
+                        predictorCategorization(
+                            self.parseSplitValues(split)[0], context_keys
+                        )
+                    ]
+                )
+            splitsPerTree.append(counter)
+        return splitsPerTree, self.treeStats.score.abs().tolist()
+
+
+@dataclass
+class MultiTrees:
+    trees: dict
+    model_name: str = None
+    context_keys: list = None
+
+    def __repr__(self):
+        return repr(
+            f"MultiTree object, with {len(self)} trees ranging from {list(self.trees.keys())[0]} to {list(self.trees.keys())[-1]}"
+        )
+
+    def __getitem__(self, index):
+        if isinstance(index, int):
+            return list(self.trees.items())[index]
+        elif isinstance(index, pd.tslibs.Timestamp):
+            return self.trees[index]
+
+    def __len__(self):
+        return len(self.trees)
+
+    def __add__(self, other):
+        if isinstance(other, MultiTrees):
+            return MultiTrees({**self.trees, **other.trees})
+        elif isinstance(other, ADMTreesModel):
+            return MultiTrees(
+                {
+                    **self.trees,
+                    **{pd.Timestamp(other.properties["factoryUpdateTime"]): other},
+                }
+            )
+
+    @property
+    def first(self):
+        return self[0]
+
+    @property
+    def last(self):
+        return self[-1]
+
+    def computeOverTime(self):
+        outdf = pd.DataFrame()
+        for timestamp, tree in self.trees.items():
+            outdf = pd.concat(
+                [
+                    outdf,
+                    pd.DataFrame(tree.splitsPerVariableType[0]).assign(
+                        Timestamp=timestamp.strftime("%Y-%m-%d")
+                    ),
+                ]
+            )
+        return outdf
+
+    def plotSplitsPerVariableType(self):
+        fig = px.area(
+            self.computeOverTime(),
+            animation_frame="Timestamp",
+            title="Variable types per tree",
+            labels={"index": "Tree number", "value": "Number of splits"},
+            template="none",
+        )
+        fig.layout["updatemenus"] += (
+            dict(
+                type="buttons",
+                direction="left",
+                active=0,
+                buttons=list(
+                    [
+                        dict(
+                            args=[
+                                {"groupnorm": None},
+                                {"yaxis": {"title": "Number of splits"}},
+                            ],
+                            label="Absolute",
+                            method="update",
+                        ),
+                        dict(
+                            args=[
+                                {"groupnorm": "percent"},
+                                {"yaxis": {"title": "Percentage of splits"}},
+                            ],
+                            label="Relative",
+                            method="update",
+                        ),
+                    ]
+                ),
+                pad={"r": 10, "t": 10},
+                showactive=True,
+                x=0.01,
+                xanchor="left",
+                y=1.3,
+                yanchor="top",
+            ),
+        )
         return fig
