@@ -1,4 +1,4 @@
-<center><h1 class="no-underline"> Pega CDH Data Scientist Tools </h1></center> 
+<center><h1 class="no-underline"> Pega CDH Tools </h1></center> 
 
 <p align="center">
     <img height="100px" src="images/pegasystems-inc-vector-logo.svg" alt="Pega logo">
