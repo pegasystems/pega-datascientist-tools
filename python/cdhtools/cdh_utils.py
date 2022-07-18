@@ -107,8 +107,10 @@ def readDSExport(
     if extension == "parquet":  # pragma: no cover
         try:
             import pyarrow.parquet as pq
-
-            return pq.read_table(file).to_pandas()
+            if kwargs.pop('return_pa', False):
+                return pq.read_table(file)
+            else:
+                return pq.read_table(file).to_pandas()
         except ImportError:
             print("You need to import pyarrow to read parquet files.")
     if extension == "csv":
@@ -138,9 +140,11 @@ def readDSExport(
             if force_pandas:
                 raise ImportError("Forcing pandas.")
             from pyarrow import json, ArrowInvalid
-
             try:
-                return json.read_json(file, **kwargs).to_pandas()
+                if kwargs.pop('return_pa', False):
+                    return json.read_json(file, **kwargs)
+                else:
+                    return json.read_json(file, **kwargs).to_pandas()
             except ArrowInvalid:
                 raise ImportError()
         except ImportError:  # pragma: no cover
@@ -158,9 +162,9 @@ def readDSExport(
     else:
         try:
             if is_url and extension == "zipped":
-                return readZippedFile(file=BytesIO(file.read()))
+                return readZippedFile(file=BytesIO(file.read()), **kwargs)
             elif extension == "zip":
-                return readZippedFile(file=file)
+                return readZippedFile(file=file, **kwargs)
             else:
                 return FileNotFoundError(
                     f"File {file} is not found."
@@ -169,7 +173,7 @@ def readDSExport(
             raise FileNotFoundError(f"File {file} is not found.")
 
 
-def readZippedFile(file: str, verbose: bool = False) -> pd.DataFrame:
+def readZippedFile(file: str, verbose: bool = False, **kwargs) -> pd.DataFrame:
     """Read a zipped file.
     Reads a dataset export file as exported and downloaded from Pega. The export
     file is formatted as a zipped multi-line JSON file or CSV file
@@ -196,8 +200,10 @@ def readZippedFile(file: str, verbose: bool = False) -> pd.DataFrame:
             with z.open("data.json") as zippedfile:
                 try:
                     from pyarrow import json
-
-                    return json.read_json(zippedfile).to_pandas()  # pragma: no cover
+                    if kwargs.pop('return_pa', False):
+                        return json.read_json(zippedfile)
+                    else:
+                        return json.read_json(zippedfile).to_pandas()  # pragma: no cover
                 except ImportError:  # pragma: no cover
                     try:
                         dataset = pd.read_json(zippedfile, lines=True)
@@ -239,49 +245,19 @@ def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
     str
         The most recent file given the file name criteria.
     """
-    if target not in {"modelData", "predictorData"}:
-        return "Target not found"
+    if target not in {"modelData", "predictorData", "ValueFinder"}:
+        return f"Target not found"
 
     # NOTE remove some default names
-    default_model_names = [
-        "Data-Decision-ADM-ModelSnapshot",
-        "PR_DATA_DM_ADMMART_MDL_FACT",
-        "model_snapshots",
-        "MD_FACT",
-        "ADMMART_MDL_FACT_Data",
-    ]
-    default_predictor_names = [
-        "Data-Decision-ADM-PredictorBinningSnapshot",
-        "PR_DATA_DM_ADMMART_PRED",
-        "predictor_binning_snapshots",
-        "PRED_FACT",
-    ]
     supported = [".json", ".csv", ".zip", ".parquet"]
 
     files_dir = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
     files_dir = [f for f in files_dir if os.path.splitext(f)[-1].lower() in supported]
     if verbose:
         print(files_dir)  # pragma: no cover
-    matches = []
+    matches = getMatches(files_dir, target)
 
-    if target == "modelData":
-        for file in files_dir:
-            match = [
-                file
-                for name in default_model_names
-                if re.findall(name.casefold(), file.casefold())
-            ]
-            if len(match) > 0:
-                matches.append(match[0])
-    elif target == "predictorData":
-        for file in files_dir:
-            match = [
-                file
-                for name in default_predictor_names
-                if re.findall(name.casefold(), file.casefold())
-            ]
-            if len(match) > 0:
-                matches.append(match[0])
+
     if len(matches) == 0:
         if verbose:  # pragma: no cover
             print(
@@ -302,6 +278,36 @@ def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
     dates = np.array([f(i) for i in paths])
     return paths[np.argmax(dates)]
 
+def getMatches(files_dir, target):
+    matches = []
+    default_model_names = [
+        "Data-Decision-ADM-ModelSnapshot",
+        "PR_DATA_DM_ADMMART_MDL_FACT",
+        "model_snapshots",
+        "MD_FACT",
+        "ADMMART_MDL_FACT_Data",
+    ]
+    default_predictor_names = [
+        "Data-Decision-ADM-PredictorBinningSnapshot",
+        "PR_DATA_DM_ADMMART_PRED",
+        "predictor_binning_snapshots",
+        "PRED_FACT",
+    ]
+    ValueFinder_names = ["Data-Insights_pyValueFinder"]
+
+    if target == 'modelData': names = default_model_names
+    elif target == 'predictorData': names = default_predictor_names
+    elif target == 'ValueFinder': names = ValueFinder_names
+    for file in files_dir:
+        match = [
+            file
+            for name in names
+            if re.findall(name.casefold(), file.casefold())
+        ]
+        if len(match) > 0:
+            matches.append(match[0])
+    return matches
+        
 
 def safe_range_auc(auc: float) -> float:
     """Internal helper to keep auc a safe number between 0.5 and 1.0 always.

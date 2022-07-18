@@ -81,23 +81,22 @@ knitr::opts_chunk$set(
 
 # ADM Datamart Health Check
 
-This notebook gives a generic and global overview of the Adaptive models 
-and predictors.
+This document gives a generic and global overview of the Adaptive models 
+and predictors. It is generated from an R notebook in the [CDH Tools](https://github.com/pegasystems/cdh-datascientist-tools). That repository
+of tools and scripts also contains a notebook to generate stand-alone
+model reports for individual models, please refer 
+to the [Wiki](https://github.com/pegasystems/cdh-datascientist-tools/wiki).
 
-The goals is to provide a first-level scan of the models after which a 
+This document provides a first-level scan of the models after which a 
 deeper and more customer specific deeper dive can be done.
 
 Some of the plots provide some interactivity. For best viewing results, open the 
-HTML in a browser. Viewing the HTML from platforms like e.g. Sharepoint or 
+HTML document in a browser. Viewing it from platforms like e.g. Sharepoint or 
 Github will loose the interactive charts.
 
-The default notebook output is a single-page HTML. You can also export to PDF 
-as well as other formats supported by Pandoc (e.g. Word) but you would loose
-the interactivity.
-
-To create stand-alone model reports for individual model instances see the 
-*modelreport* notebook.
-
+Note that the notebook by default generates a single-page HTML, however you
+can also export to PDF as well as other formats supported by Pandoc (e.g. Word) 
+but you would loose interactivity.
 
 ```{r Read Model Data, echo=F, error=F, warning=FALSE, include=F}
 
@@ -164,6 +163,15 @@ aggregateTreeData <- function(dt, hierarchy = intersect(c("Direction", "Channel"
 
 Propositions, also referred to as offers or actions with treatments, are
 the most granular perspective on the adaptive models.
+
+| Item |  |  |
+| --- | --- | --- |
+| Number of unique Actions | `r uniqueN(datamart$modeldata$Name)` | |
+| Number of unique Treatments | `r uniqueN(datamart$modeldata$Treatment)` | |
+| Number of unique Issues | `r uniqueN(datamart$modeldata$Issue)` | `r paste(sort(unique(datamart$modeldata$Issue)), collapse=", ")` |
+| Average number of Groups per Issue | `r mean(datamart$modeldata[, .(Groups = uniqueN(Group)), by="Issue"]$Groups)` | `r paste(sort(unique(datamart$modeldata$Group)), collapse=", ")` |
+| Number of unique Channels | `r uniqueN(datamart$modeldata$Channel)` | `r paste(sort(unique(datamart$modeldata$Channel)), collapse=", ")` |
+
 
 ## Proposition Success Rates per Channel
 

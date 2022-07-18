@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="cdhtools",
-    version="2.1.0",
+    version="2.2.0",
     author="Stijn Kas",
     author_email="stijn.kas@pega.com",
     description="Open source tooling that helps Data Scientists working with CDH to analyze Pega models and conduct impactful analyses.",
@@ -28,7 +28,9 @@ setuptools.setup(
         "nbformat",
         "jupyterlab",
         "ipywidgets",
-        "pydot"
+        "pydot",
+        "polars",
+        "tqdm"
     ],
     keywords=[
         "pega",
@@ -39,7 +41,7 @@ setuptools.setup(
         "datascientist",
         "tools",
     ],
-    python_required=">=3.6",
+    python_required=">=3.7",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
