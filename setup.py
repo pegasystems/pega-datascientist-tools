@@ -41,7 +41,7 @@ setuptools.setup(
         "datascientist",
         "tools",
     ],
-    python_required=">=3.6",
+    python_required=">=3.7",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
