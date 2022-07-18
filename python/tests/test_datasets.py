@@ -8,3 +8,7 @@ def test_import_CDHSample():
 
 def test_import_SampleTrees():
     datasets.SampleTrees()
+
+def test_import_SampleValueFinder():
+    vf = datasets.SampleValueFinder()
+    assert vf.df.shape == (27133, 11)

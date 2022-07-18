@@ -23,14 +23,14 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest, windows-latest, macOS-latest]
-        python-version: [3.6.x, 3.8.x, 3.10.x]
+        python-version: [3.7.x, 3.8.x, 3.10.x]
         exclude:
           - os: windows-latest
-            python-version: 3.6.x
+            python-version: 3.7.x
           - os: windows-latest
             python-version: 3.8.x
           - os: macOS-latest
-            python-version: 3.6.x
+            python-version: 3.7.x
           - os: macOS-latest
             python-version: 3.8.x
 
