@@ -24,6 +24,7 @@ Functions
    cdhtools.cdh_utils.readDSExport
    cdhtools.cdh_utils.readZippedFile
    cdhtools.cdh_utils.get_latest_file
+   cdhtools.cdh_utils.getMatches
    cdhtools.cdh_utils.safe_range_auc
    cdhtools.cdh_utils.auc_from_probs
    cdhtools.cdh_utils.auc_from_bincounts
@@ -64,7 +65,7 @@ Functions
                >>> df = readDSExport(file = df)
 
 
-.. py:function:: readZippedFile(file: str, verbose: bool = False) -> pandas.DataFrame
+.. py:function:: readZippedFile(file: str, verbose: bool = False, **kwargs) -> pandas.DataFrame
 
    Read a zipped file.
    Reads a dataset export file as exported and downloaded from Pega. The export
@@ -98,6 +99,9 @@ Functions
 
    :returns: The most recent file given the file name criteria.
    :rtype: str
+
+
+.. py:function:: getMatches(files_dir, target)
 
 
 .. py:function:: safe_range_auc(auc: float) -> float
