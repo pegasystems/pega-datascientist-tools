@@ -16,16 +16,14 @@ from sklearn.metrics import roc_auc_score
 import datetime
 from io import BytesIO
 import urllib.request
-import http
 import pytz
 import requests
-
+import logging
 
 def readDSExport(
     filename: Union[pd.DataFrame, str],
     path: str = ".",
     verbose: bool = True,
-    force_pandas: bool = False,
     **kwargs,
 ) -> pd.DataFrame:
     """Read a Pega dataset export file.
@@ -59,118 +57,83 @@ def readDSExport(
         The read data from the given file
 
     Examples:
-        >>> df = readDSExport(file = 'modelData', path = './datamart')
-        >>> df = readDSExport(file = 'ModelSnapshot.json', path = 'data/ADMData')
+        >>> df = readDSExport(filename = 'modelData', path = './datamart')
+        >>> df = readDSExport(filename = 'ModelSnapshot.json', path = 'data/ADMData')
 
         >>> df = pd.read_csv('file.csv')
-        >>> df = readDSExport(file = df)
+        >>> df = readDSExport(filename = df)
 
     """
+
+    # If a dataframe is supplied directly, we can just return it
     if isinstance(filename, pd.DataFrame):
         return filename
 
-    is_url = False
+    # If the data is a BytesIO object, such as an uploaded file
+    # in certain webapps, then we can simply return the object
+    # as is, while extracting the extension as well.
+    if isinstance(filename, BytesIO):
+        name, extension = os.path.splitext(filename.name)
+        return import_file(filename, extension, **kwargs)
 
+    # If the filename is simply a string, then we first
+    # extract the extension of the file, then look for
+    # the file in the user's directory.
     if os.path.isfile(os.path.join(path, filename)):
         file = os.path.join(path, filename)
     else:
         file = get_latest_file(path, filename)
-        if file == "Target not found":
-            import requests
 
-            try:
-                response = requests.get(f"{path}/{filename}")
-                is_url = True if response.status_code == 200 else False
-            except:
-                is_url = False
-            if is_url:
+    name, extension = os.path.splitext(file)
+
+    # If we can't find the file locally, we can try
+    # if the file's a URL. If it is, we need to wrap
+    # the file in a BytesIO object, and read the file
+    # fully to disk for pyarrow to read it.
+    if file == "Target not found" or file == None:
+        import requests
+
+        try:
+            response = requests.get(f"{path}/{filename}")
+            logging.info(f'Response: {response}')
+            if response.status_code == 200:
                 file = f"{path}/{filename}"
-                if file.split(".")[-1] == "zip":
-                    file = urllib.request.urlopen(f"{path}/{filename}")
-                if verbose:
-                    print("File found through URL")
-    if file in [None, "Target not found"]:
-        if verbose:
-            print(f"File {filename} not found in dir {path}")
-        return None
+                file = BytesIO(urllib.request.urlopen(file).read())
+                name, extension = os.path.splitext(filename)
 
-    if isinstance(file, str):
-        extension = file.split(".")[-1]
-    elif isinstance(file, http.client.HTTPResponse):
-        extension = "zipped"
-
-    if verbose:
-        print(f"Importing: {os.path.join(path,filename)}") if is_url else print(
-            f"Importing: {file}"
-        )
-
-    if extension == "parquet":  # pragma: no cover
-        try:
-            import pyarrow.parquet as pq
-            if kwargs.pop('return_pa', False):
-                return pq.read_table(file)
-            else:
-                return pq.read_table(file).to_pandas()
-        except ImportError:
-            print("You need to import pyarrow to read parquet files.")
-    if extension == "csv":
-        try:
-            if force_pandas or is_url:
-                raise ImportError("Forcing pandas.")
-            from pyarrow import csv, ArrowInvalid
-
-            try:  # pragma: no cover
-                return csv.read_csv(
-                    file,
-                    parse_options=csv.ParseOptions(delimiter=kwargs.get("sep", ",")),
-                ).to_pandas()
-            except ArrowInvalid:  # pragma: no cover
-                raise ImportError()
-        except ImportError:
-            if not is_url:
-                if verbose:
-                    print(
-                        "Can't import pyarrow, so defaulting to pandas. For faster imports, please install pyarrow."
-                    )
-            return pd.read_csv(file, **kwargs)
-        except OSError:  # pragma: no cover
-            raise FileNotFoundError(f"File {file} is not found.")
-    elif extension == "json":
-        try:  # pragma: no cover
-            if force_pandas:
-                raise ImportError("Forcing pandas.")
-            from pyarrow import json, ArrowInvalid
-            try:
-                if kwargs.pop('return_pa', False):
-                    return json.read_json(file, **kwargs)
-                else:
-                    return json.read_json(file, **kwargs).to_pandas()
-            except ArrowInvalid:
-                raise ImportError()
-        except ImportError:  # pragma: no cover
+        except Exception as e:
+            logging.info(e)
             if verbose:
-                print(
-                    "Can't import pyarrow, so defaulting to pandas. For faster imports, please install pyarrow."
-                )
+                print(f"File {filename} not found in dir {path}")
+            logging.info(f'File not found: {path}/{filename}')
+            return None
 
-            try:
-                return pd.read_json(file, lines=True, **kwargs)
-            except ValueError:
-                return pd.read_json(file, **kwargs)
-        except OSError:  # pragma: no cover
-            raise FileNotFoundError(f"File {file} is not found.")
+    # Now we should either have a full path to a file, or a
+    # BytesIO wrapper around the file. Pyarrow can read those both.
+    return import_file(file, extension, **kwargs)
+
+
+def import_file(file, extension, **kwargs):
+    import pyarrow
+
+    if extension == ".zip":
+        file = readZippedFile(file)
+    elif extension == ".csv":
+        file = pyarrow.csv.read_csv(
+            file,
+            parse_options=pyarrow.csv.ParseOptions(delimiter=kwargs.get("sep", ",")),
+        )
+    elif extension == ".json":
+        file = pyarrow.json.read_json(file, **kwargs)
+    elif extension == ".parquet":
+        file = pyarrow.parquet.read_table(file)
     else:
-        try:
-            if is_url and extension == "zipped":
-                return readZippedFile(file=BytesIO(file.read()), **kwargs)
-            elif extension == "zip":
-                return readZippedFile(file=file, **kwargs)
-            else:
-                return FileNotFoundError(
-                    f"File {file} is not found."
-                )  # pragma: no cover
-        except OSError:  # pragma: no cover
-            raise FileNotFoundError(f"File {file} is not found.")
+        raise ValueError("Could not import file: {file}, with extension {extension}")
+
+    if not kwargs.pop("return_pa", False) and isinstance(file, pyarrow.Table):
+        return file.to_pandas()
+    else:
+        return file
 
 
 def readZippedFile(file: str, verbose: bool = False, **kwargs) -> pd.DataFrame:
@@ -200,10 +163,8 @@ def readZippedFile(file: str, verbose: bool = False, **kwargs) -> pd.DataFrame:
             with z.open("data.json") as zippedfile:
                 try:
                     from pyarrow import json
-                    if kwargs.pop('return_pa', False):
-                        return json.read_json(zippedfile)
-                    else:
-                        return json.read_json(zippedfile).to_pandas()  # pragma: no cover
+
+                    return json.read_json(zippedfile)
                 except ImportError:  # pragma: no cover
                     try:
                         dataset = pd.read_json(zippedfile, lines=True)
@@ -248,7 +209,6 @@ def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
     if target not in {"modelData", "predictorData", "ValueFinder"}:
         return f"Target not found"
 
-    # NOTE remove some default names
     supported = [".json", ".csv", ".zip", ".parquet"]
 
     files_dir = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
@@ -256,7 +216,6 @@ def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
     if verbose:
         print(files_dir)  # pragma: no cover
     matches = getMatches(files_dir, target)
-
 
     if len(matches) == 0:
         if verbose:  # pragma: no cover
@@ -295,19 +254,18 @@ def getMatches(files_dir, target):
     ]
     ValueFinder_names = ["Data-Insights_pyValueFinder"]
 
-    if target == 'modelData': names = default_model_names
-    elif target == 'predictorData': names = default_predictor_names
-    elif target == 'ValueFinder': names = ValueFinder_names
+    if target == "modelData":
+        names = default_model_names
+    elif target == "predictorData":
+        names = default_predictor_names
+    elif target == "ValueFinder":
+        names = ValueFinder_names
     for file in files_dir:
-        match = [
-            file
-            for name in names
-            if re.findall(name.casefold(), file.casefold())
-        ]
+        match = [file for name in names if re.findall(name.casefold(), file.casefold())]
         if len(match) > 0:
             matches.append(match[0])
     return matches
-        
+
 
 def safe_range_auc(auc: float) -> float:
     """Internal helper to keep auc a safe number between 0.5 and 1.0 always.
