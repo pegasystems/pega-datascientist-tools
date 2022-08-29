@@ -748,7 +748,7 @@ class ADMDatamart(Plots):
         query: Union[str, dict] = None,
         verbose: bool = True,
         **kwargs,
-    ) -> dict[str : Union[MultiTrees, ADMTreesModel]]:
+    ) -> Dict[str : Union[MultiTrees, ADMTreesModel]]:
         """Method to automatically extract AGB models.
 
         Recommended to subset using the querying functionality
