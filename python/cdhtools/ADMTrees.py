@@ -1,49 +1,74 @@
-import pandas as pd
-import numpy as np
-import json
-from typing import Dict, List, Tuple, Optional, Set, Union
-import pydot
-from IPython.display import Image, display
-import functools
-import operator
-import plotly.graph_objects as go
-import plotly.express as px
-from plotly.subplots import make_subplots
-from statistics import mean
-from math import exp
-import requests
+import base64
 import collections
+import functools
+import json
+import logging
+import multiprocessing
+import operator
 import urllib.request
 import zlib
-import base64
-import multiprocessing
 from dataclasses import dataclass
+from math import exp
+from statistics import mean
+from typing import Dict, List, Optional, Set, Tuple, Union
+
+import numpy as np
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+import pydot
+from IPython.display import Image, display
+from plotly.subplots import make_subplots
+from tqdm.auto import tqdm
 
 
 class ADMTrees:
-    def __new__(self, file, n_threads=6, **kwargs):
+    def __new__(self, file, n_threads=6, verbose=True, **kwargs):
         if isinstance(file, pd.DataFrame):
+            logging.info("DataFrame supplied.")
+            file = file.query("Modeldata == Modeldata")
             if len(file) > 1:
-                return self.getMultiTrees(file=file, n_threads=n_threads)
+                logging.info("Multiple models found, so creating MultiTrees")
+                if verbose:
+                    print(f"AGB models found: {file.Configuration.unique()}")
+                return self.getMultiTrees(
+                    file=file, n_threads=n_threads, verbose=verbose, **kwargs
+                )
             else:
-                return ADMTrees(file["Modeldata"][0])
-        else:
-            return ADMTreesModel(file, **kwargs)
+                logging.info("One model found, so creating ADMTrees")
+                return ADMTrees(file["Modeldata"][0], **kwargs)
+        if isinstance(file, pd.Series):
+            logging.info("One model found, so creating ADMTrees")
+            logging.debug(file["Modeldata"])
+            return ADMTrees(file["Modeldata"], **kwargs)
+
+        logging.info("No need to extract from DataFrame, regular import")
+        return ADMTreesModel(file, **kwargs)
 
     @staticmethod
-    def getMultiTrees(file, n_threads=6):
-        with multiprocessing.Pool(n_threads) as p:
-            return MultiTrees(
-                dict(
-                    zip(
-                        file["SnapshotTime"].tolist(),
-                        p.map(
-                            ADMTreesModel,
-                            [row["Modeldata"] for _, row in file.iterrows()],
-                        ),
+    def getMultiTrees(file: pd.DataFrame, n_threads=6, verbose=True, **kwargs):
+        models = dict()
+        for configuration, data in file.groupby("Configuration"):
+            if verbose:
+                print(f"Extracting {configuration}, {len(data)} snapshots found")
+            with multiprocessing.Pool(n_threads) as p:
+                pbar = True if (not verbose or len(data) < 2) else False
+                models[configuration] = MultiTrees(
+                    dict(
+                        zip(
+                            data["SnapshotTime"].tolist(),
+                            tqdm(
+                                p.imap(
+                                    ADMTreesModel,
+                                    [row["Modeldata"] for _, row in data.iterrows()],
+                                ),
+                                total=len(data),
+                                disable=pbar,
+                            ),
+                        )
                     )
                 )
-            )
+        return models
 
 
 class ADMTreesModel:
@@ -86,98 +111,93 @@ class ADMTreesModel:
     """
 
     def __init__(self, file: str, **kwargs):
-        try:
-            self._import_model(file)
-        except:
-            self._workaround_import(file)
-        self._post_import_cleanup(**kwargs)
+        logging.info("Reading model...")
+        self._read_model(file, **kwargs)
+        if self.trees is None:
+            raise ValueError("Import unsuccesful.")
+
+        logging.info("Read succesful, extracting predictors.")
         self.predictors = self.getPredictors()
+        logging.info("Calculating tree stats.")
         self.treeStats = self.getTreeStats()
         (
             self.splitsPerTree,
             self.gainsPerTree,
             self.gainsPerSplit,
         ) = self.getGainsPerSplit()
+        logging.info("Calculating grouped gains per split.")
         self.groupedGainsPerSplit = self.getGroupedGainsPerSplit()
+        logging.info("Calculating all values per split.")
         self.allValuesPerSplit = self.getAllValuesPerSplit()
-        self.splitsPerVariableType = self.computeCategorizationOverTime()
+        logging.info("Calculating splits per variable type.")
+        self.splitsPerVariableType = self.computeCategorizationOverTime(predictorCategorization = kwargs.pop('predictorCategorization', None))
+        logging.info("Tree model initialization done.")
 
-    def _import_model(self, file: str):
-        """Imports the 'regular' json file"""
+    def _read_model(self, file, **kwargs):
+        def _import(file):
+            logging.info("Trying regular import.")
+            with open(file) as f:
+                file = json.load(f)
+            logging.info("Regular import succesful.")
+
+            return file
+
+        def read_url(file):
+            logging.info("Trying to read from URL.")
+            file = urllib.request.urlopen(file).readlines()
+            logging.info("Import from URL succesful.")
+            return file
+
+        def decode_string(file):
+            logging.info("Trying to decompress the string.")
+            file = zlib.decompress(base64.b64decode(file))
+            logging.info("Decompressing string succesful.")
+            return file
+
+        decode = False
+
         if isinstance(file, str):
             try:
-                with open(file) as f:
-                    self.trees = json.load(f)
-            except:
-                # model is embedded in pyModelData
-                self.trees = json.loads(zlib.decompress(base64.b64decode(file)))
+                self.trees = json.loads(decode_string(file))
+                if not self.trees["_serialClass"].endswith("GbModel"):
+                    return ValueError("Not an AGB model")
+                decode = True
+                logging.info("Model needs to be decoded")
+            except Exception as e:
+                logging.info(f"Decoding failed, exception:", exc_info=True)
                 try:
-                    self.model = self.trees["model"]["boosters"][0]["trees"]
-                except:
-                    self.model = self.trees["model"]["model"]["boosters"][0]["trees"]
-                self._decodeTrees()
-        else:
+                    self.trees = _import(file)
+                    logging.info("Regular export, no need for decoding")
+                except Exception as e:
+                    logging.info(f"Regular import failed, exception:", exc_info=True)
+                    try:
+                        self.trees = json.loads(read_url(file))
+                        logging.info("Read model from URL")
+                    except Exception as e:
+                        logging.info(
+                            f"Reading from URL failed, exception:", exc_info=True
+                        )
+                        msg = (
+                            "Could not import the AGB model.\n"
+                            "Please check if your model export is a valid format (json or base64 encoded). \n"
+                            "Also make sure you're using Pega version 8.7.3 or higher, "
+                            "as the export format from before that isn't supported."
+                        )
+
+                        raise ValueError(msg)
+
+        elif isinstance(file, dict):
+            logging.info("Dict supplied, so no reading required")
             self.trees = file
 
-        self.properties = {
-            prop[0]: prop[1] for prop in self.trees.items() if prop[0] != "model"
-        }
-        try:
-            self.learning_rate = self.properties["configuration"]["parameters"][
-                "learningRateEta"
-            ]
-        except:
-            print("Could not find the learning rate in the model.")
-        try:
-            self.model = self.trees["model"]["boosters"][0]["trees"]
-        except:
-            self.model = self.trees["model"]["model"]["boosters"][0]["trees"]
-
-    def _workaround_import(self, file: str):
-        """Imports the 'old' txt file, with json embedded in it."""
-
-        def separate_txt_sections(f, decode=False):
-            """Extracts the relevant sections from the txt file"""
-            modelStart = "model=AdaptiveBoostScoringModel{"
-            jsonStart = "model={"
-            configurationStart = "configuration=GradientBoostModelRuleConfiguration{"
-            data = {"model": [], "json": [], "config": [], "other": []}
-            current_type = "other"
-            for line in f:
-                if decode:
-                    line = line.decode("utf-8")
-                if str(line).startswith(modelStart):
-                    current_type = "model"
-                elif str(line).startswith(jsonStart):
-                    current_type = "json"
-                elif str(line).startswith(configurationStart):
-                    current_type = "config"
-                data[current_type].append(line.strip())
-            return data
-
-        try:
-            with open(file) as f:
-                data = separate_txt_sections(f)
-        except (FileNotFoundError, OSError):
-            try:
-                response = requests.get(file)
-                is_url = True if response.status_code == 200 else False
-            except:
-                is_url = False
-            if is_url:
-                data = self._import_model(urllib.request.urlopen(file), decode=True)
-            else:
-                raise FileNotFoundError(file)
-
-        self.trees = "{" + "".join(data["json"][2:])[:-5]
-        self.model = json.loads(self.trees)["trees"]
-        self.properties = "".join(data["config"])
-        for i in "".join(data["config"]).split(","):
-            if i.startswith(" parameters"):
-                self.learning_rate = i.split("=")[-1]
+        self._post_import_cleanup(decode=decode, **kwargs)
 
     def _decodeTrees(self):
         def quantileDecoder(encoder: dict, index: int, verbose=False):
+            if encoder["summaryType"] == "INITIAL_SUMMARY":
+                return encoder["summary"]["initialValues"][
+                    index
+                ]  # Note: could also be index-1
             return encoder["summary"]["list"][index - 1].split("=")[0]
 
         def stringDecoder(encoder: dict, index: int, sign, verbose=False):
@@ -206,7 +226,7 @@ class ADMTreesModel:
         def decodeSplit(split: str, verbose=False):
             if not isinstance(split, str):
                 return split
-
+            logging.debug(f"Decoding split: {split}")
             predictor, sign, splitval = split.split(" ")
 
             if sign == "LT":
@@ -231,6 +251,7 @@ class ADMTreesModel:
                 else:
                     val = "{ " + val + " }"
                     sign = "in"
+            logging.debug(f"Decoded split: {variable} {sign} {val}")
             return f"{variable} {sign} {val}"
 
         encoders = self.trees["model"]["model"]["inputsEncoder"]["encoders"]
@@ -248,11 +269,36 @@ class ADMTreesModel:
         for i, model in enumerate(self.model):
             self.model[i] = decodeAllTrees(model, decodeSplit)
 
-    def _post_import_cleanup(self, **kwargs):
+    def _post_import_cleanup(self, decode, **kwargs):
+        if not hasattr(self, "model"):
+            logging.info("Adding model tag")
+            try:
+                self.model = self.trees["model"]["boosters"][0]["trees"]
+            except:
+                self.model = self.trees["model"]["model"]["boosters"][0]["trees"]
+
+        if decode:
+            logging.info("Decoding the tree splits.")
+            self._decodeTrees()
+
+        try:
+            self.properties = {
+                prop[0]: prop[1] for prop in self.trees.items() if prop[0] != "model"
+            }
+        except:
+            logging.info("Could not extract the properties.")
+
+        try:
+            self.learning_rate = self.properties["configuration"]["parameters"][
+                "learningRateEta"
+            ]
+        except:
+            logging.info("Could not find the learning rate in the model.")
+
         try:
             self.context_keys = self.properties["configuration"]["contextKeys"]
         except:
-            print("Could not find context keys.")
+            logging.info("Could not find context keys.")
             self.context_keys = kwargs.get("context_keys", None)
 
     def _depth(self, d: Dict) -> Dict:
@@ -490,6 +536,7 @@ class ADMTreesModel:
             if name not in splitvalues.keys():
                 splitvalues[name] = set()
             for row in group.iterrows():
+                logging.debug(f"Adding to splitvalues: {row}")
                 if set(group["sign"]).issubset({"in", "is"}):
                     for splitvalue in row[1]["values"]:
                         splitvalues[name] = splitvalues[name].union({splitvalue})
@@ -799,6 +846,54 @@ class ADMTreesModel:
             splitsPerTree.append(counter)
         return splitsPerTree, self.treeStats.score.abs().tolist()
 
+    def plotSplitsPerVariableType(self, predictorCategorization=None, **kwargs):
+        if predictorCategorization is not None:
+            to_plot = self.computeCategorizationOverTime(predictorCategorization)[0]
+        else:
+            to_plot = self.splitsPerVariableType[0]
+        df = pd.DataFrame(to_plot)
+        fig = px.area(
+            df.reindex(sorted(df.columns), axis=1),
+            title="Variable types per tree",
+            labels={"index": "Tree number", "value": "Number of splits"},
+            template="none",
+            **kwargs
+        )
+        fig.layout["updatemenus"] += (
+            dict(
+                type="buttons",
+                direction="left",
+                active=0,
+                buttons=list(
+                    [
+                        dict(
+                            args=[
+                                {"groupnorm": None},
+                                {"yaxis": {"title": "Number of splits"}},
+                            ],
+                            label="Absolute",
+                            method="update",
+                        ),
+                        dict(
+                            args=[
+                                {"groupnorm": "percent"},
+                                {"yaxis": {"title": "Percentage of splits"}},
+                            ],
+                            label="Relative",
+                            method="update",
+                        ),
+                    ]
+                ),
+                pad={"r": 10, "t": 10},
+                showactive=True,
+                x=0.01,
+                xanchor="left",
+                y=1.3,
+                yanchor="top",
+            ),
+        )
+        return fig
+
 
 @dataclass
 class MultiTrees:
@@ -814,7 +909,7 @@ class MultiTrees:
     def __getitem__(self, index):
         if isinstance(index, int):
             return list(self.trees.items())[index]
-        elif isinstance(index, pd.tslibs.Timestamp):
+        elif isinstance(index, pd.Timestamp):
             return self.trees[index]
 
     def __len__(self):
@@ -839,26 +934,31 @@ class MultiTrees:
     def last(self):
         return self[-1]
 
-    def computeOverTime(self):
+    def computeOverTime(self, predictorCategorization=None):
         outdf = pd.DataFrame()
         for timestamp, tree in self.trees.items():
+            to_plot = tree.splitsPerVariableType[0]
+            if predictorCategorization is not None:
+                to_plot = tree.computeCategorizationOverTime(predictorCategorization)[0]
             outdf = pd.concat(
                 [
                     outdf,
-                    pd.DataFrame(tree.splitsPerVariableType[0]).assign(
+                    pd.DataFrame(to_plot).assign(
                         Timestamp=timestamp.strftime("%Y-%m-%d")
                     ),
                 ]
             )
         return outdf
 
-    def plotSplitsPerVariableType(self):
+    def plotSplitsPerVariableType(self, predictorCategorization=None, **kwargs):
+        df = pd.DataFrame(self.computeOverTime(predictorCategorization))
         fig = px.area(
-            self.computeOverTime(),
+            df.reindex(sorted(df.columns), axis=1),
             animation_frame="Timestamp",
             title="Variable types per tree",
             labels={"index": "Tree number", "value": "Number of splits"},
             template="none",
+            **kwargs
         )
         fig.layout["updatemenus"] += (
             dict(
