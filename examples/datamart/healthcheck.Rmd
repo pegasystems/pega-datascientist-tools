@@ -169,8 +169,8 @@ the most granular perspective on the adaptive models.
 | Number of unique Actions | `r uniqueN(datamart$modeldata$Name)` | |
 | Number of unique Treatments | `r uniqueN(datamart$modeldata$Treatment)` | |
 | Number of unique Issues | `r uniqueN(datamart$modeldata$Issue)` | `r paste(sort(unique(datamart$modeldata$Issue)), collapse=", ")` |
-| Average number of Groups per Issue | `r mean(datamart$modeldata[, .(Groups = uniqueN(Group)), by="Issue"]$Groups)` | `r paste(sort(unique(datamart$modeldata$Group)), collapse=", ")` |
-| Number of unique Channels | `r uniqueN(datamart$modeldata$Channel)` | `r paste(sort(unique(datamart$modeldata$Channel)), collapse=", ")` |
+| Average number of Groups per Issue | `r if (length(intersect(c("Issue","Group"), names(datamart$modeldata)))==2) mean(datamart$modeldata[, .(Groups = uniqueN(Group)), by="Issue"]$Groups) else 0` | `r paste(sort(unique(datamart$modeldata$Group)), collapse=", ")` |
+| Channels | `r uniqueN(paste(datamart$modeldata$Direction, datamart$modeldata$Channel, sep="/"))` | `r paste(sort(unique(paste(datamart$modeldata$Direction, datamart$modeldata$Channel, sep="/"))), collapse=", ")` |
 
 
 ## Proposition Success Rates per Channel
@@ -191,7 +191,7 @@ from the Adaptive Model data - this requires analysis of the actual interactions
 p <- plotPropositionSuccessRates(datamart, 
                                  filter=function(mdls){ filterLatestSnapshotOnly(mdls)[ResponseCount >= as.integer(params$min_responses_to_show_propositions)] }, 
                                  limit=params$max_propositions_in_plot, 
-                                 facets="Channel") + 
+                                 facets=c("Direction", "Channel")) + 
   scale_fill_continuous_divergingx()
 
 # ggplotly(p) %>% layout(showlegend=FALSE) # plotly no use here given the way the plot is constructed
@@ -233,7 +233,8 @@ if (!hasMultipleSnapshots(datamart$modeldata))
 } else {
   p <- plotSuccessRateOverTime(datamart, 
                                filter=function(mdls){ mdls[ResponseCount >= 100] }, 
-                               aggregation = "Channel") + 
+                               aggregation = c("Channel"),
+                               facets = c("Direction", "ConfigurationName")) + 
     scale_color_Channel
   #geom_smooth(aes(fill=Channel), alpha=0.1)
   p
@@ -288,7 +289,7 @@ exposure.
 ```{r Bubble Chart, message=FALSE, warning=FALSE}
 plt <- plotPerformanceSuccessRateBubbleChart(datamart, 
                                              filter=function(mdls){ filterLatestSnapshotOnly(mdls)[ResponseCount >= 100] }, 
-                                             facets = c("ConfigurationName", "Channel"))
+                                             facets = c("ConfigurationName", "Direction", "Channel"))
 
 ggplotly(plt) %>% 
   layout(showlegend=F) 
@@ -308,7 +309,7 @@ plt <- plotPerformanceSuccessRateBubbleChart(datamart,
                                                m[, OhMyGoodness := (cdhtools::auc2GINI(Performance) + pmin(Positives, as.integer(params$min_positives_for_maturity)) * (1.0/as.integer(params$min_positives_for_maturity)))/2]
                                                return(m)
                                              }, 
-                                             facets = c("ConfigurationName", "Channel"),
+                                             facets = c("ConfigurationName", "Direction", "Channel"),
                                              color = "OhMyGoodness") +
   scale_colour_gradient(low="darkred", high="darkgreen")
 
@@ -326,7 +327,7 @@ if (!hasMultipleSnapshots(datamart$modeldata))
 {
   cat("Trend plots will only be available when the model data contains multiple snapshots.", fill=T)
 } else {
-  p <- plotPerformanceOverTime(datamart, aggregation = "Channel") +
+  p <- plotPerformanceOverTime(datamart, aggregation = "Channel", facets = c("Direction", "ConfigurationName")) +
     scale_color_Channel  
   #geom_smooth(aes(fill=Channel), alpha=0.1)
   p
@@ -413,7 +414,7 @@ datamart data.
 if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
   plt <- plotPredictorImportance(datamart,  
                                  categoryAggregateView = T,
-                                 facets = c("Channel", "ConfigurationName"),
+                                 facets = c("ConfigurationName", "Direction", "Channel"),
                                  showAsImportance = T,
                                  filter = function(mdls) {filterLatestSnapshotOnly(mdls)} ) +
     scale_fill_PredictorCategory
@@ -729,15 +730,15 @@ if (!hasMultipleSnapshots(datamart$modeldata))
                                                           `Immature Models` = length(unique(ModelID[(isImmature)])), 
                                                           `Models w/o Performance` = length(unique(ModelID[(noPerformance)])),
                                                           `Number of non-empty Models` = length(unique(ModelID[(!isEmpty)]))), 
-                                                   by=c("Channel", "SnapshotTime")]
+                                                   by=c("Direction", "Channel", "SnapshotTime")]
   
-  ggplot(melt(immatureModelsByChannel, c("Channel", "SnapshotTime"), 
+  ggplot(melt(immatureModelsByChannel, c("Direction", "Channel", "SnapshotTime"), 
               variable.name="Count", value.name="N"),
          aes(SnapshotTime, N, color=Count)) + 
     geom_line(size=1) + xlab("") + ylab("Count") +
     scale_color_discrete_qualitative() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    facet_wrap(. ~ Channel) +
+    facet_wrap(. ~ Direction+Channel) +
     ggtitle("Immature and Empty Models", subtitle = "by Channel")
 }
 ```
@@ -750,7 +751,7 @@ less constant, only changing if there is a sudden change in targeted population.
 Big spikes and very noisy behavior may be caused by changes in the setup.
 
 ```{r}
-responseRates <- datamart$modeldata[, SnapshotTimeDay := ceiling_date(SnapshotTime, unit="days")] [, .(ResponseCount = sum(ResponseCount)), by=c("SnapshotTimeDay", "Channel", "ConfigurationName")][order(SnapshotTimeDay)]
+responseRates <- datamart$modeldata[, SnapshotTimeDay := ceiling_date(SnapshotTime, unit="days")] [, .(ResponseCount = sum(ResponseCount)), by=c("SnapshotTimeDay", "Direction", "Channel", "ConfigurationName")][order(SnapshotTimeDay)]
 
 responseRates[, PrevResponseCount := shift(ResponseCount), by=c("Channel", "ConfigurationName")]
 responseRates[, DeltaResponseCount := ResponseCount - PrevResponseCount]
@@ -763,7 +764,7 @@ if (uniqueN(responseRates$SnapshotTimeDay) <= 1)
   ggplot(responseRates[!is.na(ResponseRate) & (ResponseRate > 0)], aes(SnapshotTimeDay, ResponseRate, colour=Channel)) +
     geom_line() +
     scale_color_Channel +
-    facet_wrap(. ~ ConfigurationName, scales="free_y") +
+    facet_wrap(. ~ Direction+ConfigurationName, scales="free_y") +
     ggtitle("Responses per minute") +
     xlab("Date") + ylab("Response Rate")
 }
@@ -888,12 +889,12 @@ investigated - consider different predictors or outcomes.
 cumAUCOverVolumeData <- 
   filterLatestSnapshotOnly(datamart$modeldata) [, list(Performance = 100*max(Performance), 
                                                        ResponseCount = max(as.double(ResponseCount))), 
-                                                by=c("Channel", "ModelID")]
+                                                by=c("Direction", "Channel", "ModelID")]
 cumAUCOverVolumeData[, TotalResponses := sum(ResponseCount), by=Channel]
 cumAUCOverVolumeData[, PerformanceBin := cut(Performance, breaks=15)]
 
 plt <- ggplot(cumAUCOverVolumeData[, list(N = sum(ResponseCount)/TotalResponses), 
-                                   by=c("PerformanceBin", "Channel")], 
+                                   by=c("PerformanceBin", "Direction", "Channel")], 
               aes(PerformanceBin, N, color=Channel)) + 
   #geom_col(position = position_dodge()) +
   geom_smooth(aes(group=Channel), se = F, method = "loess") +
@@ -901,6 +902,7 @@ plt <- ggplot(cumAUCOverVolumeData[, list(N = sum(ResponseCount)/TotalResponses)
   scale_y_continuous(name="Percentage of Responses", labels = scales::percent) +
   xlab("Model Performance") +
   theme(axis.text.x=element_text(angle=45, hjust=1)) +
+  facet_wrap(. ~ Direction) +
   ggtitle("Distribution of Volume vs Model Performance", subtitle = "by Channel")
 
 ggplotly(plt)
@@ -925,9 +927,9 @@ modelsByPositives[, PositivesBin := cut(Positives, breaks=c(seq(0,as.integer(par
                                         right=F)]
 modelsByPositives <- modelsByPositives[, list(Positives = min(Positives), 
                                               Models = uniqueN(ModelID)),
-                                       by=c("Channel", "PositivesBin")]
+                                       by=c("Direction", "Channel", "PositivesBin")]
 setorder(modelsByPositives, Positives)
-modelsByPositives[, cumModels := Models/sum(Models), by="Channel"]
+modelsByPositives[, cumModels := Models/sum(Models), by=c("Direction", "Channel")]
 
 plt <- ggplot(modelsByPositives, aes(PositivesBin, cumModels, color=Channel)) + 
   geom_line(aes(group=Channel), size=1) + geom_point() +
@@ -935,6 +937,7 @@ plt <- ggplot(modelsByPositives, aes(PositivesBin, cumModels, color=Channel)) +
   scale_y_continuous(name="Percentage of Models", labels = scales::percent) +
   theme(axis.text.x=element_text(angle=45, hjust=1)) +
   xlab("Positives") +
+  facet_wrap(. ~ Direction) +
   ggtitle("Percentage of models vs number of positive responses", subtitle = "by Channel")
 
 ggplotly(plt)
@@ -969,18 +972,18 @@ interpreted as relative to the other graphs.
 ```{r Propensity distribution, fig.height=3, fig.width=8, message=FALSE, warning=FALSE}
 if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
   classifiers <- merge(filterClassifierOnly(datamart$predictordata), 
-                       unique(datamart$modeldata[,c("ModelID","Channel")]), by="ModelID")
+                       unique(datamart$modeldata[,c("ModelID", "Direction", "Channel")]), by="ModelID")
   # classifiers[, Propensity := (0.5+BinPositives)/(1+BinResponseCount)]
   classifiers[, PropensityRange := Hmisc::cut2(Propensity, g=15)]
-  classifiers[, TotalVolume := sum(BinResponseCount), by="Channel"]
+  classifiers[, TotalVolume := sum(BinResponseCount), by=c("Direction", "Channel")]
   
-  setorder(classifiers, Channel, PropensityRange)
+  setorder(classifiers, Direction, Channel, PropensityRange)
   
   propensityDistributionData <- classifiers[,list(RelVolume = sum(BinResponseCount)/TotalVolume, 
                                                   BinVolume = sum(BinResponseCount),
                                                   Propensity = max(Propensity)), 
-                                            by=c("Channel", "PropensityRange", "TotalVolume")]
-  propensityDistributionData[, CumVolume := cumsum(BinVolume), by=c("Channel")]
+                                            by=c("Direction", "Channel", "PropensityRange", "TotalVolume")]
+  propensityDistributionData[, CumVolume := cumsum(BinVolume), by=c("Direction", "Channel")]
   propensityDistributionData[, CumFraction := 1 - CumVolume/TotalVolume]
   
   ggplot(propensityDistributionData,
@@ -991,6 +994,7 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
     xlab("Propensity") +
     scale_y_continuous(name="Volume", labels = scales::percent) +
     scale_fill_Channel + 
+    facet_wrap(. ~ Direction) +
     ggtitle("Volume vs. Propensity") 
 } else {
   cat("Propensity analysis will only be available when predictor binning data is available.", fill=T)
@@ -1013,6 +1017,7 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
     geom_line(aes(color=Channel, group=Channel), size=1) +
     scale_color_Channel +
     scale_y_continuous(name="Fraction of Customers", labels = scales::percent) +
+    facet_wrap(. ~ Direction) +
     ggtitle("Cumulative Volume reached by thresholding on Propensity") +
     xlab("Propensity Threshold")
   
