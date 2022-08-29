@@ -54,13 +54,13 @@ class Plots:
         return allplots
 
     @staticmethod
-    def top_n(df, top_n):
+    def top_n(df, top_n, to_plot='PerformanceBin'):
         if top_n > 0:
             topn = (
-                df.sort_values("PerformanceBin", ascending=False)
+                df.sort_values(to_plot, ascending=False)
                 .groupby("PredictorName")
                 .mean()
-                .nlargest(top_n, "PerformanceBin")
+                .nlargest(top_n, to_plot)
                 .index.tolist()
             )
             df = df.query(f"PredictorName == {topn}").reset_index(drop=True)
@@ -659,6 +659,7 @@ class Plots:
         self,
         top_n: int = 0,
         active_only: bool = False,
+        to_plot = 'Performance',
         query: Union[str, dict] = None,
         facets: Optional[list] = None,
         **kwargs,
@@ -709,18 +710,22 @@ class Plots:
         plotting_engine = self.get_engine(
             kwargs.get("plotting_engine", self.plotting_engine)
         )()
+        if to_plot == 'Performance':
+            var_to_plot = 'PerformanceBin'
+        else: var_to_plot = to_plot
+        
         table = "combinedData"
         last = True
-        required_columns = {"Channel", "PredictorName", "PerformanceBin", "Type"}
+        required_columns = {"Channel", "PredictorName", var_to_plot, "Type"}
         df = self._subset_data(
             table, required_columns, query, last=last, active_only=active_only
         )
         df = df.query("PredictorName != 'Classifier'").reset_index(drop=True)
 
-        df = self.top_n(df, top_n)
+        df = self.top_n(df, top_n, var_to_plot)
         asc = plotting_engine.__module__.split(".")[1] == "plots_mpl"
         order = (
-            df.groupby("PredictorName")["PerformanceBin"]
+            df.groupby("PredictorName")[var_to_plot]
             .mean()
             .fillna(0)
             .sort_values(ascending=asc)[::-1]
@@ -739,6 +744,7 @@ class Plots:
             order=order,
             facets=facets,
             query=query,
+            to_plot = to_plot,
             **kwargs,
         )
 

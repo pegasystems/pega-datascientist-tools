@@ -18,9 +18,8 @@ def CDHSample(plotting_engine="plotly", query=None):
 
 def SampleTrees():
     return ADMTrees(
-        "https://raw.githubusercontent.com/pegasystems/cdh-datascientist-tools/master/data/agb/IHmodelbeforeRetrain.txt"
+        "https://raw.githubusercontent.com/pegasystems/cdh-datascientist-tools/master/data/agb/ModelExportExample.json"
     )
-
 
 def SampleValueFinder(verbose=True):
     return ValueFinder(

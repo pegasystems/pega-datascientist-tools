@@ -399,6 +399,7 @@ class ADMVisualisations:
         df,
         order,
         facets=None,
+        to_plot="Performance",
         **kwargs,
     ):
         """Shows a box plot of predictor performance
@@ -438,21 +439,26 @@ class ADMVisualisations:
 
         colormap = df.Legend.unique()
 
+        if to_plot == "Performance":
+            var_to_plot = "PerformanceBin"
+        else:
+            var_to_plot = to_plot
+
         figlist = []
         for facet in facets:
             title = "over all models" if facet == None else f"per {facet}"
 
             fig = px.box(
                 df,
-                x="PerformanceBin",
+                x=var_to_plot,
                 y="PredictorName",
                 color="Legend",
                 template="none",
-                title=f"Predictor performance {title} {kwargs.get('title_text','')}",
+                title=f"Predictor {to_plot} {title} {kwargs.get('title_text','')}",
                 facet_col=facet,
                 facet_col_wrap=5,
                 labels={
-                    "PerformanceBin": "Performance",
+                    var_to_plot: to_plot,
                     "PredictorName": "Predictor Name",
                 },
             )
@@ -486,7 +492,7 @@ class ADMVisualisations:
             fig.update_layout(
                 boxgap=0, boxgroupgap=0, legend_title_text="Predictor type"
             )
-            fig = self.post_plot(fig, name="Predictor_performance", **kwargs)
+            fig = self.post_plot(fig, name=f"Predictor_{to_plot}", **kwargs)
 
             figlist.append(fig)
 
