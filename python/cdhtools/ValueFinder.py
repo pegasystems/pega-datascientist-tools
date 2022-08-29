@@ -70,12 +70,11 @@ class ValueFinder:
             filename = kwargs.pop("filename", "ValueFinder")
             self.df = cdh_utils.readDSExport(
                 filename, path, return_pa=True, verbose=verbose
-            )
-            self.df = self.df.select(keep_cols)
+            ).select(keep_cols)
             if verbose:
                 print(f"Data import took {round(time.time() - start,2)} seconds")
 
-        elif isinstance(self.df, pd.DataFrame):
+        if isinstance(self.df, pd.DataFrame):
             self.df = self.df[keep_cols]
 
         if verbose:

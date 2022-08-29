@@ -8,6 +8,7 @@ import numpy as np
 import urllib.request
 import datetime
 from pytz import timezone
+import pyarrow
 
 
 sys.path.append("python")
@@ -50,7 +51,7 @@ def test_import_produces_dataframe():
                 "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
             )
         ),
-        pd.DataFrame,
+        pyarrow.Table
     )
 
 
@@ -73,7 +74,7 @@ def test_read_predictorData():
 
 
 def test_read_zip_from_url():
-    assert checks(
+    assert pyarrow_checks(
         cdh_utils.readZippedFile(
             BytesIO(
                 urllib.request.urlopen(
@@ -92,12 +93,17 @@ def test_data():
             "data",
             "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
         )
-    )
+    ).to_pandas()
 
 
-def checks(df):
+def pandas_checks(df):
     "Very simple convienence function to check if it is a dataframe with rows."
     if isinstance(df, pd.DataFrame) and len(df) > 0:
+        return True
+
+def pyarrow_checks(df):
+    "Very simple convienence function to check if it is a dataframe with rows."
+    if isinstance(df, pyarrow.Table) and len(df) > 0:
         return True
 
 
@@ -109,30 +115,30 @@ def test_dataframe_returns_itself(test_data):
 def test_import_csv():
     path = "data"
     models = "pr_data_dm_admmart_mdl_fact.csv"
-    assert checks(cdh_utils.readDSExport(path=path, filename=models))
+    assert pandas_checks(cdh_utils.readDSExport(path=path, filename=models))
 
 
 def test_csv_from_url():
     path = "https://raw.githubusercontent.com/pegasystems/cdh-datascientist-tools/master/data"
     models = "pr_data_dm_admmart_mdl_fact.csv"
-    assert checks(cdh_utils.readDSExport(path=path, filename=models))
+    assert pandas_checks(cdh_utils.readDSExport(path=path, filename=models))
 
 
 def test_cdh_sample_models_from_url():
     path = "https://raw.githubusercontent.com/pegasystems/cdh-datascientist-tools/master/data"
     models = "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip"
-    assert checks(cdh_utils.readDSExport(path=path, filename=models))
+    assert pandas_checks(cdh_utils.readDSExport(path=path, filename=models))
 
 
 def test_cdh_sample_models_locally():
     path = "data"
     models = "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip"
-    assert checks(cdh_utils.readDSExport(path=path, filename=models))
+    assert pandas_checks(cdh_utils.readDSExport(path=path, filename=models))
 
 
 def test_cdh_sample_autodiscovered_locally():
     path = "data"
-    assert checks(cdh_utils.readDSExport(path=path, filename="modelData"))
+    assert pandas_checks(cdh_utils.readDSExport(path=path, filename="modelData"))
 
 
 def test_file_not_found_in_good_dir():
@@ -147,13 +153,13 @@ def test_file_not_found_in_bad_dir():
 def test_import_csv_pandas():
     path = "data"
     models = "pr_data_dm_admmart_mdl_fact.csv"
-    assert checks(cdh_utils.readDSExport(path=path, filename=models, force_pandas=True))
+    assert pandas_checks(cdh_utils.readDSExport(path=path, filename=models))
 
 
 def test_import_zipped_json_pandas():
     path = "data"
     models = "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip"
-    assert checks(cdh_utils.readDSExport(path=path, filename=models, force_pandas=True))
+    assert pandas_checks(cdh_utils.readDSExport(path=path, filename=models))
 
 
 def test_safe_range_auc():
