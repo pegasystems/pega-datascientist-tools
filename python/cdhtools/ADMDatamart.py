@@ -1,16 +1,21 @@
-from . import cdh_utils
-from .ADMTrees import ADMTreesModel, MultiTrees, ADMTrees
-from .plots_plotly import ADMVisualisations as plotly_plot
-from .plots_mpl import ADMVisualisations as mpl_plot
-from .plot_base import Plots
-
+import base64
+import copy
+import json
+import logging
+import re
+import zlib
 from datetime import timedelta
+from typing import Dict, NoReturn, Optional, Tuple, Union
+from io import BytesIO
+
 import numpy as np
 import pandas as pd
-import re
-import copy
-from typing import NoReturn, Optional, Tuple, Union, Dict
-import json
+
+from . import cdh_utils
+from .ADMTrees import ADMTrees, ADMTreesModel, MultiTrees
+from .plot_base import Plots
+from .plots_mpl import ADMVisualisations as mpl_plot
+from .plots_plotly import ADMVisualisations as plotly_plot
 
 
 class ADMDatamart(Plots):
@@ -312,7 +317,7 @@ class ADMDatamart(Plots):
 
         extract_col = kwargs.pop("extract_treatment", None)
         drop_cols = kwargs.pop("drop_cols", None)
-        if isinstance(name, str):
+        if isinstance(name, str) or isinstance(name, BytesIO):
             df = cdh_utils.readDSExport(
                 filename=name, path=path, verbose=verbose, **kwargs
             )
@@ -422,9 +427,9 @@ class ADMDatamart(Plots):
             "BinNegativesPercentage": ["BinNegativesPercentage"],
             "BinResponseCountPercentage": ["BinResponseCountPercentage"],
         }  # NOTE: these default names are already capitalized properly, with py/px/pz removed.
-        
-        if len(kwargs.get('include_cols', []))>0:
-            for i in kwargs.pop('include_cols', []):
+
+        if len(kwargs.get("include_cols", [])) > 0:
+            for i in kwargs.pop("include_cols", []):
                 overwrite_mapping[i] = i
 
         if overwrite_mapping is not None and len(overwrite_mapping) > 0:
@@ -719,59 +724,81 @@ class ADMDatamart(Plots):
 
     class NotApplicableError(ValueError):
         pass
-    
+
+    @staticmethod
+    def discover_modelTypes(df):
+        modelTypes = dict()
+        for configuration, data in df.query("Modeldata == Modeldata").groupby(
+            "Configuration"
+        ):
+            model = zlib.decompress(
+                base64.b64decode(data.tail(1)["Modeldata"].values[0])
+            )
+            for line in model.decode().split("\n"):
+                if str(line).startswith('  "_serialClass"'):
+                    modelTypes[configuration] = str(line).split('"')[-2]
+                    break
+        return modelTypes
+
     def get_AGB_models(
         self,
         last: bool = False,
         by: str = "Configuration",
+        n_threads: int = 6,
         query: Union[str, dict] = None,
-        verbose:bool = False,
+        verbose: bool = True,
+        **kwargs,
     ) -> dict[str : Union[MultiTrees, ADMTreesModel]]:
         """Method to automatically extract AGB models.
-        
+
         Recommended to subset using the querying functionality
         to cut down on execution time, because it checks for each
         model ID. If you only have AGB models remaining after the query,
         it will only return proper AGB models.
-        
+
         Parameters
         ----------
         last: bool, default = False
             Whether to only look at the last snapshot for each model
         by: str, default = 'Configuration'
             Which column to determine unique models with
+        n_threads: int, default = 6
+            The number of threads to use for extracting the models.
+            Since we use multithreading, setting this to a reasonable value
+            helps speed up the import.
         query: Union[str, dict], default = None
             The pandas query to apply to the modelData frame
         verbose: bool, default = False
             Whether to print out information while importing
-        
+
         """
         df = self.modelData
-        if query is not None: df = self._apply_query(df, query)
+        if "Modeldata" not in df.columns:
+            raise ValueError(
+                (
+                    "Modeldata column not in the data. "
+                    "Please make sure to include it by using the 'include_cols' "
+                    "argument with your ADMDatamart call, or setting 'subset' to False."
+                )
+            )
+        if query is not None:
+            df = self._apply_query(df, query)
+
+        modelTypes = self.discover_modelTypes(df)
+        AGB_models = [
+            model for model, type in modelTypes.items() if type.endswith("GbModel")
+        ]
+        logging.info(f"Found AGB models: {AGB_models}")
+        df = df.query(f"Configuration in {AGB_models}")
         if df["ModelID"].nunique() == 0:
             raise ValueError("No models found.")
 
-        if df["ModelID"].nunique() == 1:
-            try:
-                if last:
-                    return ADMTrees(self.last(df))
-                else:
-                    return ADMTrees(df)
-            except:
-                raise ValueError("Model is not an ADM Gradient Boosting model.")
-
-        multipleTrees = dict()
-        for by, modelData in df.query("Modeldata == Modeldata").groupby(by):
-            try:
-                if last:
-                    modelData = self.last(modelData)
-                multipleTrees.update({by: ADMTrees(modelData)})
-                if verbose: print(f"{by} model found")
-            except:
-                if verbose:
-                    print(f"{by} does not seem like an AGB model")
-                pass
-        return multipleTrees
+        if last:
+            return ADMTrees(
+                self.last(df), n_threads=n_threads, verbose=verbose, **kwargs
+            )
+        else:
+            return ADMTrees(df, n_threads=n_threads, verbose=verbose, **kwargs)
 
     @staticmethod
     def _create_sign_df(df: pd.DataFrame) -> pd.DataFrame:
