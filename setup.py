@@ -30,6 +30,7 @@ setuptools.setup(
         "ipywidgets",
         "pydot",
         "polars",
+        "pyarrow",
         "tqdm"
     ],
     keywords=[

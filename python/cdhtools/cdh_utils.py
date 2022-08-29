@@ -20,6 +20,7 @@ import pytz
 import requests
 import logging
 
+
 def readDSExport(
     filename: Union[pd.DataFrame, str],
     path: str = ".",
@@ -84,8 +85,6 @@ def readDSExport(
     else:
         file = get_latest_file(path, filename)
 
-    name, extension = os.path.splitext(file)
-
     # If we can't find the file locally, we can try
     # if the file's a URL. If it is, we need to wrap
     # the file in a BytesIO object, and read the file
@@ -95,7 +94,7 @@ def readDSExport(
 
         try:
             response = requests.get(f"{path}/{filename}")
-            logging.info(f'Response: {response}')
+            logging.info(f"Response: {response}")
             if response.status_code == 200:
                 file = f"{path}/{filename}"
                 file = BytesIO(urllib.request.urlopen(file).read())
@@ -105,8 +104,11 @@ def readDSExport(
             logging.info(e)
             if verbose:
                 print(f"File {filename} not found in dir {path}")
-            logging.info(f'File not found: {path}/{filename}')
+            logging.info(f"File not found: {path}/{filename}")
             return None
+
+    if "extension" not in vars():
+        name, extension = os.path.splitext(file)
 
     # Now we should either have a full path to a file, or a
     # BytesIO wrapper around the file. Pyarrow can read those both.
@@ -236,6 +238,7 @@ def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
 
     dates = np.array([f(i) for i in paths])
     return paths[np.argmax(dates)]
+
 
 def getMatches(files_dir, target):
     matches = []
