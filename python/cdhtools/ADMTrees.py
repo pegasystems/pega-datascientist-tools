@@ -144,7 +144,7 @@ class ADMTreesModel:
 
         def read_url(file):
             logging.info("Trying to read from URL.")
-            file = urllib.request.urlopen(file).readlines()
+            file = urllib.request.urlopen(file).read()
             logging.info("Import from URL succesful.")
             return file
 
