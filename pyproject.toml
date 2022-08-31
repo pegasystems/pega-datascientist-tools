@@ -1,0 +1,52 @@
+[build-system]
+requires      = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["python/pdstools"]
+
+[project]
+name = "pdstools"
+version = "2.2.0"
+description = "Open source tooling that helps Data Scientists to analyze Pega models and conduct impactful analyses."
+readme = "README.md"
+authors = [ { name = "Stijn Kas", email = "stijn.kas@pega.com" } ] 
+license = {text = "Apache-2.0"}
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+]
+keywords = [
+    "pega",
+    "pegasystems",
+    "pds",
+    "pdstools",
+    "cdhtools",
+    "datascientist",
+    "tools",
+]
+dependencies = [
+        "pandas",
+        "plotly>=5.5.0",
+        "seaborn",
+        "requests",
+        "nbformat",
+        "jupyterlab",
+        "ipywidgets",
+        "pydot",
+        "polars",
+        "pyarrow",
+        "tqdm"
+    ]
+requires-python = ">=3.7"
+
+[project.optional-dependencies]
+docs = ['sphinx','furo','sphinx-autoapi','nbsphinx','sphinx-copybutton','myst-parser']
+
+[project.urls]
+"Homepage" = "https://github.com/pegasystems/pega-datascientist-tools"
+"Bug Tracker" = "https://github.com/pegasystems/pega-datascientist-tools/issues"
+"Wiki" = "https://github.com/pegasystems/pega-datascientist-tools/wiki"
+"Docs" = "https://pegasystems.github.io/pega-datascientist-tools/"

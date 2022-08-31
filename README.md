@@ -1,7 +1,9 @@
-<center><h1 class="no-underline"> Pega Data Scientist Tools </h1></center> 
+<p align="center">
+  <h1 class="no-underline" style="text-align:center"> Pega Data Scientist Tools </h1>
+</p>
 
 <p align="center">
-    <img height="100px" src="images/pegasystems-inc-vector-logo.svg" alt="Pega logo">
+<img height="100px" src="https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/images/pegasystems-inc-vector-logo.svg" alt="Pega logo">
 </p>
 
 <p align="center">
