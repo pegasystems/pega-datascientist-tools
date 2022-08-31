@@ -1,19 +1,19 @@
-#' cdhtools: Open-sourced Data Science tools for Pega.
+#' pdstools: Open-sourced Data Science tools for Pega.
 #'
-#' Open source tooling to help Data Scientists working with CDH analyze Pega
+#' Open source tooling to help Data Scientists working with Pega analyze Pega
 #' models, responses and predictors using Python and R. There are utility
 #' functions to read data, easily create plots and more. See the Wiki of the
-#' GitHub repository at \url{https://github.com/pegasystems/cdh-datascientist-tools/wiki}
+#' GitHub repository at \url{https://github.com/pegasystems/pega-datascientist-tools/wiki}
 #' for a more detailed description and example notebooks.
 #'
 #' @section A note on style:
 #'
-#' The utilities in cdhtools heavily rely on \code{data.table} and often expect
+#' The utilities in pdstools heavily rely on \code{data.table} and often expect
 #' arguments or return values as a \code{data.table}. This table library provides
 #' a high-performance version of base R's \code{data.frame}, see \url{https://github.com/Rdatatable/data.table/wiki}.
 
 #' @docType package
-#' @name cdhtools
+#' @name pdstools
 #' @import data.table jsonlite ggplot2 stats
 #' @importFrom rlang is_list
 #' @importFrom utils zip head

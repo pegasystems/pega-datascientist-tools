@@ -24,13 +24,13 @@ comment = "#>"
 
 A few simple reports on IH.
 
-Input is a small IH export included in cdhtools, you can point to any Pega
+Input is a small IH export included in pdstools, you can point to any Pega
 export and read with readDSExport.
 
 # Data Loading
 
 ```{r message=FALSE, warning=FALSE}
-library(cdhtools)
+library(pdstools)
 library(ggplot2)
 library(scales)
 library(tidyverse)
@@ -43,7 +43,7 @@ theme_set(theme_minimal())
 data(ihsampledata) 
 #ihsampledata <- readDSExport("Data-pxStrategyResult_pxInteractionHistory", "~/Downloads"
 
-cdhtools::standardizeFieldCasing(ihsampledata)
+pdstools::standardizeFieldCasing(ihsampledata)
 
 # Both "Accept" and "Accepted" occur as labels - fix that for the reporting
 ihsampledata[Outcome == "Accept", Outcome := "Accepted"]

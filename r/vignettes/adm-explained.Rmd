@@ -1,6 +1,6 @@
 ---
 title: "adm-explained"
-author: "Pega CDH Tools"
+author: "Pega"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
@@ -34,10 +34,10 @@ customer.
 We use one of the shipped datamart exports for the example. This is a model very similar to one used in some of the ADM PowerPoint/Excel deep dive examples. To load your own data, see the vignette on ADM reporting for examples.
 
 ```{r include=F}
-library(cdhtools)
+library(pdstools)
 
 # include below when developing the library
-# sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source)
+# sapply(list.files("~/Documents/pega/pds-datascientist-tools/r/R", "*.R", full.names = T), source)
 
 library(data.table)
 
@@ -219,10 +219,10 @@ prediction = unlist(sapply(1:nrow(predictorbinning),
 plot.roc(response, prediction, print.auc=T, col="darkgreen", levels=c(T,F), direction=">")
 ```
 
-There is also a convenient function in *cdhtools* to calculate it directly from the positives and negatives:
+There is also a convenient function in *pdstools* to calculate it directly from the positives and negatives:
 
 ```{r}
-cdhtools::auc_from_bincounts(predictorbinning$Positives, predictorbinning$Negatives)
+pdstools::auc_from_bincounts(predictorbinning$Positives, predictorbinning$Negatives)
 ```
 
 # Predictor score and log odds

@@ -1,7 +1,7 @@
 library(testthat)
-library(cdhtools)
+library(pdstools)
 
-test_check("cdhtools")
+test_check("pdstools")
 
 # Test extensions
 #

@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Location of the GIT checkout of the CDH tools
+# Location of the GIT checkout of the Pega Data Scientist tools
 
-cdhtools="~/Documents/pega/cdh-datascientist-tools"
+pdstools="~/Documents/pega/pega-datascientist-tools"
 
 # Location of the input data
 
@@ -17,8 +17,8 @@ modellist="cdhsample-modellist.txt"
 
 # Location of the notebooks (unless copied/modified these defaults should be fine)
 
-modeloverviewnotebook="$cdhtools/examples/datamart/healthcheck.Rmd"
-modelreportnotebook="$cdhtools/examples/datamart/modelreport.Rmd"
+modeloverviewnotebook="$pdstools/examples/datamart/healthcheck.Rmd"
+modelreportnotebook="$pdstools/examples/datamart/modelreport.Rmd"
 
 # Run the model overview notebook
 

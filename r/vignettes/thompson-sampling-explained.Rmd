@@ -1,6 +1,6 @@
 ---
 title: "thompson-sampling-explained"
-author: "Pega CDH Tools"
+author: "Pega"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >

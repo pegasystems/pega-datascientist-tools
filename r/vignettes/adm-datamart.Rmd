@@ -1,6 +1,6 @@
 ---
 title: "adm-datamart"
-author: "Pega CDH Tools"
+author: "Pega"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
@@ -41,7 +41,7 @@ Let's first load the data. An example export is provided with the package. Ways 
 a dataset export will be described later.
 
 ```{r message=FALSE, warning=FALSE}
-library(cdhtools)
+library(pdstools)
 
 # include below when developing the library
 # invisible(sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source))
@@ -51,11 +51,11 @@ data(adm_datamart)
 
 ## Data Loading using Datasets
 
-To load your own data, export the datasets from Pega, download them to your filesystem and let the `cdhtools` library import it. 
+To load your own data, export the datasets from Pega, download them to your filesystem and let the `pdstools` library import it. 
 
 The `ADMDatamart` function is a very generic function to read the model and optionally
 predictor data into a simple list structure that is universally used by the 
-`cdhtools` functions. The most basic usage is to only give it a folder location
+`pdstools` functions. The most basic usage is to only give it a folder location
 where you downloaded the dataset exports, but it supports different file types
 and allows for filtering etc.
 
