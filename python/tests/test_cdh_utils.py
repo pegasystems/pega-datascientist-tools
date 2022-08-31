@@ -12,7 +12,7 @@ import pyarrow
 
 
 sys.path.append("python")
-from cdhtools import cdh_utils
+from pdstools import cdh_utils
 
 # Tests for get_latest_file function
 def test_find_default_model():

@@ -9,7 +9,7 @@ import pytest
 import sys
 
 sys.path.append("python")
-from cdhtools import ADMDatamart
+from pdstools import ADMDatamart
 import seaborn
 import matplotlib
 

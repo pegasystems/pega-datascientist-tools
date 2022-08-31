@@ -1,7 +1,7 @@
 import sys
 import pytest
 sys.path.append("python")
-from cdhtools import ValueFinder, datasets, cdh_utils
+from pdstools import ValueFinder, datasets, cdh_utils
 
 
 @pytest.fixture

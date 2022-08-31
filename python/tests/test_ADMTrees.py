@@ -2,7 +2,7 @@ import pytest
 import sys
 
 sys.path.append("python")
-from cdhtools import ADMTrees
+from pdstools import ADMTrees
 
 
 @pytest.fixture

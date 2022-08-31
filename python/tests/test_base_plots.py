@@ -4,7 +4,7 @@ import pandas as pd
 from copy import deepcopy
 
 sys.path.append("python")
-from cdhtools import ADMDatamart, datasets
+from pdstools import ADMDatamart, datasets
 
 
 @pytest.fixture

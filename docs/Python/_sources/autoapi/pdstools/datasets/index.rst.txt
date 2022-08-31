@@ -1,0 +1,30 @@
+:py:mod:`pdstools.datasets`
+===========================
+
+.. py:module:: pdstools.datasets
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   pdstools.datasets.CDHSample
+   pdstools.datasets.SampleTrees
+   pdstools.datasets.SampleValueFinder
+
+
+
+.. py:function:: CDHSample(plotting_engine='plotly', query=None)
+
+
+.. py:function:: SampleTrees()
+
+
+.. py:function:: SampleValueFinder(verbose=True)
+
+
