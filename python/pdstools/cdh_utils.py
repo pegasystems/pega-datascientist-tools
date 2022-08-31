@@ -12,7 +12,6 @@ import os
 import zipfile
 import re
 import numpy as np
-from sklearn.metrics import roc_auc_score
 import datetime
 from io import BytesIO
 import urllib.request
