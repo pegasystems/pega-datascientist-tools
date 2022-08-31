@@ -27,7 +27,7 @@
   </a>
 </p>
 
-Open source tooling that helps Data Scientists working with Pega AI to analyze Pega decisioning and modeling performance.
+Open source tooling that helps data scientists working with Pega AI to analyze Pega decisioning and modeling performance.
 
 We release this under the Apache 2.0 license and welcome contributing back, preferably through pull requests, but just submitting an Issue or sending a note to the authors is fine too.
 
@@ -35,7 +35,7 @@ The tools help to do analysis on Pega decisioning and predictive analytics as us
 
 # Getting Started
 
-For instructions and information, see the [Data Scientist Tools Wiki page](https://github.com/pegasystems/pega-datascientist-tools/wiki). For further examples and the API reference, see the [Documentation](https://pegasystems.github.io/pega-datascientist-tools/).
+For instructions and information, see the [Pega Data Scientist Tools Wiki page](https://github.com/pegasystems/pega-datascientist-tools/wiki). For further examples and the API reference, see the [Documentation](https://pegasystems.github.io/pega-datascientist-tools/).
 
 # Contributing
 
