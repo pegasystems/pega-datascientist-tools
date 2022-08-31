@@ -290,7 +290,7 @@ def safe_range_auc(auc: float) -> float:
         return 0.5 + np.abs(0.5 - auc)
 
 
-def auc_from_probs(groundtruth: List[int], probs: List[float]) -> List[float]:
+def auc_from_probs(groundtruth: List[int], probs: List[float]) -> List[float]: # pragma: no cover
     """Calculates AUC from an array of truth values and predictions.
     Calculates the area under the ROC curve from an array of truth values and
     predictions, making sure to always return a value between 0.5 and 1.0 and
@@ -311,6 +311,13 @@ def auc_from_probs(groundtruth: List[int], probs: List[float]) -> List[float]:
     Examples:
         >>> auc_from_probs( [1,1,0], [0.6,0.2,0.2])
     """
+    # Catching warning - since this is the only place sklearn is used.
+    # This way we can remove it from the requirements.
+    try:
+        from sklearn import roc_auc_score
+    except ImportError as e:
+        raise ImportError('To calculate AUC, please install sklearn.', e)
+
     if len(set(groundtruth)) < 2:
         return 0.5
     auc = roc_auc_score(groundtruth, probs)

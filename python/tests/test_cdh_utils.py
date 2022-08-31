@@ -168,19 +168,6 @@ def test_safe_range_auc():
     assert cdh_utils.safe_range_auc(np.nan) == 0.5
 
 
-def test_auc_from_probs():
-    assert cdh_utils.auc_from_probs([1, 1, 0], [0.6, 0.2, 0.2]) == 0.75
-    assert (
-        cdh_utils.auc_from_probs(
-            [
-                1,
-            ],
-            [0.6],
-        )
-        == 0.5
-    )
-
-
 def test_auc_from_bincounts():
     assert cdh_utils.auc_from_bincounts([3, 1, 0], [2, 0, 1]) == 0.75
 
