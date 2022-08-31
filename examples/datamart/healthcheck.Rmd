@@ -1,7 +1,7 @@
 ---
 title: "`r params$title`"
 subtitle: "`r params$subtitle`"
-author: "Pega CDH Tools"
+author: "Pega"
 date: "`r Sys.Date()`"
 output:
   html_document:
@@ -59,7 +59,7 @@ params:
 library(pdstools)
 
 # include below when developing the library
-# sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source)
+# sapply(list.files("~/Documents/pega/pega-datascientist-tools/r/R", "*.R", full.names = T), source)
 
 library(data.table)
 library(lubridate)
@@ -82,10 +82,10 @@ knitr::opts_chunk$set(
 # ADM Datamart Health Check
 
 This document gives a generic and global overview of the Adaptive models 
-and predictors. It is generated from an R notebook in the [CDH Tools](https://github.com/pegasystems/cdh-datascientist-tools). That repository
+and predictors. It is generated from an R notebook in the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools). That repository
 of tools and scripts also contains a notebook to generate stand-alone
 model reports for individual models, please refer 
-to the [Wiki](https://github.com/pegasystems/cdh-datascientist-tools/wiki).
+to the [Wiki](https://github.com/pegasystems/pega-datascientist-tools/wiki).
 
 This document provides a first-level scan of the models after which a 
 deeper and more customer specific deeper dive can be done.
@@ -306,7 +306,7 @@ plt <- plotPerformanceSuccessRateBubbleChart(datamart,
                                              filter = function(mdls)
                                              { 
                                                m <- filterLatestSnapshotOnly(mdls)[ResponseCount >= 100] 
-                                               m[, OhMyGoodness := (cdhtools::auc2GINI(Performance) + pmin(Positives, as.integer(params$min_positives_for_maturity)) * (1.0/as.integer(params$min_positives_for_maturity)))/2]
+                                               m[, OhMyGoodness := (pdstools::auc2GINI(Performance) + pmin(Positives, as.integer(params$min_positives_for_maturity)) * (1.0/as.integer(params$min_positives_for_maturity)))/2]
                                                return(m)
                                              }, 
                                              facets = c("ConfigurationName", "Direction", "Channel"),

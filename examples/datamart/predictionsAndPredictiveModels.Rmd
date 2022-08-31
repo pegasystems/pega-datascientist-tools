@@ -6,10 +6,10 @@ output:
 ---
 
 ```{r, echo=F, warning=F, error=F, include=FALSE}
-library(cdhtools)
+library(pdstools)
 
 # include below when developing the library
-# sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source)
+# sapply(list.files("~/Documents/pega/pega-datascientist-tools/r/R", "*.R", full.names = T), source)
 
 library(data.table)
 library(lubridate)
@@ -26,7 +26,7 @@ theme_set(theme_light())
 
 See https://docs.pega.com/decision-management-reference-materials/database-tables-monitoring-models and https://techdocs.rpega.com/x/nYjM.
 
-Recommended approach to export them is described in https://github.com/pegasystems/cdh-datascientist-tools/wiki/How-to-export-and-use-the-ADM-Datamart
+Recommended approach to export them is described in https://github.com/pegasystems/pega-datascientist-tools/wiki/How-to-export-and-use-the-ADM-Datamart
 
 Internal doc on the tables: https://techdocs.rpega.com/x/cYD2Ag
 
@@ -59,7 +59,7 @@ Notifications are stored in
 
 ```{r}
 dmSnapshots <- readDSExport("Data-DM-Snapshot_pyGetSnapshot", "../../data")
-dmSnapshots[, pySnapShotTime := cdhtools::fromPRPCDateTime(pySnapShotTime)]
+dmSnapshots[, pySnapShotTime := pdstools::fromPRPCDateTime(pySnapShotTime)]
 dmSnapshots[, pyValue := as.numeric(pyValue)]
 
 dmSnapshots %>% head() %>% kable() %>% kable_paper(bootstrap_options = "striped")
@@ -72,7 +72,7 @@ Binary distribution
 
 ```{r}
 dmBinaryDistribution <- readDSExport("Data-DM-BinaryDistribution_pyGetBinaryDistribution", "../../data")
-dmBinaryDistribution[, pySnapShotTime := cdhtools::fromPRPCDateTime(pySnapShotTime)]
+dmBinaryDistribution[, pySnapShotTime := pdstools::fromPRPCDateTime(pySnapShotTime)]
 
 dmBinaryDistribution %>% head() %>% kable() %>% kable_paper(bootstrap_options = "striped")
 ```
@@ -105,7 +105,7 @@ calculate the metrics shown to the user in Prediction Studio. Once the metric ha
 
 ```{r}
 dmSummary <- readDSExport("Data-DM-Summary_pyGetSummaries", "../../data")
-dmSummary[, pySnapShotTime := cdhtools::fromPRPCDateTime(pySnapShotTime)]
+dmSummary[, pySnapShotTime := pdstools::fromPRPCDateTime(pySnapShotTime)]
 
 dmSummary %>% head() %>% kable() %>% kable_paper(bootstrap_options = "striped")
 ```
