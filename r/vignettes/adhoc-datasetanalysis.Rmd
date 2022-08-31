@@ -1,6 +1,6 @@
 ---
 title: "adhoc-datasetanalysis"
-author: "Pega CDH Tools"
+author: "Pega"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
@@ -42,7 +42,7 @@ In this example we take a look at a sample of `pxInteractionHistory` but this re
 In Pega, export the dataset and download it to your local filesystem. 
 
 ```{r, eval=FALSE}
-library(cdhtools)
+library(pdstools)
 
 # include below when developing the library
 # sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source)
@@ -50,10 +50,10 @@ library(cdhtools)
 ihdata <- readDSExport("Data-pxStrategyResult_pxInteractionHistory", "~/Downloads") 
 ```
 
-The `cdhtools` package ships with a small sample of IH data
+The `pdstools` package ships with a small sample of IH data
 
 ```{r}
-data(ihsampledata, package="cdhtools")
+data(ihsampledata, package="pdstools")
 knitr::kable(head(ihsampledata, 5))
 ```
 
@@ -63,7 +63,7 @@ report and plot.
 
 ```{r}
 for (f in c("pxOutcomeTime", "pxDecisionTime")) {
-  ihsampledata[[f]] <- cdhtools::fromPRPCDateTime(ihsampledata[[f]])
+  ihsampledata[[f]] <- pdstools::fromPRPCDateTime(ihsampledata[[f]])
 }
 summary(ihsampledata[,grepl("Time",names(ihsampledata)), with=F])
 ```
@@ -71,7 +71,7 @@ summary(ihsampledata[,grepl("Time",names(ihsampledata)), with=F])
 With the data in place, you can now do the analyses you want. For the IH data we can for example plot accept rate over time.
 
 BTW, if you're not familiar with the `data.table` syntax below, it would be a good idea to look into this. The internals
-of `cdhtools` heavily rely on it also.
+of `pdstools` heavily rely on it also.
 
 ```{r, warning=F}
 ihsampledata[, period := lubridate::as_date(pxOutcomeTime)]

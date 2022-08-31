@@ -1,6 +1,6 @@
 ---
 title: "historical-dataset"
-author: "Pega CDH Tools"
+author: "Pega"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
@@ -42,7 +42,7 @@ are in multi-line JSON format.
 In this example we use a dataset that is included in the package (*hds*).
 
 ```{r}
-library(cdhtools)
+library(pdstools)
 
 data(hds)
 ```

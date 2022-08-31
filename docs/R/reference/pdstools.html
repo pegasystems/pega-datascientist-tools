@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Articles • pdstools</title>
+<title>pdstools: Open-sourced Data Science tools for Pega. — pdstools • pdstools</title>
 
 
 <!-- jquery -->
@@ -39,7 +39,12 @@
 
 
 
-<meta property="og:title" content="Articles" />
+<meta property="og:title" content="pdstools: Open-sourced Data Science tools for Pega. — pdstools" />
+<meta property="og:description" content="Open source tooling to help Data Scientists working with Pega analyze Pega
+models, responses and predictors using Python and R. There are utility
+functions to read data, easily create plots and more. See the Wiki of the
+GitHub repository at https://github.com/pegasystems/pega-datascientist-tools/wiki
+for a more detailed description and example notebooks." />
 
 
 
@@ -58,7 +63,7 @@
   </head>
 
   <body data-spy="scroll" data-target="#toc">
-    <div class="container template-article-index">
+    <div class="container template-reference-topic">
       <header>
       <div class="navbar navbar-default navbar-fixed-top" role="navigation">
   <div class="container">
@@ -132,30 +137,35 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-      <h1>Articles</h1>
+    <h1>pdstools: Open-sourced Data Science tools for Pega.</h1>
+    
+    <div class="hidden name"><code>pdstools.Rd</code></div>
     </div>
 
-    <div class="section ">
-      <h3>All vignettes</h3>
-      <p class="section-desc"></p>
-
-      <dl>
-        <dt><a href="adhoc-datasetanalysis.html">adhoc-datasetanalysis</a></dt>
-        <dd></dt>
-        <dt><a href="adm-datamart.html">adm-datamart</a></dt>
-        <dd></dt>
-        <dt><a href="adm-explained.html">adm-explained</a></dt>
-        <dd></dt>
-        <dt><a href="historical-dataset.html">historical-dataset</a></dt>
-        <dd></dt>
-        <dt><a href="ih-reporting.html">ih-reporting</a></dt>
-        <dd></dt>
-        <dt><a href="snapshots-to-scorecards.html">snapshots-to-scorecards</a></dt>
-        <dd></dt>
-        <dt><a href="thompson-sampling-explained.html">thompson-sampling-explained</a></dt>
-        <dd></dt>
-      </dl>
+    <div class="ref-description">
+    <p>Open source tooling to help Data Scientists working with Pega analyze Pega
+models, responses and predictors using Python and R. There are utility
+functions to read data, easily create plots and more. See the Wiki of the
+GitHub repository at <a href='https://github.com/pegasystems/pega-datascientist-tools/wiki'>https://github.com/pegasystems/pega-datascientist-tools/wiki</a>
+for a more detailed description and example notebooks.</p>
     </div>
+
+
+
+    <h2 class="hasAnchor" id="a-note-on-style"><a class="anchor" href="#a-note-on-style"></a>A note on style</h2>
+
+    
+
+
+<p>The utilities in pdstools heavily rely on <code>data.table</code> and often expect
+arguments or return values as a <code>data.table</code>. This table library provides
+a high-performance version of base R's <code>data.frame</code>, see <a href='https://github.com/Rdatatable/data.table/wiki'>https://github.com/Rdatatable/data.table/wiki</a>.</p>
+
+  </div>
+  <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
+    <nav id="toc" data-toggle="toc" class="sticky-top">
+      <h2 data-toc-skip>Contents</h2>
+    </nav>
   </div>
 </div>
 

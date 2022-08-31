@@ -35,7 +35,7 @@ params:
 ---
 
 ```{r, echo=F, warning=F, error=F, include=FALSE}
-library(cdhtools)
+library(pdstools)
 
 # include below when developing the library
 # sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source)

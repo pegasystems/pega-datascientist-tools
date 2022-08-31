@@ -4,16 +4,16 @@ library(testthat)
 
 # Below used in the notebooks. Necessary to repeat?
 # library(lubridate)
-# library(cdhtools)
+# library(pdstools)
 # library(data.table)
 # library(ggplot2)
 # library(colorspace)
 
 context("Verify the R notebooks in the examples folder")
 
-# > test_check("cdhtools")
+# > test_check("pdstools")
 # [1] "Example folder check"
-# [1] "C:/Users/runneradmin/AppData/Local/Temp/RtmpYJIkSb/file442fbea53/cdhtools.Rcheck/tests/testthat"
+# [1] "C:/Users/runneradmin/AppData/Local/Temp/RtmpYJIkSb/file442fbea53/pdstools.Rcheck/tests/testthat"
 # [1] "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\RtmpYJIkSb\\file442fbea53\\examples"
 
 # Looks like we only have access to the test folder and down from
@@ -79,7 +79,7 @@ test_that("check example notebooks", {
   }
 })
 
-test_that("check not sourcing CDH Tools files directly", {
+test_that("check not sourcing pdstools files directly", {
   if (dir.exists(exampleFolder)) {
     rFilez <- list.files(packageRootFolder, pattern=".Rmd", recursive = T, full.names = T)
     for (rFile in rFilez) {
@@ -88,7 +88,7 @@ test_that("check not sourcing CDH Tools files directly", {
 
       scanFileForSourceInclusion <- grepl("^[ ]*[^#]*source[[:space:]]*[(|)]", readLines(rFile))
       expect_false(any(scanFileForSourceInclusion),
-                   info = paste("Looks like there is a direct include of CDH tools source in", rFile,
+                   info = paste("Looks like there is a direct include of pdstools source in", rFile,
                                 "at lines",
                                 paste(which(scanFileForSourceInclusion), collapse = ", ")))
 
