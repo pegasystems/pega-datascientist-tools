@@ -491,15 +491,18 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
                                                                   c("ModelID", "PredictorName", "EntryType", "Type")]) [, .N, by=c("EntryType", "Type", "ModelID")], 
           unique(filterLatestSnapshotOnly(datamart$modeldata)[, c("ModelID", "ConfigurationName")]), by="ModelID")
   
+  # add entries for counts of numeric and symbolic together
+  typeDistributionPlotData <- rbindlist(list(typeDistributionPlotData, typeDistributionPlotData[,.(N = sum(N)), by=c("ModelID", "ConfigurationName", "EntryType")][, Type := "overall"]), use.names = T)
+  
   plt <-
     ggplot(typeDistributionPlotData, aes(N, Type, color=Type, linetype=EntryType)) + 
     geom_boxplot() +
-    scale_color_discrete_diverging(name="Predictor Type") +
+    scale_color_discrete_qualitative(name="Predictor Type") +
     scale_linetype_discrete(name="Status") +
     ylab("")+ xlab("") + 
     facet_wrap(. ~ ConfigurationName, strip.position = "right") +
     # theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    ggtitle("Number of Predictors per Model", subtitle = "by Type and per model configuration")
+    ggtitle("Number of Predictors per Model", subtitle = "by Type, Status and per model configuration")
   
   plt
 } else {
