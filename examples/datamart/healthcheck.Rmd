@@ -759,7 +759,9 @@ responseRates[, ResponseRate := DeltaResponseCount/(24*60)] # per minute
 
 if (uniqueN(responseRates$SnapshotTimeDay) <= 1)
 {
-  cat("Resonse rate analysis only available when there are multiple days of snapshots.", fill=T)
+  cat("Response rate analysis only available when there are multiple days of snapshots.", fill=T)
+} else if (nrow(responseRates[!is.na(ResponseRate) & (ResponseRate > 0)]) == 0) {
+  cat("No changes in response counts in provided data.", fill=T)  
 } else {
   ggplot(responseRates[!is.na(ResponseRate) & (ResponseRate > 0)], aes(SnapshotTimeDay, ResponseRate, colour=Channel)) +
     geom_line() +
