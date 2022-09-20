@@ -336,7 +336,7 @@ class ADMVisualisations:
         format = "(%)" if metric != "Positives" else None
         if format == "(%)":
             df.loc[:, metric] *= 100
-        sns.pointplot(x="SnapshotTime", y=metric, data=df, hue=by, marker="o", ax=ax)
+        sns.pointplot(x="SnapshotTime", y=metric, data=df, hue=by, ax=ax)
         print("Pointplot generated")
         modelnames = (
             df[["ModelID", "ModelName"]]

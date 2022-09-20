@@ -4,6 +4,7 @@ import pandas as pd
 import streamlit as st
 from pdstools import ADMDatamart, datasets
 
+
 def import_data(params, default=1):
     config_type = st.selectbox(
         "Data import type",
@@ -12,7 +13,8 @@ def import_data(params, default=1):
             "Filepath",
             "File upload",
             "S3 Bucket",
-        ],index=default
+        ],
+        index=default,
     )
     if config_type == "File upload":
         with st.expander("Upload files", expanded=True):
@@ -23,22 +25,25 @@ def import_data(params, default=1):
                 "Upload Predictor Binning snapshot",
                 type=["json", "zip", "parquet", "csv"],
             )
-            params['kwargs'] = ADMDatamart_options()
+            params["kwargs"] = ADMDatamart_options()
             if st.checkbox("Use this data source"):
                 if model_file is not None:
                     data = import_datamart(
-                        ADMDatamart, model_df=model_file, predictor_df=predictor_file
-                    , **params['kwargs'])
+                        ADMDatamart,
+                        model_df=model_file,
+                        predictor_df=predictor_file,
+                        **params["kwargs"],
+                    )
                 else:
                     "Please upload your datamart files."
     elif config_type == "Sample dataset":
         data = import_datamart(datasets.CDHSample)
     elif config_type == "Filepath":
-        with st.expander('Configure data', expanded=True):
+        with st.expander("Configure data", expanded=True):
             path = st.text_input("Path to files")
-            params['kwargs'] = ADMDatamart_options()
+            params["kwargs"] = ADMDatamart_options()
             if st.checkbox("Use this data source"):
-                data = import_datamart(ADMDatamart, path, **params['kwargs'])
+                data = import_datamart(ADMDatamart, path, **params["kwargs"])
     elif config_type == "S3 Bucket":
         with st.expander("S3 settings", expanded=True):
             bucket = st.text_input("S3 bucket name")
@@ -59,8 +64,9 @@ def import_data(params, default=1):
                     "pySnapshotTime",
                 ]
                 import sys
-                if 'boto3' not in sys.modules:
-                    raise ImportError('To use an S3 connection, please install boto3.')
+
+                if "boto3" not in sys.modules:
+                    raise ImportError("To use an S3 connection, please install boto3.")
                 from boto3 import client
 
                 @st.cache(show_spinner=True)
@@ -84,54 +90,65 @@ def import_data(params, default=1):
                     ]
 
                 response = get_from_s3(bucket, key, sql_query)
-                data = import_datamart(ADMDatamart(
-                    model_df=pd.read_json(str("".join(response)), lines=True)
-                ))
+                data = import_datamart(
+                    ADMDatamart(
+                        model_df=pd.read_json(str("".join(response)), lines=True)
+                    )
+                )
     try:
         return params, data
     except UnboundLocalError:
         return params, None
-                
+
 
 @st.cache(show_spinner=True)
 def import_datamart(fun, *args, **kwargs):
     return fun(*args, **kwargs)
 
+
 def ADMDatamart_options():
     params = dict()
-    extract_treatment = st.checkbox('Extract treatments', False)
-    if extract_treatment: params['extract_treatment'] = 'pyName'
-    context_keys = ['Issue', 'Group', 'Channel', 'Direction']
-    if extract_treatment: context_keys.append('Treatment')
-    params['context_keys'] = st.multiselect('Select context keys', context_keys, default=context_keys)
-    params['plotting_engine'] = st.selectbox('Select engine for plots', ('plotly', 'mpl'))
+    extract_treatment = st.checkbox("Extract treatments", False)
+    if extract_treatment:
+        params["extract_treatment"] = "pyName"
+    context_keys = ["Issue", "Group", "Channel", "Direction"]
+    if extract_treatment:
+        context_keys.append("Treatment")
+    params["context_keys"] = st.multiselect(
+        "Select context keys", context_keys, default=context_keys
+    )
+    params["plotting_engine"] = st.selectbox(
+        "Select engine for plots", ("plotly", "mpl")
+    )
     return params
+
 
 def generate_modeldata_filters(df, params):
     filters, query = None, None
 
-    if st.checkbox('Add filters'):
-        filters = Filters(df=df, params = params)
-        to_filter = st.multiselect(label='Add filters.',options=filters.all_fields)
-        if len(to_filter)>0:
+    if st.checkbox("Add filters"):
+        filters = Filters(df=df, params=params)
+        to_filter = st.multiselect(label="Add filters.", options=filters.all_fields)
+        if len(to_filter) > 0:
             for col in to_filter:
                 filters.add_filter(col)
 
-    with st.expander('Preview', expanded=False):
+    with st.expander("Preview", expanded=False):
         if filters is not None:
             query = filters.generatePandasFilters()
-            params['pandasquery'] = str(query)
-        if query != '' and query is not None:  
-            st.write('Query to filter dataset:')
+            params["pandasquery"] = str(query)
+        if query != "" and query is not None:
+            st.write("Query to filter dataset:")
             st.write(query)
-            st.write('#### Preview of the filtered dataset:')
+            st.write("#### Preview of the filtered dataset:")
             filtereddf = df.query(query)
             st.dataframe(filtereddf.sample(10))
         else:
-            st.write('#### Preview of the dataset')
+            st.write("#### Preview of the dataset")
             st.dataframe(df.sample(10))
         return params
-    
+
+
 @dataclass
 class Filters:
     params: Dict
@@ -200,20 +217,24 @@ class Filters:
                 "Filter method", [True, False], key=f"include_{key}", format_func=format
             )
             if not include:
-                self.params["filters"][key] = list(set(options) - set(self.params["filters"][key]))
+                self.params["filters"][key] = list(
+                    set(options) - set(self.params["filters"][key])
+                )
             if len(self.params["filters"][key]) == 0:
                 del self.params["filters"][key]
 
     def ValueFilter(self, key):
         df = self.df if self.pandasquery == "" else self.df.query(self.pandasquery)
         valrange = (int(df[key].min()), int(df[key].max()))
-        self.params["filters"][key] = list(st.slider(
-            f"Filter on {key}",
-            min_value=valrange[0],
-            max_value=valrange[1],
-            value=(valrange),
-            key=key,
-        ))
+        self.params["filters"][key] = list(
+            st.slider(
+                f"Filter on {key}",
+                min_value=valrange[0],
+                max_value=valrange[1],
+                value=(valrange),
+                key=key,
+            )
+        )
 
     def DateFilter(self):
         last = st.checkbox("Last snapshot only", 0)
@@ -228,7 +249,7 @@ class Filters:
 
     def CustomFilter(self):
         """Custom query
-        You can also supply a custom query. 
+        You can also supply a custom query.
         This query should be formatted according to Pandas' `query` functionality."""
         raise NotImplementedError()
 
@@ -243,4 +264,3 @@ class Filters:
                 pandasquery.append(f"{filter[0]} <= {name} <= {filter[1]}")
         self.pandasquery = " and ".join(pandasquery)
         return self.pandasquery
-
