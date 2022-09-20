@@ -223,7 +223,7 @@ class ADMVisualisations:
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%y-%m-%d"))
         ax.set_yscale("log")
         mapper._A = []
-        cbar = fig.colorbar(mapper)
+        cbar = fig.colorbar(mapper, ax=ax)
         cbar.ax.get_yaxis().labelpad = 20
         cbar.ax.set_ylabel("Model Performance (AUC)")
         print("Maximum AUC across all models: %.2f" % df["Performance"].max())
