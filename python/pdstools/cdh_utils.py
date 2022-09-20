@@ -313,7 +313,7 @@ def auc_from_probs(groundtruth: List[int], probs: List[float]) -> List[float]: #
     # Catching warning - since this is the only place sklearn is used.
     # This way we can remove it from the requirements.
     try:
-        from sklearn import roc_auc_score
+        from sklearn.metrics import roc_auc_score
     except ImportError as e:
         raise ImportError('To calculate AUC, please install sklearn.', e)
 

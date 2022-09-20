@@ -1,0 +1,175 @@
+---
+title: "ADM Health Check"
+author: "Pega pdstools"
+format:
+  html:
+    code-fold: true
+    embed-resources: true
+    standalone: true
+    code-tools: true
+    toc: true
+    toc-title: Contents
+    theme:
+        light: flatly
+        dark: darkly
+jupyter: python3
+
+---
+```{python}
+#| label: Imports
+#| code-fold: true
+#| code-summary: Python imports
+#| output: false
+from IPython.display import display, Markdown
+def Text(d):
+   return display(Markdown(d))
+import sys
+sys.path.append('../../')
+from pdstools import datasets, ADMDatamart
+import plotly.express as px
+import polars as pl
+import pandas as pd
+
+```
+
+
+```{python}
+#| tags: [parameters]
+#| echo: false
+
+# These parameters are overwritten when called by the app function.
+# Though if running this healthcheck separately, you can populate this cell.
+name = 'CDH Sample'
+filters = dict()
+kwargs = dict()
+globalQuery = None
+```
+
+
+
+```{python}
+#| tags: [initialization]
+#| code-fold: true
+#| code-summary: Initialization of the datamart class.
+
+# Initialize the class after the parameters have been overwritten.
+
+if len(kwargs)>0: #override with keyword arguments
+    data = ADMDatamart(**kwargs)
+else: #fall back to 'default'
+    data = datasets.CDHSample()
+
+```
+
+
+This document gives a generic and global overview of the Adaptive models 
+and predictors. It is generated from a Python markdown file in the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools). That repository
+of tools and scripts also contains a notebook to generate stand-alone
+model reports for individual models, please refer 
+to the [Wiki](https://github.com/pegasystems/pega-datascientist-tools/wiki).
+
+This document provides a first-level scan of the models after which a 
+deeper and more customer specific deeper dive can be done.
+
+For best viewing results, open the 
+HTML document in a browser. Viewing it from platforms like e.g. Sharepoint or 
+Github will loose the interactive charts.
+
+Note that the notebook by default generates a single-page HTML, however you
+can also export to PDF as well as other formats supported by Pandoc (e.g. Word) 
+but you would loose interactivity.
+
+In the cell below, all data preprocessing is executed, such as importing the data and applying global filters. By default, the values are populated by environment variables supplied when running the file, but for customization purposes, you can edit this cell.
+
+# Description of data
+
+```{python}
+Text(f"The model dataset has a shape of {data.modelData.shape}.")
+if data.predictorData is not None:
+    Text(f"The predictor dataset a shape of {data.predictorData.shape}.")
+else:
+    Text("There is no predictor data available.")
+
+```
+# Overview of the Actions
+
+Propositions, also referred to as offers or actions with treatments, are
+the most granular perspective on the adaptive models.
+
+```{python}
+#| label: Overview
+context_keys= {'Actions':'ModelName', 'Treatments':'Treatment', 'Issues':'Issue', 'Groups':'Group', 'Channels':'Channel'}
+value_keys = ['Issues', 'Groups', 'Channels']
+lastData = pl.from_pandas(data.last())
+counts, values = dict(), dict()
+for label, column in context_keys.items():
+    if column in lastData.columns:
+        if label in value_keys:
+            datalist = ', '.join(lastData.select(context_keys[label]).to_series().unique().sort().to_list())
+        else:
+            datalist = ''
+        n = lastData.select(column).to_series().n_unique()
+    else: 
+        datalist, n = '', 0
+    counts[f'Number of {label}'] = [n, datalist]
+df = pd.DataFrame(counts, index=['Counts', 'Values']).T
+df
+```
+
+## Proposition Success Rates per Channel
+
+Showing the current success rate of the propositions. Different channels usually 
+have very different success rates. Just showing the top 20
+here and limiting to the propositions that have received at least 100 responses.
+
+Look out for propositions that stand out, having a far higher success rate
+than the rest. Check with business if that is expected. 
+
+Variation in the set of offered propositions across customers is also an important metric but not one that can be derived
+from the Adaptive Model data - this requires analysis of the actual interactions.
+
+```{python}
+df = data.last().query('ResponseCount>100').sort_values('SuccessRate', ascending=True).groupby('Channel').head(20)
+if 'Treatment' not in df.columns:
+    import numpy as np
+    df["Treatment"] = np.nan
+df['Name'] = df['Issue'] + '/' + df['Group'] + '/' + df['ModelName'] + '/' + df['Treatment'].fillna('NA')
+df = df.groupby(['Channel','Name']).mean().reset_index()
+fig = px.bar(df.sort_values(['Channel', 'SuccessRate']), x='SuccessRate', y='Name', color='Channel', facet_col='Channel', template='none',text='Name', title='Proposition success rates <br><sup>Issue/Group/Name/Treatment</sup>')
+fig.update_yaxes(matches=None, showticklabels=False).update_xaxes(matches=None).update_traces(textposition='inside')
+fig.show()
+```
+
+
+## All Success Rates
+
+Interactive chart with all success rates. Whiter is lower success rates,
+green is higher. Indicated values are percentages.
+
+```{python}
+data.plotTreeMap('SuccessRate')
+```
+
+## Success Rates over Time
+
+Showing how the proposition success rates evolved over time. Again split by
+Channel but now also by model configuration. Usually there are separate model
+configurations for different channels but sometimes there are also additional
+model configurations for different outcomes (e.g. conversion) or different
+customers (e.g. anonymous).
+
+```{python}
+# data.plotOverTime('SuccessRate', by='Configuration', facets='Channel')
+data.plotOverTime('SuccessRate', by='ModelName', facets='Channel', query='Positives>200')
+```
+
+# Bubble Chart
+```{python}
+for i in data.plotPerformanceSuccessRateBubbleChart(facets=['Channel', 'Direction']):
+    i.show()
+```
+# Example of raw data
+
+```{python}
+data.modelData.head(5)
+```

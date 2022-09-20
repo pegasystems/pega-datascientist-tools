@@ -6,11 +6,13 @@ build-backend = "setuptools.build_meta"
 where = ["python"]
 include = ['pdstools*']
 exclude = ['/tests/*', '*.dist-info', '/docs/*']
-namespaces = false
+
+[tool.setuptools.package-data]
+pdstools = ['healthcheck/*.qmd']
 
 [project]
 name = "pdstools"
-version = "2.2.1"
+version = "2.3.0"
 description = "Open source tooling that helps Data Scientists to analyze Pega models and conduct impactful analyses."
 readme = "README.md"
 authors = [ { name = "Stijn Kas", email = "stijn.kas@pega.com" } ] 
@@ -47,9 +49,13 @@ requires-python = ">=3.7"
 
 [project.optional-dependencies]
 docs = ['sphinx','furo','sphinx-autoapi','nbsphinx','sphinx-copybutton','myst-parser']
+app = ['streamlit', 'quarto', 'papermill']
 
 [project.urls]
 "Homepage" = "https://github.com/pegasystems/pega-datascientist-tools"
 "Bug Tracker" = "https://github.com/pegasystems/pega-datascientist-tools/issues"
 "Wiki" = "https://github.com/pegasystems/pega-datascientist-tools/wiki"
 "Docs" = "https://pegasystems.github.io/pega-datascientist-tools/"
+
+[project.scripts]
+pdstools = 'pdstools.pds_app:main'
