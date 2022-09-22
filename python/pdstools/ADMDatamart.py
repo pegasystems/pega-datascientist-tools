@@ -354,7 +354,7 @@ class ADMDatamart(Plots):
                 df.reset_index(drop=True), overwrite_mapping, extract_col
             )
 
-        df.columns = self._capitalize(list(df.columns))
+        df.columns = cdh_utils._capitalize(list(df.columns))
         df, renamed, missing = self._available_columns(df, overwrite_mapping, **kwargs)
         if subset:
             df = df[renamed.values()]
@@ -434,12 +434,12 @@ class ADMDatamart(Plots):
 
         if overwrite_mapping is not None and len(overwrite_mapping) > 0:
             old_keys = list(overwrite_mapping.keys())
-            new_keys = self._capitalize(list(old_keys))
+            new_keys = cdh_utils._capitalize(list(old_keys))
             for i, _ in enumerate(new_keys):
                 overwrite_mapping[new_keys[i]] = overwrite_mapping.pop(old_keys[i])
 
             for key, name in overwrite_mapping.items():
-                name = self._capitalize([name])[0]
+                name = cdh_utils._capitalize([name])[0]
                 default_names[key] = [name]
 
         variables = copy.deepcopy(default_names)
