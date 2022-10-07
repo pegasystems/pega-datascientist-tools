@@ -168,6 +168,33 @@ data.plotOverTime('SuccessRate', by='ModelName', facets='Channel', query='Positi
 for i in data.plotPerformanceSuccessRateBubbleChart(facets=['Channel', 'Direction']):
     i.show()
 ```
+
+# Analysis of Predictors
+
+This analysis focuses on finding which are the top predictors that are driving the models. 
+
+The predictors are categorized (by color) by the "source". By default this takes just the first part before the dot, so this typically distinguishes between Customer, Account and IH, for example.
+
+## Predictor Importance across all models per configuration
+Byx plots of the predictor importance. Importance can be shown either as a global feature importance or simply as the univariate predictor importance.
+
+```{python}
+if data.predictorData is not None:
+    data.plotPredictorPerformance(top_n=20, facets=['Channel'])
+else:
+    Text("There is no predictor data available.")
+```
+
+## Predictor Performance across Propositions
+A view of predictor performance across all propositions, ordered so that the best performing predictors are at the top and the best performing propositions are on the left. Green indicates good performance, red means more problematic - either too low or too good to be true.
+```{python}
+if data.predictorData is not None:
+    data.plotPredictorPerformanceHeatmap(top_n = 20)
+else:
+    Text("There is no predictor data available.")
+```
+
+
 # Example of raw data
 
 ```{python}
