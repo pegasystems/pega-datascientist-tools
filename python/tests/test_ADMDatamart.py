@@ -7,7 +7,7 @@ import pandas as pd
 from pandas.api.types import is_datetime64_any_dtype as is_datetime
 
 sys.path.append("python")
-from pdstools import ADMDatamart
+from pdstools import ADMDatamart, cdh_utils
 
 
 @pytest.fixture
@@ -19,17 +19,6 @@ def test():
         predictor_filename="Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210101T010000_GMT.zip",
         context_keys=["Issue", "Group", "Channel"],
     )
-
-
-# Test _capitalize function
-def test_capitalize_behavior(test):
-    assert set(test._capitalize(["pyTest", "pzTest", "pxTest"])) == {"Test"}
-    assert test._capitalize(["test"]) == ["Test"]
-    assert test._capitalize(["RESPONSEcOUNT"]) == ["ResponseCount"]
-    assert test._capitalize(["responsecounter"]) == ["ResponseCounter"]
-    assert test._capitalize(["responsenumber"]) == ["Responsenumber"]
-    assert test._capitalize(["Response Count"]) == ["Response Count"]
-    assert test._capitalize(["Response_count1"]) == ["Response_Count1"]
 
 
 def test_basic_available_columns(test):
@@ -275,7 +264,7 @@ def test_import_models_only(test, cdhsample_models):
 
     assert "SuccessRate" in models.columns
     # of course not strictly necessary, but just there as a reminder
-    assert "SuccessRate" not in test._capitalize(list(cdhsample_models.columns))
+    assert "SuccessRate" not in cdh_utils._capitalize(list(cdhsample_models.columns))
 
 
 def test_import_predictors_only(test, cdhsample_predictors):

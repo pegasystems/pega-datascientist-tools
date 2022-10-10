@@ -152,7 +152,8 @@ class ValueFinder:
         verbose : bool, default = True
             Whether to print execution times.
         """
-        customersummary = customersummary or self.customersummary
+        if customersummary is None:
+            customersummary = self.customersummary
         if verbose:
             print("Generating: Counts per stage...", end=" ")
         start = time.time()

@@ -201,3 +201,14 @@ def test_toPRPCDateTime():
         )
         == "2018-03-16 13:41:27.000"
     )
+
+
+# Test _capitalize function
+def test_capitalize_behavior():
+    assert set(cdh_utils._capitalize(["pyTest", "pzTest", "pxTest"])) == {"Test"}
+    assert cdh_utils._capitalize(["test"]) == ["Test"]
+    assert cdh_utils._capitalize(["RESPONSEcOUNT"]) == ["ResponseCount"]
+    assert cdh_utils._capitalize(["responsecounter"]) == ["ResponseCounter"]
+    assert cdh_utils._capitalize(["responsenumber"]) == ["Responsenumber"]
+    assert cdh_utils._capitalize(["Response Count"]) == ["Response Count"]
+    assert cdh_utils._capitalize(["Response_count1"]) == ["Response_Count1"]
