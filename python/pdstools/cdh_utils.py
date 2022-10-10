@@ -129,7 +129,8 @@ def import_file(file, extension, **kwargs):
         from pyarrow import json
         file = json.read_json(file, **kwargs)
     elif extension == ".parquet":
-        file = pyarrow.parquet.read_table(file)
+        from pyarrow import parquet
+        file = parquet.read_table(file)
     else:
         raise ValueError("Could not import file: {file}, with extension {extension}")
 
