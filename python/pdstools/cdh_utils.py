@@ -120,12 +120,14 @@ def import_file(file, extension, **kwargs):
     if extension == ".zip":
         file = readZippedFile(file)
     elif extension == ".csv":
-        file = pyarrow.csv.read_csv(
+        from pyarrow import csv
+        file = csv.read_csv(
             file,
             parse_options=pyarrow.csv.ParseOptions(delimiter=kwargs.get("sep", ",")),
         )
     elif extension == ".json":
-        file = pyarrow.json.read_json(file, **kwargs)
+        from pyarrow import json
+        file = json.read_json(file, **kwargs)
     elif extension == ".parquet":
         file = pyarrow.parquet.read_table(file)
     else:
