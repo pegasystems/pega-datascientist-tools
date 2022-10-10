@@ -452,67 +452,6 @@ class ADMDatamart(Plots):
         return df, variables, missing
 
     @staticmethod
-    def _capitalize(fields: list) -> list:
-        """Applies automatic capitalization, aligned with the R couterpart.
-
-        Parameters
-        ----------
-        fields : list
-            A list of names
-
-        Returns
-        -------
-        fields : list
-            The input list, but each value properly capitalized
-        """
-        capitalizeEndWords = [
-            "ID",
-            "Key",
-            "Name",
-            "Treatment",
-            "Count",
-            "Category",
-            "Class",
-            "Time",
-            "DateTime",
-            "UpdateTime",
-            "ToClass",
-            "Version",
-            "Predictor",
-            "Predictors",
-            "Rate",
-            "Ratio",
-            "Negatives",
-            "Positives",
-            "Threshold",
-            "Error",
-            "Importance",
-            "Type",
-            "Percentage",
-            "Index",
-            "Symbol",
-            "LowerBound",
-            "UpperBound",
-            "Bins",
-            "GroupIndex",
-            "ResponseCount",
-            "NegativesPercentage",
-            "PositivesPercentage",
-            "BinPositives",
-            "BinNegatives",
-            "BinResponseCount",
-            "BinSymbol",
-            "ResponseCountPercentage",
-            "ConfigurationName",
-            "Configuration",
-        ]
-        fields = [re.sub("^p(x|y|z)", "", field.lower()) for field in fields]
-        for word in capitalizeEndWords:
-            fields = [re.sub(word, word, field, flags=re.I) for field in fields]
-            fields = [field[:1].upper() + field[1:] for field in fields]
-        return fields
-
-    @staticmethod
     def _set_types(df: pd.DataFrame, verbose=True) -> pd.DataFrame:
         """A method to change columns to their proper type
 

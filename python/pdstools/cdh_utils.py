@@ -289,7 +289,9 @@ def safe_range_auc(auc: float) -> float:
         return 0.5 + np.abs(0.5 - auc)
 
 
-def auc_from_probs(groundtruth: List[int], probs: List[float]) -> List[float]: # pragma: no cover
+def auc_from_probs(
+    groundtruth: List[int], probs: List[float]
+) -> List[float]:  # pragma: no cover
     """Calculates AUC from an array of truth values and predictions.
     Calculates the area under the ROC curve from an array of truth values and
     predictions, making sure to always return a value between 0.5 and 1.0 and
@@ -315,7 +317,7 @@ def auc_from_probs(groundtruth: List[int], probs: List[float]) -> List[float]: #
     try:
         from sklearn.metrics import roc_auc_score
     except ImportError as e:
-        raise ImportError('To calculate AUC, please install sklearn.', e)
+        raise ImportError("To calculate AUC, please install sklearn.", e)
 
     if len(set(groundtruth)) < 2:
         return 0.5
@@ -373,7 +375,7 @@ def auc2GINI(auc: float) -> float:
     """
     return 2 * safe_range_auc(auc) - 1
 
-    
+
 def _capitalize(fields: list) -> list:
     """Applies automatic capitalization, aligned with the R couterpart.
 
