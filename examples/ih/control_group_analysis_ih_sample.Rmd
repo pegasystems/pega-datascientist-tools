@@ -1,5 +1,7 @@
 ---
 title: "Control Group analysis on IH data"
+author: "Pega Data Scientist Tools"
+date: "`r Sys.Date()`"
 output:
   html_document:
     df_print: paged
@@ -9,7 +11,7 @@ params:
 ---
 
 ```{r message=FALSE, warning=FALSE}
-library(cdhtools)
+library(pdstools)
 library(data.table)
 library(ggplot2)
 library(scales)
@@ -34,7 +36,7 @@ do not sum with Clicked outcomes
 
 # Data
 
-By default uses the small IH sample that is part of the CDHTools package.
+By default uses the small IH sample that is part of the Pega Data Scientist package.
 
 To use your own data use use the *readDSExport* function with the json file
 as argument, or use *read_json_arrow* from the *arrow* package.

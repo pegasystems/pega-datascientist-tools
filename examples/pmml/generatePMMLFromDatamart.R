@@ -2,7 +2,7 @@
 
 library(XML)
 library(RJDBC)
-library(cdhtools)
+library(pdstools)
 
 drv <- JDBC("org.postgresql.Driver", "~/Documents/tools/jdbc-drivers/postgresql-9.2-1002.jdbc4.jar")
 pg_host <- "localhost:5432"

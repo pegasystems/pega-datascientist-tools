@@ -1,6 +1,6 @@
 ---
 title: "Analysis of Model Executions in pxDecisionResults"
-author: "Pega CDH Tools"
+author: "Pega Data Scientist Tools"
 date: "`r Sys.Date()`"
 output:
   html_document:
@@ -36,10 +36,10 @@ params:
 ---
 
 ```{r, echo=F, warning=F, error=F, include=FALSE}
-library(cdhtools)
+library(pdstools)
 
 # include below when developing the library
-# sapply(list.files("~/Documents/pega/cdh-datascientist-tools/r/R", "*.R", full.names = T), source)
+# sapply(list.files("~/Documents/pega/pega-datascientist-tools/r/R", "*.R", full.names = T), source)
 
 library(data.table)
 library(lubridate)

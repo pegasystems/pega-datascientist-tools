@@ -8,7 +8,7 @@ if (Sys.info()['sysname'] == 'Darwin') {
 library(XML)
 library(jsonlite)
 library(RJDBC)
-library(cdhtools)
+library(pdstools)
 
 # Change the driver path, host, db name, username and password to run on different environments.
 

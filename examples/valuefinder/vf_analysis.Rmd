@@ -1,14 +1,14 @@
 ---
 title: "Example analysis of ValueFinder dataset"
-author: "Pega"
-date: "8/20/2021"
+author: "Pega Data Scientist Tools"
+date: "`r Sys.Date()`"
 output:
   html_document: default
   pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
-library(cdhtools)
+library(pdstools)
 library(tidyverse)
 library(data.table)
 library(ggplot2)

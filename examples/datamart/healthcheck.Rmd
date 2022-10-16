@@ -23,14 +23,16 @@ params:
   modelfile:
     # Full path to the source file which should be an export of the ADM model table
     # can be a plain CSV file, a zipped CSV, or the full path of a dataset export
-    value: "../../data/pr_data_dm_admmart_mdl_fact.csv"
+    # value: "../../data/pr_data_dm_admmart_mdl_fact.csv"
+    value: "/Users/perdo/Library/CloudStorage/OneDrive-SharedLibraries-PegasystemsInc/AI Chapter Data Sets - Documents/Customers/Rabo/ADM_analysis_2022/Information to Pega/dm_models.tmp.csv"
 
   predictordatafile:
     # Optional full path to ADM predictor binning table data. If given, the model 
     # overview will also contain predictor plots. Like the model file, there is 
     # flexibility in format: CSV, zipped CSV or dataset export. If you have something
     # different, you'll need to load, filter and re-write as CSV first.
-    value: "../../data/pr_data_dm_admmart_pred.csv"
+    # value: "../../data/pr_data_dm_admmart_pred.csv"
+    value: "/Users/perdo/Library/CloudStorage/OneDrive-SharedLibraries-PegasystemsInc/AI Chapter Data Sets - Documents/Customers/Rabo/ADM_analysis_2022/Information to Pega/dm_preds.tmp.csv"
 
   # perhaps consider supporting something like this, for now you would do this in 
   # a separate script then call this notebook
@@ -517,12 +519,12 @@ A view of predictor performance across all propositions, ordered so that the bes
 best performing propositions are on the left. Green indicates good performance, red means more problematic - either too low or
 too good to be true.
 
-
 ```{r Predictors vs Propositions}
 if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
   for (c in levels(datamart$modeldata$ConfigurationName)) {
     # applicableModels <- filterLatestSnapshotOnly(mdls) [ConfigurationName==c]
     # applicablePredictorBins <- modelPredictorBins[EntryType=="Active" & ModelID %in% applicableModels$ModelID]
+    datamart$predictordata[, ResponseCount := as.numeric(ResponseCount)] # temp hack
     plt <- plotPredictorImportanceHeatmap(datamart, 
                                           limit=params$max_propositions_in_plot,
                                           filter = function(mdls) {

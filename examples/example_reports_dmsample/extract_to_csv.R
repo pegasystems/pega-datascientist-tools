@@ -1,4 +1,4 @@
-library(cdhtools)
+library(pdstools)
 library(data.table)
 
 dataFolder <- "../extra/example_reports_dmsample"

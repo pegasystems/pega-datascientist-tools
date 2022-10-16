@@ -1,7 +1,7 @@
 ---
-title: "Hello CDH Tools"
-author: "Pega"
-date: "1/26/2021"
+title: "Hello Pega Data Scientist Tools"
+author: "Pega Data Scientist Tools"
+date: "`r Sys.Date()`"
 output: html_document
 ---
 
@@ -10,16 +10,16 @@ output: html_document
 This is a basic example of using CDH tools to visualize the ADM datamart.
 
 To run this first install the `cdhtool` library as per instructions from the 
-[Wiki](https://github.com/pegasystems/cdh-datascientist-tools/wiki) of the GitHub repository https://github.com/pegasystems/cdh-datascientist-tools.
+[Wiki](https://github.com/pegasystems/pega-datascientist-tools/wiki) of the GitHub repository https://github.com/pegasystems/pega-datascientist-tools.
 
 ```{r message=FALSE, warning=FALSE}
-library(cdhtools)
+library(pdstools)
 library(data.table)
 library(ggplot2)
 ```
 
 Then to run this example, use a sample dataset included or export your own 
-from Pega. These steps are detailed in that same Wiki, see [ADM Datamart](https://github.com/pegasystems/cdh-datascientist-tools/wiki/CDH-Model-analysis-from-ADM-Datamart).
+from Pega. These steps are detailed in that same Wiki, see [ADM Datamart](https://github.com/pegasystems/pega-datascientist-tools/wiki/CDH-Model-analysis-from-ADM-Datamart).
 
 Change the folder if it is different from the Mac default location used 
 below. The function `ADMDatamart` will read ADM datamart and standardize the
@@ -43,7 +43,7 @@ ADM datamart. The Pega `py` prefixes have been stripped off and casing has been
 normalized, so you will find attributes like `ResponseCount`, not `pyResponseCount`. 
 
 This data can then easily be used for plotting. Below a few examples. For 
-more please see the [Graph Gallery](https://github.com/pegasystems/cdh-datascientist-tools/wiki/CDH-Graph-Gallery) in the Wiki.
+more please see the [Graph Gallery](https://github.com/pegasystems/pega-datascientist-tools/wiki/CDH-Graph-Gallery) in the Wiki.
 
 ## Bubble Chart
 
@@ -71,7 +71,7 @@ plotPredictorImportance(datamart, limit=20) +
 
 ## Next steps
 
-For more examples and sample code see the [CDH Tools Wiki](https://github.com/pegasystems/cdh-datascientist-tools/wiki).
+For more examples and sample code see the [Pega Data Scientist Tools Wiki](https://github.com/pegasystems/pega-datascientist-tools/wiki).
 
 
 
