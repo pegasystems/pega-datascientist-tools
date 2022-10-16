@@ -76,8 +76,49 @@ test_that("AUC from full arrays", {
   probs <- unlist(sapply(seq(length(positives)), function(i){ return(c(rep(positives[i]/(positives[i]+negatives[i]), positives[i]+negatives[i])))}))
 
   expect_equal(auc_from_probs(truth, probs), 0.6871)
+  expect_equal(auc_from_bincounts(positives, negatives), 0.6871)
   expect_equal(auc_from_probs(truth, rep(0, length(probs))), 0.5)
   expect_equal(auc_from_probs(rep("Accept, 10"), runif(n = 10)), 0.5)
+
+  # A similar but much smaller example that starts with the bin counts,
+  # turns that into truths and probabilities and does the calculation.
+  positives <- c(2, 4, 7)
+  negatives <- c(4, 2, 1)
+  truth <- unlist(sapply(seq(length(positives)), function(i){ return(c(rep(1, positives[i]), rep(0, negatives[i])))}))
+  probs <- unlist(sapply(seq(length(positives)), function(i){ return(c(rep(positives[i]/(positives[i]+negatives[i]), positives[i]+negatives[i])))}))
+  expect_equal(auc_from_probs(truth, probs), 0.7637363, 1e-6)
+  expect_equal(auc_from_bincounts(positives, negatives), 0.7637363, 1e-6)
+
+  # Example from MLmetrics
+  # MLmetrics::AUC(y_pred = logreg$fitted.values, y_true = mtcars$vs)
+  # prelude to PRAUC from same package
+  data(cars)
+  logreg <- glm(formula = vs ~ hp + wt,
+                family = binomial(link = "logit"), data = mtcars)
+  expect_equal(auc_from_probs(mtcars$vs, logreg$fitted.values), 0.9484127)
+})
+
+test_that("AUC PR", {
+  # AUCPR is under the curve (0.4166667) so gets flipped
+  expect_equal(aucpr_from_probs( c("yes", "yes", "no"), c(0.6, 0.2, 0.2)),
+               0.5833333, tolerance=1e-6)
+
+  # Same from bins
+  positives <- c(3,1,0)
+  negatives <- c(2,0,1)
+  truth <- unlist(sapply(seq(length(positives)), function(i){ return(c(rep(1, positives[i]), rep(0, negatives[i])))}))
+  probs <- unlist(sapply(seq(length(positives)), function(i){ return(c(rep(positives[i]/(positives[i]+negatives[i]), positives[i]+negatives[i])))}))
+  expect_equal(aucpr_from_bincounts( positives, negatives),
+               0.625)
+
+  # Example from MLmetrics
+  # MLmetrics::AUC(y_pred = logreg$fitted.values, y_true = mtcars$vs)
+  # prelude to PRAUC from same package
+  data(cars)
+  logreg <- glm(formula = vs ~ hp + wt,
+                family = binomial(link = "logit"), data = mtcars)
+  expect_equal(aucpr_from_probs(mtcars$vs, logreg$fitted.values),
+               0.8610687, tolerance=1e-6)
 })
 
 test_that("GINI conversion", {

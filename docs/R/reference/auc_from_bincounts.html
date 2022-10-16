@@ -40,8 +40,9 @@
 
 
 <meta property="og:title" content="Calculates AUC from counts of positives and negatives directly. — auc_from_bincounts" />
-<meta property="og:description" content="This is an efficient calculation of the AUC directly from an array of positives and negatives. It makes
-sure to always return a value between 0.5 and 1.0 and will return 0.5 in case of any issues." />
+<meta property="og:description" content="This is an efficient calculation of the area under the ROC curve directly from an array of positives and negatives. It makes
+sure to always return a value between 0.5 and 1.0 and will return 0.5 when there is just one
+groundtruth label." />
 
 
 
@@ -140,11 +141,12 @@ sure to always return a value between 0.5 and 1.0 and will return 0.5 in case of
     </div>
 
     <div class="ref-description">
-    <p>This is an efficient calculation of the AUC directly from an array of positives and negatives. It makes
-sure to always return a value between 0.5 and 1.0 and will return 0.5 in case of any issues.</p>
+    <p>This is an efficient calculation of the area under the ROC curve directly from an array of positives and negatives. It makes
+sure to always return a value between 0.5 and 1.0 and will return 0.5 when there is just one
+groundtruth label.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>auc_from_bincounts</span><span class='op'>(</span><span class='va'>pos</span>, <span class='va'>neg</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>auc_from_bincounts</span><span class='op'>(</span><span class='va'>pos</span>, <span class='va'>neg</span>, probs <span class='op'>=</span> <span class='va'>pos</span><span class='op'>/</span><span class='op'>(</span><span class='va'>pos</span> <span class='op'>+</span> <span class='va'>neg</span><span class='op'>)</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -157,11 +159,15 @@ sure to always return a value between 0.5 and 1.0 and will return 0.5 in case of
       <th>neg</th>
       <td><p>Vector with counts of the negative responses</p></td>
     </tr>
+    <tr>
+      <th>probs</th>
+      <td><p>Optional vector of probabilities, defaults to pos/(pos+neg). Used to order the response bins.</p></td>
+    </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>The AUC as a value between 0.5 and 1, return 0.5 if there are any issues with the data.</p>
+    <p>The ROC AUC as a value between 0.5 and 1.</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"><div class='input'><span class='fu'>auc_from_bincounts</span><span class='op'>(</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='fl'>3</span>,<span class='fl'>1</span>,<span class='fl'>0</span><span class='op'>)</span>, <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='fl'>2</span>,<span class='fl'>0</span>,<span class='fl'>1</span><span class='op'>)</span><span class='op'>)</span>

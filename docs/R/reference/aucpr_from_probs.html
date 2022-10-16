@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Convert to a Pega date-time string. — toPRPCDateTime • pdstools</title>
+<title>Calculates PR AUC (precision-recall) from an array of truth values and predictions. — aucpr_from_probs • pdstools</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,10 @@
 
 
 
-<meta property="og:title" content="Convert to a Pega date-time string. — toPRPCDateTime" />
-<meta property="og:description" content="Convert to a Pega date-time string." />
+<meta property="og:title" content="Calculates PR AUC (precision-recall) from an array of truth values and predictions. — aucpr_from_probs" />
+<meta property="og:description" content="Calculates the area under the PR curve from an array of truth values and predictions, making sure to
+always return a value between 0.5 and 1.0 and returns 0.5 when there is just one
+groundtruth label." />
 
 
 
@@ -133,33 +135,39 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Convert to a Pega date-time string.</h1>
+    <h1>Calculates PR AUC (precision-recall) from an array of truth values and predictions.</h1>
     
-    <div class="hidden name"><code>toPRPCDateTime.Rd</code></div>
+    <div class="hidden name"><code>aucpr_from_probs.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Convert to a Pega date-time string.</p>
+    <p>Calculates the area under the PR curve from an array of truth values and predictions, making sure to
+always return a value between 0.5 and 1.0 and returns 0.5 when there is just one
+groundtruth label.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>toPRPCDateTime</span><span class='op'>(</span><span class='va'>x</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>aucpr_from_probs</span><span class='op'>(</span><span class='va'>groundtruth</span>, <span class='va'>probs</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>x</th>
-      <td><p>A vector of valid date-time objects (valid for <code><a href='https://rdrr.io/r/base/strptime.html'>strftime</a></code>)</p></td>
+      <th>groundtruth</th>
+      <td><p>The 'true' values, with just 2 different values</p></td>
+    </tr>
+    <tr>
+      <th>probs</th>
+      <td><p>The predictions, as a numeric vector as the same length as <code>groundtruth</code></p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>A vector of string representations in the format used by Pega.</p>
+    <p>The AUC as a value between 0.5 and 1.</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><div class='input'><span class='fu'>toPRPCDateTime</span><span class='op'>(</span><span class='fu'><a href='https://rdrr.io/r/base/Sys.time.html'>Sys.time</a></span><span class='op'>(</span><span class='op'>)</span><span class='op'>)</span>
-</div><div class='output co'>#&gt; [1] "20221016T132915.888 GMT"</div></pre>
+    <pre class="examples"><div class='input'><span class='fu'>aucpr_from_probs</span><span class='op'>(</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"yes"</span>, <span class='st'>"yes"</span>, <span class='st'>"no"</span><span class='op'>)</span>, <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='fl'>0.6</span>, <span class='fl'>0.2</span>, <span class='fl'>0.2</span><span class='op'>)</span><span class='op'>)</span>
+</div><div class='output co'>#&gt; [1] 0.5833333</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

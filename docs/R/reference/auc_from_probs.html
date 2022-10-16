@@ -41,7 +41,8 @@
 
 <meta property="og:title" content="Calculates AUC from an array of truth values and predictions. — auc_from_probs" />
 <meta property="og:description" content="Calculates the area under the ROC curve from an array of truth values and predictions, making sure to
-always return a value between 0.5 and 1.0 and will return 0.5 in case of any issues." />
+always return a value between 0.5 and 1.0 and returns 0.5 when there is just one
+groundtruth label." />
 
 
 
@@ -141,7 +142,8 @@ always return a value between 0.5 and 1.0 and will return 0.5 in case of any iss
 
     <div class="ref-description">
     <p>Calculates the area under the ROC curve from an array of truth values and predictions, making sure to
-always return a value between 0.5 and 1.0 and will return 0.5 in case of any issues.</p>
+always return a value between 0.5 and 1.0 and returns 0.5 when there is just one
+groundtruth label.</p>
     </div>
 
     <pre class="usage"><span class='fu'>auc_from_probs</span><span class='op'>(</span><span class='va'>groundtruth</span>, <span class='va'>probs</span><span class='op'>)</span></pre>
@@ -151,7 +153,7 @@ always return a value between 0.5 and 1.0 and will return 0.5 in case of any iss
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
       <th>groundtruth</th>
-      <td><p>The 'true' values, with just 2 different values, passed on to the pROC::roc function.</p></td>
+      <td><p>The 'true' values, with just 2 different values</p></td>
     </tr>
     <tr>
       <th>probs</th>
@@ -161,7 +163,7 @@ always return a value between 0.5 and 1.0 and will return 0.5 in case of any iss
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>The AUC as a value between 0.5 and 1, return 0.5 if there are any issues with the data.</p>
+    <p>The AUC as a value between 0.5 and 1.</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"><div class='input'><span class='fu'>auc_from_probs</span><span class='op'>(</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"yes"</span>, <span class='st'>"yes"</span>, <span class='st'>"no"</span><span class='op'>)</span>, <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='fl'>0.6</span>, <span class='fl'>0.2</span>, <span class='fl'>0.2</span><span class='op'>)</span><span class='op'>)</span>

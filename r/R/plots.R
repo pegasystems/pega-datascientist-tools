@@ -508,7 +508,7 @@ plotPredictorImportanceHeatmap <- function(datamart,
                                   setdiff(names(predictordata), c(aggregation, facets)), with=F],
                     unique(modeldata[, c("ModelID", aggregation, facets), with=F]),
                     by="ModelID", all.x=F, all.y=F)[, list(Performance = weighted.mean(Performance, 1+ResponseCount, na.rm = T),
-                                                           ResponseCount = sum(ResponseCount)),
+                                                           ResponseCount = sum(as.numeric(ResponseCount))),
                                                     by=c("PredictorName", aggregation, facets)]
 
 

@@ -124,9 +124,9 @@ readDSExport <- function(instancename, srcFolder=".",
       if (verbose) cat(errorReason, jsonFile, fill=T)
       multiLineJSON <- readLines(jsonFile)
     } else if (file.exists(file.path(srcFolder,instancename))) {
-        jsonFile <- file.path(srcFolder,instancename)
-        if (verbose) cat(errorReason, jsonFile, fill=T)
-        multiLineJSON <- readLines(jsonFile)
+      jsonFile <- file.path(srcFolder,instancename)
+      if (verbose) cat(errorReason, jsonFile, fill=T)
+      multiLineJSON <- readLines(jsonFile)
     }
   } else {
     # See if it is a fully specified ZIP file then assume this is a Pega
@@ -171,21 +171,21 @@ readDSExport <- function(instancename, srcFolder=".",
       file.remove(jsonFile)
     }
   }
-#
-#   Deprecated option. Users should just use arrow directly to read JSON.
-#
-#   if (is.null(jsonFile)) {
-#     errorReason <- paste("looking for pattern to match", instancename)
-#     if (verbose) cat(errorReason, fill=T)
-#
-#     # Try to interpret the filename as a pattern.
-#     jsonFile <- list.files(pattern = instancename, path = srcFolder, full.names = T)
-#     if (length(jsonFile) > 0) {
-#       multiLineJSON <- unlist(sapply(jsonFile, readLines, warn=F))
-#     } else {
-#       jsonFile <- NULL
-#     }
-#  }
+  #
+  #   Deprecated option. Users should just use arrow directly to read JSON.
+  #
+  #   if (is.null(jsonFile)) {
+  #     errorReason <- paste("looking for pattern to match", instancename)
+  #     if (verbose) cat(errorReason, fill=T)
+  #
+  #     # Try to interpret the filename as a pattern.
+  #     jsonFile <- list.files(pattern = instancename, path = srcFolder, full.names = T)
+  #     if (length(jsonFile) > 0) {
+  #       multiLineJSON <- unlist(sapply(jsonFile, readLines, warn=F))
+  #     } else {
+  #       jsonFile <- NULL
+  #     }
+  #  }
 
   if (is.null(jsonFile)) {
     stop(paste("Dataset JSON file not found", errorReason))
@@ -249,43 +249,126 @@ safe_range_auc <- function(auc)
 #' Calculates AUC from an array of truth values and predictions.
 #'
 #' Calculates the area under the ROC curve from an array of truth values and predictions, making sure to
-#' always return a value between 0.5 and 1.0 and will return 0.5 in case of any issues.
+#' always return a value between 0.5 and 1.0 and returns 0.5 when there is just one
+#' groundtruth label.
 #'
-#' @param groundtruth The 'true' values, with just 2 different values, passed on to the pROC::roc function.
+#' @param groundtruth The 'true' values, with just 2 different values
 #' @param probs The predictions, as a numeric vector as the same length as \code{groundtruth}
 #'
-#' @return The AUC as a value between 0.5 and 1, return 0.5 if there are any issues with the data.
+#' @return The AUC as a value between 0.5 and 1.
 #' @export
 #'
 #' @examples
 #' auc_from_probs( c("yes", "yes", "no"), c(0.6, 0.2, 0.2))
 auc_from_probs <- function(groundtruth, probs)
 {
-  if (length(unique(groundtruth)) < 2) { return (0.5) }
-  auc <- as.numeric(pROC::auc(groundtruth, probs, quiet=T))
-  return (safe_range_auc(auc))
+  nlabels <- length(unique(groundtruth))
+  if (nlabels < 2) { return (0.5) }
+  if (nlabels > 2) { stop("'Groundtruth' has more than two levels.") }
+
+  # with external lib it would be something like this:
+  # auc <- MLmetrics::AUC(y_pred = probs, y_true = as.integer(as.factor(groundtruth))-1)
+  # return (safe_range_auc(auc))
+  # or:
+  # auc <- as.numeric(pROC::auc(groundtruth, probs, quiet=T))
+  # return (safe_range_auc(auc))
+
+  probabilities <- data.frame(groundtruth = as.integer(as.factor(groundtruth)) == 2,
+                              probs = probs)
+  groupedProbabilities <- by(probabilities, # base group by, avoiding need for frameworks
+                             probabilities$probs,
+                             function(x) {return(c(p=first(x[2]),
+                                                   pos=sum(x$groundtruth),
+                                                   neg=sum(!x$groundtruth)))})
+  binProbs <- unlist(lapply(groupedProbabilities, function(x) {x[[1]]}))
+  binPos <- unlist(lapply(groupedProbabilities, function(x) {x[[2]]}))
+  binNeg <- unlist(lapply(groupedProbabilities, function(x) {x[[3]]}))
+  return(auc_from_bincounts(binPos, binNeg, binProbs))
+}
+
+#' Calculates PR AUC (precision-recall) from an array of truth values and predictions.
+#'
+#' Calculates the area under the PR curve from an array of truth values and predictions, making sure to
+#' always return a value between 0.5 and 1.0 and returns 0.5 when there is just one
+#' groundtruth label.
+#'
+#' @param groundtruth The 'true' values, with just 2 different values
+#' @param probs The predictions, as a numeric vector as the same length as \code{groundtruth}
+#'
+#' @return The AUC as a value between 0.5 and 1.
+#' @export
+#'
+#' @examples
+#' aucpr_from_probs( c("yes", "yes", "no"), c(0.6, 0.2, 0.2))
+aucpr_from_probs <- function(groundtruth, probs)
+{
+  nlabels <- length(unique(groundtruth))
+  if (nlabels < 2) { return (0.5) }
+  if (nlabels > 2) { stop("'Groundtruth' has more than two levels.") }
+
+  # with external lib it would be something like this:
+  # auc <- MLmetrics::PRAUC(y_pred = probs, y_true = as.integer(as.factor(groundtruth))-1)
+  # return (safe_range_auc(auc))
+
+  probabilities <- data.frame(groundtruth = as.integer(as.factor(groundtruth)) == 2,
+                              probs = probs)
+  groupedProbabilities <- by(probabilities, # base group by, avoiding need for frameworks
+                             probabilities$probs,
+                             function(x) {return(c(p=first(x[2]),
+                                                   pos=sum(x$groundtruth),
+                                                   neg=sum(!x$groundtruth)))})
+  binProbs <- unlist(lapply(groupedProbabilities, function(x) {x[[1]]}))
+  binPos <- unlist(lapply(groupedProbabilities, function(x) {x[[2]]}))
+  binNeg <- unlist(lapply(groupedProbabilities, function(x) {x[[3]]}))
+  return(aucpr_from_bincounts(binPos, binNeg, binProbs))
 }
 
 #' Calculates AUC from counts of positives and negatives directly.
 #'
-#' This is an efficient calculation of the AUC directly from an array of positives and negatives. It makes
-#' sure to always return a value between 0.5 and 1.0 and will return 0.5 in case of any issues.
+#' This is an efficient calculation of the area under the ROC curve directly from an array of positives and negatives. It makes
+#' sure to always return a value between 0.5 and 1.0 and will return 0.5 when there is just one
+#' groundtruth label.
 #'
 #' @param pos Vector with counts of the positive responses
 #' @param neg Vector with counts of the negative responses
+#' @param probs Optional vector of probabilities, defaults to pos/(pos+neg). Used to order the response bins.
 #'
-#' @return The AUC as a value between 0.5 and 1, return 0.5 if there are any issues with the data.
+#' @return The ROC AUC as a value between 0.5 and 1.
 #' @export
 #'
 #' @examples
 #' auc_from_bincounts( c(3,1,0), c(2,0,1))
-auc_from_bincounts <- function(pos, neg)
+auc_from_bincounts <- function(pos, neg, probs = pos/(pos+neg))
 {
-  o <- order(pos/(pos+neg), decreasing = T)
-  FPR <- rev(cumsum(neg[o]) / sum(neg))
-  TPR <- rev(cumsum(pos[o]) / sum(pos))
-  Area <- (FPR-c(FPR[-1],0))*(TPR+c(TPR[-1],0))/2
+  binorder <- order(probs, decreasing = T)
+  FPR <- cumsum(neg[binorder]) / sum(neg)
+  TPR <- cumsum(pos[binorder]) / sum(pos)
+  Area <- (FPR - shift(FPR, 1, fill=0)) * (TPR + shift(TPR, 1, fill=0)) / 2
   return (safe_range_auc(sum(Area)))
+}
+
+#' Calculates PR AUC (precision-recall) from counts of positives and negatives directly.
+#'
+#' This is an efficient calculation of the area under the PR curve directly from an array of positives and negatives. It makes
+#' sure to always return a value between 0.5 and 1.0 and will return 0.5 when there is just one
+#' groundtruth label.
+#'
+#' @param pos Vector with counts of the positive responses
+#' @param neg Vector with counts of the negative responses
+#' @param probs Optional vector of probabilities, defaults to pos/(pos+neg). Used to order the response bins.
+#'
+#' @return The PR AUC as a value between 0.5 and 1.
+#' @export
+#'
+#' @examples
+#' auc_from_bincounts( c(3,1,0), c(2,0,1))
+aucpr_from_bincounts <- function(pos, neg, probs = pos/(pos+neg))
+{
+  binorder <- order(probs, decreasing = T)
+  recall <- cumsum(pos[binorder]) / sum(pos)
+  precision <- cumsum(pos[binorder]) / cumsum(pos[binorder] + neg[binorder])
+  Area <- (recall - shift(recall, 1, fill=0)) * (precision + shift(precision, 1, fill=0)) / 2
+  return (safe_range_auc(sum(Area[-1])))
 }
 
 #' Convert AUC performance metric to GINI.
