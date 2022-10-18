@@ -9,7 +9,7 @@ auc_from_probs(groundtruth, probs)
 \arguments{
 \item{groundtruth}{The 'true' values, with just 2 different values}
 
-\item{probs}{The predictions, as a numeric vector as the same length as \code{groundtruth}}
+\item{probs}{The predictions, as a numeric vector of the same length as \code{groundtruth}}
 }
 \value{
 The AUC as a value between 0.5 and 1.

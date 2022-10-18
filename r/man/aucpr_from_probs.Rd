@@ -12,12 +12,11 @@ aucpr_from_probs(groundtruth, probs)
 \item{probs}{The predictions, as a numeric vector as the same length as \code{groundtruth}}
 }
 \value{
-The AUC as a value between 0.5 and 1.
+The AUC as a value between 0.0 and 1.0
 }
 \description{
-Calculates the area under the PR curve from an array of truth values and predictions, making sure to
-always return a value between 0.5 and 1.0 and returns 0.5 when there is just one
-groundtruth label.
+Calculates the area under the PR curve from an array of truth values and predictions.
+Returns 0.5 when there is just one groundtruth label.
 }
 \examples{
 aucpr_from_probs( c("yes", "yes", "no"), c(0.6, 0.2, 0.2))

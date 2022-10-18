@@ -14,11 +14,11 @@ aucpr_from_bincounts(pos, neg, probs = pos/(pos + neg))
 \item{probs}{Optional vector of probabilities, defaults to pos/(pos+neg). Used to order the response bins.}
 }
 \value{
-The PR AUC as a value between 0.5 and 1.
+The PR AUC as a value between 0.0 and 1.0
 }
 \description{
-This is an efficient calculation of the area under the PR curve directly from an array of positives and negatives. It makes
-sure to always return a value between 0.5 and 1.0 and will return 0.5 when there is just one
+This is an efficient calculation of the area under the PR curve directly from an
+array of positives and negatives. Returns 0.5 when there is just one
 groundtruth label.
 }
 \examples{

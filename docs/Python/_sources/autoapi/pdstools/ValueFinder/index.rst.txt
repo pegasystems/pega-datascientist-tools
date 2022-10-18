@@ -39,7 +39,7 @@ Classes
    :keyword filename: The name, or extended filepath, towards the file
    :kwtype filename: Optional[str]
 
-   .. py:method:: getCustomerSummary(self, th: Optional[float] = None, verbose: bool = True) -> polars.DataFrame
+   .. py:method:: getCustomerSummary(th: Optional[float] = None, verbose: bool = True) -> polars.DataFrame
 
       Computes the summary of propensities for all customers
 
@@ -52,7 +52,7 @@ Classes
       :type verbose: bool, default = True
 
 
-   .. py:method:: getCountsPerStage(self, customersummary: Optional[polars.DataFrame] = None, verbose: bool = True) -> polars.DataFrame
+   .. py:method:: getCountsPerStage(customersummary: Optional[polars.DataFrame] = None, verbose: bool = True) -> polars.DataFrame
 
       Generates an aggregated view per stage.
 
@@ -63,7 +63,7 @@ Classes
       :type verbose: bool, default = True
 
 
-   .. py:method:: addCountsPerThresholdRange(self, start: float, stop: float, step: float, verbose: bool = True)
+   .. py:method:: addCountsPerThresholdRange(start: float, stop: float, step: float, verbose: bool = True)
 
       Adds the counts per stage for a range of quantiles.
 
@@ -84,7 +84,7 @@ Classes
       :type verbose: bool, default = True
 
 
-   .. py:method:: plotPropensityDistribution(self, sampledN: int = 10000) -> plotly.graph_objects.Figure
+   .. py:method:: plotPropensityDistribution(sampledN: int = 10000) -> plotly.graph_objects.Figure
 
       Plots the distribution of the different propensities.
 
@@ -96,7 +96,7 @@ Classes
       :type sampledN: int, default = 10_000
 
 
-   .. py:method:: plotPropensityThreshold(self, sampledN=10000) -> plotly.graph_objects.Figure
+   .. py:method:: plotPropensityThreshold(sampledN=10000) -> plotly.graph_objects.Figure
 
       Plots the propensity threshold vs the different propensities.
 
@@ -104,7 +104,7 @@ Classes
       :type sampledN: int, default = 10_000
 
 
-   .. py:method:: plotPieCharts(self, start: Optional[float] = None, stop: Optional[float] = None, step: Optional[float] = None, verbose: bool = True)
+   .. py:method:: plotPieCharts(start: Optional[float] = None, stop: Optional[float] = None, step: Optional[float] = None, verbose: bool = True)
 
       Plots the pie chart, split per stage.
 
@@ -124,7 +124,7 @@ Classes
       :type verbose: bool, default = True
 
 
-   .. py:method:: plotDistributionPerThreshold(self, target: str = 'Quantile', **kwargs)
+   .. py:method:: plotDistributionPerThreshold(target: str = 'Quantile', **kwargs)
 
       Plots the distribution of customers per threshold, per stage.
 
@@ -152,7 +152,7 @@ Classes
       :kwtype verbose: bool, default = True
 
 
-   .. py:method:: plotFunnelChart(self, level: str = 'Action', query=None)
+   .. py:method:: plotFunnelChart(level: str = 'Action', query=None)
 
       Plots the funnel of actions or issues per stage.
 

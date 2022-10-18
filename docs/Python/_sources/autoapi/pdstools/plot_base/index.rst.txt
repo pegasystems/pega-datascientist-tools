@@ -19,22 +19,20 @@ Classes
 
 .. py:class:: Plots
 
-   .. py:method:: AvailableVisualisations(self)
-      :property:
+   .. py:property:: AvailableVisualisations
 
 
-   .. py:method:: ApplicableVisualisations(self)
-      :property:
+   .. py:property:: ApplicableVisualisations
 
 
-   .. py:method:: plotApplicable(self)
+   .. py:method:: plotApplicable()
 
 
    .. py:method:: top_n(df, top_n, to_plot='PerformanceBin')
       :staticmethod:
 
 
-   .. py:method:: _subset_data(self, table: str, required_columns: set, query: Union[str, Dict[str, list]] = None, multi_snapshot: bool = False, last: bool = False, active_only: bool = False) -> pandas.DataFrame
+   .. py:method:: _subset_data(table: str, required_columns: set, query: Union[str, Dict[str, list]] = None, multi_snapshot: bool = False, last: bool = False, active_only: bool = False) -> pandas.DataFrame
 
       Retrieves and subsets the data and performs some assertion checks
 
@@ -62,7 +60,7 @@ Classes
       :rtype: pd.DataFrame
 
 
-   .. py:method:: plotPerformanceSuccessRateBubbleChart(self, last: bool = True, add_bottom_left_text: bool = True, query: Union[str, dict] = None, facets: Optional[list] = None, **kwargs) -> Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]
+   .. py:method:: plotPerformanceSuccessRateBubbleChart(last: bool = True, add_bottom_left_text: bool = True, query: Union[str, dict] = None, facets: Optional[list] = None, **kwargs) -> Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]
 
       Creates bubble chart similar to ADM OOTB.
 
@@ -98,7 +96,7 @@ Classes
       :rtype: (plt.Axes, go.FigureWidget)
 
 
-   .. py:method:: plotPerformanceAndSuccessRateOverTime(self, day_interval: int = 7, query: Union[str, dict] = None, **kwargs) -> matplotlib.pyplot.Axes
+   .. py:method:: plotPerformanceAndSuccessRateOverTime(day_interval: int = 7, query: Union[str, dict] = None, **kwargs) -> matplotlib.pyplot.Axes
 
       Plots both performance and success rate over time
 
@@ -127,7 +125,7 @@ Classes
       :rtype: plt.Axes
 
 
-   .. py:method:: plotOverTime(self, metric: str = 'Performance', by: str = 'ModelID', query: Union[str, dict] = None, facets: Optional[list] = None, **kwargs) -> Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]
+   .. py:method:: plotOverTime(metric: str = 'Performance', by: str = 'ModelID', query: Union[str, dict] = None, facets: Optional[list] = None, **kwargs) -> Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]
 
       Plots a given metric over time
 
@@ -162,7 +160,7 @@ Classes
       :rtype: (plt.Axes, go.FigureWidget)
 
 
-   .. py:method:: plotResponseCountMatrix(self, lookback: int = 15, fill_null_days: bool = False, query: Union[str, dict] = None, **kwargs) -> matplotlib.pyplot.Axes
+   .. py:method:: plotResponseCountMatrix(lookback: int = 15, fill_null_days: bool = False, query: Union[str, dict] = None, **kwargs) -> matplotlib.pyplot.Axes
 
       Plots the response count over time in a matrix
 
@@ -189,7 +187,7 @@ Classes
       :rtype: plt.Axes
 
 
-   .. py:method:: plotPropositionSuccessRates(self, metric: str = 'SuccessRate', by: str = 'ModelName', show_error: bool = True, query: Union[str, dict] = None, facets: Optional[list] = None, **kwargs) -> Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]
+   .. py:method:: plotPropositionSuccessRates(metric: str = 'SuccessRate', by: str = 'ModelName', show_error: bool = True, query: Union[str, dict] = None, facets: Optional[list] = None, **kwargs) -> Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]
 
       Plots all latest proposition success rates
 
@@ -225,7 +223,7 @@ Classes
       :rtype: (plt.Axes, go.FigureWidget)
 
 
-   .. py:method:: plotScoreDistribution(self, by: str = 'ModelID', show_zero_responses: bool = False, query: Union[str, dict] = None, **kwargs) -> Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]
+   .. py:method:: plotScoreDistribution(by: str = 'ModelID', show_zero_responses: bool = False, query: Union[str, dict] = None, **kwargs) -> Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]
 
       Plots the score distribution, similar to OOTB
 
@@ -257,7 +255,7 @@ Classes
       :rtype: (plt.Axes, go.FigureWidget)
 
 
-   .. py:method:: plotPredictorBinning(self, predictors: list = None, modelids: list = None, query: Union[str, dict] = None, **kwargs) -> Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]
+   .. py:method:: plotPredictorBinning(predictors: list = None, modelids: list = None, query: Union[str, dict] = None, **kwargs) -> Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]
 
       Plots the binning of given predictors
 
@@ -288,7 +286,7 @@ Classes
       :rtype: (plt.Axes, go.FigureWidget)
 
 
-   .. py:method:: plotPredictorPerformance(self, top_n: int = 0, active_only: bool = False, to_plot='Performance', query: Union[str, dict] = None, facets: Optional[list] = None, **kwargs) -> Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]
+   .. py:method:: plotPredictorPerformance(top_n: int = 0, active_only: bool = False, to_plot='Performance', query: Union[str, dict] = None, facets: Optional[list] = None, **kwargs) -> Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]
 
       Plots a bar chart of the performance of the predictors
 
@@ -327,7 +325,7 @@ Classes
       :rtype: (plt.Axes, go.FigureWidget)
 
 
-   .. py:method:: plotPredictorPerformanceHeatmap(self, top_n: int = 0, active_only: bool = False, query: Union[str, dict] = None, facets: list = None, **kwargs) -> Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]
+   .. py:method:: plotPredictorPerformanceHeatmap(top_n: int = 0, active_only: bool = False, query: Union[str, dict] = None, facets: list = None, **kwargs) -> Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]
 
       Plots heatmap of the performance of the predictors
 
@@ -363,7 +361,7 @@ Classes
       :rtype: (plt.Axes, go.FigureWidget)
 
 
-   .. py:method:: plotImpactInfluence(self, ModelID: str = None, query: Union[str, dict] = None, **kwargs) -> matplotlib.pyplot.Axes
+   .. py:method:: plotImpactInfluence(ModelID: str = None, query: Union[str, dict] = None, **kwargs) -> matplotlib.pyplot.Axes
 
       Plots the impact and the influence of a given model's predictors
 
@@ -390,7 +388,7 @@ Classes
       :rtype: plt.Axes
 
 
-   .. py:method:: plotResponseGain(self, by: str = 'Channel', query: Union[str, dict] = None, **kwargs) -> plotly.graph_objs.FigureWidget
+   .. py:method:: plotResponseGain(by: str = 'Channel', query: Union[str, dict] = None, **kwargs) -> plotly.graph_objs.FigureWidget
 
       Plots the cumulative response per model
 
@@ -420,7 +418,7 @@ Classes
       :rtype: go.FigureWidget
 
 
-   .. py:method:: plotModelsByPositives(self, by: str = 'Channel', query: Union[str, dict] = None, **kwargs) -> plotly.graph_objs.FigureWidget
+   .. py:method:: plotModelsByPositives(by: str = 'Channel', query: Union[str, dict] = None, **kwargs) -> plotly.graph_objs.FigureWidget
 
       Plots the percentage of models vs the number of positive responses
 
@@ -449,7 +447,7 @@ Classes
       :rtype: go.FigureWidget
 
 
-   .. py:method:: plotTreeMap(self, color_var: str = 'performance_weighted', by: str = 'ModelID', value_in_text: bool = True, midpoint: Optional[float] = None, query: Union[str, dict] = None, **kwargs) -> plotly.graph_objs.FigureWidget
+   .. py:method:: plotTreeMap(color_var: str = 'performance_weighted', by: str = 'ModelID', value_in_text: bool = True, midpoint: Optional[float] = None, query: Union[str, dict] = None, **kwargs) -> plotly.graph_objs.FigureWidget
 
       Plots a treemap to view performance over multiple context keys
 

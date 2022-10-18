@@ -298,7 +298,7 @@ def auc_from_probs(
     """Calculates AUC from an array of truth values and predictions.
     Calculates the area under the ROC curve from an array of truth values and
     predictions, making sure to always return a value between 0.5 and 1.0 and
-    will return 0.5 in case of any issues.
+    returns 0.5 when there is just one groundtruth label.
 
     Parameters
     ----------
@@ -306,11 +306,10 @@ def auc_from_probs(
         The 'true' values, Positive values must be represented as
         True or 1. Negative values must be represented as False or 0.
     probs : List[float]
-        The predictions, as a numeric vector as the same length as groundtruth
+        The predictions, as a numeric vector of the same length as groundtruth
 
     Returns : List[float]
-        The AUC as a value between 0.5 and 1, return 0.5 if there are any issues
-        with the data
+        The AUC as a value between 0.5 and 1.
 
     Examples:
         >>> auc_from_probs( [1,1,0], [0.6,0.2,0.2])
@@ -327,12 +326,15 @@ def auc_from_probs(
     auc = roc_auc_score(groundtruth, probs)
     return safe_range_auc(auc)
 
+# aucpr_from_probs
+# TODO figure this out
+# while also re-writing the normal auc calc to do the grouping, see R code
 
 def auc_from_bincounts(pos: List[int], neg: List[int]) -> float:
     """Calculates AUC from counts of positives and negatives directly
-    This is an efficient calculation of the AUC directly from an array of positives
+    This is an efficient calculation of the area under the ROC curve directly from an array of positives
     and negatives. It makes sure to always return a value between 0.5 and 1.0
-    and will return 0.5 in case of any issues.
+    and will return 0.5 when there is just one groundtruth label.
 
     Parameters
     ----------
@@ -344,8 +346,7 @@ def auc_from_bincounts(pos: List[int], neg: List[int]) -> float:
     Returns
     -------
     float
-        The AUC as a value between 0.5 and 1, return 0.5 if there are any issues
-        with the data.
+        The AUC as a value between 0.5 and 1.
 
     Examples:
         >>> auc_from_bincounts([3,1,0], [2,0,1])
@@ -358,6 +359,36 @@ def auc_from_bincounts(pos: List[int], neg: List[int]) -> float:
     Area = (FPR - np.append(FPR[1:], 0)) * (TPR + np.append(TPR[1:], 0)) / 2
     return safe_range_auc(np.sum(Area))
 
+def aucpr_from_bincounts(pos: List[int], neg: List[int]) -> float:
+    """Calculates PR AUC (precision-recall) from counts of positives and negatives directly.
+    This is an efficient calculation of the area under the PR curve directly from an
+    array of positives and negatives. Returns 0.5 when there is just one
+    groundtruth label.
+
+    Parameters
+    ----------
+    pos : List[int]
+        Vector with counts of the positive responses
+    neg: List[int]
+        Vector with counts of the negative responses
+
+    Returns
+    -------
+    float
+        The PR AUC as a value between 0.5 and 1.
+
+    Examples:
+        >>> aucpr_from_bincounts([3,1,0], [2,0,1])
+    """
+    pos = np.asarray(pos)
+    neg = np.asarray(neg)
+    o = np.argsort(-(pos / (pos + neg)))
+    recall = np.cumsum(pos[o]) / np.sum(pos)
+    precision = np.cumsum(pos[o]) / np.cumsum(pos[o] + neg[o])
+    prevrecall = np.insert(recall[0:(len(recall)-1)], 0, 0)
+    prevprecision = np.insert(precision[0:(len(precision)-1)], 0, 0)
+    Area = (recall - prevrecall) * (precision + prevprecision) / 2
+    return np.sum(Area[1:])
 
 def auc2GINI(auc: float) -> float:
     """

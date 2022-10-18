@@ -2,13 +2,13 @@
 <html class="no-js" lang="en">
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 <link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
 
-    <link rel="shortcut icon" href="../../../_static/pegasystems-inc-vector-logo.svg"/><meta name="generator" content="sphinx-5.0.2, furo 2022.06.21"/>
+    <link rel="shortcut icon" href="../../../_static/pegasystems-inc-vector-logo.svg"/><meta name="generator" content="sphinx-5.3.0, furo 2022.09.29"/>
         <title>pdstools.cdh_utils - pdstools</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?digest=40978830699223671f4072448e654b5958f38b89" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?digest=d81277517bee4d6b0349d71bb2661d4890b5617c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
@@ -188,12 +188,18 @@
 <ul class="current">
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2 current has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l3 has-children"><a class="reference internal" href="../healthcheck/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.healthcheck</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../healthcheck/datamart_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.healthcheck.datamart_utils</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../healthcheck/streamlit_app/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.healthcheck.streamlit_app</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../ADMDatamart/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.ADMDatamart</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../ADMTrees/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.ADMTrees</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../IHanalysis/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.IHanalysis</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../ValueFinder/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.ValueFinder</span></code></a></li>
 <li class="toctree-l3 current current-page"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.cdh_utils</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../datasets/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.datasets</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../pds_app/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.pds_app</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../plot_base/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plot_base</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../plots_mpl/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plots_mpl</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../plots_plotly/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plots_plotly</span></code></a></li>
@@ -220,7 +226,8 @@
           <span>Back to top</span>
         </a>
         <div class="content-icon-container">
-          <div class="theme-toggle-container theme-toggle-content">
+          
+<div class="theme-toggle-container theme-toggle-content">
             <button class="theme-toggle">
               <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
               <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
@@ -246,43 +253,49 @@ of data analysis, reporting and monitoring.</p>
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.cdh_utils.readDSExport" title="pdstools.cdh_utils.readDSExport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readDSExport</span></code></a>(filename: Union[pandas.DataFrame, str], path: str = '.', verbose: bool = True, **kwargs) → pandas.DataFrame</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.cdh_utils.readDSExport" title="pdstools.cdh_utils.readDSExport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readDSExport</span></code></a>(→ pandas.DataFrame)</p></td>
 <td><p>Read a Pega dataset export file.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pdstools.cdh_utils.import_file" title="pdstools.cdh_utils.import_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">import_file</span></code></a>(file, extension, **kwargs)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.cdh_utils.readZippedFile" title="pdstools.cdh_utils.readZippedFile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readZippedFile</span></code></a>(file: str, verbose: bool = False, **kwargs) → pandas.DataFrame</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.cdh_utils.readZippedFile" title="pdstools.cdh_utils.readZippedFile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readZippedFile</span></code></a>(→ pandas.DataFrame)</p></td>
 <td><p>Read a zipped file.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.cdh_utils.get_latest_file" title="pdstools.cdh_utils.get_latest_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_latest_file</span></code></a>(path: str, target: str, verbose: bool = False) → str</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.cdh_utils.get_latest_file" title="pdstools.cdh_utils.get_latest_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_latest_file</span></code></a>(→ str)</p></td>
 <td><p>Convenience method to find the latest model snapshot.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.cdh_utils.getMatches" title="pdstools.cdh_utils.getMatches"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getMatches</span></code></a>(files_dir, target)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.cdh_utils.safe_range_auc" title="pdstools.cdh_utils.safe_range_auc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">safe_range_auc</span></code></a>(auc: float) → float</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.cdh_utils.safe_range_auc" title="pdstools.cdh_utils.safe_range_auc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">safe_range_auc</span></code></a>(→ float)</p></td>
 <td><p>Internal helper to keep auc a safe number between 0.5 and 1.0 always.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.cdh_utils.auc_from_probs" title="pdstools.cdh_utils.auc_from_probs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auc_from_probs</span></code></a>(groundtruth: List[int], probs: List[float]) → List[float]</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.cdh_utils.auc_from_probs" title="pdstools.cdh_utils.auc_from_probs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auc_from_probs</span></code></a>(→ List[float])</p></td>
 <td><p>Calculates AUC from an array of truth values and predictions.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.cdh_utils.auc_from_bincounts" title="pdstools.cdh_utils.auc_from_bincounts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auc_from_bincounts</span></code></a>(pos: List[int], neg: List[int]) → float</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.cdh_utils.auc_from_bincounts" title="pdstools.cdh_utils.auc_from_bincounts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auc_from_bincounts</span></code></a>(→ float)</p></td>
 <td><p>Calculates AUC from counts of positives and negatives directly</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.cdh_utils.auc2GINI" title="pdstools.cdh_utils.auc2GINI"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auc2GINI</span></code></a>(auc: float) → float</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.cdh_utils.aucpr_from_bincounts" title="pdstools.cdh_utils.aucpr_from_bincounts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">aucpr_from_bincounts</span></code></a>(→ float)</p></td>
+<td><p>Calculates AUC PR blah blah from counts of positives and negatives directly</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.cdh_utils.auc2GINI" title="pdstools.cdh_utils.auc2GINI"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auc2GINI</span></code></a>(→ float)</p></td>
 <td><p>Convert AUC performance metric to GINI</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.cdh_utils.fromPRPCDateTime" title="pdstools.cdh_utils.fromPRPCDateTime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fromPRPCDateTime</span></code></a>(x: str, return_string: bool = False) → Union[datetime.datetime, str]</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.cdh_utils._capitalize" title="pdstools.cdh_utils._capitalize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_capitalize</span></code></a>(→ list)</p></td>
+<td><p>Applies automatic capitalization, aligned with the R couterpart.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.cdh_utils.fromPRPCDateTime" title="pdstools.cdh_utils.fromPRPCDateTime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fromPRPCDateTime</span></code></a>(→ Union[datetime.datetime, str])</p></td>
 <td><p>Convert from a Pega date-time string.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.cdh_utils.toPRPCDateTime" title="pdstools.cdh_utils.toPRPCDateTime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">toPRPCDateTime</span></code></a>(x: datetime.datetime) → str</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.cdh_utils.toPRPCDateTime" title="pdstools.cdh_utils.toPRPCDateTime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">toPRPCDateTime</span></code></a>(→ str)</p></td>
 <td><p>Convert to a Pega date-time string</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pdstools.cdh_utils.readClientCredentialFile" title="pdstools.cdh_utils.readClientCredentialFile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readClientCredentialFile</span></code></a>(credentialFile)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.cdh_utils.getToken" title="pdstools.cdh_utils.getToken"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getToken</span></code></a>(credentialFile, verify=True, **kwargs)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.cdh_utils.getToken" title="pdstools.cdh_utils.getToken"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getToken</span></code></a>(credentialFile[, verify])</p></td>
 <td><p></p></td>
 </tr>
 </tbody>
@@ -453,6 +466,31 @@ with the data.</p></li>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="pdstools.cdh_utils.aucpr_from_bincounts">
+<span class="sig-prename descclassname"><span class="pre">pdstools.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">aucpr_from_bincounts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#pdstools.cdh_utils.aucpr_from_bincounts" title="Permalink to this definition">#</a></dt>
+<dd><p>Calculates AUC PR blah blah from counts of positives and negatives directly
+This is an efficient calculation of the AUC directly from an array of positives
+and negatives. It makes sure to always return a value between 0.5 and 1.0
+and will return 0.5 in case of any issues.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pos</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – Vector with counts of the positive responses</p></li>
+<li><p><strong>neg</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – Vector with counts of the negative responses</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>float</em> – The AUC as a value between 0.5 and 1, return 0.5 if there are any issues
+with the data.</p></li>
+<li><p><em>Examples</em> – &gt;&gt;&gt; auc_from_bincounts([3,1,0], [2,0,1])</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="pdstools.cdh_utils.auc2GINI">
 <span class="sig-prename descclassname"><span class="pre">pdstools.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">auc2GINI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">auc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#pdstools.cdh_utils.auc2GINI" title="Permalink to this definition">#</a></dt>
 <dd><p>Convert AUC performance metric to GINI</p>
@@ -466,6 +504,23 @@ with the data.</p></li>
 <li><p><em>Examples</em> – &gt;&gt;&gt; auc2GINI(0.8232)</p></li>
 </ul>
 </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.cdh_utils._capitalize">
+<span class="sig-prename descclassname"><span class="pre">pdstools.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">_capitalize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fields</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span></span></span><a class="headerlink" href="#pdstools.cdh_utils._capitalize" title="Permalink to this definition">#</a></dt>
+<dd><p>Applies automatic capitalization, aligned with the R couterpart.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>fields</strong> (<em>list</em>) – A list of names</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>fields</strong> – The input list, but each value properly capitalized</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
 </dd>
 </dl>
 </dd></dl>
@@ -565,7 +620,7 @@ False it will return in datetime type</p></li>
       <div class="toc-sticky toc-scroll">
         <div class="toc-title-container">
           <span class="toc-title">
-            Contents
+            On this page
           </span>
         </div>
         <div class="toc-tree-container">
@@ -574,6 +629,21 @@ False it will return in datetime type</p></li>
 <li><a class="reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.cdh_utils</span></code></a><ul>
 <li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
 <li><a class="reference internal" href="#functions">Functions</a><ul>
+<li><a class="reference internal" href="#pdstools.cdh_utils.readDSExport"><code class="docutils literal notranslate"><span class="pre">readDSExport()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.cdh_utils.import_file"><code class="docutils literal notranslate"><span class="pre">import_file()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.cdh_utils.readZippedFile"><code class="docutils literal notranslate"><span class="pre">readZippedFile()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.cdh_utils.get_latest_file"><code class="docutils literal notranslate"><span class="pre">get_latest_file()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.cdh_utils.getMatches"><code class="docutils literal notranslate"><span class="pre">getMatches()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.cdh_utils.safe_range_auc"><code class="docutils literal notranslate"><span class="pre">safe_range_auc()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.cdh_utils.auc_from_probs"><code class="docutils literal notranslate"><span class="pre">auc_from_probs()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.cdh_utils.auc_from_bincounts"><code class="docutils literal notranslate"><span class="pre">auc_from_bincounts()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.cdh_utils.aucpr_from_bincounts"><code class="docutils literal notranslate"><span class="pre">aucpr_from_bincounts()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.cdh_utils.auc2GINI"><code class="docutils literal notranslate"><span class="pre">auc2GINI()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.cdh_utils._capitalize"><code class="docutils literal notranslate"><span class="pre">_capitalize()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.cdh_utils.fromPRPCDateTime"><code class="docutils literal notranslate"><span class="pre">fromPRPCDateTime()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.cdh_utils.toPRPCDateTime"><code class="docutils literal notranslate"><span class="pre">toPRPCDateTime()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.cdh_utils.readClientCredentialFile"><code class="docutils literal notranslate"><span class="pre">readClientCredentialFile()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.cdh_utils.getToken"><code class="docutils literal notranslate"><span class="pre">getToken()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.cdh_utils.readDSExport">readDSExport</a></li>
 <li><a class="reference internal" href="#pdstools.cdh_utils.import_file">import_file</a></li>
 <li><a class="reference internal" href="#pdstools.cdh_utils.readZippedFile">readZippedFile</a></li>
@@ -582,7 +652,9 @@ False it will return in datetime type</p></li>
 <li><a class="reference internal" href="#pdstools.cdh_utils.safe_range_auc">safe_range_auc</a></li>
 <li><a class="reference internal" href="#pdstools.cdh_utils.auc_from_probs">auc_from_probs</a></li>
 <li><a class="reference internal" href="#pdstools.cdh_utils.auc_from_bincounts">auc_from_bincounts</a></li>
+<li><a class="reference internal" href="#pdstools.cdh_utils.aucpr_from_bincounts">aucpr_from_bincounts</a></li>
 <li><a class="reference internal" href="#pdstools.cdh_utils.auc2GINI">auc2GINI</a></li>
+<li><a class="reference internal" href="#pdstools.cdh_utils._capitalize">_capitalize</a></li>
 <li><a class="reference internal" href="#pdstools.cdh_utils.fromPRPCDateTime">fromPRPCDateTime</a></li>
 <li><a class="reference internal" href="#pdstools.cdh_utils.toPRPCDateTime">toPRPCDateTime</a></li>
 <li><a class="reference internal" href="#pdstools.cdh_utils.readClientCredentialFile">readClientCredentialFile</a></li>
@@ -607,10 +679,11 @@ False it will return in datetime type</p></li>
     <script src="../../../_static/underscore.js"></script>
     <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/sphinx_highlight.js"></script>
     <script src="../../../_static/scripts/furo.js"></script>
     <script src="../../../_static/clipboard.min.js"></script>
     <script src="../../../_static/copybutton.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-    <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.20.1/dist/embed-amd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
     </body>
 </html>

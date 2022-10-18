@@ -4,6 +4,15 @@
 .. py:module:: pdstools
 
 
+Subpackages
+-----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 3
+
+   healthcheck/index.rst
+
+
 Submodules
 ----------
 .. toctree::
@@ -16,6 +25,7 @@ Submodules
    ValueFinder/index.rst
    cdh_utils/index.rst
    datasets/index.rst
+   pds_app/index.rst
    plot_base/index.rst
    plots_mpl/index.rst
    plots_plotly/index.rst
@@ -136,7 +146,7 @@ Functions
       :staticmethod:
 
 
-   .. py:method:: import_data(self, path: Optional[str] = '.', overwrite_mapping: Optional[dict] = None, subset: bool = True, model_df: Optional[pandas.DataFrame] = None, predictor_df: Optional[pandas.DataFrame] = None, query: Union[str, Dict[str, list]] = None, **kwargs) -> Union[pandas.DataFrame, pandas.DataFrame]
+   .. py:method:: import_data(path: Optional[str] = '.', overwrite_mapping: Optional[dict] = None, subset: bool = True, model_df: Optional[pandas.DataFrame] = None, predictor_df: Optional[pandas.DataFrame] = None, query: Union[str, Dict[str, list]] = None, **kwargs) -> Union[pandas.DataFrame, pandas.DataFrame]
 
       Method to automatically import & format the relevant data.
 
@@ -170,7 +180,7 @@ Functions
       :rtype: (pd.DataFrame, pd.DataFrame)
 
 
-   .. py:method:: _import_utils(self, name: Union[str, pandas.DataFrame], path: str = None, overwrite_mapping: dict = None, subset: bool = True, query: Union[str, Dict[str, list]] = None, verbose: bool = True, **kwargs) -> Tuple[pandas.DataFrame, dict, dict]
+   .. py:method:: _import_utils(name: Union[str, pandas.DataFrame], path: str = None, overwrite_mapping: dict = None, subset: bool = True, query: Union[str, Dict[str, list]] = None, verbose: bool = True, **kwargs) -> Tuple[pandas.DataFrame, dict, dict]
 
       Handler function to interface to the cdh_utils methods
 
@@ -214,7 +224,7 @@ Functions
       :rtype: (pd.DataFrame, dict, dict)
 
 
-   .. py:method:: _available_columns(self, df: pandas.DataFrame, overwrite_mapping: Optional[dict] = None, **kwargs) -> Tuple[pandas.DataFrame, dict, list]
+   .. py:method:: _available_columns(df: pandas.DataFrame, overwrite_mapping: Optional[dict] = None, **kwargs) -> Tuple[pandas.DataFrame, dict, list]
 
       Based on the default names for variables, rename available data to proper formatting
 
@@ -233,18 +243,6 @@ Functions
       :rtype: (pd.DataFrame, dict, list)
 
 
-   .. py:method:: _capitalize(fields: list) -> list
-      :staticmethod:
-
-      Applies automatic capitalization, aligned with the R couterpart.
-
-      :param fields: A list of names
-      :type fields: list
-
-      :returns: **fields** -- The input list, but each value properly capitalized
-      :rtype: list
-
-
    .. py:method:: _set_types(df: pandas.DataFrame, verbose=True) -> pandas.DataFrame
       :staticmethod:
 
@@ -259,7 +257,7 @@ Functions
       :rtype: pd.DataFrame
 
 
-   .. py:method:: last(self, table='modelData') -> pandas.DataFrame
+   .. py:method:: last(table='modelData') -> pandas.DataFrame
 
       Convenience function to get the last values for a table
 
@@ -277,7 +275,7 @@ Functions
       Method to retrieve only the last values for a given dataframe.
 
 
-   .. py:method:: get_combined_data(self, modelData: pandas.DataFrame = None, predictorData: pandas.DataFrame = None, last=True) -> pandas.DataFrame
+   .. py:method:: get_combined_data(modelData: pandas.DataFrame = None, predictorData: pandas.DataFrame = None, last=True) -> pandas.DataFrame
 
       Combines the model data and predictor data into one dataframe.
 
@@ -312,10 +310,10 @@ Functions
       :rtype: pd.DataFrame
 
 
-   .. py:method:: extract_treatments(self, df, overwrite_mapping, extract_col, verbose=True)
+   .. py:method:: extract_treatments(df, overwrite_mapping, extract_col, verbose=True)
 
 
-   .. py:method:: _extract(self, df, extract_col)
+   .. py:method:: _extract(df, extract_col)
 
       Simple function to extract treatments from column
 
@@ -330,7 +328,7 @@ Functions
       :staticmethod:
 
 
-   .. py:method:: get_AGB_models(self, last: bool = False, by: str = 'Configuration', n_threads: int = 6, query: Union[str, dict] = None, verbose: bool = True, **kwargs) -> Dict
+   .. py:method:: get_AGB_models(last: bool = False, by: str = 'Configuration', n_threads: int = 6, query: Union[str, dict] = None, verbose: bool = True, **kwargs) -> Dict
 
       Method to automatically extract AGB models.
 
@@ -369,7 +367,7 @@ Functions
       :rtype: pd.DataFrame
 
 
-   .. py:method:: _create_heatmap_df(self, df: pandas.DataFrame, lookback: int = 5, query: Union[str, dict] = None, fill_null_days: bool = False) -> Tuple[pandas.DataFrame, pandas.DataFrame]
+   .. py:method:: _create_heatmap_df(df: pandas.DataFrame, lookback: int = 5, query: Union[str, dict] = None, fill_null_days: bool = False) -> Tuple[pandas.DataFrame, pandas.DataFrame]
 
       Generates dataframes needed to plot calendar heatmap
       The method generates two dataframes where one is used to annotate the heatmap
@@ -395,7 +393,7 @@ Functions
       :staticmethod:
 
 
-   .. py:method:: model_summary(self, by: str = 'ModelID', query: Union[str, dict] = None, **kwargs)
+   .. py:method:: model_summary(by: str = 'ModelID', query: Union[str, dict] = None, **kwargs)
 
       Convenience method to automatically generate a summary over models
       By default, it summarizes ResponseCount, Performance, SuccessRate & Positives by model ID.
@@ -430,10 +428,10 @@ Functions
       :staticmethod:
 
 
-   .. py:method:: get_model_stats(self, last: bool = True) -> dict
+   .. py:method:: get_model_stats(last: bool = True) -> dict
 
 
-   .. py:method:: describe_models(self, **kwargs) -> NoReturn
+   .. py:method:: describe_models(**kwargs) -> NoReturn
 
       Convenience method to quickly summarize the models
 
@@ -482,6 +480,12 @@ Functions
 
 .. py:class:: MultiTrees
 
+   .. py:property:: first
+
+
+   .. py:property:: last
+
+
    .. py:attribute:: trees
       :annotation: :dict
 
@@ -497,32 +501,24 @@ Functions
 
       
 
-   .. py:method:: __repr__(self)
+   .. py:method:: __repr__()
 
       Return repr(self).
 
 
-   .. py:method:: __getitem__(self, index)
+   .. py:method:: __getitem__(index)
 
 
-   .. py:method:: __len__(self)
+   .. py:method:: __len__()
 
 
-   .. py:method:: __add__(self, other)
+   .. py:method:: __add__(other)
 
 
-   .. py:method:: first(self)
-      :property:
+   .. py:method:: computeOverTime(predictorCategorization=None)
 
 
-   .. py:method:: last(self)
-      :property:
-
-
-   .. py:method:: computeOverTime(self, predictorCategorization=None)
-
-
-   .. py:method:: plotSplitsPerVariableType(self, predictorCategorization=None, **kwargs)
+   .. py:method:: plotSplitsPerVariableType(predictorCategorization=None, **kwargs)
 
 
 
@@ -548,7 +544,7 @@ Functions
    :keyword filename: The name, or extended filepath, towards the file
    :kwtype filename: Optional[str]
 
-   .. py:method:: getCustomerSummary(self, th: Optional[float] = None, verbose: bool = True) -> polars.DataFrame
+   .. py:method:: getCustomerSummary(th: Optional[float] = None, verbose: bool = True) -> polars.DataFrame
 
       Computes the summary of propensities for all customers
 
@@ -561,7 +557,7 @@ Functions
       :type verbose: bool, default = True
 
 
-   .. py:method:: getCountsPerStage(self, customersummary: Optional[polars.DataFrame] = None, verbose: bool = True) -> polars.DataFrame
+   .. py:method:: getCountsPerStage(customersummary: Optional[polars.DataFrame] = None, verbose: bool = True) -> polars.DataFrame
 
       Generates an aggregated view per stage.
 
@@ -572,7 +568,7 @@ Functions
       :type verbose: bool, default = True
 
 
-   .. py:method:: addCountsPerThresholdRange(self, start: float, stop: float, step: float, verbose: bool = True)
+   .. py:method:: addCountsPerThresholdRange(start: float, stop: float, step: float, verbose: bool = True)
 
       Adds the counts per stage for a range of quantiles.
 
@@ -593,7 +589,7 @@ Functions
       :type verbose: bool, default = True
 
 
-   .. py:method:: plotPropensityDistribution(self, sampledN: int = 10000) -> plotly.graph_objects.Figure
+   .. py:method:: plotPropensityDistribution(sampledN: int = 10000) -> plotly.graph_objects.Figure
 
       Plots the distribution of the different propensities.
 
@@ -605,7 +601,7 @@ Functions
       :type sampledN: int, default = 10_000
 
 
-   .. py:method:: plotPropensityThreshold(self, sampledN=10000) -> plotly.graph_objects.Figure
+   .. py:method:: plotPropensityThreshold(sampledN=10000) -> plotly.graph_objects.Figure
 
       Plots the propensity threshold vs the different propensities.
 
@@ -613,7 +609,7 @@ Functions
       :type sampledN: int, default = 10_000
 
 
-   .. py:method:: plotPieCharts(self, start: Optional[float] = None, stop: Optional[float] = None, step: Optional[float] = None, verbose: bool = True)
+   .. py:method:: plotPieCharts(start: Optional[float] = None, stop: Optional[float] = None, step: Optional[float] = None, verbose: bool = True)
 
       Plots the pie chart, split per stage.
 
@@ -633,7 +629,7 @@ Functions
       :type verbose: bool, default = True
 
 
-   .. py:method:: plotDistributionPerThreshold(self, target: str = 'Quantile', **kwargs)
+   .. py:method:: plotDistributionPerThreshold(target: str = 'Quantile', **kwargs)
 
       Plots the distribution of customers per threshold, per stage.
 
@@ -661,7 +657,7 @@ Functions
       :kwtype verbose: bool, default = True
 
 
-   .. py:method:: plotFunnelChart(self, level: str = 'Action', query=None)
+   .. py:method:: plotFunnelChart(level: str = 'Action', query=None)
 
       Plots the funnel of actions or issues per stage.
 

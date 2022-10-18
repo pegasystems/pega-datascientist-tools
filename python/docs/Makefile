@@ -27,6 +27,7 @@ help:
 %: Makefile
 	mkdir -p source/articles
 	cp ../../examples/datamart/Example_ADM_Analysis.ipynb ../../examples/graph_gallery/graph_gallery.ipynb ../../examples/helloworld/hello_cdhtools.ipynb ../../examples/valuefinder/* ../../examples/adm/AGBModelVisualisation.ipynb source/articles
+	mkdir ../../docs/Python/tmp
 	rm -r ../../docs/Python/*
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 	rm source/articles/*

@@ -7,10 +7,10 @@
 auc2GINI(auc)
 }
 \arguments{
-\item{auc}{The AUC (number between 0.5 and 1)}
+\item{auc}{The ROC AUC (number between 0.5 and 1)}
 }
 \value{
-GINI metric, a number beteen 0 and 1
+GINI metric, a number between 0 and 1
 }
 \description{
 Convert AUC performance metric to GINI.

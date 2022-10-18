@@ -29,7 +29,9 @@ Functions
    pdstools.cdh_utils.safe_range_auc
    pdstools.cdh_utils.auc_from_probs
    pdstools.cdh_utils.auc_from_bincounts
+   pdstools.cdh_utils.aucpr_from_bincounts
    pdstools.cdh_utils.auc2GINI
+   pdstools.cdh_utils._capitalize
    pdstools.cdh_utils.fromPRPCDateTime
    pdstools.cdh_utils.toPRPCDateTime
    pdstools.cdh_utils.readClientCredentialFile
@@ -156,6 +158,23 @@ Functions
              * *Examples* -- >>> auc_from_bincounts([3,1,0], [2,0,1])
 
 
+.. py:function:: aucpr_from_bincounts(pos: List[int], neg: List[int]) -> float
+
+   Calculates AUC PR blah blah from counts of positives and negatives directly
+   This is an efficient calculation of the AUC directly from an array of positives
+   and negatives. It makes sure to always return a value between 0.5 and 1.0
+   and will return 0.5 in case of any issues.
+
+   :param pos: Vector with counts of the positive responses
+   :type pos: List[int]
+   :param neg: Vector with counts of the negative responses
+   :type neg: List[int]
+
+   :returns: * *float* -- The AUC as a value between 0.5 and 1, return 0.5 if there are any issues
+               with the data.
+             * *Examples* -- >>> auc_from_bincounts([3,1,0], [2,0,1])
+
+
 .. py:function:: auc2GINI(auc: float) -> float
 
    Convert AUC performance metric to GINI
@@ -165,6 +184,17 @@ Functions
 
    :returns: * *float* -- GINI metric, a number between 0 and 1
              * *Examples* -- >>> auc2GINI(0.8232)
+
+
+.. py:function:: _capitalize(fields: list) -> list
+
+   Applies automatic capitalization, aligned with the R couterpart.
+
+   :param fields: A list of names
+   :type fields: list
+
+   :returns: **fields** -- The input list, but each value properly capitalized
+   :rtype: list
 
 
 .. py:function:: fromPRPCDateTime(x: str, return_string: bool = False) -> Union[datetime.datetime, str]

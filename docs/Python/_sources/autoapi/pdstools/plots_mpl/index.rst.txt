@@ -35,7 +35,7 @@ Classes
       :rtype: plt.figure
 
 
-   .. py:method:: PerformanceSuccessRateBubbleChart(self, df, annotate: bool = False, sizes: tuple = (10, 2000), aspect: int = 3, b_to_anchor: tuple = (1.1, 0.7), figsize: tuple = (20, 5), **kwargs) -> matplotlib.pyplot.figure
+   .. py:method:: PerformanceSuccessRateBubbleChart(df, annotate: bool = False, sizes: tuple = (10, 2000), aspect: int = 3, b_to_anchor: tuple = (1.1, 0.7), figsize: tuple = (20, 5), **kwargs) -> matplotlib.pyplot.figure
 
       Creates bubble chart similar to ADM OOTB reports
 
@@ -63,7 +63,7 @@ Classes
       :rtype: plt.figure
 
 
-   .. py:method:: PerformanceAndSuccessRateOverTime(self, df, day_interval: int = 7, query: Union[str, dict] = None, figsize: tuple = (16, 10), **kwargs) -> matplotlib.pyplot.figure
+   .. py:method:: PerformanceAndSuccessRateOverTime(df, day_interval: int = 7, query: Union[str, dict] = None, figsize: tuple = (16, 10), **kwargs) -> matplotlib.pyplot.figure
 
       Shows responses and performance of models over time
 
@@ -83,7 +83,7 @@ Classes
       :rtype: plt.figure
 
 
-   .. py:method:: ResponseCountMatrix(self, annot_df, heatmap_df, lookback=15, fill_null_days=False, query: Union[str, dict] = None, figsize=(14, 10), **kwargs) -> matplotlib.pyplot.figure
+   .. py:method:: ResponseCountMatrix(annot_df, heatmap_df, lookback=15, fill_null_days=False, query: Union[str, dict] = None, figsize=(14, 10), **kwargs) -> matplotlib.pyplot.figure
 
       Creates a calendar heatmap
 
@@ -107,7 +107,7 @@ Classes
       :rtype: plt.figure
 
 
-   .. py:method:: OverTime(self, df, metric='Performance', by='ModelID', day_interval: int = 7, query: Union[str, dict] = None, figsize: tuple = (16, 10), **kwargs) -> matplotlib.pyplot.figure
+   .. py:method:: OverTime(df, metric='Performance', by='ModelID', day_interval: int = 7, query: Union[str, dict] = None, figsize: tuple = (16, 10), **kwargs) -> matplotlib.pyplot.figure
 
       Shows success rate of models over time
 
@@ -123,7 +123,7 @@ Classes
       :rtype: plt.figure
 
 
-   .. py:method:: PropositionSuccessRates(self, df, metric, by, query: Union[str, dict] = None, figsize: tuple = (12, 8), **kwargs) -> matplotlib.pyplot.figure
+   .. py:method:: PropositionSuccessRates(df, metric, by, query: Union[str, dict] = None, figsize: tuple = (12, 8), **kwargs) -> matplotlib.pyplot.figure
 
       Shows all latest proposition success rates
 
@@ -141,7 +141,7 @@ Classes
       :rtype: plt.figure
 
 
-   .. py:method:: ScoreDistribution(self, df, show_zero_responses: bool = False, query: Union[str, dict] = None, figsize: tuple = (14, 10), **kwargs) -> matplotlib.pyplot.figure
+   .. py:method:: ScoreDistribution(df, show_zero_responses: bool = False, query: Union[str, dict] = None, figsize: tuple = (14, 10), **kwargs) -> matplotlib.pyplot.figure
 
       Show score distribution similar to ADM out-of-the-box report
 
@@ -164,7 +164,7 @@ Classes
       :rtype: plt.figure
 
 
-   .. py:method:: PredictorBinning(self, df, query: Union[str, dict] = None, figsize: tuple = (10, 5), **kwargs) -> matplotlib.pyplot.figure
+   .. py:method:: PredictorBinning(df, query: Union[str, dict] = None, figsize: tuple = (10, 5), **kwargs) -> matplotlib.pyplot.figure
 
       Show predictor graphs for a given model
 
@@ -186,7 +186,7 @@ Classes
       :rtype: plt.figure
 
 
-   .. py:method:: PredictorPerformance(self, df, order, query: Union[str, dict] = None, figsize: tuple = (6, 12), **kwargs) -> matplotlib.pyplot.figure
+   .. py:method:: PredictorPerformance(df, order, query: Union[str, dict] = None, figsize: tuple = (6, 12), **kwargs) -> matplotlib.pyplot.figure
 
       Shows a box plot of predictor performance
 
@@ -201,7 +201,7 @@ Classes
       :rtype: plt.figure
 
 
-   .. py:method:: PredictorPerformanceHeatmap(self, df, query: Union[str, dict] = None, figsize=(14, 10), **kwargs) -> matplotlib.pyplot.figure
+   .. py:method:: PredictorPerformanceHeatmap(df, query: Union[str, dict] = None, figsize=(14, 10), **kwargs) -> matplotlib.pyplot.figure
 
       Shows a heatmap plot of predictor performance across models
 
@@ -216,7 +216,7 @@ Classes
       :rtype: plt.figure
 
 
-   .. py:method:: ImpactInfluence(self, df, ModelID: str = None, query: Union[str, dict] = None, figsize: tuple = (12, 5), **kwargs) -> matplotlib.pyplot.figure
+   .. py:method:: ImpactInfluence(df, ModelID: str = None, query: Union[str, dict] = None, figsize: tuple = (12, 5), **kwargs) -> matplotlib.pyplot.figure
 
       Calculate the impact and influence of a given model's predictors
 

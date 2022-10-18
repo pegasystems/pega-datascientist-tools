@@ -107,7 +107,7 @@ Classes
       :staticmethod:
 
 
-   .. py:method:: import_data(self, path: Optional[str] = '.', overwrite_mapping: Optional[dict] = None, subset: bool = True, model_df: Optional[pandas.DataFrame] = None, predictor_df: Optional[pandas.DataFrame] = None, query: Union[str, Dict[str, list]] = None, **kwargs) -> Union[pandas.DataFrame, pandas.DataFrame]
+   .. py:method:: import_data(path: Optional[str] = '.', overwrite_mapping: Optional[dict] = None, subset: bool = True, model_df: Optional[pandas.DataFrame] = None, predictor_df: Optional[pandas.DataFrame] = None, query: Union[str, Dict[str, list]] = None, **kwargs) -> Union[pandas.DataFrame, pandas.DataFrame]
 
       Method to automatically import & format the relevant data.
 
@@ -141,7 +141,7 @@ Classes
       :rtype: (pd.DataFrame, pd.DataFrame)
 
 
-   .. py:method:: _import_utils(self, name: Union[str, pandas.DataFrame], path: str = None, overwrite_mapping: dict = None, subset: bool = True, query: Union[str, Dict[str, list]] = None, verbose: bool = True, **kwargs) -> Tuple[pandas.DataFrame, dict, dict]
+   .. py:method:: _import_utils(name: Union[str, pandas.DataFrame], path: str = None, overwrite_mapping: dict = None, subset: bool = True, query: Union[str, Dict[str, list]] = None, verbose: bool = True, **kwargs) -> Tuple[pandas.DataFrame, dict, dict]
 
       Handler function to interface to the cdh_utils methods
 
@@ -185,7 +185,7 @@ Classes
       :rtype: (pd.DataFrame, dict, dict)
 
 
-   .. py:method:: _available_columns(self, df: pandas.DataFrame, overwrite_mapping: Optional[dict] = None, **kwargs) -> Tuple[pandas.DataFrame, dict, list]
+   .. py:method:: _available_columns(df: pandas.DataFrame, overwrite_mapping: Optional[dict] = None, **kwargs) -> Tuple[pandas.DataFrame, dict, list]
 
       Based on the default names for variables, rename available data to proper formatting
 
@@ -204,18 +204,6 @@ Classes
       :rtype: (pd.DataFrame, dict, list)
 
 
-   .. py:method:: _capitalize(fields: list) -> list
-      :staticmethod:
-
-      Applies automatic capitalization, aligned with the R couterpart.
-
-      :param fields: A list of names
-      :type fields: list
-
-      :returns: **fields** -- The input list, but each value properly capitalized
-      :rtype: list
-
-
    .. py:method:: _set_types(df: pandas.DataFrame, verbose=True) -> pandas.DataFrame
       :staticmethod:
 
@@ -230,7 +218,7 @@ Classes
       :rtype: pd.DataFrame
 
 
-   .. py:method:: last(self, table='modelData') -> pandas.DataFrame
+   .. py:method:: last(table='modelData') -> pandas.DataFrame
 
       Convenience function to get the last values for a table
 
@@ -248,7 +236,7 @@ Classes
       Method to retrieve only the last values for a given dataframe.
 
 
-   .. py:method:: get_combined_data(self, modelData: pandas.DataFrame = None, predictorData: pandas.DataFrame = None, last=True) -> pandas.DataFrame
+   .. py:method:: get_combined_data(modelData: pandas.DataFrame = None, predictorData: pandas.DataFrame = None, last=True) -> pandas.DataFrame
 
       Combines the model data and predictor data into one dataframe.
 
@@ -283,10 +271,10 @@ Classes
       :rtype: pd.DataFrame
 
 
-   .. py:method:: extract_treatments(self, df, overwrite_mapping, extract_col, verbose=True)
+   .. py:method:: extract_treatments(df, overwrite_mapping, extract_col, verbose=True)
 
 
-   .. py:method:: _extract(self, df, extract_col)
+   .. py:method:: _extract(df, extract_col)
 
       Simple function to extract treatments from column
 
@@ -301,7 +289,7 @@ Classes
       :staticmethod:
 
 
-   .. py:method:: get_AGB_models(self, last: bool = False, by: str = 'Configuration', n_threads: int = 6, query: Union[str, dict] = None, verbose: bool = True, **kwargs) -> Dict
+   .. py:method:: get_AGB_models(last: bool = False, by: str = 'Configuration', n_threads: int = 6, query: Union[str, dict] = None, verbose: bool = True, **kwargs) -> Dict
 
       Method to automatically extract AGB models.
 
@@ -340,7 +328,7 @@ Classes
       :rtype: pd.DataFrame
 
 
-   .. py:method:: _create_heatmap_df(self, df: pandas.DataFrame, lookback: int = 5, query: Union[str, dict] = None, fill_null_days: bool = False) -> Tuple[pandas.DataFrame, pandas.DataFrame]
+   .. py:method:: _create_heatmap_df(df: pandas.DataFrame, lookback: int = 5, query: Union[str, dict] = None, fill_null_days: bool = False) -> Tuple[pandas.DataFrame, pandas.DataFrame]
 
       Generates dataframes needed to plot calendar heatmap
       The method generates two dataframes where one is used to annotate the heatmap
@@ -366,7 +354,7 @@ Classes
       :staticmethod:
 
 
-   .. py:method:: model_summary(self, by: str = 'ModelID', query: Union[str, dict] = None, **kwargs)
+   .. py:method:: model_summary(by: str = 'ModelID', query: Union[str, dict] = None, **kwargs)
 
       Convenience method to automatically generate a summary over models
       By default, it summarizes ResponseCount, Performance, SuccessRate & Positives by model ID.
@@ -401,10 +389,10 @@ Classes
       :staticmethod:
 
 
-   .. py:method:: get_model_stats(self, last: bool = True) -> dict
+   .. py:method:: get_model_stats(last: bool = True) -> dict
 
 
-   .. py:method:: describe_models(self, **kwargs) -> NoReturn
+   .. py:method:: describe_models(**kwargs) -> NoReturn
 
       Convenience method to quickly summarize the models
 

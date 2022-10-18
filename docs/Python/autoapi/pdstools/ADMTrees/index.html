@@ -2,13 +2,13 @@
 <html class="no-js" lang="en">
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 <link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
 
-    <link rel="shortcut icon" href="../../../_static/pegasystems-inc-vector-logo.svg"/><meta name="generator" content="sphinx-5.0.2, furo 2022.06.21"/>
+    <link rel="shortcut icon" href="../../../_static/pegasystems-inc-vector-logo.svg"/><meta name="generator" content="sphinx-5.3.0, furo 2022.09.29"/>
         <title>pdstools.ADMTrees - pdstools</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?digest=40978830699223671f4072448e654b5958f38b89" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?digest=d81277517bee4d6b0349d71bb2661d4890b5617c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
@@ -188,12 +188,18 @@
 <ul class="current">
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2 current has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l3 has-children"><a class="reference internal" href="../healthcheck/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.healthcheck</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../healthcheck/datamart_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.healthcheck.datamart_utils</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../healthcheck/streamlit_app/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.healthcheck.streamlit_app</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../ADMDatamart/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.ADMDatamart</span></code></a></li>
 <li class="toctree-l3 current current-page"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.ADMTrees</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../IHanalysis/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.IHanalysis</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../ValueFinder/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.ValueFinder</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../cdh_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.cdh_utils</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../datasets/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.datasets</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../pds_app/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.pds_app</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../plot_base/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plot_base</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../plots_mpl/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plots_mpl</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../plots_plotly/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plots_plotly</span></code></a></li>
@@ -220,7 +226,8 @@
           <span>Back to top</span>
         </a>
         <div class="content-icon-container">
-          <div class="theme-toggle-container theme-toggle-content">
+          
+<div class="theme-toggle-container theme-toggle-content">
             <button class="theme-toggle">
               <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
               <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
@@ -398,28 +405,28 @@ the values for each split is encoded. Using the ‘save model’
 button, only that data is decompressed and decoded.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.ADMTreesModel._read_model">
-<span class="sig-name descname"><span class="pre">_read_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel._read_model" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">_read_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel._read_model" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.ADMTreesModel._decodeTrees">
-<span class="sig-name descname"><span class="pre">_decodeTrees</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel._decodeTrees" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">_decodeTrees</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel._decodeTrees" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.ADMTreesModel._post_import_cleanup">
-<span class="sig-name descname"><span class="pre">_post_import_cleanup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel._post_import_cleanup" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">_post_import_cleanup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">decode</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel._post_import_cleanup" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.ADMTreesModel._depth">
-<span class="sig-name descname"><span class="pre">_depth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel._depth" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">_depth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel._depth" title="Permalink to this definition">#</a></dt>
 <dd><p>Calculates the depth of the tree, used in TreeStats.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.ADMTreesModel.parseSplitValues">
-<span class="sig-name descname"><span class="pre">parseSplitValues</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.parseSplitValues" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">parseSplitValues</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.parseSplitValues" title="Permalink to this definition">#</a></dt>
 <dd><p>Parses the raw ‘split’ string into its three components.</p>
 <p>Once the split is parsed, Python can use it to evaluate.</p>
 <dl class="field-list simple">
@@ -442,18 +449,18 @@ The value on which to split</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.ADMTreesModel.getPredictors">
-<span class="sig-name descname"><span class="pre">getPredictors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.getPredictors" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">getPredictors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.getPredictors" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.ADMTreesModel.getGainsPerSplit">
-<span class="sig-name descname"><span class="pre">getGainsPerSplit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">pandas.DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.getGainsPerSplit" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">getGainsPerSplit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">pandas.DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.getGainsPerSplit" title="Permalink to this definition">#</a></dt>
 <dd><p>Function to compute the gains of each split in each tree.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.ADMTreesModel.getGroupedGainsPerSplit">
-<span class="sig-name descname"><span class="pre">getGroupedGainsPerSplit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.getGroupedGainsPerSplit" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">getGroupedGainsPerSplit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.getGroupedGainsPerSplit" title="Permalink to this definition">#</a></dt>
 <dd><p>Function to get the gains per split, grouped by split.</p>
 <p>It adds some additional information, such as the possible values,
 the mean gains, and the number of times the split is performed.</p>
@@ -461,7 +468,7 @@ the mean gains, and the number of times the split is performed.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.ADMTreesModel.getSplitsRecursively">
-<span class="sig-name descname"><span class="pre">getSplitsRecursively</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tree</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">splits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gains</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.getSplitsRecursively" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">getSplitsRecursively</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tree</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">splits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gains</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.getSplitsRecursively" title="Permalink to this definition">#</a></dt>
 <dd><p>Recursively finds splits and their gains for each node.</p>
 <p>By Python’s mutatable list mechanic, the easiest way to achieve
 this is to explicitly supply the function with empty lists.
@@ -487,7 +494,7 @@ empty lists when initially called.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.ADMTreesModel.plotSplitsPerVariable">
-<span class="sig-name descname"><span class="pre">plotSplitsPerVariable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Set</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.plotSplitsPerVariable" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">plotSplitsPerVariable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Set</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.plotSplitsPerVariable" title="Permalink to this definition">#</a></dt>
 <dd><p>Plots the splits for each variable in the tree.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -504,19 +511,19 @@ empty lists when initially called.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.ADMTreesModel.getTreeStats">
-<span class="sig-name descname"><span class="pre">getTreeStats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.getTreeStats" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">getTreeStats</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.getTreeStats" title="Permalink to this definition">#</a></dt>
 <dd><p>Generate a dataframe with useful stats for each tree</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.ADMTreesModel.getAllValuesPerSplit">
-<span class="sig-name descname"><span class="pre">getAllValuesPerSplit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.getAllValuesPerSplit" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">getAllValuesPerSplit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.getAllValuesPerSplit" title="Permalink to this definition">#</a></dt>
 <dd><p>Generate a dictionary with the possible values for each split</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.ADMTreesModel.getNodesRecursively">
-<span class="sig-name descname"><span class="pre">getNodesRecursively</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tree</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nodelist</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">counter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">childs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.getNodesRecursively" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">getNodesRecursively</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tree</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nodelist</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">counter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">childs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.getNodesRecursively" title="Permalink to this definition">#</a></dt>
 <dd><p>Recursively walks through each node, used for tree representation.</p>
 <p>Again, nodelist, counter and childs expects
 empty dict, dict and list parameters.</p>
@@ -547,7 +554,7 @@ empty dict, dict and list parameters.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.ADMTreesModel.getTreeRepresentation">
-<span class="sig-name descname"><span class="pre">getTreeRepresentation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tree_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.getTreeRepresentation" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">getTreeRepresentation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tree_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.getTreeRepresentation" title="Permalink to this definition">#</a></dt>
 <dd><p>Generates a more usable tree representation.</p>
 <p>In this tree representation, each node has an ID,
 and its attributes are the attributes,
@@ -564,7 +571,7 @@ with parent and child nodes added as well.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.ADMTreesModel.plotTree">
-<span class="sig-name descname"><span class="pre">plotTree</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tree_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">highlighted</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pydot.Graph</span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.plotTree" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">plotTree</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tree_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">highlighted</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pydot.Graph</span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.plotTree" title="Permalink to this definition">#</a></dt>
 <dd><p>Plots the chosen decision tree.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -584,7 +591,7 @@ If a list, expects a list of node IDs for that tree.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.ADMTreesModel.getVisitedNodes">
-<span class="sig-name descname"><span class="pre">getVisitedNodes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">treeID</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_all</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.getVisitedNodes" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">getVisitedNodes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">treeID</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_all</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.getVisitedNodes" title="Permalink to this definition">#</a></dt>
 <dd><p>Finds all visited nodes for a given tree, given an x</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -607,7 +614,7 @@ The gains for each split in the visited nodes</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.ADMTreesModel.getAllVisitedNodes">
-<span class="sig-name descname"><span class="pre">getAllVisitedNodes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.getAllVisitedNodes" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">getAllVisitedNodes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.getAllVisitedNodes" title="Permalink to this definition">#</a></dt>
 <dd><p>Loops through each tree, and records the scoring info</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -621,29 +628,29 @@ The gains for each split in the visited nodes</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.ADMTreesModel.score">
-<span class="sig-name descname"><span class="pre">score</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.score" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">score</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.score" title="Permalink to this definition">#</a></dt>
 <dd><p>Computes the score for a given x</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.ADMTreesModel.plotContributionPerTree">
-<span class="sig-name descname"><span class="pre">plotContributionPerTree</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.plotContributionPerTree" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">plotContributionPerTree</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.plotContributionPerTree" title="Permalink to this definition">#</a></dt>
 <dd><p>Plots the contribution of each tree towards the final propensity.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.ADMTreesModel.predictorCategorization">
-<span class="sig-name descname"><span class="pre">predictorCategorization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.predictorCategorization" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">predictorCategorization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.predictorCategorization" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.ADMTreesModel.computeCategorizationOverTime">
-<span class="sig-name descname"><span class="pre">computeCategorizationOverTime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictorCategorization</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.computeCategorizationOverTime" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">computeCategorizationOverTime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictorCategorization</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.computeCategorizationOverTime" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.ADMTreesModel.plotSplitsPerVariableType">
-<span class="sig-name descname"><span class="pre">plotSplitsPerVariableType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictorCategorization</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.plotSplitsPerVariableType" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">plotSplitsPerVariableType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictorCategorization</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.ADMTreesModel.plotSplitsPerVariableType" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -651,7 +658,17 @@ The gains for each split in the visited nodes</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.MultiTrees">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pdstools.ADMTrees.</span></span><span class="sig-name descname"><span class="pre">MultiTrees</span></span><a class="headerlink" href="#pdstools.ADMTrees.MultiTrees" title="Permalink to this definition">#</a></dt>
-<dd><dl class="py attribute">
+<dd><dl class="py property">
+<dt class="sig sig-object py" id="pdstools.ADMTrees.MultiTrees.first">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">first</span></span><a class="headerlink" href="#pdstools.ADMTrees.MultiTrees.first" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.ADMTrees.MultiTrees.last">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">last</span></span><a class="headerlink" href="#pdstools.ADMTrees.MultiTrees.last" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.MultiTrees.trees">
 <span class="sig-name descname"><span class="pre">trees</span></span><em class="property"><span class="w"> </span><span class="pre">:dict</span></em><a class="headerlink" href="#pdstools.ADMTrees.MultiTrees.trees" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
@@ -668,43 +685,33 @@ The gains for each split in the visited nodes</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.MultiTrees.__repr__">
-<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.MultiTrees.__repr__" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.MultiTrees.__repr__" title="Permalink to this definition">#</a></dt>
 <dd><p>Return repr(self).</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.MultiTrees.__getitem__">
-<span class="sig-name descname"><span class="pre">__getitem__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.MultiTrees.__getitem__" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">__getitem__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.MultiTrees.__getitem__" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.MultiTrees.__len__">
-<span class="sig-name descname"><span class="pre">__len__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.MultiTrees.__len__" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">__len__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.MultiTrees.__len__" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.MultiTrees.__add__">
-<span class="sig-name descname"><span class="pre">__add__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.MultiTrees.__add__" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.ADMTrees.MultiTrees.first">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">first</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.MultiTrees.first" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.ADMTrees.MultiTrees.last">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">last</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.MultiTrees.last" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">__add__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.MultiTrees.__add__" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.MultiTrees.computeOverTime">
-<span class="sig-name descname"><span class="pre">computeOverTime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictorCategorization</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.MultiTrees.computeOverTime" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">computeOverTime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictorCategorization</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.MultiTrees.computeOverTime" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.MultiTrees.plotSplitsPerVariableType">
-<span class="sig-name descname"><span class="pre">plotSplitsPerVariableType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictorCategorization</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.MultiTrees.plotSplitsPerVariableType" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">plotSplitsPerVariableType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictorCategorization</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.MultiTrees.plotSplitsPerVariableType" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -751,7 +758,7 @@ The gains for each split in the visited nodes</p>
       <div class="toc-sticky toc-scroll">
         <div class="toc-title-container">
           <span class="toc-title">
-            Contents
+            On this page
           </span>
         </div>
         <div class="toc-tree-container">
@@ -760,6 +767,62 @@ The gains for each split in the visited nodes</p>
 <li><a class="reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.ADMTrees</span></code></a><ul>
 <li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
 <li><a class="reference internal" href="#classes">Classes</a><ul>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTrees"><code class="docutils literal notranslate"><span class="pre">ADMTrees</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTrees.getMultiTrees"><code class="docutils literal notranslate"><span class="pre">ADMTrees.getMultiTrees()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.trees"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.trees</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.properties"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.properties</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.learning_rate"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.learning_rate</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.model"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.model</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.treeStats"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.treeStats</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.splitsPerTree"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.splitsPerTree</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.gainsPerTree"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.gainsPerTree</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.gainsPerSplit"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.gainsPerSplit</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.groupedGainsPerSplit"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.groupedGainsPerSplit</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.predictors"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.predictors</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.allValuesPerSplit"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.allValuesPerSplit</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel._read_model"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel._read_model()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel._decodeTrees"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel._decodeTrees()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel._post_import_cleanup"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel._post_import_cleanup()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel._depth"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel._depth()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.parseSplitValues"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.parseSplitValues()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.parseSplitValuesWithSpaces"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.parseSplitValuesWithSpaces()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.getPredictors"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.getPredictors()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.getGainsPerSplit"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.getGainsPerSplit()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.getGroupedGainsPerSplit"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.getGroupedGainsPerSplit()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.getSplitsRecursively"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.getSplitsRecursively()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.plotSplitsPerVariable"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.plotSplitsPerVariable()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.getTreeStats"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.getTreeStats()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.getAllValuesPerSplit"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.getAllValuesPerSplit()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.getNodesRecursively"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.getNodesRecursively()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel._fillChildNodeIDs"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel._fillChildNodeIDs()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.getTreeRepresentation"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.getTreeRepresentation()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.plotTree"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.plotTree()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.getVisitedNodes"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.getVisitedNodes()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.getAllVisitedNodes"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.getAllVisitedNodes()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.score"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.score()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.plotContributionPerTree"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.plotContributionPerTree()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.predictorCategorization"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.predictorCategorization()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.computeCategorizationOverTime"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.computeCategorizationOverTime()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.ADMTreesModel.plotSplitsPerVariableType"><code class="docutils literal notranslate"><span class="pre">ADMTreesModel.plotSplitsPerVariableType()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.MultiTrees"><code class="docutils literal notranslate"><span class="pre">MultiTrees</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.ADMTrees.MultiTrees.first"><code class="docutils literal notranslate"><span class="pre">MultiTrees.first</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.MultiTrees.last"><code class="docutils literal notranslate"><span class="pre">MultiTrees.last</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.MultiTrees.trees"><code class="docutils literal notranslate"><span class="pre">MultiTrees.trees</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.MultiTrees.model_name"><code class="docutils literal notranslate"><span class="pre">MultiTrees.model_name</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.MultiTrees.context_keys"><code class="docutils literal notranslate"><span class="pre">MultiTrees.context_keys</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.MultiTrees.__repr__"><code class="docutils literal notranslate"><span class="pre">MultiTrees.__repr__()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.MultiTrees.__getitem__"><code class="docutils literal notranslate"><span class="pre">MultiTrees.__getitem__()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.MultiTrees.__len__"><code class="docutils literal notranslate"><span class="pre">MultiTrees.__len__()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.MultiTrees.__add__"><code class="docutils literal notranslate"><span class="pre">MultiTrees.__add__()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.MultiTrees.computeOverTime"><code class="docutils literal notranslate"><span class="pre">MultiTrees.computeOverTime()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.MultiTrees.plotSplitsPerVariableType"><code class="docutils literal notranslate"><span class="pre">MultiTrees.plotSplitsPerVariableType()</span></code></a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#pdstools.ADMTrees.ADMTrees">ADMTrees</a><ul>
 <li><a class="reference internal" href="#pdstools.ADMTrees.ADMTrees.getMultiTrees">getMultiTrees</a></li>
 </ul>
@@ -803,6 +866,8 @@ The gains for each split in the visited nodes</p>
 </ul>
 </li>
 <li><a class="reference internal" href="#pdstools.ADMTrees.MultiTrees">MultiTrees</a><ul>
+<li><a class="reference internal" href="#pdstools.ADMTrees.MultiTrees.first">first</a></li>
+<li><a class="reference internal" href="#pdstools.ADMTrees.MultiTrees.last">last</a></li>
 <li><a class="reference internal" href="#pdstools.ADMTrees.MultiTrees.trees">trees</a></li>
 <li><a class="reference internal" href="#pdstools.ADMTrees.MultiTrees.model_name">model_name</a></li>
 <li><a class="reference internal" href="#pdstools.ADMTrees.MultiTrees.context_keys">context_keys</a></li>
@@ -810,8 +875,6 @@ The gains for each split in the visited nodes</p>
 <li><a class="reference internal" href="#pdstools.ADMTrees.MultiTrees.__getitem__">__getitem__</a></li>
 <li><a class="reference internal" href="#pdstools.ADMTrees.MultiTrees.__len__">__len__</a></li>
 <li><a class="reference internal" href="#pdstools.ADMTrees.MultiTrees.__add__">__add__</a></li>
-<li><a class="reference internal" href="#pdstools.ADMTrees.MultiTrees.first">first</a></li>
-<li><a class="reference internal" href="#pdstools.ADMTrees.MultiTrees.last">last</a></li>
 <li><a class="reference internal" href="#pdstools.ADMTrees.MultiTrees.computeOverTime">computeOverTime</a></li>
 <li><a class="reference internal" href="#pdstools.ADMTrees.MultiTrees.plotSplitsPerVariableType">plotSplitsPerVariableType</a></li>
 </ul>
@@ -836,10 +899,11 @@ The gains for each split in the visited nodes</p>
     <script src="../../../_static/underscore.js"></script>
     <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/sphinx_highlight.js"></script>
     <script src="../../../_static/scripts/furo.js"></script>
     <script src="../../../_static/clipboard.min.js"></script>
     <script src="../../../_static/copybutton.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-    <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.20.1/dist/embed-amd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
     </body>
 </html>

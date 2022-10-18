@@ -99,17 +99,19 @@ test_that("AUC from full arrays", {
 })
 
 test_that("AUC PR", {
-  # AUCPR is under the curve (0.4166667) so gets flipped
   expect_equal(aucpr_from_probs( c("yes", "yes", "no"), c(0.6, 0.2, 0.2)),
-               0.5833333, tolerance=1e-6)
+               0.4166667, tolerance=1e-6)
 
   # Same from bins
   positives <- c(3,1,0)
   negatives <- c(2,0,1)
   truth <- unlist(sapply(seq(length(positives)), function(i){ return(c(rep(1, positives[i]), rep(0, negatives[i])))}))
   probs <- unlist(sapply(seq(length(positives)), function(i){ return(c(rep(positives[i]/(positives[i]+negatives[i]), positives[i]+negatives[i])))}))
-  expect_equal(aucpr_from_bincounts( positives, negatives),
-               0.625)
+  expect_equal(aucpr_from_bincounts( positives, negatives), 0.625)
+
+  positives <- c(50,70,75,80,85,90,110,130,150,160)
+  negatives <- c(1440,1350,1170,990,810,765,720,675,630,450)
+  expect_equal(aucpr_from_bincounts( positives, negatives), 0.1489611)
 
   # Example from MLmetrics
   # MLmetrics::AUC(y_pred = logreg$fitted.values, y_true = mtcars$vs)

@@ -114,21 +114,21 @@ Classes
    the values for each split is encoded. Using the 'save model'
    button, only that data is decompressed and decoded.
 
-   .. py:method:: _read_model(self, file, **kwargs)
+   .. py:method:: _read_model(file, **kwargs)
 
 
-   .. py:method:: _decodeTrees(self)
+   .. py:method:: _decodeTrees()
 
 
-   .. py:method:: _post_import_cleanup(self, decode, **kwargs)
+   .. py:method:: _post_import_cleanup(decode, **kwargs)
 
 
-   .. py:method:: _depth(self, d: Dict) -> Dict
+   .. py:method:: _depth(d: Dict) -> Dict
 
       Calculates the depth of the tree, used in TreeStats.
 
 
-   .. py:method:: parseSplitValues(self, value) -> Tuple[str, str, str]
+   .. py:method:: parseSplitValues(value) -> Tuple[str, str, str]
 
       Parses the raw 'split' string into its three components.
 
@@ -146,15 +146,15 @@ Classes
       :staticmethod:
 
 
-   .. py:method:: getPredictors(self) -> Dict
+   .. py:method:: getPredictors() -> Dict
 
 
-   .. py:method:: getGainsPerSplit(self) -> Tuple[Dict, pandas.DataFrame, dict]
+   .. py:method:: getGainsPerSplit() -> Tuple[Dict, pandas.DataFrame, dict]
 
       Function to compute the gains of each split in each tree.
 
 
-   .. py:method:: getGroupedGainsPerSplit(self) -> pandas.DataFrame
+   .. py:method:: getGroupedGainsPerSplit() -> pandas.DataFrame
 
       Function to get the gains per split, grouped by split.
 
@@ -162,7 +162,7 @@ Classes
       the mean gains, and the number of times the split is performed.
 
 
-   .. py:method:: getSplitsRecursively(self, tree: Dict, splits: List, gains: List) -> Tuple[List, List]
+   .. py:method:: getSplitsRecursively(tree: Dict, splits: List, gains: List) -> Tuple[List, List]
 
       Recursively finds splits and their gains for each node.
 
@@ -182,7 +182,7 @@ Classes
                 * *Each split, and its corresponding gain*
 
 
-   .. py:method:: plotSplitsPerVariable(self, subset: Optional[Set] = None, show=True)
+   .. py:method:: plotSplitsPerVariable(subset: Optional[Set] = None, show=True)
 
       Plots the splits for each variable in the tree.
 
@@ -194,17 +194,17 @@ Classes
       :rtype: plt.figure
 
 
-   .. py:method:: getTreeStats(self) -> pandas.DataFrame
+   .. py:method:: getTreeStats() -> pandas.DataFrame
 
       Generate a dataframe with useful stats for each tree
 
 
-   .. py:method:: getAllValuesPerSplit(self) -> Dict
+   .. py:method:: getAllValuesPerSplit() -> Dict
 
       Generate a dictionary with the possible values for each split
 
 
-   .. py:method:: getNodesRecursively(self, tree: Dict, nodelist: Dict, counter: Dict, childs: List) -> Tuple[Dict, List]
+   .. py:method:: getNodesRecursively(tree: Dict, nodelist: Dict, counter: Dict, childs: List) -> Tuple[Dict, List]
 
       Recursively walks through each node, used for tree representation.
 
@@ -230,7 +230,7 @@ Classes
       Utility function to add child info to nodes
 
 
-   .. py:method:: getTreeRepresentation(self, tree_number: int) -> Dict
+   .. py:method:: getTreeRepresentation(tree_number: int) -> Dict
 
       Generates a more usable tree representation.
 
@@ -244,7 +244,7 @@ Classes
       :type returns: Dict
 
 
-   .. py:method:: plotTree(self, tree_number: int, highlighted: Optional[Union[Dict, List]] = None, show=True) -> pydot.Graph
+   .. py:method:: plotTree(tree_number: int, highlighted: Optional[Union[Dict, List]] = None, show=True) -> pydot.Graph
 
       Plots the chosen decision tree.
 
@@ -259,7 +259,7 @@ Classes
       :rtype: pydot.Graph
 
 
-   .. py:method:: getVisitedNodes(self, treeID: int, x: Dict, save_all: bool = False) -> Tuple[List, float, List]
+   .. py:method:: getVisitedNodes(treeID: int, x: Dict, save_all: bool = False) -> Tuple[List, float, List]
 
       Finds all visited nodes for a given tree, given an x
 
@@ -276,7 +276,7 @@ Classes
       :rtype: List, float, List
 
 
-   .. py:method:: getAllVisitedNodes(self, x: Dict) -> pandas.DataFrame
+   .. py:method:: getAllVisitedNodes(x: Dict) -> pandas.DataFrame
 
       Loops through each tree, and records the scoring info
 
@@ -286,27 +286,33 @@ Classes
       :rtype: pd.DataFrame
 
 
-   .. py:method:: score(self, x: Dict) -> float
+   .. py:method:: score(x: Dict) -> float
 
       Computes the score for a given x
 
 
-   .. py:method:: plotContributionPerTree(self, x: Dict, show=True)
+   .. py:method:: plotContributionPerTree(x: Dict, show=True)
 
       Plots the contribution of each tree towards the final propensity.
 
 
-   .. py:method:: predictorCategorization(self, x: str, context_keys=None)
+   .. py:method:: predictorCategorization(x: str, context_keys=None)
 
 
-   .. py:method:: computeCategorizationOverTime(self, predictorCategorization=None, context_keys=None)
+   .. py:method:: computeCategorizationOverTime(predictorCategorization=None, context_keys=None)
 
 
-   .. py:method:: plotSplitsPerVariableType(self, predictorCategorization=None, **kwargs)
+   .. py:method:: plotSplitsPerVariableType(predictorCategorization=None, **kwargs)
 
 
 
 .. py:class:: MultiTrees
+
+   .. py:property:: first
+
+
+   .. py:property:: last
+
 
    .. py:attribute:: trees
       :annotation: :dict
@@ -323,32 +329,24 @@ Classes
 
       
 
-   .. py:method:: __repr__(self)
+   .. py:method:: __repr__()
 
       Return repr(self).
 
 
-   .. py:method:: __getitem__(self, index)
+   .. py:method:: __getitem__(index)
 
 
-   .. py:method:: __len__(self)
+   .. py:method:: __len__()
 
 
-   .. py:method:: __add__(self, other)
+   .. py:method:: __add__(other)
 
 
-   .. py:method:: first(self)
-      :property:
+   .. py:method:: computeOverTime(predictorCategorization=None)
 
 
-   .. py:method:: last(self)
-      :property:
-
-
-   .. py:method:: computeOverTime(self, predictorCategorization=None)
-
-
-   .. py:method:: plotSplitsPerVariableType(self, predictorCategorization=None, **kwargs)
+   .. py:method:: plotSplitsPerVariableType(predictorCategorization=None, **kwargs)
 
 
 

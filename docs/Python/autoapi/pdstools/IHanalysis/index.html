@@ -2,13 +2,13 @@
 <html class="no-js" lang="en">
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 <link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
 
-    <link rel="shortcut icon" href="../../../_static/pegasystems-inc-vector-logo.svg"/><meta name="generator" content="sphinx-5.0.2, furo 2022.06.21"/>
+    <link rel="shortcut icon" href="../../../_static/pegasystems-inc-vector-logo.svg"/><meta name="generator" content="sphinx-5.3.0, furo 2022.09.29"/>
         <title>pdstools.IHanalysis - pdstools</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?digest=40978830699223671f4072448e654b5958f38b89" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?digest=d81277517bee4d6b0349d71bb2661d4890b5617c" />
     <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
@@ -188,12 +188,18 @@
 <ul class="current">
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2 current has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l3 has-children"><a class="reference internal" href="../healthcheck/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.healthcheck</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../healthcheck/datamart_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.healthcheck.datamart_utils</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../healthcheck/streamlit_app/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.healthcheck.streamlit_app</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../ADMDatamart/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.ADMDatamart</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../ADMTrees/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.ADMTrees</span></code></a></li>
 <li class="toctree-l3 current current-page"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.IHanalysis</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../ValueFinder/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.ValueFinder</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../cdh_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.cdh_utils</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../datasets/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.datasets</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../pds_app/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.pds_app</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../plot_base/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plot_base</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../plots_mpl/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plots_mpl</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../plots_plotly/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plots_plotly</span></code></a></li>
@@ -220,7 +226,8 @@
           <span>Back to top</span>
         </a>
         <div class="content-icon-container">
-          <div class="theme-toggle-container theme-toggle-content">
+          
+<div class="theme-toggle-container theme-toggle-content">
             <button class="theme-toggle">
               <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
               <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
@@ -243,7 +250,7 @@
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.IHanalysis.initial_prep" title="pdstools.IHanalysis.initial_prep"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initial_prep</span></code></a>(df, referenceTime='pxOutcomeTime')</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.IHanalysis.initial_prep" title="pdstools.IHanalysis.initial_prep"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initial_prep</span></code></a>(df[, referenceTime])</p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pdstools.IHanalysis.detect_outlier" title="pdstools.IHanalysis.detect_outlier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">detect_outlier</span></code></a>(df, col)</p></td>
@@ -282,13 +289,13 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.IHanalysis.get_total_outcome_share_per_level" title="pdstools.IHanalysis.get_total_outcome_share_per_level"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_total_outcome_share_per_level</span></code></a>(df, outcome, level)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.IHanalysis.plot_outcome_share_graph" title="pdstools.IHanalysis.plot_outcome_share_graph"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_outcome_share_graph</span></code></a>(df, outcome, level, hue=None)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.IHanalysis.plot_outcome_share_graph" title="pdstools.IHanalysis.plot_outcome_share_graph"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_outcome_share_graph</span></code></a>(df, outcome, level[, hue])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.IHanalysis.get_outcome_share_time" title="pdstools.IHanalysis.get_outcome_share_time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_outcome_share_time</span></code></a>(df, outcome, level, time='daily')</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.IHanalysis.get_outcome_share_time" title="pdstools.IHanalysis.get_outcome_share_time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_outcome_share_time</span></code></a>(df, outcome, level[, time])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.IHanalysis.select_date_range_lookback" title="pdstools.IHanalysis.select_date_range_lookback"><code class="xref py py-obj docutils literal notranslate"><span class="pre">select_date_range_lookback</span></code></a>(df, lookback=3)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.IHanalysis.select_date_range_lookback" title="pdstools.IHanalysis.select_date_range_lookback"><code class="xref py py-obj docutils literal notranslate"><span class="pre">select_date_range_lookback</span></code></a>(df[, lookback])</p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.IHanalysis.get_delta_df" title="pdstools.IHanalysis.get_delta_df"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_delta_df</span></code></a>(df, outcome, level, dates)</p></td>
@@ -432,7 +439,7 @@
       <div class="toc-sticky toc-scroll">
         <div class="toc-title-container">
           <span class="toc-title">
-            Contents
+            On this page
           </span>
         </div>
         <div class="toc-tree-container">
@@ -441,6 +448,24 @@
 <li><a class="reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.IHanalysis</span></code></a><ul>
 <li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
 <li><a class="reference internal" href="#functions">Functions</a><ul>
+<li><a class="reference internal" href="#pdstools.IHanalysis.initial_prep"><code class="docutils literal notranslate"><span class="pre">initial_prep()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.IHanalysis.detect_outlier"><code class="docutils literal notranslate"><span class="pre">detect_outlier()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.IHanalysis.get_all_times_inds"><code class="docutils literal notranslate"><span class="pre">get_all_times_inds()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.IHanalysis.get_total_outcome"><code class="docutils literal notranslate"><span class="pre">get_total_outcome()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.IHanalysis.get_accept_rate"><code class="docutils literal notranslate"><span class="pre">get_accept_rate()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.IHanalysis.get_accept_rate_time"><code class="docutils literal notranslate"><span class="pre">get_accept_rate_time()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.IHanalysis.plot_daily_accept_rate"><code class="docutils literal notranslate"><span class="pre">plot_daily_accept_rate()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.IHanalysis.plot_weekly_accept_rate"><code class="docutils literal notranslate"><span class="pre">plot_weekly_accept_rate()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.IHanalysis.plot_daily_cumulative_accept_rate"><code class="docutils literal notranslate"><span class="pre">plot_daily_cumulative_accept_rate()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.IHanalysis.get_daily_graph"><code class="docutils literal notranslate"><span class="pre">get_daily_graph()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.IHanalysis.plot_outcome_count_time"><code class="docutils literal notranslate"><span class="pre">plot_outcome_count_time()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.IHanalysis.get_allDays_df"><code class="docutils literal notranslate"><span class="pre">get_allDays_df()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.IHanalysis.get_total_outcome_share_per_level"><code class="docutils literal notranslate"><span class="pre">get_total_outcome_share_per_level()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.IHanalysis.plot_outcome_share_graph"><code class="docutils literal notranslate"><span class="pre">plot_outcome_share_graph()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.IHanalysis.get_outcome_share_time"><code class="docutils literal notranslate"><span class="pre">get_outcome_share_time()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.IHanalysis.select_date_range_lookback"><code class="docutils literal notranslate"><span class="pre">select_date_range_lookback()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.IHanalysis.get_delta_df"><code class="docutils literal notranslate"><span class="pre">get_delta_df()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.IHanalysis.plot_share_delta_graph"><code class="docutils literal notranslate"><span class="pre">plot_share_delta_graph()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.IHanalysis.initial_prep">initial_prep</a></li>
 <li><a class="reference internal" href="#pdstools.IHanalysis.detect_outlier">detect_outlier</a></li>
 <li><a class="reference internal" href="#pdstools.IHanalysis.get_all_times_inds">get_all_times_inds</a></li>
@@ -479,10 +504,11 @@
     <script src="../../../_static/underscore.js"></script>
     <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/sphinx_highlight.js"></script>
     <script src="../../../_static/scripts/furo.js"></script>
     <script src="../../../_static/clipboard.min.js"></script>
     <script src="../../../_static/copybutton.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-    <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.20.1/dist/embed-amd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
     </body>
 </html>

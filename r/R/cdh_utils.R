@@ -253,7 +253,7 @@ safe_range_auc <- function(auc)
 #' groundtruth label.
 #'
 #' @param groundtruth The 'true' values, with just 2 different values
-#' @param probs The predictions, as a numeric vector as the same length as \code{groundtruth}
+#' @param probs The predictions, as a numeric vector of the same length as \code{groundtruth}
 #'
 #' @return The AUC as a value between 0.5 and 1.
 #' @export
@@ -288,14 +288,13 @@ auc_from_probs <- function(groundtruth, probs)
 
 #' Calculates PR AUC (precision-recall) from an array of truth values and predictions.
 #'
-#' Calculates the area under the PR curve from an array of truth values and predictions, making sure to
-#' always return a value between 0.5 and 1.0 and returns 0.5 when there is just one
-#' groundtruth label.
+#' Calculates the area under the PR curve from an array of truth values and predictions.
+#' Returns 0.5 when there is just one groundtruth label.
 #'
 #' @param groundtruth The 'true' values, with just 2 different values
 #' @param probs The predictions, as a numeric vector as the same length as \code{groundtruth}
 #'
-#' @return The AUC as a value between 0.5 and 1.
+#' @return The AUC as a value between 0.0 and 1.0
 #' @export
 #'
 #' @examples
@@ -349,15 +348,15 @@ auc_from_bincounts <- function(pos, neg, probs = pos/(pos+neg))
 
 #' Calculates PR AUC (precision-recall) from counts of positives and negatives directly.
 #'
-#' This is an efficient calculation of the area under the PR curve directly from an array of positives and negatives. It makes
-#' sure to always return a value between 0.5 and 1.0 and will return 0.5 when there is just one
+#' This is an efficient calculation of the area under the PR curve directly from an
+#' array of positives and negatives. Returns 0.5 when there is just one
 #' groundtruth label.
 #'
 #' @param pos Vector with counts of the positive responses
 #' @param neg Vector with counts of the negative responses
 #' @param probs Optional vector of probabilities, defaults to pos/(pos+neg). Used to order the response bins.
 #'
-#' @return The PR AUC as a value between 0.5 and 1.
+#' @return The PR AUC as a value between 0.0 and 1.0
 #' @export
 #'
 #' @examples
@@ -368,14 +367,14 @@ aucpr_from_bincounts <- function(pos, neg, probs = pos/(pos+neg))
   recall <- cumsum(pos[binorder]) / sum(pos)
   precision <- cumsum(pos[binorder]) / cumsum(pos[binorder] + neg[binorder])
   Area <- (recall - shift(recall, 1, fill=0)) * (precision + shift(precision, 1, fill=0)) / 2
-  return (safe_range_auc(sum(Area[-1])))
+  return (sum(Area[-1])) # not mapping to 0.5 - 1.0
 }
 
 #' Convert AUC performance metric to GINI.
 #'
-#' @param auc The AUC (number between 0.5 and 1)
+#' @param auc The ROC AUC (number between 0.5 and 1)
 #'
-#' @return GINI metric, a number beteen 0 and 1
+#' @return GINI metric, a number between 0 and 1
 #' @export
 #'
 #' @examples
