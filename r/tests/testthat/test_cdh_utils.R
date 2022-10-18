@@ -111,7 +111,7 @@ test_that("AUC PR", {
 
   positives <- c(50,70,75,80,85,90,110,130,150,160)
   negatives <- c(1440,1350,1170,990,810,765,720,675,630,450)
-  expect_equal(aucpr_from_bincounts( positives, negatives), 0.1489611)
+  expect_equal(aucpr_from_bincounts( positives, negatives), 0.1489611, tolerance=1e-6)
 
   # Example from MLmetrics
   # MLmetrics::AUC(y_pred = logreg$fitted.values, y_true = mtcars$vs)
