@@ -8,6 +8,7 @@ of data analysis, reporting and monitoring.
 
 from typing import List, Union
 import pandas as pd
+import polars as pl
 import os
 import zipfile
 import re
@@ -314,23 +315,21 @@ def auc_from_probs(
     Examples:
         >>> auc_from_probs( [1,1,0], [0.6,0.2,0.2])
     """
-    # Catching warning - since this is the only place sklearn is used.
-    # This way we can remove it from the requirements.
-    try:
-        from sklearn.metrics import roc_auc_score
-    except ImportError as e:
-        raise ImportError("To calculate AUC, please install sklearn.", e)
+    nlabels = len(np.unique(groundtruth))
+    if nlabels < 2: return 0.5
+    if nlabels > 2: raise Exception("'Groundtruth' has more than two levels.")
 
-    if len(set(groundtruth)) < 2:
-        return 0.5
-    auc = roc_auc_score(groundtruth, probs)
-    return safe_range_auc(auc)
+    df = pl.DataFrame( {'truth' : groundtruth, 'probs' : probs} )
+    binned = (df.groupby(by='probs').agg([
+        (pl.col("truth") == 1).sum().alias('pos'),
+        (pl.col("truth") == 0).sum().alias('neg')]))
+    
+    return auc_from_bincounts(
+        binned.get_column('pos'), 
+        binned.get_column('neg'), 
+        binned.get_column('probs'))
 
-# aucpr_from_probs
-# TODO figure this out
-# while also re-writing the normal auc calc to do the grouping, see R code
-
-def auc_from_bincounts(pos: List[int], neg: List[int]) -> float:
+def auc_from_bincounts(pos: List[int], neg: List[int], probs: List[float] = None) -> float:
     """Calculates AUC from counts of positives and negatives directly
     This is an efficient calculation of the area under the ROC curve directly from an array of positives
     and negatives. It makes sure to always return a value between 0.5 and 1.0
@@ -342,6 +341,8 @@ def auc_from_bincounts(pos: List[int], neg: List[int]) -> float:
         Vector with counts of the positive responses
     neg: List[int]
         Vector with counts of the negative responses
+    probs: List[float]
+        Optional list with probabilities which will be used to set the order of the bins. If missing defaults to pos/(pos+neg).
 
     Returns
     -------
@@ -353,16 +354,55 @@ def auc_from_bincounts(pos: List[int], neg: List[int]) -> float:
     """
     pos = np.asarray(pos)
     neg = np.asarray(neg)
-    o = np.argsort(-(pos / (pos + neg)))
+    if probs is None:
+        o = np.argsort(-(pos / (pos + neg)))
+    else:
+        o = np.argsort(-np.asarray(probs))
     FPR = np.flip(np.cumsum(neg[o]) / np.sum(neg), axis=0)
     TPR = np.flip(np.cumsum(pos[o]) / np.sum(pos), axis=0)
     Area = (FPR - np.append(FPR[1:], 0)) * (TPR + np.append(TPR[1:], 0)) / 2
     return safe_range_auc(np.sum(Area))
 
-def aucpr_from_bincounts(pos: List[int], neg: List[int]) -> float:
+def aucpr_from_probs(
+    groundtruth: List[int], probs: List[float]
+) -> List[float]:  # pragma: no cover
+    """Calculates PR AUC (precision-recall) from an array of truth values and predictions.
+    Calculates the area under the PR curve from an array of truth values and
+    predictions. Returns 0.0 when there is just one
+    groundtruth label.
+
+    Parameters
+    ----------
+    groundtruth : List[int]
+        The 'true' values, Positive values must be represented as
+        True or 1. Negative values must be represented as False or 0.
+    probs : List[float]
+        The predictions, as a numeric vector of the same length as groundtruth
+
+    Returns : List[float]
+        The AUC as a value between 0.5 and 1.
+
+    Examples:
+        >>> auc_from_probs( [1,1,0], [0.6,0.2,0.2])
+    """
+    nlabels = len(np.unique(groundtruth))
+    if nlabels < 2: return 0.0
+    if nlabels > 2: raise Exception("'Groundtruth' has more than two levels.")
+
+    df = pl.DataFrame( {'truth' : groundtruth, 'probs' : probs} )
+    binned = (df.groupby(by='probs').agg([
+        (pl.col("truth") == 1).sum().alias('pos'),
+        (pl.col("truth") == 0).sum().alias('neg')]))
+    
+    return aucpr_from_bincounts(
+        binned.get_column('pos'), 
+        binned.get_column('neg'), 
+        binned.get_column('probs'))
+
+def aucpr_from_bincounts(pos: List[int], neg: List[int], probs: List[float] = None) -> float:
     """Calculates PR AUC (precision-recall) from counts of positives and negatives directly.
     This is an efficient calculation of the area under the PR curve directly from an
-    array of positives and negatives. Returns 0.5 when there is just one
+    array of positives and negatives. Returns 0.0 when there is just one
     groundtruth label.
 
     Parameters
@@ -371,18 +411,23 @@ def aucpr_from_bincounts(pos: List[int], neg: List[int]) -> float:
         Vector with counts of the positive responses
     neg: List[int]
         Vector with counts of the negative responses
+    probs: List[float]
+        Optional list with probabilities which will be used to set the order of the bins. If missing defaults to pos/(pos+neg).
 
     Returns
     -------
     float
-        The PR AUC as a value between 0.5 and 1.
+        The PR AUC as a value between 0.0 and 1.
 
     Examples:
         >>> aucpr_from_bincounts([3,1,0], [2,0,1])
     """
     pos = np.asarray(pos)
     neg = np.asarray(neg)
-    o = np.argsort(-(pos / (pos + neg)))
+    if probs is None:
+        o = np.argsort(-(pos / (pos + neg)))
+    else:
+        o = np.argsort(-np.asarray(probs))
     recall = np.cumsum(pos[o]) / np.sum(pos)
     precision = np.cumsum(pos[o]) / np.cumsum(pos[o] + neg[o])
     prevrecall = np.insert(recall[0:(len(recall)-1)], 0, 0)
