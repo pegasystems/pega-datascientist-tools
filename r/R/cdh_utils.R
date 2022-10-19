@@ -289,7 +289,7 @@ auc_from_probs <- function(groundtruth, probs)
 #' Calculates PR AUC (precision-recall) from an array of truth values and predictions.
 #'
 #' Calculates the area under the PR curve from an array of truth values and predictions.
-#' Returns 0.5 when there is just one groundtruth label.
+#' Returns 0.0 when there is just one groundtruth label.
 #'
 #' @param groundtruth The 'true' values, with just 2 different values
 #' @param probs The predictions, as a numeric vector as the same length as \code{groundtruth}
@@ -302,7 +302,7 @@ auc_from_probs <- function(groundtruth, probs)
 aucpr_from_probs <- function(groundtruth, probs)
 {
   nlabels <- length(unique(groundtruth))
-  if (nlabels < 2) { return (0.5) }
+  if (nlabels < 2) { return (0.0) }
   if (nlabels > 2) { stop("'Groundtruth' has more than two levels.") }
 
   # with external lib it would be something like this:

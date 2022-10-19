@@ -60,6 +60,7 @@ test_that("AUC from binning", {
 
 test_that("AUC from full arrays", {
   expect_equal(auc_from_probs( c("yes", "yes", "no"), c(0.6, 0.2, 0.2)), 0.75)
+  expect_equal(auc_from_probs( c("yes", "yes", "yes"), c(0.6, 0.2, 0.2)), 0.5)
 
   # from https://www.r-bloggers.com/calculating-auc-the-area-under-a-roc-curve/
   category <- c(1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0)
@@ -99,8 +100,8 @@ test_that("AUC from full arrays", {
 })
 
 test_that("AUC PR", {
-  expect_equal(aucpr_from_probs( c("yes", "yes", "no"), c(0.6, 0.2, 0.2)),
-               0.4166667, tolerance=1e-6)
+  expect_equal(aucpr_from_probs( c("yes", "yes", "no"), c(0.6, 0.2, 0.2)), 0.4166667, tolerance=1e-6)
+  expect_equal(aucpr_from_probs( c("yes", "yes", "yes"), c(0.6, 0.2, 0.2)), 0.0)
 
   # Same from bins
   positives <- c(3,1,0)
