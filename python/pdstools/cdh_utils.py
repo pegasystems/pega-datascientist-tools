@@ -368,8 +368,7 @@ def aucpr_from_probs(
 ) -> List[float]:  # pragma: no cover
     """Calculates PR AUC (precision-recall) from an array of truth values and predictions.
     Calculates the area under the PR curve from an array of truth values and
-    predictions. Returns 0.0 when there is just one
-    groundtruth label.
+    predictions. Returns 0.0 when there is just one groundtruth label.
 
     Parameters
     ----------

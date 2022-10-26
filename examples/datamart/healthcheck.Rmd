@@ -55,7 +55,7 @@ params:
 ---
 
 
-```{r, echo=F, warning=F, error=F, include=FALSE}
+```{r Initialization, echo=F, error=F, warning=FALSE, include=FALSE}
 library(pdstools)
 
 # include below when developing the library
@@ -203,7 +203,7 @@ p
 Interactive chart with all success rates. Whiter is lower success rates,
 green is higher. Indicated values are percentages.
 
-```{r}
+```{r Success rates interactive}
 treeData <- aggregateTreeData(filterLatestSnapshotOnly(datamart$modeldata))
 
 fig <- plot_ly(
@@ -250,7 +250,7 @@ gives less opportunity for personalization of the interactions.
 
 The standard configuration for Baysian models is to have one model per treatment.
 
-```{r}
+```{r Overview adaptive}
 # Name and Treatment will be separate columns when read properly via ADMDatamart
 groupingCols <- intersect(c("ConfigurationName", "Direction", "Channel"), names(datamart$modeldata))
 
@@ -301,7 +301,7 @@ The static versions below use olor to indicate how
 "good" the models are: green for models with higher number of positives and 
 higher model performance.
 
-```{r}
+```{r Bubble chart with goodness}
 plt <- plotPerformanceSuccessRateBubbleChart(datamart, 
                                              filter = function(mdls)
                                              { 
@@ -339,7 +339,7 @@ if (!hasMultipleSnapshots(datamart$modeldata))
 
 Using an interactive treemap to visualize the performance per group.
 
-```{r}
+```{r Treemap action performance}
 treeData <- aggregateTreeData(filterLatestSnapshotOnly(datamart$modeldata))
 
 fig <- plot_ly(
@@ -430,7 +430,7 @@ Although the same could be achieved using the standard `plotPredictorImportance`
 method, now that we only split by Configuration this allows for a more compact visualization using
 a stacked bar chart.
 
-```{r fig.height=5, fig.width=8}
+```{r Predictor categories by Config only, fig.height=5, fig.width=8}
 if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
   predCategoryOverview <- merge(filterActiveOnly(datamart$predictordata), 
                                 unique(datamart$modeldata[,c("ModelID", "ConfigurationName")]), 
@@ -462,7 +462,7 @@ note we advise to be careful with predictor removal. Only remove if there is
 clearly no future value to other propositions as well or if there is always a 
 related predictor that performs better.
 
-```{r}
+```{r Bad predictors}
 if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
   plt <- plotPredictorImportance(datamart, facets=NULL, 
                           limit = -params$max_predictors_in_plot,
@@ -484,7 +484,7 @@ Showing the number of active and inactive predictors per model. This may not
 be that meaningful for a specific customer but it may help to give a ball-park
 figure on how many predictors are used by the models.
 
-```{r fig.height=5, fig.width=5}
+```{r Active and Inactive Predictors, fig.height=5, fig.width=5}
 if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
   typeDistributionPlotData <- 
     merge(unique(filterLatestSnapshotOnly(datamart$predictordata)[EntryType!="Classifier", 
@@ -554,7 +554,7 @@ Missing % is number of missing vs all responses, really just a filter on model d
 
 This (currently) only shows the fields that have any missing values
 
-```{r}
+```{r missing values}
 if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
   missingData <- filterLatestSnapshotOnly(datamart$predictordata) [, .(ResponseCount = max(as.numeric(ResponseCount)), 
                                                                        Missing = max(c(0,BinResponseCount[BinType=="MISSING"]))), 
@@ -568,7 +568,9 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
   cat("Predictor analysis will only be available when predictor binning data is available.", fill=T)
 }
 ```
-```{r}
+
+
+```{r Treemap missing values}
 if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
   hierarchy <- c("ConfigurationName", "PredictorCategory", "PredictorName")
   mainLabel <- "Missing data in Adaptive Models"
@@ -639,7 +641,7 @@ is broken. It could for example be caused by outcome labels that are returned by
 
 Showing first `r min(nrow(modelsNeverUsed), params$max_models_in_list)` from total of `r nrow(modelsNeverUsed)`.
 
-```{r}
+```{r Never used models}
 modelsNeverUsed %>% 
   head(params$max_models_in_list) %>% 
   kbl() %>%
@@ -660,7 +662,7 @@ it.
 
 Showing first `r min(nrow(modelsNoPositives), params$max_models_in_list)` from total of `r nrow(modelsNoPositives)`.
 
-```{r}
+```{r No positives models}
 modelsNoPositives %>% 
   head(params$max_models_in_list) %>% 
   kbl() %>%
@@ -684,7 +686,7 @@ more positive responses).
 
 Showing first `r min(nrow(modelsImmature), params$max_models_in_list)` from total of `r nrow(modelsImmature)`.
 
-```{r}
+```{r Immature models}
 modelsImmature[, -"ResponseCount"][, Reach := sprintf("%.2f%%", 100.0*(0.02+0.98*pmin(as.integer(params$min_positives_for_maturity), Positives)/as.integer(params$min_positives_for_maturity)))] %>% 
   head(params$max_models_in_list) %>% 
   kbl() %>%
@@ -704,7 +706,7 @@ the responses to the model.
 
 Showing first `r min(nrow(modelsNoPerformance), params$max_models_in_list)` from total of `r nrow(modelsNoPerformance)`.
 
-```{r}
+```{r No performance models}
 modelsNoPerformance %>% 
   head(params$max_models_in_list) %>% 
   kbl() %>%
@@ -753,7 +755,7 @@ less constant, only changing if there is a sudden change in targeted population.
 
 Big spikes and very noisy behavior may be caused by changes in the setup.
 
-```{r}
+```{r Responses over time}
 responseRates <- datamart$modeldata[, SnapshotTimeDay := ceiling_date(SnapshotTime, unit="days")] [, .(ResponseCount = sum(ResponseCount)), by=c("SnapshotTimeDay", "Direction", "Channel", "ConfigurationName")][order(SnapshotTimeDay)]
 
 responseRates[, PrevResponseCount := shift(ResponseCount), by=c("Channel", "ConfigurationName")]
@@ -796,7 +798,7 @@ However very skewed results may be caused by prioritization elements like
 levers and weights and can be a reason to check in with business and verify that
 this is expected.
 
-```{r fig.height=3, fig.width=8}
+```{r Response gain chart, fig.height=3, fig.width=8}
 responseGainData <- 
   filterLatestSnapshotOnly(datamart$modeldata) [, list(Responses = max(as.double(ResponseCount)), Positives = max(Positives)), 
                                                 by=c("Channel", "ModelID")]
@@ -835,7 +837,7 @@ ggplotly(plt)
 Zooming in into the models that drive most of the responses, here we list the 
 top `r params$max_propositions_in_plot` models with the highest number of responses.
 
-```{r fig.height=8, fig.width=8}
+```{r Models with top responses, fig.height=8, fig.width=8}
 topNResponses <- filterLatestSnapshotOnly(datamart$modeldata) [frank(-ResponseCount, ties.method="dense") <= params$max_propositions_in_plot][order(-ResponseCount)]
 topNResponses[, Label := apply(topNResponses[,availableStandardContextKeys,with=F], 1, paste, collapse="/")]
 topNResponses[, Rank := factor(seq(.N), levels=rev(seq(.N)))]
@@ -854,7 +856,7 @@ ggplot(topNResponses,
 And these are the `r params$max_propositions_in_plot` models with the largest
 number of positives.
 
-```{r fig.height=8, fig.width=8}
+```{r Models with top positives, fig.height=8, fig.width=8}
 topNPositives <- filterLatestSnapshotOnly(datamart$modeldata) [frank(-Positives, ties.method="dense") <= params$max_propositions_in_plot][order(-Positives)]
 topNPositives[, Label := apply(topNPositives[,availableStandardContextKeys,with=F], 1, paste, collapse="/")]
 topNPositives[, Rank := factor(seq(.N), levels=rev(seq(.N)))]
@@ -890,7 +892,7 @@ outcome leakers (although that is effectively prevented by the standard
 delayed learning pattern). AUC's below 60 are not uncommon but should be 
 investigated - consider different predictors or outcomes.
  
-```{r fig.height=5, fig.width=8, message=FALSE, warning=FALSE}
+```{r AUC vs Volume gains, fig.height=5, fig.width=8, message=FALSE, warning=FALSE}
 cumAUCOverVolumeData <- 
   filterLatestSnapshotOnly(datamart$modeldata) [, list(Performance = 100*max(Performance), 
                                                        ResponseCount = max(as.double(ResponseCount))), 
@@ -926,7 +928,7 @@ Having many on the left-hand side (with very low or perhaps no positives) may
 or not be a problem. The models may still be there in the datamart but might
 represent actions/treatments that are not active.
 
-```{r fig.height=5, fig.width=8, message=FALSE}
+```{r Postives gains, fig.height=5, fig.width=8, message=FALSE}
 modelsByPositives <- filterLatestSnapshotOnly(datamart$modeldata)
 modelsByPositives[, PositivesBin := cut(Positives, breaks=c(seq(0,as.integer(params$min_positives_for_maturity),by=10), Inf), 
                                         right=F)]
@@ -1035,7 +1037,7 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
 
 # Appendix - all the models
 
-```{r}
+```{r List all models}
 datamart$modeldata[, list(Snapshots = .N, Responses = max(as.double(ResponseCount))), by=c(availableStandardContextKeys, "ModelID")] #[order(ConfigurationName, Name)]
 ```
 
@@ -1047,7 +1049,7 @@ Generally you will want to apply some filtering, or do this for specific models
 only. This can be accomplished in either this script here, or by editing the
 generated file.
 
-```{r}
+```{r File with all models}
 if (params$modellist != "") {
   inclKeys <- availableStandardContextKeys[sapply(availableStandardContextKeys, 
                                                   function(x) {
