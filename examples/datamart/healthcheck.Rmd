@@ -91,7 +91,7 @@ This document provides a first-level scan of the models after which a
 deeper and more customer specific deeper dive can be done.
 
 Some of the plots provide some interactivity. For best viewing results, open the 
-HTML document in a browser. Viewing it from platforms like e.g. Sharepoint or 
+HTML document in a browser. Viewing it from platforms like Sharepoint or 
 Github will loose the interactive charts.
 
 Note that the notebook by default generates a single-page HTML, however you
@@ -161,8 +161,12 @@ aggregateTreeData <- function(dt, hierarchy = intersect(c("Direction", "Channel"
 
 # Overview of the Actions
 
-Propositions, also referred to as offers or actions with treatments, are
-the most granular perspective on the adaptive models.
+In a standard setup, the offers/conversations are presented as treatments for
+actions in a hierarchical structure setup in NBA Designer. The recommendation
+is to have multiple treatments for an action.
+
+Adaptive Models are created per treatment (at least in the default setup) and
+the recommendation is to stick the default hierarchy.
 
 | Item |  |  |
 | --- | --- | --- |
@@ -173,21 +177,22 @@ the most granular perspective on the adaptive models.
 | Channels | `r uniqueN(paste(datamart$modeldata$Direction, datamart$modeldata$Channel, sep="/"))` | `r paste(sort(unique(paste(datamart$modeldata$Direction, datamart$modeldata$Channel, sep="/"))), collapse=", ")` |
 
 
-## Proposition Success Rates per Channel
+## Success Rates per Channel
 
-Showing the current success rate of the propositions. Different channels usually 
+Showing the current success rate of the treatments. Different channels usually 
 have very different success rates. Just showing the top `r params$max_propositions_in_plot`
-here and limiting to the propositions that have received at least `r params$min_responses_to_show_propositions`` responses. 
+here and limiting to the propositions that have received at least `r params$min_responses_to_show_propositions` responses (the rates reported by
+the models are unreliable otherwise). 
 
-Look out for propositions that stand out, having a far higher success rate
+### Guidance
+
+* Look out for propositions that stand out, having a far higher success rate
 than the rest. Check with business if that is expected. 
 
-Variation in the set of offered propositions
-across customers is also an important metric but not one that can be derived
+* Variation in the set of offered propositions across customers is also an important metric but not one that can be derived
 from the Adaptive Model data - this requires analysis of the actual interactions.
 
-
-```{r Plot Proposition Success Rates}
+```{r Plot Action Success Rates}
 p <- plotPropositionSuccessRates(datamart, 
                                  filter=function(mdls){ filterLatestSnapshotOnly(mdls)[ResponseCount >= as.integer(params$min_responses_to_show_propositions)] }, 
                                  limit=params$max_propositions_in_plot, 
@@ -220,11 +225,16 @@ fig %>% layout(title = "Success Rate")
 
 ## Success Rates over Time
 
-Showing how the proposition success rates evolved over time. Again split by
-Channel but now also by model configuration. Usually there are separate model
+Showing how the overall channel success rates evolved over the time that the data
+export covers. Split by Channel and model configuration. Usually there are separate model
 configurations for different channels but sometimes there are also additional
 model configurations for different outcomes (e.g. conversion) or different
 customers (e.g. anonymous).
+
+### Guidance
+
+* There shouldn't be too sudden changes over time
+
 
 ```{r Success Rate over Time, message=FALSE, warning=FALSE}
 if (!hasMultipleSnapshots(datamart$modeldata))
@@ -245,10 +255,13 @@ if (!hasMultipleSnapshots(datamart$modeldata))
 
 There are a total of **`r nrow(filterLatestSnapshotOnly(datamart$modeldata))` models**  in the latest snapshot.
 
-Recommended best practice is to have multiple treatments for an action. Too few
+The standard configuration is to have one model per treatment.
+
+### Guidance
+
+* Recommended best practice is to have multiple treatments for an action. Too few
 gives less opportunity for personalization of the interactions.
 
-The standard configuration for Baysian models is to have one model per treatment.
 
 ```{r Overview adaptive}
 # Name and Treatment will be separate columns when read properly via ADMDatamart
@@ -262,31 +275,41 @@ actionsOverview[, .(`Number of Actions` = .N, `Number of Models` = sum(Treatment
 
 ## Model Performance
 
-### Model Performance vs Proposition Success Rates (the Bubble Chart)
+### Model Performance vs Action Success Rates (the Bubble Chart)
 
 This "Bubble Chart" - similar to the standard plot in the ADM reports in Pega - 
 shows the relation between model performance and proposition success rates. In 
 addition, the size of the bubbles indicates the number of responses.
 
-This view can help to identify several types of issues.
+#### Guidance
 
-If all the bubbles clutter too much on the left-hand side of the charts, this
-means the models are not predictive (yet). Bubbles at the bottom of the charts
-represent propositions with very low success rates. In an ideal scenario you
+* If all the bubbles clutter too much on the left-hand side of the charts, this
+means the models are not predictive. These models may be still be ramping up, or
+they may not have predictive enough features to work with: consider if new/better
+predictors can be added. 
+* Bubbles at the bottom of the charts
+represent propositions with very low success rates - they may not be compelling 
+enough. 
+* In an ideal scenario you
 will see the larger bubbles more on the top-right, so more volume for propositions
 with higher success rates and better models.
 
-These bubble charts can lead to several actions, e.g.
+* There should be a positive correlation between success rate and performance - per channel. 
 
-* See if model performance can be increased by adding new predictors.
+* There should be a positive correlation between responses and performance - also per channel.
 
-* See if the engagement rules in the Decision Strategy are overly restrictive.
+* There should be variation in response counts (not all dots of equal size)
 
-* Reconsider the arbitration of the propositions so they get more (or less)
+* For small volumes of good models, see if the engagement rules in the Decision Strategy are overly restrictive or reconsider the arbitration of the propositions so they get more (or less)
 exposure.
 
 
 ```{r Bubble Chart, message=FALSE, warning=FALSE}
+
+## todo consider if we can color like we used to do in the static versions
+## with something like
+## OhMyGoodness := (pdstools::auc2GINI(Performance) + pmin(Positives, as.integer(params$min_positives_for_maturity)
+
 plt <- plotPerformanceSuccessRateBubbleChart(datamart, 
                                              filter=function(mdls){ filterLatestSnapshotOnly(mdls)[ResponseCount >= 100] }, 
                                              facets = c("ConfigurationName", "Direction", "Channel"))
@@ -295,26 +318,6 @@ ggplotly(plt) %>%
   layout(showlegend=F) 
 ```
 
-The above plots support hover-over (are built with Plotly) when viewed in a browser.
-
-The static versions below use olor to indicate how
-"good" the models are: green for models with higher number of positives and 
-higher model performance.
-
-```{r Bubble chart with goodness}
-plt <- plotPerformanceSuccessRateBubbleChart(datamart, 
-                                             filter = function(mdls)
-                                             { 
-                                               m <- filterLatestSnapshotOnly(mdls)[ResponseCount >= 100] 
-                                               m[, OhMyGoodness := (pdstools::auc2GINI(Performance) + pmin(Positives, as.integer(params$min_positives_for_maturity)) * (1.0/as.integer(params$min_positives_for_maturity)))/2]
-                                               return(m)
-                                             }, 
-                                             facets = c("ConfigurationName", "Direction", "Channel"),
-                                             color = "OhMyGoodness") +
-  scale_colour_gradient(low="darkred", high="darkgreen")
-
-plt
-```
 
 ### Model Performance over Time
 
@@ -322,12 +325,18 @@ Showing how the model performance evolves over time.
 
 Aggregating up to Channel and splitting by model configuration.
 
+#### Guidance
+
+* No abrupt changes but gradual upward trend is good
+
+
 ```{r Performance over Time, message=FALSE, warning=FALSE}
 if (!hasMultipleSnapshots(datamart$modeldata))
 {
   cat("Trend plots will only be available when the model data contains multiple snapshots.", fill=T)
 } else {
-  p <- plotPerformanceOverTime(datamart, aggregation = "Channel", facets = c("Direction", "ConfigurationName")) +
+  p <- plotPerformanceOverTime(datamart, aggregation = "Channel", 
+                               facets = c("Direction", "ConfigurationName")) +
     scale_color_Channel  
   #geom_smooth(aes(fill=Channel), alpha=0.1)
   p
@@ -337,7 +346,8 @@ if (!hasMultipleSnapshots(datamart$modeldata))
 
 ### Model performance of all the actions (interactive Treemap)
 
-Using an interactive treemap to visualize the performance per group.
+Using an interactive treemap to visualize the performance. Lighter is better,
+darker is low performance.
 
 ```{r Treemap action performance}
 treeData <- aggregateTreeData(filterLatestSnapshotOnly(datamart$modeldata))
@@ -364,12 +374,22 @@ This analysis focuses on finding which are top predictors that are driving the m
 
 The predictors are categorized (by color) by the "source". By default this takes
 just the first part before the dot, so this typically distinguishes between
-Customer, Account and IH, for example.
+Customer, Account, IH and parameterized (Param.) predictors. You can customize
+this to add patterns to identify for example external scores.
 
 ## Predictor Importance across all models per configuration
 
 Box plots of the predictor importance. Importance can be shown either as
-a global feature importance or simply as the univariate predictor importance. 
+a global feature importance or simply as the univariate predictor importance,
+here we default to univariate performance measured in AUC (Area under the ROC curve).
+
+### Guidance
+
+* Number of predictors per model 200 - 700
+* There should be IH* predictors
+* There should not be > 100 IH predictors
+* No more than a few dozen Param predictors
+
 
 ```{r Univariate Predictors Boxplot}
 if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
@@ -402,20 +422,16 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
 ## Importance by Predictor Category
 
 Aggregating up to the category of the predictors. This gives a view at
-a glance of how well e.g. interaction history, external model scores or contextual data are doing.
+a glance of how well e.g. interaction history, external model scores or contextual data are doing overall.
 
-By default the categorization takes the text before the first dot as the 
-predictor category, but this can easily be customized when reading the
-datamart data.
-
-### Split by Channel
+### Predictor Category performance per Channel
 
 ```{r Univariate Predictor Category Boxplot}
 if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
   plt <- plotPredictorImportance(datamart,  
                                  categoryAggregateView = T,
                                  facets = c("ConfigurationName", "Direction", "Channel"),
-                                 showAsImportance = T,
+                                 showAsImportance = F,
                                  filter = function(mdls) {filterLatestSnapshotOnly(mdls)} ) +
     scale_fill_PredictorCategory
   print(plt)
@@ -424,7 +440,7 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
 }
 ```
 
-### Only split by Configuration
+### Relative Predictor Category importance per Configuration
 
 Although the same could be achieved using the standard `plotPredictorImportance` 
 method, now that we only split by Configuration this allows for a more compact visualization using
@@ -455,12 +471,20 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
 
 ## Bad predictors across all models
 
-See if there are predictors that are just always very bad.
+See if there are predictors that are just always perform poorly.
 
-This will help do an analysis to figure out which predictors could be removed. But
-note we advise to be careful with predictor removal. Only remove if there is 
+### Guidance
+
+* Predictors that consistently perform poorly could potentially be removed.
+* Be sure to check for data problems
+* Note we advise to be careful with predictor removal. Only remove if there is 
 clearly no future value to other propositions as well or if there is always a 
 related predictor that performs better.
+
+### TODO different viz
+
+* Provide as a (scrollable) list instead of plot (predictor, usage, performance range etc)
+
 
 ```{r Bad predictors}
 if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
@@ -480,9 +504,11 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
 
 ## Number of Active and Inactive Predictors
 
-Showing the number of active and inactive predictors per model. This may not
-be that meaningful for a specific customer but it may help to give a ball-park
-figure on how many predictors are used by the models.
+Showing the number of active and inactive predictors per model.
+
+### Guidance
+
+* We expect a few dozen active predictors for every model instance
 
 ```{r Active and Inactive Predictors, fig.height=5, fig.width=5}
 if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
@@ -514,8 +540,7 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
 ## Predictor Performance across Propositions
 
 A view of predictor performance across all propositions, ordered so that the best performing predictors are at the top and the 
-best performing propositions are on the left. Green indicates good performance, red means more problematic - either too low or
-too good to be true.
+best performing propositions are on the left. Green indicates good performance, red means more problematic - either too low or too good to be true.
 
 ```{r Predictors vs Propositions}
 if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
@@ -545,10 +570,6 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
 ## Missing values
 
 If a predictor is low performing: are there too many missing values? This could point to a technical problem
-
-### TODO: review for colors and usefulness
-
-We could viz this in a tree map. Hierarchy is then just model configuration --> predictor category --> predictor name
 
 Missing % is number of missing vs all responses, really just a filter on model data
 
@@ -608,6 +629,12 @@ reliability (or "maturity") thresholds. This is based on heuristics on both
 the number of positives (> `r params$min_positives_for_maturity` considered mature) and performance.
 
 ## Empty and Immature Models
+
+### Guidance
+
+All below lists are guidance. There should be just a small percentage of
+immature or empty models overall.
+Having no or just 1 active predictor is very suspicious
 
 ```{r CategorizeModels}
 models4MaturityChecks <- copy(datamart$modeldata)
@@ -724,6 +751,13 @@ no responses at all. Immature is defined as having < `r params$min_positives_for
 performance means model performance is still the initial 0.5 value while having
 matured already according to the definition.
 
+### Guidance
+
+* Empty models shouldnt be increasing too much
+* Good models (AUC 55-80) should increase or at least not decrease
+* Good models should be much higher than problem kids
+
+
 ```{r Number of Empty or Immature models over time, message=FALSE, warning=FALSE}
 if (!hasMultipleSnapshots(datamart$modeldata))
 {
@@ -798,6 +832,12 @@ However very skewed results may be caused by prioritization elements like
 levers and weights and can be a reason to check in with business and verify that
 this is expected.
 
+### Guidance
+
+* Area under this curve should be > 0.5 and perhaps more towards 1 - most
+of the responses driven by relatively few actions
+
+
 ```{r Response gain chart, fig.height=3, fig.width=8}
 responseGainData <- 
   filterLatestSnapshotOnly(datamart$modeldata) [, list(Responses = max(as.double(ResponseCount)), Positives = max(Positives)), 
@@ -836,6 +876,10 @@ ggplotly(plt)
 
 Zooming in into the models that drive most of the responses, here we list the 
 top `r params$max_propositions_in_plot` models with the highest number of responses.
+
+### Guidance
+
+* There shouldn't be very large outliers
 
 ```{r Models with top responses, fig.height=8, fig.width=8}
 topNResponses <- filterLatestSnapshotOnly(datamart$modeldata) [frank(-ResponseCount, ties.method="dense") <= params$max_propositions_in_plot][order(-ResponseCount)]
