@@ -163,18 +163,55 @@ aggregateTreeData <- function(dt, hierarchy = intersect(c("Direction", "Channel"
 
 In a standard setup, the offers/conversations are presented as treatments for
 actions in a hierarchical structure setup in NBA Designer. The recommendation
-is to have multiple treatments for an action.
+is to have multiple treatments for an action. Treatments are often channel
+specific and you would typically expect more unique treatments than there
+are actions.
 
 Adaptive Models are created per treatment (at least in the default setup) and
-the recommendation is to stick the default hierarchy.
+the recommendation is to stick the default context keys of the models.
 
-| Item |  |  |
+```{r Overview Helpers, echo=F, error=F, warning=FALSE, include=F}
+nUniqueValues <- function(dm, fld) { 
+  values <- as.vector(na.omit(unique(dm$modeldata[[fld]])))
+  length(values)
+}
+nUniqueChannelDirections <- function(dm, fld) { uniqueN(paste(dm$modeldata$Direction, 
+                                                              dm$modeldata$Channel, sep="/")) }
+allUniqueValues <- function(dm, fld, max = .Machine$integer.max) { 
+  values <- as.vector(na.omit(unique(dm$modeldata[[fld]])))
+  
+  if (length(values) < 1) {
+    return("-")
+  } else {
+    if (length(values) > max) {
+      return(paste(c(head(sort(values), max), "..."), collapse=", ")) 
+    } else {
+      return(paste(sort(values), collapse=", ")) 
+    }
+  }
+}
+allUniqueChannelDirectionValues <- function(dm) { 
+  paste(sort(unique(paste(dm$modeldata$Direction, 
+                          dm$modeldata$Channel, sep="/"))), 
+        collapse=", ") }
+
+avgGroupsPerIssue <- function(dm) { 
+  if (length(intersect(c("Issue", "Group"), names(dm$modeldata))) == 2) {
+    return(mean(dm$modeldata[, .(Groups = uniqueN(Group)), by="Issue"]$Groups)) 
+  } 
+  else {
+    return("-")
+  }
+}
+```
+
+| Item | Number | (example) values |
 | --- | --- | --- |
-| Number of unique Actions | `r uniqueN(datamart$modeldata$Name)` | |
-| Number of unique Treatments | `r uniqueN(datamart$modeldata$Treatment)` | |
-| Number of unique Issues | `r uniqueN(datamart$modeldata$Issue)` | `r paste(sort(unique(datamart$modeldata$Issue)), collapse=", ")` |
-| Average number of Groups per Issue | `r if (length(intersect(c("Issue","Group"), names(datamart$modeldata)))==2) mean(datamart$modeldata[, .(Groups = uniqueN(Group)), by="Issue"]$Groups) else 0` | `r paste(sort(unique(datamart$modeldata$Group)), collapse=", ")` |
-| Channels | `r uniqueN(paste(datamart$modeldata$Direction, datamart$modeldata$Channel, sep="/"))` | `r paste(sort(unique(paste(datamart$modeldata$Direction, datamart$modeldata$Channel, sep="/"))), collapse=", ")` |
+| Number of unique Actions | `r nUniqueValues(datamart, "Name")` | `r allUniqueValues(datamart, "Name", 10)` |
+| Number of unique Treatments | `r nUniqueValues(datamart, "Treatment")` | `r allUniqueValues(datamart, "Treatment", 10)` |
+| Number of unique Issues | `r nUniqueValues(datamart, "Issue")` | `r allUniqueValues(datamart, "Issue")` |
+| Average number of Groups per Issue | `r avgGroupsPerIssue(datamart)` | `r allUniqueValues(datamart, "Group")` |
+| Channels | `r nUniqueChannelDirections(datamart)` | `r allUniqueChannelDirectionValues(datamart)` |
 
 
 ## Success Rates per Channel
@@ -489,14 +526,14 @@ related predictor that performs better.
 ```{r Bad predictors}
 if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
   plt <- plotPredictorImportance(datamart, facets=NULL, 
-                          limit = -params$max_predictors_in_plot,
-                          showAsImportance = F,
-                          filter = function(mdls) {filterLatestSnapshotOnly(mdls)})
+                                 limit = -params$max_predictors_in_plot,
+                                 showAsImportance = F,
+                                 filter = function(mdls) {filterLatestSnapshotOnly(mdls)})
   
   plt <- plt + ggtitle("Predictors with Low Performance", 
-                           subtitle = paste0("(Bottom ", params$max_predictors_in_plot, " from total ", uniqueN(filterClassifierOnly(datamart$predictordata, reverse=T)$PredictorName), ")")) +
-        scale_fill_PredictorCategory
-      print(plt)
+                       subtitle = paste0("(Bottom ", params$max_predictors_in_plot, " from total ", uniqueN(filterClassifierOnly(datamart$predictordata, reverse=T)$PredictorName), ")")) +
+    scale_fill_PredictorCategory
+  print(plt)
 } else {
   cat("Predictor analysis will only be available when predictor binning data is available.", fill=T)
 }
@@ -935,7 +972,7 @@ of AUC. Much higher AUC's are possibly indicative of immature models or even
 outcome leakers (although that is effectively prevented by the standard
 delayed learning pattern). AUC's below 60 are not uncommon but should be 
 investigated - consider different predictors or outcomes.
- 
+
 ```{r AUC vs Volume gains, fig.height=5, fig.width=8, message=FALSE, warning=FALSE}
 cumAUCOverVolumeData <- 
   filterLatestSnapshotOnly(datamart$modeldata) [, list(Performance = 100*max(Performance), 
