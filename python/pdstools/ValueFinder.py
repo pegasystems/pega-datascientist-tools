@@ -37,6 +37,9 @@ class ValueFinder:
     -----------------
     filename : Optional[str]
         The name, or extended filepath, towards the file
+    subset : bool
+        Whether to select only a subset of columns.
+        Will speed up analysis and reduce unused information
     """
 
     def __init__(
@@ -70,17 +73,22 @@ class ValueFinder:
             filename = kwargs.pop("filename", "ValueFinder")
             self.df = cdh_utils.readDSExport(
                 filename, path, return_pa=True, verbose=verbose
-            ).select(keep_cols)
+            )
+            if kwargs.get("subset", True):
+                self.df = self.df.select(keep_cols)
             if verbose:
                 print(f"Data import took {round(time.time() - start,2)} seconds")
 
         if isinstance(self.df, pd.DataFrame):
-            self.df = self.df[keep_cols]
+            if kwargs.get("subset", True):
+                self.df = self.df[keep_cols]
 
         if verbose:
             print("Transforming to polars...", end=" ")
         start = time.time()
-        self.df = pl.DataFrame(self.df).select(keep_cols)
+        self.df = pl.DataFrame(self.df)
+        if kwargs.get("subset", True):
+            self.df = self.df.select(keep_cols)
         if verbose:
             print(f"Took: {round(time.time() - start,2)} seconds")
 
@@ -296,7 +304,7 @@ class ValueFinder:
         )
         return figs
 
-    def plotPropensityThreshold(self, sampledN=10000) -> go.Figure:
+    def plotPropensityThreshold(self, sampledN=10000, stage="Eligibility") -> go.Figure:
         """Plots the propensity threshold vs the different propensities.
 
         Parameters
@@ -311,7 +319,7 @@ class ValueFinder:
         i = 0
         figs = make_subplots(rows=len(propensities), cols=1, shared_xaxes=True)
         yrange = [0, 15]
-        data = self.df.filter(pl.col("pyStage") == "Eligibility").select(propensities)
+        data = self.df.filter(pl.col("pyStage") == stage).select(propensities)
         if len(data) > sampledN:
             data = data.sample(sampledN)
         for ptype in propensities:
@@ -361,7 +369,7 @@ class ValueFinder:
         )
         figs.update_yaxes(title_text="density", row=2, col=1)
         figs.update_layout(
-            title_text="Propensity Distribution <br><sup>first stage</sup>",
+            title_text=f"Propensity Distribution <br><sup>{stage} stage</sup>",
             title_x=0.1,
             legend_title="Type",
             height=800,
@@ -425,11 +433,15 @@ class ValueFinder:
                 fig.add_trace(
                     go.Pie(
                         values=list(data.to_numpy())[0],
-                        labels=list(data.rename({
-                            "relevantActions": "At least one relevant action",
-                            "irrelevantActions": "Only irrelevant actions",
-                            "NoActions": "Without actions",
-                        }).columns),
+                        labels=list(
+                            data.rename(
+                                {
+                                    "relevantActions": "At least one relevant action",
+                                    "irrelevantActions": "Only irrelevant actions",
+                                    "NoActions": "Without actions",
+                                }
+                            ).columns
+                        ),
                         name=stage,
                         visible=visible,
                         sort=False,
@@ -510,11 +522,13 @@ class ValueFinder:
             df.append(data[1].with_column(pl.lit(target2).alias(target)))
         df = pl.concat(df).to_pandas().set_index(target)
         fig = px.area(
-            df.rename(columns={
-                            "relevantActions": "At least one relevant action",
-                            "irrelevantActions": "Only irrelevant actions",
-                            "NoActions": "Without actions",
-                        }),
+            df.rename(
+                columns={
+                    "relevantActions": "At least one relevant action",
+                    "irrelevantActions": "Only irrelevant actions",
+                    "NoActions": "Without actions",
+                }
+            ),
             color_discrete_sequence=["#219e3f", "#fca52e", "#cd001f"],
             facet_col="pyStage",
             title=f"Distribution of offers per stage",
@@ -568,6 +582,6 @@ class ValueFinder:
             title=f"Distribution of {cat.casefold()} over the stages",
             template="none",
         )
-        fig.update_xaxes(categoryorder='array', categoryarray=self.NBADStages)
+        fig.update_xaxes(categoryorder="array", categoryarray=self.NBADStages)
         fig.update_layout(legend_title_text=cat)
         return fig
