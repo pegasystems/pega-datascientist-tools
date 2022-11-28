@@ -4,7 +4,7 @@ library(testthat)
 
 context("check basic utilities")
 
-test_that("checking readDSExport", {
+test_that("read DS Export", {
   data <- readDSExport("Data-Decision-ADM-ModelSnapshot_All_20180316T134315_GMT.zip","dsexports")
   expect_equal(nrow(data), 15)
   expect_equal(ncol(data), 22)
@@ -32,6 +32,23 @@ test_that("checking readDSExport", {
   data <- readDSExport(file.path("dsexports", "Data-Decision-ADM-ModelSnapshot_All_20180316T134315_GMT.json"))
   expect_equal(nrow(data), 15)
   expect_equal(ncol(data), 22)
+
+  data <- readDSExport(file.path("dsexports", "ADMModelSnapshots.zip"))
+  expect_equal(nrow(data), 15)
+  expect_equal(ncol(data), 22)
+
+  data <- readDSExport(file.path("dsexports", "ADMModelSnapshotsDataInDeeperFolder.zip"))
+  expect_equal(nrow(data), 15)
+  expect_equal(ncol(data), 22)
+
+  data <- readDSExport(instancename="DeepFolderStructure.zip", srcFolder="dsexports")
+  expect_equal(nrow(data), 15)
+  expect_equal(ncol(data), 22)
+
+  data <- readDSExport(file.path("dsexports", "DeepFolderStructure.zip"))
+  expect_equal(nrow(data), 15)
+  expect_equal(ncol(data), 22)
+
 })
 
 test_that("write DS export", {

@@ -132,6 +132,7 @@ readDSExport <- function(instancename, srcFolder=".",
     # See if it is a fully specified ZIP file then assume this is a Pega
     # export with a "data.json" file inside.
     zipFile <- instancename
+    if (verbose) cat("Reading", zipFile, fill=T)
 
     if(endsWith(instancename, ".zip")) {
       errorReason <- "reading existing ZIP file"
@@ -162,11 +163,14 @@ readDSExport <- function(instancename, srcFolder=".",
       jsonFile <- file.path(tmpFolder,"data.json")
       if(file.exists(jsonFile)) file.remove(jsonFile)
 
-      utils::unzip(zipFile, exdir=tmpFolder, files="data.json")
+      allZipEntries <- utils::unzip(zipFile, list=T)$Name
+      jsonFileInZip <- allZipEntries[grepl("[/]+data.json$", allZipEntries)]
+      if (verbose) cat("data.json in zip file:",jsonFileInZip, zipFile, fill=T)
+      utils::unzip(zipFile, exdir=tmpFolder, junkpaths = T, files=jsonFileInZip)
 
       if (!file.exists(jsonFile)) stop(paste("Expected Pega Dataset Export zipfile but",
                                              zipFile,
-                                             "does not contain data.json"))
+                                             'does not contain "data.json"'))
       multiLineJSON <- readLines(jsonFile)
       file.remove(jsonFile)
     }
@@ -205,7 +209,7 @@ readDSExport <- function(instancename, srcFolder=".",
     to <- min(n*chunkSize, length(multiLineJSON))
     # cat("From", from, "to", to, fill = T)
     # TODO is this really faster than reading the lines one by one and
-    # rbindlisting all the many tables?
+    # rbindlist-ing all the many tables?
     ds <- data.table(jsonlite::fromJSON(paste("[",paste(multiLineJSON[from:to],sep="",collapse = ","),"]")), stringsAsFactors = stringsAsFactors)
     if (excludeComplexTypes) {
       chunkList[[n]] <- ds [, names(ds)[!sapply(ds, rlang::is_list)], with=F]

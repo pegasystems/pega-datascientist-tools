@@ -16,7 +16,7 @@ The AUC as a value between 0.0 and 1.0
 }
 \description{
 Calculates the area under the PR curve from an array of truth values and predictions.
-Returns 0.5 when there is just one groundtruth label.
+Returns 0.0 when there is just one groundtruth label.
 }
 \examples{
 aucpr_from_probs( c("yes", "yes", "no"), c(0.6, 0.2, 0.2))
