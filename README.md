@@ -8,7 +8,7 @@
 
 <p align="center">
   <!-- Tests -->
-  <a href="https://github.com/pegasystems/pega-datascientist-tools/actions?workflow=pdstools">
+  <a href="https://github.com/pegasystems/pega-datascientist-tools/actions">
     <img src="https://github.com/pegasystems/pega-datascientist-tools/workflows/pdstools/badge.svg" alt="tests">
   </a>
   <!-- Code coverage -->
