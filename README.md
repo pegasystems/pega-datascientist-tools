@@ -9,7 +9,10 @@
 <p align="center">
   <!-- Tests -->
   <a href="https://github.com/pegasystems/pega-datascientist-tools/actions">
-    <img src="https://github.com/pegasystems/pega-datascientist-tools/workflows/pdstools/badge.svg" alt="tests">
+    <img src="https://github.com/pegasystems/pega-datascientist-tools/workflows/Python%20tests/badge.svg" alt="Python tests">
+  </a>
+  <a href="https://github.com/pegasystems/pega-datascientist-tools/actions">
+    <img src="https://github.com/pegasystems/pega-datascientist-tools/workflows/R%20tests/badge.svg" alt="R tests">
   </a>
   <!-- Code coverage -->
   <a href="https://codecov.io/gh/pegasystems/pega-datascientist-tools">
