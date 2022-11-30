@@ -40,13 +40,14 @@ Functions
 
 
 
-.. py:function:: readDSExport(filename: Union[pandas.DataFrame, str], path: str = '.', verbose: bool = True, **kwargs) -> pandas.DataFrame
+.. py:function:: readDSExport(filename: Union[pandas.DataFrame, str], path: str = '.', verbose: bool = True, **kwargs) -> Union[pandas.DataFrame, polars.DataFrame]
 
    Read a Pega dataset export file.
    Can accept either a Pandas DataFrame or one of the following formats:
    - .csv
    - .json
    - .zip (zipped json or CSV)
+   - .feather
 
    It automatically infers the default file names for both model data as well as predictor data.
    If you supply either 'modelData' or 'predictorData' as the 'file' argument, it will search for them.
@@ -61,25 +62,35 @@ Functions
    :type path: str, default = '.'
    :param verbose: Whether to print out which file will be imported
    :type verbose: bool, default = True
-   :param Keyword arguments: Any arguments to plug into the read csv or json function, from either PyArrow or Pandas.
 
-   :returns: * *pd.DataFrame* -- The read data from the given file
-             * *Examples* -- >>> df = readDSExport(filename = 'modelData', path = './datamart')
-               >>> df = readDSExport(filename = 'ModelSnapshot.json', path = 'data/ADMData')
+   :keyword return_pl: Whether to return polars dataframe
+                       If false, transforms to Pandas
+   :kwtype return_pl: bool
+   :keyword Any arguments to plug into the read csv or json function, from either Polars or Pandas.:
 
-               >>> df = pd.read_csv('file.csv')
-               >>> df = readDSExport(filename = df)
+   :returns: The read data from the given file
+   :rtype: pd.DataFrame
+
+   .. rubric:: Examples
+
+   >>> df = readDSExport(filename = 'modelData', path = './datamart')
+   >>> df = readDSExport(filename = 'ModelSnapshot.json', path = 'data/ADMData')
+
+   >>> df = pd.read_csv('file.csv')
+   >>> df = readDSExport(filename = df)
 
 
-.. py:function:: import_file(file, extension, **kwargs)
+.. py:function:: import_file(file, extension, **kwargs) -> Union[polars.DataFrame, pandas.DataFrame]
+
+   Imports a file using Polars
 
 
-.. py:function:: readZippedFile(file: str, verbose: bool = False, **kwargs) -> pandas.DataFrame
+.. py:function:: readZippedFile(file: str, verbose: bool = False, **kwargs) -> polars.DataFrame
 
    Read a zipped file.
    Reads a dataset export file as exported and downloaded from Pega. The export
    file is formatted as a zipped multi-line JSON file or CSV file
-   and the data is read into a pandas dataframe.
+   and the data is read into a Polars dataframe.
 
    :param file: The full path to the file
    :type file: str

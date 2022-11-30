@@ -26,12 +26,13 @@ def readDSExport(
     path: str = ".",
     verbose: bool = True,
     **kwargs,
-) -> pd.DataFrame:
+) -> Union[pd.DataFrame, pl.DataFrame]:
     """Read a Pega dataset export file.
     Can accept either a Pandas DataFrame or one of the following formats:
     - .csv
     - .json
     - .zip (zipped json or CSV)
+    - .feather
 
     It automatically infers the default file names for both model data as well as predictor data.
     If you supply either 'modelData' or 'predictorData' as the 'file' argument, it will search for them.
@@ -49,20 +50,26 @@ def readDSExport(
     verbose : bool, default = True
         Whether to print out which file will be imported
 
-    Keyword arguments:
-        Any arguments to plug into the read csv or json function, from either PyArrow or Pandas.
+    Keyword arguments
+    -----------------
+    return_pl: bool
+        Whether to return polars dataframe
+        If false, transforms to Pandas
+
+    Any arguments to plug into the read csv or json function, from either Polars or Pandas.
 
     Returns
     -------
     pd.DataFrame
         The read data from the given file
 
-    Examples:
-        >>> df = readDSExport(filename = 'modelData', path = './datamart')
-        >>> df = readDSExport(filename = 'ModelSnapshot.json', path = 'data/ADMData')
+    Examples
+    --------
+    >>> df = readDSExport(filename = 'modelData', path = './datamart')
+    >>> df = readDSExport(filename = 'ModelSnapshot.json', path = 'data/ADMData')
 
-        >>> df = pd.read_csv('file.csv')
-        >>> df = readDSExport(filename = df)
+    >>> df = pd.read_csv('file.csv')
+    >>> df = readDSExport(filename = df)
 
     """
 
@@ -115,40 +122,44 @@ def readDSExport(
     return import_file(file, extension, **kwargs)
 
 
-def import_file(file, extension, **kwargs):
-    import pyarrow
-
+def import_file(file, extension, **kwargs) -> Union[pl.DataFrame, pd.DataFrame]:
+    """Imports a file using Polars"""
     if extension == ".zip":
         file = readZippedFile(file)
     elif extension == ".csv":
-        from pyarrow import csv
-
-        file = csv.read_csv(
+        file = pl.read_csv(
             file,
-            parse_options=pyarrow.csv.ParseOptions(delimiter=kwargs.get("sep", ",")),
+            sep=kwargs.get("sep", ","),
         )
     elif extension == ".json":
-        from pyarrow import json
-
-        file = json.read_json(file, **kwargs)
+        try:
+            file = pl.read_ndjson(file, **kwargs)
+        except:
+            file = pl.read_json(file, **kwargs)
     elif extension == ".parquet":
-        from pyarrow import parquet
-
-        file = parquet.read_table(file)
+        try:
+            file = pl.read_parquet(file)
+        except:
+            file = pl.read_parquet(file, use_pyarrow=True)
+    elif extension == ".feather":
+        try:
+            file = pl.read_ipc(file)
+        except:
+            file = pl.read_ipc(file, use_pyarrow=True)
     else:
         raise ValueError("Could not import file: {file}, with extension {extension}")
 
-    if not kwargs.pop("return_pa", False) and isinstance(file, pyarrow.Table):
+    if not kwargs.pop("return_pl", False) and isinstance(file, pl.DataFrame):
         return file.to_pandas()
     else:
         return file
 
 
-def readZippedFile(file: str, verbose: bool = False, **kwargs) -> pd.DataFrame:
+def readZippedFile(file: str, verbose: bool = False, **kwargs) -> pl.DataFrame:
     """Read a zipped file.
     Reads a dataset export file as exported and downloaded from Pega. The export
     file is formatted as a zipped multi-line JSON file or CSV file
-    and the data is read into a pandas dataframe.
+    and the data is read into a Polars dataframe.
 
     Parameters
     ----------
@@ -170,24 +181,12 @@ def readZippedFile(file: str, verbose: bool = False, **kwargs) -> pd.DataFrame:
         if "data.json" in files:
             with z.open("data.json") as zippedfile:
                 try:
-                    from pyarrow import json
-
-                    return json.read_json(zippedfile)
-                except ImportError:  # pragma: no cover
-                    try:
-                        dataset = pd.read_json(zippedfile, lines=True)
-                        return dataset
-                    except ValueError:
-                        dataset = pd.read_json(zippedfile)
-                        return dataset
+                    return pl.read_ndjson(zippedfile)
+                except:
+                    return pl.read_json(zippedfile)
         if "csv.json" in files:  # pragma: no cover
             with z.open("data.csv") as zippedfile:
-                try:
-                    from pyarrow import csv
-
-                    return csv.read_json(zippedfile).to_pandas()
-                except ImportError:
-                    return pd.read_csv(zippedfile)
+                pl.read_csv(zippedfile, sep=",")
         else:  # pragma: no cover
             raise FileNotFoundError("Cannot find a 'data' file in the zip folder.")
 
@@ -217,7 +216,7 @@ def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
     if target not in {"modelData", "predictorData", "ValueFinder"}:
         return f"Target not found"
 
-    supported = [".json", ".csv", ".zip", ".parquet"]
+    supported = [".json", ".csv", ".zip", ".parquet", ".feather"]
 
     files_dir = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
     files_dir = [f for f in files_dir if os.path.splitext(f)[-1].lower() in supported]
