@@ -67,7 +67,7 @@ def readDSExport(
     """
 
     # If a dataframe is supplied directly, we can just return it
-    if isinstance(filename, pd.DataFrame):
+    if isinstance(filename, pd.DataFrame) | isinstance(filename, pl.DataFrame):
         return filename
 
     # If the data is a BytesIO object, such as an uploaded file
@@ -122,15 +122,18 @@ def import_file(file, extension, **kwargs):
         file = readZippedFile(file)
     elif extension == ".csv":
         from pyarrow import csv
+
         file = csv.read_csv(
             file,
             parse_options=pyarrow.csv.ParseOptions(delimiter=kwargs.get("sep", ",")),
         )
     elif extension == ".json":
         from pyarrow import json
+
         file = json.read_json(file, **kwargs)
     elif extension == ".parquet":
         from pyarrow import parquet
+
         file = parquet.read_table(file)
     else:
         raise ValueError("Could not import file: {file}, with extension {extension}")
@@ -316,20 +319,27 @@ def auc_from_probs(
         >>> auc_from_probs( [1,1,0], [0.6,0.2,0.2])
     """
     nlabels = len(np.unique(groundtruth))
-    if nlabels < 2: return 0.5
-    if nlabels > 2: raise Exception("'Groundtruth' has more than two levels.")
+    if nlabels < 2:
+        return 0.5
+    if nlabels > 2:
+        raise Exception("'Groundtruth' has more than two levels.")
 
-    df = pl.DataFrame( {'truth' : groundtruth, 'probs' : probs} )
-    binned = (df.groupby(by='probs').agg([
-        (pl.col("truth") == 1).sum().alias('pos'),
-        (pl.col("truth") == 0).sum().alias('neg')]))
-    
+    df = pl.DataFrame({"truth": groundtruth, "probs": probs})
+    binned = df.groupby(by="probs").agg(
+        [
+            (pl.col("truth") == 1).sum().alias("pos"),
+            (pl.col("truth") == 0).sum().alias("neg"),
+        ]
+    )
+
     return auc_from_bincounts(
-        binned.get_column('pos'), 
-        binned.get_column('neg'), 
-        binned.get_column('probs'))
+        binned.get_column("pos"), binned.get_column("neg"), binned.get_column("probs")
+    )
 
-def auc_from_bincounts(pos: List[int], neg: List[int], probs: List[float] = None) -> float:
+
+def auc_from_bincounts(
+    pos: List[int], neg: List[int], probs: List[float] = None
+) -> float:
     """Calculates AUC from counts of positives and negatives directly
     This is an efficient calculation of the area under the ROC curve directly from an array of positives
     and negatives. It makes sure to always return a value between 0.5 and 1.0
@@ -363,6 +373,7 @@ def auc_from_bincounts(pos: List[int], neg: List[int], probs: List[float] = None
     Area = (FPR - np.append(FPR[1:], 0)) * (TPR + np.append(TPR[1:], 0)) / 2
     return safe_range_auc(np.sum(Area))
 
+
 def aucpr_from_probs(
     groundtruth: List[int], probs: List[float]
 ) -> List[float]:  # pragma: no cover
@@ -385,20 +396,27 @@ def aucpr_from_probs(
         >>> auc_from_probs( [1,1,0], [0.6,0.2,0.2])
     """
     nlabels = len(np.unique(groundtruth))
-    if nlabels < 2: return 0.0
-    if nlabels > 2: raise Exception("'Groundtruth' has more than two levels.")
+    if nlabels < 2:
+        return 0.0
+    if nlabels > 2:
+        raise Exception("'Groundtruth' has more than two levels.")
 
-    df = pl.DataFrame( {'truth' : groundtruth, 'probs' : probs} )
-    binned = (df.groupby(by='probs').agg([
-        (pl.col("truth") == 1).sum().alias('pos'),
-        (pl.col("truth") == 0).sum().alias('neg')]))
-    
+    df = pl.DataFrame({"truth": groundtruth, "probs": probs})
+    binned = df.groupby(by="probs").agg(
+        [
+            (pl.col("truth") == 1).sum().alias("pos"),
+            (pl.col("truth") == 0).sum().alias("neg"),
+        ]
+    )
+
     return aucpr_from_bincounts(
-        binned.get_column('pos'), 
-        binned.get_column('neg'), 
-        binned.get_column('probs'))
+        binned.get_column("pos"), binned.get_column("neg"), binned.get_column("probs")
+    )
 
-def aucpr_from_bincounts(pos: List[int], neg: List[int], probs: List[float] = None) -> float:
+
+def aucpr_from_bincounts(
+    pos: List[int], neg: List[int], probs: List[float] = None
+) -> float:
     """Calculates PR AUC (precision-recall) from counts of positives and negatives directly.
     This is an efficient calculation of the area under the PR curve directly from an
     array of positives and negatives. Returns 0.0 when there is just one
@@ -429,10 +447,11 @@ def aucpr_from_bincounts(pos: List[int], neg: List[int], probs: List[float] = No
         o = np.argsort(-np.asarray(probs))
     recall = np.cumsum(pos[o]) / np.sum(pos)
     precision = np.cumsum(pos[o]) / np.cumsum(pos[o] + neg[o])
-    prevrecall = np.insert(recall[0:(len(recall)-1)], 0, 0)
-    prevprecision = np.insert(precision[0:(len(precision)-1)], 0, 0)
+    prevrecall = np.insert(recall[0 : (len(recall) - 1)], 0, 0)
+    prevprecision = np.insert(precision[0 : (len(precision) - 1)], 0, 0)
     Area = (recall - prevrecall) * (precision + prevprecision) / 2
     return np.sum(Area[1:])
+
 
 def auc2GINI(auc: float) -> float:
     """
