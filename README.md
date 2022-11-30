@@ -8,8 +8,11 @@
 
 <p align="center">
   <!-- Tests -->
-  <a href="https://github.com/pegasystems/pega-datascientist-tools/actions?workflow=pdstools">
-    <img src="https://github.com/pegasystems/pega-datascientist-tools/workflows/pdstools/badge.svg" alt="tests">
+  <a href="https://github.com/pegasystems/pega-datascientist-tools/actions">
+    <img src="https://github.com/pegasystems/pega-datascientist-tools/workflows/Python%20tests/badge.svg" alt="Python tests">
+  </a>
+  <a href="https://github.com/pegasystems/pega-datascientist-tools/actions">
+    <img src="https://github.com/pegasystems/pega-datascientist-tools/workflows/R%20tests/badge.svg" alt="R tests">
   </a>
   <!-- Code coverage -->
   <a href="https://codecov.io/gh/pegasystems/pega-datascientist-tools">
@@ -31,7 +34,7 @@
 
 Open source tooling that helps data scientists working with Pega AI to analyze Pega decisioning and modeling performance.
 
-We release this under the Apache 2.0 license and welcome contributing back, preferably through pull requests, but just submitting an Issue or sending a note to the authors is fine too.
+We release this under the Apache 2.0 license and welcome contributing back, preferably through pull requests, but just submitting an Issue or sending a note to the authors is fine too. Pega does not make any representation or warranty with respect to this free software.
 
 The tools help to do analysis on Pega decisioning and predictive analytics as used in solutions such as Customer Decision Hub or Process AI, pull data from the platform, easily build meaningful plots and more. Tooling exists in both R and Python, as an R package and as notebooks and scripts for Python. See the [Graph Gallery](https://github.com/pegasystems/pega-datascientist-tools/wiki/Graph-Gallery) for a sample of the graphs you can build to help get insights from the platform. Or jump right into the examples in [R vignettes](https://pegasystems.github.io/pega-datascientist-tools/R/articles/index.html), in [Python notebooks](https://pegasystems.github.io/pega-datascientist-tools/Python/examples.html) or [browse the example folder](https://github.com/pegasystems/pega-datascientist-tools/tree/master/examples).
 

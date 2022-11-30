@@ -24,6 +24,7 @@ params:
     # Full path to the source file which should be an export of the ADM model table
     # can be a plain CSV file, a zipped CSV, or the full path of a dataset export
     value: "../../data/pr_data_dm_admmart_mdl_fact.csv"
+    # value: "~/.datamartcache/models_CDH Sample.parquet"
 
   predictordatafile:
     # Optional full path to ADM predictor binning table data. If given, the model 
@@ -31,6 +32,7 @@ params:
     # flexibility in format: CSV, zipped CSV or dataset export. If you have something
     # different, you'll need to load, filter and re-write as CSV first.
     value: "../../data/pr_data_dm_admmart_pred.csv"
+    # value: "~/.datamartcache/preds_CDH Sample.parquet"
 
   # perhaps consider supporting something like this, for now you would do this in 
   # a separate script then call this notebook
@@ -111,6 +113,15 @@ if (params$predictordatafile == "") {
   }
   
   datamart <- ADMDatamart(params$modelfile, params$predictordatafile)
+}
+
+# Hmm. Perhaps the 'ADMDatamart' function should be doing this. We need Issue
+# in some of the snippets of this health check.
+if (!"Issue" %in% names(datamart$modeldata)) {
+  datamart$modeldata[["Issue"]] <- "-"    
+}
+if (!"Group" %in% names(datamart$modeldata)) {
+  datamart$modeldata[["Group"]] <- "-"    
 }
 
 # standardized coloring for this script
@@ -196,12 +207,7 @@ allUniqueChannelDirectionValues <- function(dm) {
         collapse=", ") }
 
 avgGroupsPerIssue <- function(dm) { 
-  if (length(intersect(c("Issue", "Group"), names(dm$modeldata))) == 2) {
-    return(mean(dm$modeldata[, .(Groups = uniqueN(Group)), by="Issue"]$Groups)) 
-  } 
-  else {
-    return("-")
-  }
+  mean(dm$modeldata[, .(Groups = uniqueN(Group)), by="Issue"]$Groups)
 }
 ```
 
@@ -381,7 +387,7 @@ if (!hasMultipleSnapshots(datamart$modeldata))
 }
 ```
 
-### Model performance of all the actions (interactive Treemap)
+### Model performance of all the actions
 
 Using an interactive treemap to visualize the performance. Lighter is better,
 darker is low performance.
@@ -405,6 +411,31 @@ fig <- plot_ly(
 fig %>% layout(title = "Model Performance")
 ```
 
+### Response counts for all the actions
+
+Using an interactive treemap to visualize the response counts. Darker is more.
+
+Different channels will have very different numbers but within one channel the
+relative differences in response counts give an indication how skewed the
+distribution is.
+
+```{r Treemap response count}
+fig <- plot_ly(
+  type="treemap",
+  ids=treeData$TreeNodeID,
+  labels=treeData$TreeLabel,
+  parents=treeData$TreeNodeParent,
+  values=treeData$ResponseCount,
+  # see https://plotly.com/r/builtin-colorscales/
+  # https://plotly.com/r/reference/#heatmap-colorscale
+  # https://plotly.com/r/treemaps/
+  # https://plotly.com/r/colorscales/
+  marker=list(colorscale="Viridis", reversescale = T),
+  textinfo="label+value"
+)
+fig %>% layout(title = "Response Count")
+```
+
 # Analysis of Predictors
 
 This analysis focuses on finding which are top predictors that are driving the models. 
@@ -413,6 +444,18 @@ The predictors are categorized (by color) by the "source". By default this takes
 just the first part before the dot, so this typically distinguishes between
 Customer, Account, IH and parameterized (Param.) predictors. You can customize
 this to add patterns to identify for example external scores.
+
+## Number of Predictors per model configuration
+
+```{r}
+datamart$modeldata[, .(Predictors = max(TotalPredictors), 
+                       `Used In (Channels)` = paste(sort(unique(paste(Direction, Channel, sep="/"))), collapse=", "), 
+                       `Used For (Issues)` = paste(sort(unique(Issue)), collapse=", ")), 
+                   by=c("ConfigurationName")][order(ConfigurationName)] %>%
+  kbl() %>%
+  kable_paper(c("striped", "hover"), full_width = F)
+
+```
 
 ## Predictor Importance across all models per configuration
 
@@ -448,10 +491,11 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
                            subtitle = paste0("(Top ", params$max_predictors_in_plot, " from ", uniqueN(filterClassifierOnly(datamart$predictordata[ModelID %in% unique(datamart$modeldata[ConfigurationName == c]$ModelID)], reverse=T)$PredictorName), " in ", c, ")")) +
         scale_fill_PredictorCategory
       print(plt)
+      # ggplotly(plt)
     }
   }
 } else {
-  cat("Predictor analysis will only be available when predictor binning data is available.", fill=T)
+  cat("Predictor analysis not available.", fill=T)
 }
 ```
 
@@ -473,7 +517,7 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
     scale_fill_PredictorCategory
   print(plt)
 } else {
-  cat("Predictor analysis will only be available when predictor binning data is available.", fill=T)
+  cat("Predictor analysis not available.", fill=T)
 }
 ```
 
@@ -501,7 +545,7 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
   
   ggplotly(plt)
 } else {
-  cat("Predictor analysis will only be available when predictor binning data is available.", fill=T)
+  cat("Predictor analysis not available.", fill=T)
 }
 ```
 
@@ -535,7 +579,7 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
     scale_fill_PredictorCategory
   print(plt)
 } else {
-  cat("Predictor analysis will only be available when predictor binning data is available.", fill=T)
+  cat("Predictor analysis not available.", fill=T)
 }
 ```
 
@@ -569,7 +613,7 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
   
   plt
 } else {
-  cat("Predictor analysis will only be available when predictor binning data is available.", fill=T)
+  cat("Predictor analysis not available.", fill=T)
 }
 ```
 
@@ -600,7 +644,7 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
     }
   }
 } else {
-  cat("Predictor analysis will only be available when predictor binning data is available.", fill=T)
+  cat("Predictor analysis not available.", fill=T)
 }
 ```
 
@@ -623,7 +667,7 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
   
   head(missingData)
 } else {
-  cat("Predictor analysis will only be available when predictor binning data is available.", fill=T)
+  cat("Predictor analysis not available.", fill=T)
 }
 ```
 
@@ -655,7 +699,7 @@ if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
   )
   fig # %>% layout(uniformtext=list(minsize=6, mode='hide'))
 } else {
-  cat("Predictor analysis will only be available when predictor binning data is available.", fill=T)
+  cat("Predictor analysis not available.", fill=T)
 }
 ```
 
