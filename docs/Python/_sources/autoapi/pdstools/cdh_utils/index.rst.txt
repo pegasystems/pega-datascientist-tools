@@ -26,6 +26,7 @@ Functions
    pdstools.cdh_utils.readZippedFile
    pdstools.cdh_utils.get_latest_file
    pdstools.cdh_utils.getMatches
+   pdstools.cdh_utils.cache_to_file
    pdstools.cdh_utils.safe_range_auc
    pdstools.cdh_utils.auc_from_probs
    pdstools.cdh_utils.auc_from_bincounts
@@ -122,6 +123,23 @@ Functions
 
 
 .. py:function:: getMatches(files_dir, target)
+
+
+.. py:function:: cache_to_file(df: Union[polars.DataFrame, pandas.DataFrame], path: os.PathLike, name: str) -> os.PathLike
+
+   Very simple convenience function to cache data.
+
+   Caches in feather (arrow) format for very fast reading.
+
+   :param df: The dataframe to cache
+   :type df: Union[pl.DataFrame, pd.DataFrame]
+   :param path: The location to cache the data
+   :type path: os.PathLike
+   :param name: The name to give to the file
+   :type name: str
+
+   :returns: The filepath to the cached file
+   :rtype: os.PathLike
 
 
 .. py:function:: safe_range_auc(auc: float) -> float

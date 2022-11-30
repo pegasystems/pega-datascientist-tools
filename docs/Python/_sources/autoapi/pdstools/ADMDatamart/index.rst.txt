@@ -249,6 +249,17 @@ Classes
       :rtype: pd.DataFrame
 
 
+   .. py:method:: save_data(path: str = '.') -> Tuple[os.PathLike, os.PathLike]
+
+      Cache modelData and predictorData to files.
+
+      :param path: Where to place the files
+      :type path: str
+
+      :returns: The paths to the model and predictor data files
+      :rtype: (os.PathLike, os.PathLike)
+
+
    .. py:method:: fix_pdc(df: pandas.DataFrame) -> pandas.DataFrame
       :staticmethod:
 

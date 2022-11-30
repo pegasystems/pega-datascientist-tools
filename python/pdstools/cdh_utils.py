@@ -75,12 +75,14 @@ def readDSExport(
 
     # If a dataframe is supplied directly, we can just return it
     if isinstance(filename, pd.DataFrame) | isinstance(filename, pl.DataFrame):
+        logging.debug("Dataframe returned directly.")
         return filename
 
     # If the data is a BytesIO object, such as an uploaded file
     # in certain webapps, then we can simply return the object
     # as is, while extracting the extension as well.
     if isinstance(filename, BytesIO):
+        logging.debug("Filename is of type BytesIO, importing that directly")
         name, extension = os.path.splitext(filename.name)
         return import_file(filename, extension, **kwargs)
 
@@ -88,8 +90,10 @@ def readDSExport(
     # extract the extension of the file, then look for
     # the file in the user's directory.
     if os.path.isfile(os.path.join(path, filename)):
+        logging.debug("File found on directory")
         file = os.path.join(path, filename)
     else:
+        logging.debug("File not found on directory, scanning for latest file")
         file = get_latest_file(path, filename)
 
     # If we can't find the file locally, we can try
@@ -97,12 +101,16 @@ def readDSExport(
     # the file in a BytesIO object, and read the file
     # fully to disk for pyarrow to read it.
     if file == "Target not found" or file == None:
+        logging.debug(
+            "Could not find file in the directory anywhere, chceking if file is URL."
+        )
         import requests
 
         try:
             response = requests.get(f"{path}/{filename}")
             logging.info(f"Response: {response}")
             if response.status_code == 200:
+                logging.debug("File found online, importing and parsing to BytesIO")
                 file = f"{path}/{filename}"
                 file = BytesIO(urllib.request.urlopen(file).read())
                 name, extension = os.path.splitext(filename)
@@ -125,6 +133,7 @@ def readDSExport(
 def import_file(file, extension, **kwargs) -> Union[pl.DataFrame, pd.DataFrame]:
     """Imports a file using Polars"""
     if extension == ".zip":
+        logging.debug("Zip file found, reading zipped file.")
         file = readZippedFile(file)
     elif extension == ".csv":
         file = pl.read_csv(
@@ -175,15 +184,19 @@ def readZippedFile(file: str, verbose: bool = False, **kwargs) -> pl.DataFrame:
     """
 
     with zipfile.ZipFile(file, mode="r") as z:
+        logging.debug("Opened zip file.")
         files = z.namelist()
+        logging.debug(f"Files found: {files}")
         if verbose:
             print(files)  # pragma: no cover
         if "data.json" in files:
+            logging.debug("data.json found.")
             with z.open("data.json") as zippedfile:
+                logging.debug(type(zippedfile))
                 try:
-                    return pl.read_ndjson(zippedfile)
+                    return pl.read_ndjson(zippedfile.read())
                 except:
-                    return pl.read_json(zippedfile)
+                    return pl.read_json(zippedfile.read())
         if "csv.json" in files:  # pragma: no cover
             with z.open("data.csv") as zippedfile:
                 pl.read_csv(zippedfile, sep=",")
@@ -253,12 +266,14 @@ def getMatches(files_dir, target):
         "model_snapshots",
         "MD_FACT",
         "ADMMART_MDL_FACT_Data",
+        "cached_modelData",
     ]
     default_predictor_names = [
         "Data-Decision-ADM-PredictorBinningSnapshot",
         "PR_DATA_DM_ADMMART_PRED",
         "predictor_binning_snapshots",
         "PRED_FACT",
+        "cached_predictorData",
     ]
     ValueFinder_names = ["Data-Insights_pyValueFinder"]
 
@@ -273,6 +288,33 @@ def getMatches(files_dir, target):
         if len(match) > 0:
             matches.append(match[0])
     return matches
+
+
+def cache_to_file(
+    df: Union[pl.DataFrame, pd.DataFrame], path: os.PathLike, name: str
+) -> os.PathLike:
+    """Very simple convenience function to cache data.
+
+    Caches in feather (arrow) format for very fast reading.
+
+    Parameters
+    ----------
+    df: Union[pl.DataFrame, pd.DataFrame]
+        The dataframe to cache
+    path: os.PathLike
+        The location to cache the data
+    name: str
+        The name to give to the file
+
+    Returns
+    -------
+    os.PathLike:
+        The filepath to the cached file
+    """
+    df = pl.DataFrame(df)
+    outpath = f"{path}/{name}.feather"
+    df.write_ipc(outpath)
+    return outpath
 
 
 def safe_range_auc(auc: float) -> float:
@@ -604,7 +646,7 @@ def toPRPCDateTime(x: datetime.datetime) -> str:
         >>> toPRPCDateTime(datetime.datetime.now())
     """
 
-    return x.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+    return x.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
 
 
 def readClientCredentialFile(credentialFile):
