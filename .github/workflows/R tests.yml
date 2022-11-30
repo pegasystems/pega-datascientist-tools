@@ -13,8 +13,9 @@ on:
       - master
     paths:
       - r/**
-  pull_request: null
-
+  pull_request: 
+    paths:
+      - r/**
 jobs:
   R_tests:
     runs-on: ${{ matrix.os }}
