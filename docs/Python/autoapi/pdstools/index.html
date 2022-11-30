@@ -896,7 +896,11 @@ Supports pandas or polars dataframes or pyarrow tables</p></li>
 </ul>
 </dd>
 <dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>filename</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – The name, or extended filepath, towards the file</p>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>filename</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – The name, or extended filepath, towards the file</p></li>
+<li><p><strong>subset</strong> (<em>bool</em>) – Whether to select only a subset of columns.
+Will speed up analysis and reduce unused information</p></li>
+</ul>
 </dd>
 </dl>
 <dl class="py method">
@@ -969,7 +973,7 @@ we have to sample to a reasonable amount of data points.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ValueFinder.plotPropensityThreshold">
-<span class="sig-name descname"><span class="pre">plotPropensityThreshold</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sampledN</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">plotly.graph_objects.Figure</span></span></span><a class="headerlink" href="#pdstools.ValueFinder.plotPropensityThreshold" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">plotPropensityThreshold</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sampledN</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Eligibility'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">plotly.graph_objects.Figure</span></span></span><a class="headerlink" href="#pdstools.ValueFinder.plotPropensityThreshold" title="Permalink to this definition">#</a></dt>
 <dd><p>Plots the propensity threshold vs the different propensities.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>

@@ -543,6 +543,9 @@ Functions
 
    :keyword filename: The name, or extended filepath, towards the file
    :kwtype filename: Optional[str]
+   :keyword subset: Whether to select only a subset of columns.
+                    Will speed up analysis and reduce unused information
+   :kwtype subset: bool
 
    .. py:method:: getCustomerSummary(th: Optional[float] = None, verbose: bool = True) -> polars.DataFrame
 
@@ -601,7 +604,7 @@ Functions
       :type sampledN: int, default = 10_000
 
 
-   .. py:method:: plotPropensityThreshold(sampledN=10000) -> plotly.graph_objects.Figure
+   .. py:method:: plotPropensityThreshold(sampledN=10000, stage='Eligibility') -> plotly.graph_objects.Figure
 
       Plots the propensity threshold vs the different propensities.
 

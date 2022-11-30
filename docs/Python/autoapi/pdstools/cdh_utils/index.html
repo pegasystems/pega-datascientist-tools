@@ -277,25 +277,28 @@ of data analysis, reporting and monitoring.</p>
 <tr class="row-even"><td><p><a class="reference internal" href="#pdstools.cdh_utils.auc_from_bincounts" title="pdstools.cdh_utils.auc_from_bincounts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auc_from_bincounts</span></code></a>(→ float)</p></td>
 <td><p>Calculates AUC from counts of positives and negatives directly</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.cdh_utils.aucpr_from_bincounts" title="pdstools.cdh_utils.aucpr_from_bincounts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">aucpr_from_bincounts</span></code></a>(→ float)</p></td>
-<td><p>Calculates AUC PR blah blah from counts of positives and negatives directly</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.cdh_utils.aucpr_from_probs" title="pdstools.cdh_utils.aucpr_from_probs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">aucpr_from_probs</span></code></a>(→ List[float])</p></td>
+<td><p>Calculates PR AUC (precision-recall) from an array of truth values and predictions.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.cdh_utils.auc2GINI" title="pdstools.cdh_utils.auc2GINI"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auc2GINI</span></code></a>(→ float)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.cdh_utils.aucpr_from_bincounts" title="pdstools.cdh_utils.aucpr_from_bincounts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">aucpr_from_bincounts</span></code></a>(→ float)</p></td>
+<td><p>Calculates PR AUC (precision-recall) from counts of positives and negatives directly.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.cdh_utils.auc2GINI" title="pdstools.cdh_utils.auc2GINI"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auc2GINI</span></code></a>(→ float)</p></td>
 <td><p>Convert AUC performance metric to GINI</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.cdh_utils._capitalize" title="pdstools.cdh_utils._capitalize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_capitalize</span></code></a>(→ list)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.cdh_utils._capitalize" title="pdstools.cdh_utils._capitalize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_capitalize</span></code></a>(→ list)</p></td>
 <td><p>Applies automatic capitalization, aligned with the R couterpart.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.cdh_utils.fromPRPCDateTime" title="pdstools.cdh_utils.fromPRPCDateTime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fromPRPCDateTime</span></code></a>(→ Union[datetime.datetime, str])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.cdh_utils.fromPRPCDateTime" title="pdstools.cdh_utils.fromPRPCDateTime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fromPRPCDateTime</span></code></a>(→ Union[datetime.datetime, str])</p></td>
 <td><p>Convert from a Pega date-time string.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.cdh_utils.toPRPCDateTime" title="pdstools.cdh_utils.toPRPCDateTime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">toPRPCDateTime</span></code></a>(→ str)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.cdh_utils.toPRPCDateTime" title="pdstools.cdh_utils.toPRPCDateTime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">toPRPCDateTime</span></code></a>(→ str)</p></td>
 <td><p>Convert to a Pega date-time string</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.cdh_utils.readClientCredentialFile" title="pdstools.cdh_utils.readClientCredentialFile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readClientCredentialFile</span></code></a>(credentialFile)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.cdh_utils.readClientCredentialFile" title="pdstools.cdh_utils.readClientCredentialFile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readClientCredentialFile</span></code></a>(credentialFile)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.cdh_utils.getToken" title="pdstools.cdh_utils.getToken"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getToken</span></code></a>(credentialFile[, verify])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.cdh_utils.getToken" title="pdstools.cdh_utils.getToken"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getToken</span></code></a>(credentialFile[, verify])</p></td>
 <td><p></p></td>
 </tr>
 </tbody>
@@ -422,15 +425,14 @@ or the predictor bins (‘predictorData’)</p></li>
 <dd><p>Calculates AUC from an array of truth values and predictions.
 Calculates the area under the ROC curve from an array of truth values and
 predictions, making sure to always return a value between 0.5 and 1.0 and
-will return 0.5 in case of any issues.</p>
+returns 0.5 when there is just one groundtruth label.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>groundtruth</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – The ‘true’ values, Positive values must be represented as
 True or 1. Negative values must be represented as False or 0.</p></li>
-<li><p><strong>probs</strong> (<em>List</em><em>[</em><em>float</em><em>]</em>) – The predictions, as a numeric vector as the same length as groundtruth</p></li>
-<li><p><strong>Returns</strong> (<em>List</em><em>[</em><em>float</em><em>]</em>) – The AUC as a value between 0.5 and 1, return 0.5 if there are any issues
-with the data</p></li>
+<li><p><strong>probs</strong> (<em>List</em><em>[</em><em>float</em><em>]</em>) – The predictions, as a numeric vector of the same length as groundtruth</p></li>
+<li><p><strong>Returns</strong> (<em>List</em><em>[</em><em>float</em><em>]</em>) – The AUC as a value between 0.5 and 1.</p></li>
 <li><p><strong>Examples</strong> – <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">auc_from_probs</span><span class="p">(</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.6</span><span class="p">,</span><span class="mf">0.2</span><span class="p">,</span><span class="mf">0.2</span><span class="p">])</span>
 </pre></div>
 </div>
@@ -442,22 +444,22 @@ with the data</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.cdh_utils.auc_from_bincounts">
-<span class="sig-prename descclassname"><span class="pre">pdstools.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">auc_from_bincounts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#pdstools.cdh_utils.auc_from_bincounts" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pdstools.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">auc_from_bincounts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#pdstools.cdh_utils.auc_from_bincounts" title="Permalink to this definition">#</a></dt>
 <dd><p>Calculates AUC from counts of positives and negatives directly
-This is an efficient calculation of the AUC directly from an array of positives
+This is an efficient calculation of the area under the ROC curve directly from an array of positives
 and negatives. It makes sure to always return a value between 0.5 and 1.0
-and will return 0.5 in case of any issues.</p>
+and will return 0.5 when there is just one groundtruth label.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>pos</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – Vector with counts of the positive responses</p></li>
 <li><p><strong>neg</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – Vector with counts of the negative responses</p></li>
+<li><p><strong>probs</strong> (<em>List</em><em>[</em><em>float</em><em>]</em>) – Optional list with probabilities which will be used to set the order of the bins. If missing defaults to pos/(pos+neg).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><ul class="simple">
-<li><p><em>float</em> – The AUC as a value between 0.5 and 1, return 0.5 if there are any issues
-with the data.</p></li>
+<li><p><em>float</em> – The AUC as a value between 0.5 and 1.</p></li>
 <li><p><em>Examples</em> – &gt;&gt;&gt; auc_from_bincounts([3,1,0], [2,0,1])</p></li>
 </ul>
 </p>
@@ -466,24 +468,46 @@ with the data.</p></li>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="pdstools.cdh_utils.aucpr_from_probs">
+<span class="sig-prename descclassname"><span class="pre">pdstools.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">aucpr_from_probs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">groundtruth</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.cdh_utils.aucpr_from_probs" title="Permalink to this definition">#</a></dt>
+<dd><p>Calculates PR AUC (precision-recall) from an array of truth values and predictions.
+Calculates the area under the PR curve from an array of truth values and
+predictions. Returns 0.0 when there is just one groundtruth label.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>groundtruth</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – The ‘true’ values, Positive values must be represented as
+True or 1. Negative values must be represented as False or 0.</p></li>
+<li><p><strong>probs</strong> (<em>List</em><em>[</em><em>float</em><em>]</em>) – The predictions, as a numeric vector of the same length as groundtruth</p></li>
+<li><p><strong>Returns</strong> (<em>List</em><em>[</em><em>float</em><em>]</em>) – The AUC as a value between 0.5 and 1.</p></li>
+<li><p><strong>Examples</strong> – <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">auc_from_probs</span><span class="p">(</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.6</span><span class="p">,</span><span class="mf">0.2</span><span class="p">,</span><span class="mf">0.2</span><span class="p">])</span>
+</pre></div>
+</div>
+</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="pdstools.cdh_utils.aucpr_from_bincounts">
-<span class="sig-prename descclassname"><span class="pre">pdstools.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">aucpr_from_bincounts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#pdstools.cdh_utils.aucpr_from_bincounts" title="Permalink to this definition">#</a></dt>
-<dd><p>Calculates AUC PR blah blah from counts of positives and negatives directly
-This is an efficient calculation of the AUC directly from an array of positives
-and negatives. It makes sure to always return a value between 0.5 and 1.0
-and will return 0.5 in case of any issues.</p>
+<span class="sig-prename descclassname"><span class="pre">pdstools.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">aucpr_from_bincounts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#pdstools.cdh_utils.aucpr_from_bincounts" title="Permalink to this definition">#</a></dt>
+<dd><p>Calculates PR AUC (precision-recall) from counts of positives and negatives directly.
+This is an efficient calculation of the area under the PR curve directly from an
+array of positives and negatives. Returns 0.0 when there is just one
+groundtruth label.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>pos</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – Vector with counts of the positive responses</p></li>
 <li><p><strong>neg</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – Vector with counts of the negative responses</p></li>
+<li><p><strong>probs</strong> (<em>List</em><em>[</em><em>float</em><em>]</em>) – Optional list with probabilities which will be used to set the order of the bins. If missing defaults to pos/(pos+neg).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><ul class="simple">
-<li><p><em>float</em> – The AUC as a value between 0.5 and 1, return 0.5 if there are any issues
-with the data.</p></li>
-<li><p><em>Examples</em> – &gt;&gt;&gt; auc_from_bincounts([3,1,0], [2,0,1])</p></li>
+<li><p><em>float</em> – The PR AUC as a value between 0.0 and 1.</p></li>
+<li><p><em>Examples</em> – &gt;&gt;&gt; aucpr_from_bincounts([3,1,0], [2,0,1])</p></li>
 </ul>
 </p>
 </dd>
@@ -637,6 +661,7 @@ False it will return in datetime type</p></li>
 <li><a class="reference internal" href="#pdstools.cdh_utils.safe_range_auc"><code class="docutils literal notranslate"><span class="pre">safe_range_auc()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.cdh_utils.auc_from_probs"><code class="docutils literal notranslate"><span class="pre">auc_from_probs()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.cdh_utils.auc_from_bincounts"><code class="docutils literal notranslate"><span class="pre">auc_from_bincounts()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.cdh_utils.aucpr_from_probs"><code class="docutils literal notranslate"><span class="pre">aucpr_from_probs()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.cdh_utils.aucpr_from_bincounts"><code class="docutils literal notranslate"><span class="pre">aucpr_from_bincounts()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.cdh_utils.auc2GINI"><code class="docutils literal notranslate"><span class="pre">auc2GINI()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.cdh_utils._capitalize"><code class="docutils literal notranslate"><span class="pre">_capitalize()</span></code></a></li>
@@ -652,6 +677,7 @@ False it will return in datetime type</p></li>
 <li><a class="reference internal" href="#pdstools.cdh_utils.safe_range_auc">safe_range_auc</a></li>
 <li><a class="reference internal" href="#pdstools.cdh_utils.auc_from_probs">auc_from_probs</a></li>
 <li><a class="reference internal" href="#pdstools.cdh_utils.auc_from_bincounts">auc_from_bincounts</a></li>
+<li><a class="reference internal" href="#pdstools.cdh_utils.aucpr_from_probs">aucpr_from_probs</a></li>
 <li><a class="reference internal" href="#pdstools.cdh_utils.aucpr_from_bincounts">aucpr_from_bincounts</a></li>
 <li><a class="reference internal" href="#pdstools.cdh_utils.auc2GINI">auc2GINI</a></li>
 <li><a class="reference internal" href="#pdstools.cdh_utils._capitalize">_capitalize</a></li>

@@ -1,0 +1,16 @@
+:py:mod:`pdstools.healthcheck`
+==============================
+
+.. py:module:: pdstools.healthcheck
+
+
+Submodules
+----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+
+   datamart_utils/index.rst
+   streamlit_app/index.rst
+
+

@@ -29,6 +29,7 @@ Functions
    pdstools.cdh_utils.safe_range_auc
    pdstools.cdh_utils.auc_from_probs
    pdstools.cdh_utils.auc_from_bincounts
+   pdstools.cdh_utils.aucpr_from_probs
    pdstools.cdh_utils.aucpr_from_bincounts
    pdstools.cdh_utils.auc2GINI
    pdstools.cdh_utils._capitalize
@@ -128,51 +129,68 @@ Functions
    Calculates AUC from an array of truth values and predictions.
    Calculates the area under the ROC curve from an array of truth values and
    predictions, making sure to always return a value between 0.5 and 1.0 and
-   will return 0.5 in case of any issues.
+   returns 0.5 when there is just one groundtruth label.
 
    :param groundtruth: The 'true' values, Positive values must be represented as
                        True or 1. Negative values must be represented as False or 0.
    :type groundtruth: List[int]
-   :param probs: The predictions, as a numeric vector as the same length as groundtruth
+   :param probs: The predictions, as a numeric vector of the same length as groundtruth
    :type probs: List[float]
-   :param Returns: The AUC as a value between 0.5 and 1, return 0.5 if there are any issues
-                   with the data
+   :param Returns: The AUC as a value between 0.5 and 1.
    :type Returns: List[float]
    :param Examples: >>> auc_from_probs( [1,1,0], [0.6,0.2,0.2])
 
 
-.. py:function:: auc_from_bincounts(pos: List[int], neg: List[int]) -> float
+.. py:function:: auc_from_bincounts(pos: List[int], neg: List[int], probs: List[float] = None) -> float
 
    Calculates AUC from counts of positives and negatives directly
-   This is an efficient calculation of the AUC directly from an array of positives
+   This is an efficient calculation of the area under the ROC curve directly from an array of positives
    and negatives. It makes sure to always return a value between 0.5 and 1.0
-   and will return 0.5 in case of any issues.
+   and will return 0.5 when there is just one groundtruth label.
 
    :param pos: Vector with counts of the positive responses
    :type pos: List[int]
    :param neg: Vector with counts of the negative responses
    :type neg: List[int]
+   :param probs: Optional list with probabilities which will be used to set the order of the bins. If missing defaults to pos/(pos+neg).
+   :type probs: List[float]
 
-   :returns: * *float* -- The AUC as a value between 0.5 and 1, return 0.5 if there are any issues
-               with the data.
+   :returns: * *float* -- The AUC as a value between 0.5 and 1.
              * *Examples* -- >>> auc_from_bincounts([3,1,0], [2,0,1])
 
 
-.. py:function:: aucpr_from_bincounts(pos: List[int], neg: List[int]) -> float
+.. py:function:: aucpr_from_probs(groundtruth: List[int], probs: List[float]) -> List[float]
 
-   Calculates AUC PR blah blah from counts of positives and negatives directly
-   This is an efficient calculation of the AUC directly from an array of positives
-   and negatives. It makes sure to always return a value between 0.5 and 1.0
-   and will return 0.5 in case of any issues.
+   Calculates PR AUC (precision-recall) from an array of truth values and predictions.
+   Calculates the area under the PR curve from an array of truth values and
+   predictions. Returns 0.0 when there is just one groundtruth label.
+
+   :param groundtruth: The 'true' values, Positive values must be represented as
+                       True or 1. Negative values must be represented as False or 0.
+   :type groundtruth: List[int]
+   :param probs: The predictions, as a numeric vector of the same length as groundtruth
+   :type probs: List[float]
+   :param Returns: The AUC as a value between 0.5 and 1.
+   :type Returns: List[float]
+   :param Examples: >>> auc_from_probs( [1,1,0], [0.6,0.2,0.2])
+
+
+.. py:function:: aucpr_from_bincounts(pos: List[int], neg: List[int], probs: List[float] = None) -> float
+
+   Calculates PR AUC (precision-recall) from counts of positives and negatives directly.
+   This is an efficient calculation of the area under the PR curve directly from an
+   array of positives and negatives. Returns 0.0 when there is just one
+   groundtruth label.
 
    :param pos: Vector with counts of the positive responses
    :type pos: List[int]
    :param neg: Vector with counts of the negative responses
    :type neg: List[int]
+   :param probs: Optional list with probabilities which will be used to set the order of the bins. If missing defaults to pos/(pos+neg).
+   :type probs: List[float]
 
-   :returns: * *float* -- The AUC as a value between 0.5 and 1, return 0.5 if there are any issues
-               with the data.
-             * *Examples* -- >>> auc_from_bincounts([3,1,0], [2,0,1])
+   :returns: * *float* -- The PR AUC as a value between 0.0 and 1.
+             * *Examples* -- >>> aucpr_from_bincounts([3,1,0], [2,0,1])
 
 
 .. py:function:: auc2GINI(auc: float) -> float

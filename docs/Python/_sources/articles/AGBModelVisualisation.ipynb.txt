@@ -135,7 +135,7 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "Trees.model[42]"
+    "Trees.model[18]"
    ]
   },
   {
@@ -171,8 +171,8 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "print(Trees.splitsPerTree[42])\n",
-    "print(Trees.gainsPerTree[42])"
+    "print(Trees.splitsPerTree[18])\n",
+    "print(Trees.gainsPerTree[18])"
    ]
   },
   {
@@ -196,7 +196,7 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "Raw data is sometimes useful, but it's better to visualise. For this, simply call plotSplitsPerVariable(), which will produce a plot of the distribution of splits for each variable. Here, the orange line denotes the number of times the given split is performed, while the blue boxes display the distribution of gains corresponding to that split. By suppling a set of predictors as the 'subset' argument, not all predictors are plotted.\n",
+    "Raw data is sometimes useful, but it's better to visualise. For this, simply call plotSplitsPerVariable(), which will produce a plot of the distribution of splits for each variable. Here, the orange line denotes the number of times the given split is performed, while the blue boxes display the distribution of gains corresponding to that split. By suppling a set of predictors as the 'subset' argument, not all predictors are plotted. For readability's sake, we've filtered only on a few specific splits.\n",
     "\n",
     "**Note 1:** Given that the gains can differ drastically between splits, some plots may not be very useful as-is. However, since they are Plotly plots they are interactive: hover over the data to see the raw numbers, and select a region within the plot to zoom in.\n",
     "**Note 2:** For categorical splits especially, the axis labels are typically not very readable. Even while hovering, there may be too much information. This is simply by nature of these splits. In this case, it may be more useful to look at the raw data in the groupedGainsPerSplit dataframe."
@@ -208,7 +208,8 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "Trees.plotSplitsPerVariable();"
+    "preds = ['Customer.Age', 'Customer.LanguagePreference', 'pyName']\n",
+    "Trees.plotSplitsPerVariable(subset=preds);"
    ]
   },
   {
@@ -226,7 +227,7 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "Trees.getTreeRepresentation(42)"
+    "Trees.getTreeRepresentation(18)"
    ]
   },
   {
@@ -242,7 +243,7 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "Trees.plotTree(42);"
+    "Trees.plotTree(18);"
    ]
   },
   {
@@ -260,14 +261,14 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "Trees.plotTree(42, highlighted = {\"IH.PegaBatch.E2E Test.Accept.pyHistoricalOutcomeCount\":2, \"pyName\":\"P2\", \"Age\": 52});"
+    "Trees.plotTree(18, highlighted = {\"IH.MISSING.MISSING.Churned.pyHistoricalOutcomeCount\":2, \"IH.SMS.Outbound.Accept.pyHistoricalOutcomeCount\":0, \"pyName\": 'PremierChecking'});"
    ]
   },
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "Or more useful; define x first and then feed that as the highlighted parameter."
+    "Of course that also works if we define x first and then feed that as the highlighted parameter."
    ]
   },
   {
@@ -276,26 +277,15 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "x = {'Age': 49,\n",
-    " 'CustomerName': 'FrancinaKunze',\n",
-    " 'EyeColor': 'LightYellow',\n",
-    " 'IH.PegaBatch.E2E Test.Accept.pxLastOutcomeTime.DaysSince': 4,\n",
-    " 'IH.PegaBatch.E2E Test.Accept.pyHistoricalOutcomeCount': 3,\n",
-    " 'IH.PegaBatch.E2E Test.Decline.pxLastOutcomeTime.DaysSince': 2,\n",
-    " 'IH.PegaBatch.E2E Test.Decline.pyHistoricalOutcomeCount': 300,\n",
-    " 'Income': 38778,\n",
-    " 'NumX': 63,\n",
-    " 'Occupation': 'Communityeducationofficer',\n",
-    " 'pyName': 'P1'}\n",
-    " \n",
-    "Trees.plotTree(42, highlighted=x);"
+    "x = {\"IH.MISSING.MISSING.Churned.pyHistoricalOutcomeCount\":2, \"IH.SMS.Outbound.Accept.pyHistoricalOutcomeCount\":0, \"pyName\": 'NotPremierChecking'}\n",
+    "Trees.plotTree(18, highlighted=x);"
    ]
   },
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "Thus far we've only look at tree 42, but of course we can plot different trees as well. This is also where these visualisations aren't always as useful, because the trees can get quite large and hard to read:"
+    "Thus far we've only look at tree 18, but of course we can plot different trees as well. This is also where these visualisations aren't always as useful, because the trees can get quite large and hard to read:"
    ]
   },
   {
@@ -304,7 +294,7 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "Trees.plotTree(4, highlighted=x);"
+    "Trees.plotTree(30);"
    ]
   },
   {
@@ -318,6 +308,34 @@
     "Trees.plotTree(4, highlighted=x).write_pdf('Tree.pdf')\n",
     "```\n",
     "\n",
+    "#### Random input data\n",
+    "For this demo, I want to generate some random input parameters, so a quick function to do that is this:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def sampleX(trees):\n",
+    "    from random import sample\n",
+    "    x = {}\n",
+    "    for variable, values in trees.allValuesPerSplit.items():\n",
+    "        if len(values) == 1:\n",
+    "            if 'true' in values or 'false' in values:\n",
+    "                values = {'true', 'false'}\n",
+    "            if isinstance(list(values)[0], str):\n",
+    "                values = values.union({'Other'})\n",
+    "        x[variable]= sample(list(values), 1)[0]\n",
+    "    return x\n",
+    "randomX = sampleX(Trees)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
     "## Replicating scores\n",
     "Lastly, with a given x and each scoring tree both stored, we can replicate the score the models would give to that customer by simply letting each tree predict a score. By calling 'getAllVisitedNodes', we get an overview of all visited nodes, each split that was performed and the scores contributed by each individual tree. By default this is sorted by their scores. This also gives us an idea of the relative 'importance' of each tree for the final prediction. "
    ]
@@ -328,7 +346,7 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "scores = Trees.getAllVisitedNodes(x)\n",
+    "scores = Trees.getAllVisitedNodes(randomX)\n",
     "scores"
    ]
   },
@@ -362,7 +380,7 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "Trees.score(x)"
+    "Trees.score(randomX)"
    ]
   },
   {
@@ -378,7 +396,7 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "Trees.plotContributionPerTree(x);"
+    "Trees.plotContributionPerTree(randomX);"
    ]
   },
   {
@@ -408,7 +426,7 @@
    "name": "python",
    "nbconvert_exporter": "python",
    "pygments_lexer": "ipython3",
-   "version": "3.10.0"
+   "version": "3.10.7"
   },
   "orig_nbformat": 4
  },
