@@ -6,6 +6,8 @@ from numpy import NaN
 import pandas as pd
 from pandas.api.types import is_datetime64_any_dtype as is_datetime
 
+import pathlib
+pathlib.Path(__file__).parent.parent
 sys.path.append("python")
 from pdstools import ADMDatamart, cdh_utils
 

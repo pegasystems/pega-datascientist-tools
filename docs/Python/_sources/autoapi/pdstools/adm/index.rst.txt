@@ -1,0 +1,16 @@
+:py:mod:`pdstools.adm`
+======================
+
+.. py:module:: pdstools.adm
+
+
+Submodules
+----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+
+   ADMDatamart/index.rst
+   ADMTrees/index.rst
+
+
