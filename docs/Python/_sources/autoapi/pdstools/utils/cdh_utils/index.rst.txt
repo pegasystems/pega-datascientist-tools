@@ -26,6 +26,7 @@ Functions
    pdstools.utils.cdh_utils.readZippedFile
    pdstools.utils.cdh_utils.get_latest_file
    pdstools.utils.cdh_utils.getMatches
+   pdstools.utils.cdh_utils.cache_to_file
    pdstools.utils.cdh_utils.safe_range_auc
    pdstools.utils.cdh_utils.auc_from_probs
    pdstools.utils.cdh_utils.auc_from_bincounts
@@ -111,6 +112,26 @@ Functions
 
 
 .. py:function:: getMatches(files_dir, target)
+
+
+.. py:function:: cache_to_file(df: pandas.DataFrame, path: os.PathLike, name: str, cache_type='parquet') -> os.PathLike
+
+   Very simple convenience function to cache data.
+   Caches in parquet format for very fast reading.
+
+   :param df: The dataframe to cache
+   :type df: pd.DataFrame
+   :param path: The location to cache the data
+   :type path: os.PathLike
+   :param name: The name to give to the file
+   :type name: str
+   :param cache_type: The type of file to export.
+                      Currently, only Parquet is supported,
+                      will support Arrow/Feather/IPC soon.
+   :type cache_type: str
+
+   :returns: The filepath to the cached file
+   :rtype: os.PathLike
 
 
 .. py:function:: safe_range_auc(auc: float) -> float

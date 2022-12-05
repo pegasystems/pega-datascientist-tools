@@ -2,7 +2,7 @@ import base64
 import copy
 import json
 import logging
-import re
+import os
 import zlib
 from datetime import timedelta
 from typing import Dict, NoReturn, Optional, Tuple, Union
@@ -571,6 +571,32 @@ class ADMDatamart(Plots):
         )
         combined = models.merge(preds, on="ModelID", how="inner", suffixes=("", "Bin"))
         return combined
+
+    def save_data(self, path:str = ".") -> Tuple[os.PathLike, os.PathLike]:
+        """Cache modelData and predictorData to files.
+        
+        Parameters
+        ----------
+        path : str
+            Where to place the files
+        
+        Returns
+        -------
+        (os.PathLike, os.PathLike):
+            The paths to the model and predictor data files
+        """
+        from datetime import datetime
+
+        time = cdh_utils.toPRPCDateTime(datetime.now())
+        if self.modelData is not None:
+            modeldata_cache = cdh_utils.cache_to_file(
+                self.modelData, path, name=f"cached_modelData_{time}"
+            )
+        if self.predictorData is not None:
+            predictordata_cache = cdh_utils.cache_to_file(
+                self.predictorData, path, name=f"cached_predictorData_{time}"
+            )
+        return modeldata_cache, predictordata_cache
 
     @staticmethod
     def fix_pdc(df: pd.DataFrame) -> pd.DataFrame:

@@ -266,6 +266,17 @@ Classes
       :rtype: pd.DataFrame
 
 
+   .. py:method:: save_data(path: str = '.') -> tuple[os.PathLike, os.PathLike]
+
+      Cache modelData and predictorData to files.
+
+      :param path: Where to place the files
+      :type path: str
+
+      :returns: The paths to the model and predictor data files
+      :rtype: (os.PathLike, os.PathLike)
+
+
    .. py:method:: fix_pdc(df: pandas.DataFrame) -> pandas.DataFrame
       :staticmethod:
 
@@ -490,6 +501,17 @@ Classes
    :keyword subset: Whether to select only a subset of columns.
                     Will speed up analysis and reduce unused information
    :kwtype subset: bool
+
+   .. py:method:: save_data(path: str = '.') -> os.PathLike
+
+      Cache the ValueFinder dataset to a file
+
+      :param path: Where to place the file
+      :type path: str
+
+      :returns: The paths to the file
+      :rtype: PathLike
+
 
    .. py:method:: getCustomerSummary(th: Optional[float] = None, verbose: bool = True) -> polars.DataFrame
 
