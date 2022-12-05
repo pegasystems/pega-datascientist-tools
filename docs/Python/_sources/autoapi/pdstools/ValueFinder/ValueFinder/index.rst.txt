@@ -42,6 +42,17 @@ Classes
                     Will speed up analysis and reduce unused information
    :kwtype subset: bool
 
+   .. py:method:: save_data(path: str = '.') -> os.PathLike
+
+      Cache the ValueFinder dataset to a file
+
+      :param path: Where to place the file
+      :type path: str
+
+      :returns: The paths to the file
+      :rtype: PathLike
+
+
    .. py:method:: getCustomerSummary(th: Optional[float] = None, verbose: bool = True) -> polars.DataFrame
 
       Computes the summary of propensities for all customers

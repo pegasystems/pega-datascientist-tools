@@ -541,6 +541,23 @@ One of {modelData, predictorData, combinedData}</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMDatamart.ADMDatamart.save_data">
+<span class="sig-name descname"><span class="pre">save_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'.'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">os.PathLike</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">os.PathLike</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.adm.ADMDatamart.ADMDatamart.save_data" title="Permalink to this definition">#</a></dt>
+<dd><p>Cache modelData and predictorData to files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> (<em>str</em>) – Where to place the files</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The paths to the model and predictor data files</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(os.PathLike, os.PathLike)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="pdstools.adm.ADMDatamart.ADMDatamart.fix_pdc">
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fix_pdc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="headerlink" href="#pdstools.adm.ADMDatamart.ADMDatamart.fix_pdc" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
@@ -787,6 +804,7 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 <li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart.last"><code class="docutils literal notranslate"><span class="pre">ADMDatamart.last()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart._last"><code class="docutils literal notranslate"><span class="pre">ADMDatamart._last()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart.get_combined_data"><code class="docutils literal notranslate"><span class="pre">ADMDatamart.get_combined_data()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart.save_data"><code class="docutils literal notranslate"><span class="pre">ADMDatamart.save_data()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart.fix_pdc"><code class="docutils literal notranslate"><span class="pre">ADMDatamart.fix_pdc()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart.defaultPredictorCategorization"><code class="docutils literal notranslate"><span class="pre">ADMDatamart.defaultPredictorCategorization()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart._apply_query"><code class="docutils literal notranslate"><span class="pre">ADMDatamart._apply_query()</span></code></a></li>
@@ -818,6 +836,7 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 <li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart.last">last</a></li>
 <li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart._last">_last</a></li>
 <li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart.get_combined_data">get_combined_data</a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart.save_data">save_data</a></li>
 <li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart.fix_pdc">fix_pdc</a></li>
 <li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart.defaultPredictorCategorization">defaultPredictorCategorization</a></li>
 <li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart._apply_query">_apply_query</a></li>
