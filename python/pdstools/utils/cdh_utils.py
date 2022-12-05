@@ -586,7 +586,7 @@ def toPRPCDateTime(x: datetime.datetime) -> str:
         >>> toPRPCDateTime(datetime.datetime.now())
     """
 
-    return x.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+    return x.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
 
 
 def readClientCredentialFile(credentialFile):
