@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Dict
 import pandas as pd
 import streamlit as st
-from pdstools import ADMDatamart, datasets
+from ..adm import ADMDatamart, datasets
 
 
 def import_data(params, default=1):

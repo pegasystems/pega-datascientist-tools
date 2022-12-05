@@ -12,7 +12,7 @@ def main():
 def run(*args):
     from streamlit.web import cli as stcli
     import sys
-    from pdstools.healthcheck import streamlit_app
+    from . import streamlit_app
     print('Running app.')
     print(args)
     filename = streamlit_app.__file__

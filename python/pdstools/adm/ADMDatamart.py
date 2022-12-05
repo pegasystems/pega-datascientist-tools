@@ -11,11 +11,11 @@ from io import BytesIO
 import numpy as np
 import pandas as pd
 
-from . import cdh_utils
+from ..utils import cdh_utils
 from .ADMTrees import ADMTrees, ADMTreesModel, MultiTrees
-from .plot_base import Plots
-from .plots_mpl import ADMVisualisations as mpl_plot
-from .plots_plotly import ADMVisualisations as plotly_plot
+from ..plots.plot_base import Plots
+from ..plots.plots_mpl import ADMVisualisations as mpl_plot
+from ..plots.plots_plotly import ADMVisualisations as plotly_plot
 
 
 class ADMDatamart(Plots):

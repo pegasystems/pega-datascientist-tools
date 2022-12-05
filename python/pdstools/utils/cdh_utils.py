@@ -133,7 +133,7 @@ def import_file(file, extension, **kwargs):
         from pyarrow import parquet
         file = parquet.read_table(file)
     else:
-        raise ValueError("Could not import file: {file}, with extension {extension}")
+        raise ValueError(f"Could not import file: {file}, with extension {extension}")
 
     if not kwargs.pop("return_pa", False) and isinstance(file, pyarrow.Table):
         return file.to_pandas()

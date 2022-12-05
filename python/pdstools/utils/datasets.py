@@ -1,6 +1,6 @@
-from .ADMDatamart import ADMDatamart
-from .ADMTrees import ADMTrees
-from .ValueFinder import ValueFinder
+from ..adm.ADMDatamart import ADMDatamart
+from ..adm.ADMTrees import ADMTrees
+from ..valuefinder.ValueFinder import ValueFinder
 
 
 def CDHSample(plotting_engine="plotly", query=None):
