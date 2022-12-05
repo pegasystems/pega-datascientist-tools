@@ -572,7 +572,7 @@ class ADMDatamart(Plots):
         combined = models.merge(preds, on="ModelID", how="inner", suffixes=("", "Bin"))
         return combined
 
-    def save_data(self, path:str = ".") -> tuple[os.PathLike, os.PathLike]:
+    def save_data(self, path:str = ".") -> Tuple[os.PathLike, os.PathLike]:
         """Cache modelData and predictorData to files.
         
         Parameters
