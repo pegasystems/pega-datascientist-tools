@@ -272,6 +272,34 @@ def getMatches(files_dir, target):
             matches.append(match[0])
     return matches
 
+def cache_to_file(df: pd.DataFrame, path:os.PathLike, name:str, cache_type='parquet') -> os.PathLike:
+    """Very simple convenience function to cache data.
+    Caches in parquet format for very fast reading.
+    
+    Parameters
+    ----------
+    df: pd.DataFrame
+        The dataframe to cache
+    path: os.PathLike
+        The location to cache the data
+    name: str
+        The name to give to the file
+    cache_type: str
+        The type of file to export. 
+        Currently, only Parquet is supported, 
+        will support Arrow/Feather/IPC soon.
+    
+    Returns
+    -------
+    os.PathLike:
+        The filepath to the cached file
+    """
+    outpath = f"{path}/{name}"
+    if cache_type == 'parquet':
+        outpath = f"{outpath}.parquet"
+        df.to_parquet(outpath)
+    return outpath
+        
 
 def safe_range_auc(auc: float) -> float:
     """Internal helper to keep auc a safe number between 0.5 and 1.0 always.
