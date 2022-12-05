@@ -11,6 +11,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from typing import Optional, Union
 from ..utils import cdh_utils
+from os import PathLike
 
 
 class ValueFinder:
@@ -104,6 +105,25 @@ class ValueFinder:
         self.maxPropPerCustomer = self.df.groupby(["CustomerID", "pyStage"]).agg(
             pl.max("pyModelPropensity").alias("MaxModelPropensity")
         )
+
+    def save_data(self, path: str = ".") -> PathLike:
+        """Cache the ValueFinder dataset to a file
+
+        Parameters
+        ----------
+        path : str
+            Where to place the file
+
+        Returns
+        -------
+        PathLike:
+            The paths to the file
+        """
+        from datetime import datetime
+
+        time = cdh_utils.toPRPCDateTime(datetime.now())
+        out = cdh_utils.cache_to_file(self.df, path, name=f"cached_ValueFinder_{time}")
+        return out
 
     def getCustomerSummary(
         self, th: Optional[float] = None, verbose: bool = True
