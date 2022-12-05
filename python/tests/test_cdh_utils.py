@@ -217,7 +217,7 @@ def test_toPRPCDateTime():
         cdh_utils.toPRPCDateTime(
             datetime.datetime(2018, 3, 16, 13, 41, 27, 847, tzinfo=timezone("GMT"))
         )
-        == "2018-03-16 13:41:27.000"
+        == "2018-03-16T13:41:27.000"
     )
 
 
