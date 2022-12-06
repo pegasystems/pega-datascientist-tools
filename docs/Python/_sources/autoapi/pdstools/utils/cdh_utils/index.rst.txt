@@ -27,6 +27,7 @@ Functions
    pdstools.utils.cdh_utils.get_latest_file
    pdstools.utils.cdh_utils.getMatches
    pdstools.utils.cdh_utils.cache_to_file
+   pdstools.utils.cdh_utils.defaultPredictorCategorization
    pdstools.utils.cdh_utils.safe_range_auc
    pdstools.utils.cdh_utils.auc_from_probs
    pdstools.utils.cdh_utils.auc_from_bincounts
@@ -132,6 +133,9 @@ Functions
 
    :returns: The filepath to the cached file
    :rtype: os.PathLike
+
+
+.. py:function:: defaultPredictorCategorization(x: str) -> str
 
 
 .. py:function:: safe_range_auc(auc: float) -> float

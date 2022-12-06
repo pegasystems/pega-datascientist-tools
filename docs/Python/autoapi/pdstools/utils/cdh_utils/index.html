@@ -286,37 +286,40 @@ of data analysis, reporting and monitoring.</p>
 <tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.cache_to_file" title="pdstools.utils.cdh_utils.cache_to_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cache_to_file</span></code></a>(→ os.PathLike)</p></td>
 <td><p>Very simple convenience function to cache data.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.safe_range_auc" title="pdstools.utils.cdh_utils.safe_range_auc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">safe_range_auc</span></code></a>(→ float)</p></td>
-<td><p>Internal helper to keep auc a safe number between 0.5 and 1.0 always.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.auc_from_probs" title="pdstools.utils.cdh_utils.auc_from_probs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auc_from_probs</span></code></a>(→ List[float])</p></td>
-<td><p>Calculates AUC from an array of truth values and predictions.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.auc_from_bincounts" title="pdstools.utils.cdh_utils.auc_from_bincounts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auc_from_bincounts</span></code></a>(→ float)</p></td>
-<td><p>Calculates AUC from counts of positives and negatives directly</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.aucpr_from_probs" title="pdstools.utils.cdh_utils.aucpr_from_probs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">aucpr_from_probs</span></code></a>(→ List[float])</p></td>
-<td><p>Calculates PR AUC (precision-recall) from an array of truth values and predictions.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.aucpr_from_bincounts" title="pdstools.utils.cdh_utils.aucpr_from_bincounts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">aucpr_from_bincounts</span></code></a>(→ float)</p></td>
-<td><p>Calculates PR AUC (precision-recall) from counts of positives and negatives directly.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.auc2GINI" title="pdstools.utils.cdh_utils.auc2GINI"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auc2GINI</span></code></a>(→ float)</p></td>
-<td><p>Convert AUC performance metric to GINI</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils._capitalize" title="pdstools.utils.cdh_utils._capitalize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_capitalize</span></code></a>(→ list)</p></td>
-<td><p>Applies automatic capitalization, aligned with the R couterpart.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.fromPRPCDateTime" title="pdstools.utils.cdh_utils.fromPRPCDateTime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fromPRPCDateTime</span></code></a>(→ Union[datetime.datetime, str])</p></td>
-<td><p>Convert from a Pega date-time string.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.toPRPCDateTime" title="pdstools.utils.cdh_utils.toPRPCDateTime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">toPRPCDateTime</span></code></a>(→ str)</p></td>
-<td><p>Convert to a Pega date-time string</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.readClientCredentialFile" title="pdstools.utils.cdh_utils.readClientCredentialFile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readClientCredentialFile</span></code></a>(credentialFile)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.defaultPredictorCategorization" title="pdstools.utils.cdh_utils.defaultPredictorCategorization"><code class="xref py py-obj docutils literal notranslate"><span class="pre">defaultPredictorCategorization</span></code></a>(→ str)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.getToken" title="pdstools.utils.cdh_utils.getToken"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getToken</span></code></a>(credentialFile[, verify])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.safe_range_auc" title="pdstools.utils.cdh_utils.safe_range_auc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">safe_range_auc</span></code></a>(→ float)</p></td>
+<td><p>Internal helper to keep auc a safe number between 0.5 and 1.0 always.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.auc_from_probs" title="pdstools.utils.cdh_utils.auc_from_probs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auc_from_probs</span></code></a>(→ List[float])</p></td>
+<td><p>Calculates AUC from an array of truth values and predictions.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.auc_from_bincounts" title="pdstools.utils.cdh_utils.auc_from_bincounts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auc_from_bincounts</span></code></a>(→ float)</p></td>
+<td><p>Calculates AUC from counts of positives and negatives directly</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.aucpr_from_probs" title="pdstools.utils.cdh_utils.aucpr_from_probs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">aucpr_from_probs</span></code></a>(→ List[float])</p></td>
+<td><p>Calculates PR AUC (precision-recall) from an array of truth values and predictions.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.aucpr_from_bincounts" title="pdstools.utils.cdh_utils.aucpr_from_bincounts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">aucpr_from_bincounts</span></code></a>(→ float)</p></td>
+<td><p>Calculates PR AUC (precision-recall) from counts of positives and negatives directly.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.auc2GINI" title="pdstools.utils.cdh_utils.auc2GINI"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auc2GINI</span></code></a>(→ float)</p></td>
+<td><p>Convert AUC performance metric to GINI</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils._capitalize" title="pdstools.utils.cdh_utils._capitalize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_capitalize</span></code></a>(→ list)</p></td>
+<td><p>Applies automatic capitalization, aligned with the R couterpart.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.fromPRPCDateTime" title="pdstools.utils.cdh_utils.fromPRPCDateTime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fromPRPCDateTime</span></code></a>(→ Union[datetime.datetime, str])</p></td>
+<td><p>Convert from a Pega date-time string.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.toPRPCDateTime" title="pdstools.utils.cdh_utils.toPRPCDateTime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">toPRPCDateTime</span></code></a>(→ str)</p></td>
+<td><p>Convert to a Pega date-time string</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.readClientCredentialFile" title="pdstools.utils.cdh_utils.readClientCredentialFile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readClientCredentialFile</span></code></a>(credentialFile)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.getToken" title="pdstools.utils.cdh_utils.getToken"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getToken</span></code></a>(credentialFile[, verify])</p></td>
 <td><p></p></td>
 </tr>
 </tbody>
@@ -444,6 +447,11 @@ will support Arrow/Feather/IPC soon.</p></li>
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.defaultPredictorCategorization">
+<span class="sig-prename descclassname"><span class="pre">pdstools.utils.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">defaultPredictorCategorization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.defaultPredictorCategorization" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.utils.cdh_utils.safe_range_auc">
@@ -702,6 +710,7 @@ False it will return in datetime type</p></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.get_latest_file"><code class="docutils literal notranslate"><span class="pre">get_latest_file()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.getMatches"><code class="docutils literal notranslate"><span class="pre">getMatches()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.cache_to_file"><code class="docutils literal notranslate"><span class="pre">cache_to_file()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.defaultPredictorCategorization"><code class="docutils literal notranslate"><span class="pre">defaultPredictorCategorization()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.safe_range_auc"><code class="docutils literal notranslate"><span class="pre">safe_range_auc()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.auc_from_probs"><code class="docutils literal notranslate"><span class="pre">auc_from_probs()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.auc_from_bincounts"><code class="docutils literal notranslate"><span class="pre">auc_from_bincounts()</span></code></a></li>
@@ -719,6 +728,7 @@ False it will return in datetime type</p></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.get_latest_file">get_latest_file</a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.getMatches">getMatches</a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.cache_to_file">cache_to_file</a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.defaultPredictorCategorization">defaultPredictorCategorization</a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.safe_range_auc">safe_range_auc</a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.auc_from_probs">auc_from_probs</a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.auc_from_bincounts">auc_from_bincounts</a></li>

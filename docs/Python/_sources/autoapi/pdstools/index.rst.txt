@@ -266,7 +266,7 @@ Classes
       :rtype: pd.DataFrame
 
 
-   .. py:method:: save_data(path: str = '.') -> tuple[os.PathLike, os.PathLike]
+   .. py:method:: save_data(path: str = '.') -> Tuple[os.PathLike, os.PathLike]
 
       Cache modelData and predictorData to files.
 
@@ -278,10 +278,6 @@ Classes
 
 
    .. py:method:: fix_pdc(df: pandas.DataFrame) -> pandas.DataFrame
-      :staticmethod:
-
-
-   .. py:method:: defaultPredictorCategorization(x: str) -> str
       :staticmethod:
 
 
