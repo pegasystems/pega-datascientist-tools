@@ -230,3 +230,7 @@ def test_capitalize_behavior():
     assert cdh_utils._capitalize(["responsenumber"]) == ["Responsenumber"]
     assert cdh_utils._capitalize(["Response Count"]) == ["Response Count"]
     assert cdh_utils._capitalize(["Response_count1"]) == ["Response_Count1"]
+
+def test_PredictorCategorization():
+    assert cdh_utils.defaultPredictorCategorization("Customer.Variable") == "Customer"
+    assert cdh_utils.defaultPredictorCategorization("Variable") == "Primary"

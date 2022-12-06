@@ -374,7 +374,3 @@ def test_describe_models_without_models():
 def test_model_summary(test):
     assert test.model_summary().shape == (3, 15)
 
-
-def test_PredictorCategorization(test):
-    assert test.defaultPredictorCategorization("Customer.Variable") == "Customer"
-    assert test.defaultPredictorCategorization("Variable") == "Primary"
