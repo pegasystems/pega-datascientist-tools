@@ -2,6 +2,7 @@ from typing import Optional, Union, Dict
 import pandas as pd
 from .plots_mpl import ADMVisualisations as mpl
 from .plots_plotly import ADMVisualisations as plotly
+from ..utils.cdh_utils import defaultPredictorCategorization
 import matplotlib.pyplot as plt
 import plotly.graph_objs as go
 
@@ -732,7 +733,7 @@ class Plots:
             .index
         )
         categorization = kwargs.pop(
-            "categorization", self.defaultPredictorCategorization
+            "categorization", defaultPredictorCategorization
         )
         df.loc[:, "Legend"] = df.PredictorName.apply(categorization)
 
