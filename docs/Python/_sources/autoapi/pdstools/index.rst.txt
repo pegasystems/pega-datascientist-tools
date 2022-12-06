@@ -10,25 +10,12 @@ Subpackages
    :titlesonly:
    :maxdepth: 3
 
-   healthcheck/index.rst
-
-
-Submodules
-----------
-.. toctree::
-   :titlesonly:
-   :maxdepth: 1
-
-   ADMDatamart/index.rst
-   ADMTrees/index.rst
-   IHanalysis/index.rst
-   ValueFinder/index.rst
-   cdh_utils/index.rst
-   datasets/index.rst
-   pds_app/index.rst
-   plot_base/index.rst
-   plots_mpl/index.rst
-   plots_plotly/index.rst
+   adm/index.rst
+   app/index.rst
+   ih/index.rst
+   plots/index.rst
+   utils/index.rst
+   valuefinder/index.rst
 
 
 Package Contents
@@ -46,19 +33,10 @@ Classes
 
 
 
-Functions
-~~~~~~~~~
-
-.. autoapisummary::
-
-   pdstools.readDSExport
-   pdstools.CDHSample
-
-
 
 .. py:class:: ADMDatamart(path: str = '.', overwrite_mapping: Optional[dict] = None, query: Union[str, Dict[str, list]] = None, plotting_engine='plotly', **kwargs)
 
-   Bases: :py:obj:`pdstools.plot_base.Plots`
+   Bases: :py:obj:`pdstools.plots.plot_base.Plots`
 
    Main class for importing, preprocessing and structuring Pega ADM Datamart snapshot data.
    Gets all available data, properly names and merges into one main dataframe
@@ -288,11 +266,18 @@ Functions
       :rtype: pd.DataFrame
 
 
+   .. py:method:: save_data(path: str = '.') -> Tuple[os.PathLike, os.PathLike]
+
+      Cache modelData and predictorData to files.
+
+      :param path: Where to place the files
+      :type path: str
+
+      :returns: The paths to the model and predictor data files
+      :rtype: (os.PathLike, os.PathLike)
+
+
    .. py:method:: fix_pdc(df: pandas.DataFrame) -> pandas.DataFrame
-      :staticmethod:
-
-
-   .. py:method:: defaultPredictorCategorization(x: str) -> str
       :staticmethod:
 
 
@@ -437,40 +422,6 @@ Functions
 
 
 
-.. py:function:: readDSExport(filename: Union[pandas.DataFrame, str], path: str = '.', verbose: bool = True, **kwargs) -> pandas.DataFrame
-
-   Read a Pega dataset export file.
-   Can accept either a Pandas DataFrame or one of the following formats:
-   - .csv
-   - .json
-   - .zip (zipped json or CSV)
-
-   It automatically infers the default file names for both model data as well as predictor data.
-   If you supply either 'modelData' or 'predictorData' as the 'file' argument, it will search for them.
-   If you supply the full name of the file in the 'path' directory, it will import that instead.
-
-   :param filename: Either a Pandas DataFrame with the source data (for compatibility),
-                    or a string, in which case it can either be:
-                    - The name of the file (if a custom name) or
-                    - Whether we want to look for 'modelData' or 'predictorData' in the path folder.
-   :type filename: [pd.DataFrame, str]
-   :param path: The location of the file
-   :type path: str, default = '.'
-   :param verbose: Whether to print out which file will be imported
-   :type verbose: bool, default = True
-   :param Keyword arguments: Any arguments to plug into the read csv or json function, from either PyArrow or Pandas.
-
-   :returns: * *pd.DataFrame* -- The read data from the given file
-             * *Examples* -- >>> df = readDSExport(filename = 'modelData', path = './datamart')
-               >>> df = readDSExport(filename = 'ModelSnapshot.json', path = 'data/ADMData')
-
-               >>> df = pd.read_csv('file.csv')
-               >>> df = readDSExport(filename = df)
-
-
-.. py:function:: CDHSample(plotting_engine='plotly', query=None)
-
-
 .. py:class:: ADMTrees
 
    .. py:method:: getMultiTrees(file: pandas.DataFrame, n_threads=6, verbose=True, **kwargs)
@@ -543,6 +494,20 @@ Functions
 
    :keyword filename: The name, or extended filepath, towards the file
    :kwtype filename: Optional[str]
+   :keyword subset: Whether to select only a subset of columns.
+                    Will speed up analysis and reduce unused information
+   :kwtype subset: bool
+
+   .. py:method:: save_data(path: str = '.') -> os.PathLike
+
+      Cache the ValueFinder dataset to a file
+
+      :param path: Where to place the file
+      :type path: str
+
+      :returns: The paths to the file
+      :rtype: PathLike
+
 
    .. py:method:: getCustomerSummary(th: Optional[float] = None, verbose: bool = True) -> polars.DataFrame
 
@@ -601,7 +566,7 @@ Functions
       :type sampledN: int, default = 10_000
 
 
-   .. py:method:: plotPropensityThreshold(sampledN=10000) -> plotly.graph_objects.Figure
+   .. py:method:: plotPropensityThreshold(sampledN=10000, stage='Eligibility') -> plotly.graph_objects.Figure
 
       Plots the propensity threshold vs the different propensities.
 

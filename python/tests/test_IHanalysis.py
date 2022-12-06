@@ -2,8 +2,8 @@ import sys
 import pytest
 
 sys.path.append("python")
-from pdstools.IHanalysis import *
-from pdstools.cdh_utils import readDSExport
+from pdstools.ih.IHanalysis import *
+from pdstools.utils.cdh_utils import readDSExport
 
 import matplotlib.pyplot as plt
 

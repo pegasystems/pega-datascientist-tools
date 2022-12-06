@@ -1,0 +1,101 @@
+:py:mod:`pdstools.app.datamart_utils`
+=====================================
+
+.. py:module:: pdstools.app.datamart_utils
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   pdstools.app.datamart_utils.Filters
+
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   pdstools.app.datamart_utils.import_data
+   pdstools.app.datamart_utils.import_datamart
+   pdstools.app.datamart_utils.ADMDatamart_options
+   pdstools.app.datamart_utils.generate_modeldata_filters
+
+
+
+.. py:function:: import_data(params, default=1)
+
+
+.. py:function:: import_datamart(fun, *args, **kwargs)
+
+
+.. py:function:: ADMDatamart_options()
+
+
+.. py:function:: generate_modeldata_filters(df, params)
+
+
+.. py:class:: Filters
+
+   .. py:attribute:: params
+      :annotation: :Dict
+
+      
+
+   .. py:attribute:: df
+      :annotation: :pandas.DataFrame
+
+      
+
+   .. py:attribute:: categoricals
+      
+
+      
+
+   .. py:attribute:: numericals
+      
+
+      
+
+   .. py:attribute:: dateFields
+      
+
+      
+
+   .. py:attribute:: pandasquery
+      :annotation: = 
+
+      
+
+   .. py:method:: __post_init__()
+
+
+   .. py:method:: add_filter(key)
+
+
+   .. py:method:: CategoryFilter(key)
+
+
+   .. py:method:: ValueFilter(key)
+
+
+   .. py:method:: DateFilter()
+
+
+   .. py:method:: CustomFilter()
+      :abstractmethod:
+
+      Custom query
+      You can also supply a custom query.
+      This query should be formatted according to Pandas' `query` functionality.
+
+
+   .. py:method:: generatePandasFilters()
+
+
+

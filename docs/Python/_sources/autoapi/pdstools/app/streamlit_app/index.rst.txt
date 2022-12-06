@@ -1,0 +1,26 @@
+:py:mod:`pdstools.app.streamlit_app`
+====================================
+
+.. py:module:: pdstools.app.streamlit_app
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   pdstools.app.streamlit_app.run
+   pdstools.app.streamlit_app.add_params
+
+
+
+.. py:function:: run()
+
+
+.. py:function:: add_params(paramfile, params)
+
+

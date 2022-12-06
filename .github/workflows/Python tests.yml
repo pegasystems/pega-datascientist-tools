@@ -13,7 +13,9 @@ on:
       - master
     paths:
       - python/**
-  pull_request: null
+  pull_request: 
+    paths:
+      - python/**
 
 jobs:
   Python_tests:

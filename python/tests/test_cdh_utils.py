@@ -217,7 +217,7 @@ def test_toPRPCDateTime():
         cdh_utils.toPRPCDateTime(
             datetime.datetime(2018, 3, 16, 13, 41, 27, 847, tzinfo=timezone("GMT"))
         )
-        == "2018-03-16 13:41:27.000"
+        == "2018-03-16T13:41:27.000"
     )
 
 
@@ -230,3 +230,7 @@ def test_capitalize_behavior():
     assert cdh_utils._capitalize(["responsenumber"]) == ["Responsenumber"]
     assert cdh_utils._capitalize(["Response Count"]) == ["Response Count"]
     assert cdh_utils._capitalize(["Response_count1"]) == ["Response_Count1"]
+
+def test_PredictorCategorization():
+    assert cdh_utils.defaultPredictorCategorization("Customer.Variable") == "Customer"
+    assert cdh_utils.defaultPredictorCategorization("Variable") == "Primary"

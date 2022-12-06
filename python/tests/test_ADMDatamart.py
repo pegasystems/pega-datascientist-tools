@@ -6,6 +6,8 @@ from numpy import NaN
 import pandas as pd
 from pandas.api.types import is_datetime64_any_dtype as is_datetime
 
+import pathlib
+pathlib.Path(__file__).parent.parent
 sys.path.append("python")
 from pdstools import ADMDatamart, cdh_utils
 
@@ -372,7 +374,3 @@ def test_describe_models_without_models():
 def test_model_summary(test):
     assert test.model_summary().shape == (3, 15)
 
-
-def test_PredictorCategorization(test):
-    assert test.defaultPredictorCategorization("Customer.Variable") == "Customer"
-    assert test.defaultPredictorCategorization("Variable") == "Primary"
