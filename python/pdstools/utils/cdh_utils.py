@@ -309,6 +309,10 @@ def cache_to_file(
     return outpath
 
 
+def defaultPredictorCategorization(x: str) -> str:
+    return x.split(".")[0] if len(x.split(".")) > 1 else "Primary"
+
+
 def safe_range_auc(auc: float) -> float:
     """Internal helper to keep auc a safe number between 0.5 and 1.0 always.
 

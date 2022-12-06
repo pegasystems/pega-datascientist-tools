@@ -572,14 +572,14 @@ class ADMDatamart(Plots):
         combined = models.merge(preds, on="ModelID", how="inner", suffixes=("", "Bin"))
         return combined
 
-    def save_data(self, path:str = ".") -> Tuple[os.PathLike, os.PathLike]:
+    def save_data(self, path: str = ".") -> Tuple[os.PathLike, os.PathLike]:
         """Cache modelData and predictorData to files.
-        
+
         Parameters
         ----------
         path : str
             Where to place the files
-        
+
         Returns
         -------
         (os.PathLike, os.PathLike):
@@ -614,10 +614,6 @@ class ADMDatamart(Plots):
             inplace=True,
         )
         return df.reset_index(drop=True)
-
-    @staticmethod
-    def defaultPredictorCategorization(x: str) -> str:
-        return x.split(".")[0] if len(x.split(".")) > 1 else "Primary"
 
     @staticmethod
     def _apply_query(df, query: Union[str, dict] = None) -> pd.DataFrame:
