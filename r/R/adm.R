@@ -256,7 +256,7 @@ defaultPredictorCategorization <- function(p, topLevelLabel = "TopLevel")
   return (ifelse(hasDot, gsub("^([^.]*)\\..*$", "\\1", p), rep(topLevelLabel, length(p))))
 }
 
-# Read CSV, JSON or parquet file from source
+# Read CSV, JSON, parquet or feather file from source
 # TODO: consider reading only specific columns, or dropping specific ones
 readFromSource <- function(file, folder, tmpFolder, verbose)
 {
@@ -282,6 +282,10 @@ readFromSource <- function(file, folder, tmpFolder, verbose)
 
     if (endsWith(file, ".parquet")) {
       return(as.data.table(arrow::read_parquet(fullfile)))
+    }
+
+    if (endsWith(file, ".feather")) {
+      return(as.data.table(arrow::read_feather(fullfile)))
     }
 
     stop("Unsupported file type: ", fullfile)
