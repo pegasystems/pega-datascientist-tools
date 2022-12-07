@@ -80,14 +80,11 @@ class ValueFinder:
             if verbose:
                 print(f"Data import took {round(time.time() - start,2)} seconds")
 
-        if isinstance(self.df, pd.DataFrame):
-            if kwargs.get("subset", True):
-                self.df = self.df[keep_cols]
-
         if verbose:
             print("Transforming to polars...", end=" ")
         start = time.time()
-        self.df = pl.DataFrame(self.df)
+        if not isinstance(self.df, pl.DataFrame):
+            self.df = pl.DataFrame(self.df)
         if kwargs.get("subset", True):
             self.df = self.df.select(keep_cols)
         if verbose:
