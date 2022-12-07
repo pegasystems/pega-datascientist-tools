@@ -17,7 +17,7 @@
 #' @import data.table jsonlite ggplot2 stats
 #' @importFrom rlang is_list
 #' @importFrom utils zip head
-#' @importFrom arrow read_parquet
+#' @importFrom arrow read_parquet read_feather
 #' @importFrom DBI dbGetQuery
 #' @importFrom scales percent muted
 #' @importFrom base64enc base64decode
