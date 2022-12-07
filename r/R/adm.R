@@ -288,6 +288,11 @@ readFromSource <- function(file, folder, tmpFolder, verbose)
       return(as.data.table(arrow::read_feather(fullfile)))
     }
 
+    # Apache arrow recommend the ".arrow" extension for Arrow IPC files (Feather V2).
+    if (endsWith(file, ".arrow")) {
+      return(as.data.table(arrow::read_feather(fullfile)))
+    }
+
     stop("Unsupported file type: ", fullfile)
   }
 
