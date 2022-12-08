@@ -356,7 +356,7 @@ def test_init_both(cdhsample_models, cdhsample_predictors):
     assert output.modelData.shape == (20, 11)
     assert output.predictorData is not None
     assert output.predictorData.shape == (1755, 16)
-    assert output.combinedData.shape == (1648, 29)
+    assert output.combinedData.shape == (1648, 26)
     assert output.context_keys == ["Channel", "Direction", "Issue", "Group"]
 
 
