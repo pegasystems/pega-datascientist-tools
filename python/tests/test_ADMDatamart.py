@@ -273,7 +273,7 @@ def test_import_predictors_only(test, cdhsample_predictors):
     assert cdhsample_predictors.shape == (1755, 35)
     models, preds = test.import_data(predictor_df=deepcopy(cdhsample_predictors), model_filename=None)
     assert models == None
-    assert preds.shape == (1755, 19)
+    assert preds.shape == (1755, 16)
 
     assert "BinResponseCount" in preds.columns
     assert "BinPropensity" in preds.columns
@@ -286,7 +286,7 @@ def test_import_both(test, cdhsample_models, cdhsample_predictors):
     )
     assert models is not None
     assert preds is not None
-    assert preds.shape == (1755, 19)
+    assert preds.shape == (1755, 16)
     assert models.shape == (20, 11)
 
     assert "SuccessRate" in models.columns
@@ -300,7 +300,7 @@ def test_import_both_from_file_autodiscovered(test):
     models, preds = test.import_data(path="data")
     assert models is not None
     assert preds is not None
-    assert preds.shape == (70735, 19)
+    assert preds.shape == (70735, 16)
     assert models.shape == (1047, 12)
 
     assert "SuccessRate" in models.columns
@@ -319,7 +319,7 @@ def test_import_both_from_file_manual(test):
 
     assert models is not None
     assert preds is not None
-    assert preds.shape == (1755, 19)
+    assert preds.shape == (1755, 16)
     assert models.shape == (20, 11)
 
     assert "SuccessRate" in models.columns
@@ -331,7 +331,7 @@ def test_import_both_from_file_manual(test):
 
 def test_drop_BinResponseCount(test):
     models, preds = test.import_data(path="data", drop_cols=["BinResponseCount"])
-    assert preds.shape == (70735, 19)
+    assert preds.shape == (70735, 16)
 
 
 def test_init_models_only(cdhsample_models):
@@ -345,7 +345,7 @@ def test_init_models_only(cdhsample_models):
 def test_init_preds_only(cdhsample_predictors):
     output = ADMDatamart(model_filename=None, predictor_df=cdhsample_predictors)
     assert output.predictorData is not None
-    assert output.predictorData.shape == (1755, 19)
+    assert output.predictorData.shape == (1755, 16)
     assert not hasattr(output, "combinedData")
     assert output.context_keys == ["Channel", "Direction", "Issue", "Group"]
 
@@ -355,7 +355,7 @@ def test_init_both(cdhsample_models, cdhsample_predictors):
     assert output.modelData is not None
     assert output.modelData.shape == (20, 11)
     assert output.predictorData is not None
-    assert output.predictorData.shape == (1755, 19)
+    assert output.predictorData.shape == (1755, 16)
     assert output.combinedData.shape == (1648, 29)
     assert output.context_keys == ["Channel", "Direction", "Issue", "Group"]
 

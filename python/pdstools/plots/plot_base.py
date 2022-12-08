@@ -863,9 +863,6 @@ class Plots:
             "PredictorName",
             "ModelName",
             "PerformanceBin",
-            "BinPositivesPercentage",
-            "BinNegativesPercentage",
-            "BinResponseCountPercentage",
         }
         df = self._subset_data(table, required_columns, query, last=last).reset_index()
         df = (
