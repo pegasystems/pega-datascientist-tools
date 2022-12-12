@@ -485,7 +485,8 @@ class ADMDatamart(Plots):
 
         for col in {"Performance"} & set(df.columns):
             df[col] = df[col].astype(float)
-
+        if 'SnapshotTime' not in df.columns:
+            df['SnapshotTime'] = np.nan
         try:
             df["SnapshotTime"] = pd.to_datetime(df["SnapshotTime"])
         except Exception:
