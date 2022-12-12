@@ -8,3 +8,4 @@ ipywidgets
 pydot
 tqdm
 polars
+pyarrow
