@@ -2,7 +2,6 @@ from tqdm.auto import tqdm
 import time
 import numpy as np
 import pandas as pd
-import pyarrow
 import polars as pl
 import math
 import plotly.express as px
@@ -30,7 +29,7 @@ class ValueFinder:
         Path to the ValueFinder data files
     df : Optional[DataFrame]
         Override to supply a dataframe instead of a file.
-        Supports pandas or polars dataframes or pyarrow tables
+        Supports pandas or polars dataframes
     verbose : bool
         Whether to print out information during importing
 
@@ -46,7 +45,7 @@ class ValueFinder:
     def __init__(
         self,
         path: Optional[str] = None,
-        df: Optional[Union[pd.DataFrame, pl.DataFrame, pyarrow.Table]] = None,
+        df: Optional[Union[pd.DataFrame, pl.DataFrame]] = None,
         verbose: bool = True,
         **kwargs,
     ):
