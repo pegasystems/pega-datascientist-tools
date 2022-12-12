@@ -73,10 +73,8 @@ class ValueFinder:
             start = time.time()
             filename = kwargs.pop("filename", "ValueFinder")
             self.df = cdh_utils.readDSExport(
-                filename, path, return_pa=True, verbose=verbose
+                filename, path, return_pl=True, verbose=verbose
             )
-            if kwargs.get("subset", True):
-                self.df = self.df.select(keep_cols)
             if verbose:
                 print(f"Data import took {round(time.time() - start,2)} seconds")
 
