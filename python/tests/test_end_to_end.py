@@ -26,7 +26,7 @@ def test_end_to_end():
     }
     assert set(datamart.modelData.columns) == modelcols
 
-    assert datamart.predictorData.shape == (70735, 19)
+    assert datamart.predictorData.shape == (70735, 16)
     predcols = {
         "ModelID",
         "Positives",
@@ -42,21 +42,18 @@ def test_end_to_end():
         "BinNegatives",
         "BinResponseCount",
         "Type",
-        "BinPositivesPercentage",
-        "BinNegativesPercentage",
-        "BinResponseCountPercentage",
         "BinPropensity",
         "BinAdjustedPropensity",
     }
     assert set(datamart.predictorData.columns) == predcols
 
-    assert datamart.combinedData.shape == (4576, 30)
+    assert datamart.combinedData.shape == (4576, 27)
     assert set(datamart.combinedData.columns) == modelcols.union(predcols).union(
         {"PerformanceBin", "PositivesBin", "ResponseCountBin", "SnapshotTimeBin"}
     )
 
     assert datamart.last().shape == (70, 12)
-    assert datamart.last("predictorData").shape == (4576, 19)
+    assert datamart.last("predictorData").shape == (4576, 16)
 
     assert all(
         item == "object"
@@ -80,9 +77,6 @@ def test_end_to_end():
         "BinNegatives",
         "BinResponseCount",
         "Type",
-        "BinPositivesPercentage",
-        "BinNegativesPercentage",
-        "BinResponseCountPercentage",
     ]
 
     assert datamart.missing_preds == [
@@ -123,9 +117,6 @@ def test_end_to_end():
         "BinNegatives": "BinNegatives",
         "BinResponseCount": "BinResponseCount",
         "Type": "Type",
-        "BinPositivesPercentage": "BinPositivesPercentage",
-        "BinNegativesPercentage": "BinNegativesPercentage",
-        "BinResponseCountPercentage": "BinResponseCountPercentage",
     }
 
     assert type(datamart.plotPerformanceSuccessRateBubbleChart()) == Figure

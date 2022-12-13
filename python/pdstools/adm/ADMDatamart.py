@@ -423,9 +423,6 @@ class ADMDatamart(Plots):
             "BinNegatives": ["BinNegatives"],
             "BinResponseCount": ["BinResponseCount"],
             "Type": ["Type"],
-            "BinPositivesPercentage": ["BinPositivesPercentage"],
-            "BinNegativesPercentage": ["BinNegativesPercentage"],
-            "BinResponseCountPercentage": ["BinResponseCountPercentage"],
         }  # NOTE: these default names are already capitalized properly, with py/px/pz removed.
 
         if len(kwargs.get("include_cols", [])) > 0:
@@ -488,7 +485,8 @@ class ADMDatamart(Plots):
 
         for col in {"Performance"} & set(df.columns):
             df[col] = df[col].astype(float)
-
+        if 'SnapshotTime' not in df.columns:
+            df['SnapshotTime'] = np.nan
         try:
             df["SnapshotTime"] = pd.to_datetime(df["SnapshotTime"])
         except Exception:
@@ -870,6 +868,15 @@ class ADMDatamart(Plots):
     ) -> pd.DataFrame:
         def _ImpactInfluence(X):
             d = {}
+            X["BinResponseCountPercentage"] = (
+                X["BinResponseCount"] / X["BinResponseCount"].sum()
+            )
+            X["BinPositivesPercentage"] = X["BinPositives"] / X["BinPositives"].sum()
+            X["BinNegativesPercentage"] = X["BinNegatives"] / X["BinNegatives"].sum()
+            X["absIc"] = np.abs(
+                X["BinPositivesPercentage"] - X["BinNegativesPercentage"]
+            )
+            
             d["Impact(%)"] = X["absIc"].max()
             d["Influence(%)"] = (
                 X["BinResponseCountPercentage"] * X["absIc"] / 100
@@ -879,9 +886,7 @@ class ADMDatamart(Plots):
         df = df.query("PredictorName != 'Classifier'").reset_index(drop=True)
         if ModelID is not None:
             df = df.query("ModelID == @ModelID")
-        df["absIc"] = np.abs(
-            df["BinPositivesPercentage"] - df["BinNegativesPercentage"]
-        )
+
         mergelist = ["ModelID", "ModelName"] + context_keys
         df = (
             df.groupby(["ModelID", "PredictorName"])

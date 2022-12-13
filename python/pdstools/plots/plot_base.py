@@ -55,7 +55,7 @@ class Plots:
         return allplots
 
     @staticmethod
-    def top_n(df, top_n, to_plot='PerformanceBin'):
+    def top_n(df, top_n, to_plot="PerformanceBin"):
         if top_n > 0:
             topn = (
                 df.sort_values(to_plot, ascending=False)
@@ -660,7 +660,7 @@ class Plots:
         self,
         top_n: int = 0,
         active_only: bool = False,
-        to_plot = 'Performance',
+        to_plot="Performance",
         query: Union[str, dict] = None,
         facets: Optional[list] = None,
         **kwargs,
@@ -711,10 +711,11 @@ class Plots:
         plotting_engine = self.get_engine(
             kwargs.get("plotting_engine", self.plotting_engine)
         )()
-        if to_plot == 'Performance':
-            var_to_plot = 'PerformanceBin'
-        else: var_to_plot = to_plot
-        
+        if to_plot == "Performance":
+            var_to_plot = "PerformanceBin"
+        else:
+            var_to_plot = to_plot
+
         table = "combinedData"
         last = True
         required_columns = {"Channel", "PredictorName", var_to_plot, "Type"}
@@ -732,9 +733,7 @@ class Plots:
             .sort_values(ascending=asc)[::-1]
             .index
         )
-        categorization = kwargs.pop(
-            "categorization", defaultPredictorCategorization
-        )
+        categorization = kwargs.pop("categorization", defaultPredictorCategorization)
         df.loc[:, "Legend"] = df.PredictorName.apply(categorization)
 
         if kwargs.pop("return_df", False):
@@ -745,7 +744,7 @@ class Plots:
             order=order,
             facets=facets,
             query=query,
-            to_plot = to_plot,
+            to_plot=to_plot,
             **kwargs,
         )
 
@@ -863,9 +862,9 @@ class Plots:
             "PredictorName",
             "ModelName",
             "PerformanceBin",
-            "BinPositivesPercentage",
-            "BinNegativesPercentage",
-            "BinResponseCountPercentage",
+            "BinResponseCount",
+            "BinPositives",
+            "BinNegatives",
         }
         df = self._subset_data(table, required_columns, query, last=last).reset_index()
         df = (

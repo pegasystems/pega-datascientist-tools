@@ -2,7 +2,6 @@ from tqdm.auto import tqdm
 import time
 import numpy as np
 import pandas as pd
-import pyarrow
 import polars as pl
 import math
 import plotly.express as px
@@ -30,7 +29,7 @@ class ValueFinder:
         Path to the ValueFinder data files
     df : Optional[DataFrame]
         Override to supply a dataframe instead of a file.
-        Supports pandas or polars dataframes or pyarrow tables
+        Supports pandas or polars dataframes
     verbose : bool
         Whether to print out information during importing
 
@@ -46,7 +45,7 @@ class ValueFinder:
     def __init__(
         self,
         path: Optional[str] = None,
-        df: Optional[Union[pd.DataFrame, pl.DataFrame, pyarrow.Table]] = None,
+        df: Optional[Union[pd.DataFrame, pl.DataFrame]] = None,
         verbose: bool = True,
         **kwargs,
     ):
@@ -73,21 +72,16 @@ class ValueFinder:
             start = time.time()
             filename = kwargs.pop("filename", "ValueFinder")
             self.df = cdh_utils.readDSExport(
-                filename, path, return_pa=True, verbose=verbose
+                filename, path, return_pl=True, verbose=verbose
             )
-            if kwargs.get("subset", True):
-                self.df = self.df.select(keep_cols)
             if verbose:
                 print(f"Data import took {round(time.time() - start,2)} seconds")
-
-        if isinstance(self.df, pd.DataFrame):
-            if kwargs.get("subset", True):
-                self.df = self.df[keep_cols]
 
         if verbose:
             print("Transforming to polars...", end=" ")
         start = time.time()
-        self.df = pl.DataFrame(self.df)
+        if not isinstance(self.df, pl.DataFrame):
+            self.df = pl.DataFrame(self.df)
         if kwargs.get("subset", True):
             self.df = self.df.select(keep_cols)
         if verbose:

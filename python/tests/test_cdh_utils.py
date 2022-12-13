@@ -8,7 +8,7 @@ import numpy as np
 import urllib.request
 import datetime
 from pytz import timezone
-import pyarrow
+import polars as pl
 
 
 sys.path.append("python")
@@ -43,57 +43,55 @@ def test_only_imports_zips():
         )
 
 
-def test_import_produces_dataframe():
+def test_import_produces_polars():
     assert isinstance(
-        cdh_utils.readZippedFile(
+        cdh_utils.readDSExport(
+            "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
+            "data",
+            return_pl=True,
+        ),
+        pl.DataFrame,
+    )
+
+
+def test_import_produces_bytes():
+    ret = cdh_utils.readZippedFile(
             os.path.join(
                 "data",
                 "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
             )
-        ),
-        pyarrow.Table
-    )
+        )
+    assert isinstance(ret[0], BytesIO)
+    assert ret[1] == '.json'
 
 
 def test_read_modelData():
-    assert cdh_utils.readZippedFile(
-        os.path.join(
-            "data",
-            "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
-        )
-    ).shape == (20, 23)
+    assert cdh_utils.readDSExport(
+        "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
+        "data",
+        ).shape == (20, 23)
 
 
 def test_read_predictorData():
-    assert cdh_utils.readZippedFile(
-        os.path.join(
-            "data",
-            "Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210101T010000_GMT.zip",
-        )
-    ).shape == (1755, 35)
+    assert cdh_utils.readDSExport(
+        "Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210101T010000_GMT.zip",
+        "data",
+        ).shape == (1755, 34)
 
 
-def test_read_zip_from_url():
-    assert pyarrow_checks(
-        cdh_utils.readZippedFile(
-            BytesIO(
-                urllib.request.urlopen(
-                    "https://raw.githubusercontent.com/pegasystems/cdh-datascientist-tools/master/data/Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip"
-                ).read()
-            )
-        )
+def test_polars_zip_from_url():
+    assert isinstance(
+        cdh_utils.readDSExport('Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip', "https://raw.githubusercontent.com/pegasystems/cdh-datascientist-tools/master/data",return_pl=True),
+        pl.DataFrame,
     )
 
 
 # Tests for ReadDSExport function
 @pytest.fixture
 def test_data():
-    return cdh_utils.readZippedFile(
-        os.path.join(
-            "data",
-            "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
-        )
-    ).to_pandas()
+    return cdh_utils.readDSExport(
+    "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
+    "data")
 
 
 def pandas_checks(df):
@@ -101,11 +99,10 @@ def pandas_checks(df):
     if isinstance(df, pd.DataFrame) and len(df) > 0:
         return True
 
-def pyarrow_checks(df):
+def polars_checks(df):
     "Very simple convienence function to check if it is a dataframe with rows."
-    if isinstance(df, pyarrow.Table) and len(df) > 0:
+    if isinstance(df, pl.DataFrame) and len(df) > 0:
         return True
-
 
 def test_dataframe_returns_itself(test_data):
     input = test_data
