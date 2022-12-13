@@ -425,6 +425,7 @@ ADMDatamart <- function(modeldata = NULL,
   optionalModelFields <- c("Issue", "Group", "Name", "Direction", "Channel", # context keys are not mandatory
                            "ModelData", "ModelVersion") # added in later releases
   additionalModelFields <- c("AUC", "SuccessRate") # additional, not in Datamart
+
   dropModelFields <- function(x, dropSerializedModelData) {
     # Hard-coded list because the names of (x) may contain just about anything
     # after the JSON expansion from the potentially customized context fields
@@ -491,10 +492,18 @@ ADMDatamart <- function(modeldata = NULL,
       modelz[["SuccessRate"]] <- modelz$Positives / modelz$ResponseCount # Using set syntax to avoid data.table copy warning
       modelz[["AUC"]] <- 100*modelz$Performance
 
-      # Remove columns not used in CDH Tools
+      # Remove columns not used in PDS Tools
       # TODO: consider doing much earlier but then be careful with inconsistent naming
       if (length(dropModelFields(modelz, !keepSerializedModelData)) > 0) {
         if (verbose) warning("Dropping model fields:", paste(dropModelFields(modelz, !keepSerializedModelData), collapse=", "))
+
+        # TODO this could be the place to extract version information from
+        # the model data. We may want to then store that in a new field.
+        # ModelVersion already exists and is more of an internal hash-like
+        # version number. Perhaps we should introduce a new field PegaVersion
+        # with the major.minor version numbers we pull from the serialized
+        # data. If there is no such information perhaps not populate the
+        # field at all.
 
         modelz[, dropModelFields(modelz, !keepSerializedModelData) := NULL]
       }
