@@ -253,9 +253,11 @@ class ADMVisualisations:
                     .sort(["SnapshotTime", by])
                     .to_pandas()
                 )
-                plot_metric = "weighted_performance"
+                if metric == 'Performance':
+                    plot_metric = "weighted_performance"
             else:
-                plot_metric = "Performance"
+                if metric == 'Performance':
+                    plot_metric = "Performance"
             fig = px.line(
                 df,
                 x="SnapshotTime",
