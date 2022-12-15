@@ -52,7 +52,7 @@ class ADMTrees:
             if verbose:
                 print(f"Extracting {configuration}, {len(data)} snapshots found")
             with multiprocessing.Pool(n_threads) as p:
-                pbar = True if (not verbose or len(data) < 2) else False
+                disable_pbar = True if (not verbose or len(data) < 2) else False
                 models[configuration] = MultiTrees(
                     dict(
                         zip(
@@ -63,7 +63,7 @@ class ADMTrees:
                                     [row["Modeldata"] for _, row in data.iterrows()],
                                 ),
                                 total=len(data),
-                                disable=pbar,
+                                disable=disable_pbar,
                             ),
                         )
                     )
