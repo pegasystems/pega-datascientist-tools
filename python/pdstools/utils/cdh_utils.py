@@ -174,7 +174,7 @@ def import_file(
     elif extension == ".parquet":
         file = pl.read_parquet(file)
 
-    elif extension == ".feather" | extension.casefold() == ".ipc":
+    elif extension == ".feather" or extension.casefold() == ".ipc" or extension.casefold() == '.arrow':
         file = pl.read_ipc(file)
 
     else:
