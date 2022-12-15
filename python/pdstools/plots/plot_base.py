@@ -135,7 +135,7 @@ class Plots:
         if active_only and "PredictorName" in df.columns:
             df = self._apply_query(df, "EntryType == 'Active'")
         if include_cols:
-            required_columns = list(required_columns) + include_cols
+            required_columns = set(list(required_columns) + include_cols)
         return df[list(required_columns)]
 
     def plotPerformanceSuccessRateBubbleChart(
@@ -337,7 +337,11 @@ class Plots:
             "Positives",
         }
         df = self._subset_data(
-            table, required_columns, query, multi_snapshot=multi_snapshot, include_cols = [by]
+            table,
+            required_columns,
+            query,
+            multi_snapshot=multi_snapshot,
+            include_cols=[by],
         )
 
         if kwargs.pop("return_df", False):
