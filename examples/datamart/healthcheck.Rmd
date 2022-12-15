@@ -24,7 +24,6 @@ params:
     # Full path to the source file which should be an export of the ADM model table
     # can be a plain CSV file, a zipped CSV, or the full path of a dataset export
     value: "../../data/pr_data_dm_admmart_mdl_fact.csv"
-    # value: "~/.datamartcache/models_CDH Sample.parquet"
 
   predictordatafile:
     # Optional full path to ADM predictor binning table data. If given, the model 
@@ -32,7 +31,6 @@ params:
     # flexibility in format: CSV, zipped CSV or dataset export. If you have something
     # different, you'll need to load, filter and re-write as CSV first.
     value: "../../data/pr_data_dm_admmart_pred.csv"
-    # value: "~/.datamartcache/preds_CDH Sample.parquet"
 
   # perhaps consider supporting something like this, for now you would do this in 
   # a separate script then call this notebook
@@ -72,7 +70,7 @@ library(scales)
 library(knitr)
 library(kableExtra)
 library(stringi)
-library(arrow) # for parquet read/write
+# library(arrow) # for parquet read/write
 
 theme_set(theme_light())
 options(digits = 5)
@@ -232,15 +230,22 @@ the models are unreliable otherwise).
 * Look out for propositions that stand out, having a far higher success rate
 than the rest. Check with business if that is expected. 
 
-* Variation in the set of offered propositions across customers is also an important metric but not one that can be derived
-from the Adaptive Model data - this requires analysis of the actual interactions.
+* Variation in the set of offered propositions across customers is also an important metric but not one that can be derived from the Adaptive Model data - this requires analysis of the actual interactions.
 
 ```{r Plot Action Success Rates}
-p <- plotPropositionSuccessRates(datamart, 
-                                 filter=function(mdls){ filterLatestSnapshotOnly(mdls)[ResponseCount >= as.integer(params$min_responses_to_show_propositions)] }, 
-                                 limit=params$max_propositions_in_plot, 
-                                 facets=c("Direction", "Channel")) + 
-  scale_fill_continuous_divergingx()
+if (nrow(filterLatestSnapshotOnly(datamart$modeldata)[ResponseCount >= as.integer(params$min_responses_to_show_propositions)]) > 0) {
+  p <- plotPropositionSuccessRates(datamart, 
+                                   filter=function(mdls){ filterLatestSnapshotOnly(mdls)[ResponseCount >= as.integer(params$min_responses_to_show_propositions)] }, 
+                                   limit=params$max_propositions_in_plot, 
+                                   facets=c("Direction", "Channel")) + 
+    scale_fill_continuous_divergingx()
+} else {
+  p <- plotPropositionSuccessRates(datamart, 
+                                   filter=function(mdls){ filterLatestSnapshotOnly(mdls) }, 
+                                   limit=params$max_propositions_in_plot, 
+                                   facets=c("Direction", "Channel")) + 
+    scale_fill_continuous_divergingx()
+}
 
 # ggplotly(p) %>% layout(showlegend=FALSE) # plotly no use here given the way the plot is constructed
 p
@@ -300,21 +305,48 @@ There are a total of **`r nrow(filterLatestSnapshotOnly(datamart$modeldata))` mo
 
 The standard configuration is to have one model per treatment.
 
+```{r Overview adaptive}
+# Name and Treatment will be separate columns when read properly via ADMDatamart
+groupingCols <- intersect(c("ConfigurationName", "Direction", "Channel"), names(datamart$modeldata))
+
+standardNBADModelNames <- c("Assisted_Click_Through_Rate",
+                            "CallCenter_Click_Through_Rate",
+                            "CallCenterAcceptRateOutbound",
+                            "Default_Inbound_Model",
+                            "Default_Outbound_Model",
+                            "Email_Click_Through_Rate",
+                            "Mobile_Click_Through_Rate",
+                            "OmniAdaptiveModel",
+                            "Other_Inbound_Click_Through_Rate",
+                            "Push_Click_Through_Rate",
+                            "Retail_Click_Through_Rate",
+                            "Retail_Click_Through_Rate_Outbound",
+                            "SMS_Click_Through_Rate",
+                            "Web_Click_Through_Rate")
+
+actionsOverview <- filterLatestSnapshotOnly(datamart$modeldata)[, .(Treatments = .N), 
+                                                                by=c(groupingCols, "Name")]
+
+actionsOverviewSummary <- actionsOverview[, .(`Standard in NBAD Framework` = first(ConfigurationName) %in% standardNBADModelNames,
+                                              `Number of Actions` = .N, 
+                                              `Number of Models` = sum(Treatments), 
+                                              `Average number of Treatments per Action` = mean(Treatments)), 
+                                          by=groupingCols][order(Direction, Channel, ConfigurationName)]
+
+actionsOverviewSummary %>%
+  kbl() %>%
+  kable_paper(c("striped", "hover"), full_width = F)
+```
+
+The standard Pega Next Best Action Designer framework defines a number of standard
+Adaptive Models for channels. By looking at the names of the configurations it seems
+that the framework **`r ifelse(any(actionsOverviewSummary[[4]]), ifelse(all(actionsOverviewSummary[[4]]), "is being used", "is being used with additional configurations"), "is not being used")`**.
+
 ### Guidance
 
 * Recommended best practice is to have multiple treatments for an action. Too few
 gives less opportunity for personalization of the interactions.
 
-
-```{r Overview adaptive}
-# Name and Treatment will be separate columns when read properly via ADMDatamart
-groupingCols <- intersect(c("ConfigurationName", "Direction", "Channel"), names(datamart$modeldata))
-
-actionsOverview <- filterLatestSnapshotOnly(datamart$modeldata)[, .(Treatments = .N), 
-                                                                by=c(groupingCols, "Name")]
-
-actionsOverview[, .(`Number of Actions` = .N, `Number of Models` = sum(Treatments), `Average number of Treatments per Action` = mean(Treatments)), by=groupingCols][order(Direction, Channel, ConfigurationName)]
-```
 
 ## Model Performance
 
@@ -353,9 +385,15 @@ exposure.
 ## with something like
 ## OhMyGoodness := (pdstools::auc2GINI(Performance) + pmin(Positives, as.integer(params$min_positives_for_maturity)
 
-plt <- plotPerformanceSuccessRateBubbleChart(datamart, 
-                                             filter=function(mdls){ filterLatestSnapshotOnly(mdls)[ResponseCount >= 100] }, 
-                                             facets = c("ConfigurationName", "Direction", "Channel"))
+if (nrow(filterLatestSnapshotOnly(datamart$modeldata)[ResponseCount >= 100]) > 0) {
+  plt <- plotPerformanceSuccessRateBubbleChart(datamart, 
+                                               filter=function(mdls){ filterLatestSnapshotOnly(mdls)[ResponseCount >= 100] }, 
+                                               facets = c("ConfigurationName", "Direction", "Channel"))
+} else {
+  plt <- plotPerformanceSuccessRateBubbleChart(datamart, 
+                                               filter=function(mdls){ filterLatestSnapshotOnly(mdls) }, 
+                                               facets = c("ConfigurationName", "Direction", "Channel"))
+}
 
 ggplotly(plt) %>% 
   layout(showlegend=F) 
@@ -591,7 +629,7 @@ Showing the number of active and inactive predictors per model.
 
 * We expect a few dozen active predictors for every model instance
 
-```{r Active and Inactive Predictors, fig.height=5, fig.width=5}
+```{r Active and Inactive Predictors, fig.height=5, fig.width=8}
 if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
   typeDistributionPlotData <- 
     merge(unique(filterLatestSnapshotOnly(datamart$predictordata)[EntryType!="Classifier", 
@@ -871,7 +909,10 @@ less constant, only changing if there is a sudden change in targeted population.
 Big spikes and very noisy behavior may be caused by changes in the setup.
 
 ```{r Responses over time}
-responseRates <- datamart$modeldata[, SnapshotTimeDay := ceiling_date(SnapshotTime, unit="days")] [, .(ResponseCount = sum(ResponseCount)), by=c("SnapshotTimeDay", "Direction", "Channel", "ConfigurationName")][order(SnapshotTimeDay)]
+datamart$modeldata[["SnapshotTimeDay"]] <- ceiling_date(datamart$modeldata$SnapshotTime, unit="days")
+
+responseRates <- datamart$modeldata[, .(ResponseCount = sum(ResponseCount)), 
+                                    by=c("SnapshotTimeDay", "Direction", "Channel", "ConfigurationName")][order(SnapshotTimeDay)]
 
 responseRates[, PrevResponseCount := shift(ResponseCount), by=c("Channel", "ConfigurationName")]
 responseRates[, DeltaResponseCount := ResponseCount - PrevResponseCount]
