@@ -1,6 +1,6 @@
 import polars as pl
 from ..utils import cdh_utils
-
+import plotly.express as px
 
 def SuccessRate(outcome_col="pyOutcome", **kwargs) -> pl.Expr:
     return (pl.sum(outcome_col) / pl.count(outcome_col)).alias("SuccessRate")
@@ -46,8 +46,6 @@ def _plotPerPeriod(
     facet_row=None,
     **kwargs,
 ):
-    import plotly_express as px
-
     by = [col for col in [color, facet_col, facet_row] if col is not None]
     title = kwargs.pop("title", to_plot)
     if color is not None:
@@ -102,3 +100,26 @@ def plotVolumesPerPeriod(
     return _plotPerPeriod(
         df, "ResponseCount", period, color, facet_col, facet_row, **kwargs
     )
+
+def plotPropensityDistribution(
+    df:pl.LazyFrame,
+    channel,
+    direction,
+    issue,
+    group,
+    name,
+    propensityType,
+    **kwargs
+):
+    channelCol = kwargs.get('Channel_col', 'pyChannel')
+    directionCol = kwargs.get('Direction_col', 'pyDirection')
+    issueCol = kwargs.get('Issue_col', 'pyIssue')
+    groupCol = kwargs.get('Group_col', 'pyGroup')
+    actionCol = kwargs.get('pyName_col', 'pyName')
+    return px.histogram(df.filter([
+        pl.col(channelCol) == channel,
+        pl.col(directionCol) == direction,
+        pl.col(issueCol) == issue,
+        pl.col(groupCol) == group,
+        pl.col(actionCol) == name
+    ]).select(propensityType).to_pandas())
