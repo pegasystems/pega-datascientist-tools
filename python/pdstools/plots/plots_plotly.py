@@ -7,9 +7,11 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 
 import numpy as np
 
+from ..utils import cdh_utils
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import polars as pl
 
 
 class ADMVisualisations:
@@ -229,12 +231,37 @@ class ADMVisualisations:
                     f"Warning: plotting this much data ({len(df)} rows) will probably be slow while not providing many insights. Consider filtering the data by either limiting the number of models, filtering on SnapshotTime or facetting."
                 )
             df = df.sort_values(by="SnapshotTime")
+            if by != "ModelID":
+                groupby = ["SnapshotTime", by]
+                if facets is not None:
+                    groupby = groupby + facets
+                df = (
+                    (
+                        pl.DataFrame(df)
+                        .groupby(groupby)
+                        .agg(
+                            [
+                                (pl.sum("Positives") / pl.sum("ResponseCount")).alias(
+                                    "SuccessRate"
+                                ),
+                                cdh_utils.weighed_performance_polars().alias(
+                                    "weighted_performance"
+                                ),
+                            ]
+                        )
+                    )
+                    .sort(["SnapshotTime", by])
+                    .to_pandas()
+                )
+                plot_metric = "weighted_performance"
+            else:
+                plot_metric = "Performance"
             fig = px.line(
                 df,
                 x="SnapshotTime",
-                y=metric,
+                y=plot_metric,
                 color=by,
-                hover_data=["ModelName", "Performance", "SuccessRate"],
+                hover_data=[by, plot_metric, "SuccessRate"],
                 markers=True,
                 title=f'{metric} over time, per {by} {title} {kwargs.get("title_text","")}',
                 facet_col=facet,
