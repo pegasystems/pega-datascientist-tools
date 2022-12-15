@@ -174,7 +174,11 @@ def import_file(
     elif extension == ".parquet":
         file = pl.read_parquet(file)
 
-    elif extension == ".feather" or extension.casefold() == ".ipc" or extension.casefold() == '.arrow':
+    elif (
+        extension == ".feather"
+        or extension.casefold() == ".ipc"
+        or extension.casefold() == ".arrow"
+    ):
         file = pl.read_ipc(file)
 
     else:
@@ -677,6 +681,13 @@ def toPRPCDateTime(x: datetime.datetime) -> str:
     """
 
     return x.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
+
+
+def weighed_performance_polars() -> pl.Expr:
+    """Polars function to return a weighted performance"""
+    return ((pl.col("Performance") * pl.col("ResponseCount")).sum()) / pl.col(
+        "ResponseCount"
+    ).sum()
 
 
 def readClientCredentialFile(credentialFile):
