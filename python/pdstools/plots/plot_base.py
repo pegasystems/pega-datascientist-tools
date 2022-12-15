@@ -75,6 +75,7 @@ class Plots:
         multi_snapshot: bool = False,
         last: bool = False,
         active_only: bool = False,
+        include_cols: Optional[list] = None,
     ) -> pd.DataFrame:
         """Retrieves and subsets the data and performs some assertion checks
 
@@ -99,6 +100,8 @@ class Plots:
             Whether to subset on just the last known value for each model ID/predictor/bin
         active_only : bool, default = False
             Whether to subset on just the active predictors
+        include_cols: Optional[list]
+            Extra columns to include in the subsetting
 
         Returns
         -------
@@ -131,7 +134,8 @@ class Plots:
 
         if active_only and "PredictorName" in df.columns:
             df = self._apply_query(df, "EntryType == 'Active'")
-
+        if include_cols:
+            required_columns = list(required_columns) + include_cols
         return df[list(required_columns)]
 
     def plotPerformanceSuccessRateBubbleChart(
@@ -333,7 +337,7 @@ class Plots:
             "Positives",
         }
         df = self._subset_data(
-            table, required_columns, query, multi_snapshot=multi_snapshot
+            table, required_columns, query, multi_snapshot=multi_snapshot, include_cols = [by]
         )
 
         if kwargs.pop("return_df", False):
