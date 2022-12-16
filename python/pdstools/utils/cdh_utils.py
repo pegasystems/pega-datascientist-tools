@@ -167,7 +167,12 @@ def import_file(
 
     elif extension == ".json":
         try:
-            file = pl.read_ndjson(file)
+            if isinstance(file, BytesIO):
+                file = pl.read_ndjson(file)
+            else:
+                file = pl.scan_ndjson(
+                    file, infer_schema_length=kwargs.pop("infer_schema_length", 10000)
+                ).collect()
         except:
             file = pl.read_json(file)
 
@@ -683,11 +688,13 @@ def toPRPCDateTime(x: datetime.datetime) -> str:
     return x.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
 
 
+def weighed_average_polars(vals, weights) -> pl.Expr:
+    return ((pl.col(vals) * pl.col(weights)).sum()) / pl.col(weights).sum()
+
+
 def weighed_performance_polars() -> pl.Expr:
     """Polars function to return a weighted performance"""
-    return ((pl.col("Performance") * pl.col("ResponseCount")).sum()) / pl.col(
-        "ResponseCount"
-    ).sum()
+    return weighed_average_polars("Performance", "ResponseCount")
 
 
 def readClientCredentialFile(credentialFile):
