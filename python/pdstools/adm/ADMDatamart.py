@@ -423,6 +423,7 @@ class ADMDatamart(Plots):
             "BinNegatives": ["BinNegatives"],
             "BinResponseCount": ["BinResponseCount"],
             "Type": ["Type"],
+            "Contents": ["Contents"],
         }  # NOTE: these default names are already capitalized properly, with py/px/pz removed.
 
         if len(kwargs.get("include_cols", [])) > 0:
