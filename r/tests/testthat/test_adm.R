@@ -113,6 +113,13 @@ test_that("add Contents to ADM Datamart", {
   expect_true("Contents" %in% names(data$predictordata))
 })
 
+test_that("extract model version", {
+  m <- ADMDatamart("ADM-ModelSnapshots-withJSON-fromCDHSample.zip", predictordata = F, folder = "dsexports")
+
+  expect_true("ExtractedVersion" %in% names(m$modeldata))
+  expect_equal(m$modeldata$ExtractedVersion[1], "8.2.0.7622")
+})
+
 test_that("parsing JSON names from pyName", {
 
   # m1 is the "raw" version
@@ -128,7 +135,7 @@ test_that("parsing JSON names from pyName", {
   # m2 is the one where the JSON names should be expanded, resulting in a few extra columns
   m2 <- ADMDatamart(m1, predictordata = F)
 
-  expect_equal(ncol(m2$modeldata), 18)
+  expect_equal(ncol(m2$modeldata), 19)
   expect_equal(nrow(m2$modeldata), 361)
   expect_true("Treatment" %in% names(m2$modeldata))
   expect_true("Proposition" %in% names(m2$modeldata))

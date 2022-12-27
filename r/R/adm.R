@@ -476,13 +476,30 @@ ADMDatamart <- function(modeldata = NULL,
     modelz <- filterModelData(modelz)
     modelz <- expandEmbeddedJSONContext(modelz)
 
+    # extract model version from model data blob if present
+    if ("ModelData" %in% names(modelz)) {
+      indexFirstModelBinary <- which(!is.na(modelz$ModelData))[1]
+      if (!is.na(indexFirstModelBinary)) {
+        firstModelBinary <- modelz$ModelData[indexFirstModelBinary]
+        modelDataJSON <- memDecompress(base64enc::base64decode(as.character(firstModelBinary)), type = "gzip", asChar = T)
+
+        # Recent versions do not seem to write a version attribute
+        # see https://agilestudio.pega.com/prweb/AgileStudio/app/agilestudio/bugs/BUG-772689
+        jz <- jsonlite::fromJSON(modelDataJSON)
+        if (!is.null(jz$version))  modelz[["ExtractedVersion"]] <- jz$version
+      }
+    }
+    if (verbose) {
+      if (all(is.na(modelz$ExtractedVersion))) warning("No modeldata present, can't extract version")
+    }
+
     if (nrow(modelz) > 0) {
       # TODO: generalize below
-      doNotFactorizeFields <- c("ModelID")
+      doNotFactorizeFields <- c("ModelID", "ExtractedVersion")
       for (f in setdiff(names(modelz)[sapply(modelz, is.character)], doNotFactorizeFields)) {
         modelz[[f]] <- factor(modelz[[f]])
       }
-      for (f in doNotFactorizeFields) {
+      for (f in intersect(names(modelz), doNotFactorizeFields)) {
         modelz[[f]] <- as.character(modelz[[f]])
       }
 
@@ -494,7 +511,8 @@ ADMDatamart <- function(modeldata = NULL,
       # Remove columns not used in PDS Tools
       # TODO: consider doing much earlier but then be careful with inconsistent naming
       if (length(dropModelFields(modelz, !keepSerializedModelData)) > 0) {
-        if (verbose) warning("Dropping model fields:", paste(dropModelFields(modelz, !keepSerializedModelData), collapse=", "))
+        if (verbose) warning("Dropping model fields:",
+                             paste(dropModelFields(modelz, !keepSerializedModelData), collapse=", "))
 
         # TODO this could be the place to extract version information from
         # the model data. We may want to then store that in a new field.
