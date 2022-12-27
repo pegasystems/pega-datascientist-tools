@@ -55,7 +55,7 @@ params:
 ---
 
 
-```{r Initialization, echo=F, error=F, warning=FALSE, include=FALSE}
+```{r Initialization, echo=F, include=FALSE}
 library(pdstools)
 
 # include below when developing the library
@@ -90,15 +90,29 @@ to the [Wiki](https://github.com/pegasystems/pega-datascientist-tools/wiki).
 This document provides a first-level scan of the models after which a 
 deeper and more customer specific deeper dive can be done.
 
+## Guidance
+
+Where possible, we try to provide guidance and best practices in the form
+of bulletted lists of attention points. However these are only generic 
+practices and may or may not be applicable to the specific use case and 
+situation of the implementation. 
+
+Pega Customer Decision Hub deployed in Pega Cloud has limits in place that constrain certain elements of the service and its use to ensure high quality of service for your team. Where
+relevant, these limits are used in the guidance in this health check. See [Service and data health limits for Pega Customer Decision Hub on Pega Cloud](https://docs-previous.pega.com/pega-customer-decision-hub-user-guide/87/service-and-data-health-limits-pega-customer-decision-hub-pega-cloud).
+
+## User experience
+
 Some of the plots provide some interactivity. For best viewing results, open the 
 HTML document in a browser. Viewing it from platforms like Sharepoint or 
 Github will loose the interactive charts.
+
+## Output format
 
 Note that the notebook by default generates a single-page HTML, however you
 can also export to PDF as well as other formats supported by Pandoc (e.g. Word) 
 but you would loose interactivity.
 
-```{r Read Model Data, echo=F, error=F, warning=FALSE, include=F}
+```{r Read Model Data, echo=F, include=F}
 
 if (!("modelfile" %in% names(params))) stop("Model data missing. Please provide through parameter 'modelfile'.")
 if (!file.exists(params$modelfile)) stop(paste("File does not exist:", params$modelfile))
@@ -179,7 +193,7 @@ are actions.
 Adaptive Models are created per treatment (at least in the default setup) and
 the recommendation is to stick the default context keys of the models.
 
-```{r Overview Helpers, echo=F, error=F, warning=FALSE, include=F}
+```{r Overview Helpers, echo=F, include=F}
 nUniqueValues <- function(dm, fld) { 
   values <- as.vector(na.omit(unique(dm$modeldata[[fld]])))
   length(values)
@@ -402,7 +416,9 @@ ggplotly(plt) %>%
 
 ### Model Performance over Time
 
-Showing how the model performance evolves over time.
+Showing how the model performance evolves over time. Note that ADM is by 
+default configured to track performance over all time. You can configure a
+window for monitoring but this is not commonly done.
 
 Aggregating up to Channel and splitting by model configuration.
 
@@ -429,6 +445,11 @@ if (!hasMultipleSnapshots(datamart$modeldata))
 
 Using an interactive treemap to visualize the performance. Lighter is better,
 darker is low performance.
+
+It can be interesting to see which issues, groups or channels can be better
+predicted than others. Identifying categories of items for which the predictions
+are poor can help to drive the search for better predictors, for example.
+
 
 ```{r Treemap action performance}
 treeData <- aggregateTreeData(filterLatestSnapshotOnly(datamart$modeldata))
@@ -784,6 +805,8 @@ to show to the customer, so never received any responses.
 Often these represent actions that never made it into production and were
 only used to test out logic. But it could also be that the response mechanism
 is broken. It could for example be caused by outcome labels that are returned by the channel application not matching the configuration of the adaptive models.
+
+#### TODO: consider creating an Excel file with these and all subsequent lists
 
 Showing first `r min(nrow(modelsNeverUsed), params$max_models_in_list)` from total of `r nrow(modelsNeverUsed)`.
 

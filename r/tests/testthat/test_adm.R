@@ -88,9 +88,9 @@ test_that("ADMDatamart predictor reading", {
   # Default reads all snapshots, and includes binning
   data <- ADMDatamart(modeldata = F, predictordata = "Data-Decision-ADM-PredictorBinningSnapshot_All", folder = "dsexports")
   expect_equal(nrow(data$predictordata), 1755) # default reads all snapshots, all binning
-  expect_equal(ncol(data$predictordata), 24)
+  expect_equal(ncol(data$predictordata), 25)
 
-  expect_equal(sum(sapply(data$predictordata, is.factor)), 5)
+  expect_equal(sum(sapply(data$predictordata, is.factor)), 6)
   expect_equal(sum(sapply(data$predictordata, is.numeric)), 16)
   expect_equal(sum(sapply(data$predictordata, is.POSIXt)), 1)
   expect_equal(sum(sapply(data$predictordata, is.character)), 2)
@@ -99,12 +99,18 @@ test_that("ADMDatamart predictor reading", {
   data <- ADMDatamart(modeldata = F, predictordata = "Data-Decision-ADM-PredictorBinningSnapshot_All", folder = "dsexports",
                       filterPredictorData = filterPredictorBinning)
   expect_equal(nrow(data$predictordata), 425) # binning fields removed
-  expect_equal(ncol(data$predictordata), 14)
+  expect_equal(ncol(data$predictordata), 15)
 
-  expect_equal(sum(sapply(data$predictordata, is.factor)), 5)
+  expect_equal(sum(sapply(data$predictordata, is.factor)), 6)
   expect_equal(sum(sapply(data$predictordata, is.numeric)), 7)
   expect_equal(sum(sapply(data$predictordata, is.POSIXt)), 1)
   expect_equal(sum(sapply(data$predictordata, is.character)), 1)
+})
+
+test_that("add Contents to ADM Datamart", {
+  # for segment explore tool the actual range is useful, so lets include
+  data <- ADMDatamart(modeldata = F, predictordata = "Data-Decision-ADM-PredictorBinningSnapshot_All", folder = "dsexports")
+  expect_true("Contents" %in% names(data$predictordata))
 })
 
 test_that("parsing JSON names from pyName", {
@@ -137,7 +143,7 @@ test_that("Reading data from models wo context", {
 
   expect_equal(ncol(data$modeldata), 11)
   expect_equal(nrow(data$modeldata), 1)
-  expect_equal(ncol(data$predictordata), 24)
+  expect_equal(ncol(data$predictordata), 25)
   expect_equal(nrow(data$predictordata), 55)
 
 })
@@ -258,7 +264,7 @@ test_that("Filtering", {
                       "Data-Decision-ADM-PredictorBinningSnapshot_All_20180316T135050_GMT.zip", "dsexports")
 
   expect_equal(nrow(data$predictordata), 1755)
-  expect_equal(ncol(data$predictordata), 24)
+  expect_equal(ncol(data$predictordata), 25)
   expect_equal(nrow(filterActiveOnly(data$predictordata)), 643)
   expect_equal(nrow(filterActiveOnly(data$predictordata, reverse = T)), 1112)
   expect_equal(nrow(filterInactiveOnly(data$predictordata)), 853)
@@ -266,7 +272,7 @@ test_that("Filtering", {
   expect_equal(nrow(filterClassifierOnly(data$predictordata)), 259)
   expect_equal(nrow(filterClassifierOnly(data$predictordata, reverse = T)), 1496)
   expect_equal(nrow(filterPredictorBinning(data$predictordata)), 425)
-  expect_equal(ncol(filterPredictorBinning(data$predictordata)), 15)
+  expect_equal(ncol(filterPredictorBinning(data$predictordata)), 16)
 })
 
 test_that("Predictor Categorization", {

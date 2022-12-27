@@ -419,7 +419,6 @@ ADMDatamart <- function(modeldata = NULL,
   # required fields are present. This is especially helpful when dealing with
   # custom dataset exports from the database, via CSV etc.
   requiredModelFields <- c("ModelID", "ConfigurationName","SnapshotTime",
-
                            "TotalPredictors", "ActivePredictors", "Negatives", "Positives", "ResponseCount",
                            "Performance", "ResponseCount")
   optionalModelFields <- c("Issue", "Group", "Name", "Direction", "Channel", # context keys are not mandatory
@@ -442,10 +441,10 @@ ADMDatamart <- function(modeldata = NULL,
 
   requiredPredictorFields <- c("ModelID", "PredictorName", "Performance", "SnapshotTime",
                                "Type", "EntryType",
-                               "ResponseCount", "Positives", "Negatives", "TotalBins")
+                               "ResponseCount", "Positives", "Negatives", "TotalBins", "Contents")
   optionalPredictorFields <- c(
     # bin level:
-    "BinType", "BinSymbol", "BinIndex", "BinNegatives", "BinPositives", "BinResponseCount", "BinLowerBound", "BinUpperBound", "BinSymbol", "Lift", "ZRatio",
+    "BinType", "BinSymbol", "BinIndex", "BinNegatives", "BinPositives", "BinResponseCount", "BinLowerBound", "BinUpperBound", "Lift", "ZRatio",
     # added in later versions:
     "GroupIndex", "FeatureImportance",
     # additional, not in Datamart:
