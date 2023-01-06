@@ -1,22 +1,17 @@
-from typing import Dict
-
-# Don't want to, but Plotly needs to update in order to remove FutureWarnings.
 import warnings
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 import numpy as np
-
-from ..utils import cdh_utils
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import polars as pl
-
+from plotly.subplots import make_subplots
 
 class ADMVisualisations:
     @staticmethod
     def distribution_graph(df, title):
+        df = df.to_pandas()
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(
             go.Bar(x=df["BinSymbol"], y=df["BinResponseCount"], name="Responses")
@@ -54,7 +49,7 @@ class ADMVisualisations:
         **kwargs,
     ):
 
-        if query != None:
+        if query is not None:
             fig.layout.title.text += f"<br><sup>Query: {query}</sup>"
 
         if to_html:  # pragma: no cover
@@ -114,9 +109,9 @@ class ADMVisualisations:
         figlist = []
         bubble_size = kwargs.pop("bubble_size", 1)
         for facet in facets:
-            title = "over all models" if facet == None else f"per {facet}"
+            title = "over all models" if facet is None else f"per {facet}"
             fig = px.scatter(
-                df,
+                df.to_pandas(),
                 x="Performance",
                 y="SuccessRate",
                 color="Performance",
@@ -135,11 +130,14 @@ class ADMVisualisations:
                 if len(fig.layout.annotations) > 0:
                     for i in range(0, len(fig.layout.annotations)):
                         oldtext = fig.layout.annotations[i].text.split("=")
-                        subset = df[df[oldtext[0]] == oldtext[1]]
+                        subset = df.filter(pl.col(oldtext[0]) == oldtext[1])
                         bottomleft = len(
-                            subset.query(
-                                "Performance == 50 & (SuccessRate.isnull() | SuccessRate == 0)",
-                                engine="python",
+                            subset.filter(
+                                (pl.col("Performance") == 50)
+                                & (
+                                    (pl.col("SuccessRate").is_null())
+                                    | (pl.col("SuccessRate") == 0)
+                                )
                             )
                         )
                         newtext = f"{len(subset)} models: {bottomleft} ({round(bottomleft/len(subset)*100, 2)}%) at (50,0)"
@@ -148,9 +146,12 @@ class ADMVisualisations:
 
                 else:
                     bottomleft = len(
-                        df.query(
-                            "Performance == 50 & (SuccessRate.isnull() | SuccessRate == 0)",
-                            engine="python",
+                        df.filter(
+                            (pl.col("Performance") == 50)
+                            & (
+                                (pl.col("SuccessRate").is_null())
+                                | (pl.col("SuccessRate") == 0)
+                            )
                         )
                     )
                     newtext = f"{len(df)} models: {bottomleft} ({round(bottomleft/len(df)*100, 2)}%) at (50,0)"
@@ -219,51 +220,21 @@ class ADMVisualisations:
         plt.figure
         """
 
-        if isinstance(facets, str) or facets is None:
-            facets = [facets]
         hide_legend = kwargs.pop("hide_legend", False)
 
         figlist = []
         for facet in facets:
-            title = "over all models" if facet == None else f"per {facet}"
+            title = "over all models" if facet is None else f"per {facet}"
             if len(df) > 500:
                 print(
                     f"Warning: plotting this much data ({len(df)} rows) will probably be slow while not providing many insights. Consider filtering the data by either limiting the number of models, filtering on SnapshotTime or facetting."
                 )
-            df = df.sort_values(by="SnapshotTime")
-            if by != "ModelID":
-                groupby = ["SnapshotTime", by]
-                if facets is not None:
-                    groupby = groupby + facets
-                df = (
-                    (
-                        pl.DataFrame(df)
-                        .groupby(groupby)
-                        .agg(
-                            [
-                                (pl.sum("Positives") / pl.sum("ResponseCount")).alias(
-                                    "SuccessRate"
-                                ),
-                                cdh_utils.weighed_performance_polars().alias(
-                                    "weighted_performance"
-                                ),
-                            ]
-                        )
-                    )
-                    .sort(["SnapshotTime", by])
-                    .to_pandas()
-                )
-                if metric == 'Performance':
-                    plot_metric = "weighted_performance"
-            else:
-                if metric == 'Performance':
-                    plot_metric = "Performance"
             fig = px.line(
-                df,
+                df.to_pandas(),
                 x="SnapshotTime",
-                y=plot_metric,
+                y=metric,
                 color=by,
-                hover_data=[by, plot_metric, "SuccessRate"],
+                hover_data=[by, metric, "SuccessRate"],
                 markers=True,
                 title=f'{metric} over time, per {by} {title} {kwargs.get("title_text","")}',
                 facet_col=facet,
@@ -311,9 +282,9 @@ class ADMVisualisations:
             facets = [facets]
         figlist = []
         for facet in facets:
-            title = "over all models" if facet == None else f"per {facet}"
+            title = "over all models" if facet is None else f"per {facet}"
             fig = px.histogram(
-                df,
+                df.to_pandas(),
                 x=metric,
                 y=by,
                 color=by,
@@ -324,10 +295,17 @@ class ADMVisualisations:
             fig.update_yaxes(categoryorder="total ascending")
             fig.update_layout(showlegend=False)
             fig.update_yaxes(dtick=1, automargin=True)
-            if by == "ModelName" and show_error:
-                stds = np.nan_to_num(df.groupby("ModelName")[metric].std(), 0)
-                for index, x in np.ndenumerate(stds):
-                    fig.data[index[0]]["error_x"] = {"array": [x], "valueminus": 0}
+            errors = {
+                i[0]: i[1]
+                for i in df.groupby("ModelName", maintain_order=True)
+                .agg(pl.std("SuccessRate").fill_nan(0))
+                .iterrows()
+            }
+            for i, bar in enumerate(fig.data):
+                fig.data[i]["error_x"] = {
+                    "array": [errors[bar["name"]]],
+                    "valueminus": 0,
+                }
 
             fig = self.post_plot(fig, name="Success_rates", title=title, **kwargs)
 
@@ -335,7 +313,9 @@ class ADMVisualisations:
 
         return figlist if len(figlist) > 1 else figlist[0]
 
-    def ScoreDistribution(self, df, show_zero_responses: bool = False, **kwargs):
+    def ScoreDistribution(
+        self, df, by: str = "ModelID", show_zero_responses: bool = False, **kwargs
+    ):
         """Show score distribution similar to ADM out-of-the-box report
 
         Shows a score distribution graph per model. If certain models selected,
@@ -360,14 +340,16 @@ class ADMVisualisations:
         """
 
         figlist = []
-        for name, group in df:
-            if not show_zero_responses:
-                if not group["BinResponseCount"].any():  # pragma: no cover
-                    pass
-            group = group.sort_values("BinIndex")
+        groups = df.groupby(by)._groups()
+        for name, rows in groups.iterrows():
+            group = df[rows]
+            # if not show_zero_responses:
+            #     if not group["BinResponseCount"].any():  # pragma: no cover
+            #         pass
+            group = group.sort("BinIndex")
             fig = self.distribution_graph(
                 group,
-                f"Classifier score distribution<br><sup>Model name: {group.ModelName.unique()[0]}<Br>Model ID {name}</sup>",
+                f"Classifier score distribution<br><sup>Model name: {group['ModelName'].unique().item()}<Br>Model ID {name}</sup>",
             )
             fig = self.post_plot(
                 fig,
@@ -407,19 +389,18 @@ class ADMVisualisations:
         """
 
         if (
-            kwargs.get("show_each", False) and df.PredictorName.nunique() > 10
+            kwargs.get("show_each", False) and df["PredictorName"].n_unique() > 10
         ):  # pragma: no cover
             print(
-                f"Warning: will create {df.PredictorName.nunique()} plots. Set 'show_each' argument to False to return plots as list, so you can view them one by one."
+                f"Warning: will create {df['PredictorName'].n_unique()} plots. Set 'show_each' argument to False to return plots as list, so you can view them one by one."
             )
         figlist = []
-        for modelid, modelidgroup in df.groupby("ModelID"):
-            modelname = modelidgroup.ModelName.unique()[0]
-            for predictor, predictorgroup in modelidgroup.groupby("PredictorName"):
-                title = f"Model name: {modelname}<br><sup>Model ID: {modelid}<br>Predictor name: {predictor}</sup>"
-                fig = self.distribution_graph(predictorgroup, title)
-                fig = self.post_plot(fig, name="Predictor_binning", **kwargs)
-                figlist.append(fig)
+        for group in df.groupby(["ModelID", "PredictorName"]):
+            attrs = group.select(["ModelName", "ModelID", "PredictorName"]).row(0)
+            title = f"Model name: {attrs[0]}<br><sup>Model ID: {attrs[1]}<br>Predictor name: {attrs[2]}</sup>"
+            fig = self.distribution_graph(group, title)
+            fig = self.post_plot(fig, name="Predictor_binning", **kwargs)
+            figlist.append(fig)
 
         return figlist if len(figlist) > 1 else figlist[0]
 
@@ -466,20 +447,15 @@ class ADMVisualisations:
         if isinstance(facets, str) or facets is None:
             facets = [facets]
 
-        colormap = df.Legend.unique()
-
-        if to_plot == "Performance":
-            var_to_plot = "PerformanceBin"
-        else:
-            var_to_plot = to_plot
+        colormap = df["Legend"].unique()
 
         figlist = []
         for facet in facets:
-            title = "over all models" if facet == None else f"per {facet}"
+            title = "over all models" if facet is None else f"per {facet}"
 
             fig = px.box(
-                df,
-                x=var_to_plot,
+                df.to_pandas(),
+                x=to_plot,
                 y="PredictorName",
                 color="Legend",
                 template="none",
@@ -487,7 +463,6 @@ class ADMVisualisations:
                 facet_col=facet,
                 facet_col_wrap=5,
                 labels={
-                    var_to_plot: to_plot,
                     "PredictorName": "Predictor Name",
                 },
             )
@@ -569,16 +544,18 @@ class ADMVisualisations:
             facets = [facets]
         figlist = []
         for facet in facets:
-            title = "over all models" if facet == None else f"per {facet}"
+            title = "over all models" if facet is None else f"per {facet}"
 
-            from packaging import version
             import plotly
+            from packaging import version
 
             assert version.parse(plotly.__version__) >= version.parse(
                 "5.5.0"
             ), f"Visualisation requires plotly version 5.5.0 or later (you have version {plotly.__version__}): please upgrade to a newer version."
             if kwargs.get("reindex", None) is not None:
-                df = df.reindex(kwargs["reindex"])
+                df = df[kwargs["reindex"]]
+            df = df.to_pandas()
+            df.set_index(df.columns[0], inplace=True)
             fig = px.imshow(
                 df.T,
                 text_auto=kwargs.get("text_format", ".0%"),
@@ -644,7 +621,7 @@ class ADMVisualisations:
 
         title = "Cumulative Responses by Models"
         fig = px.line(
-            df,
+            df.to_pandas(),
             x="TotalModelsFraction",
             y="TotalResponseFraction",
             color=by,
@@ -696,17 +673,17 @@ class ADMVisualisations:
         px.Figure
         """
 
-        title = "Percentage of models vs number of positive responses"
+        title = f"Percentage of models vs number of positive responses {kwargs.get('title_text','')}<br><sup>By {by}</sup>"
         fig = px.line(
-            df.query("ModelCount>0"),
+            df.filter(pl.col("ModelCount") > 0).to_pandas(),
             x="PositivesBin",
             y="cumModels",
             color=by,
             markers=True,
-            title=f'Percentage of models vs number of positive responses {kwargs.get("title_text","")}<br><sup>By {by}</sup>',
+            title=title,
             labels={"cumModels": "Percentage of Models", "PositivesBin": "Positives"},
             template="none",
-            category_orders={"PositivesBin": df["PositivesBin"].unique().tolist()},
+            category_orders={"PositivesBin": df["PositivesBin"].unique().to_list()},
         )
         fig.layout.yaxis.tickformat = ",.0%"
         fig = self.post_plot(fig, name="Models_by_positives", **kwargs)
@@ -787,16 +764,14 @@ class ADMVisualisations:
             range_color = kwargs.get("range_color", [0.5, 1])
 
         elif log:
-            color = np.where(
-                np.log(df[color]) == -np.inf,
-                0,
-                np.log(df[color]),
-            )
+            df.select(
+                pl.when(pl.log(color) == float("-inf")).then(0).otherwise(pl.log(color))
+            ).to_series()
         else:
-            color = df[color]
+            color = df.get_column(color)
 
         if midpoint is not None:
-            midpoint = np.quantile(color, midpoint)
+            midpoint = color.quantile(midpoint)
             colorscale = [
                 (0, colorscale[0]),
                 (midpoint, colorscale[1]),
@@ -813,7 +788,7 @@ class ADMVisualisations:
         }
 
         fig = px.treemap(
-            df,
+            df.to_pandas(),
             path=context_keys,
             color=color,
             values=values,

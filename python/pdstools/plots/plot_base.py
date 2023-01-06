@@ -1,8 +1,9 @@
 from typing import Optional, Union, Dict
 import pandas as pd
+import polars as pl
 from .plots_mpl import ADMVisualisations as mpl
 from .plots_plotly import ADMVisualisations as plotly
-from ..utils.cdh_utils import defaultPredictorCategorization
+from ..utils.cdh_utils import defaultPredictorCategorization, weighed_performance_polars
 import matplotlib.pyplot as plt
 import plotly.graph_objs as go
 
@@ -12,12 +13,17 @@ class Plots:
         self.hasModels = self.modelData is not None
         self.hasPredictorBinning = self.predictorData is not None
         self.hasCombined = hasattr(self, "combinedData")
-        if self.hasModels:
-            self.hasMultipleSnapshots = self.modelData["SnapshotTime"].nunique() > 1
+        if self.import_strategy == "eager":
+            if self.hasModels:
+                self.hasMultipleSnapshots = (
+                    self.modelData.select(pl.col("SnapshotTime").n_unique() > 1)
+                    .collect()
+                    .item()
+                )
 
     @property
     def AvailableVisualisations(self):
-        return pd.DataFrame.from_dict(
+        df = pl.DataFrame(
             {
                 "plotPerformanceSuccessRateBubbleChart": [1, 0, 0],
                 "plotPerformanceAndSuccessRateOverTime": [1, 0, 1],
@@ -33,20 +39,23 @@ class Plots:
                 "plotModelsByPositives": [1, 0, 0],
                 "plotTreeMap": [1, 0, 0],
             },
-            orient="index",
-            columns=["modelData", "predictorData", "Multiple snapshots"],
         )
+        df = df.transpose().with_column(pl.Series(df.columns))
+        df.columns = ["modelData", "predictorData", "Multiple snapshots", "Type"]
+        return df.select(["Type", "modelData", "predictorData", "Multiple snapshots"])
 
     @property
     def ApplicableVisualisations(self):
+        if self.import_strategy != "eager":
+            raise ValueError("Function only supported in eager mode.")
         df = self.AvailableVisualisations
         if not self.hasModels:
-            df = df.query("modelData == 0")
+            df = df.filter(pl.col("modelData") == 0)
         if not self.hasPredictorBinning:
-            df = df.query("predictorData == 0")
+            df = df.filter(pl.col("predictorData") == 0)
         if not self.hasMultipleSnapshots:
-            df = df.query("`Multiple snapshots` == 0")
-        return list(df.index)
+            df = df.filter(pl.col("Multiple snapshots") == 0)
+        return df.get_column("Type").to_list()
 
     def plotApplicable(self):
         allplots = []
@@ -55,16 +64,21 @@ class Plots:
         return allplots
 
     @staticmethod
-    def top_n(df, top_n, to_plot="PerformanceBin"):
+    def top_n(
+        df,
+        top_n,
+        to_plot="PerformanceBin",
+    ):
         if top_n > 0:
-            topn = (
-                df.sort_values(to_plot, ascending=False)
+            df = df.join(
+                df.filter(pl.col("PredictorName").cast(pl.Utf8) != "Classifier")
                 .groupby("PredictorName")
-                .mean()
-                .nlargest(top_n, to_plot)
-                .index.tolist()
+                .agg(pl.mean(to_plot))
+                .sort("PerformanceBin")
+                .tail(top_n)
+                .select("PredictorName"),
+                on="PredictorName",
             )
-            df = df.query(f"PredictorName == {topn}").reset_index(drop=True)
         return df
 
     def _subset_data(
@@ -123,20 +137,20 @@ class Plots:
 
         df = self._apply_query(df, query)
 
-        if multi_snapshot and not last:
-            if not df["SnapshotTime"].nunique() > 1:
-                raise self.NotApplicableError(
-                    "There is only one snapshot, so this visualisation doesn't make sense."
-                )
+        # if multi_snapshot and not last:
+        #     if not df["SnapshotTime"].nunique() > 1:
+        #         raise self.NotApplicableError(
+        #             "There is only one snapshot, so this visualisation doesn't make sense."
+        #         ) #Move check to plots directly
 
         if last:
-            df = self.last(df)
+            df = self.last(df, "lazy")
 
         if active_only and "PredictorName" in df.columns:
-            df = self._apply_query(df, "EntryType == 'Active'")
+            df = df.filter(pl.col("EntryType") == "Active")
         if include_cols:
             required_columns = set(list(required_columns) + include_cols)
-        return df[list(required_columns)]
+        return df.select(list(required_columns))
 
     def plotPerformanceSuccessRateBubbleChart(
         self,
@@ -201,10 +215,13 @@ class Plots:
         df = self._subset_data(
             table=table, required_columns=required_columns, query=query, last=last
         )
-        df[["Performance", "SuccessRate"]] = df[["Performance", "SuccessRate"]].apply(
-            lambda x: round(x * 100, kwargs.pop("round", 5))
-        )  # fix to use .loc
+        df.with_columns(
+            (pl.col(["Performance", "SuccessRate"]) * pl.lit(100)).round(
+                kwargs.pop("round", 5)
+            )
+        )
 
+        df = df.collect()
         if kwargs.pop("return_df", False):
             return df
 
@@ -279,6 +296,7 @@ class Plots:
         self,
         metric: str = "Performance",
         by: str = "ModelID",
+        every: int = "1d",
         query: Union[str, dict] = None,
         facets: Optional[list] = None,
         **kwargs,
@@ -293,6 +311,8 @@ class Plots:
         by: str, default = ModelID
             What variable to group the data by
             One of {ModelID, ModelName}
+        every: int, default = 1d
+            How often to consider the metrics
         query: Union[str, dict], default = None
             The query to supply to _apply_query
             If a string, uses the default Pandas query function
@@ -343,7 +363,30 @@ class Plots:
             multi_snapshot=multi_snapshot,
             include_cols=[by],
         )
+        if isinstance(facets, str) or facets is None:
+            facets = [facets]
 
+        df = df.sort(by="SnapshotTime")
+
+        if by != "ModelID":
+            groupby = [by]
+            if facets is not None and facets != [None]:
+                groupby = groupby + facets
+            df = (
+                df.groupby_dynamic("SnapshotTime", every=every, by=groupby).agg(
+                    [
+                        (pl.sum("Positives") / pl.sum("ResponseCount")).alias(
+                            "SuccessRate"
+                        ),
+                        weighed_performance_polars().alias("weighted_performance"),
+                    ]
+                )
+            ).sort(["SnapshotTime", by])
+
+            if metric == "Performance":
+                metric = "weighted_performance"
+
+        df = df.collect()
         if kwargs.pop("return_df", False):
             return df
 
@@ -393,6 +436,7 @@ class Plots:
         -------
         plt.Axes
         """
+        raise NotImplementedError("Not implemented for polars yet.")
         if kwargs.get("plotting_engine", self.plotting_engine) != "mpl":
             print("Plot is only available in matplotlib.")
 
@@ -487,7 +531,7 @@ class Plots:
         last = True
         required_columns = {"ModelID", "ModelName", "SuccessRate"}.union({metric})
         df = self._subset_data(table, required_columns, query, last=last)
-
+        df = df.collect()
         if kwargs.pop("return_df", False):
             return df
 
@@ -558,11 +602,11 @@ class Plots:
         }
         df = self._subset_data(table, required_columns, query)
 
-        df = df[df["PredictorName"] == "Classifier"]
-        df = df.groupby(by)
-        if df.ngroups > 10:  # pragma: no cover
+        df = df.filter(pl.col("PredictorName") == "Classifier").collect()
+        ngroups = df["ModelID"].n_unique()
+        if ngroups > 10:  # pragma: no cover
             print(
-                f"""WARNING: you are about to create {df.ngroups} plots because there are that many models. For convenience we've set the 'show_each' parameter to False - so the plots will be returned in a list. Iterate through that list to show the plots, or override 'show_each' to True if that's desired."""
+                f"""WARNING: you are about to create {ngroups} plots because there are that many models. For convenience we've set the 'show_each' parameter to False - so the plots will be returned in a list. Iterate through that list to show the plots, or override 'show_each' to True if that's desired."""
             )
             show_each = kwargs.pop("show_each", False)
         else:  # pragma: no cover
@@ -572,6 +616,7 @@ class Plots:
 
         return plotting_engine.ScoreDistribution(
             df=df,
+            by=by,
             show_zero_responses=show_zero_responses,
             query=query,
             show_each=show_each,
@@ -635,20 +680,22 @@ class Plots:
             "ModelID",
         }
         df = self._subset_data(table, required_columns, query, last=last)
-        df = df.query("PredictorName != 'Classifier'")
+        df = df.filter(pl.col("PredictorName") != "Classifier")
         if modelids is not None:
-            df = df.query(f"ModelID in {modelids}")
+            df = df.filter(pl.col("ModelID").is_in(modelids))
         if predictors:
-            df = df.query(f"PredictorName in {predictors}")
+            df = df.filter(pl.col("PredictorName").is_in(predictors))
 
-        if df.ModelID.nunique() == 0:
+        df = df.collect()
+
+        if df["ModelID"].n_unique() == 0:
             raise ValueError(
                 "No model found. Please check if model ID is also in the combined data set."
             )
-        num_plots = df.ModelID.nunique() * df.PredictorName.nunique()
+        num_plots = df["ModelID"].n_unique() * df["PredictorName"].n_unique()
         if num_plots > 10:  # pragma: no cover
             print(
-                f"WARNING: you are about to create {num_plots} plots because there are {df.ModelID.nunique()} models and {df.PredictorName.nunique()} unique predictors.",
+                f"WARNING: you are about to create {num_plots} plots because there are {df['ModelID'].n_unique()} models and {df['PredictorName'].n_unique()} unique predictors.",
                 "For convenience we've set the 'show_each' parameter to False - so the plots will be returned in a list.",
                 "Iterate through that list to show the plots, or override 'show_each' to True if that's desired.",
             )
@@ -720,32 +767,37 @@ class Plots:
             kwargs.get("plotting_engine", self.plotting_engine)
         )()
         if to_plot == "Performance":
-            var_to_plot = "PerformanceBin"
-        else:
-            var_to_plot = to_plot
+            to_plot = "PerformanceBin"
 
         table = "combinedData"
         last = True
-        required_columns = {"Channel", "PredictorName", var_to_plot, "Type"}
+        required_columns = {"Channel", "PredictorName", to_plot, "Type"}
+        if facets is not None:
+            required_columns = required_columns.union(*facets)
         df = self._subset_data(
             table, required_columns, query, last=last, active_only=active_only
         )
-        df = df.query("PredictorName != 'Classifier'").reset_index(drop=True)
+        df = df.filter(pl.col("PredictorName") != "Classifier")
 
-        df = self.top_n(df, top_n, var_to_plot)
+        df = self.top_n(df, top_n, to_plot)  # TODO: add groupby
+
+        categorization = kwargs.pop("categorization", defaultPredictorCategorization)
+        df = df.collect().with_column(
+            pl.col("PredictorName").apply(categorization).alias("Legend")
+        )
+
         asc = plotting_engine.__module__.split(".")[1] == "plots_mpl"
         order = (
-            df.groupby("PredictorName")[var_to_plot]
-            .mean()
-            .fillna(0)
-            .sort_values(ascending=asc)[::-1]
-            .index
+            df.groupby("PredictorName")
+            .agg(pl.mean(to_plot))
+            .fill_nan(0)
+            .sort(to_plot, reverse=asc)
+            .get_column("PredictorName")
+            .to_list()
         )
-        categorization = kwargs.pop("categorization", defaultPredictorCategorization)
-        df.loc[:, "Legend"] = df.PredictorName.apply(categorization)
 
         if kwargs.pop("return_df", False):
-            return df
+            return df, order
 
         return plotting_engine.PredictorPerformance(
             df=df,
@@ -759,6 +811,7 @@ class Plots:
     def plotPredictorPerformanceHeatmap(
         self,
         top_n: int = 0,
+        by="ModelName",
         active_only: bool = False,
         query: Union[str, dict] = None,
         facets: list = None,
@@ -808,14 +861,16 @@ class Plots:
         )()
         table = "combinedData"
         required_columns = {"PredictorName", "ModelName", "PerformanceBin"}
+        if by is not None:
+            required_columns = required_columns.union({by, "ResponseCount"})
         df = self._subset_data(
             table, required_columns, query, active_only=active_only, last=True
         )
-        df = df[df["PredictorName"] != "Classifier"].reset_index(drop=True)
+        df = df.filter(pl.col("PredictorName") != "Classifier")
 
-        df = self.pivot_df(df)
+        df = self.pivot_df(df, by=by)
         if top_n > 0:
-            df = df.iloc[:, :top_n]
+            df = df[0:top_n]
 
         if kwargs.pop("return_df", False):
             return df
@@ -936,7 +991,7 @@ class Plots:
         last = True
         required_columns = {by, "ResponseCount", "ModelID"}
         df = self._subset_data(table, required_columns, query, last=last)
-        df = self.response_gain_df(df, by=by)
+        df = self.response_gain_df(df, by=by).collect()
 
         if kwargs.pop("return_df", False):
             return df
@@ -987,7 +1042,7 @@ class Plots:
         last = True
         required_columns = {by, "Positives", "ModelID"}
         df = self._subset_data(table, required_columns, query, last=last)
-        df = self.models_by_positives_df(df, by=by)
+        df = self.models_by_positives_df(df, by=by).collect()
         if kwargs.pop("return_df", False):
             return df
         return plotly().ModelsByPositives(
@@ -1058,31 +1113,29 @@ class Plots:
         """
         if kwargs.get("plotting_engine", self.plotting_engine) != "plotly":
             print("Plot is only available in Plotly.")
-        df = self.model_summary(by=by, query=query)
-        df = df[
-            [
-                (by, "count"),
-                (by, "percentage_without_responses"),
-                ("ResponseCount", "sum"),
-                ("SuccessRate", "mean"),
-                ("Performance", "weighted_mean"),
-                ("Positives", "sum"),
-            ]
-        ]
-        df = df.reset_index()
-        df.columns = self.context_keys + [
-            "Model count",
-            "Percentage without responses",
-            "Response Count sum",
-            "Success Rate mean",
-            "Performance weighted mean",
-            "Positives sum",
-        ]
-        if "issue" in df.columns and "OmniChannel" in df["Issue"].unique():
+
+        mapping = {
+            f"{by}_count": "Model count",
+            "Percentage_without_responses": "Percentage without responses",
+            "ResponseCount_sum": "Response Count sum",
+            "SuccessRate_mean": "Success Rate mean",
+            "Performance_weighted": "Performance weighted mean",
+            "Positives_sum": "Positives sum",
+        }
+        with pl.StringCache():
+            df = (
+                self.model_summary(by=by, query=query)
+                .select([pl.col(self.context_keys).cast(pl.Utf8), pl.col(list(mapping.keys()))])
+                .rename(mapping)
+                .sort(self.context_keys).fill_null('Missing')
+                .collect()
+            )
+
+        if "Issue" in df.columns and "OmniChannel" in df["Issue"].unique():
             print(
                 "WARNING: This plot does not work for OmniChannel models. For that reason, we filter those out by default."
             )
-            df = df.query('Issue != "OmniChannel"')
+            df = df.filter(pl.col("Issue") != "OmniChannel")
 
         defaults = {
             "responsecount": [
