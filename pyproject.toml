@@ -12,7 +12,7 @@ pdstools = ['healthcheck/*.qmd']
 
 [project]
 name = "pdstools"
-version = "2.3.0"
+dynamic = ["version"]
 description = "Open source tooling that helps Data Scientists to analyze Pega models and conduct impactful analyses."
 readme = "README.md"
 authors = [ { name = "Stijn Kas", email = "stijn.kas@pega.com" } ] 
@@ -46,6 +46,9 @@ dependencies = [
         "tqdm"
     ]
 requires-python = ">=3.7"
+
+[tool.setuptools.dynamic]
+version = {attr="pdstools.__version__"}
 
 [project.optional-dependencies]
 docs = ['sphinx','furo','sphinx-autoapi','nbsphinx','sphinx-copybutton','myst-parser']
