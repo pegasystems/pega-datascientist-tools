@@ -26,7 +26,7 @@ def readDSExport(
     path: str = ".",
     verbose: bool = True,
     **kwargs,
-) -> Union[pd.DataFrame, pl.DataFrame]:
+) -> pl.LazyFrame:
     """Read a Pega dataset export file.
     Can accept either a Pandas DataFrame or one of the following formats:
     - .csv
@@ -39,6 +39,7 @@ def readDSExport(
     It automatically infers the default file names for both model data as well as predictor data.
     If you supply either 'modelData' or 'predictorData' as the 'file' argument, it will search for them.
     If you supply the full name of the file in the 'path' directory, it will import that instead.
+    Since pdstools V3.x, returns a Polars LazyFrame. Simply call `.collect()` to get an eager frame.
 
     Parameters
     ----------
@@ -54,16 +55,13 @@ def readDSExport(
 
     Keyword arguments
     -----------------
-    return_pl: bool
-        Whether to return polars dataframe
-        if False, transforms to Pandas
     Any:
-        Any arguments to plug into the read_* function from Polars.
+        Any arguments to plug into the scan_* function from Polars.
 
     Returns
     -------
-    pd.DataFrame | pl.DataFrame
-        The read data from the given file
+    pl.LazyFrame
+        The (lazy) dataframe
 
     Examples:
         >>> df = readDSExport(filename = 'modelData', path = './datamart')
@@ -74,10 +72,20 @@ def readDSExport(
 
     """
 
-    # If a dataframe is supplied directly, we can just return it
-    if isinstance(filename, pd.DataFrame) | isinstance(filename, pl.DataFrame):
-        logging.debug("Dataframe returned directly")
+    # If a lazy frame is supplied directly, we just pass it through
+    if isinstance(filename, pl.LazyFrame):
+        logging.debug("Lazyframe returned directly")
         return filename
+
+    # If a dataframe is supplied directly, we can just return its lazy version
+    if isinstance(filename, pl.DataFrame):
+        logging.debug("Dataframe returned directly")
+        return filename.lazy()
+
+    # If dataframe is pandas, we transform to Polars
+    if isinstance(filename, pd.DataFrame):
+        logging.debug("Pandas dataframe supplied, transforming to polars")
+        return pl.DataFrame(filename).lazy()
 
     # If the data is a BytesIO object, such as an uploaded file
     # in certain webapps, then we can simply return the object
@@ -129,12 +137,8 @@ def readDSExport(
     return import_file(file, extension, **kwargs)
 
 
-def import_file(
-    file: str, extension: str, **kwargs
-) -> Union[pl.DataFrame, pd.DataFrame]:
+def import_file(file: str, extension: str, **kwargs) -> pl.LazyFrame:
     """Imports a file using Polars
-
-    By default, exports to Pandas
 
     Parameters
     ----------
@@ -143,16 +147,10 @@ def import_file(
     extension: str
         The extension of the file, used to determine which function to use
 
-    Keyword arguments
-    -----------------
-    return_pl: bool, default = False
-        Whether to return Polars or Pandas
-        If return_pl is True, then keeps the Polars dataframe
-
     Returns
     -------
-    Union[pd.DataFrame | pl.DataFrame]
-        A Pandas or Polars dataframe, depending on `return_pl`
+    pl.LazyFrame
+        The (imported) lazy dataframe
     """
 
     if extension == ".zip":
@@ -160,7 +158,7 @@ def import_file(
         file, extension = readZippedFile(file)
 
     if extension == ".csv":
-        file = pl.read_csv(
+        file = pl.scan_csv(
             file,
             sep=kwargs.get("sep", ","),
         )
@@ -168,31 +166,28 @@ def import_file(
     elif extension == ".json":
         try:
             if isinstance(file, BytesIO):
-                file = pl.read_ndjson(file)
+                file = pl.read_ndjson(file).lazy()
             else:
                 file = pl.scan_ndjson(
                     file, infer_schema_length=kwargs.pop("infer_schema_length", 10000)
-                ).collect()
+                )
         except:
-            file = pl.read_json(file)
+            file = pl.read_json(file).lazy()
 
     elif extension == ".parquet":
-        file = pl.read_parquet(file)
+        file = pl.scan_parquet(file)
 
     elif (
         extension == ".feather"
         or extension.casefold() == ".ipc"
         or extension.casefold() == ".arrow"
     ):
-        file = pl.read_ipc(file)
+        file = pl.scan_ipc(file)
 
     else:
         raise ValueError(f"Could not import file: {file}, with extension {extension}")
 
-    if kwargs.pop("return_pl", False):
-        return file
-    else:
-        return file.to_pandas()
+    return file
 
 
 def readZippedFile(file: str, verbose: bool = False, **kwargs) -> BytesIO:
@@ -211,7 +206,7 @@ def readZippedFile(file: str, verbose: bool = False, **kwargs) -> BytesIO:
     Returns
     -------
     os.BytesIO
-        A Polars dataframe with the contents.
+        The raw bytes object to pass through to Polars
     """
     with zipfile.ZipFile(file, mode="r") as z:
         logging.debug("Opened zip file.")
@@ -219,17 +214,25 @@ def readZippedFile(file: str, verbose: bool = False, **kwargs) -> BytesIO:
         logging.debug(f"Files found: {files}")
         if "data.json" in files:
             logging.debug("data.json found.")
+            if verbose:
+                print(
+                    (
+                        "Zipped json file found. For faster reading, we recommend",
+                        "parsing the files to a format such as arrow or parquet. ",
+                        "See example in docs #TODO"
+                    )
+                )
             with z.open("data.json") as zippedfile:
                 return (BytesIO(zippedfile.read()), ".json")
         else:  # pragma: no cover
-            raise FileNotFoundError("Cannot find a 'data' file in the zip folder.")
+            raise FileNotFoundError("Cannot find a 'data.json' file in the zip folder.")
 
 
 def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
     """Convenience method to find the latest model snapshot.
     It has a set of default names to search for and finds all files who match it.
     Once it finds all matching files in the directory, it chooses the most recent one.
-    It only looks at .json, .csv and .zip files for now, as they are supported.
+    Supports [".json", ".csv", ".zip", ".parquet", ".feather", ".ipc"].
     Needs a path to the directory and a target of either 'modelData' or 'predictorData'.
 
     Parameters
@@ -250,7 +253,7 @@ def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
     if target not in {"modelData", "predictorData", "ValueFinder"}:
         return f"Target not found"
 
-    supported = [".json", ".csv", ".zip", ".parquet", ".feather", ".ipc"]
+    supported = [".json", ".csv", ".zip", ".parquet", ".feather", ".ipc", ".arrow"]
 
     files_dir = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
     files_dir = [f for f in files_dir if os.path.splitext(f)[-1].lower() in supported]
@@ -304,6 +307,8 @@ def getMatches(files_dir, target):
         names = default_predictor_names
     elif target == "ValueFinder":
         names = ValueFinder_names
+    else:
+        raise ValueError(target)
     for file in files_dir:
         match = [file for name in names if re.findall(name.casefold(), file.casefold())]
         if len(match) > 0:
@@ -312,14 +317,14 @@ def getMatches(files_dir, target):
 
 
 def cache_to_file(
-    df: pd.DataFrame,
+    df: Union[pd.DataFrame, pl.DataFrame, pl.LazyFrame],
     path: os.PathLike,
     name: str,
     cache_type: str = "ipc",
     compression: str = "uncompressed",
 ) -> os.PathLike:
     """Very simple convenience function to cache data.
-    Caches in parquet format for very fast reading.
+    Caches in arrow format for very fast reading.
 
     Parameters
     ----------
@@ -343,6 +348,8 @@ def cache_to_file(
     outpath = f"{path}/{name}"
     if isinstance(df, pd.DataFrame):
         df = pl.DataFrame(df)
+    if isinstance(df, pl.LazyFrame):
+        df = df.collect()
     if cache_type == "ipc":
         outpath = f"{outpath}.arrow"
         df.write_ipc(outpath, compression=compression)
