@@ -340,9 +340,7 @@ class ADMVisualisations:
         """
 
         figlist = []
-        groups = df.groupby(by)._groups()
-        for name, rows in groups.iterrows():
-            group = df[rows]
+        for name, group in df.partition_by(by, as_dict=True).items():
             # if not show_zero_responses:
             #     if not group["BinResponseCount"].any():  # pragma: no cover
             #         pass
