@@ -150,7 +150,9 @@ class Plots:
             df = df.filter(pl.col("EntryType") == "Active")
         if include_cols:
             required_columns = set(list(required_columns) + include_cols)
-        return df.select(list(required_columns))
+        return df.select(list(required_columns)).with_columns(
+            pl.col(pl.Categorical).cast(pl.Utf8)
+        )
 
     def plotPerformanceSuccessRateBubbleChart(
         self,
@@ -220,8 +222,8 @@ class Plots:
                 kwargs.pop("round", 5)
             )
         )
-
-        df = df.collect()
+        with pl.StringCache():
+            df = df.collect()
         if kwargs.pop("return_df", False):
             return df
 
@@ -386,7 +388,8 @@ class Plots:
             if metric == "Performance":
                 metric = "weighted_performance"
 
-        df = df.collect()
+        with pl.StringCache():
+            df = df.collect()
         if kwargs.pop("return_df", False):
             return df
 
@@ -531,7 +534,8 @@ class Plots:
         last = True
         required_columns = {"ModelID", "ModelName", "SuccessRate"}.union({metric})
         df = self._subset_data(table, required_columns, query, last=last)
-        df = df.collect()
+        with pl.StringCache():
+            df = df.collect()
         if kwargs.pop("return_df", False):
             return df
 
@@ -601,8 +605,8 @@ class Plots:
             "ModelID",
         }
         df = self._subset_data(table, required_columns, query)
-
-        df = df.filter(pl.col("PredictorName") == "Classifier").collect()
+        with pl.StringCache():
+            df = df.filter(pl.col("PredictorName") == "Classifier").collect()
         ngroups = df["ModelID"].n_unique()
         if ngroups > 10:  # pragma: no cover
             print(
@@ -685,8 +689,8 @@ class Plots:
             df = df.filter(pl.col("ModelID").is_in(modelids))
         if predictors:
             df = df.filter(pl.col("PredictorName").is_in(predictors))
-
-        df = df.collect()
+        with pl.StringCache():
+            df = df.collect()
 
         if df["ModelID"].n_unique() == 0:
             raise ValueError(
@@ -782,9 +786,10 @@ class Plots:
         df = self.top_n(df, top_n, to_plot)  # TODO: add groupby
 
         categorization = kwargs.pop("categorization", defaultPredictorCategorization)
-        df = df.collect().with_column(
-            pl.col("PredictorName").apply(categorization).alias("Legend")
-        )
+        with pl.StringCache():
+            df = df.collect().with_column(
+                pl.col("PredictorName").apply(categorization).alias("Legend")
+            )
 
         asc = plotting_engine.__module__.split(".")[1] == "plots_mpl"
         order = (
@@ -991,7 +996,8 @@ class Plots:
         last = True
         required_columns = {by, "ResponseCount", "ModelID"}
         df = self._subset_data(table, required_columns, query, last=last)
-        df = self.response_gain_df(df, by=by).collect()
+        with pl.StringCache():
+            df = self.response_gain_df(df, by=by).collect()
 
         if kwargs.pop("return_df", False):
             return df
@@ -1042,7 +1048,8 @@ class Plots:
         last = True
         required_columns = {by, "Positives", "ModelID"}
         df = self._subset_data(table, required_columns, query, last=last)
-        df = self.models_by_positives_df(df, by=by).collect()
+        with pl.StringCache():
+            df = self.models_by_positives_df(df, by=by).collect()
         if kwargs.pop("return_df", False):
             return df
         return plotly().ModelsByPositives(
@@ -1125,9 +1132,15 @@ class Plots:
         with pl.StringCache():
             df = (
                 self.model_summary(by=by, query=query)
-                .select([pl.col(self.context_keys).cast(pl.Utf8), pl.col(list(mapping.keys()))])
+                .select(
+                    [
+                        pl.col(self.context_keys).cast(pl.Utf8),
+                        pl.col(list(mapping.keys())),
+                    ]
+                )
                 .rename(mapping)
-                .sort(self.context_keys).fill_null('Missing')
+                .sort(self.context_keys)
+                .fill_null("Missing")
                 .collect()
             )
 
