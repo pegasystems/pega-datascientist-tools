@@ -5,12 +5,11 @@ import os
 from datetime import timedelta
 from typing import Dict, NoReturn, Optional, Tuple, Union, Literal
 from io import BytesIO
-
-import numpy as np
 import pandas as pd
 import polars as pl
 
 from ..utils import cdh_utils
+from ..utils.types import any_frame
 from .ADMTrees import ADMTrees
 from ..plots.plot_base import Plots
 from ..plots.plots_mpl import ADMVisualisations as mpl_plot
@@ -133,7 +132,9 @@ class ADMDatamart(Plots):
                 print(
                     "Could not be combined. Do you have both model data and predictor data?"
                 )
-
+        self.context_keys = [
+            key for key in self.context_keys if key in self.modelData.columns
+        ]
         self.plotting_engine = plotting_engine
         super().__init__()
 
@@ -158,8 +159,8 @@ class ADMDatamart(Plots):
         path: Optional[str] = ".",
         overwrite_mapping: Optional[dict] = None,
         subset: bool = True,
-        model_df: Optional[pd.DataFrame] = None,
-        predictor_df: Optional[pd.DataFrame] = None,
+        model_df: Optional[any_frame] = None,
+        predictor_df: Optional[any_frame] = None,
         query: Union[str, Dict[str, list]] = None,
         **kwargs,
     ) -> pl.LazyFrame:
@@ -273,12 +274,15 @@ class ADMDatamart(Plots):
                 )
         if self.import_strategy == "eager":
             with pl.StringCache():
-                df1, df2 = df1.collect().lazy(), df2.collect().lazy()
+                if df1 is not None:
+                    df1 = df1.collect().lazy()
+                if df2 is not None:
+                    df2 = df2.collect().lazy()
         return df1, df2
 
     def _import_utils(
         self,
-        name: Union[str, pl.DataFrame],
+        name: Union[str, any_frame],
         path: str = None,
         overwrite_mapping: dict = None,
         subset: bool = True,
@@ -459,7 +463,7 @@ class ADMDatamart(Plots):
         return df, variables, missing
 
     @staticmethod
-    def _set_types(df: pl.LazyFrame) -> pl.LazyFrame:
+    def _set_types(df: any_frame) -> any_frame:
         """A method to change columns to their proper type
 
         Parameters
@@ -493,7 +497,7 @@ class ADMDatamart(Plots):
 
     def last(
         self, table="modelData", strategy: Literal["eager", "lazy"] = "eager"
-    ) -> Union[pl.DataFrame, pl.LazyFrame]:
+    ) -> any_frame:
         """Convenience function to get the last values for a table
 
         Parameters
@@ -513,20 +517,23 @@ class ADMDatamart(Plots):
         if isinstance(table, pl.LazyFrame):
             df = self._last(table)
 
-        if isinstance(table, str):
+        elif isinstance(table, str):
             assert table in {"modelData", "predictorData", "combinedData"}
             df = self._last(getattr(self, table))
+        else:
+            print(table)
+            print("wat", df)
         with pl.StringCache():
             return df if not strategy == "eager" else df.collect()
 
     @staticmethod
-    def _last(df: pl.LazyFrame) -> pl.LazyFrame:
+    def _last(df: any_frame) -> any_frame:
         """Method to retrieve only the last snapshot."""
         return df.filter(pl.col("SnapshotTime") == pl.col("SnapshotTime").max())
 
     def get_combined_data(
         self, last=True, strategy: Literal["eager", "lazy"] = "eager"
-    ) -> pl.LazyFrame:
+    ) -> any_frame:
         """Combines the model data and predictor data into one dataframe.
 
         Parameters
@@ -574,7 +581,7 @@ class ADMDatamart(Plots):
             )
         return modeldata_cache, predictordata_cache
 
-    def _apply_query(self, df, query: Union[str, dict] = None) -> pl.DataFrame:
+    def _apply_query(self, df: any_frame, query: Union[str, dict] = None) -> any_frame:
         """Given an input pandas dataframe, it filters the dataframe based on input query
 
         Parameters
@@ -624,7 +631,8 @@ class ADMDatamart(Plots):
             print("Extracting treatments...")
         if self.import_strategy != "eager":
             raise self.NotEagerError("Extracting treatments")
-        df = df.collect()
+        with pl.StringCache():
+            df = df.collect()
         self.extracted = self._extract(df, extract_col)
         df = df.rename(dict(zip(df.columns, [i.lower() for i in df.columns])))
         df = df.drop(extract_col.lower())
@@ -671,7 +679,7 @@ class ADMDatamart(Plots):
                 msg = defaultmsg
             super().__init__(msg)
 
-    def discover_modelTypes(self, df, by="Configuration"):
+    def discover_modelTypes(self, df: pl.LazyFrame, by="Configuration"):
         if self.import_strategy != "eager":
             raise self.NotEagerError("Discovering AGB models")
 
@@ -685,14 +693,17 @@ class ADMDatamart(Plots):
                 if line.startswith('  "_serialClass"')
             )
 
-        types = (
-            df.filter(pl.col("Modeldata").is_not_null())
-            .groupby(by)
-            .agg(pl.col("Modeldata").last())
-            .collect()
-            .with_column(pl.col("Modeldata").apply(lambda v: _getType(v)))
-            .to_dicts()
-        )
+        if isinstance(df, pl.DataFrame):
+            df = df.lazy()
+        with pl.StringCache():
+            types = (
+                df.filter(pl.col("Modeldata").is_not_null())
+                .groupby(by)
+                .agg(pl.col("Modeldata").last())
+                .collect()
+                .with_column(pl.col("Modeldata").apply(lambda v: _getType(v)))
+                .to_dicts()
+            )
         return {key: value for key, value in [i.values() for i in types]}
 
     def get_AGB_models(
@@ -745,8 +756,9 @@ class ADMDatamart(Plots):
         ]
         logging.info(f"Found AGB models: {AGB_models}")
         df = df.filter(pl.col("Configuration").is_in(AGB_models))
-        if df["ModelID"].n_unique().collect() == 0:
-            raise ValueError("No models found.")
+        with pl.StringCache():
+            if df["ModelID"].n_unique().collect() == 0:
+                raise ValueError("No models found.")
 
         if last:
             return ADMTrees(
@@ -756,7 +768,9 @@ class ADMDatamart(Plots):
             return ADMTrees(df, n_threads=n_threads, verbose=verbose, **kwargs)
 
     @staticmethod
-    def _create_sign_df(df: pl.LazyFrame) -> pl.LazyFrame:
+    def _create_sign_df(
+        df: pl.LazyFrame, by, what="ResponseCount", every="1d", mask=True
+    ) -> pl.LazyFrame:
         """Generates dataframe to show whether responses decreased/increased from day to day
         For a given dataframe where columns are dates and rows are model names,
         subtracts each day's value from the previous day's value per model. Then masks the data.
@@ -773,24 +787,26 @@ class ADMDatamart(Plots):
             The dataframe with signs for increase or decrease in day to day
 
         """
-        vals = df.reset_index().values
-        cols = df.columns
-        _df = pd.DataFrame(
-            np.hstack(
-                (
-                    np.array([[vals[i, 0]] for i in range(vals.shape[0])]),
-                    np.array(
-                        [vals[i, 2:] - vals[i, 1:-1] for i in range(vals.shape[0])]
-                    ),
-                )
+
+        df = (
+            df.with_column(pl.col("SnapshotTime").cast(pl.Date))
+            .sort("SnapshotTime")
+            .with_column(
+                pl.col(what)
+                .cast(pl.UInt64)
+                .diff()
+                .alias("Daily_increase")
+                .over("ModelID")
             )
+            .groupby_dynamic("SnapshotTime", every=every, by=by)
+            .agg(pl.sum("Daily_increase").alias("Increase"))
+            .collect()
+            .pivot(index="SnapshotTime", columns=by, values="Increase")
+            .lazy()
         )
-        _df.columns = cols
-        _df.rename(columns={cols[0]: "ModelID"}, inplace=True)
-        df_sign = _df.set_index("ModelID").mask(_df.set_index("ModelID") > 0, 1)
-        df_sign = df_sign.mask(df_sign < 0, -1)
-        df_sign[cols[0]] = 1
-        return df_sign[cols].fillna(1)
+        if mask:
+            df = df.with_columns((pl.all().exclude("SnapshotTime").sign()))
+        return df
 
     def _create_heatmap_df(
         self,
@@ -966,11 +982,12 @@ class ADMDatamart(Plots):
             df = df.groupby([by, "PredictorName"]).agg(
                 cdh_utils.weighed_average_polars("PerformanceBin", "ResponseCount")
             )
-        df = (
-            df.collect()
-            .pivot(index=by, columns="PredictorName", values="PerformanceBin")
-            .fill_null(0.5)
-        )
+        with pl.StringCache():
+            df = (
+                df.collect()
+                .pivot(index=by, columns="PredictorName", values="PerformanceBin")
+                .fill_null(0.5)
+            )
         mod_order = (
             df.select(
                 pl.concat_list(pl.col(pl.Float64))
@@ -1034,7 +1051,8 @@ class ADMDatamart(Plots):
                 .to_series()
             )
 
-        modelsByPositives = df.select([by, "Positives", "ModelID"]).collect()
+        with pl.StringCache():
+            modelsByPositives = df.select([by, "Positives", "ModelID"]).collect()
         return (
             modelsByPositives.hstack(
                 [
