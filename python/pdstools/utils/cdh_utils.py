@@ -219,7 +219,7 @@ def readZippedFile(file: str, verbose: bool = False, **kwargs) -> BytesIO:
                     (
                         "Zipped json file found. For faster reading, we recommend",
                         "parsing the files to a format such as arrow or parquet. ",
-                        "See example in docs #TODO"
+                        "See example in docs #TODO",
                     )
                 )
             with z.open("data.json") as zippedfile:
@@ -723,3 +723,31 @@ def getToken(credentialFile, verify=True, **kwargs):
         auth=(creds["Client ID"], creds["Client Secret"]),
         verify=verify,
     ).json()["access_token"]
+
+
+def calc_reach(num_positives):
+    reach = 100 * (0.02 + 0.98 * (min(200, num_positives) / 200))
+    reach = "{:.2f}".format(reach)
+    reach_percentage = f"%{reach}"
+    return reach_percentage
+
+
+def merge_col(df, col_list, col_name=False):
+    """Create a joined column from col_list, name it and add it to df"""
+    new_col_name = "/".join([str(n) for n in col_list])
+    if type(col_list) == list:
+        if col_name:
+            return new_col_name
+        format_placeholder = ""
+        for col in col_list:
+            format_placeholder += "{}/"
+
+        format = [format_placeholder[:-1]] + col_list
+
+        df = df.with_columns(
+            [pl.col(col_nm).cast(pl.Utf8).fill_null("NA") for col_nm in col_list]
+        ).with_column(pl.format(*format).alias(new_col_name))
+    else:
+        return new_col_name
+
+    return df, new_col_name
