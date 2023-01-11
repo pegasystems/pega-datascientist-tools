@@ -3,10 +3,14 @@ import warnings
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 import numpy as np
+import math
 import plotly.express as px
 import plotly.graph_objects as go
 import polars as pl
 from plotly.subplots import make_subplots
+from ..utils import cdh_utils
+from ..app import pega_template
+
 
 class ADMVisualisations:
     @staticmethod
@@ -69,6 +73,7 @@ class ADMVisualisations:
         add_bottom_left_text=True,
         facets=None,
         context_keys=None,
+        color="Performance",
         **kwargs,
     ):
         """Creates bubble chart similar to ADM OOTB reports
@@ -97,6 +102,8 @@ class ADMVisualisations:
             For example, if facets == 'Channel', a bubble plot is made for each channel
             Depending on show_each, every chart is either shown or not
             If more than one facet is visualised, they are returned in a list
+        color : str
+            The column to set as the color of the bubbles
 
         Returns
         -------
@@ -114,15 +121,15 @@ class ADMVisualisations:
                 df.to_pandas(),
                 x="Performance",
                 y="SuccessRate",
-                color="Performance",
+                color=color,
                 size="ResponseCount",
                 facet_col=facet,
                 facet_col_wrap=5,
                 hover_name="ModelName",
-                hover_data=["ModelID"] + context_keys,
+                hover_data=["ModelName"] + context_keys,
                 title=f'Bubble Chart {title} {kwargs.get("title_text","")}',
                 color_continuous_scale="Bluered",
-                template="none",
+                template="pega",
             )
             fig.update_traces(marker=dict(line=dict(color="black")))
 
@@ -157,7 +164,8 @@ class ADMVisualisations:
                     newtext = f"{len(df)} models: {bottomleft} ({round(bottomleft/len(df)*100, 2)}%) at (50,0)"
                     fig.layout.title.text += f"<br><sup>{newtext}</sup>"
                     fig.data[0].marker.size *= bubble_size
-
+            fig.update_yaxes(tickformat=",.1%")
+            fig.update_xaxes(tickformat=",.0%")
             fig = self.post_plot(fig, name="Bubble", title=title, **kwargs)
 
             figlist.append(fig)
@@ -229,20 +237,37 @@ class ADMVisualisations:
                 print(
                     f"Warning: plotting this much data ({len(df)} rows) will probably be slow while not providing many insights. Consider filtering the data by either limiting the number of models, filtering on SnapshotTime or facetting."
                 )
+            if by == facets:
+                fig_header = (
+                    f'{metric} over time, {title} {kwargs.get("title_text","")}'
+                )
+            else:
+                fig_header = f'{metric} over time, per {by} {title} {kwargs.get("title_text","")}'
             fig = px.line(
-                df.to_pandas(),
+                df,
                 x="SnapshotTime",
                 y=metric,
                 color=by,
-                hover_data=[by, metric, "SuccessRate"],
+                hover_data=[by, metric],
                 markers=True,
-                title=f'{metric} over time, per {by} {title} {kwargs.get("title_text","")}',
+                title=fig_header,
                 facet_col=facet,
-                facet_col_wrap=5,
-                template="none",
+                facet_col_wrap=2,
+                template="pega",
             )
             if hide_legend:
                 fig.update_layout(showlegend=False)
+
+            if metric in ["SuccessRate", "Performance", "weighted_performance"]:
+                fig.update_yaxes(tickformat=",.1%")
+
+            height = 200 + (math.ceil(len(df[facet].unique().tolist()) / 2) * 250)
+
+            fig.update_layout(autosize=True, height=height)
+            fig.for_each_annotation(
+                lambda a: a.update(text=a.text.replace(f"{facet}=", ""))
+            )
+            fig.for_each_xaxis(lambda xaxis: xaxis.update(showticklabels=True))
 
             fig = self.post_plot(fig, name="Lines_over_time", title=title, **kwargs)
 
@@ -408,6 +433,7 @@ class ADMVisualisations:
         order,
         facets=None,
         to_plot="Performance",
+        y="PredictorName",
         **kwargs,
     ):
         """Shows a box plot of predictor performance
@@ -444,9 +470,14 @@ class ADMVisualisations:
         # TODO: perhaps get top n & order per facet.
         if isinstance(facets, str) or facets is None:
             facets = [facets]
-
-        colormap = df["Legend"].unique()
-
+        if len(df[y].unique()) < 10:
+            facet_col_wrap = 2
+            row_spacing = 0.05
+        else:
+            facet_col_wrap = 1
+            row_spacing = 2.5 / (
+                len(df[y].unique()) * 10
+            )  # distance between is proportioal to fig lenght. So we scale it here to prevent huge gaps when top_n param is a large number
         figlist = []
         for facet in facets:
             title = "over all models" if facet is None else f"per {facet}"
@@ -454,46 +485,47 @@ class ADMVisualisations:
             fig = px.box(
                 df.to_pandas(),
                 x=to_plot,
-                y="PredictorName",
+                y=y,
                 color="Legend",
-                template="none",
+                template="pega",
                 title=f"Predictor {to_plot} {title} {kwargs.get('title_text','')}",
                 facet_col=facet,
-                facet_col_wrap=5,
+                facet_col_wrap=facet_col_wrap,
+                facet_row_spacing=row_spacing,  # default is 0.07
                 labels={
                     "PredictorName": "Predictor Name",
                 },
             )
 
+            if to_plot in ["SuccessRate", "Performance"]:
+                fig.update_xaxes(tickformat=",.0%")
             fig.update_yaxes(
                 categoryorder="array", categoryarray=order, automargin=True, dtick=1
             )
-            fig.update_traces(marker=dict(color="rgb(0,0,0)"), width=0.6)
 
-            colors = [
-                "rgb(14,94,165)",
-                "rgb(28,168,154)",
-                "rgb(254,183,85)",
-                "rgb(45,130,66)",
-                "rgb(252,136,72)",
-                "rgb(125,94,187)",
-                "rgb(252,139,130)",
-                "rgb(140,81,43)",
-                "rgb(175,161,156)",
-            ]
-
-            if len(colormap) > 9:  # pragma: no cover
-                colors = px.colors.qualitative.Alphabet
-
-            for i in range(len(fig.data)):
-                color = fig.data[i].legendgroup
-                fig.data[i].fillcolor = colors[
-                    np.where(colormap == color)[0].tolist()[0]
-                ]
+            fig.update_traces(width=0.3)
+            indv_facet_len = 80 + (len(df.select(y).unique()) * 20)
+            height = 150 + (
+                math.ceil(len(df.select(facet).unique()) / facet_col_wrap)
+                * indv_facet_len
+            )
 
             fig.update_layout(
-                boxgap=0, boxgroupgap=0, legend_title_text="Predictor type"
+                boxgap=0,
+                boxgroupgap=0,
+                legend_title_text="Predictor category",
+                height=height,
             )
+            fig.update_yaxes(
+                automargin=True,
+                dtick=1,
+                visible=kwargs.get("y_visible", False),
+                showticklabels=kwargs.get("y_visible", False),
+            )
+            fig.for_each_annotation(
+                lambda a: a.update(text=a.text.replace(f"{facet}=", ""))
+            )
+            fig.for_each_xaxis(lambda xaxis: xaxis.update(showticklabels=True))
             fig = self.post_plot(fig, name=f"Predictor_{to_plot}", **kwargs)
 
             figlist.append(fig)
@@ -504,6 +536,7 @@ class ADMVisualisations:
         self,
         df,
         facets=None,
+        header=None,
         **kwargs,
     ):
         """Shows a heatmap plot of predictor performance across models
@@ -543,6 +576,8 @@ class ADMVisualisations:
         figlist = []
         for facet in facets:
             title = "over all models" if facet is None else f"per {facet}"
+            if header:
+                title = f"over {header}"
 
             import plotly
             from packaging import version
@@ -572,6 +607,11 @@ class ADMVisualisations:
                 facet_col_wrap=5,
                 title=f'Top predictors {title} {kwargs.get("title_text","")}',
                 range_color=kwargs.get("range_color", [0.5, 1]),
+            )
+            fig.update_layout(
+                font=dict(
+                    size=8,  # Set the font size here
+                )
             )
             fig.update_yaxes(dtick=1, automargin=True)
             fig.update_xaxes(dtick=1, tickangle=kwargs.get("tickangle", None))
@@ -809,3 +849,36 @@ class ADMVisualisations:
             )
         fig = self.post_plot(fig, name="TreeMap", **kwargs)
         return fig
+
+    def PredictorCount(self, df, facets):
+        if isinstance(facets, str) or facets is None:
+            facets = [facets]
+        figlist = []
+        color = "EntryType"
+        y = "Type"
+        for facet in facets:
+            title = "over all models" if facet == None else f"per {facet}"
+
+            fig = px.box(
+                df.to_pandas().sort_values([color, y]),
+                x="Predictor Count",
+                y=y,
+                color=color,
+                template="pega",
+                title=f"Predictor Count {title}",
+                facet_col=facet,
+                facet_col_wrap=2,
+            )
+            height = 200 + (math.ceil(len(df[facet].unique()) / 2) * 250)
+            fig.update_layout(autosize=True, width=900, height=height)
+            fig.update_yaxes(categoryorder="array", automargin=True, dtick=1)
+            fig.for_each_annotation(
+                lambda a: a.update(text=a.text.replace(f"{facet}=", ""))
+            )
+            y_tics = [y_value for y_value in df.select(y).unique().get_column(y)]
+            y_tics.remove("Overall")
+            fig.update_yaxes(categoryorder="array", categoryarray=y_tics + ["Overall"])
+            figlist.append(fig)
+
+        result = figlist if len(figlist) > 1 else figlist[0]
+        return result

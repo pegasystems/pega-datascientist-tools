@@ -972,22 +972,29 @@ class ADMDatamart(Plots):
         )
 
     def pivot_df(
-        self, df: pl.LazyFrame, by="ModelName", allow_collect=True
+        self, df: pl.LazyFrame, index_cols="ModelName", allow_collect=True
     ) -> pl.DataFrame:
         """Simple function to extract pivoted information"""
         if self.import_strategy == "lazy" and not allow_collect:
             raise ValueError("Only supported in eager mode.")
         df = df.filter(pl.col("PredictorName") != "Classifier")
-        if by not in ["ModelID", "ModelName"]:
-            df = df.groupby([by, "PredictorName"]).agg(
+        if isinstance(index_cols, list):
+            df, index_name = cdh_utils.merge_col(df, index_cols)
+        else:
+            index_name = index_cols[0]
+        if index_cols not in ["ModelID", "ModelName"]:
+            df = df.groupby([index_name, "PredictorName"]).agg(
                 cdh_utils.weighed_average_polars("PerformanceBin", "ResponseCount")
             )
         with pl.StringCache():
             df = (
                 df.collect()
-                .pivot(index=by, columns="PredictorName", values="PerformanceBin")
-                .fill_null(0.5)
+                .pivot(
+                    index=index_name, columns="PredictorName", values="PerformanceBin"
+                )
+                .fill_null(0.5).fill_nan(0.5)
             )
+        
         mod_order = (
             df.select(
                 pl.concat_list(pl.col(pl.Float64))
@@ -997,7 +1004,7 @@ class ADMDatamart(Plots):
             .select(pl.all().arg_sort(reverse=True))
             .to_series()
         )
-        pred_order = [by] + [
+        pred_order = [index_name] + [
             df.columns[i + 1]
             for i in 0
             + df.select(pl.col(pl.Float64).mean())
