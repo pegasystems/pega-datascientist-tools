@@ -1,4 +1,4 @@
-from typing import Optional, Union, Dict
+from typing import Optional, Union, Dict, List
 import pandas as pd
 import polars as pl
 from .plots_mpl import ADMVisualisations as mpl
@@ -88,6 +88,7 @@ class Plots:
         query: Union[str, Dict[str, list]] = None,
         multi_snapshot: bool = False,
         last: bool = False,
+        facets=None,
         active_only: bool = False,
         include_cols: Optional[list] = None,
     ) -> pd.DataFrame:
@@ -148,11 +149,64 @@ class Plots:
 
         if active_only and "PredictorName" in df.columns:
             df = df.filter(pl.col("EntryType") == "Active")
-        if include_cols:
+
+        df, facets = self._generateFacets(df, facets)
+
+        if include_cols is not None:
             required_columns = set(list(required_columns) + include_cols)
-        return df.select(list(required_columns)).with_columns(
-            pl.col(pl.Categorical).cast(pl.Utf8)
+        if facets is not [None] and facets is not None:
+            required_columns = set(list(required_columns) + facets)
+        required_columns = {x for x in required_columns if x is not None}
+
+        return (
+            df.select(list(required_columns)).with_columns(
+                pl.col(pl.Categorical).cast(pl.Utf8)
+            ),
+            facets,
         )
+
+    def _generateFacets(self, df, facets: Union[str, list, set] = None) -> list:
+        if facets is None:
+            return df, [None]
+        if not isinstance(facets, list):
+            facets = [facets]
+        for facet in facets:
+            if "/" in facet:
+                df = df.with_column(pl.concat_str(facet.split("/"), "/").alias(facet))
+        df = df.with_column(pl.col(facet).cast(pl.Utf8).fill_null("MISSING"))
+
+        return df, facets
+
+    def facettedPlot(self, facets, plotFunc, partition=None, *args, **kwargs):
+        print(partition)
+        if len(facets) > 0 and facets[0] is not None:
+            figlist = []
+            if partition is None:
+                for facet in facets:
+                    print(facet)
+                    figlist.append(plotFunc(facet=facet, *args, **kwargs))
+            else:
+                if partition == "by":
+                    for name, groupdf in (
+                        kwargs.pop("df")
+                        .partition_by(kwargs.pop("by"), as_dict=True)
+                        .items()
+                    ):
+                        figlist.append(
+                            plotFunc(
+                                facet=facet, name=name, df=groupdf, *args, **kwargs
+                            )
+                        )
+                elif partition == "facet":
+                    for facet, groupdf in (
+                        kwargs.pop("df").partition_by(facets, as_dict=True).items()
+                    ):
+                        figlist.append(
+                            plotFunc(facet=facet, df=groupdf, *args, **kwargs)
+                        )
+            return figlist if len(figlist) > 1 else figlist[0]
+        else:
+            return plotFunc(*args, **kwargs)
 
     def plotPerformanceSuccessRateBubbleChart(
         self,
@@ -214,8 +268,12 @@ class Plots:
             "ModelName",
         }
 
-        df = self._subset_data(
-            table=table, required_columns=required_columns, query=query, last=last
+        df, facets = self._subset_data(
+            table=table,
+            required_columns=required_columns,
+            query=query,
+            facets=facets,
+            last=last,
         )
         df.with_columns(
             (pl.col(["Performance", "SuccessRate"]) * pl.lit(100)).round(
@@ -227,10 +285,11 @@ class Plots:
         if kwargs.pop("return_df", False):
             return df
 
-        return plotting_engine.PerformanceSuccessRateBubbleChart(
+        return self.facettedPlot(
+            facets,
+            plotting_engine.PerformanceSuccessRateBubbleChart,
             df=df,
             add_bottom_left_text=add_bottom_left_text,
-            facets=facets,
             context_keys=self.context_keys,
             query=query,
             **kwargs,
@@ -284,8 +343,8 @@ class Plots:
             "Performance",
             "SuccessRate",
         }
-        df = self._subset_data(
-            table, required_columns, query, multi_snapshot=multi_snapshot
+        df, facets = self._subset_data(
+            table, required_columns, query, facets=facets, multi_snapshot=multi_snapshot
         )
         if kwargs.pop("return_df", False):
             return df
@@ -358,22 +417,20 @@ class Plots:
             "SuccessRate",
             "Positives",
         }
-        df = self._subset_data(
+        df, facets = self._subset_data(
             table,
             required_columns,
             query,
+            facets=facets,
             multi_snapshot=multi_snapshot,
             include_cols=[by],
         )
-        if isinstance(facets, str) or facets is None:
-            facets = [facets]
-
         df = df.sort(by="SnapshotTime")
 
-        if by != "ModelID":
-            groupby = [by]
-            if facets is not None and facets != [None]:
-                groupby = groupby + facets
+        groupby = [by]
+        if len(facets) > 0 and facets[0] is not None:
+            groupby = groupby + facets
+        if metric in ["Performance", "weighted_performance", "SuccessRate"]:
             df = (
                 df.groupby_dynamic("SnapshotTime", every=every, by=groupby).agg(
                     [
@@ -384,21 +441,31 @@ class Plots:
                     ]
                 )
             ).sort(["SnapshotTime", by])
+        else:
+            df = self._create_sign_df(
+                df,
+                by=groupby,
+                what=metric,
+                every=every,
+                mask=False,
+                pivot=False,
+            )
 
-            if metric == "Performance":
-                metric = "weighted_performance"
+        if metric == "Performance":
+            metric = "weighted_performance"
 
         with pl.StringCache():
             df = df.collect()
         if kwargs.pop("return_df", False):
             return df
 
-        return plotting_engine.OverTime(
+        return self.facettedPlot(
+            facets,
+            plotting_engine.OverTime,
             df=df,
             metric=metric,
             by=by,
             query=query,
-            facets=facets,
             **kwargs,
         )
 
@@ -483,6 +550,8 @@ class Plots:
         metric: str = "SuccessRate",
         by: str = "ModelName",
         show_error: bool = True,
+        top_n=0,
+        subsetted_top_n=False,
         query: Union[str, dict] = None,
         facets: Optional[list] = None,
         **kwargs,
@@ -532,20 +601,40 @@ class Plots:
 
         table = "modelData"
         last = True
-        required_columns = {"ModelID", "ModelName", "SuccessRate"}.union({metric})
-        df = self._subset_data(table, required_columns, query, last=last)
+        required_columns = {"ModelID", "ModelName", "SuccessRate"}
+        df, facets = self._subset_data(
+            table,
+            required_columns,
+            query,
+            facets=facets,
+            last=last,
+            include_cols=[metric, by],
+        )
+        top_n_by = by if facets == [None] else facets + [by]
+        if top_n > 0:  # TODO: fix.
+            df = df.join(
+                df.groupby(facets)
+                .agg(pl.mean(metric))
+                .sort(metric)
+                .tail(top_n)
+                .select(facets),
+                on=facets,
+            )
         with pl.StringCache():
             df = df.collect()
+
         if kwargs.pop("return_df", False):
             return df
 
-        return plotting_engine.PropositionSuccessRates(
+        return self.facettedPlot(
+            facets,
+            plotting_engine.PropositionSuccessRates,
+            partition="facet",
             df=df,
             metric=metric,
             by=by,
             show_error=show_error,
             query=query,
-            facets=facets,
             **kwargs,
         )
 
@@ -553,7 +642,9 @@ class Plots:
         self,
         by: str = "ModelID",
         show_zero_responses: bool = False,
+        modelids: Optional[List] = None,
         query: Union[str, dict] = None,
+        show_each=False,
         **kwargs,
     ) -> Union[plt.Axes, go.FigureWidget]:
         """Plots the score distribution, similar to OOTB
@@ -604,26 +695,24 @@ class Plots:
             "BinPropensity",
             "ModelID",
         }
-        df = self._subset_data(table, required_columns, query)
+        df, _ = self._subset_data(table, required_columns, query)
+        if modelids is not None:
+            df = df.filter(pl.col("ModelID").is_in(modelids))
         with pl.StringCache():
             df = df.filter(pl.col("PredictorName") == "Classifier").collect()
-        ngroups = df["ModelID"].n_unique()
-        if ngroups > 10:  # pragma: no cover
-            print(
-                f"""WARNING: you are about to create {ngroups} plots because there are that many models. For convenience we've set the 'show_each' parameter to False - so the plots will be returned in a list. Iterate through that list to show the plots, or override 'show_each' to True if that's desired."""
-            )
-            show_each = kwargs.pop("show_each", False)
-        else:  # pragma: no cover
-            show_each = kwargs.pop("show_each", True)
+
         if kwargs.pop("return_df", False):
             return df
 
-        return plotting_engine.ScoreDistribution(
+        return self.facettedPlot(
+            ["ModelID"],
+            plotting_engine.ScoreDistribution,
+            partition="facet",
             df=df,
             by=by,
             show_zero_responses=show_zero_responses,
-            query=query,
             show_each=show_each,
+            query=query,
             **kwargs,
         )
 
@@ -631,6 +720,7 @@ class Plots:
         self,
         predictors: list = None,
         modelids: list = None,
+        show_each=False,
         query: Union[str, dict] = None,
         **kwargs,
     ) -> Union[plt.Axes, go.FigureWidget]:
@@ -683,11 +773,11 @@ class Plots:
             "BinPropensity",
             "ModelID",
         }
-        df = self._subset_data(table, required_columns, query, last=last)
+        df, _ = self._subset_data(table, required_columns, query, last=last)
         df = df.filter(pl.col("PredictorName") != "Classifier")
         if modelids is not None:
             df = df.filter(pl.col("ModelID").is_in(modelids))
-        if predictors:
+        if predictors is not None:
             df = df.filter(pl.col("PredictorName").is_in(predictors))
         with pl.StringCache():
             df = df.collect()
@@ -696,19 +786,14 @@ class Plots:
             raise ValueError(
                 "No model found. Please check if model ID is also in the combined data set."
             )
-        num_plots = df["ModelID"].n_unique() * df["PredictorName"].n_unique()
-        if num_plots > 10:  # pragma: no cover
-            print(
-                f"WARNING: you are about to create {num_plots} plots because there are {df['ModelID'].n_unique()} models and {df['PredictorName'].n_unique()} unique predictors.",
-                "For convenience we've set the 'show_each' parameter to False - so the plots will be returned in a list.",
-                "Iterate through that list to show the plots, or override 'show_each' to True if that's desired.",
-            )
-            show_each = kwargs.pop("show_each", False)
-        else:  # pragma: no cover
-            show_each = kwargs.pop("show_each", True)
+
         if kwargs.pop("return_df", False):
             return df
-        return plotting_engine.PredictorBinning(
+
+        return self.facettedPlot(
+            ["ModelID", "PredictorName"],
+            plotting_engine.PredictorBinning,
+            partition="facet",
             df=df,
             query=query,
             show_each=show_each,
@@ -776,10 +861,14 @@ class Plots:
         table = "combinedData"
         last = True
         required_columns = {"Channel", "PredictorName", to_plot, "Type"}
-        if facets is not None:
-            required_columns = required_columns.union(*facets)
-        df = self._subset_data(
-            table, required_columns, query, last=last, active_only=active_only
+
+        df, facets = self._subset_data(
+            table,
+            required_columns,
+            query,
+            last=last,
+            facets=facets,
+            active_only=active_only,
         )
         df = df.filter(pl.col("PredictorName") != "Classifier")
 
@@ -801,13 +890,20 @@ class Plots:
             .to_list()
         )
 
+        if kwargs.pop("separate", False):
+            partition = "facet"
+        else:
+            partition = None
+
         if kwargs.pop("return_df", False):
             return df, order
 
-        return plotting_engine.PredictorPerformance(
+        return self.facettedPlot(
+            facets,
+            plotting_engine.PredictorPerformance,
+            partition=partition,
             df=df,
             order=order,
-            facets=facets,
             query=query,
             to_plot=to_plot,
             **kwargs,
@@ -868,11 +964,17 @@ class Plots:
         required_columns = {"PredictorName", "ModelName", "PerformanceBin"}
         if by is not None:
             required_columns = required_columns.union({by, "ResponseCount"})
-        df = self._subset_data(
-            table, required_columns, query, active_only=active_only, last=True
+        df, facets = self._subset_data(
+            table,
+            required_columns,
+            query,
+            active_only=active_only,
+            facets=facets,
+            last=True,
         )
         df = df.filter(pl.col("PredictorName") != "Classifier")
 
+        # TODO: implement facets.
         df = self.pivot_df(df, by=by)
         if top_n > 0:
             df = df[0:top_n]
@@ -880,9 +982,11 @@ class Plots:
         if kwargs.pop("return_df", False):
             return df
 
-        return plotting_engine.PredictorPerformanceHeatmap(
-            df,
-            facets=facets,
+        return self.facettedPlot(
+            facets,
+            plotting_engine.PredictorPerformanceHeatmap,
+            partition="facet",
+            df=df,
             query=query,
             **kwargs,
         )
@@ -954,6 +1058,7 @@ class Plots:
         self,
         by: str = "Channel",
         query: Union[str, dict] = None,
+        facets=None,
         **kwargs,
     ) -> go.FigureWidget:
         """Plots the cumulative response per model
@@ -995,19 +1100,22 @@ class Plots:
         table = "modelData"
         last = True
         required_columns = {by, "ResponseCount", "ModelID"}
-        df = self._subset_data(table, required_columns, query, last=last)
+        df, facets = self._subset_data(
+            table, required_columns, query, facets=facets, last=last
+        )
         with pl.StringCache():
             df = self.response_gain_df(df, by=by).collect()
 
         if kwargs.pop("return_df", False):
             return df
 
-        return plotly().ResponseGain(df, by, **kwargs)
+        return self.facettedPlot(facets, plotly().ResponseGain, df=df, by=by, **kwargs)
 
     def plotModelsByPositives(
         self,
         by: str = "Channel",
         query: Union[str, dict] = None,
+        facets=None,
         **kwargs,
     ) -> go.FigureWidget:
         """Plots the percentage of models vs the number of positive responses
@@ -1047,13 +1155,18 @@ class Plots:
         table = "modelData"
         last = True
         required_columns = {by, "Positives", "ModelID"}
-        df = self._subset_data(table, required_columns, query, last=last)
+        df, facets = self._subset_data(
+            table, required_columns, query, facets=facets, last=last
+        )
         with pl.StringCache():
             df = self.models_by_positives_df(df, by=by).collect()
         if kwargs.pop("return_df", False):
             return df
-        return plotly().ModelsByPositives(
-            df,
+
+        return self.facettedPlot(
+            facets,
+            plotly().ModelsByPositives,
+            df=df,
             by="Channel",
             query=query,
             **kwargs,

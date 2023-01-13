@@ -697,13 +697,13 @@ class ADMDatamart(Plots):
             df = df.lazy()
         with pl.StringCache():
             types = (
-                df.filter(pl.col("Modeldata").is_not_null())
-                .groupby(by)
-                .agg(pl.col("Modeldata").last())
-                .collect()
-                .with_column(pl.col("Modeldata").apply(lambda v: _getType(v)))
-                .to_dicts()
-            )
+            df.filter(pl.col("Modeldata").is_not_null())
+            .groupby(by)
+            .agg(pl.col("Modeldata").last())
+            .collect()
+            .with_column(pl.col("Modeldata").apply(lambda v: _getType(v)))
+            .to_dicts()
+        )
         return {key: value for key, value in [i.values() for i in types]}
 
     def get_AGB_models(
@@ -769,7 +769,7 @@ class ADMDatamart(Plots):
 
     @staticmethod
     def _create_sign_df(
-        df: pl.LazyFrame, by, what="ResponseCount", every="1d", mask=True
+        df: pl.LazyFrame, by, what="ResponseCount", every="1d", pivot=True, mask=True
     ) -> pl.LazyFrame:
         """Generates dataframe to show whether responses decreased/increased from day to day
         For a given dataframe where columns are dates and rows are model names,
@@ -800,10 +800,11 @@ class ADMDatamart(Plots):
             )
             .groupby_dynamic("SnapshotTime", every=every, by=by)
             .agg(pl.sum("Daily_increase").alias("Increase"))
-            .collect()
-            .pivot(index="SnapshotTime", columns=by, values="Increase")
-            .lazy()
         )
+        if pivot:
+            df = (df.collect()
+            .pivot(index="SnapshotTime", columns=by, values="Increase")
+            .lazy())
         if mask:
             df = df.with_columns((pl.all().exclude("SnapshotTime").sign()))
         return df
@@ -984,10 +985,10 @@ class ADMDatamart(Plots):
             )
         with pl.StringCache():
             df = (
-                df.collect()
-                .pivot(index=by, columns="PredictorName", values="PerformanceBin")
-                .fill_null(0.5)
-            )
+            df.collect()
+            .pivot(index=by, columns="PredictorName", values="PerformanceBin")
+            .fill_null(0.5)
+        )
         mod_order = (
             df.select(
                 pl.concat_list(pl.col(pl.Float64))
@@ -1050,7 +1051,6 @@ class ADMDatamart(Plots):
                 .drop("_sort")
                 .to_series()
             )
-
         with pl.StringCache():
             modelsByPositives = df.select([by, "Positives", "ModelID"]).collect()
         return (
