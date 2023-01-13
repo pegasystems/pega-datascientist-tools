@@ -749,7 +749,6 @@ class Plots:
         to_plot="Performance",
         query: Union[str, dict] = None,
         facets: Optional[list] = None,
-        y="PredictorName",
         **kwargs,
     ) -> Union[plt.Axes, go.FigureWidget]:
         """Plots a bar chart of the performance of the predictors
@@ -806,7 +805,6 @@ class Plots:
         required_columns = {"Channel", "PredictorName", to_plot, "Type"}
         if facets is not None:
             required_columns.update(facets)
-            required_columns.update([y])
         df = self._subset_data(
             table,
             required_columns,
@@ -824,16 +822,16 @@ class Plots:
         categorization = kwargs.pop("categorization", defaultPredictorCategorization)
         with pl.StringCache():
             df = df.collect().with_column(
-                pl.col(y).apply(categorization).alias("Legend")
+                pl.col("PredictorName").apply(categorization).alias("Predictor Category")
             )
 
         asc = plotting_engine.__module__.split(".")[1] == "plots_mpl"
         order = (
-            df.groupby(y)
+            df.groupby("Predictor Category")
             .agg(pl.mean(to_plot))
             .fill_nan(0)
             .sort(to_plot, reverse=asc)
-            .get_column(y)
+            .get_column("Predictor Category")
             .to_list()
         )
 
