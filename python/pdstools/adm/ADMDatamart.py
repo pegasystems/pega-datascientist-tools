@@ -793,7 +793,7 @@ class ADMDatamart(Plots):
             .sort("SnapshotTime")
             .with_column(
                 pl.col(what)
-                .cast(pl.UInt64)
+                .cast(pl.Int64)
                 .diff()
                 .alias("Daily_increase")
                 .over("ModelID")
