@@ -1,0 +1,1179 @@
+---
+title: "`r params$title`"
+subtitle: "`r params$subtitle`"
+author: "Pega Data Scientist's Tools"
+date: "`r Sys.Date()`"
+output:
+  html_document: 
+    toc: yes
+  pdf_document: default
+always_allow_html: true
+params:
+  # Below default values for the parameters. This notebook is usually launched from a (bash)script in which
+  # for the paths to the data.
+  
+  
+  
+  # Number of propositions, models and predictors to put in lists and plots
+  
+  # perhaps consider supporting something like this, for now you would do this in 
+  # a separate script then call this notebook
+  #   # lapply(strsplit(params$predictorclassification, split = ","), function(s) {return(lapply(strsplit(s, "="), trimws))})
+  # these values are set, although you can also run it from R Studio: Knit with Parameters to be prompted 
+  title:
+    
+    value: "NBA Machine Learning Performance Review"
+  subtitle:
+    
+    value: "Examine predictions metrics based on interaction history data"
+  
+  # Number of propositions, models and predictors to put in lists and plots
+  max_days: 20
+  min_positives_for_maturity: 200
+  min_performance_for_maturity: 0.52
+  max_models_in_list: 50
+  positive_model_response: !r c("Accepted", "Clicked")
+  negative_model_response: !r c("Rejected", "NoResponse")
+    
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, echo=F, warning=F, error=F, include=FALSE}
+library(pdstools)
+library(data.table)
+library(lubridate)
+library(ggplot2)
+library(tidyverse)
+library(ggthemr)
+library(arrow)
+library(plotly)
+library(dplyr)
+library(multidplyr)
+library(scales)
+library(htmlwidgets)
+library(htmltools)
+library(colorspace)
+library(kableExtra)
+library(MLmetrics)
+library(PRROC)
+
+theme_set(theme_minimal())
+ggthemr("flat")
+
+options(digits = 4)
+knitr::opts_chunk$set(
+  comment = ">",
+  echo = FALSE,
+  warning = FALSE,
+  fig.width = 10,
+  fig.height = 8
+)
+
+
+z.prop <-
+  function(x1,
+           x2,
+           n1,
+           n2,
+           conf.level = 0.95,
+           alternative = "two.sided") {
+    numerator <- (x1 / n1) - (x2 / n2)
+    p.common <- (x1 + x2) / (n1 + n2)
+    denominator <-
+      sqrt(p.common * (1 - p.common) * (1 / n1 + 1 / n2))
+    z.prop.ris <-
+      numerator / denominator
+    p1 <- x1 / n1
+    p2 <- x2 / n2
+    p.val <- 2 * pnorm(-abs(z.prop.ris))
+    if (alternative == "lower") {
+      p.val <- pnorm(z.prop.ris)
+    }
+    if (alternative == "greater") {
+      p.val <- 1 - (pnorm(z.prop.ris))
+    }
+    SE.diff <- sqrt(((p1 * (1 - p1) / n1) + (p2 * (1 - p2) / n2)))
+    diff.prop <- (p1 - p2)
+    CI <- (p1 - p2) + c(-1 * ((qnorm(((1 - conf.level) / 2
+    ) + conf.level)) * SE.diff),
+    ((qnorm(((1 - conf.level) / 2
+    ) + conf.level)) * SE.diff))
+
+    return (list(
+      estimate = c(p1, p2),
+      ts.z = z.prop.ris,
+      p.val = p.val,
+      diff.prop = diff.prop,
+      CI = CI
+    ))
+
+  }
+
+substrLeft <- function(x, n) {
+  substr(x, n + 1, nchar(x))
+}
+
+pct <- function(x){
+  return(paste(formatC(as.numeric(x), format="f", digits=2, big.mark=","), "%", sep = ""))
+}
+
+fromPRPCDateTime <- function (x) 
+{
+  op <- options(digits.secs = 3)
+  timezonesplits <- data.table::tstrsplit(x, " ")
+  if (length(timezonesplits) > 1) {
+    t <- strptime(x, format = "%Y%m%dT%H%M%OS", tz = timezonesplits[[2]][1])
+  }
+  else {
+    t <- strptime(x, format = "%Y%m%dT%H%M%OS")
+  }
+  options(op)
+  return(with_tz(as.POSIXct(t), tz = Sys.timezone(location = TRUE)))
+}
+
+safe_range_auc <- function (auc) 
+{
+  return(ifelse(is.na(auc), 0.5, (0.5 + abs(0.5 - auc))))
+}
+
+pr_auc_from_probs <- function (groundtruth, probs) 
+{
+  nlabels <- length(unique(groundtruth))
+  if (nlabels < 2) {
+    return(0)
+  }
+  if (nlabels > 2) {
+    stop("'Groundtruth' has more than two levels.")
+  }
+  probabilities <- data.frame(groundtruth = as.integer(as.factor(groundtruth)) == 
+    2, probs = probs)
+  return(PRAUC(probs, groundtruth))
+}
+
+ks_from_probs <- function (groundtruth, probs) 
+{
+  nlabels <- length(unique(groundtruth))
+  if (nlabels < 2) {
+    return(0)
+  }
+  if (nlabels > 2) {
+    stop("'Groundtruth' has more than two levels.")
+  }
+  probabilities <- data.frame(groundtruth = as.integer(as.factor(groundtruth)) == 
+    2, probs = probs)
+  return(KS_Stat(probs, groundtruth))
+}
+
+lib_auc_from_probs <- function (groundtruth, probs) 
+{
+  nlabels <- length(unique(groundtruth))
+  if (nlabels < 2) {
+    return(0)
+  }
+  if (nlabels > 2) {
+    stop("'Groundtruth' has more than two levels.")
+  }
+  probabilities <- data.frame(groundtruth = as.integer(as.factor(groundtruth)) == 
+    2, probs = probs)
+  return(AUC(probs, groundtruth))
+}
+
+ks_table <- function(actuals, predictedScores) {
+  # sort the actuals and predicred scores and create 10 groups.
+  dat <- data.frame(actuals, predictedScores)
+  dat <- dat[order(-dat$predictedScores),]
+  rows_in_each_grp <- round(nrow(dat) / 10)
+  first_9_grps <- rep(1:9, each = rows_in_each_grp)
+  last_grp <- rep(10, nrow(dat) - length(first_9_grps))
+  grp_index <- c(first_9_grps, last_grp)
+  dat <- cbind(grp_index, dat)
+  
+  # init the ks_table and make the columns.
+  ks_tab <-
+    data.frame(rank = 1:10, total_pop = as.numeric(table(dat$grp_index)))
+  ks_tab[c("non_responders", "responders")] <-
+    as.data.frame.matrix(table(dat$grp_index, dat$actuals))
+  perc_responders_tot <-
+    sum(ks_tab$responders) / sum(ks_tab$total_pop)  # percentage of total responders.
+  ks_tab$expected_responders_by_random <-
+    ks_tab$total_pop * perc_responders_tot  # expected responders if there was no model.
+  ks_tab$perc_responders <- ks_tab$responders / sum(ks_tab$responders)
+  ks_tab$perc_non_responders <-
+    ks_tab$non_responders / sum(ks_tab$non_responders)
+  ks_tab$cum_perc_responders <- cumsum(ks_tab$perc_responders)
+  ks_tab$cum_perc_non_responders <-
+    cumsum(ks_tab$perc_non_responders)
+  ks_tab$difference <-
+    ks_tab$cum_perc_responders - ks_tab$cum_perc_non_responders
+  return(ks_tab)
+}
+
+ks_stat <- function(actuals, predictedScores, returnKSTable = FALSE) {
+  # the max of ks_table$difference
+  ks_tab <-
+    ks_table(actuals = actuals, predictedScores = predictedScores)
+  if (returnKSTable) {
+    return(ks_tab)
+  } else{
+    return(round(max(ks_tab$difference), 4))
+  }
+}
+
+ks_plot <- function (ChartName, actuals, predictedScores) {
+  rank <- 0:10
+  ks_table_out <-
+    ks_table(actuals = actuals, predictedScores = predictedScores)
+  perc_positive <- c(0, ks_table_out$cum_perc_responders) * 100
+  perc_negative <- c(0, ks_table_out$cum_perc_non_responders) * 100
+  random_prediction <- seq(0, 100, 10)
+  df <-
+    data.frame(rank, random_prediction, perc_positive, perc_negative)
+  df_stack <-
+    stack(df, c(random_prediction, perc_positive, perc_negative))
+  df_stack$rank <- rep(rank, 3)
+  df_stack$delta <- df_stack$values[12:22] - df_stack$values[1:11]
+  values <- df_stack$values
+  ind <- df_stack$ind
+  
+  rowmax <- which.max(ks_table_out$difference)
+  l_start <- ks_table_out[rowmax, "cum_perc_non_responders"]
+  l_end <- ks_table_out[rowmax, "cum_perc_responders"]
+  cat("\n\n")
+  print(
+    htmltools::tagList(ggplotly(ggplot(df_stack, aes(
+      x = rank,
+      y = values,
+      colour = ind,
+      label = paste0(round(values, 2), "%")
+    )) +
+      geom_line(linewidth = 1) +
+      labs(
+        x = "rank",
+        y = "Percentage +Ve & -Ve Captured",
+        title = paste(ChartName[1], ":", "Kolmogorov-Smirnov Statistic", ks_stat(actuals, predictedScores))
+      ) +
+      geom_text(aes(y = values + 4)) +
+      scale_x_continuous(breaks = 0:10, labels = 0:10) +
+      geom_segment(
+        x = rowmax,
+        y = l_start * 100,
+        xend = rowmax,
+        yend = l_end * 100,
+        col = "darkred",
+        arrow = arrow(length = unit(0.05, "npc"), ends = "both"),
+        linetype = "dashed",
+        lwd = 1
+      )
+  )))
+  cat("\n\n")
+  return(df_stack)
+}
+```
+
+```{r Read Interaction History Data, echo=F, error=F, warning=FALSE, include=F}
+ihsampledata <- readDSExport("Data-pxStrategyResult_pxInteractionHistory", "./../../data")
+
+ih <- ihsampledata
+standardizeFieldCasing(ih)
+ih[Outcome == "Accept", Outcome := "Accepted"]
+ih <-
+  ih %>%
+  mutate(
+    OutcomeDateTime = fromPRPCDateTime(OutcomeTime),
+    Day = as_date(OutcomeDateTime, tz = Sys.timezone(location = TRUE)),
+    ActionID = paste(Issue, "/", Group, "/", Name, "/", Treatment, sep = "")
+  )
+# standardized coloring for this script
+# see also https://www.nceas.ucsb.edu/sites/default/files/2020-04/colorPaletteCheatsheet.pdf
+scale_color_Channel <-
+  scale_colour_brewer(
+    limits = levels(ih$Channel),
+    name = "Channel",
+    palette = "Set1",
+    na.value="darkgreen",
+    drop = T
+  )
+scale_fill_Channel <-
+  scale_fill_brewer(
+    limits = levels(ih$Channel),
+    name = "Channel",
+    palette = "Set1",
+    drop = T
+  )
+```
+
+# Interaction history based review of model performance
+
+The goal of this notebook is to provide a high-level review of the model performance 
+and metrics (Accuracy, F1, ROC AUC etc.) based on interaction history data.
+
+Some of the plots provide some interactivity. For best viewing results, open the 
+HTML in a browser. Viewing the HTML from platforms like e.g. Sharepoint or 
+Github will loose the interactive charts.
+
+# Overview of the models for various taxonomy levels
+
+Propositions, also referred to as offers or actions with treatments, are
+the most granular perspective on the adaptive models. 
+
+This part provides overview of the different metrics for 3 taxonomy levels
+(Business Issues and Groups, Actions) and Treatments (treatment level models 
+should be used by most customers)
+
+## Model performance metrics across Issue Level
+
+ROC Curves summarize the trade-off between the true positive rate and false positive rate for a predictive model using different probability thresholds.
+Precision-Recall curves summarize the trade-off between the true positive rate and the positive predictive value for a predictive model using different probability thresholds.
+ROC curves are appropriate when the observations are balanced between each class, whereas precision-recall curves are appropriate for imbalanced datasets.
+
+
+```{r Plot Issue Level metrics, message=FALSE, warning=FALSE}
+performance_prauc <- ih %>%
+  filter(Modelcontrolgroup == "Test") %>%
+  filter(Outcome %in% c(
+    params$positive_model_response,
+    params$negative_model_response
+  )) %>%
+  group_by(Day, Channel, Issue, Group) %>%
+  summarise(
+    Total = n(),
+    Precision_Recall_AUC = 100 * pr_auc_from_probs(Outcome %in% c(params$positive_model_response), Propensity),
+    ROC_AUC = 100 * auc_from_probs(Outcome %in% c(params$positive_model_response), Propensity)
+  )
+
+pr_curve <- ih %>%
+  filter(Modelcontrolgroup == "Test") %>%
+  filter(Outcome %in% c(
+    params$positive_model_response,
+    params$negative_model_response
+  )) %>%
+  group_by(Issue, Group, Channel) %>%
+  summarise(
+    PR = as.data.frame(pr.curve(
+      scores.class0 = Propensity,
+      weights.class0 = 1 * (Outcome %in% c(params$positive_model_respons)),
+      curve = T
+    )$curve)
+  ) %>%
+  unnest(PR) %>%
+  rename(Recall = V1, Precision = V2, Threshold = V3)
+
+pr_curve_plt <- ggplotly(
+  ggplot(pr_curve, aes(x = Recall, y = Precision)) +
+    geom_path(aes(color = Group)) +
+    facet_wrap(Channel ~ Issue) +
+    labs(y = "Precision", x = "Recall", color = "Group") +
+    scale_y_continuous(labels = scales::percent_format(scale = 100)) +
+    scale_x_continuous(labels = scales::percent_format(scale = 100)) +
+    ggtitle("Model Performance Precision Recall Curve") +
+    theme(
+      strip.text.x = element_text(size = 12, face = "bold.italic"),
+      strip.text.y = element_text(size = 12, face = "bold.italic")
+    ) +
+    theme(
+      axis.text.x = element_text(size = 6, angle = 90),
+      strip.text = element_text(size = 6)
+    )
+)
+
+roc_curve <- ih %>%
+  filter(Modelcontrolgroup == "Test") %>%
+  filter(Day < Sys.Date()) %>%
+  filter(Outcome %in% c(
+    params$positive_model_response,
+    params$negative_model_response
+  )) %>%
+  group_by(Issue, Group, Channel) %>%
+  summarise(ROC = as.data.frame(
+    roc.curve(
+      scores.class0 = Propensity,
+      weights.class0 = 1 * (Outcome %in% c(params$positive_model_respons)),
+      curve = T
+    )$curve
+  )) %>%
+  unnest(ROC) %>%
+  rename(TPR = V1,
+         Sensitivity = V2,
+         Threshold = V3)
+
+roc_curve_plt <- ggplotly(
+  ggplot(roc_curve, aes(x = TPR, y = Sensitivity)) +
+    geom_path(aes(color = Group)) +
+    facet_wrap(Channel ~ Issue) +
+    labs(y = "True Positive Rate (Sensitivity)", x = "False Positive Rate (1-Specificity)", color = "Group") +
+    scale_y_continuous(labels = scales::percent_format(scale = 100)) +
+    scale_x_continuous(labels = scales::percent_format(scale = 100)) +
+    ggtitle("Model Performance ROC") +
+    theme(
+      strip.text.x = element_text(size = 12, face = "bold.italic"),
+      strip.text.y = element_text(size = 12, face = "bold.italic")
+    ) +
+    theme(
+      axis.text.x = element_text(size = 6, angle = 90),
+      strip.text = element_text(size = 6)
+    )
+)
+
+pr_roc_auc_plt <- ggplotly(
+  ggplot(performance_prauc, aes(x = Day)) +
+    geom_line(aes(
+      y = ROC_AUC, color = Group
+    )) +
+    geom_line(aes(
+      y = Precision_Recall_AUC, color = Group
+    )) +
+    geom_point(aes(
+      y = ROC_AUC, color = Group
+    ), size = 2) +
+    facet_wrap(Channel ~ Issue) +
+    geom_point(aes(
+      y = Precision_Recall_AUC, color = Group
+    ), size = 2) +
+    labs(y = "ROC/PR AUC %", x = "Date", color = "Business groups") +
+    scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+    scale_x_date(date_breaks = "days", labels = date_format("%b-%d")) +
+    ggtitle("Model Performance ROC vs Precision Recall AUC (PR under ROC)") +
+    theme(
+      strip.text.x = element_text(size = 12, face = "bold.italic"),
+      strip.text.y = element_text(size = 12, face = "bold.italic")
+    ) +
+    theme(
+      axis.text.x = element_text(size = 6, angle = 90),
+      strip.text = element_text(size = 6)
+    )
+)
+
+pr_roc_auc_plt
+pr_curve_plt
+roc_curve_plt
+
+```
+## A collection of evaluation metrics across Issue, Group and Channel
+
+Choosing the right evaluation metric for classification models is important to the success of a machine learning app. 
+Monitoring only the few gives an incomplete picture of your model’s performance and can impact the effectiveness.
+
+```{r Table with metrics, message=FALSE, warning=FALSE}
+performance_prauc_total <- ih %>%
+  filter(Modelcontrolgroup == "Test") %>%
+  filter(Outcome %in% c(
+    params$positive_model_response,
+    params$negative_model_response
+  )) %>%
+  group_by(Issue, Group, Channel) %>%
+  summarise(
+    Total = n(),
+    Precision_Recall_AUC = 100 * pr_auc_from_probs(Outcome %in% c(params$positive_model_respons), Propensity),
+    ROC_AUC = 100 * auc_from_probs(Outcome %in% c(params$positive_model_respons), Propensity),
+    LiftAUC = 100 * LiftAUC(Propensity, Outcome %in% c(params$positive_model_respons)),
+    GainAUC = 100 * GainAUC(Propensity, Outcome %in% c(params$positive_model_respons)),
+    Gini = Gini(Propensity, 1 * Outcome %in% c(params$positive_model_respons))
+  )
+  
+  
+performance_prauc_total %>%
+  kable() %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = T,
+    position = "left"
+  ) %>%
+  scroll_box(height = "800px")
+```
+## Kolmogorov-Smirnov Chart
+
+The KS Chart is particularly useful in marketing campaigns and ads click predictions where you want to know the right population size to target to get the maximum response rate.
+
+Step 1: Once the prediction probability scores are obtained, the observations are sorted by decreasing order of probability scores. This way, you can expect the rows at the top to be classified as 1 while rows at the bottom to be 0’s.
+
+Step 2: All observations are then split into 10 equal sized buckets (bins).
+
+Step 3: Then, KS statistic is the maximum difference between the cumulative percentage of responders or 1’s (cumulative true positive rate) and cumulative percentage of non-responders or 0’s (cumulative false positive rate).
+
+The significance of KS statistic is, it helps to understand, what portion of the population should be targeted to get the highest response rate
+
+The length of the vertical dashed red line indicates the KS Statistic.
+By targeting the top 40% of the population (point it touches the X-axis), the model is able to cover shown % of responders.
+
+```{r Plot Kolmogorov Smirnov, message=FALSE, warning=FALSE, results="asis"}
+ks_data <- ih %>%
+  filter(Modelcontrolgroup == "Test") %>%
+  filter(Outcome %in% c(
+    params$positive_model_response,
+    params$negative_model_response
+  )) %>%
+  group_by(Channel) %>%
+  summarise(
+    KS = ks_plot(Channel, Outcome %in% c(params$positive_model_respons), Propensity)
+  )
+```
+
+## All Success Rates (interactive chart)
+
+Interactive chart with all success rates. Whiter is lower success rates,
+green is higher. Indicated values are percentages.
+
+```{r Success Rates, message=FALSE, warning=FALSE}
+aggregateTreeData <-
+  function(dt, hierarchy = intersect(c("Channel", "Issue", "Group", "Name", "Treatment"), names(dt)))
+  {
+    treeData <- rbindlist(lapply(0:length(hierarchy), function(i) {
+      if (i == 0) {
+        groupingLevels <- "" # data.table supports groupby ""
+      } else {
+        groupingLevels <- hierarchy[1:i]
+      }
+      dt[, .(
+        ResponseCount = sum(ResponseCount),
+        MaxResponseCount = max(ResponseCount),
+        Positives = sum(Positives),
+        SuccessRate = sum(Positives) / sum(ResponseCount),
+        Performance = weighted.mean(AUC, ResponseCount, na.rm = T),
+        TreeNodeID = paste0("/", paste(lapply(
+          .BY, as.character
+        ), collapse = "/")),
+        TreeLabel = ifelse(i == 0, "All Models", as.character(lapply(
+          .BY, as.character
+        )[i])),
+        TreeNodeParent = ifelse(i == 0, "",
+                                ifelse(i == 1, "/",
+                                       paste0(
+                                         "/",
+                                         paste(lapply(.BY, as.character)[1:(i -
+                                                                              1)],
+                                               collapse = "/")
+                                       )))
+      ),
+      by = eval(groupingLevels)
+      ]
+    }), fill = T)
+  }
+
+success_rates_data <- ih %>%
+  filter(Outcome %in% c(
+    params$positive_model_response,
+    params$negative_model_response
+  )) %>%
+  group_by(Channel, Issue, Group, Name, Treatment) %>%
+  summarise(
+    Positives = sum(Outcome %in% c(params$positive_model_respons)),
+    ResponseCount = sum(Outcome %in% c(params$positive_model_respons, params$negative_model_respons)),
+    AUC = 100 * auc_from_probs(Outcome %in% c(params$positive_model_respons), Propensity)
+  ) %>%
+  as.data.table()
+  
+
+treeData <- aggregateTreeData(success_rates_data)
+
+fig <- plot_ly(
+  type="treemap",
+  ids=treeData$TreeNodeID,
+  labels=treeData$TreeLabel,
+  parents=treeData$TreeNodeParent,
+  values=round(100*treeData$SuccessRate,3),
+  marker=list(colorscale='Greens', reversescale = T),
+  textinfo="label+value"
+)
+fig %>% layout(title = "Success Rate")
+```
+
+
+### Number of new Actions over time
+
+Showing how many new actions/treatments go live. Again split by Channel. 
+
+```{r Number of new actions over time, message=FALSE, warning=FALSE}
+new_actions <- ih %>%
+  group_by(Channel, Day, ActionID) %>%
+  summarise() %>%
+  summarise(ActionID = list(ActionID)) %>%
+  mutate(PrevActionID = lag(ActionID)) %>%
+  rowwise() %>%
+  mutate(NewActionID = list(vecsets::vsetdiff(ActionID, PrevActionID))) %>%
+  select(-c(ActionID, PrevActionID)) %>%
+  unnest(c(NewActionID)) %>%
+  ungroup() %>%
+  group_by(Channel, Day) %>%
+  summarise(NewActionsCount = n())
+
+
+daily_stderr_hist <- new_actions %>%
+  ggplot(aes(x = Day)) +
+  geom_col(aes(x = Day,
+               y = NewActionsCount),
+           position = "dodge2") +
+  scale_y_continuous(labels = comma) +
+  facet_grid( ~ Channel) +
+  theme(
+    strip.text.x = element_text(size = 12, face = "bold.italic"),
+    strip.text.y = element_text(size = 12, face = "bold.italic")
+  ) +
+  ggtitle("New actions and treatments") +
+  labs(y = "New actions/treatments", x = "Day") +
+  theme(axis.text.x = element_text(size = 6, angle = 90),
+        strip.text = element_text(size = 6))
+
+ggplotly(daily_stderr_hist)
+```
+
+# Click through rate Pega vs Random Action
+
+The boost in success rate achieved with adaptive models can be measured using a control group. Customers in the control group will receive a random offer instead of the one recommended by the AI. This allows a comparison between the control group and the rest of the audience. It also enables the models to explore alternative outcomes.
+
+By default Pega prediction strategies create 2% random control group. Customers remain in the control group for a month.
+
+### Pega vs Random Action: Click Through Rate and Standard Error
+```{r CTR Random, message=FALSE, warning=FALSE}
+ih_analysis <- ih %>%
+  filter(Outcome %in% c(
+    params$positive_model_response,
+    params$negative_model_response
+  )) %>%
+  mutate(
+    Outcome = case_when(
+      Outcome %in% c(params$positive_model_response) ~ "Clicked",
+      TRUE ~ "Impression"
+    )
+  ) %>%
+  group_by(Day, Channel, Modelcontrolgroup, Outcome) %>%
+  summarise(Cnt = n()) %>%
+  pivot_wider(names_from = Outcome, values_from = Cnt) %>%
+  mutate(Impression = tidyr::replace_na(Impression, 0)) %>%
+  mutate(Clicked = tidyr::replace_na(Clicked, 0)) %>%
+  mutate(CTR = 100 * Clicked / Impression) %>%
+  mutate(StdErr = sqrt((CTR/100) * (1 - (CTR/100)) / Impression) * 100)
+
+daily_stderr_hist <- ih_analysis %>%
+  ggplot() +
+  geom_col(
+    aes(x = Day, y = CTR, fill = Modelcontrolgroup),
+    position = "dodge2"
+  ) +
+  geom_col(
+    aes(x = Day, y = StdErr),
+    position = "dodge2", fill="#CC0000"
+  ) +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  scale_x_date(date_breaks = "days", labels = date_format("%b-%d")) +
+  facet_grid( ~ Channel) +
+  theme(
+    strip.text.x = element_text(size = 12, face = "bold.italic"),
+    strip.text.y = element_text(size = 12, face = "bold.italic")
+  ) +
+  ggtitle("Pega vs Random action: Click Through Rate and Standard Error") +
+  labs(y = "CTR/StdErr %", x = "Date", fill = "Model Control Group") +
+  theme(axis.text.x = element_text(size = 6, angle = 90),
+        strip.text = element_text(size = 6))
+
+ggplotly(daily_stderr_hist)
+
+```
+### Pega vs Random Action: Statistical significance
+
+
+This tests for a difference in proportions. 
+
+A two proportion z-test allows you to compare two proportions to see if they are the same. In statistics, a two-sample z-test for proportions is a method used to determine whether two samples are drawn from the same population. 
+
+The null hypothesis (H0) for the test is that the proportions are the same.
+The alternate hypothesis (H1) is that the proportions are not the same.
+
+The p-value is used in the context of null hypothesis testing in order to quantify the statistical significance of a result, the result being the observed value of the chosen statistic.
+The lower the p-value is, the lower the probability of getting that result if the null hypothesis were true. A result is said to be statistically significant if it allows us to reject the null hypothesis. All other things being equal, smaller p-values are taken as stronger evidence against the null hypothesis.
+
+Loosely speaking, rejection of the null hypothesis implies that there is sufficient evidence against it.
+```{r Statistical significance, message=FALSE, warning=FALSE}
+ih_analysis <- ih %>%
+  filter(Outcome %in% c(
+    params$positive_model_response,
+    params$negative_model_response
+  )) %>%
+  mutate(
+    Outcome = case_when(
+      Outcome %in% c(params$positive_model_response) ~ "Clicked",
+      TRUE ~ "Impression"
+    )
+  ) %>%
+  group_by(Day, Modelcontrolgroup, Outcome) %>%
+  summarise(Cnt = n()) %>%
+  pivot_wider(names_from = Outcome, values_from = Cnt) %>%
+  mutate(Impression = tidyr::replace_na(Impression, 0)) %>%
+  mutate(Clicked = tidyr::replace_na(Clicked, 0)) %>%
+  mutate(CTR = Clicked / Impression) %>%
+  pivot_wider(names_from = c(Modelcontrolgroup),
+              values_from = c(Impression, Clicked, CTR)) %>%
+  mutate(ZScore = (
+    z.prop(Clicked_Test, Clicked_Control, Impression_Test, Impression_Control)$ts.z
+  ),
+  ZProp = list(
+    z.prop(Clicked_Test, Clicked_Control, Impression_Test, Impression_Control)
+  ),
+  Chi_Pval = (
+    prop.test(x = c(Clicked_Test, Clicked_Control), n = c(Impression_Test, Impression_Control))$p.value
+  ))
+
+z_test_p <- ih_analysis %>%
+  ggplot(position = "dodge2") +
+  geom_col(aes(x = Day, y = Chi_Pval)) +
+  theme(
+    strip.text.x = element_text(size = 12, face = "bold.italic"),
+    strip.text.y = element_text(size = 12, face = "bold.italic")
+  ) +
+  theme(
+    strip.text.x = element_text(size = 12, face = "bold.italic"),
+    strip.text.y = element_text(size = 12, face = "bold.italic")
+  ) +
+  ggtitle(paste("Chi Squared P value between Test(Pega) and Control(Random). If more than 0.05 - considered NOT significant")) +
+  labs(y = "P-value", x = "Group") +
+  geom_hline(yintercept = 0.05,
+             linetype = "dashed",
+             color = "red") +
+  theme(axis.text.x = element_text(size = 6, angle = 90),
+        strip.text = element_text(size = 6))
+
+z_test <- ih_analysis %>%
+  ggplot(position = "dodge2") +
+  geom_col(aes(x = Day, y = ZScore)) +
+  theme(
+    strip.text.x = element_text(size = 12, face = "bold.italic"),
+    strip.text.y = element_text(size = 12, face = "bold.italic")
+  ) +
+  theme(
+    strip.text.x = element_text(size = 12, face = "bold.italic"),
+    strip.text.y = element_text(size = 12, face = "bold.italic")
+  ) +
+  ggtitle("Z-score between Test(Pega) and Control(Random). If within dashed lines 95% NOT significant") +
+  labs(y = "Z-score", x = "Group") +
+  geom_hline(yintercept = 1.96,
+             linetype = "dashed",
+             color = "red") +
+  geom_hline(yintercept = -1.96,
+             linetype = "dashed",
+             color = "red") +
+  theme(axis.text.x = element_text(size = 6, angle = 90),
+        strip.text = element_text(size = 6))
+
+ggplotly(z_test_p)
+ggplotly(z_test)
+```
+
+
+# Action level click through rate comparison between channels
+
+Actions with more than 200 positives considered only
+
+```{r Action level click through rate comparison between channels, message=FALSE, warning=FALSE}
+#Action level CTR
+ih_analysis <- ih %>%
+  filter(Outcome %in% c(
+    params$positive_model_response,
+    params$negative_model_response
+  )) %>%
+  mutate(
+    Outcome = case_when(
+      Outcome %in% c(params$positive_model_response) ~ "Clicked",
+      TRUE ~ "Impression"
+    )
+  ) %>%
+  group_by(Channel, Name, Outcome) %>%
+  summarise(Cnt = n()) %>%
+  pivot_wider(names_from = Outcome, values_from = Cnt) %>%
+  mutate(Impression = tidyr::replace_na(Impression, 0)) %>%
+  mutate(Clicked = tidyr::replace_na(Clicked, 0)) %>%
+  filter(Clicked > 200) %>%
+  mutate(CTR = 100 * Clicked / Impression) %>%
+  mutate(StdErr = sqrt((CTR/100) * (1 - (CTR/100)) / Impression) * 100) %>%
+  arrange(Channel) %>%
+  group_by(Channel) %>%
+  mutate(MeanCTR=mean(CTR), SdCTR=sd(CTR)) %>%
+  mutate(CenterCTR = (CTR - MeanCTR)/SdCTR) %>%
+  arrange(Channel, desc(CenterCTR)) %>%
+  mutate(Rank = row_number(), Cnt = n()) %>%
+  mutate(MaxRankInGrp = max(Rank)) %>%
+  mutate(WeigtedRank = 100*Rank/MaxRankInGrp) %>%
+  mutate(NextVal = lag(WeigtedRank)) %>%
+  mutate(NextVal = tidyr::replace_na(NextVal, 0)) %>%
+  rowwise() %>% 
+  mutate(Width = (WeigtedRank - NextVal))
+
+
+daily_stderr_hist <- ih_analysis %>%
+  ggplot() +
+  geom_col(aes(
+    x = WeigtedRank,
+    y = CenterCTR,
+    text = paste("Name:",
+                 Name,
+                 "\nCTR:",
+                 pct(CTR),
+                 "\nCentered CTR:",
+                 pct(CenterCTR),
+                 "\nRank:",
+                 Rank,
+                 "\nWeigted Rank:",
+                 WeigtedRank,
+                 "\nClicked:",
+                 Clicked),
+    fill = Name,
+    width = Width
+  ),
+  position = "dodge2") +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  theme(
+    strip.text.x = element_text(size = 12, face = "bold.italic"),
+    strip.text.y = element_text(size = 12, face = "bold.italic")
+  ) +
+  scale_fill_discrete_qualitative(
+    palette = "Dark 3",
+    limits =
+      levels(ih_analysis$Name),
+    name = "Action",
+    drop = T
+  ) +
+  ggtitle("Actions: Click Through Rate and Rank") +
+  labs(y = "Centered CTR %", x = "Weighted Rank") +
+  theme(axis.text.x = element_text(size = 6, angle = 90),
+        strip.text = element_text(size = 6))
+
+
+diff_analysis <- ih_analysis %>%
+  pivot_wider(names_from = Channel, values_from = CenterCTR) %>%
+  group_by(Name) %>%
+  summarise(SMS = max(SMS, na.rm = T), Web = max(Web, na.rm = T)) %>%
+  mutate(Diff = sign(SMS - Web)) %>%
+  filter(!(is.infinite(Web) | is.infinite(SMS)))
+
+diff <- diff_analysis %>%
+  ggplot() + 
+  geom_linerange(aes(x=Name, ymin=Web, ymax=SMS)) +
+  geom_point(aes(x=Name, y=Web), colour="darkred", size=3) +
+  geom_point(aes(x=Name, y=SMS), colour="darkgreen", size=3) +
+  ggtitle("Weighted Rank Difference between Web(red) and SMS(green) channels.") +
+  labs(y = "Weighted Rank", x = "Actions") +
+  theme(axis.text.x = element_text(size = 6, angle = 90),
+        strip.text = element_text(size = 6))
+
+ggplotly(daily_stderr_hist, tooltip = "text")
+ggplotly(diff)
+  
+```
+
+### Model performance of all the actions (interactive Treemap)
+
+Using an interactive treemap to visualize the performance (ROC AUC) per channel/issue/group/action/treatment.
+
+```{r Model performance of all the actions, fig.height=10, fig.width=12, message=FALSE, warning=FALSE}
+treeData <-
+  aggregateTreeData(success_rates_data)
+
+fig <- plot_ly(
+  type = "treemap",
+  ids = treeData$TreeNodeID,
+  labels = treeData$TreeLabel,
+  parents = treeData$TreeNodeParent,
+  values = round(treeData$Performance, 2),
+  # see https://plotly.com/r/builtin-colorscales/
+  # https://plotly.com/r/reference/#heatmap-colorscale
+  # https://plotly.com/r/treemaps/
+  # https://plotly.com/r/colorscales/
+  marker = list(colorscale = "Viridis", reversescale = F),
+  textinfo = "label+value"
+)
+fig %>% layout(title = "Model Performance")
+```
+
+
+## Number of Responses over time
+
+Showing the response rate over time. You would expect this to be more or 
+less constant, only changing if there is a sudden change in targeted population.
+
+Big spikes and very noisy behavior may be caused by changes in the setup.
+
+```{r Number of Responses over time, message=FALSE, warning=FALSE}
+
+success_rates_data_day <- ih %>%
+  filter(Outcome %in% c(
+    params$positive_model_response,
+    params$negative_model_response
+  )) %>%
+  group_by(Day, Channel, Issue, Group, Name, Treatment) %>%
+  summarise(
+    Positives = sum(Outcome %in% c(params$positive_model_respons)),
+    ResponseCount = sum(Outcome %in% c(params$positive_model_respons, params$negative_model_respons)),
+    AUC = 100 * auc_from_probs(Outcome %in% c(params$positive_model_respons), Propensity)
+  ) %>%
+  as.data.table()
+
+responseRates <-
+  success_rates_data_day[, .(ResponseCount = sum(ResponseCount)), by = c("Day", "Channel", "Issue", "Name")][order(Day)]
+
+responseRates[, PrevResponseCount := shift(ResponseCount), by = c("Channel", "Issue", "Name")]
+responseRates[, DeltaResponseCount := ResponseCount - PrevResponseCount]
+responseRates[, ResponseRate := DeltaResponseCount] # per minute
+
+if (uniqueN(responseRates$Day) <= 1)
+{
+  cat("Resonse rate analysis only available when there are data of multiple days.",
+      fill = T)
+} else {
+  ggplot(responseRates[!is.na(ResponseRate) &
+                         (ResponseRate > 0)],
+         aes(Day, ResponseRate, colour = Channel)) +
+    geom_line() +
+    scale_color_Channel +
+    facet_wrap(. ~ Issue, scales = "free_y") +
+    ggtitle("Responses per day") +
+    xlab("Date") + ylab("Response Rate")
+}
+```
+
+
+
+## Which Actions drive most of the Volume
+
+### Analysis of skewness of the Responses
+
+Showing the cumulative response count vs the number of actions. Is there a 
+larger percentage of actions that take the vast majority of the responses?
+
+If this line strongly deviates from the diagonal it means that relatively few
+actions drive the majority of the responses.
+
+In the left-hand plot we look at all responses, which really means that we are looking
+at "impressions" mostly. The right-hand plot looks at just the positives. Typically,
+the positives are driven more strongly by the models so often you see more
+skewness in that one.
+
+However very skewed results may be caused by prioritization elements like 
+levers and weights and can be a reason to check in with business and verify that
+this is expected.
+
+```{r Analysis of skewness of the Responses, message=FALSE, warning=FALSE}
+responseGainData <-
+  success_rates_data_day [, list(Responses = max(as.double(ResponseCount)),
+                                                       Positives = max(Positives)),
+                                                by = c("Channel", "Name")]
+responseGainData <-
+  rbindlist(list(copy(responseGainData)[, Label := "All responses"],
+                 copy(responseGainData)[, Label := "Just the Positive responses"]))
+
+
+setorder(responseGainData, Channel,-Responses)
+responseGainData[Label == "All responses", TotalResponseFraction := cumsum(Responses) / sum(Responses) , by =
+                   Channel]
+responseGainData[Label == "All responses", TotalActionFraction := seq(.N) /
+                   .N , by = Channel]
+setorder(responseGainData, Channel,-Positives)
+responseGainData[Label == "Just the Positive responses", TotalResponseFraction := cumsum(Positives) / sum(Positives) , by =
+                   Channel]
+responseGainData[Label == "Just the Positive responses", TotalActionFraction := seq(.N) /
+                   .N , by = Channel]
+
+# make it start at 0,0
+responseGainData <- rbindlist(list(responseGainData,
+                                   responseGainData[, list(
+                                     TotalResponseFraction = 0,
+                                     TotalActionFraction = 0,
+                                     Responses = 0,
+                                     Positives = 0
+                                   ),
+                                   by = c("Channel", "Name", "Label")]), use.names = T)
+
+plt <-
+  ggplot(responseGainData,
+         aes(TotalActionFraction, TotalResponseFraction, color = Channel)) +
+  geom_line(size = 1) +
+  scale_color_Channel +
+  scale_x_continuous(name = "Percentage of Actions",
+                     labels = scales::percent,
+                     limits = c(0, 1)) +
+  scale_y_continuous(name = "Percentage of Responses",
+                     labels = scales::percent,
+                     limits = c(0, 1)) +
+  facet_grid(. ~ Label) +
+  geom_abline(
+    slope = 1,
+    intercept = 0,
+    color = "grey",
+    linetype = "dashed"
+  ) +
+  ggtitle("Cumulative Responses by Actions", subtitle = "by Channel")
+
+ggplotly(plt)
+```
+
+# Propensity Analysis
+
+The distribution of propensities returned by the models is yet a different angle.
+
+Higher propensities clearly indicate the offers are more attractive - people
+apparenty click/accept/convert more often.
+
+
+## Propensity distribution
+
+In a more emphathetic setup, you would expect that the distribution of the 
+propensities leans towards the right-hand side: more volume to more attractive 
+offers, although the relation is of course more complex, we are not just blindly pushing the offers with the
+highest success rates, but take a personalized approach.
+
+### Propensity percentile analysis
+
+```{r Propensities distribution, message=FALSE, warning=FALSE}
+#Propencity difference between NB and AGB models
+percentilles <- ih %>%
+  mutate(PropensityPerc = Propensity * 100) %>%
+  group_by(Issue, Group, Name) %>%
+  summarise(
+    q90Prob = quantile(PropensityPerc, probs = 0.9),
+    q75Prob = quantile(PropensityPerc, probs = 0.75),
+    mean = mean(PropensityPerc),
+    median = median(PropensityPerc)
+  )
+
+hist_action_cmp <- percentilles %>%
+  ggplot(aes(x = Name, y = q90Prob)) +
+  geom_col(
+    aes(fill = Issue),
+    position = "dodge2"
+  ) +
+  ggtitle("90% Percentilles of propensity dustribution. Dot is median") +
+  labs(y = "Propensity %", x = "Name", fill = "Model Type") +
+  theme(axis.text.x = element_text(size = 6, angle = 90),
+        strip.text = element_text(size = 6)) +
+  geom_point(aes(y = median, fill = Issue)) +
+  scale_y_continuous(limits = c(0, 15), oob = squish)
+ggplotly(hist_action_cmp)
+```
+### Propensity boxplot
+
+Box plots visually show the distribution of numerical data and skewness through displaying the data quartiles (or percentiles) and averages.
+
+Box plots show the five-number summary of a set of data: including the minimum score, first (lower) quartile, median, third (upper) quartile, and maximum score.
+
+```{r Propensity boxplot, message=FALSE, warning=FALSE}
+
+percentilles_bp <- ih %>%
+  sample_frac(0.1) %>%
+  mutate(PropensityPerc = Propensity * 100)
+
+percentilles_m <- percentilles_bp %>%
+  group_by(Name) %>%
+  summarise(
+    Median = median(PropensityPerc)
+  )
+
+percentilles_bp <- merge(percentilles_bp, percentilles_m, by=c("Name"))
+
+
+hist_action_cmp <- percentilles_bp %>%
+  ggplot(aes(
+    x = reorder(Name, Median),
+    y = PropensityPerc,
+    col = Issue
+  )) +
+  facet_wrap(Channel ~ .) +
+  geom_boxplot(outlier.color = NA, outlier.size = 0,outlier.shape = NA, fill = "white") +
+  ggtitle("Action Propensity Boxplot") +
+  labs(y = "Propensity %", x = "Action", col = "Issue") +
+  theme(axis.text.x = element_text(size = 8, angle = 90),
+        strip.text = element_text(size = 8)) +
+  scale_y_continuous(limits = c(0, 8), oob = squish) 
+
+
+p <- plotly_build(hist_action_cmp)
+
+for(i in 1:length(p$x$data)) {
+  p$x$data[[i]]$marker$opacity = 0
+}
+
+p
+
+percentilles_bp <- ih %>%
+  sample_frac(0.1) %>%
+  mutate(PropensityPerc = Propensity * 100)
+
+percentilles_m <- percentilles_bp %>%
+  group_by(Group) %>%
+  summarise(
+    Median = median(PropensityPerc)
+  )
+
+percentilles_bp <- merge(percentilles_bp, percentilles_m, by=c("Group"))
+
+
+hist_action_cmp <- percentilles_bp %>%
+  ggplot(aes(
+    x = reorder(Group, Median),
+    y = PropensityPerc,
+    col = Group
+  )) +
+  facet_wrap(Channel ~ .) +
+  geom_boxplot(outlier.color = NA, outlier.size = 0,outlier.shape = NA, fill = "white") +
+  ggtitle("Group Propensity Boxplot") +
+  labs(y = "Propensity %", x = "Action", col = "Group") +
+  theme(axis.text.x = element_text(size = 8, angle = 90),
+        strip.text = element_text(size = 8)) +
+  scale_y_continuous(limits = c(0, 8), oob = squish) 
+
+p <- plotly_build(hist_action_cmp)
+
+for(i in 1:length(p$x$data)) {
+  p$x$data[[i]]$marker$opacity = 0
+}
+
+p
+```
+
+## Propensity thresholding per channel
+
+If you would apply a threshold on the propensities, in the plot below you see
+the portion of the customers that you would reach based on the propensities
+from the models.
+
+```{r Cumulative Propensity distribution, message=FALSE, warning=FALSE}
+classifiers <- ih %>%
+  filter(Outcome %in% c(
+    params$positive_model_response,
+    params$negative_model_response
+  )) %>%
+  mutate(
+    Positives = 1 * (Outcome %in% c(params$positive_model_respons)),
+    ResponseCount = 1 * (Outcome %in% c(params$positive_model_respons, params$negative_model_respons))
+  ) %>%
+  as.data.table()
+
+classifiers[, PropensityRange := Hmisc::cut2(Propensity, g = 15)]
+classifiers[, TotalVolume := sum(ResponseCount), by = "Channel"]
+
+setorder(classifiers, Channel, PropensityRange)
+
+propensityDistributionData <-
+  classifiers[, list(
+    RelVolume = sum(ResponseCount) / TotalVolume,
+    BinVolume = sum(ResponseCount),
+    Propensity = max(Propensity)
+  ),
+  by = c("Channel", "PropensityRange", "TotalVolume")]
+propensityDistributionData[, CumVolume := cumsum(BinVolume), by = c("Channel")]
+propensityDistributionData[, CumFraction := 1 - CumVolume / TotalVolume]
+
+plt <-
+  ggplot(propensityDistributionData, aes(Propensity, CumFraction)) +
+  geom_line(aes(color = Channel, group = Channel), size = 0.5) +
+  scale_color_Channel +
+  scale_y_continuous(name = "Fraction of Customers", labels = scales::percent) +
+  ggtitle("Cumulative Volume reached by thresholding on Propensity") +
+  xlab("Propensity Threshold") +
+  scale_x_continuous(breaks = breaks_extended(10),
+                     limits = c(0, 0.05),
+                     labels = percent_format())
+
+ggplotly(plt)
+
+```
