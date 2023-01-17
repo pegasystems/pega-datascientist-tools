@@ -769,7 +769,7 @@ class ADMDatamart(Plots):
 
     @staticmethod
     def _create_sign_df(
-        df: pl.LazyFrame, by, what="ResponseCount", every="1d", mask=True
+        df: pl.LazyFrame, by, what="ResponseCount", every="1d", pivot=True, mask=True
     ) -> pl.LazyFrame:
         """Generates dataframe to show whether responses decreased/increased from day to day
         For a given dataframe where columns are dates and rows are model names,
@@ -790,20 +790,24 @@ class ADMDatamart(Plots):
 
         df = (
             df.with_column(pl.col("SnapshotTime").cast(pl.Date))
-            .sort("SnapshotTime")
+            .sort(["ModelID","SnapshotTime"])
             .with_column(
                 pl.col(what)
-                .cast(pl.UInt64)
+                .cast(pl.Int64)
                 .diff()
                 .alias("Daily_increase")
                 .over("ModelID")
             )
             .groupby_dynamic("SnapshotTime", every=every, by=by)
             .agg(pl.sum("Daily_increase").alias("Increase"))
-            .collect()
-            .pivot(index="SnapshotTime", columns=by, values="Increase")
-            .lazy()
         )
+
+        if pivot:
+            df = (
+                df.collect()
+                .pivot(index="SnapshotTime", columns=by, values="Increase")
+                .lazy()
+            )
         if mask:
             df = df.with_columns((pl.all().exclude("SnapshotTime").sign()))
         return df
@@ -972,29 +976,22 @@ class ADMDatamart(Plots):
         )
 
     def pivot_df(
-        self, df: pl.LazyFrame, index_cols="ModelName", allow_collect=True
+        self, df: pl.LazyFrame, by="ModelName", allow_collect=True
     ) -> pl.DataFrame:
         """Simple function to extract pivoted information"""
         if self.import_strategy == "lazy" and not allow_collect:
             raise ValueError("Only supported in eager mode.")
         df = df.filter(pl.col("PredictorName") != "Classifier")
-        if isinstance(index_cols, list):
-            df, index_name = cdh_utils.merge_col(df, index_cols)
-        else:
-            index_name = index_cols[0]
-        if index_cols not in ["ModelID", "ModelName"]:
-            df = df.groupby([index_name, "PredictorName"]).agg(
+        if by not in ["ModelID", "ModelName"]:
+            df = df.groupby([by, "PredictorName"]).agg(
                 cdh_utils.weighed_average_polars("PerformanceBin", "ResponseCount")
             )
         with pl.StringCache():
             df = (
                 df.collect()
-                .pivot(
-                    index=index_name, columns="PredictorName", values="PerformanceBin"
-                )
-                .fill_null(0.5).fill_nan(0.5)
+                .pivot(index=by, columns="PredictorName", values="PerformanceBin")
+                .fill_null(0.5)
             )
-        
         mod_order = (
             df.select(
                 pl.concat_list(pl.col(pl.Float64))
@@ -1004,7 +1001,7 @@ class ADMDatamart(Plots):
             .select(pl.all().arg_sort(reverse=True))
             .to_series()
         )
-        pred_order = [index_name] + [
+        pred_order = [by] + [
             df.columns[i + 1]
             for i in 0
             + df.select(pl.col(pl.Float64).mean())

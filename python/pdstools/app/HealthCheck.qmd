@@ -75,7 +75,12 @@ else: #fall back to 'default'
     datamart = datasets.CDHSample()
 
 
-datamart.modelData.collect()
+datamart = ADMDatamart(model_df=mods, predictor_df=preds, include_cols=["TotalPredictors", "Treatment", "PredictorCategory"])
+
+with pl.StringCache():
+    mods = pl.read_ipc('/Users/uyany/Library/CloudStorage/OneDrive-SharedLibraries-PegasystemsInc/AI Chapter Data Sets - Documents/Cross-customer/Datamart/Bol.com_ModelSnapshots.arrow').with_column(pl.col(pl.Categorical).cast(pl.Utf8)).lazy()
+    preds = pl.read_ipc('/Users/uyany/Library/CloudStorage/OneDrive-SharedLibraries-PegasystemsInc/AI Chapter Data Sets - Documents/Cross-customer/Datamart/Bol.com_PredictorSnapshots.arrow').with_column(pl.col(pl.Categorical).cast(pl.Utf8)).lazy()
+datamart = ADMDatamart(model_df=mods, predictor_df=preds, include_cols=["TotalPredictors", "Treatment", "PredictorCategory"])
 
 modelData, col_name = cdh_utils.merge_col(datamart.modelData, ["Direction", "Channel"])
 modelData, col_name = cdh_utils.merge_col(modelData, ["Configuration", "Channel"])
@@ -232,12 +237,22 @@ Note: model_summary function and datamart.plotTreeMap('SuccessRate') functions n
 Showing how the proposition success rates evolved over time. Again split by Channel but now also by model configuration. Usually there are separate model configurations for different channels but sometimes there are also additional model configurations for different outcomes (e.g. conversion) or different customers (e.g. anonymous).
 
 ```{python}
-##### TODO: I shouldn't plot performance but success rate and be carefull about filter. Use responseCount >100 (done)
-##### Todo: Show dates in every x axis (done)
-#,color=["Direction", "Channel"]
-import polars as pl
-success_rates = datamart.plotOverTime('SuccessRate', by = ["Direction" , "Channel"], facets='Configuration', query=pl.col("ResponseCount")>100)
-display(success_rates)
+by = "Direction/Channel"
+facet = "Configuration"
+fig = datamart.plotOverTime('SuccessRate', by=by, facets=facet, facet_col_wrap=2, query=pl.col("ResponseCount") > 100)
+
+fig.update_yaxes(tickformat=",.1%")
+
+unique_count = datamart.modelData.with_column(pl.concat_str(facet.split("/"), "/").alias(facet)).select(facet).collect().unique().shape[0]
+height = 200 + (math.ceil( unique_count / 2) * 250)
+print(height)
+fig.update_layout(autosize=True, height=height)
+fig.for_each_annotation(
+    lambda a: a.update(text=a.text.replace(f"{facet}=", ""))
+)
+fig.for_each_xaxis(lambda xaxis: xaxis.update(showticklabels=True))
+
+fig.show()
 ```
 
 # Overview of Adaptive Models
@@ -257,7 +272,20 @@ for i in datamart.plotPerformanceSuccessRateBubbleChart(facets=['Channel', 'Dire
 
 ### Model Performance over Time
 ```{python}
-modelperformance = datamart.plotOverTime('Performance', by=["Direction", "Channel"], facets='Configuration')
+facet = "Configuration"
+modelperformance = datamart.plotOverTime('Performance', by="Direction/Channel", facets=facet, facet_col_wrap=2)
+
+modelperformance.update_yaxes(tickformat=",.1%")
+
+unique_count = datamart.modelData.with_column(pl.concat_str(facet.split("/"), "/").alias(facet)).select(facet).collect().unique().shape[0]
+height = 200 + (math.ceil( unique_count / 2) * 250)
+print(height)
+modelperformance.update_layout(autosize=True, height=height)
+modelperformance.for_each_annotation(
+    lambda a: a.update(text=a.text.replace(f"{facet}=", ""))
+)
+modelperformance.for_each_xaxis(lambda xaxis: xaxis.update(showticklabels=True))
+
 modelperformance.show()
 ```
 
@@ -311,7 +339,9 @@ Box plots of the predictor importance. Importance can be shown either as a globa
 
 ```{python}
   if datamart.predictorData is not None:
-    datamart.plotPredictorPerformance(top_n=20, facets=['Configuration'], y_visible=True).show()
+    figs = datamart.plotPredictorPerformance(top_n=20, facets='Configuration', y_visible=True)
+    for fig in figs:
+        fig.update_traces(width=0.3)
   else:
     Text("There is no predictor data available.")
     included['Predictors']=False
@@ -321,7 +351,7 @@ Box plots of the predictor importance. Importance can be shown either as a globa
 ### Predictor Category performance per Channel/Direction/Issue 
 ```{python}
 print("debugger: we can give categorization parameter to achieve more predictor categories. Here it uses default categorization. Stijn already has categorization func. ready.")
-fig = datamart.plotPredictorPerformance(facets=['Configuration','Direction','Channel'])
+fig = datamart.plotPredictorPerformance(facets=['Configuration/Direction/Channel'])
 fig.show() 
 ```
 
@@ -590,7 +620,19 @@ Big spikes and very noisy behavior may be caused by changes in the setup.
 
 ```{python}
 print("debugger: waiting the new delta over time func from stijn")
-#response_counts = datamart.plotOverTime('ResponseCount', by=["Channel"], facets='Configuration', #every="1m")
+facet = "Configuration"
+response_counts = datamart.plotOverTime('ResponseCount', by="Channel", facets=facet, every="1d", facet_col_wrap =2)
+
+unique_count = datamart.modelData.with_column(pl.concat_str(facet.split("/"), "/").alias(facet)).select(facet).collect().unique().shape[0]
+height = 200 + (math.ceil( unique_count / 2) * 250)
+print(height)
+response_counts.update_layout(autosize=True, height=height)
+response_counts.for_each_annotation(
+    lambda a: a.update(text=a.text.replace(f"{facet}=", ""))
+)
+response_counts.for_each_xaxis(lambda xaxis: xaxis.update(showticklabels=True))
+
+response_counts.show()
 ```
 
 ## Which Models drive most of the Volume
