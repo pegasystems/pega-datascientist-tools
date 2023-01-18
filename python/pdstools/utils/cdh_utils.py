@@ -697,6 +697,52 @@ def weighed_performance_polars() -> pl.Expr:
     return weighed_average_polars("Performance", "ResponseCount")
 
 
+def zRatio(
+    posCol: pl.Expr = pl.col("BinPositives"), negCol: pl.Expr = pl.col("BinNegatives")
+) -> pl.Expr:
+    """Calculates the Z-Ratio for predictor bins.
+
+    The Z-ratio is a measure of how the propensity in a bin differs from the average,
+    but takes into account the size of the bin and thus is statistically more relevant.
+    It represents the number of standard deviations from the avreage, 
+    so centers around 0. The wider the spread, the better the predictor is.
+
+    To recreate the OOTB ZRatios from the datamart, use in a groupby.
+    See `examples`.
+
+    Parameters
+    ----------
+    posCol: pl.Expr
+        The (Polars) column of the bin positives
+    negCol: pl.Expr
+        The (Polars) column of the bin positives
+
+    Examples
+    --------
+    >>> df.groupby(['ModelID', 'PredictorName']).agg([zRatio()]).explode()
+
+    """
+
+    def getFracs(posCol=pl.col("BinPositives"), negCol=pl.col("BinNegatives")):
+        return posCol / posCol.sum(), negCol / negCol.sum()
+
+    def zRatioimpl(
+        posFractionCol=pl.col("posFraction"),
+        negFractionCol=pl.col("negFraction"),
+        PositivesCol=pl.sum("BinPositives"),
+        NegativesCol=pl.sum("BinNegatives"),
+    ):
+        return (
+            (posFractionCol - negFractionCol)
+            / (
+                (posFractionCol * (1 - posFractionCol) / PositivesCol)
+                + (negFractionCol * (1 - negFractionCol) / NegativesCol)
+            ).sqrt()
+        ).alias("ZRatio")
+
+    return zRatioimpl(getFracs(posCol, negCol), posCol.sum(), negCol.sum())
+
+
 def readClientCredentialFile(credentialFile):
     outputdict = {}
     with open(credentialFile) as f:
