@@ -346,6 +346,7 @@ scorePMMLWithReasonCodes <- function(explanations)
   # Convert the simplest model to PMML including reason code options
   predData <- fread(file.path(testFolder, "deeperdive_predictordata.csv"))
   predData[, responsecount := 0]
+  predData[, contents := ""] # required but dummy
   dummyModelData <- data.table(pymodelid = unique(predData$pymodelid),
                                pyconfigurationname = c("simplemodel"),
                                pyname = "Dummy",

@@ -40,7 +40,7 @@ test_that("expected R notebooks are there", {
 
     notebooks <- list.files(exampleFolder, pattern=".Rmd", recursive = T, full.names = T)
 
-    expect_equal(10, length(notebooks), info="Number of R notebooks")
+    expect_equal(9, length(notebooks), info="Number of R notebooks")
   }
 })
 
