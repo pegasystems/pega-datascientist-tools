@@ -6,6 +6,7 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 import polars as pl
+import math
 from plotly.subplots import make_subplots
 
 
@@ -390,6 +391,7 @@ class ADMVisualisations:
         order,
         facet,
         to_plot="Performance",
+        y="PredictorName",
         **kwargs,
     ):
         """Shows a box plot of predictor performance
@@ -425,19 +427,21 @@ class ADMVisualisations:
 
         # TODO: perhaps get top n & order per facet.
 
-        colormap = df["Legend"].unique()
-
-        title = "over all models" if facet is None else f"per {facet}"
+        title = (
+            f"{kwargs.get('facet_val','over all models')}"
+            if facet is None
+            else f"per {facet}"
+        )
 
         fig = px.box(
             df.to_pandas(),
             x=to_plot,
-            y="PredictorName",
+            y=y,
             color="Legend",
             template="none",
-            title=f"Predictor {to_plot} {title} {kwargs.get('title_text','')}",
+            title=f"{y} Performance {title} {kwargs.get('title_text','')}",
             facet_col=facet,
-            facet_col_wrap=5,
+            facet_col_wrap=kwargs.get("facet_col_wrap", 5),
             labels={
                 "PredictorName": "Predictor Name",
             },
@@ -446,28 +450,13 @@ class ADMVisualisations:
         fig.update_yaxes(
             categoryorder="array", categoryarray=order, automargin=True, dtick=1
         )
-        fig.update_traces(marker=dict(color="rgb(0,0,0)"), width=0.6)
 
-        colors = [
-            "rgb(14,94,165)",
-            "rgb(28,168,154)",
-            "rgb(254,183,85)",
-            "rgb(45,130,66)",
-            "rgb(252,136,72)",
-            "rgb(125,94,187)",
-            "rgb(252,139,130)",
-            "rgb(140,81,43)",
-            "rgb(175,161,156)",
-        ]
+        fig.update_layout(
+            boxgap=0,
+            boxgroupgap=0,
+            legend_title_text="Predictor category",
+        )
 
-        if len(colormap) > 9:  # pragma: no cover
-            colors = px.colors.qualitative.Alphabet
-
-        for i in range(len(fig.data)):
-            color = fig.data[i].legendgroup
-            fig.data[i].fillcolor = colors[np.where(colormap == color)[0].tolist()[0]]
-
-        fig.update_layout(boxgap=0, boxgroupgap=0, legend_title_text="Predictor type")
         return self.post_plot(fig, name=f"Predictor_{to_plot}", **kwargs)
 
     def PredictorPerformanceHeatmap(
@@ -773,3 +762,35 @@ class ADMVisualisations:
             )
         fig = self.post_plot(fig, name="TreeMap", **kwargs)
         return fig
+
+    def PredictorCount(self, df, facet):
+
+        figlist = []
+        color = "EntryType"
+        y = "Type"
+
+        title = "over all models" if facet == None else f"per {facet}"
+
+        fig = px.box(
+            df.to_pandas().sort_values([color, y]),
+            x="Predictor Count",
+            y=y,
+            color=color,
+            template="pega",
+            title=f"Predictor Count {title}",
+            facet_col=facet,
+            facet_col_wrap=2,
+        )
+        height = 200 + (math.ceil(len(df[facet].unique()) / 2) * 250)
+        fig.update_layout(autosize=True, width=900, height=height)
+        fig.update_yaxes(categoryorder="array", automargin=True, dtick=1)
+        fig.for_each_annotation(
+            lambda a: a.update(text=a.text.replace(f"{facet}=", ""))
+        )
+        y_tics = [y_value for y_value in df.select(y).unique().get_column(y)]
+        y_tics.remove("Overall")
+        fig.update_yaxes(categoryorder="array", categoryarray=y_tics + ["Overall"])
+        figlist.append(fig)
+
+        result = figlist if len(figlist) > 1 else figlist[0]
+        return result

@@ -723,3 +723,9 @@ def getToken(credentialFile, verify=True, **kwargs):
         auth=(creds["Client ID"], creds["Client Secret"]),
         verify=verify,
     ).json()["access_token"]
+
+def calc_reach(num_positives):
+    reach = 100 * (0.02 + 0.98 * (min(200, num_positives) / 200))
+    reach = "{:.2f}".format(reach)
+    reach_percentage = f"%{reach}"
+    return reach_percentage
