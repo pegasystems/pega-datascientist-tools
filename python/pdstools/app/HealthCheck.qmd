@@ -87,9 +87,6 @@ last_data, col_name = cdh_utils.merge_col(datamart.last().with_column(pl.col(pl.
 last_data, col_name = cdh_utils.merge_col(last_data, ["Configuration", "Channel"])
 
 last_data = last_data.with_columns([pl.col(pl.Utf8).fill_null("NA")])
-
-datamart_all_columns = datamart.combinedData.collect().columns
-
 ```
 
 This document gives a generic and global overview of the Adaptive models 
@@ -147,11 +144,10 @@ def weighted_average(grp, weights="ResponseCount"):
 
 name_cols = ["Issue", "Group", "ModelName", "Treatment"]
 
-
 df = last_data.lazy()
 df = (
     df
-    .filter(pl.col("ResponseCount") > 100)
+    .filter((pl.col("ResponseCount") > 100) & (pl.col("Positives") > 10))
     .with_columns(
         [pl.lit("NA").alias(col_nm) for col_nm in name_cols if col_nm not in df.columns]
     )
@@ -293,10 +289,11 @@ The predictors are categorized (by color) by the “source”. By default this t
 ## Number of Predictors per model configuration 
 
 ```{python}
-print("debugger: in R version 'TotalPredictors' column is used. We get the same numbers when we use that column ")
+# TODO: Check if data is old. Not consistent with R DONE
+# TODO: we should cou
 df = datamart.combinedData
 predictors_per_configuration = df.groupby("Configuration").agg([
-                            pl.col("PredictorName").unique().count().alias("Predictor Count"),
+                            pl.col("TotalPredictors").max().alias("Predictor Count"),
                             pl.col("Channel").unique().alias("Used in (Channels)"),
                             pl.col("Issue").unique().alias("Used for (Issues)")
                         ]).collect().to_pandas()
@@ -320,21 +317,18 @@ Box plots of the predictor importance. Importance can be shown either as a globa
 ## Importance by Predictor Category 
 ### Predictor Category performance per Channel/Direction/Issue 
 ```{python}
-print("debugger: we can give categorization parameter to achieve more predictor categories. Here it uses default categorization. Stijn already has categorization func. ready.")
-fig = datamart.plotPredictorPerformance(facets=['Configuration','Direction','Channel'])
+# TODO:  Sync Facets with R and use 2 facet cols atleast
+fig = datamart.plotPredictorPerformance(y= "PredictorCategory", facets=['Configuration','Direction','Channel'])
 fig.show() 
 ```
 
 ### Relative Predictor Category importance per Configuration
 Although the same could be achieved using the standard plotPredictorImportance method, now that we only split by Configuration this allows for a more compact visualization using a stacked bar chart.
 
+Note: Check the code. Calculation looks deceptive
 ```{python}
- with pl.StringCache():
-    df = datamart.combinedData.with_column(
-        pl.col("PredictorName").apply(cdh_utils.defaultPredictorCategorization).alias("PredictorCategory")
-    )
 predictor_perf = (
-    df
+    datamart.combinedData.lazy()
     .groupby(["Configuration", "PredictorCategory"])
     .agg(
         (
@@ -407,19 +401,19 @@ show(bad_predictors, scrollX=True)
 ```{python}
 figs = datamart.plotPredictorCount()
 figs.show()
-
+if facets is not None:
+    required_columns.update(facets)
+    required_columns.update([y])
 ```
 
 ## Predictor Performance across Propositions
 A view of predictor performance across all propositions, ordered so that the best performing predictors are at the top and the best performing propositions are on the left. Green indicates good performance, red means more problematic - either too low or too good to be true.
 
 ```{python}
-
-index_cols = [col for col in ['Issue', 'Group', "ModelName", "Treatment"] if col in datamart_all_columns]
 if datamart.predictorData is not None:
     figs = datamart.plotMultPredictorPerformanceHeatmap(top_n = 10,
                      divide_col= "Configuration", 
-                     index_cols=index_cols)
+                     index_cols=['Issue', 'Group', "ModelName", "Treatment"])
     if isinstance(figs, list):
         for fig in figs:
             fig.show()
@@ -434,8 +428,7 @@ else:
 
 ```{python}
 df = datamart.combinedData
-path =  [col for col in ["Configuration", "PredictorCategory", "PredictorName"] if col in datamart_all_columns]
-gb_cols = path
+gb_cols = ["Configuration", "PredictorCategory", "PredictorName"]
 missing = (
     datamart.combinedData.filter(pl.col("BinSymbol") == "MISSING")
     .groupby(gb_cols)
@@ -456,7 +449,7 @@ hover_data = {
 
 px.treemap(
     with_missing.to_pandas(),
-    path=path,
+    path=["Configuration", "PredictorCategory", "PredictorName"],
     color="MissingPct",
     template="pega",
     hover_data=hover_data,
@@ -475,7 +468,6 @@ In the sections below we check which of these models have reached certain reliab
 ```{python}
 print("Debugger: in R only lastSnapshot is used for calculation. I used modelData believing it is more accurate? (I saw 17 rows when I ran with last_data) ")
 ck = ["Configuration", "Issue", "Group", "ModelName", "Channel", "Direction", "Treatment"]
-ck =  [col for col in ck if col in datamart_all_columns]
 counts = datamart.modelData.groupby(ck).agg(
     [
         pl.sum("ResponseCount"),
@@ -589,8 +581,8 @@ Showing the response rate over time. You would expect this to be more or less co
 Big spikes and very noisy behavior may be caused by changes in the setup.
 
 ```{python}
-print("debugger: waiting the new delta over time func from stijn")
-#response_counts = datamart.plotOverTime('ResponseCount', by=["Channel"], facets='Configuration', #every="1m")
+"debugger: waiting the new delta over time func from stijn"
+response_counts = datamart.plotOverTime('ResponseCount', by=["Channel"], facets='Configuration', every="1m")
 ```
 
 ## Which Models drive most of the Volume
@@ -640,49 +632,8 @@ Is most volume driven by models that have a good predictive performance? Ideally
 The plot below shows this relation. Horizontally the model performance (the AUC, ranging from 50 to 100 as Pega usually scales this), descretized into a number of ranges, and vertically the percentage of responses.
 
 A lot of volume on the first bins, where the performance is minimal, means that a lot of immature models are used. This is sub-optimal in terms of targeting. Ideally there is a smooth curve with a peak in the 60-80 range of AUC. Much higher AUC’s are possibly indicative of immature models or even outcome leakers (although that is effectively prevented by the standard delayed learning pattern). AUC’s below 60 are not uncommon but should be investigated - consider different predictors or outcomes.
-```{python}
-print("debugger: we need to work on this plot")
-property = "Performance"
-df = (
-    datamart.combinedData.with_column(pl.col(property) * 100)
-    .groupby([property, "Channel", "Direction"])
-    .agg(pl.sum("BinResponseCount"))
-    .collect()
-    .with_column(pl.col(property).round(2))
-)
 
-cut_off_value = [percentile for percentile in range(50, 100, 3)]
 
-df_pl = pl.cut(df.get_column(property).fill_null(0).fill_nan(0), bins=cut_off_value)
-join = df.join(
-    df_pl.select([property, "category"]).unique().lazy(), on=property, how="left"
-)
-grouped = join.groupby(["Channel", "category"]).agg(pl.sum("BinResponseCount"))
-
-out = (
-    grouped.sort(["Channel", "category"])
-    .select(
-        [
-            "Channel",
-            "category",
-            "BinResponseCount",
-            pl.col("BinResponseCount").sum().over("Channel").alias("sum"),
-        ]
-    )
-    .with_columns([(pl.col("BinResponseCount") / pl.col("sum")).alias("percentage")])
-)
-
-fig = px.bar(
-    out.sort(["Channel", "category"]).to_pandas(),
-    x="category",
-    y="percentage",
-    color="Channel",
-    template="pega",
-)
-fig.update_yaxes(tickformat=",.0%")
-fig.show()
-
-```
 ```{python}
   import plotly.figure_factory as ff
 
@@ -751,51 +702,12 @@ So when one of the graphs shows more volume on the left, that is to be interpret
 
 ```{python}
 # Todo: Maybe log scale the 
-property = "Propensity"
-if property == "Propensity" and property not in datamart.predictorData.collect().columns:
-    property = "BinPropensity"
-    df = datamart.combinedData.filter(pl.col("PredictorName")!="Classifier").groupby([property, "Channel", "Direction"]).agg(pl.sum("BinResponseCount")).collect().with_column(pl.col(property).round(4))
-    
-color_col = "Channel"
-smallest_bin = 0
-for color in df.get_column(color_col).unique().to_list():
-    color_df = df.filter(pl.col(color_col) == color)
-    propensity_list = list(set(color_df.filter(pl.col(property)>0).get_column(property).fill_null(0).fill_nan(0).to_list()))
-    if np.percentile(propensity_list, 10) > smallest_bin:
-        print(color)
-        smallest_bin = np.percentile(propensity_list, 10)
-        cut_off_value = np.percentile(propensity_list, [percentile for percentile in range(0,101,5)])
-
-df_pl = pl.cut(df.get_column(property).fill_null(0).fill_nan(0), bins=cut_off_value)
-join= df.join(df_pl.select([property, "category"]).unique().lazy(), on=property, how="left")
-grouped = join.groupby(["Channel","category"]).agg(pl.sum("BinResponseCount"))
-
-out = grouped.sort(["Channel","category"]).select(
-    [
-        "Channel",
-        "category",
-        "BinResponseCount",
-        pl.col("BinResponseCount").sum().over("Channel").alias("sum"),
-        
-    ]
-).with_columns([
-    (pl.col("BinResponseCount")/ pl.col("sum")).alias("percentage")
-    ])
-print("my_last_data")
-show(out.sort(["Channel", "category"]).to_pandas())
-fig = px.bar(out.sort(["Channel", "category"]).to_pandas(), x='category', y='percentage', color=color_col,template="pega")
-fig.update_yaxes(tickformat=",.0%")
-fig.show()
-
-
-
-
-""" figlist = datamart.plotVolumeVsProperty(color = "Channel",
+figlist = datamart.plotVolumeVsProperty(color = "Channel",
                                         property = "Propensity",
                                         cut_off_percent =0.99,
                                         show_curve = True)
 for fig in figlist:
-    fig.show() """
+    fig.show()
 ```
 
 # Appendix - all the models
@@ -805,7 +717,6 @@ A list of all the models is written to a file so a script can iterate over all m
 Generally you will want to apply some filtering, or do this for specific models only. This can be accomplished in either this script here, or by editing the generated file.
 ```{python}
 available_context_keys=  ["Configuration", "Issue","Group","ModelName","Channel","Direction","Treatment"]
-available_context_keys =  [col for col in available_context_keys if col in datamart_all_columns]
 appendix = datamart.modelData.groupby(available_context_keys + ["ModelID"]).agg(
     [
         pl.max("ResponseCount").alias("Responses"),
@@ -816,9 +727,19 @@ appendix = datamart.modelData.groupby(available_context_keys + ["ModelID"]).agg(
 df_dict["Appendix"] = appendix
 show(appendix)
 
+with pd.ExcelWriter('output.xlsx') as writer:
+    for sheet_name, dataframe in df_dict:
+        print(sheet_name)
+        dataframe.to_excel(writer, sheet_name=sheet_name)
+
 ```
 ```{python}
+
+
 with pd.ExcelWriter('output.xlsx') as writer:
     for sheet_name, dataframe in df_dict.items():
         dataframe.to_excel(writer, sheet_name=sheet_name)
+
+
+
 ```

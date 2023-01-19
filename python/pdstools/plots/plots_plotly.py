@@ -433,6 +433,7 @@ class ADMVisualisations:
         order,
         facets=None,
         to_plot="Performance",
+        y="PredictorName",
         **kwargs,
     ):
         """Shows a box plot of predictor performance
@@ -468,29 +469,15 @@ class ADMVisualisations:
 
         # TODO: perhaps get top n & order per facet.
         if isinstance(facets, str) or facets is None:
-            """
-            The facet_row_spacing and facet_col_spacing arguments can be used to control the
-            spacing between rows and columns. These values are specified in fractions of the plotting
-            area in paper coordinates and not in pixels, so they will grow or shrink with the width
-            and height of the figure.
-
-            The defaults work well with 1-4 rows or columns at the default figure size with
-            the default font size, but need to be reduced to around 0.01 for very large figures
-            or figures with many rows or columns. Conversely, if activating tick labels on all
-            facets, the spacing will need to be increased.
-            """
             facets = [facets]
-        facet_count = len(df.select(facets).unique())
-        if facet_count < 10:
+        if len(df[y].unique()) < 10:
             facet_col_wrap = 2
             row_spacing = 0.05
-            col_spacing = 5 / (facet_count * 10)
         else:
             facet_col_wrap = 1
             row_spacing = 2.5 / (
-                facet_count * 10
+                len(df[y].unique()) * 10
             )  # distance between is proportioal to fig lenght. So we scale it here to prevent huge gaps when top_n param is a large number
-            col_spacing = 0.04
         figlist = []
         for facet in facets:
             title = "over all models" if facet is None else f"per {facet}"
@@ -498,14 +485,13 @@ class ADMVisualisations:
             fig = px.box(
                 df.to_pandas(),
                 x=to_plot,
-                y="PredictorName",
-                color="Predictor Category",
+                y=y,
+                color="Legend",
                 template="pega",
                 title=f"Predictor {to_plot} {title} {kwargs.get('title_text','')}",
                 facet_col=facet,
                 facet_col_wrap=facet_col_wrap,
                 facet_row_spacing=row_spacing,  # default is 0.07
-                facet_col_spacing=col_spacing,
                 labels={
                     "PredictorName": "Predictor Name",
                 },
@@ -518,8 +504,8 @@ class ADMVisualisations:
             )
 
             fig.update_traces(width=0.3)
-            indv_facet_len = 80 + (len(df.select("PredictorName").unique()) * 20)
-            height = 200 + (
+            indv_facet_len = 80 + (len(df.select(y).unique()) * 20)
+            height = 150 + (
                 math.ceil(len(df.select(facet).unique()) / facet_col_wrap)
                 * indv_facet_len
             )
