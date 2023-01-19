@@ -740,7 +740,7 @@ def zRatio(
             ).sqrt()
         ).alias("ZRatio")
 
-    return zRatioimpl(getFracs(posCol, negCol), posCol.sum(), negCol.sum())
+    return zRatioimpl(*getFracs(posCol, negCol), posCol.sum(), negCol.sum())
 
 
 def readClientCredentialFile(credentialFile):
