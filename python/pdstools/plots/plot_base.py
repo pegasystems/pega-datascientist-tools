@@ -3,11 +3,7 @@ import pandas as pd
 import polars as pl
 from .plots_mpl import ADMVisualisations as mpl
 from .plots_plotly import ADMVisualisations as plotly
-from ..utils.cdh_utils import (
-    defaultPredictorCategorization,
-    weighed_performance_polars,
-    merge_col,
-)
+from ..utils.cdh_utils import defaultPredictorCategorization, weighed_performance_polars
 import matplotlib.pyplot as plt
 import plotly.graph_objs as go
 
@@ -93,7 +89,6 @@ class Plots:
         multi_snapshot: bool = False,
         last: bool = False,
         active_only: bool = False,
-        facets: Optional[list] = None,
         include_cols: Optional[list] = None,
     ) -> pd.DataFrame:
         """Retrieves and subsets the data and performs some assertion checks
@@ -135,10 +130,6 @@ class Plots:
         df = getattr(self, table)
         if table != "predictorData":
             required_columns = required_columns.union(self.context_keys)
-        if facets:
-            if len(facets) > 1:
-                df, facet_col_name = merge_col(df, facets)
-                required_columns.add(facet_col_name)
 
         assert required_columns.issubset(
             df.columns
@@ -169,7 +160,6 @@ class Plots:
         add_bottom_left_text: bool = True,
         query: Union[str, dict] = None,
         facets: Optional[list] = None,
-        color: str = "Channel",
         **kwargs,
     ) -> Union[plt.Axes, go.FigureWidget]:
         """Creates bubble chart similar to ADM OOTB.
@@ -223,14 +213,14 @@ class Plots:
             "ResponseCount",
             "ModelName",
         }
-        required_columns.update([color])
 
         df = self._subset_data(
             table=table, required_columns=required_columns, query=query, last=last
-        ).with_columns(
-            [
-                pl.col(pl.Utf8).fill_null("Missing"),
-            ]
+        )
+        df.with_columns(
+            (pl.col(["Performance", "SuccessRate"]) * pl.lit(100)).round(
+                kwargs.pop("round", 5)
+            )
         )
         with pl.StringCache():
             df = df.collect()
@@ -242,7 +232,6 @@ class Plots:
             add_bottom_left_text=add_bottom_left_text,
             facets=facets,
             context_keys=self.context_keys,
-            color=color,
             query=query,
             **kwargs,
         )
@@ -308,7 +297,7 @@ class Plots:
     def plotOverTime(
         self,
         metric: str = "Performance",
-        by: Union[str, list] = ["ModelID"],
+        by: str = "ModelID",
         every: int = "1d",
         query: Union[str, dict] = None,
         facets: Optional[list] = None,
@@ -357,10 +346,6 @@ class Plots:
         plotting_engine = self.get_engine(
             kwargs.pop("plotting_engine", self.plotting_engine)
         )()
-        if isinstance(by, str) or by is None:
-            by = [by]
-        if isinstance(facets, str) or by is None:
-            facets = [facets]
 
         table = "modelData"
         multi_snapshot = True
@@ -372,28 +357,18 @@ class Plots:
             "Performance",
             "SuccessRate",
             "Positives",
-            "ResponseCount",
         }
-        required_columns.update(by)
-        required_columns.update(facets)
-
         df = self._subset_data(
             table,
             required_columns,
             query,
             multi_snapshot=multi_snapshot,
-            include_cols=by,
+            include_cols=[by],
         )
-
-        df = df.sort(by="SnapshotTime")
-        if kwargs.pop("merge_facets", False):
-            df, facets = merge_col(df, facets)
         if isinstance(facets, str) or facets is None:
             facets = [facets]
-        if len(by) > 1:
-            df, by = merge_col(df, by)
-        else:
-            by = by[0]
+
+        df = df.sort(by="SnapshotTime")
 
         if by != "ModelID":
             groupby = [by]
@@ -408,9 +383,7 @@ class Plots:
                         weighed_performance_polars().alias("weighted_performance"),
                     ]
                 )
-            ).sort(
-                [by, "SnapshotTime"]
-            )  # changed this to make facets get drawn in order
+            ).sort(["SnapshotTime", by])
 
             if metric == "Performance":
                 metric = "weighted_performance"
@@ -421,7 +394,7 @@ class Plots:
             return df
 
         return plotting_engine.OverTime(
-            df=df.to_pandas(),
+            df=df,
             metric=metric,
             by=by,
             query=query,
@@ -749,7 +722,6 @@ class Plots:
         to_plot="Performance",
         query: Union[str, dict] = None,
         facets: Optional[list] = None,
-        y="PredictorName",
         **kwargs,
     ) -> Union[plt.Axes, go.FigureWidget]:
         """Plots a bar chart of the performance of the predictors
@@ -805,35 +777,27 @@ class Plots:
         last = True
         required_columns = {"Channel", "PredictorName", to_plot, "Type"}
         if facets is not None:
-            required_columns.update(facets)
-            required_columns.update([y])
+            required_columns = required_columns.union(*facets)
         df = self._subset_data(
-            table,
-            required_columns,
-            query,
-            last=last,
-            active_only=active_only,
-            facets=facets,
+            table, required_columns, query, last=last, active_only=active_only
         )
         df = df.filter(pl.col("PredictorName") != "Classifier")
-        if facets:
-            if len(facets) > 1:
-                df, facets = merge_col(df, facets)
+
         df = self.top_n(df, top_n, to_plot)  # TODO: add groupby
 
         categorization = kwargs.pop("categorization", defaultPredictorCategorization)
         with pl.StringCache():
             df = df.collect().with_column(
-                pl.col(y).apply(categorization).alias("Legend")
+                pl.col("PredictorName").apply(categorization).alias("Legend")
             )
 
         asc = plotting_engine.__module__.split(".")[1] == "plots_mpl"
         order = (
-            df.groupby(y)
+            df.groupby("PredictorName")
             .agg(pl.mean(to_plot))
             .fill_nan(0)
             .sort(to_plot, reverse=asc)
-            .get_column(y)
+            .get_column("PredictorName")
             .to_list()
         )
 
@@ -848,118 +812,6 @@ class Plots:
             to_plot=to_plot,
             **kwargs,
         )
-
-    def plotMultPredictorPerformanceHeatmap(
-        self,
-        top_n: int = 0,
-        active_only: bool = False,
-        query: Union[str, dict] = None,
-        facets: list = None,
-        index_cols: Union[str, list] = "ModelName",
-        divide_col: Optional[str] = "Configuration",
-        **kwargs,
-    ) -> Union[plt.Axes, go.FigureWidget]:
-
-        plotting_engine = self.get_engine(
-            kwargs.get("plotting_engine", self.plotting_engine)
-        )()
-
-        table = "combinedData"
-        required_columns = {
-            "ModelName",
-            "PredictorName",
-            divide_col,
-            "PerformanceBin",
-            "Performance",
-            "ResponseCount",
-        }
-        if divide_col:
-            required_columns.add(divide_col)
-        required_columns.update(index_cols)
-        df = self._subset_data(
-            table, required_columns, query, active_only=active_only, last=True
-        )
-
-        divide_col_unique_vals = [
-            val for val in df.select(divide_col).unique().collect().to_series()
-        ]
-        divided_df_dict = {}
-        figlist = []
-        for unique_val in divide_col_unique_vals:
-            sample = df.filter(pl.col(divide_col) == unique_val)
-            sample = self.pivot_df(sample, index_cols)[:21]
-
-            if top_n > 0:
-                sample = sample.select(sample.columns[:top_n])
-            divided_df_dict[unique_val] = sample
-
-            figlist.append(
-                plotting_engine.PredictorPerformanceHeatmap(
-                    sample,
-                    facets=facets,
-                    query=query,
-                    header=unique_val,
-                    **kwargs,
-                )
-            )
-
-        if kwargs.pop("return_df", False):
-            return divided_df_dict
-
-        return figlist if len(figlist) > 1 else figlist[0]
-
-    def plotPredictorCount(
-        self,
-        facets: Optional[Union[list, str]] = "Configuration",
-        query: Union[str, dict] = None,
-        **kwargs,
-    ):
-
-        plotting_engine = self.get_engine(
-            kwargs.get("plotting_engine", self.plotting_engine)
-        )()
-        if isinstance(facets, str) or facets is None:
-            facets = [facets]
-        required_columns = {
-            "Configuration",
-            "ModelName",
-            "Type",
-            "EntryType",
-            "PredictorName",
-        }
-        table = "combinedData"
-        last = True
-        df = self._subset_data(
-            table,
-            required_columns,
-            query,
-            last=last,
-            facets=facets,
-        )
-        by = ["Configuration", "ModelName", "Type", "EntryType"]
-        last = (
-            df.filter(pl.col("PredictorName") != "Classifier")
-            .groupby(list(by))
-            .agg(pl.n_unique("PredictorName").alias("Predictor Count"))
-        )
-
-        by.remove("Type")
-
-        overall = (
-            last.groupby(by)
-            .agg(pl.sum("Predictor Count"))
-            .with_column(pl.lit("Overall").alias("Type"))
-            .select(last.columns)
-        )
-
-        with pl.StringCache():
-            box_plot_df = (
-                pl.concat([last, overall.select(last.columns)])
-                .with_column(pl.col("Predictor Count").cast(pl.Int64))
-                .collect()
-            )
-
-        return plotting_engine.PredictorCount(df=box_plot_df, facets=facets)
 
     def plotPredictorPerformanceHeatmap(
         self,

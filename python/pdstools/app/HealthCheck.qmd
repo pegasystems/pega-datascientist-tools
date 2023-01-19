@@ -20,27 +20,15 @@ jupyter: python3
 #| code-fold: true
 #| code-summary: Python imports
 #| output: false
-import logging, sys
-logging.disable()
 from IPython.display import display, Markdown
 def Text(d):
    return display(Markdown(d))
 import sys
-sys.path.append('..')
+sys.path.append('../../')
 from pdstools import datasets, ADMDatamart
-from pdstools.utils import cdh_utils
-from utils.cdh_utils import defaultPredictorCategorization, calc_reach
-from plotly.offline import iplot
-from itables import show
 import plotly.express as px
-import plotly.graph_objs as go
 import polars as pl
 import pandas as pd
-import numpy as np
-import pega_template 
-import math
-df_dict = {}
-
 
 ```
 
@@ -51,16 +39,13 @@ df_dict = {}
 
 # These parameters are overwritten when called by the app function.
 # Though if running this healthcheck separately, you can populate this cell.
-
 name = 'CDH Sample'
 filters = dict()
 kwargs = dict()
 globalQuery = None
-
-from datetime import datetime
-now = datetime.now() 
-print(now.strftime("%d/%m/%Y %H:%M:%S"))
 ```
+
+
 
 ```{python}
 #| tags: [initialization]
@@ -69,25 +54,13 @@ print(now.strftime("%d/%m/%Y %H:%M:%S"))
 
 # Initialize the class after the parameters have been overwritten.
 
-if len(kwargs)>5: #override with keyword arguments
-    datamart = ADMDatamart(**kwargs)
+if len(kwargs)>0: #override with keyword arguments
+    data = ADMDatamart(**kwargs)
 else: #fall back to 'default'
-    datamart = datasets.CDHSample()
+    data = datasets.CDHSample()
 
-
-datamart.modelData.collect()
-
-modelData, col_name = cdh_utils.merge_col(datamart.modelData, ["Direction", "Channel"])
-modelData, col_name = cdh_utils.merge_col(modelData, ["Configuration", "Channel"])
-
-combinedData, col_name = cdh_utils.merge_col(datamart.combinedData, ["Direction", "Channel"])
-combinedData, col_name = cdh_utils.merge_col(combinedData, ["Configuration", "Channel"])
-
-last_data, col_name = cdh_utils.merge_col(datamart.last().with_column(pl.col(pl.Categorical).cast(pl.Utf8)), ["Direction", "Channel"])
-last_data, col_name = cdh_utils.merge_col(last_data, ["Configuration", "Channel"])
-
-last_data = last_data.with_columns([pl.col(pl.Utf8).fill_null("NA")])
 ```
+
 
 This document gives a generic and global overview of the Adaptive models 
 and predictors. It is generated from a Python markdown file in the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools). That repository
@@ -108,638 +81,122 @@ but you would loose interactivity.
 
 In the cell below, all data preprocessing is executed, such as importing the data and applying global filters. By default, the values are populated by environment variables supplied when running the file, but for customization purposes, you can edit this cell.
 
-# Overview of the Actions
-Propositions, also referred to as offers or actions with treatments, are the most granular perspective on the adaptive models.
+# Description of data
+
 ```{python}
-context_keys= {'Actions':'ModelName', 'Treatments':'Treatment', 'Issues':'Issue', 'Groups':'Group', 'Channels':'Direction/Channel'}
-value_keys = ['Actions', 'Treatments','Issues', 'Groups', 'Channels']
+Text(f"The model dataset has a shape of {data.modelData.shape}.")
+if data.predictorData is not None:
+    Text(f"The predictor dataset a shape of {data.predictorData.shape}.")
+else:
+    Text("There is no predictor data available.")
+
+```
+# Overview of the Actions
+
+Propositions, also referred to as offers or actions with treatments, are
+the most granular perspective on the adaptive models.
+
+```{python}
+#| label: Overview
+context_keys= {'Actions':'ModelName', 'Treatments':'Treatment', 'Issues':'Issue', 'Groups':'Group', 'Channels':'Channel'}
+value_keys = ['Issues', 'Groups', 'Channels']
+lastData = pl.from_pandas(data.last())
 counts, values = dict(), dict()
 for label, column in context_keys.items():
-    if column in last_data.columns:
+    if column in lastData.columns:
         if label in value_keys:
-            datalist = ', '.join(filter(None, (last_data.select(context_keys[label]).to_series().unique().sort().to_list())[:5]))
+            datalist = ', '.join(lastData.select(context_keys[label]).to_series().unique().sort().to_list())
         else:
             datalist = ''
-        n = last_data.select(column).to_series().n_unique()
+        n = lastData.select(column).to_series().n_unique()
     else: 
         datalist, n = '', 0
     counts[f'Number of {label}'] = [n, datalist]
-overview_of_adaptive_models = pd.DataFrame(counts, index=['Counts', 'Values']).T
-df_dict["overview_of_adaptive_models"] = overview_of_adaptive_models
-show(overview_of_adaptive_models)
+df = pd.DataFrame(counts, index=['Counts', 'Values']).T
+df
 ```
 
 ## Proposition Success Rates per Channel
-Showing the current success rate of the propositions. Different channels usually have very different success rates. Just showing the top 20 here and limiting to the propositions that have received at least 100 responses.
 
-Look out for propositions that stand out, having a far higher success rate than the rest. Check with business if that is expected.
+Showing the current success rate of the propositions. Different channels usually 
+have very different success rates. Just showing the top 20
+here and limiting to the propositions that have received at least 100 responses.
 
-Variation in the set of offered propositions across customers is also an important metric but not one that can be derived from the Adaptive Model data - this requires analysis of the actual interactions.
+Look out for propositions that stand out, having a far higher success rate
+than the rest. Check with business if that is expected. 
+
+Variation in the set of offered propositions across customers is also an important metric but not one that can be derived
+from the Adaptive Model data - this requires analysis of the actual interactions.
 
 ```{python}
-##### TODO: Success rate show  as percentage  (Done)
-##### TODO:  if 1st mobile is true on R or python not checked
-def weighted_average(grp, weights="ResponseCount"):
-    return grp.multiply(grp[weights], axis=0).sum() / grp[weights].sum()
-
-name_cols = ["Issue", "Group", "ModelName", "Treatment"]
-
-df = last_data.lazy()
-df = (
-    df
-    .filter((pl.col("ResponseCount") > 100) & (pl.col("Positives") > 10))
-    .with_columns(
-        [pl.lit("NA").alias(col_nm) for col_nm in name_cols if col_nm not in df.columns]
-    )
-    .with_columns([pl.col(col_nm).fill_null("NA") for col_nm in name_cols])
-    .with_column(
-        pl.format("{}/{}/{}/{}", "Issue", "Group", "ModelName", "Treatment").alias(
-            "Name"
-        )
-    )
-    .groupby(["Direction/Channel", "Name"])
-    .agg(
-        cdh_utils.weighed_average_polars("SuccessRate", "ResponseCount").alias(
-            "SuccessRate"
-        )
-    )
-    .sort(["Direction/Channel", "SuccessRate"], reverse=True)
-    .groupby("Direction/Channel")
-    .head(20)
-    .collect()
-).to_pandas()
-
-hover_data = {
-    "SuccessRate": ":.2%",
-}
-
-fig = px.bar(
-    df.sort_values(["Direction/Channel", "SuccessRate"]),
-    x="SuccessRate",
-    y="Name",
-    color="SuccessRate",
-    facet_col="Direction/Channel",
-    template="pega",
-    text="Name",
-    title="Proposition success rates <br><sup>Issue/Group/Name/Treatment</sup>",
-    hover_data=hover_data
-)
-fig.update_layout(showlegend=False)
-fig.update_yaxes(matches=None, showticklabels=False).update_xaxes(
-    matches=None, tickformat=",.1%", tickangle=45
-).update_traces(textposition="inside").update_layout(showlegend=False)
-fig.for_each_annotation(
-    lambda a: a.update(text=a.text.replace("Direction/Channel=", ""))
-)
-display(fig)
-
+df = data.last().query('ResponseCount>100').sort_values('SuccessRate', ascending=True).groupby('Channel').head(20)
+if 'Treatment' not in df.columns:
+    import numpy as np
+    df["Treatment"] = np.nan
+df['Name'] = df['Issue'] + '/' + df['Group'] + '/' + df['ModelName'] + '/' + df['Treatment'].fillna('NA')
+df = df.groupby(['Channel','Name']).mean().reset_index()
+fig = px.bar(df.sort_values(['Channel', 'SuccessRate']), x='SuccessRate', y='Name', color='Channel', facet_col='Channel', template='none',text='Name', title='Proposition success rates <br><sup>Issue/Group/Name/Treatment</sup>')
+fig.update_yaxes(matches=None, showticklabels=False).update_xaxes(matches=None).update_traces(textposition='inside')
+fig.show()
 ```
+
 
 ## All Success Rates
-Interactive chart with all success rates. Whiter is lower success rates, green is higher. Indicated values are percentages.
+
+Interactive chart with all success rates. Whiter is lower success rates,
+green is higher. Indicated values are percentages.
 
 ```{python}
-##### TODO: go to action level (done)
-color = "SuccessRate"
-context_keys= datamart.context_keys + ["ModelName"]
-context_path = [px.Constant("All contexts")] + context_keys
-weighted = last_data.groupby(context_keys).agg(
-    [
-        cdh_utils.weighed_average_polars("SuccessRate", "ResponseCount")
-    ]
-)
-weighted = weighted.to_pandas()
-weighted[color] = round((weighted[color] *100), 2)
-fig = px.treemap(
-            weighted,
-            path=context_path,
-            color=color,
-            template="pega",
-            title= f"{color}(%)"
-        )
-
-fig.show()
-# TODO: colors will be decided 
+data.plotTreeMap('SuccessRate')
 ```
 
-Note: model_summary function and datamart.plotTreeMap('SuccessRate') functions needs to be changed or we can create a new function for this plot where all the colors and other configs are written
+## Success Rates over Time
 
-## Success Rates Over Time
-Showing how the proposition success rates evolved over time. Again split by Channel but now also by model configuration. Usually there are separate model configurations for different channels but sometimes there are also additional model configurations for different outcomes (e.g. conversion) or different customers (e.g. anonymous).
+Showing how the proposition success rates evolved over time. Again split by
+Channel but now also by model configuration. Usually there are separate model
+configurations for different channels but sometimes there are also additional
+model configurations for different outcomes (e.g. conversion) or different
+customers (e.g. anonymous).
 
 ```{python}
-##### TODO: I shouldn't plot performance but success rate and be carefull about filter. Use responseCount >100 (done)
-##### Todo: Show dates in every x axis (done)
-#,color=["Direction", "Channel"]
-import polars as pl
-success_rates = datamart.plotOverTime('SuccessRate', by = ["Direction" , "Channel"], facets='Configuration', query=pl.col("ResponseCount")>100)
-display(success_rates)
+# data.plotOverTime('SuccessRate', by='Configuration', facets='Channel')
+data.plotOverTime('SuccessRate', by='ModelName', facets='Channel', query='Positives>200')
 ```
 
-# Overview of Adaptive Models
+# Bubble Chart
 ```{python}
-#| output: asis
-##### TODO: Use configuration as color, scale 50 to 100 (DONE - it was already scaled, did i missunderstand?)
-
-print(f"There are a total of {len(last_data.select('ModelID').unique())} unique models in the latest snapshot. \n " )
-print('''## Guidance''')
-print('* Recommended best practice is to have multiple treatments for an action. Too few gives less opportunity for personalization of the interactions. ')
-print('''
-## Model Performance  
-### Model Performance vs Action Success Rates (the Bubble Chart)  ''')
-for i in datamart.plotPerformanceSuccessRateBubbleChart(facets=['Channel', 'Direction'], color="Configuration"):
+for i in data.plotPerformanceSuccessRateBubbleChart(facets=['Channel', 'Direction']):
     i.show()
 ```
 
-### Model Performance over Time
-```{python}
-modelperformance = datamart.plotOverTime('Performance', by=["Direction", "Channel"], facets='Configuration')
-modelperformance.show()
-```
-
-### Model performance of all the actions (interactive Treemap)
-
-```{python}
-color = "Performance"
-context_keys= datamart.context_keys + ["ModelName"]
-context_path = [px.Constant("All contexts")] + context_keys
-weighted = last_data.groupby(context_keys).agg(
-        cdh_utils.weighed_average_polars(color, "ResponseCount").alias(
-            color
-        )
-    ).with_column((pl.col(color) * 100).round(2))
-
-
-fig = px.treemap(
-            weighted.to_pandas(),
-            path=context_path,
-            color=color,
-            template="pega",
-            title= f"{color}(%)"
-        )
-
-fig.show()
-```
-
 # Analysis of Predictors
-This analysis focuses on finding which are top predictors that are driving the models.
 
-The predictors are categorized (by color) by the “source”. By default this takes just the first part before the dot, so this typically distinguishes between Customer, Account, IH and parameterized (Param.) predictors. You can customize this to add patterns to identify for example external scores.
+This analysis focuses on finding which are the top predictors that are driving the models. 
 
-## Number of Predictors per model configuration 
-
-```{python}
-# TODO: Check if data is old. Not consistent with R DONE
-# TODO: we should cou
-df = datamart.combinedData
-predictors_per_configuration = df.groupby("Configuration").agg([
-                            pl.col("TotalPredictors").max().alias("Predictor Count"),
-                            pl.col("Channel").unique().alias("Used in (Channels)"),
-                            pl.col("Issue").unique().alias("Used for (Issues)")
-                        ]).collect().to_pandas()
-df_dict["predictors_per_configuration"] = predictors_per_configuration
-show(predictors_per_configuration)
-```
-
+The predictors are categorized (by color) by the "source". By default this takes just the first part before the dot, so this typically distinguishes between Customer, Account and IH, for example.
 
 ## Predictor Importance across all models per configuration
 Box plots of the predictor importance. Importance can be shown either as a global feature importance or simply as the univariate predictor importance.
-# There are more  Predictor types, check where you read files
 
 ```{python}
-  if datamart.predictorData is not None:
-    datamart.plotPredictorPerformance(top_n=20, facets=['Configuration'], y_visible=True).show()
-  else:
+if data.predictorData is not None:
+    data.plotPredictorPerformance(top_n=20, facets=['Channel']).show()
+else:
     Text("There is no predictor data available.")
-    included['Predictors']=False
-```
-
-## Importance by Predictor Category 
-### Predictor Category performance per Channel/Direction/Issue 
-```{python}
-# TODO:  Sync Facets with R and use 2 facet cols atleast
-fig = datamart.plotPredictorPerformance(y= "PredictorCategory", facets=['Configuration','Direction','Channel'])
-fig.show() 
-```
-
-### Relative Predictor Category importance per Configuration
-Although the same could be achieved using the standard plotPredictorImportance method, now that we only split by Configuration this allows for a more compact visualization using a stacked bar chart.
-
-Note: Check the code. Calculation looks deceptive
-```{python}
-predictor_perf = (
-    datamart.combinedData.lazy()
-    .groupby(["Configuration", "PredictorCategory"])
-    .agg(
-        (
-            cdh_utils.weighed_average_polars(
-                "PerformanceBin", "BinResponseCount"
-            ).alias("weighted_performance")
-        )
-    )
-)
-conf_total = predictor_perf.groupby("Configuration").agg(
-    pl.sum("weighted_performance").alias("conf_total")
-)
-
-df = (
-    predictor_perf.join(conf_total, on="Configuration", how="left")
-    .with_column(
-        ((pl.col("weighted_performance") / pl.col("conf_total")) * 100).alias(
-            "Performance"
-        )
-    )
-    .collect()
-    .to_pandas()
-)
-
-color = "PredictorCategory"
-fig = px.bar(
-    df.sort_values(color),
-    x="Performance",
-    y="Configuration",
-    color=color,
-    orientation="h",
-    template="pega",
-    title="Contribution of different sources",
-)
-height = 200 + (math.ceil(len(df["Configuration"].unique().tolist()) / 2) * 50)
-fig.update_layout(height=height)
-fig.update_yaxes(
-    automargin=True,
-    dtick=1,
-)
-fig.show()
-
-```
-
-## Bad predictors across all models
-
-```{python}
-bad_predictors = (
-    datamart.predictorData
-    .filter(pl.col("PredictorName") != "Classifier")
-    .groupby("PredictorName")
-    .agg(
-        [
-            pl.sum("ResponseCount").alias("Response Count"),
-            (pl.min("Performance") * 100).alias("Min"),
-            (pl.mean("Performance") * 100).alias("Mean"),
-            (pl.median("Performance") * 100).alias("Median"),
-            (pl.max("Performance") * 100).alias("max"),
-        ]
-    )
-    .sort("Mean", reverse=False)
-).collect().to_pandas()
-
-df_dict["bad_predictors"] = bad_predictors
-show(bad_predictors, scrollX=True)
-```
-
-## Number of Predictors
-
-```{python}
-figs = datamart.plotPredictorCount()
-figs.show()
-if facets is not None:
-    required_columns.update(facets)
-    required_columns.update([y])
 ```
 
 ## Predictor Performance across Propositions
 A view of predictor performance across all propositions, ordered so that the best performing predictors are at the top and the best performing propositions are on the left. Green indicates good performance, red means more problematic - either too low or too good to be true.
-
 ```{python}
-if datamart.predictorData is not None:
-    figs = datamart.plotMultPredictorPerformanceHeatmap(top_n = 10,
-                     divide_col= "Configuration", 
-                     index_cols=['Issue', 'Group', "ModelName", "Treatment"])
-    if isinstance(figs, list):
-        for fig in figs:
-            fig.show()
-    else:
-        figs.show()
+if data.predictorData is not None:
+    data.plotPredictorPerformanceHeatmap(top_n = 20).show()
 else:
     Text("There is no predictor data available.")
 ```
 
-## Missing values
 
-
-```{python}
-df = datamart.combinedData
-gb_cols = ["Configuration", "PredictorCategory", "PredictorName"]
-missing = (
-    datamart.combinedData.filter(pl.col("BinSymbol") == "MISSING")
-    .groupby(gb_cols)
-    .agg(pl.sum("BinResponseCount").alias("MissingCount"))
-    .collect()
-)
-whole_df = (
-    datamart.combinedData.groupby(gb_cols).agg(pl.sum("BinResponseCount")).collect()
-)
-
-with_missing = whole_df.join(missing, on=gb_cols, how="inner").with_column(
-    (pl.col("MissingCount") / pl.col("BinResponseCount")).alias("MissingPct")
-)
-
-hover_data = {
-    "MissingPct": ":.2%",
-}
-
-px.treemap(
-    with_missing.to_pandas(),
-    path=["Configuration", "PredictorCategory", "PredictorName"],
-    color="MissingPct",
-    template="pega",
-    hover_data=hover_data,
-    title="Missing Data in Adaptive Models",
-).show()
-
-
-```
-
-# Responses
-
-In the sections below we check which of these models have reached certain reliability (or “maturity”) thresholds. This is based on heuristics on both the number of positives (> 200 considered mature) and performance.
-
-## Models that have never been used
+# Example of raw data
 
 ```{python}
-print("Debugger: in R only lastSnapshot is used for calculation. I used modelData believing it is more accurate? (I saw 17 rows when I ran with last_data) ")
-ck = ["Configuration", "Issue", "Group", "ModelName", "Channel", "Direction", "Treatment"]
-counts = datamart.modelData.groupby(ck).agg(
-    [
-        pl.sum("ResponseCount"),
-        pl.sum("Positives"),
-        pl.mean("Performance")
-    ]
-)
-zero_response = counts.filter(pl.col("ResponseCount") == 0).collect().to_pandas()
-
-if zero_response.shape[0] >0:
-    print('''These models have no responses at all: no positives but also no negatives. The models for these actions/treatments exist, so they must have been created in the evaluation of the actions/treatments, but they were never selected to show to the customer, so never received any responses.
-
-    Often these represent actions that never made it into production and were only used to test out logic. But it could also be that the response mechanism is broken. It could for example be caused by outcome labels that are returned by the channel application not matching the configuration of the adaptive models.''')
-    print(f"There are {zero_response.shape[0]} models with zero response")
-    df_dict["zero_response"] = zero_response
-    show(zero_response, scrollX = True)
-else:
-    print("All models have received atleast 1 response.")
-```
-
-```{python}
-#| output: asis
-zero_positives = counts.filter(pl.col("Positives") == 0).collect().to_pandas()
-if zero_positives.shape[0] >0:
-    print("## Models that have have been used but never received a positive response  ")
-    df_dict["zero_positives"] = zero_positives
-    show(zero_positives, scrollX = True)
-else:
-    print("All models have received atleast 1 positive Response.")
-```
-
-## Models that are still in an immature phase of learning
-
-These models have received at least one positive response but not enough yet to be qualified to be fully  “mature” - a concept that matters especially for outbound channels. 
-These actions are typically new and still in early phases of learning. 
-We show the “reach” of these actions as the percentage of the population that would be selected by the standard maturity capping algorithm in the NBA framework (which selects 2% for new models and 100% for models with 200 or more positive responses
-
-
-```{python}
-last_counts = last_data.groupby(ck).agg(
-    [
-        pl.sum("ResponseCount"),
-        pl.sum("Positives"),
-        pl.mean("Performance")
-    ]
-)
-reach_df = (
-    last_counts.with_column((pl.col("Positives").apply(calc_reach)).alias("Reach"))
-    .filter((pl.col("Positives") < 200) & (pl.col("Positives") > 0))
-    .to_pandas()
-)
-df_dict["reach_df"] = reach_df
-show(reach_df, scrollX=True)
-
-```
-
-
-```{python}
-#| output: asis
-min_perf_df = last_counts.filter((pl.col("Positives") >= 200) & (pl.col("Performance") == 0.5)).to_pandas()
-if min_perf_df.shape[0] >0:
-    print('''## Models that have received sufficient responses but are still at their minimum performance \n
-    These models also have received over 200 positives but still show the minimum model performance. \n
-    This could be an indication of data problems, or not having the right predictors but may also be caused by technical aspects like the order of the responses to the model. \n
-    ''')
-    df_dict["min_perf_df"] = min_perf_df
-    show(min_perf_df, scrollX = True)
-else:
-    print("All models with over 200 positive responses are above minimum performance")
-```
-
-## Number of Empty/Immature Models over time 
-
-In the analysis below we count the number of models in each of the groups analysed before and show how that \ncount changes over time. The expectation is that the number of “non-empty” models increases steadily and the other lines are more or less stable.\n
-Empty is defined as having no responses at all. Immature is defined as having < 200 positives, and no performance means model performance is still the initial 0.5 value while having matured already according to the definition.
-
-
-```{python}
-by= ["SnapshotTime", "Channel", "Direction"]
-df = (
-    datamart.modelData
-    .with_column(pl.col(pl.Categorical).cast(pl.Utf8))
-    .with_columns(pl.col(pl.Utf8).fill_null("Missing"))
-    .groupby(by)
-    .agg(
-        [
-            ((pl.col("Positives") > 0) & (pl.col("Positives") < 100 )).sum().alias("immature_count"),
-            (pl.col("ResponseCount")==0).sum().alias("EmptyModels"),
-            (pl.col("Positives")==0).sum().alias("Models w/o positives"),
-            (pl.col("Performance")==0.5).sum().alias("Models w/o Performance"),
-            (pl.col("ResponseCount")!=0).sum().alias("Number of non-empty Models")
-            
-        ]
-    )
-    .sort(["Channel","Direction","SnapshotTime"], reverse=True)
-)
-
-df_pd = df.collect().to_pandas()
-y = df_pd.iloc[:,len(by):].columns.tolist()
-px.line(df_pd,
-    x="SnapshotTime",
-    y=y,
-    facet_col = "Channel",
-    title="Immature and Empty Models over Time",
-    template="pega",
-    ).show()
-```
-
-## Number of Responses over time 
-Showing the response rate over time. You would expect this to be more or less constant, only changing if there is a sudden change in targeted population. \n
-Big spikes and very noisy behavior may be caused by changes in the setup.
-
-```{python}
-"debugger: waiting the new delta over time func from stijn"
-response_counts = datamart.plotOverTime('ResponseCount', by=["Channel"], facets='Configuration', every="1m")
-```
-
-## Which Models drive most of the Volume
-Showing the cumulative response count vs the number of models. Is there a larger percentage of models that take the vast majority of the responses? \n
-If this line strongly deviates from the diagonal it means that relatively few models drive the majority of the responses. \n
-In the left-hand plot we look at all responses, which really means that we are looking at “impressions” mostly. The right-hand plot looks at just the positives. Typically, the positives are driven more strongly by the models so often you see more skewness in that one. \n
-However very skewed results may be caused by prioritization elements like levers and weights and can be a reason to check in with business and verify that this is expected. \n
-
-
-```{python}
-all_responses = datamart.plotResponseGain(title_text=" / All Responses")
-only_positives = datamart.plotResponseGain(title_text=" / Only Positive Responses", query=pl.col("Positives") >0)
-all_responses.show()
-only_positives.show()
-```
-
-## Models with largest number of responses (positive or negative)
-Zooming in into the models that drive most of the responses, here we list the top 20 models with the highest number of responses.
-
-```{python}
-response_counts = last_data.groupby(["Channel", "ModelID"]).agg(
-    [
-        pl.sum("ResponseCount").alias("all_responses"),
-        pl.sum("Positives").alias("positive_sum")
-        ]
-    )
-
-all_responses = response_counts.sort("all_responses", reverse=True).head(20)
-fig = px.bar(all_responses.to_pandas(), x ="all_responses", y="ModelID", color="Channel", title="Top 20 Highest Responses", template="pega")
-fig.update_yaxes(matches=None, showticklabels=False).update_xaxes(matches=None).update_traces(textposition='inside')
-fig.show()
-```
-
-## Models with largest number of positive responses. 
-And these are the 20 models with the largest number of positives.
-
-```{python}
-positives = response_counts.sort("positive_sum", reverse=True).head(20)
-fig = px.bar(positives.to_pandas(), x ="positive_sum", y="ModelID", color="Channel", title="Top 20 Highest Positives", template="pega")
-fig.update_yaxes(matches=None, showticklabels=False).update_xaxes(matches=None).update_traces(textposition='inside')
-fig.show()
-```
-
-## Analysis of Performance vs Volume
-Is most volume driven by models that have a good predictive performance? Ideally yes, so the targeting of the customers is optimal. If a lot of volume is driven by models that are not very predictive, this could be a reason to look into the available predictor data.
-
-The plot below shows this relation. Horizontally the model performance (the AUC, ranging from 50 to 100 as Pega usually scales this), descretized into a number of ranges, and vertically the percentage of responses.
-
-A lot of volume on the first bins, where the performance is minimal, means that a lot of immature models are used. This is sub-optimal in terms of targeting. Ideally there is a smooth curve with a peak in the 60-80 range of AUC. Much higher AUC’s are possibly indicative of immature models or even outcome leakers (although that is effectively prevented by the standard delayed learning pattern). AUC’s below 60 are not uncommon but should be investigated - consider different predictors or outcomes.
-
-
-```{python}
-  import plotly.figure_factory as ff
-
-  last_pd = last_data.to_pandas()
-  hist_data =[]
-  colors = ['#001F5F', '#10A5AC',"#F76923", "#661D34", "#86CAC6","#005154", "#86CAC6", "#5F67B9", "#FFC836", 
-                     "#E63690", "#AC1361", "#63666F","#A7A9B4","#D0D1DB", 
-                     ]
-  group_labels = []
-  for channel in last_pd["Channel"].unique():
-      channel_df = (last_pd[last_pd["Channel"] == channel]["Performance"]* 100).tolist()
-      hist_data.append(channel_df)
-      group_labels.append(channel)
-
-  fig = ff.create_distplot(hist_data, group_labels, show_hist=True, colors=colors[:len(group_labels)], bin_size= 3, show_rug=False)
-  bins = [i for i in range(50,102,3)]
-  bins[-1]= 100
-  fig.update_layout(
-    xaxis = dict(
-        tickmode = 'array',
-        tickvals = bins,
-        ticktext = ['(49.999, 53.0]',
-            '(53.0, 56.0]',
-            '(56.0, 59.0]',
-            '(59.0, 62.0]',
-            '(62.0, 65.0]',
-            '(65.0, 68.0]',
-            '(68.0, 71.0]',
-            '(71.0, 74.0]',
-            '(74.0, 77.0]',
-            '(77.0, 80.0]',
-            '(80.0, 83.0]',
-            '(83.0, 86.0]',
-            '(86.0, 89.0]',
-            '(89.0, 92.0]',
-            '(92.0, 95.0]',
-            '(95.0, 98.0]',
-            '(98.0, 100]']
-            )
-         )
-  fig.show()
-```
-
-## Positives vs. Number of Models
-Ideally, all models have received plenty of responses which will make them “mature” and makes sure they are as predictive as possible. \n
-Often we see that there is a significant percentage of models that are still relatively new and have not received much feedback (yet). Below graph shows the percentages of models that have fewer than 200 positives. \n
-Having many on the left-hand side (with very low or perhaps no positives) may or not be a problem. The models may still be there in the datamart but might represent actions/treatments that are not active. 
-
-```{python}
-datamart.plotModelsByPositives().show()
-```
-
-# Propensity Analysis
-The distribution of propensities returned by the models is yet a different angle.
-
-Higher propensities clearly indicate the offers are more attractive - people apparenty click/accept/convert more often.
-
-## Propensity Distribution
-In a more emphathetic setup, you would expect that the distribution of the propensities leans towards the right-hand side: more volume to more attractive offers, although the relation is of course more complex, we are not just blindly pushing the offers with the highest success rates, but take a personalized approach.
-
-Often however, multiple factors are included in the prioritization, changing this picture.
-
-Note that the propensity bins are not of equal width. Propensities are typically very low so with an equal width distribution, almost all volume would be in the first bins. The binning here is based on (roughly) equal volume across all data.
-
-So when one of the graphs shows more volume on the left, that is to be interpreted as relative to the other graphs.
-
-```{python}
-# Todo: Maybe log scale the 
-figlist = datamart.plotVolumeVsProperty(color = "Channel",
-                                        property = "Propensity",
-                                        cut_off_percent =0.99,
-                                        show_curve = True)
-for fig in figlist:
-    fig.show()
-```
-
-# Appendix - all the models
-
-A list of all the models is written to a file so a script can iterate over all models and generate off-line model reports for each of them.
-
-Generally you will want to apply some filtering, or do this for specific models only. This can be accomplished in either this script here, or by editing the generated file.
-```{python}
-available_context_keys=  ["Configuration", "Issue","Group","ModelName","Channel","Direction","Treatment"]
-appendix = datamart.modelData.groupby(available_context_keys + ["ModelID"]).agg(
-    [
-        pl.max("ResponseCount").alias("Responses"),
-        pl.count("SnapshotTime").alias("Snapshots")
-    ]
-).collect().to_pandas()
-
-df_dict["Appendix"] = appendix
-show(appendix)
-
-with pd.ExcelWriter('output.xlsx') as writer:
-    for sheet_name, dataframe in df_dict:
-        print(sheet_name)
-        dataframe.to_excel(writer, sheet_name=sheet_name)
-
-```
-```{python}
-
-
-with pd.ExcelWriter('output.xlsx') as writer:
-    for sheet_name, dataframe in df_dict.items():
-        dataframe.to_excel(writer, sheet_name=sheet_name)
-
-
-
+data.modelData.head(5)
 ```

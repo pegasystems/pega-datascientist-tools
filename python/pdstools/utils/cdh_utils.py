@@ -219,7 +219,7 @@ def readZippedFile(file: str, verbose: bool = False, **kwargs) -> BytesIO:
                     (
                         "Zipped json file found. For faster reading, we recommend",
                         "parsing the files to a format such as arrow or parquet. ",
-                        "See example in docs #TODO"
+                        "See example in docs #TODO",
                     )
                 )
             with z.open("data.json") as zippedfile:
