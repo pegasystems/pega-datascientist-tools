@@ -86,7 +86,7 @@ class Plots:
         return df
 
     @staticmethod
-    def subsetted_top_n(df, top_n, to_plot="PerformanceBin", facets=None):
+    def subsetted_top_n(df, top_n, facets=None):
         """Gets top_n predictor of each different facet according to their weighted performance
         if facets are plotted on seperate figures
 
@@ -102,16 +102,12 @@ class Plots:
 
         top_n_predictor_per_conf = (
             df.groupby(facets + ["PredictorName"])
-            .agg(
-                weighed_average_polars("PerformanceBin", "BinResponseCount").alias(
-                    "Performance_weighted"
-                )
-            )
+            .agg(pl.mean("PerformanceBin").alias("Performance"))
             .select(
                 [
                     pl.col(facets[0]).head(top_n).list().over(facets[0]).flatten(),
                     pl.col("PredictorName")
-                    .sort_by(pl.col("Performance_weighted"), reverse=True)
+                    .sort_by(pl.col("Performance"), reverse=True)
                     .head(top_n)
                     .list()
                     .over(facets[0])
@@ -923,7 +919,7 @@ class Plots:
             "Channel",
             "PredictorName",
             "ModelName",
-            "BinResponseCount",
+            "ResponseCountBin",
             to_plot,
             "Type",
         }
@@ -936,11 +932,12 @@ class Plots:
             facets=facets,
             active_only=active_only,
         )
+        df = df.unique()
         df = df.filter(pl.col("PredictorName") != "Classifier")
 
         separate = kwargs.pop("separate", False)
         if separate:
-            df, order = self.subsetted_top_n(df, top_n, to_plot, facets=facets)
+            df, order = self.subsetted_top_n(df, top_n, facets=facets)
 
         categorization = kwargs.pop("categorization", defaultPredictorCategorization)
         with pl.StringCache():
@@ -1128,19 +1125,25 @@ class Plots:
             last=True,
         )
         df = df.filter(pl.col("PredictorName") != "Classifier")
+        df, by = self._generateFacets(df, by)
 
         # TODO: implement facets.
-        df = self.pivot_df(df, by=by)
+        df = self.pivot_df(df, by=by[0])
         if top_n > 0:
-            df = df[0:top_n]
+            df = df[: top_n + 1, : top_n + 1]
 
         if kwargs.pop("return_df", False):
             return df
 
+        if kwargs.get("separate", False):
+            partition = "facet"
+        else:
+            partition = None
+
         return self.facettedPlot(
             facets,
             plotting_engine.PredictorPerformanceHeatmap,
-            partition="facet",
+            partition=partition,
             df=df,
             query=query,
             **kwargs,

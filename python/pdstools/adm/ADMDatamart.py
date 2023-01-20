@@ -987,7 +987,7 @@ class ADMDatamart(Plots):
             df = (
             df.collect()
             .pivot(index=by, columns="PredictorName", values="PerformanceBin")
-            .fill_null(0.5)
+            .fill_null(0.5).fill_nan(0.5)
         )
         mod_order = (
             df.select(
