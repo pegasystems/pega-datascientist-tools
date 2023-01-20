@@ -246,7 +246,7 @@ class ADMVisualisations:
             title=f'{metric} over time, per {by} {title} {kwargs.get("title_text","")}',
             facet_col=facet,
             facet_col_wrap=kwargs.pop("facet_col_wrap", 5),
-            template="none",
+            template="pega",
         )
         if hide_legend:
             fig.update_layout(showlegend=False)
@@ -292,7 +292,7 @@ class ADMVisualisations:
             facet_col_wrap=kwargs.get("facet_col_wrap", 5),
             histfunc="avg",
             title=f'{metric} of each proposition {title} {kwargs.get("title_text","")}',
-            template="none",
+            template="pega",
         )
         fig.update_yaxes(categoryorder="total ascending")
         fig.update_layout(showlegend=False)
@@ -438,12 +438,13 @@ class ADMVisualisations:
             x=to_plot,
             y=y,
             color="Legend",
-            template="none",
-            title=f"{y} Performance {title} {kwargs.get('title_text','')}",
+            template="pega",
+            title=f"Predictor Performance {title} {kwargs.get('title_text','')}",
             facet_col=facet,
             facet_col_wrap=kwargs.get("facet_col_wrap", 5),
             labels={
                 "PredictorName": "Predictor Name",
+                "PerformanceBin": "Performance",
             },
         )
 
@@ -581,7 +582,7 @@ class ADMVisualisations:
                 "TotalModelsFraction": "Percentage of Models",
             },
             title=f'{title} {kwargs.get("title_text","")}<br><sup>by {by}</sup>',
-            template="none",
+            template="pega",
         )
         fig.layout.yaxis.tickformat = ",.0%"
         fig.layout.xaxis.tickformat = ",.0%"
@@ -633,7 +634,7 @@ class ADMVisualisations:
             markers=True,
             title=title,
             labels={"cumModels": "Percentage of Models", "PositivesBin": "Positives"},
-            template="none",
+            template="pega",
             category_orders={"PositivesBin": df["PositivesBin"].unique().to_list()},
         )
         fig.layout.yaxis.tickformat = ",.0%"
