@@ -223,13 +223,16 @@ class Plots:
             facets = [facets]
         for facet in facets:
             if "/" in facet:
+                for split_facet in facet.split("/"):
+                    df = df.with_column(
+                        pl.col(split_facet).cast(pl.Utf8).fill_null("NA")
+                    )
                 df = df.with_column(pl.concat_str(facet.split("/"), "/").alias(facet))
             df = df.with_column(pl.col(facet).cast(pl.Utf8).fill_null("MISSING"))
 
         return df, facets
 
     def facettedPlot(self, facets, plotFunc, partition=None, *args, **kwargs):
-        print(partition)
         if len(facets) > 0 and facets[0] is not None:
             figlist = []
             if partition is None:
@@ -490,14 +493,17 @@ class Plots:
             groupby = groupby + facets
         if metric in ["Performance", "weighted_performance", "SuccessRate"]:
             df = (
-                df.groupby_dynamic("SnapshotTime", every=every, by=groupby).agg(
+                df.groupby_dynamic("SnapshotTime", every=every, by=groupby)
+                .agg(
                     [
                         (pl.sum("Positives") / pl.sum("ResponseCount")).alias(
                             "SuccessRate"
                         ),
-                        weighed_performance_polars().alias("weighted_performance"),
+                        weighed_performance_polars().alias("Performance"),
                     ]
                 )
+                .with_columns([pl.col("Performance") * 100,
+                               pl.col("SuccessRate") * 100])
             ).sort(["SnapshotTime", by])
         else:
             df = self._create_sign_df(
@@ -508,9 +514,6 @@ class Plots:
                 mask=False,
                 pivot=False,
             )
-
-        if metric == "Performance":
-            metric = "weighted_performance"
 
         with pl.StringCache():
             df = df.collect()
@@ -961,6 +964,8 @@ class Plots:
                 .to_list()
             )
 
+        if to_plot == "PerformanceBin":
+            df = df.with_column(pl.col(to_plot) * 100)
         if kwargs.pop("return_df", False):
             return df, order
 
@@ -1029,7 +1034,12 @@ class Plots:
                     "PerformanceBin"
                 )
             )
-            .with_column(pl.col("Predictor Category").alias("Legend"))
+            .with_columns(
+                [
+                    (pl.col("Predictor Category").alias("Legend")),
+                    (pl.col("PerformanceBin") * 100),
+                ]
+            )
         )
 
         order = (
@@ -1124,7 +1134,9 @@ class Plots:
             facets=facets,
             last=True,
         )
-        df = df.filter(pl.col("PredictorName") != "Classifier")
+        df = df.filter(pl.col("PredictorName") != "Classifier").with_column(
+            pl.col("PerformanceBin") * 100
+        )
         df, by = self._generateFacets(df, by)
 
         # TODO: implement facets.
@@ -1257,10 +1269,18 @@ class Plots:
 
         table = "modelData"
         last = True
-        required_columns = {by, "ResponseCount", "ModelID"}
+        required_columns = {"ResponseCount", "ModelID"}
+
+        if by is not None:
+            by_columns = [i for i in by.split("/")]
+            required_columns = required_columns.union(
+                set(by_columns + ["ResponseCount"])
+            )
         df, facets = self._subset_data(
             table, required_columns, query, facets=facets, last=last
         )
+        df, by = self._generateFacets(df, by)
+        by = by[0]
         with pl.StringCache():
             df = self.response_gain_df(df, by=by).collect()
 

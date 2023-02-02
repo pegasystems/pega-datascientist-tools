@@ -697,13 +697,13 @@ class ADMDatamart(Plots):
             df = df.lazy()
         with pl.StringCache():
             types = (
-            df.filter(pl.col("Modeldata").is_not_null())
-            .groupby(by)
-            .agg(pl.col("Modeldata").last())
-            .collect()
-            .with_column(pl.col("Modeldata").apply(lambda v: _getType(v)))
-            .to_dicts()
-        )
+                df.filter(pl.col("Modeldata").is_not_null())
+                .groupby(by)
+                .agg(pl.col("Modeldata").last())
+                .collect()
+                .with_column(pl.col("Modeldata").apply(lambda v: _getType(v)))
+                .to_dicts()
+            )
         return {key: value for key, value in [i.values() for i in types]}
 
     def get_AGB_models(
@@ -802,9 +802,11 @@ class ADMDatamart(Plots):
             .agg(pl.sum("Daily_increase").alias("Increase"))
         )
         if pivot:
-            df = (df.collect()
-            .pivot(index="SnapshotTime", columns=by, values="Increase")
-            .lazy())
+            df = (
+                df.collect()
+                .pivot(index="SnapshotTime", columns=by, values="Increase")
+                .lazy()
+            )
         if mask:
             df = df.with_columns((pl.all().exclude("SnapshotTime").sign()))
         return df
@@ -985,10 +987,11 @@ class ADMDatamart(Plots):
             )
         with pl.StringCache():
             df = (
-            df.collect()
-            .pivot(index=by, columns="PredictorName", values="PerformanceBin")
-            .fill_null(0.5).fill_nan(0.5)
-        )
+                df.collect()
+                .pivot(index=by, columns="PredictorName", values="PerformanceBin")
+                .fill_null(50)
+                .fill_nan(50)
+            )
         mod_order = (
             df.select(
                 pl.concat_list(pl.col(pl.Float64))
@@ -1051,6 +1054,7 @@ class ADMDatamart(Plots):
                 .drop("_sort")
                 .to_series()
             )
+
         with pl.StringCache():
             modelsByPositives = df.select([by, "Positives", "ModelID"]).collect()
         return (

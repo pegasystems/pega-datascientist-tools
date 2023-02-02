@@ -156,7 +156,7 @@ class ADMVisualisations:
                     )
                 )
                 newtext = f"{len(df)} models: {bottomleft} ({round(bottomleft/len(df)*100, 2)}%) at (50,0)"
-                fig.layout.title.text += f"<br><sup>{newtext}</sup>"
+                fig.layout.title.text += f"<br><sup>{newtext}"
                 fig.data[0].marker.size *= bubble_size
 
         return self.post_plot(fig, name="Bubble", title=title, **kwargs)
@@ -511,7 +511,7 @@ class ADMVisualisations:
         df.set_index(df.columns[0], inplace=True)
         fig = px.imshow(
             df.T,
-            text_auto=kwargs.get("text_format", ".0%"),
+            text_auto=kwargs.get("text_format", ".1r"),
             aspect="auto",
             color_continuous_scale=kwargs.get(
                 "colorscale",
@@ -526,7 +526,7 @@ class ADMVisualisations:
             facet_col=facet,
             facet_col_wrap=5,
             title=f'Top predictors {title} {kwargs.get("title_text","")}',
-            range_color=kwargs.get("range_color", [0.5, 1]),
+            range_color=kwargs.get("range_color", [50, 100]),
         )
         fig.update_yaxes(dtick=1, automargin=True)
         fig.update_xaxes(dtick=1, tickangle=kwargs.get("tickangle", None))
@@ -573,7 +573,7 @@ class ADMVisualisations:
 
         title = f"Cumulative Responses {title}"
         fig = px.line(
-            df.to_pandas(),
+            df.to_pandas().sort_values([by, "TotalModelsFraction"]),
             x="TotalModelsFraction",
             y="TotalResponseFraction",
             color=by,
@@ -584,8 +584,8 @@ class ADMVisualisations:
             title=f'{title} {kwargs.get("title_text","")}<br><sup>by {by}</sup>',
             template="pega",
         )
-        fig.layout.yaxis.tickformat = ",.0%"
-        fig.layout.xaxis.tickformat = ",.0%"
+        fig.layout.yaxis.tickformat = ",.1%"
+        fig.layout.xaxis.tickformat = ",.1%"
         fig = self.post_plot(fig, name="Response_gain", **kwargs)
         return fig
 

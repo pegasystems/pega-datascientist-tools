@@ -219,7 +219,7 @@ def readZippedFile(file: str, verbose: bool = False, **kwargs) -> BytesIO:
                     (
                         "Zipped json file found. For faster reading, we recommend",
                         "parsing the files to a format such as arrow or parquet. ",
-                        "See example in docs #TODO"
+                        "See example in docs #TODO",
                     )
                 )
             with z.open("data.json") as zippedfile:
@@ -729,3 +729,39 @@ def calc_reach(num_positives):
     reach = "{:.2f}".format(reach)
     reach_percentage = f"%{reach}"
     return reach_percentage
+
+
+def legend_color_order(fig):
+    """Orders legend colors alphabetically in order to provide pega color
+    consistency among different categories"""
+
+    colorway = [
+        "#001F5F",  # dark blue
+        "#10A5AC",
+        "#F76923",  # orange
+        "#661D34",  # wine
+        "#86CAC6",  # mint
+        "#005154",  # forest
+        "#86CAC6",  # mint
+        "#5F67B9",  # violet
+        "#FFC836",  # yellow
+        "#E63690",  # pink
+        "#AC1361",  # berry
+        "#63666F",  # dark grey
+        "#A7A9B4",  # medium grey
+        "#D0D1DB",  # light grey
+    ]
+
+    colors = []
+    for trace in fig.data:
+        colors.append(trace.legendgroup)
+    colors.sort()
+    indexed_colors = {k: v for v, k in enumerate(colors)}
+    for trace in fig.data:
+        try:
+            trace.marker.color = colorway[indexed_colors[trace.legendgroup]]
+            trace.line.color = colorway[indexed_colors[trace.legendgroup]]
+        except AttributeError:
+            pass
+
+    return fig
