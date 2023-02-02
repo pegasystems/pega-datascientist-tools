@@ -12,7 +12,6 @@ from ..utils import cdh_utils
 from ..utils.types import any_frame
 from .ADMTrees import ADMTrees
 from ..plots.plot_base import Plots
-from ..plots.plots_mpl import ADMVisualisations as mpl_plot
 from ..plots.plots_plotly import ADMVisualisations as plotly_plot
 
 pl.toggle_string_cache = True
@@ -40,7 +39,6 @@ class ADMDatamart(Plots):
         and the corresponding value is a list of values to keep in the dataframe
         Can be applied to an individual function, or used here to apply to the whole dataset
     plotting_engine : str, default = "plotly"
-        Either 'mpl' for matplotlib, or 'plotly' for plotly.
         Determines what package to use for plotting.
         Can also be supplied to most plotting functions directly.
 
@@ -144,13 +142,11 @@ class ADMDatamart(Plots):
             return plotting_engine
         elif plotting_engine == "plotly":
             return plotly_plot
-        elif plotting_engine in {"mpl", "matplotlib", "seaborn"}:
-            return mpl_plot
         else:
             msg = (
                 f"Plotting engine {plotting_engine} not known. "
                 "Please supply your own class with function names corresponding to plot_base.py "
-                "or give one of the following strings: {'plotly', 'mpl', 'matplotlib', 'seaborn'}."
+                "or pass 'Plotly' to use the default engine."
             )
             raise ValueError(msg)
 
@@ -697,13 +693,13 @@ class ADMDatamart(Plots):
             df = df.lazy()
         with pl.StringCache():
             types = (
-            df.filter(pl.col("Modeldata").is_not_null())
-            .groupby(by)
-            .agg(pl.col("Modeldata").last())
-            .collect()
-            .with_column(pl.col("Modeldata").apply(lambda v: _getType(v)))
-            .to_dicts()
-        )
+                df.filter(pl.col("Modeldata").is_not_null())
+                .groupby(by)
+                .agg(pl.col("Modeldata").last())
+                .collect()
+                .with_column(pl.col("Modeldata").apply(lambda v: _getType(v)))
+                .to_dicts()
+            )
         return {key: value for key, value in [i.values() for i in types]}
 
     def get_AGB_models(
@@ -802,9 +798,11 @@ class ADMDatamart(Plots):
             .agg(pl.sum("Daily_increase").alias("Increase"))
         )
         if pivot:
-            df = (df.collect()
-            .pivot(index="SnapshotTime", columns=by, values="Increase")
-            .lazy())
+            df = (
+                df.collect()
+                .pivot(index="SnapshotTime", columns=by, values="Increase")
+                .lazy()
+            )
         if mask:
             df = df.with_columns((pl.all().exclude("SnapshotTime").sign()))
         return df
@@ -985,10 +983,10 @@ class ADMDatamart(Plots):
             )
         with pl.StringCache():
             df = (
-            df.collect()
-            .pivot(index=by, columns="PredictorName", values="PerformanceBin")
-            .fill_null(0.5)
-        )
+                df.collect()
+                .pivot(index=by, columns="PredictorName", values="PerformanceBin")
+                .fill_null(0.5)
+            )
         mod_order = (
             df.select(
                 pl.concat_list(pl.col(pl.Float64))
@@ -1051,6 +1049,7 @@ class ADMDatamart(Plots):
                 .drop("_sort")
                 .to_series()
             )
+
         with pl.StringCache():
             modelsByPositives = df.select([by, "Positives", "ModelID"]).collect()
         return (

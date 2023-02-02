@@ -160,38 +160,6 @@ class ADMVisualisations:
 
         return self.post_plot(fig, name="Bubble", title=title, **kwargs)
 
-    # def plotResponseCountMatrix(self, lookback=15, fill_null_days=False, query:Union[str, dict]=None, figsize=(14, 10)):
-    #     """Creates a calendar heatmap
-    #     x axis shows model names and y axis the dates. Data in each cell is the total number
-    #     of responses. The color indicates where responses increased/decreased or
-    #     did not change compared to the previous day
-
-    #     Parameters
-    #     ----------
-    #     lookback : int
-    #         Defines how many days to look back at data from the last snapshot
-    #     fill_null_days : bool
-    #         If True, null values will be generated in the dataframe for
-    #         days where there is no model snapshot
-    #     query : Union[str, dict]
-    #         The query to supply to _apply_query
-    #         If a string, uses the default Pandas query function
-    #         Else, a dict of lists where the key is column name in the dataframe
-    #         and the corresponding value is a list of values to keep in the dataframe
-    #     figsize : tuple
-    #         Size of graph
-
-    #     Returns
-    #     -------
-    #     plt.figure
-    #     """
-    #     table = 'modelData'
-    #     multi_snapshot = True
-    #     required_columns = {'ModelID', 'ModelName', 'SnapshotTime', 'ResponseCount'}
-    #     df = self._subset_data(table, required_columns, query=query, multi_snapshot=multi_snapshot)
-    #     assert lookback < df['SnapshotTime'].nunique(), f"Lookback ({lookback}) cannot be larger than the number of snapshots {df['SnapshotTime'].nunique()}"
-
-    #     raise NotImplementedError("This visualisation is not yet implemented.")
 
     def OverTime(
         self,
