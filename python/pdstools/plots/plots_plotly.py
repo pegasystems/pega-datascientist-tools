@@ -688,7 +688,7 @@ class ADMVisualisations:
                 (0.8, "#20aa50"),
                 (1, "#0000FF"),
             ]
-            range_color = kwargs.get("range_color", [0.5, 1])
+            range_color = kwargs.get("range_color", [50, 100])
 
         elif log:
             df.select(
@@ -721,7 +721,7 @@ class ADMVisualisations:
             title=f"{title}",
             hover_data=hover_data,
             color_continuous_scale=colorscale,
-            range_color=range_color,
+            #range_color=range_color,
         )
         fig.update_coloraxes(reversescale=reverse_scale)
 

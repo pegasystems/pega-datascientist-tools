@@ -769,7 +769,7 @@ class Plots:
         required_columns = {
             "Channel",
             "PredictorName",
-            "ModelName",
+            "Name",
             "ResponseCountBin",
             to_plot,
             "Type",
@@ -796,7 +796,6 @@ class Plots:
                 pl.col("PredictorName").apply(categorization).alias("Legend")
             )
 
-
         if separate:
             partition = "facet"
         else:
@@ -804,7 +803,7 @@ class Plots:
             df = self.top_n(df, top_n, to_plot)  # TODO: add groupby
             order = (
                 df.groupby("PredictorName")
-                .agg(pl.mean(to_plot))
+                .agg(pl.median(to_plot))
                 .fill_nan(0)
                 .sort(to_plot, reverse=False)
                 .get_column("PredictorName")
@@ -834,7 +833,7 @@ class Plots:
         query: Union[str, dict] = None,
         facets: Optional[list] = None,
         **kwargs,
-    ) -> Union[plt.Axes, go.FigureWidget]:
+    ) -> go.FigureWidget:
 
         plotting_engine = self.get_engine(
             kwargs.get("plotting_engine", self.plotting_engine)
@@ -849,7 +848,7 @@ class Plots:
             "Channel",
             "Direction",
             "PredictorName",
-            "ModelName",
+            "Name",
             "BinResponseCount",
             to_plot,
             "Type",
@@ -875,7 +874,7 @@ class Plots:
             )
 
         df = (
-            df.groupby(facets + ["ModelName", "Predictor Category"])
+            df.groupby(facets + ["Name", "Predictor Category"])
             .agg(
                 weighed_average_polars("PerformanceBin", "BinResponseCount").alias(
                     "PerformanceBin"
@@ -1192,7 +1191,7 @@ class Plots:
         """
         if kwargs.get("plotting_engine", self.plotting_engine) != "plotly":
             print("Plot is only available in Plotly.")
-        
+
         context_keys = kwargs.pop("context_keys", self.context_keys)
         mapping = {
             f"{by}_count": "Model count",
@@ -1214,6 +1213,10 @@ class Plots:
                 .rename(mapping)
                 .sort(context_keys)
                 .fill_null("Missing")
+                .with_column(
+                    (pl.col("Performance weighted mean") * 100).fill_nan(pl.lit(50))
+                )
+                .fill_nan(0)
                 .collect()
             )
 
@@ -1325,7 +1328,7 @@ class Plots:
 
         required_columns = {
             "Configuration",
-            "ModelName",
+            "Name",
             "Type",
             "EntryType",
             "PredictorName",
@@ -1335,7 +1338,7 @@ class Plots:
         df, facets = self._subset_data(
             table, required_columns, query, facets=facets, last=last
         )
-        by = ["Configuration", "ModelName", "Type", "EntryType"]
+        by = ["Configuration", "Name", "Type", "EntryType"]
         last = (
             df.filter(pl.col("PredictorName") != "Classifier")
             .groupby(by)

@@ -114,7 +114,6 @@ import timeit
 from pdstools import cdh_utils
 
 
-
 last_data = (
     datamart.last()
     .with_column(pl.col(pl.Categorical).cast(pl.Utf8))
@@ -156,7 +155,7 @@ In the cell below, all data preprocessing is executed, such as importing the dat
 Propositions, also referred to as offers or actions with treatments, are the most granular perspective on the adaptive models.
 ```{python}
 datamart.context_keys
-context_keys= {'Channels':'Channel/Direction', 'Issues':'Issue', 'Groups':'Group','Actions':'ModelName', 'Treatments':'Treatment'}
+context_keys= {'Channels':'Channel/Direction', 'Issues':'Issue', 'Groups':'Group','Actions':'Name', 'Treatments':'Treatment'}
 value_keys = ['Actions', 'Treatments','Issues', 'Groups', 'Channels']
 counts, values = dict(), dict()
 
@@ -184,7 +183,7 @@ Variation in the set of offered propositions across customers is also an importa
 
 ```{python}
 facet = "Channel/Direction"
-name_cols = ["Issue", "Group", "ModelName", "Treatment"]
+name_cols = ["Issue", "Group", "Name", "Treatment"]
 df = last_data.with_column(pl.concat_str(facet.split("/"), "/").alias(facet)).with_column(pl.col(pl.Categorical).cast(pl.Utf8)).lazy()
 df = (
     df
@@ -194,11 +193,11 @@ df = (
     )
     .with_columns([pl.col(col_nm).fill_null("NA") for col_nm in name_cols])
     .with_column(
-        pl.format("{}/{}/{}/{}", "Issue", "Group", "ModelName", "Treatment").alias(
-            "Name"
+        pl.format("{}/{}/{}/{}", "Issue", "Group", "Name", "Treatment").alias(
+            "combined_column"
         )
     )
-    .groupby(name_cols + ["Channel/Direction", "Name"])
+    .groupby(name_cols + ["Channel/Direction", "combined_column"])
     .agg(
         cdh_utils.weighed_average_polars("SuccessRate", "ResponseCount").alias(
             "SuccessRate"
@@ -212,11 +211,11 @@ df = (
 ).to_pandas()
 
 hover_data = {
-    "Name": False,
+    "combined_column": False,
     "SuccessRate": ":.2%",
     "Issue": ":.d",
     "Group": ":.d",
-    "ModelName": ":.d",
+    "Name": ":.d",
     "Treatment": ":.d"
 }
 
@@ -226,12 +225,12 @@ facet_col_wrap = 3
 fig = px.bar(
     df.sort_values(["Channel/Direction", "SuccessRate"]),
     x="SuccessRate",
-    y="Name",
+    y="combined_column",
     color="SuccessRate",
     facet_col=facet,
     facet_col_wrap=facet_col_wrap,
     template="pega",
-    text="Name",
+    text="combined_column",
     title="Proposition success rates <br><sup>Issue/Group/Name/Treatment</sup>",
     hover_data=hover_data,
 )
@@ -258,17 +257,11 @@ display(fig)
 Interactive chart with all success rates. Whiter is lower success rates, green is higher. Indicated values are percentages.
 
 ```{python}
-##### TODO: go to action level (done)
-# go from red to green only
-datamart.plotTreeMap(color_var="SuccessRate",
+fig = datamart.plotTreeMap(color_var="SuccessRate",
                      groupby_col= None,
-                     context_keys=['Channel', 'Direction', 'Issue', 'Group', "ModelName"], 
+                     context_keys=['Channel', 'Direction', 'Issue', 'Group', "Name"], 
                      colorscale=color_scale["success"])
-
-
-#fig.layout.coloraxis
-fig.show()
-# TODO: colors will be decided 
+fig
 ```
 
 Note: model_summary function and datamart.plotTreeMap('SuccessRate') functions needs to be changed or we can create a new function for this plot where all the colors and other configs are written
@@ -277,9 +270,6 @@ Note: model_summary function and datamart.plotTreeMap('SuccessRate') functions n
 Showing how the proposition success rates evolved over time. Again split by Channel but now also by model configuration. Usually there are separate model configurations for different channels but sometimes there are also additional model configurations for different outcomes (e.g. conversion) or different customers (e.g. anonymous).
 
 ```{python}
-## Fix min to 0
-# change hover to round success rate and 
-
 by = "Channel/Direction"
 facet = "Configuration"
 fig = datamart.plotOverTime('SuccessRate', by=by, facets=facet, facet_col_wrap=2, query=pl.col("ResponseCount") > 100)
@@ -300,12 +290,9 @@ fig.show()
 datamart.modelData.filter((pl.col("Configuration") == "OmniAdaptiveModel") &
 (pl.col("Channel") == "CallCenter" )
 
-).select(["Configuration","Direction", "Channel", "ModelName"]).collect()
+).select(["Configuration","Direction", "Channel", "Name"]).collect()
 
-
-#| output: asis
-## add the r table here and add responsecount, weighted perf. Change confname to conf
-standardNBADModelNames = ["Assisted_Click_Through_Rate",
+standardNBADNames = ["Assisted_Click_Through_Rate",
                         "CallCenter_Click_Through_Rate",
                         "CallCenterAcceptRateOutbound",
                         "Default_Inbound_Model",
@@ -321,15 +308,15 @@ standardNBADModelNames = ["Assisted_Click_Through_Rate",
                         "Web_Click_Through_Rate"]
 
 model_overview = last_data.with_column(
-    pl.format("{}/{}", "ModelName", "Treatment").alias("Name")
+    pl.format("{}/{}", "Name", "Treatment").alias("combined_column")
 ).groupby(["Configuration", "Channel", "Direction"]).agg(
     [
-        pl.col("ModelName").unique().count().alias("Number of Actions"),
-        pl.col("Name").unique().count().alias("Number of Models"),
+        pl.col("Name").unique().count().alias("Number of Actions"),
+        pl.col("combined_column").unique().count().alias("Number of Models"),
     ]
 ).with_columns(
     [
-    pl.col("Configuration").is_in(standardNBADModelNames).alias("Standard in NBAD Framework"),
+    pl.col("Configuration").is_in(standardNBADNames).alias("Standard in NBAD Framework"),
     (pl.col("Number of Models") / pl.col("Number of Actions")).round(2).alias("Average number of Treatments per Action")
     ]
 ).sort("Configuration").to_pandas()
@@ -367,7 +354,7 @@ fig.show()
 ### Model Performance over Time
 ```{python}
 facet = "Configuration"
-modelperformance = datamart.plotOverTime('Performance', by="Channel/Direction", facets=facet, facet_col_wrap=2)
+modelperformance = datamart.plotOverTime('weighted_performance', by="Channel/Direction", facets=facet, facet_col_wrap=2)
 
 unique_count = datamart.modelData.with_column(pl.concat_str(facet.split("/"), "/").alias(facet)).select(facet).collect().unique().shape[0]
 height = 200 + (math.ceil( unique_count / 2) * 250)
@@ -384,35 +371,7 @@ modelperformance.show()
 ### Model performance of all the actions (interactive Treemap)
 
 ```{python}
-# weighted performance in treemap
-color = "Performance"
-context_keys= datamart.context_keys + ["ModelName"]
-context_path = [px.Constant("All Models")] + context_keys
-weighted = last_data.groupby(context_keys).agg(
-        cdh_utils.weighed_average_polars(color, "ResponseCount").alias(
-            color
-        )
-    ).with_column((pl.col(color) * 100).round(2)).filter((~pl.col("Performance").is_nan()))
-
-hover_data = {
-    "Channel":":.d",
-    "Direction":":.d",
-    "Issue": ":.d",
-    "Group": ":.d",
-    "ModelName": ":.d",
-}
-
-
-fig = px.treemap(
-            weighted.to_pandas(),
-            path=context_path,
-            color=color,
-            template="pega",
-            title= color,
-            hover_data=hover_data
-        )
-fig.layout.coloraxis.colorscale = color_scale["performance"]
-
+fig = datamart.plotTreeMap(color_var="performance_weighted", groupby_col= None, context_keys=['Channel', 'Direction', 'Issue', 'Group', "Name"], color_scale=color_scale["performance"])
 
 fig.show()
 ```
@@ -421,38 +380,9 @@ fig.show()
 
 This plot is wrong. It takes the mean of child sets instead of sum
 ```{python}
-path =  [col for col in ["Channel", "Direction", "Issue","Group"] if col in datamart_all_columns]
-gb_cols = path
-path = [px.Constant("All Models")] + path 
-
-ResponseCount = (
-    last_data
-    .groupby(gb_cols)
-    .agg(pl.max("ResponseCount").alias("ResponseCount"))
-)
-ResponseCount.sort("ResponseCount")
-hover_data = {"ResponseCount": ":.d"}
-fig = px.treemap(
-    ResponseCount.to_pandas(),
-    path=path,
-    hover_data=hover_data,
-    color="ResponseCount",
-    template="pega",
-    title="Response Count",
-)
-
-fig.layout.coloraxis.colorscale = color_scale["bad_to_good"]
-
-#for trace in fig.data:
-#    trace.marker.colors = trace.values
-
-ResponseCount
-
-
-fig.show()
-
-
-datamart.plotTreeMap(color_var="performance_weighted")
+# TODO:This needs work. Cant sum upwards
+fig = datamart.plotTreeMap(color_var="responsecount", context_keys=['Channel', 'Direction', 'Issue', 'Group', "Name"], colorscale=color_scale["bad_to_good"])
+fig
 
 ```
 # Analysis of Predictors
@@ -526,29 +456,30 @@ Although the same could be achieved using the standard plotPredictorImportance m
 ```{python}
 
 ## (perf - 0.5)*2 and no weight. Try summing up performance instead of mean
- with pl.StringCache():
+## Still using weighted. Only changed perf range to 0-100
+with pl.StringCache():
     df = datamart.combinedData.with_column(
         pl.col("PredictorName").apply(cdh_utils.defaultPredictorCategorization).alias("PredictorCategory")
     )
 predictor_perf = (
-    df
+    df.with_column((pl.col("PerformanceBin") - 0.5)*2)
     .groupby(["Configuration", "PredictorCategory"])
     .agg(
         (
             cdh_utils.weighed_average_polars(
                 "PerformanceBin", "BinResponseCount"
-            ).alias("weighted_performance")
+            ).alias("Performance")
         )
     )
 )
 conf_total = predictor_perf.groupby("Configuration").agg(
-    pl.sum("weighted_performance").alias("conf_total")
+    pl.sum("Performance").alias("conf_total")
 )
 
 df = (
     predictor_perf.join(conf_total, on="Configuration", how="left")
     .with_column(
-        ((pl.col("weighted_performance") / pl.col("conf_total")) * 100).alias(
+        ((pl.col("Performance") / pl.col("conf_total")) * 100).alias(
             "Contribution"
         )
     )
@@ -613,7 +544,7 @@ A view of predictor performance across all propositions, ordered so that the bes
 
 ```{python}
 print("here I take only last 25 chars of x axis ticks. Should we go for sth else?")
-index_cols = [col for col in ['Issue', 'Group', "ModelName", "Treatment"] if col in datamart_all_columns]
+index_cols = [col for col in ['Issue', 'Group', "Name", "Treatment"] if col in datamart_all_columns]
 if datamart.predictorData is not None:
     unique_configurations = datamart.combinedData.collect().get_column("Configuration").unique().to_list()
     for conf in unique_configurations:
@@ -647,6 +578,8 @@ else:
 
 
 ```{python}
+## in the plotTreeMap func we use modelSummary. But here we need predictors. Should we create new func for this
+# fig = datamart.plotTreeMap(color_var="percentage_without_responses", context_keys=['Configuration', 'PredictorCategory', 'PredictorName'], colorscale=color_scale["good_to_bad"])
 
 path =  [col for col in ["Configuration", "PredictorCategory", "PredictorName"] if col in datamart_all_columns]
 gb_cols = path
@@ -694,7 +627,7 @@ In the sections below we check which of these models have reached certain reliab
 
 ```{python}
 print("Debugger: in R only lastSnapshot is used for calculation. I used modelData believing it is more accurate? (I saw 17 rows when I ran with last_data) ")
-ck = ["Configuration", "Issue", "Group", "ModelName", "Channel", "Direction", "Treatment"]
+ck = ["Configuration", "Issue", "Group", "Name", "Channel", "Direction", "Treatment"]
 ck =  [col for col in ck if col in datamart_all_columns]
 counts = datamart.modelData.groupby(ck).agg(
     [
@@ -717,7 +650,6 @@ else:
 ```
 
 ```{python}
-#| output: asis
 zero_positives = counts.filter(pl.col("Positives") == 0).collect().to_pandas()
 if zero_positives.shape[0] >0:
     print("## Models that have have been used but never received a positive response  ")
@@ -852,7 +784,7 @@ cdh_utils.legend_color_order(only_positives).show()
 Zooming in into the models that drive most of the responses, here we list the top 20 models with the highest number of responses.
 
 ```{python}
-facet= "Configuration/Issue/Group/ModelName/Channel/Direction/Treatment"
+facet= "Configuration/Issue/Group/Name/Channel/Direction/Treatment"
 for split_facet in facet.split("/"):
     last_data = last_data.with_column(
         pl.col(split_facet).cast(pl.Utf8).fill_null("NA")
@@ -882,6 +814,7 @@ positives = response_counts.sort("positive_sum", reverse=True).head(20)
 fig = px.bar(positives.to_pandas(), x ="positive_sum", y=facet, color="Channel", title="Top 20 Highest Positives", template="pega")
 fig.update_yaxes(matches=None, showticklabels=False).update_xaxes(matches=None).update_traces(textposition='inside')
 fig.update_layout(yaxis={'categoryorder':'total ascending'})
+fig.data[0]
 
 cdh_utils.legend_color_order(fig).show()
 ```
@@ -1074,7 +1007,7 @@ A list of all the models is written to a file so a script can iterate over all m
 
 Generally you will want to apply some filtering, or do this for specific models only. This can be accomplished in either this script here, or by editing the generated file.
 ```{python}
-available_context_keys=  ["Configuration", "Issue","Group","ModelName","Channel","Direction","Treatment"]
+available_context_keys=  ["Configuration", "Issue","Group","Name","Channel","Direction","Treatment"]
 available_context_keys =  [col for col in available_context_keys if col in datamart_all_columns]
 appendix = datamart.modelData.groupby(available_context_keys + ["ModelID"]).agg(
     [
