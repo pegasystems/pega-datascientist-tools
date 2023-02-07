@@ -1,0 +1,16 @@
+- Predictors:
+    maskPredictorNames: Y
+    maskPredictorValues: Y
+    ExcludePredictors: Decision_DecisionTime,Decision_OutcomeTime
+- ContextKeys:
+    maskContextKeyNames: Y
+    maskContextKeyValues: Y
+    ContextKeyPredictors: Context_*
+- IHPredictors:
+    maskIHPredictorNames: Y
+    maskIHPredictorValues: Y
+    IHPredictors: IH_*
+- OutcomeColumn:
+    maskOutcomeName: Y
+    maskOutcomeValues: Y
+    OutcomeColumn: Decision_Outcome
