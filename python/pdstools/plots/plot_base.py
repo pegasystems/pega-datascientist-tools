@@ -1,14 +1,13 @@
 from typing import Optional, Union, Dict, List
 import pandas as pd
 import polars as pl
-from .plots_mpl import ADMVisualisations as mpl
 from .plots_plotly import ADMVisualisations as plotly
 from ..utils.cdh_utils import (
     defaultPredictorCategorization,
     weighed_performance_polars,
     weighed_average_polars,
 )
-import matplotlib.pyplot as plt
+from ..utils.errors import NotApplicableError
 import plotly.graph_objs as go
 
 
@@ -169,7 +168,7 @@ class Plots:
             The subsetted dataframe
         """
         if not hasattr(self, table) or getattr(self, table) is None:
-            raise self.NotApplicableError(
+            raise NotApplicableError(
                 f"This visualisation requires {table}, but that table isn't in this dataset."
             )
 
@@ -276,7 +275,7 @@ class Plots:
         query: Union[str, dict] = None,
         facets: Optional[list] = None,
         **kwargs,
-    ) -> Union[plt.Axes, go.FigureWidget]:
+    ) -> go.FigureWidget:
         """Creates bubble chart similar to ADM OOTB.
 
         Parameters
@@ -299,22 +298,19 @@ class Plots:
         round : int, default = 5
             To how many digits to round the hover data
         plotting_engine: str
-            One of {plotly, mpl}, see ADMDatamart class
+            'plotly' or a custom plot class
         return_df : bool
             If set to True, returns the dataframe instead of the plot
             Can be useful for debugging or replicating the plots
 
         Notes
         -----
-        See the docs for either the matplotlib plots (plots_mpl.py) or the
-        plotly plots (plots_plotly.py). Some visualisations have parameters
-        that differ slightly between the two, and plotly has an additional
-        post_plot function defining some more actions, such as writing to
-        html automatically or displaying figures while facetting.
+        See the docs for the plotly plots (plots_plotly.py)
+        to see further parameters for this plot.
 
         Returns
         -------
-        (plt.Axes, go.FigureWidget)
+        go.FigureWidget
         """
         plotting_engine = self.get_engine(
             kwargs.pop("plotting_engine", self.plotting_engine)
@@ -326,7 +322,7 @@ class Plots:
             "Performance",
             "SuccessRate",
             "ResponseCount",
-            "ModelName",
+            "Name",
         }
 
         df, facets = self._subset_data(
@@ -356,64 +352,6 @@ class Plots:
             **kwargs,
         )
 
-    def plotPerformanceAndSuccessRateOverTime(
-        self, day_interval: int = 7, query: Union[str, dict] = None, **kwargs
-    ) -> plt.Axes:
-        """Plots both performance and success rate over time
-
-        Currently only supported for matplotlib.
-
-        Parameters
-        ----------
-        day_interval: int, default = 7
-            The interval of tick labels along the x axis
-        query: Union[str, dict], default = None
-            The query to supply to _apply_query
-            If a string, uses the default Pandas query function
-            Else, a dict of lists where the key is the column name of the dataframe
-            and the corresponding value is a list of values to keep in the dataframe
-
-        Keyword arguments
-        -----------------
-        figsize: tuple
-            The size of the graph
-        plotting_engine: str
-            This chart is only supported in matplotlib (mpl)
-        return_df : bool
-            If set to True, returns the dataframe instead of the plot
-            Can be useful for debugging or replicating the plots
-
-        Notes
-        ----------------------------
-        See the docs for the matplotlib plots (plots_mpl.py).
-
-        Returns
-        -------
-        plt.Axes
-        """
-        if kwargs.get("plotting_engine", self.plotting_engine) != "mpl":
-            print("Plot is only available in matplotlib.")
-
-        table = "modelData"
-        multi_snapshot = True
-        required_columns = {
-            "ModelID",
-            "ModelName",
-            "SnapshotTime",
-            "ResponseCount",
-            "Performance",
-            "SuccessRate",
-        }
-        df, facets = self._subset_data(
-            table, required_columns, query, facets=facets, multi_snapshot=multi_snapshot
-        )
-        if kwargs.pop("return_df", False):
-            return df
-
-        return mpl().PerformanceAndSuccessRateOverTime(
-            df, day_interval=day_interval, query=query, **kwargs
-        )
-
     def plotOverTime(
         self,
         metric: str = "Performance",
@@ -422,7 +360,7 @@ class Plots:
         query: Union[str, dict] = None,
         facets: Optional[list] = None,
         **kwargs,
-    ) -> Union[plt.Axes, go.FigureWidget]:
+    ) -> go.FigureWidget:
         """Plots a given metric over time
 
         Parameters
@@ -432,7 +370,7 @@ class Plots:
             {ResponseCount, Performance, SuccessRate, Positives, weighted_performance}
         by: str, default = ModelID
             What variable to group the data by
-            One of {ModelID, ModelName}
+            One of {ModelID, Name}
         every: int, default = 1d
             How often to consider the metrics
         query: Union[str, dict], default = None
@@ -446,22 +384,19 @@ class Plots:
         Keyword arguments
         -----------------
         plotting_engine: str
-            One of {plotly, mpl}, see ADMDatamart class
+            'plotly' or a custom plot class
         return_df : bool
             If set to True, returns the dataframe instead of the plot
             Can be useful for debugging or replicating the plots
 
         Notes
         -----
-        See the docs for either the matplotlib plots (plots_mpl.py) or the
-        plotly plots (plots_plotly.py). Some visualisations have parameters
-        that differ slightly between the two, and plotly has an additional
-        post_plot function defining some more actions, such as writing to
-        html automatically or displaying figures while facetting.
+        See the docs for the plotly plots (plots_plotly.py)
+        to see further parameters for this plot.
 
         Returns
         -------
-        (plt.Axes, go.FigureWidget)
+        go.FigureWidget
         """
         plotting_engine = self.get_engine(
             kwargs.pop("plotting_engine", self.plotting_engine)
@@ -471,7 +406,7 @@ class Plots:
         multi_snapshot = True
         required_columns = {
             "ModelID",
-            "ModelName",
+            "Name",
             "SnapshotTime",
             "ResponseCount",
             "Performance",
@@ -529,102 +464,26 @@ class Plots:
             **kwargs,
         )
 
-    def plotResponseCountMatrix(
-        self,
-        lookback: int = 15,
-        fill_null_days: bool = False,
-        query: Union[str, dict] = None,
-        **kwargs,
-    ) -> plt.Axes:
-        """Plots the response count over time in a matrix
-
-        Parameters
-        ----------
-        lookback: int, default = 15
-            How many days to look back from the last snapshot
-        fill_null_days: bool, default = False
-            If True, null values will be generated for days without a snapshot
-        query: Union[str, dict], default = None
-            The query to supply to _apply_query
-            If a string, uses the default Pandas query function
-            Else, a dict of lists where the key is the column name of the dataframe
-            and the corresponding value is a list of values to keep in the dataframe
-
-        Keyword arguments
-        -----------------
-        plotting_engine: str
-            This chart is only supported in matplotlib (mpl)
-        return_df : bool
-            If set to True, returns the dataframe instead of the plot
-            Can be useful for debugging or replicating the plots
-
-        Notes
-        -----
-        See the docs for the matplotlib plots (plots_mpl.py).
-
-        Returns
-        -------
-        plt.Axes
-        """
-        raise NotImplementedError("Not implemented for polars yet.")
-        if kwargs.get("plotting_engine", self.plotting_engine) != "mpl":
-            print("Plot is only available in matplotlib.")
-
-        table = "modelData"
-        multi_snapshot = True
-        required_columns = {"ModelID", "ModelName", "SnapshotTime", "ResponseCount"}
-        df = self._subset_data(
-            table, required_columns, query=query, multi_snapshot=multi_snapshot
-        )
-        assert (
-            lookback <= df["SnapshotTime"].nunique()
-        ), f"Lookback ({lookback}) cannot be larger than the number of snapshots {df['SnapshotTime'].nunique()}"
-
-        annot_df, heatmap_df = self._create_heatmap_df(
-            df, lookback, query=None, fill_null_days=fill_null_days
-        )
-        heatmap_df = (
-            heatmap_df.reset_index()
-            .merge(
-                df[["ModelID", "ModelName"]].drop_duplicates(), on="ModelID", how="left"
-            )
-            .drop("ModelID", axis=1)
-            .set_index("ModelName")
-        )
-        annot_df = (
-            annot_df.reset_index()
-            .merge(
-                df[["ModelID", "ModelName"]].drop_duplicates(), on="ModelID", how="left"
-            )
-            .drop("ModelID", axis=1)
-            .set_index("ModelName")
-        )
-        if kwargs.pop("return_df", False):
-            return df
-        return mpl().ResponseCountMatrix(
-            annot_df=annot_df, heatmap_df=heatmap_df, query=query, **kwargs
-        )
-
     def plotPropositionSuccessRates(
         self,
         metric: str = "SuccessRate",
-        by: str = "ModelName",
+        by: str = "Name",
         show_error: bool = True,
         top_n=0,
         subsetted_top_n=False,
         query: Union[str, dict] = None,
         facets: Optional[list] = None,
         **kwargs,
-    ) -> Union[plt.Axes, go.FigureWidget]:
+    ) -> go.FigureWidget:
         """Plots all latest proposition success rates
 
         Parameters
         ----------
         metric: str, default = SuccessRate
             Can be changed to plot a different metric
-        by: str, default = ModelName
+        by: str, default = Name
             What variable to group the data by
-            One of {ModelID, ModelName}
+            One of {ModelID, Name}
         show_error: bool, default = True
             Whether to show error bars in the bar plots
         query: Union[str, dict], default = None
@@ -638,22 +497,19 @@ class Plots:
         Keyword arguments
         -----------------
         plotting_engine: str
-            One of {plotly, mpl}, see ADMDatamart class
+            'plotly' or a custom plot class
         return_df : bool
             If set to True, returns the dataframe instead of the plot
             Can be useful for debugging or replicating the plots
 
         Notes
         -----
-        See the docs for either the matplotlib plots (plots_mpl.py) or the
-        plotly plots (plots_plotly.py). Some visualisations have parameters
-        that differ slightly between the two, and plotly has an additional
-        post_plot function defining some more actions, such as writing to
-        html automatically or displaying figures while facetting.
+        See the docs for the plotly plots (plots_plotly.py)
+        to see further parameters for this plot.
 
         Returns
         -------
-        (plt.Axes, go.FigureWidget)
+        go.FigureWidget
         """
         plotting_engine = self.get_engine(
             kwargs.get("plotting_engine", self.plotting_engine)
@@ -661,7 +517,7 @@ class Plots:
 
         table = "modelData"
         last = True
-        required_columns = {"ModelID", "ModelName", "SuccessRate"}
+        required_columns = {"ModelID", "Name", "SuccessRate"}
         df, facets = self._subset_data(
             table,
             required_columns,
@@ -706,14 +562,14 @@ class Plots:
         query: Union[str, dict] = None,
         show_each=False,
         **kwargs,
-    ) -> Union[plt.Axes, go.FigureWidget]:
+    ) -> go.FigureWidget:
         """Plots the score distribution, similar to OOTB
 
         Parameters
         ----------
-        by: str, default = ModelName
+        by: str, default = Name
             What variable to group the data by
-            One of {ModelID, ModelName}
+            One of {ModelID, Name}
         show_zero_responses: bool, default = False
             Whether to include bins with no responses at all
         query: Union[str, dict], default = None
@@ -725,22 +581,19 @@ class Plots:
         Keyword arguments
         -----------------
         plotting_engine: str
-            One of {plotly, mpl}, see ADMDatamart class
+            'plotly' or a custom plot class
         return_df : bool
             If set to True, returns the dataframe instead of the plot
             Can be useful for debugging or replicating the plots
 
         Notes
         -----
-        See the docs for either the matplotlib plots (plots_mpl.py) or the
-        plotly plots (plots_plotly.py). Some visualisations have parameters
-        that differ slightly between the two, and plotly has an additional
-        post_plot function defining some more actions, such as writing to
-        html automatically or displaying figures while facetting.
+        See the docs for the plotly plots (plots_plotly.py)
+        to see further parameters for this plot.
 
         Returns
         -------
-        (plt.Axes, go.FigureWidget)
+        go.FigureWidget
         """
         plotting_engine = self.get_engine(
             kwargs.get("plotting_engine", self.plotting_engine)
@@ -748,7 +601,7 @@ class Plots:
         table = "combinedData"
         required_columns = {
             "PredictorName",
-            "ModelName",
+            "Name",
             "BinIndex",
             "BinSymbol",
             "BinResponseCount",
@@ -783,7 +636,7 @@ class Plots:
         show_each=False,
         query: Union[str, dict] = None,
         **kwargs,
-    ) -> Union[plt.Axes, go.FigureWidget]:
+    ) -> go.FigureWidget:
         """Plots the binning of given predictors
 
         Parameters
@@ -802,22 +655,19 @@ class Plots:
         Keyword arguments
         -----------------
         plotting_engine: str
-            One of {plotly, mpl}, see ADMDatamart class
+            'plotly' or a custom plot class
         return_df : bool
             If set to True, returns the dataframe instead of the plot
             Can be useful for debugging or replicating the plots
 
-        Additional keyword arguments
-        ----------------------------
-        See the docs for either the matplotlib plots (plots_mpl.py) or the
-        plotly plots (plots_plotly.py). Some visualisations have parameters
-        that differ slightly between the two, and plotly has an additional
-        post_plot function defining some more actions, such as writing to
-        html automatically or displaying figures while facetting.
+        Notes
+        -----
+        See the docs for the plotly plots (plots_plotly.py)
+        to see further parameters for this plot.
 
         Returns
         -------
-        (plt.Axes, go.FigureWidget)
+        go.FigureWidget
         """
         plotting_engine = self.get_engine(
             kwargs.get("plotting_engine", self.plotting_engine)
@@ -826,7 +676,7 @@ class Plots:
         last = True
         required_columns = {
             "PredictorName",
-            "ModelName",
+            "Name",
             "BinIndex",
             "BinSymbol",
             "BinResponseCount",
@@ -868,7 +718,7 @@ class Plots:
         query: Union[str, dict] = None,
         facets: Optional[list] = None,
         **kwargs,
-    ) -> Union[plt.Axes, go.FigureWidget]:
+    ) -> go.FigureWidget:
         """Plots a bar chart of the performance of the predictors
 
         By default, this plot shows the performance over all models
@@ -894,20 +744,19 @@ class Plots:
             Useful if you want to be more specific in the legend of the plot
             Function should return a string from a string
         plotting_engine: str
-            One of {plotly, mpl}, see ADMDatamart class
+            'plotly' or a custom plot class
         return_df : bool
             If set to True, returns the dataframe instead of the plot
             Can be useful for debugging or replicating the plots
-        Additional keyword arguments
-        ----------------------------
-        See the docs for either the matplotlib plots (plots_mpl.py) or the
-        plotly plots (plots_plotly.py). Some visualisations have parameters
-        that differ slightly between the two, and plotly has an additional
-        post_plot function defining some more actions, such as writing to
-        html automatically or displaying figures while facetting.
+
+        Notes
+        -----
+        See the docs for the plotly plots (plots_plotly.py)
+        to see further parameters for this plot.
+
         Returns
         -------
-        (plt.Axes, go.FigureWidget)
+        go.FigureWidget
         """
         plotting_engine = self.get_engine(
             kwargs.get("plotting_engine", self.plotting_engine)
@@ -947,7 +796,6 @@ class Plots:
                 pl.col("PredictorName").apply(categorization).alias("Legend")
             )
 
-        asc = plotting_engine.__module__.split(".")[1] == "plots_mpl"
 
         if separate:
             partition = "facet"
@@ -958,7 +806,7 @@ class Plots:
                 df.groupby("PredictorName")
                 .agg(pl.mean(to_plot))
                 .fill_nan(0)
-                .sort(to_plot, reverse=asc)
+                .sort(to_plot, reverse=False)
                 .get_column("PredictorName")
                 .to_list()
             )
@@ -1070,12 +918,12 @@ class Plots:
     def plotPredictorPerformanceHeatmap(
         self,
         top_n: int = 0,
-        by="ModelName",
+        by="Name",
         active_only: bool = False,
         query: Union[str, dict] = None,
         facets: list = None,
         **kwargs,
-    ) -> Union[plt.Axes, go.FigureWidget]:
+    ) -> go.FigureWidget:
         """Plots heatmap of the performance of the predictors
 
         By default, this plot shows the performance over all models
@@ -1098,28 +946,25 @@ class Plots:
         Keyword arguments
         -----------------
         plotting_engine: str
-            One of {plotly, mpl}, see ADMDatamart class
+            'plotly' or a custom plot class
         return_df : bool
             If set to True, returns the dataframe instead of the plot
             Can be useful for debugging or replicating the plots
 
         Notes
         -----
-        See the docs for either the matplotlib plots (plots_mpl.py) or the
-        plotly plots (plots_plotly.py). Some visualisations have parameters
-        that differ slightly between the two, and plotly has an additional
-        post_plot function defining some more actions, such as writing to
-        html automatically or displaying figures while facetting.
+        See the docs for the plotly plots (plots_plotly.py)
+        to see further parameters for this plot.
 
         Returns
         -------
-        (plt.Axes, go.FigureWidget)
+        go.FigureWidget
         """
         plotting_engine = self.get_engine(
             kwargs.get("plotting_engine", self.plotting_engine)
         )()
         table = "combinedData"
-        required_columns = {"PredictorName", "ModelName", "PerformanceBin"}
+        required_columns = {"PredictorName", "Name", "PerformanceBin"}
         if by is not None:
             by_columns = [i for i in by.split("/")]
             required_columns = required_columns.union(
@@ -1159,69 +1004,6 @@ class Plots:
             query=query,
             **kwargs,
         )
-
-    def plotImpactInfluence(
-        self, ModelID: str = None, query: Union[str, dict] = None, **kwargs
-    ) -> plt.Axes:
-        """Plots the impact and the influence of a given model's predictors
-
-        Parameters
-        ----------
-        ModelID: str, default = None
-            The selected model ID
-        query: Union[str, dict], default = None
-            The query to supply to _apply_query
-            If a string, uses the default Pandas query function
-            Else, a dict of lists where the key is the column name of the dataframe
-            and the corresponding value is a list of values to keep in the dataframe
-        facets: list, default = None
-            Whether to add facets to the plot, should be a list of columns
-
-        Keyword arguments
-        -----------------
-        plotting_engine: str
-            This chart is only supported in matplotlib (mpl)
-        return_df : bool
-            If set to True, returns the dataframe instead of the plot
-            Can be useful for debugging or replicating the plots
-
-        Notes
-        -----
-        See the docs for the matplotlib plots (plots_mpl.py).
-
-        Returns
-        -------
-        plt.Axes
-        """
-        if kwargs.get("plotting_engine", self.plotting_engine) != "mpl":
-            print("Plot is only available in matplotlib.")
-
-        table = "combinedData"
-        last = True
-        required_columns = {
-            "ModelID",
-            "PredictorName",
-            "ModelName",
-            "PerformanceBin",
-            "BinResponseCount",
-            "BinPositives",
-            "BinNegatives",
-        }
-        df = self._subset_data(table, required_columns, query, last=last).reset_index()
-        df = (
-            self._calculate_impact_influence(
-                df, context_keys=self.context_keys, ModelID=ModelID
-            )[["ModelID", "PredictorName", "Impact(%)", "Influence(%)"]]
-            .set_index(["ModelID", "PredictorName"])
-            .stack()
-            .reset_index()
-            .rename(columns={"level_2": "metric", 0: "value"})
-        )
-
-        if kwargs.pop("return_df", False):
-            return df
-
-        return mpl().ImpactInfluence(df=df, ModelID=ModelID, query=query, **kwargs)
 
     def plotResponseGain(
         self,

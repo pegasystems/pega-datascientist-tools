@@ -1,7 +1,6 @@
 import warnings
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
-
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
@@ -115,7 +114,7 @@ class ADMVisualisations:
             size="ResponseCount",
             facet_col=facet,
             facet_col_wrap=kwargs.pop("facet_col_wrap", 5),
-            hover_name="ModelName",
+            hover_name="Name",
             hover_data=["ModelID"] + context_keys,
             title=f'Bubble Chart {title} {kwargs.get("title_text","")}',
             color_continuous_scale="Bluered",
@@ -160,39 +159,6 @@ class ADMVisualisations:
                 fig.data[0].marker.size *= bubble_size
 
         return self.post_plot(fig, name="Bubble", title=title, **kwargs)
-
-    # def plotResponseCountMatrix(self, lookback=15, fill_null_days=False, query:Union[str, dict]=None, figsize=(14, 10)):
-    #     """Creates a calendar heatmap
-    #     x axis shows model names and y axis the dates. Data in each cell is the total number
-    #     of responses. The color indicates where responses increased/decreased or
-    #     did not change compared to the previous day
-
-    #     Parameters
-    #     ----------
-    #     lookback : int
-    #         Defines how many days to look back at data from the last snapshot
-    #     fill_null_days : bool
-    #         If True, null values will be generated in the dataframe for
-    #         days where there is no model snapshot
-    #     query : Union[str, dict]
-    #         The query to supply to _apply_query
-    #         If a string, uses the default Pandas query function
-    #         Else, a dict of lists where the key is column name in the dataframe
-    #         and the corresponding value is a list of values to keep in the dataframe
-    #     figsize : tuple
-    #         Size of graph
-
-    #     Returns
-    #     -------
-    #     plt.figure
-    #     """
-    #     table = 'modelData'
-    #     multi_snapshot = True
-    #     required_columns = {'ModelID', 'ModelName', 'SnapshotTime', 'ResponseCount'}
-    #     df = self._subset_data(table, required_columns, query=query, multi_snapshot=multi_snapshot)
-    #     assert lookback < df['SnapshotTime'].nunique(), f"Lookback ({lookback}) cannot be larger than the number of snapshots {df['SnapshotTime'].nunique()}"
-
-    #     raise NotImplementedError("This visualisation is not yet implemented.")
 
     def OverTime(
         self,
@@ -266,7 +232,7 @@ class ADMVisualisations:
         self,
         df,
         metric="SuccessRate",
-        by="ModelName",
+        by="Name",
         show_error=True,
         facet=None,
         **kwargs,
@@ -349,7 +315,7 @@ class ADMVisualisations:
         fig = self.distribution_graph(
             df,
             f"""Classifier score distribution<br>
-            <sup>Model name: {df['ModelName'].unique().item()}
+            <sup>Model name: {df['Name'].unique().item()}
             <br>Model ID {facet}</sup>""",
         )
         return self.post_plot(
@@ -388,7 +354,7 @@ class ADMVisualisations:
         plt.figure
         """
 
-        name = df.select(["ModelName"]).row(0)
+        name = df.select(["Name"]).row(0)
         modelid, predictorname = facet
         title = f"Model name: {name}<br><sup>Model ID: {modelid}<br>Predictor name: {predictorname}</sup>"
         fig = self.distribution_graph(df, title)
