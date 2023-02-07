@@ -429,7 +429,7 @@ class Plots:
         ----------
         metric: str, default = Performance
             The metric to plot over time. One of the following:
-            {ResponseCount, Performance, SuccessRate, Positives}
+            {ResponseCount, Performance, SuccessRate, Positives, weighted_performance}
         by: str, default = ModelID
             What variable to group the data by
             One of {ModelID, ModelName}
@@ -499,11 +499,10 @@ class Plots:
                         (pl.sum("Positives") / pl.sum("ResponseCount")).alias(
                             "SuccessRate"
                         ),
-                        weighed_performance_polars().alias("Performance"),
+                        weighed_performance_polars().alias("weighted_performance"),
                     ]
                 )
-                .with_columns([pl.col("Performance") * 100,
-                               pl.col("SuccessRate") * 100])
+                .with_column(pl.col("weighted_performance") * 100)
             ).sort(["SnapshotTime", by])
         else:
             df = self._create_sign_df(

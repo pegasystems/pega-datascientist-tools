@@ -2,7 +2,13 @@ from dataclasses import dataclass
 from typing import Dict
 import pandas as pd
 import streamlit as st
-from ..adm import ADMDatamart, datasets
+from ..adm import ADMDatamart  #
+
+""" I deleted this because I was getting
+"ImportError: cannot import name 'datasets' from 'pdstools.adm' 
+(/Users/uyany/Documents/GitHub/pega-datascientist-tools-original/python/pdstools/adm/__init__.py)"
+error when I added 'from ..app import pega_template' this line to the plots.plotly
+ """
 
 
 def import_data(params, default=1):

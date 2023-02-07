@@ -218,13 +218,19 @@ class ADMVisualisations:
         """
 
         hide_legend = kwargs.pop("hide_legend", False)
-
+        metric_hovers = {
+            "SuccessRate": ":.2%",
+            "Performance": ":.2f",
+            "weighted_performance": ":.2f",
+            "Positives": ":.d",
+            "ResponseCount": ":.d",
+        }
         if metric in ["Performance", "weighted_performance", "SuccessRate"]:
             df = df.to_pandas()
             x = "SnapshotTime"
             y = metric
             color = by
-            hover_data = [by, metric, "SuccessRate"]
+            hover_data = {by: ":.d", metric: metric_hovers[metric]}
         else:
             df = df.to_pandas().set_index("SnapshotTime")
             x = None
@@ -250,6 +256,9 @@ class ADMVisualisations:
         )
         if hide_legend:
             fig.update_layout(showlegend=False)
+        if metric == "SuccessRate":
+            fig.update_yaxes(tickformat=",.0%")
+            fig.update_layout(yaxis={"rangemode": "tozero"})
 
         return self.post_plot(fig, name="Lines_over_time", title=title, **kwargs)
 
@@ -735,7 +744,7 @@ class ADMVisualisations:
             "Percentage without responses": ":.0%",
             "Response Count sum": ":.d",
             "Success Rate mean": ":.3%",
-            "Performance weighted mean": ":.0%",
+            "Performance weighted mean": ":.2f",
             "Positives sum": ":.d",
         }
 

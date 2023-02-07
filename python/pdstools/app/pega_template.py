@@ -8,13 +8,13 @@ pio.templates["pega"] = go.layout.Template(
         # Note - 'family' must be a single string, NOT a list or dict!
         "title": {
             "font": {
-                "family": '"Open-Sans, Sans-serif, HelveticaNeue-CondensedBold, Helvetica',
+                "family": "Open-Sans, Sans-serif, HelveticaNeue-CondensedBold, Helvetica",
                 "size": 18,
                 "color": "#333",
             }
         },
         "font": {
-            "family": '"Open-Sans, Helvetica Neue, Helvetica, Sans-serif',
+            "family": "Open-Sans, Helvetica Neue, Helvetica, Sans-serif",
             "size": 12,
             "color": "#333",
         },
