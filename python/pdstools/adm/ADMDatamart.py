@@ -397,6 +397,7 @@ class ADMDatamart(Plots):
             "Channel",
             "Direction",
             "Name",
+            "Treatment",
             "Positives",
             "Configuration",
             "ResponseCount",
@@ -416,9 +417,7 @@ class ADMDatamart(Plots):
         }  # NOTE: these default names are already capitalized properly, with py/px/pz removed.
 
         include_cols = (
-            set(cdh_utils._capitalize(include_cols))
-            if include_cols is not None
-            else {}
+            set(cdh_utils._capitalize(include_cols)) if include_cols is not None else {}
         )
         drop_cols = (
             set(cdh_utils._capitalize(drop_cols)) if drop_cols is not None else {}
@@ -447,7 +446,7 @@ class ADMDatamart(Plots):
             The input dataframe, but the proper typing applied
         """
         retype = {
-            pl.Categorical: ["Issue", "Group", "Channel", "Direction"],
+            pl.Categorical: ["Issue", "Group", "Channel", "Direction", "Name"],
             # pl.Int64: ["Positives", "Negatives", "ResponseCount"],
             pl.Float64: ["Performance"],
         }
@@ -599,10 +598,9 @@ class ADMDatamart(Plots):
             raise NotEagerError("Extracting keys")
         with pl.StringCache():
             df = df.collect()
-        extract_col = "Name"
-        self.extracted = self._extract(df, extract_col)
+        self.extracted = self._extract(df)
         self.extracted = cdh_utils._polarsCapitalize(self.extracted)
-        df = df.drop(extract_col)
+        df = df.drop([col for col in self.extracted.columns if col in df.columns])
         for column in self.extracted.columns:
             df.hstack([self.extracted.get_column(column)], in_place=True)
         return df.lazy(), self.extracted.columns
@@ -610,9 +608,9 @@ class ADMDatamart(Plots):
     def _extract(self, df, extract_col="Name"):
         """Simple function to extract treatments from column"""
 
-        return df.select(pl.col(extract_col).apply(self.load_if_json)).unnest(
-            extract_col
-        )
+        return df.select(
+            pl.col(extract_col).cast(pl.Utf8).apply(self.load_if_json)
+        ).unnest(extract_col)
 
     @staticmethod
     def load_if_json(input, defaultName="pyName"):
