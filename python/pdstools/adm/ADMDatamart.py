@@ -255,9 +255,9 @@ class ADMDatamart(Plots):
             )
 
         if df1 is not None and df2 is not None:
-            total_missing = set(self.missing_model) & set(self.missing_preds) - set(
+            total_missing = (set(self.missing_model) & set(self.missing_preds) - set(
                 df1.columns
-            ) - set(df2.columns)
+            ) - set(df2.columns)) - {"Treatment"}
             if len(total_missing) > 0 and verbose:
                 print(
                     "Missing expected field values.\n",
