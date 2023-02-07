@@ -41,7 +41,7 @@ dependencies = [
         "jupyterlab",
         "ipywidgets",
         "pydot",
-        "polars",
+        "polars>=0.16.0",
         "pyarrow",
         "tqdm"
     ]
