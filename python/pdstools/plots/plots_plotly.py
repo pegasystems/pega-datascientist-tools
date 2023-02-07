@@ -728,8 +728,7 @@ class ADMVisualisations:
             df.select(
                 pl.when(pl.log(color) == float("-inf")).then(0).otherwise(pl.log(color))
             ).to_series()
-        else:
-            color = df.get_column(color)
+        # When you give a column instead of column name, then legend name and hieararchy gets messed up
 
         if midpoint is not None:
             midpoint = color.quantile(midpoint)

@@ -1410,7 +1410,8 @@ class Plots:
         """
         if kwargs.get("plotting_engine", self.plotting_engine) != "plotly":
             print("Plot is only available in Plotly.")
-
+        
+        context_keys = kwargs.pop("context_keys", self.context_keys)
         mapping = {
             f"{by}_count": "Model count",
             "Percentage_without_responses": "Percentage without responses",
@@ -1421,15 +1422,15 @@ class Plots:
         }
         with pl.StringCache():
             df = (
-                self.model_summary(by=by, query=query)
+                self.model_summary(by=by, query=query, context_keys=context_keys)
                 .select(
                     [
-                        pl.col(self.context_keys).cast(pl.Utf8),
+                        pl.col(context_keys).cast(pl.Utf8),
                         pl.col(list(mapping.keys())),
                     ]
                 )
                 .rename(mapping)
-                .sort(self.context_keys)
+                .sort(context_keys)
                 .fill_null("Missing")
                 .collect()
             )
@@ -1523,7 +1524,7 @@ class Plots:
             log=log,
             midpoint=midpoint,
             format=format,
-            context_keys=self.context_keys,
+            context_keys=context_keys,
             value_in_text=value_in_text,
             query=query,
             **kwargs,

@@ -915,7 +915,10 @@ class ADMDatamart(Plots):
         return df.sort_values(["PredictorName", "Impact(%)"], ascending=[False, False])
 
     def model_summary(
-        self, by: str = "ModelID", query: Union[str, dict] = None, **kwargs
+        self,
+        by: str = "ModelID",
+        query: Union[str, dict] = None,
+        **kwargs
     ):
         """Convenience method to automatically generate a summary over models
         By default, it summarizes ResponseCount, Performance, SuccessRate & Positives by model ID.
