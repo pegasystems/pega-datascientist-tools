@@ -614,15 +614,16 @@ def _capitalize(fields: list) -> list:
         "ConfigurationName",
         "Configuration",
     ]
-    if isinstance(fields, list):
-        fields = [re.sub("^p(x|y|z)", "", field.lower()) for field in fields]
-        fields = list(
-            map(lambda x: x.replace("configurationname", "configuration"), fields)
-        )
-        for word in capitalizeEndWords:
-            fields = [re.sub(word, word, field, flags=re.I) for field in fields]
-            fields = [field[:1].upper() + field[1:] for field in fields]
-        return fields
+    if not isinstance(fields, list):
+        fields = [fields]
+    fields = [re.sub("^p(x|y|z)", "", field.lower()) for field in fields]
+    fields = list(
+        map(lambda x: x.replace("configurationname", "configuration"), fields)
+    )
+    for word in capitalizeEndWords:
+        fields = [re.sub(word, word, field, flags=re.I) for field in fields]
+        fields = [field[:1].upper() + field[1:] for field in fields]
+    return fields
 
 
 def _polarsCapitalize(df: pl.LazyFrame):

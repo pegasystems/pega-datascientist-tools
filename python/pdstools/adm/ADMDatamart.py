@@ -1,4 +1,3 @@
-import copy
 import json
 import logging
 import os
@@ -68,9 +67,9 @@ class ADMDatamart(Plots):
     context_keys : list
         Which columns to use as context keys
     extract_keys : bool
-        Treatments are typically hidden within the pyName column,
-        extract_keys can expand that cell to also show treatments.
-        To extract, give the column name as the 'extract_keys' argument
+        Extra keys are typically hidden within the pyName column,
+        extract_keys can expand that cell to also show these values.
+        To extract, set extract_keys to True.
 
     Notes
     ----------------------------
@@ -315,7 +314,7 @@ class ADMDatamart(Plots):
             have not been renamed, so use the original naming
         extract_keys : bool
             Treatments are typically hidden within the pyName column,
-            extract_keys can expand that cell to also show treatments.
+            extract_keys can expand that cell to also show these values.
 
         Additional keyword arguments
         -----------------
@@ -417,12 +416,12 @@ class ADMDatamart(Plots):
         }  # NOTE: these default names are already capitalized properly, with py/px/pz removed.
 
         include_cols = (
-            set(cdh_utils._capitalize([include_cols]))
+            set(cdh_utils._capitalize(include_cols))
             if include_cols is not None
             else {}
         )
         drop_cols = (
-            set(cdh_utils._capitalize([drop_cols])) if drop_cols is not None else {}
+            set(cdh_utils._capitalize(drop_cols)) if drop_cols is not None else {}
         )
 
         include_cols = default_names.union(include_cols).difference(drop_cols)
