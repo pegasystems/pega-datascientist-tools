@@ -219,7 +219,7 @@ def readZippedFile(file: str, verbose: bool = False, **kwargs) -> BytesIO:
                     (
                         "Zipped json file found. For faster reading, we recommend",
                         "parsing the files to a format such as arrow or parquet. ",
-                        "See example in docs #TODO"
+                        "See example in docs #TODO",
                     )
                 )
             with z.open("data.json") as zippedfile:
@@ -614,11 +614,26 @@ def _capitalize(fields: list) -> list:
         "ConfigurationName",
         "Configuration",
     ]
-    fields = [re.sub("^p(x|y|z)", "", field.lower()) for field in fields]
-    for word in capitalizeEndWords:
-        fields = [re.sub(word, word, field, flags=re.I) for field in fields]
-        fields = [field[:1].upper() + field[1:] for field in fields]
-    return fields
+    if isinstance(fields, list):
+        fields = [re.sub("^p(x|y|z)", "", field.lower()) for field in fields]
+        fields = list(
+            map(lambda x: x.replace("configurationname", "configuration"), fields)
+        )
+        for word in capitalizeEndWords:
+            fields = [re.sub(word, word, field, flags=re.I) for field in fields]
+            fields = [field[:1].upper() + field[1:] for field in fields]
+        return fields
+
+
+def _polarsCapitalize(df: pl.LazyFrame):
+    return df.rename(
+        dict(
+            zip(
+                df.columns,
+                _capitalize(df.columns),
+            )
+        )
+    )
 
 
 def fromPRPCDateTime(
@@ -702,6 +717,51 @@ def weighed_average_polars(vals, weights) -> pl.Expr:
 def weighed_performance_polars() -> pl.Expr:
     """Polars function to return a weighted performance"""
     return weighed_average_polars("Performance", "ResponseCount")
+
+
+def zRatio(
+    posCol: pl.Expr = pl.col("BinPositives"), negCol: pl.Expr = pl.col("BinNegatives")
+) -> pl.Expr:
+    """Calculates the Z-Ratio for predictor bins.
+
+    The Z-ratio is a measure of how the propensity in a bin differs from the average,
+    but takes into account the size of the bin and thus is statistically more relevant.
+    It represents the number of standard deviations from the avreage,
+    so centers around 0. The wider the spread, the better the predictor is.
+
+    To recreate the OOTB ZRatios from the datamart, use in a groupby.
+    See `examples`.
+
+    Parameters
+    ----------
+    posCol: pl.Expr
+        The (Polars) column of the bin positives
+    negCol: pl.Expr
+        The (Polars) column of the bin positives
+
+    Examples
+    --------
+    >>> df.groupby(['ModelID', 'PredictorName']).agg([zRatio()]).explode()
+    """
+
+    def getFracs(posCol=pl.col("BinPositives"), negCol=pl.col("BinNegatives")):
+        return posCol / posCol.sum(), negCol / negCol.sum()
+
+    def zRatioimpl(
+        posFractionCol=pl.col("posFraction"),
+        negFractionCol=pl.col("negFraction"),
+        PositivesCol=pl.sum("BinPositives"),
+        NegativesCol=pl.sum("BinNegatives"),
+    ):
+        return (
+            (posFractionCol - negFractionCol)
+            / (
+                (posFractionCol * (1 - posFractionCol) / PositivesCol)
+                + (negFractionCol * (1 - negFractionCol) / NegativesCol)
+            ).sqrt()
+        ).alias("ZRatio")
+
+    return zRatioimpl(*getFracs(posCol, negCol), posCol.sum(), negCol.sum())
 
 
 def readClientCredentialFile(credentialFile):

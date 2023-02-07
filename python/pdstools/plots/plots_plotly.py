@@ -1,7 +1,6 @@
 import warnings
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
-
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
@@ -114,7 +113,7 @@ class ADMVisualisations:
             size="ResponseCount",
             facet_col=facet,
             facet_col_wrap=kwargs.pop("facet_col_wrap", 5),
-            hover_name="ModelName",
+            hover_name="Name",
             hover_data=["ModelID"] + context_keys,
             title=f'Bubble Chart {title} {kwargs.get("title_text","")}',
             color_continuous_scale="Bluered",
@@ -159,7 +158,6 @@ class ADMVisualisations:
                 fig.data[0].marker.size *= bubble_size
 
         return self.post_plot(fig, name="Bubble", title=title, **kwargs)
-
 
     def OverTime(
         self,
@@ -224,7 +222,7 @@ class ADMVisualisations:
         self,
         df,
         metric="SuccessRate",
-        by="ModelName",
+        by="Name",
         show_error=True,
         facet=None,
         **kwargs,
@@ -307,7 +305,7 @@ class ADMVisualisations:
         fig = self.distribution_graph(
             df,
             f"""Classifier score distribution<br>
-            <sup>Model name: {df['ModelName'].unique().item()}
+            <sup>Model name: {df['Name'].unique().item()}
             <br>Model ID {facet}</sup>""",
         )
         return self.post_plot(
@@ -346,7 +344,7 @@ class ADMVisualisations:
         plt.figure
         """
 
-        name = df.select(["ModelName"]).row(0)
+        name = df.select(["Name"]).row(0)
         modelid, predictorname = facet
         title = f"Model name: {name}<br><sup>Model ID: {modelid}<br>Predictor name: {predictorname}</sup>"
         fig = self.distribution_graph(df, title)

@@ -3,6 +3,7 @@ import pandas as pd
 import polars as pl
 from .plots_plotly import ADMVisualisations as plotly
 from ..utils.cdh_utils import defaultPredictorCategorization, weighed_performance_polars
+from ..utils.errors import NotApplicableError
 import plotly.graph_objs as go
 
 
@@ -122,7 +123,7 @@ class Plots:
             The subsetted dataframe
         """
         if not hasattr(self, table) or getattr(self, table) is None:
-            raise self.NotApplicableError(
+            raise NotApplicableError(
                 f"This visualisation requires {table}, but that table isn't in this dataset."
             )
 
@@ -260,7 +261,7 @@ class Plots:
             "Performance",
             "SuccessRate",
             "ResponseCount",
-            "ModelName",
+            "Name",
         }
 
         df, facets = self._subset_data(
@@ -308,7 +309,7 @@ class Plots:
             {ResponseCount, Performance, SuccessRate, Positives}
         by: str, default = ModelID
             What variable to group the data by
-            One of {ModelID, ModelName}
+            One of {ModelID, Name}
         every: int, default = 1d
             How often to consider the metrics
         query: Union[str, dict], default = None
@@ -344,7 +345,7 @@ class Plots:
         multi_snapshot = True
         required_columns = {
             "ModelID",
-            "ModelName",
+            "Name",
             "SnapshotTime",
             "ResponseCount",
             "Performance",
@@ -406,7 +407,7 @@ class Plots:
     def plotPropositionSuccessRates(
         self,
         metric: str = "SuccessRate",
-        by: str = "ModelName",
+        by: str = "Name",
         show_error: bool = True,
         top_n=0,
         subsetted_top_n=False,
@@ -420,9 +421,9 @@ class Plots:
         ----------
         metric: str, default = SuccessRate
             Can be changed to plot a different metric
-        by: str, default = ModelName
+        by: str, default = Name
             What variable to group the data by
-            One of {ModelID, ModelName}
+            One of {ModelID, Name}
         show_error: bool, default = True
             Whether to show error bars in the bar plots
         query: Union[str, dict], default = None
@@ -456,7 +457,7 @@ class Plots:
 
         table = "modelData"
         last = True
-        required_columns = {"ModelID", "ModelName", "SuccessRate"}
+        required_columns = {"ModelID", "Name", "SuccessRate"}
         df, facets = self._subset_data(
             table,
             required_columns,
@@ -506,9 +507,9 @@ class Plots:
 
         Parameters
         ----------
-        by: str, default = ModelName
+        by: str, default = Name
             What variable to group the data by
-            One of {ModelID, ModelName}
+            One of {ModelID, Name}
         show_zero_responses: bool, default = False
             Whether to include bins with no responses at all
         query: Union[str, dict], default = None
@@ -540,7 +541,7 @@ class Plots:
         table = "combinedData"
         required_columns = {
             "PredictorName",
-            "ModelName",
+            "Name",
             "BinIndex",
             "BinSymbol",
             "BinResponseCount",
@@ -615,7 +616,7 @@ class Plots:
         last = True
         required_columns = {
             "PredictorName",
-            "ModelName",
+            "Name",
             "BinIndex",
             "BinSymbol",
             "BinResponseCount",
@@ -757,7 +758,7 @@ class Plots:
     def plotPredictorPerformanceHeatmap(
         self,
         top_n: int = 0,
-        by="ModelName",
+        by="Name",
         active_only: bool = False,
         query: Union[str, dict] = None,
         facets: list = None,
@@ -803,7 +804,7 @@ class Plots:
             kwargs.get("plotting_engine", self.plotting_engine)
         )()
         table = "combinedData"
-        required_columns = {"PredictorName", "ModelName", "PerformanceBin"}
+        required_columns = {"PredictorName", "Name", "PerformanceBin"}
         if by is not None:
             required_columns = required_columns.union({by, "ResponseCount"})
         df, facets = self._subset_data(

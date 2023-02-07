@@ -13,6 +13,7 @@ from ..utils.types import any_frame
 from .ADMTrees import ADMTrees
 from ..plots.plot_base import Plots
 from ..plots.plots_plotly import ADMVisualisations as plotly_plot
+from ..utils.errors import NotEagerError
 
 pl.toggle_string_cache = True
 
@@ -25,8 +26,6 @@ class ADMDatamart(Plots):
     ----------
     path : str, default = "."
         The path of the data files
-    overwrite_mapping : dict, default = None
-        A dictionary to overwrite default feature names in the input data
     import_strategy: Literal['eager', 'lazy'], default = 'eager'
         Whether to import the file fully, or scan the file
         When data fits into memory, 'eager' is typically more efficient
@@ -68,10 +67,10 @@ class ADMDatamart(Plots):
         have not been renamed, so use the original naming
     context_keys : list
         Which columns to use as context keys
-    extract_treatment : str
+    extract_keys : bool
         Treatments are typically hidden within the pyName column,
-        extract_treatment can expand that cell to also show treatments.
-        To extract, give the column name as the 'extract_treatment' argument
+        extract_keys can expand that cell to also show treatments.
+        To extract, give the column name as the 'extract_keys' argument
 
     Notes
     ----------------------------
@@ -105,7 +104,6 @@ class ADMDatamart(Plots):
     def __init__(
         self,
         path: str = ".",
-        overwrite_mapping: Optional[dict] = None,
         import_strategy: Literal["eager", "lazy"] = "eager",
         query: Union[str, Dict[str, list]] = None,
         plotting_engine="plotly",
@@ -118,7 +116,6 @@ class ADMDatamart(Plots):
         self.import_strategy = import_strategy
         self.modelData, self.predictorData = self.import_data(
             path,
-            overwrite_mapping=overwrite_mapping,
             query=query,
             **kwargs,
         )
@@ -153,7 +150,6 @@ class ADMDatamart(Plots):
     def import_data(
         self,
         path: Optional[str] = ".",
-        overwrite_mapping: Optional[dict] = None,
         subset: bool = True,
         model_df: Optional[any_frame] = None,
         predictor_df: Optional[any_frame] = None,
@@ -174,9 +170,6 @@ class ADMDatamart(Plots):
         path : str
             The path of the data files
             Default = current path (',')
-        overwrite_mapping : dict
-            A dictionary to overwrite default feature names in the input data
-            Default = None
         subset : bool, default = True
             Whether to only select the renamed columns,
             set to False to keep all columns
@@ -198,19 +191,25 @@ class ADMDatamart(Plots):
         verbose = kwargs.pop("verbose", True)
         model_filename = kwargs.pop("model_filename", "modelData")
         predictor_filename = kwargs.pop("predictor_filename", "predictorData")
+        extract_keys = kwargs.pop("extract_keys", False)
 
         if model_df is not None:
             df1, self.renamed_model, self.missing_model = self._import_utils(
-                name=model_df, subset=subset, query=query, verbose=verbose, **kwargs
+                name=model_df,
+                subset=subset,
+                query=query,
+                verbose=verbose,
+                extract_keys=extract_keys,
+                **kwargs,
             )
         else:
             df1, self.renamed_model, self.missing_model = self._import_utils(
                 model_filename,
                 path,
-                overwrite_mapping,
                 subset,
                 query=query,
                 verbose=verbose,
+                extract_keys=extract_keys,
                 **kwargs,
             )
         if df1 is not None:
@@ -232,7 +231,6 @@ class ADMDatamart(Plots):
             df2, self.renamed_preds, self.missing_preds = self._import_utils(
                 predictor_filename,
                 path,
-                overwrite_mapping,
                 subset,
                 query=query,
                 verbose=verbose,
@@ -280,7 +278,6 @@ class ADMDatamart(Plots):
         self,
         name: Union[str, any_frame],
         path: str = None,
-        overwrite_mapping: dict = None,
         subset: bool = True,
         query: Union[str, Dict[str, list]] = None,
         verbose: bool = True,
@@ -295,8 +292,6 @@ class ADMDatamart(Plots):
             or a dataframe
         path: str, default = None
             The path of the data file
-        overwrite_mapping : dict, default = None
-            A dictionary to overwrite default feature names in the input data
         subset : bool, default = True
             Whether to only select the renamed columns,
             set to False to keep all columns
@@ -318,10 +313,9 @@ class ADMDatamart(Plots):
             A way to apply a query to the data before any preprocessing
             Uses the Pandas querying function, and beware that the columns
             have not been renamed, so use the original naming
-        extract_treatment : str
+        extract_keys : bool
             Treatments are typically hidden within the pyName column,
-            extract_treatment can expand that cell to also show treatments.
-            To extract, give the column name as the 'extract_treatment' argument
+            extract_keys can expand that cell to also show treatments.
 
         Additional keyword arguments
         -----------------
@@ -335,8 +329,6 @@ class ADMDatamart(Plots):
             The columns missing in both dataframes
         """
 
-        extract_col = kwargs.pop("extract_treatment", None)
-        drop_cols = kwargs.pop("drop_cols", None)
         if isinstance(name, str) or isinstance(name, BytesIO):
             df = cdh_utils.readDSExport(
                 filename=name, path=path, verbose=verbose, **kwargs
@@ -346,28 +338,17 @@ class ADMDatamart(Plots):
         if not isinstance(df, pl.LazyFrame):
             return None, None, None
 
-        if not isinstance(overwrite_mapping, dict):
-            overwrite_mapping = {}
         self.model_snapshots = True
 
         if kwargs.get("prequery", None) is not None:
             raise NotImplementedError("Not yet implemented for Polars version.")
 
-        if drop_cols is not None:
-            try:
-                df = df.drop(drop_cols)
-            except:
-                if verbose:
-                    print("Error dropping one or more columns")
-                pass
-        if extract_col is not None and extract_col in df.columns:
-            df, overwrite_mapping = self.extract_treatments(
-                df, overwrite_mapping, extract_col
-            )
-        df = df.rename(dict(zip(df.columns, cdh_utils._capitalize(df.columns))))
-        df, renamed, missing = self._available_columns(df, overwrite_mapping, **kwargs)
+        df = cdh_utils._polarsCapitalize(df)
+        df, cols, missing = self._available_columns(df, **kwargs)
         if subset:
-            df = df.select(renamed.values())
+            df = df.select(cols)
+        if kwargs.pop("extract_keys", False):
+            df, extracted = self.extract_keys(df)
         df = self._set_types(df)
 
         if query is not None:
@@ -383,80 +364,72 @@ class ADMDatamart(Plots):
                 and thus can't be succesful for the other one. That should be fine
                 as the other table is likely queried correctly."""
                     )
-        return df, renamed, missing
+        return df, cols, missing
 
     def _available_columns(
-        self, df: pl.LazyFrame, overwrite_mapping: Optional[dict] = None, **kwargs
-    ) -> Tuple[pl.LazyFrame, dict, list]:
+        self,
+        df: pl.LazyFrame,
+        include_cols: Optional[list] = None,
+        drop_cols: Optional[list] = None,
+        **kwargs,
+    ) -> Tuple[pl.LazyFrame, set, set]:
         """Based on the default names for variables, rename available data to proper formatting
 
         Parameters
         ----------
         df : pl.LazyFrame
             Input dataframe
-        overwrite_mapping : dict
-            If given, adds 'search terms' to the default names to look for
-            If an extra variable is given which is not in default_names, it will also be included
-
-        Keyword arguments
-        -----------------
         include_cols : list
             Supply columns to include with the dataframe
+        drop_cols : list
+            Supply columns to not import at all
 
         Returns
         -------
-        (pl.LazyFrame, dict, list)
+        (pl.LazyFrame, set, set)
             The original dataframe, but renamed for the found columns &
             The original and updated names for all renamed columns &
             The variables that were not found in the table
         """
         default_names = {
-            "ModelID": ["ModelID"],
-            "Issue": ["Issue"],
-            "Group": ["Group"],
-            "Channel": ["Channel"],
-            "Direction": ["Direction"],
-            "ModelName": ["Name", "ModelName"],
-            "Positives": ["Positives"],
-            "Configuration": ["ConfigurationName", "Configuration"],
-            "ResponseCount": ["Response", "Responses", "ResponseCount"],
-            "SnapshotTime": ["ModelSnapshot", "SnapshotTime"],
-            "PredictorName": ["PredictorName"],
-            "Performance": ["Performance"],
-            "EntryType": ["EntryType"],
-            "PredictorName": ["PredictorName"],
-            "BinSymbol": ["BinSymbol"],
-            "BinIndex": ["BinIndex"],
-            "BinType": ["BinType"],
-            "BinPositives": ["BinPositives"],
-            "BinNegatives": ["BinNegatives"],
-            "BinResponseCount": ["BinResponseCount"],
-            "Type": ["Type"],
-            "Contents": ["Contents"],
+            "ModelID",
+            "Issue",
+            "Group",
+            "Channel",
+            "Direction",
+            "Name",
+            "Positives",
+            "Configuration",
+            "ResponseCount",
+            "SnapshotTime",
+            "PredictorName",
+            "Performance",
+            "EntryType",
+            "PredictorName",
+            "BinSymbol",
+            "BinIndex",
+            "BinType",
+            "BinPositives",
+            "BinNegatives",
+            "BinResponseCount",
+            "Type",
+            "Contents",
         }  # NOTE: these default names are already capitalized properly, with py/px/pz removed.
 
-        if len(kwargs.get("include_cols", [])) > 0:
-            for i in kwargs.pop("include_cols", []):
-                overwrite_mapping[i] = i
+        include_cols = (
+            set(cdh_utils._capitalize([include_cols]))
+            if include_cols is not None
+            else {}
+        )
+        drop_cols = (
+            set(cdh_utils._capitalize([drop_cols])) if drop_cols is not None else {}
+        )
 
-        if overwrite_mapping is not None and len(overwrite_mapping) > 0:
-            old_keys = list(overwrite_mapping.keys())
-            new_keys = cdh_utils._capitalize(list(old_keys))
-            for i, _ in enumerate(new_keys):
-                overwrite_mapping[new_keys[i]] = overwrite_mapping.pop(old_keys[i])
+        include_cols = default_names.union(include_cols).difference(drop_cols)
+        missing = {col for col in include_cols if col not in df.columns}
+        to_import = include_cols.intersection(set(df.columns))
 
-            for key, name in overwrite_mapping.items():
-                name = cdh_utils._capitalize([name])[0]
-                default_names[key] = [name]
-
-        variables = copy.deepcopy(default_names)
-        for key, values in default_names.items():
-            variables[key] = [name for name in values if name in df.columns]
-        missing = [x for x, y in variables.items() if len(y) == 0]
-        variables = {y[0]: x for x, y in variables.items() if len(y) > 0}
-        df = df.rename(variables)
-
-        return df, variables, missing
+        return df, to_import, missing
 
     @staticmethod
     def _set_types(df: any_frame) -> any_frame:
@@ -482,7 +455,7 @@ class ADMDatamart(Plots):
         to_retype = []
         for type, cols in retype.items():
             for col in cols:
-                if col in df.columns:
+                if col in set(df.columns):
                     to_retype.append(pl.col(col).cast(type))
         df = df.with_columns(to_retype)
         if df.schema["SnapshotTime"] == pl.Utf8:
@@ -604,7 +577,7 @@ class ADMDatamart(Plots):
                     "which can be used in the `filter()` method.",
                 )
                 if isinstance(df, pl.LazyFrame):
-                    raise self.NotEagerError("Applying pandas queries")
+                    raise NotEagerError("Applying pandas queries")
 
             if not isinstance(query, dict):
                 raise TypeError("query must be a dict where values are lists")
@@ -616,68 +589,43 @@ class ADMDatamart(Plots):
                 df = df[df[col].isin(val)]
         return df
 
-    def extract_treatments(
+    def extract_keys(
         self,
         df,
-        overwrite_mapping,
-        extract_col,
         verbose=True,
     ):
         if verbose:
-            print("Extracting treatments...")
+            print("Extracting keys...")
         if self.import_strategy != "eager":
-            raise self.NotEagerError("Extracting treatments")
+            raise NotEagerError("Extracting keys")
         with pl.StringCache():
             df = df.collect()
+        extract_col = "Name"
         self.extracted = self._extract(df, extract_col)
-        df = df.rename(dict(zip(df.columns, [i.lower() for i in df.columns])))
-        df = df.drop(extract_col.lower())
+        self.extracted = cdh_utils._polarsCapitalize(self.extracted)
+        df = df.drop(extract_col)
         for column in self.extracted.columns:
             df.hstack([self.extracted.get_column(column)], in_place=True)
-            if column.lower() != "pyname":
-                overwrite_mapping[column] = column
-        return df.lazy(), overwrite_mapping
+        return df.lazy(), self.extracted.columns
 
-    def _extract(self, df, extract_col):
+    def _extract(self, df, extract_col="Name"):
         """Simple function to extract treatments from column"""
 
-        try:
-            df = df.select(pl.col(extract_col).apply(json.loads)).unnest(extract_col)
-            df.columns = [col.lower() for col in df.columns]
-            return df
-        except:
-            return df.select(pl.col(extract_col).apply(self.load_if_json)).unnest(
-                extract_col
-            )
+        return df.select(pl.col(extract_col).apply(self.load_if_json)).unnest(
+            extract_col
+        )
 
     @staticmethod
-    def load_if_json(input, defaultName="pyname"):
+    def load_if_json(input, defaultName="pyName"):
         """Either extracts the whole column, or just the json strings"""
         try:
             return json.loads(input)
         except:
-            return {defaultName, input}
-
-    class NotApplicableError(ValueError):
-        pass
-
-    class NotEagerError(ValueError):
-        """Operation only possible in eager mode."""
-
-        def __init__(
-            self,
-            operationType=None,
-            defaultmsg="This operation is only possible in eager mode.",
-        ):
-            if operationType is not None:
-                msg = f"{operationType} is only possible in eager mode"
-            else:
-                msg = defaultmsg
-            super().__init__(msg)
+            return {defaultName: input}
 
     def discover_modelTypes(self, df: pl.LazyFrame, by="Configuration"):
         if self.import_strategy != "eager":
-            raise self.NotEagerError("Discovering AGB models")
+            raise NotEagerError("Discovering AGB models")
 
         def _getType(val):
             import zlib
@@ -898,7 +846,7 @@ class ADMDatamart(Plots):
         if ModelID is not None:
             df = df.query("ModelID == @ModelID")
 
-        mergelist = ["ModelID", "ModelName"] + context_keys
+        mergelist = ["ModelID", "Name"] + context_keys
         df = (
             df.groupby(["ModelID", "PredictorName"])
             .apply(_ImpactInfluence)
@@ -970,14 +918,12 @@ class ADMDatamart(Plots):
             )
         )
 
-    def pivot_df(
-        self, df: pl.LazyFrame, by="ModelName", allow_collect=True
-    ) -> pl.DataFrame:
+    def pivot_df(self, df: pl.LazyFrame, by="Name", allow_collect=True) -> pl.DataFrame:
         """Simple function to extract pivoted information"""
         if self.import_strategy == "lazy" and not allow_collect:
             raise ValueError("Only supported in eager mode.")
         df = df.filter(pl.col("PredictorName") != "Classifier")
-        if by not in ["ModelID", "ModelName"]:
+        if by not in ["ModelID", "Name"]:
             df = df.groupby([by, "PredictorName"]).agg(
                 cdh_utils.weighed_average_polars("PerformanceBin", "ResponseCount")
             )
