@@ -13,6 +13,8 @@
 - OutcomeColumn:
     maskOutcomeName: Y
     maskOutcomeValues: Y
+    OutcomeAccepts: Accepted,Accept
+    OutcomeRejects: Rejected
     OutcomeColumn: Decision_Outcome
 - FilePaths:
     datamartFolder: datamart

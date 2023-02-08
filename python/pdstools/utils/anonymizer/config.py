@@ -12,12 +12,12 @@ class Config:
 
     def __init__(self, config_file):
 
-        def str2bool(inp):
-            return True if inp == "Y" else False
+        self.config_file = config_file
 
-        # TODO:: validate config file exists
-        with open(config_file, "r") as yml_f:
-            self.data = yaml.load(yml_f, Loader=yaml.FullLoader)
+        def str2bool(inp):
+            return True if inp.upper() == "Y" else False
+
+        self.data = self.validate_config_file()
 
         dat = self.get_key(PREDICTORS)
         self.mask_predictor_names = str2bool(dat["maskPredictorNames"]) if "maskPredictorNames" in dat else True
@@ -37,6 +37,8 @@ class Config:
         dat = self.get_key(OUTCOME_COLUMN)
         self.mask_outcome_name = str2bool(dat["maskOutcomeName"]) if "maskOutcomeName" in dat else True
         self.mask_outcome_values = str2bool(dat["maskOutcomeValues"]) if "maskOutcomeValues" in dat else True
+        self.outcome_accepts = [x.strip() for x in dat["OutcomeAccepts"].split(",")] if "OutcomeAccepts" in dat else ["Accepted"]
+        self.outcome_rejects = [x.strip() for x in dat["OutcomeRejects"].split(",")] if "OutcomeRejects" in dat else ["Rejected"]
         self.outcome_column = dat["OutcomeColumn"] if "OutcomeColumn" in dat else "Outcome"
 
         dat = self.get_key(FILE_PATHS)
@@ -50,6 +52,14 @@ class Config:
         for item in self.data:
             if in_key in item:
                 return item[in_key]
+        return {}
+
+    def validate_config_file(self):
+        if not os.path.exists(self.config_file):
+            return {}
+        else:
+            with open(self.config_file, "r") as yml_f:
+                return yaml.load(yml_f, Loader=yaml.FullLoader)
 
     def validate_filepaths(self):
         if not os.path.exists(self.output_folder):

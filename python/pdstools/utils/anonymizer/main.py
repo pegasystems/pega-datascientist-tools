@@ -41,7 +41,7 @@ def get_columns_by_type(columns, config):
 
     outcome_column_t = [config.outcome_column]
 
-    predictors_t = list(set(columns) - set(context_keys_t + ih_predictors_t +  excluded_columns_t + outcome_column_t))
+    predictors_t = list(set(columns) - set(context_keys_t + ih_predictors_t + excluded_columns_t + outcome_column_t))
     return context_keys_t, ih_predictors_t, predictors_t
 
 
@@ -61,34 +61,40 @@ def get_anon_column_names(hdr_file, config):
         context_keys[context_keys_t[i]] = {
             "enc": f"CK_PREDICTOR_{i}",
             "mask_val": config.mask_context_key_values,
-            "mask_name": config.mask_context_key_names
+            "mask_name": config.mask_context_key_names,
+            "outcome": False
         }
 
     for i in range(len(ih_predictors_t)):
         ih_predictors[ih_predictors_t[i]] = {
             "enc": f"IH_PREDICTOR_{i}",
             "mask_val": config.mask_ih_predictor_values,
-            "mask_name": config.mask_ih_predictor_names
+            "mask_name": config.mask_ih_predictor_names,
+            "outcome": False
         }
 
     for i in range(len(predictors_t)):
         predictors[predictors_t[i]] = {
             "enc": f"PREDICTOR_{i}",
             "mask_val": config.mask_predictor_values,
-            "mask_name": config.mask_predictor_names
+            "mask_name": config.mask_predictor_names,
+            "outcome": False
         }
 
     outcome_column[config.outcome_column] = {
         "enc": "OUTCOME",
         "mask_val": config.mask_outcome_values,
-        "mask_name": config.mask_outcome_name
+        "mask_name": config.mask_outcome_name,
+        "outcome": True
     }
 
     headers = [predictors, context_keys, ih_predictors, outcome_column]
     return headers
 
 
-def process_hdr_file(hdr_file, headers, datamart_columns, output_file):
+def process_hdr_file(hdr_file, headers, datamart_columns, output_file, config):
+    print("Processing hdr file: {}".format(hdr_file))
+
     count = 0
     with open(hdr_file, 'r') as hdr_f:
         while True:
@@ -97,14 +103,15 @@ def process_hdr_file(hdr_file, headers, datamart_columns, output_file):
 
             if not line:
                 break
+
             print("Processing record #{}".format(count))
 
-            record = process_record(line, headers, datamart_columns)
+            record = process_record(line, headers, datamart_columns, config)
 
             write_to_file(record, output_file)
 
 
-def process_record(record, headers, datamart_columns):
+def process_record(record, headers, datamart_columns, config):
     record = json.loads(record)
 
     line = {}
@@ -112,11 +119,11 @@ def process_record(record, headers, datamart_columns):
     for item in headers:
         for key, val in item.items():
             if datamart_columns is None:
-                new_val = mask_value(record[key], None) if val["mask_val"] else record[key]
+                new_val = mask_value(record[key], None, config) if val["mask_val"] else record[key]
             elif key in datamart_columns:
-                new_val = mask_value(record[key], datamart_columns[key]) if val["mask_val"] else record[key]
+                new_val = mask_value(record[key], datamart_columns[key], config) if val["mask_val"] else record[key]
             else:
-                new_val = mask_value(record[key], None) if val["mask_val"] else record[key]
+                new_val = mask_value(record[key], None, config) if val["mask_val"] else record[key]
             new_key = val["enc"] if val["mask_name"] else key
             line[new_key] = new_val
 
@@ -129,25 +136,38 @@ def write_to_file(line, output_file):
         wr.write("\n")
 
 
-def mask_value(inp, predictor_type):
+def mask_value(inp, predictor_type, config):
+
+    def mask_numeric(num):
+        if isinstance(num, float):
+            noise = np.random.normal(0, 1, 1)
+            num += noise
+        return num
+
+    def mask_symbolic(sym):
+        return str(hash(sym))
+
+    def mask_outcome(out):
+        if out in config.outcome_accepts:
+            return '1'
+        else:
+            return '0'
+
     if inp is None:
         return ""
 
+    if inp in config.outcome_accepts or inp in config.outcome_rejects:
+        return mask_outcome(inp)
+
     if predictor_type is None:
         if inp.isnumeric():
-            if isinstance(inp, float):
-                noise = np.random.normal(0, 1, 1)
-                inp += noise
-            return inp
+            return mask_numeric(inp)
         else:
-            return str(hash(inp))
+            return mask_symbolic(inp)
     elif predictor_type == "numeric":
-        if isinstance(inp, float):
-            noise = np.random.normal(0, 1, 1)
-            inp += noise
-        return inp
+        return mask_numeric(inp)
     elif predictor_type == "symbolic":
-        return str(hash(inp))
+        return mask_symbolic(inp)
 
 
 def create_mapping_files(file_name, config, headers):
@@ -179,7 +199,7 @@ def run(hdr_file, config, datamart_columns):
         out_w.write(",".join(header_str) + "\n")
 
     # read hdr file
-    process_hdr_file(hdr_file, headers, datamart_columns, output_file)
+    process_hdr_file(hdr_file, headers, datamart_columns, output_file, config)
 
 
 def main(hdr_file=None, config_file='config.yml', use_datamart='N'):
