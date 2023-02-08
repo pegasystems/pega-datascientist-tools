@@ -977,15 +977,16 @@ class Plots:
             facets=facets,
             last=True,
         )
-        df = df.filter(pl.col("PredictorName") != "Classifier").with_column(
-            pl.col("PerformanceBin") * 100
-        )
-        df, by = self._generateFacets(df, by)
 
+        df, by = self._generateFacets(df, by)
+        
         # TODO: implement facets.
         df = self.pivot_df(df, by=by[0])
+
+        df = df.with_column(pl.all().exclude(by) * 100)
+
         if top_n > 0:
-            df = df[: top_n + 1, : top_n + 1]
+            df = df[: 20, : top_n + 1]
 
         if kwargs.pop("return_df", False):
             return df

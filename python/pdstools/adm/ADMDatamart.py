@@ -255,9 +255,10 @@ class ADMDatamart(Plots):
             )
 
         if df1 is not None and df2 is not None:
-            total_missing = (set(self.missing_model) & set(self.missing_preds) - set(
-                df1.columns
-            ) - set(df2.columns)) - {"Treatment"}
+            total_missing = (
+                set(self.missing_model)
+                & set(self.missing_preds) - set(df1.columns) - set(df2.columns)
+            ) - {"Treatment"}
             if len(total_missing) > 0 and verbose:
                 print(
                     "Missing expected field values.\n",
@@ -856,10 +857,7 @@ class ADMDatamart(Plots):
         return df.sort_values(["PredictorName", "Impact(%)"], ascending=[False, False])
 
     def model_summary(
-        self,
-        by: str = "ModelID",
-        query: Union[str, dict] = None,
-        **kwargs
+        self, by: str = "ModelID", query: Union[str, dict] = None, **kwargs
     ):
         """Convenience method to automatically generate a summary over models
         By default, it summarizes ResponseCount, Performance, SuccessRate & Positives by model ID.
@@ -931,8 +929,8 @@ class ADMDatamart(Plots):
             df = (
                 df.collect()
                 .pivot(index=by, columns="PredictorName", values="PerformanceBin")
-                .fill_null(50)
-                .fill_nan(50)
+                .fill_null(0.5)
+                .fill_nan(0.5)
             )
         mod_order = (
             df.select(
