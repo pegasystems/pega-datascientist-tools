@@ -1,3 +1,5 @@
+import glob
+
 import fire
 import json
 import re
@@ -6,42 +8,49 @@ import numpy as np
 import polars as pl
 
 from config import Config
-
 from pdstools import ADMDatamart
 
 
-def read_datamart_file(filename):
-    dm = ADMDatamart(path="datamart/")
-    pd = dm.predictorData
-    print(dm.context_keys)
-    return None
+def read_datamart_file(datamart_folder):
+    dm = ADMDatamart(path=datamart_folder)
+    df = dm.predictorData
+
+    # polars method TODO
+    # df_p = pl.DataFrame(dm.predictorData)
+    # df_predictors_full = df_p.filter(pl.col("EntryType") != "Classifier").select(["PredictorName", "Type"])
+    # df_predictors = df_predictors_full.select("PredictorName").unique()
+
+    df_ = list(df[df["EntryType"] != "Classifier"]["PredictorName"].unique())
+    columns = {}
+    for col in df_:
+        columns[col.replace(".", "_")] = df[df["PredictorName"] == col]["Type"].iloc[0]
+    return columns
+
+
+def get_columns_by_type(columns, config):
+    columns_ = ",".join(columns)
+
+    exp = "[^,]+"
+    context_keys_t = re.findall(f"{config.context_key_predictors}{exp}", columns_)
+    ih_predictors_t = re.findall(f"{config.ih_predictors}{exp}", columns_)
+
+    excluded_columns_t = []
+    for exc in config.exclude_predictors:
+        for e in re.findall(exc, columns_):
+            excluded_columns_t.append(e)
+
+    outcome_column_t = [config.outcome_column]
+
+    predictors_t = list(set(columns) - set(context_keys_t + ih_predictors_t +  excluded_columns_t + outcome_column_t))
+    return context_keys_t, ih_predictors_t, predictors_t
+
 
 def get_anon_column_names(hdr_file, config):
     with open(hdr_file, 'r') as hdr_f:
         line = hdr_f.readline().strip('\n')
     columns = list(json.loads(line).keys())
 
-    excluded_columns_t = {}
-    outcome_column_t = []
-    context_keys_t = []
-    ih_predictors_t = []
-    predictors_t = []
-    for idx, col in enumerate(columns):
-        for exc in config.exclude_predictors:
-            if re.search(exc, col):
-                excluded_columns_t[col] = col
-
-        if col in excluded_columns_t:
-            continue
-
-        if re.search(config.outcome_column, col):
-            outcome_column_t.append(col)
-        elif re.search(config.context_key_predictors, col):
-            context_keys_t.append(col)
-        elif re.search(config.ih_predictors, col):
-            ih_predictors_t.append(col)
-        else:
-            predictors_t.append(col)
+    context_keys_t, ih_predictors_t, predictors_t = get_columns_by_type(columns, config)
 
     outcome_column = {}
     context_keys = {}
@@ -79,7 +88,7 @@ def get_anon_column_names(hdr_file, config):
     return headers
 
 
-def process_hdr_file(hdr_file, headers):
+def process_hdr_file(hdr_file, headers, datamart_columns, output_file):
     count = 0
     with open(hdr_file, 'r') as hdr_f:
         while True:
@@ -90,60 +99,73 @@ def process_hdr_file(hdr_file, headers):
                 break
             print("Processing record #{}".format(count))
 
-            record = process_record(line, headers)
+            record = process_record(line, headers, datamart_columns)
 
-            write_to_file(record)
+            write_to_file(record, output_file)
 
 
-def process_record(record, headers):
+def process_record(record, headers, datamart_columns):
     record = json.loads(record)
 
     line = {}
 
     for item in headers:
         for key, val in item.items():
-            new_val = mask_value(record[key]) if val["mask_val"] else val
+            if datamart_columns is None:
+                new_val = mask_value(record[key], None) if val["mask_val"] else record[key]
+            elif key in datamart_columns:
+                new_val = mask_value(record[key], datamart_columns[key]) if val["mask_val"] else record[key]
+            else:
+                new_val = mask_value(record[key], None) if val["mask_val"] else record[key]
             new_key = val["enc"] if val["mask_name"] else key
             line[new_key] = new_val
 
     return line
 
 
-def write_to_file(line):
-    with open("output.csv", 'a') as wr:
+def write_to_file(line, output_file):
+    with open(output_file, 'a') as wr:
         wr.write(",".join(line.values()))
         wr.write("\n")
 
 
-def mask_value(inp):
+def mask_value(inp, predictor_type):
     if inp is None:
         return ""
 
-    if inp.isnumeric():
+    if predictor_type is None:
+        if inp.isnumeric():
+            if isinstance(inp, float):
+                noise = np.random.normal(0, 1, 1)
+                inp += noise
+            return inp
+        else:
+            return str(hash(inp))
+    elif predictor_type == "numeric":
         if isinstance(inp, float):
             noise = np.random.normal(0, 1, 1)
             inp += noise
         return inp
-    else:
+    elif predictor_type == "symbolic":
         return str(hash(inp))
 
 
-def create_mapping_files(headers):
-    for item in headers:
-        for key, val in item.items():
-            with open("mapping.txt", 'a') as wr:
-                wr.write(f'{key}={val["enc"]}')
+def create_mapping_files(file_name, config, headers):
+    map_filename = f'{config.output_folder}{file_name}.map'
+    with open(map_filename, 'w') as wr:
+        for item in headers:
+            for key, val in item.items():
+                mapped_val = val["enc"] if val["mask_val"] else key
+                wr.write(f'{key}={mapped_val}')
                 wr.write("\n")
 
 
-def main(hdr_file=None, config_file='config.yml', datamart_file=None):
-
-    config = Config(config_file)
-    datamart = read_datamart_file(datamart_file)
-
+def run(hdr_file, config, datamart_columns):
     headers = get_anon_column_names(hdr_file, config)
 
-    create_mapping_files(headers)
+    file_name = hdr_file.split("/")[-1].split(".")[0]
+
+    create_mapping_files(file_name, config, headers)
 
     # write column header to file
     header_str = []
@@ -152,11 +174,31 @@ def main(hdr_file=None, config_file='config.yml', datamart_file=None):
             new_key = val["enc"] if val["mask_name"] else key
             header_str.append(new_key)
 
-    with open("output.csv", 'w') as out_w:
+    output_file = f'{config.output_folder}{file_name}.csv'
+    with open(output_file, 'w') as out_w:
         out_w.write(",".join(header_str) + "\n")
 
     # read hdr file
-    process_hdr_file(hdr_file, headers)
+    process_hdr_file(hdr_file, headers, datamart_columns, output_file)
+
+
+def main(hdr_file=None, config_file='config.yml', use_datamart='N'):
+
+    config = Config(config_file)
+
+    hdr_batch = False
+    if hdr_file is None:
+        hdr_batch = True
+
+    datamart_columns = None
+    if bool(use_datamart):
+        datamart_columns = read_datamart_file(config.datamart_folder)
+
+    if hdr_batch:
+        for file in glob.glob(f'{config.hdr_folder}/*'):
+            run(file, config, datamart_columns)
+    else:
+        run(hdr_file, config, datamart_columns)
 
 
 if __name__ == "__main__":

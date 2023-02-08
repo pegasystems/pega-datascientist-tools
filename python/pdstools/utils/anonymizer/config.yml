@@ -14,3 +14,6 @@
     maskOutcomeName: Y
     maskOutcomeValues: Y
     OutcomeColumn: Decision_Outcome
+- FilePaths:
+    datamartFolder: datamart
+    hdrDataFolder: data

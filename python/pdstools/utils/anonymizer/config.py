@@ -1,41 +1,66 @@
 import yaml
+import os
 
 PREDICTORS = "Predictors"
 CONTEXT_KEY = "ContextKeys"
 IH_PREDICTORS = "IHPredictors"
 OUTCOME_COLUMN = "OutcomeColumn"
+FILE_PATHS = "FilePaths"
 
 
 class Config:
 
     def __init__(self, config_file):
 
+        def str2bool(inp):
+            return True if inp == "Y" else False
+
         # TODO:: validate config file exists
         with open(config_file, "r") as yml_f:
             self.data = yaml.load(yml_f, Loader=yaml.FullLoader)
 
         dat = self.get_key(PREDICTORS)
-        self.mask_predictor_names = bool(dat["maskPredictorNames"])
-        self.mask_predictor_values = bool(dat["maskPredictorValues"])
-        self.exclude_predictors = [x.strip() for x in dat["ExcludePredictors"].split(',')]
+        self.mask_predictor_names = str2bool(dat["maskPredictorNames"]) if "maskPredictorNames" in dat else True
+        self.mask_predictor_values = str2bool(dat["maskPredictorValues"]) if "maskPredictorValues" in dat else True
+        self.exclude_predictors = [x.strip() for x in dat["ExcludePredictors"].split(',')] if "ExcludePredictors" in dat else []
 
         dat = self.get_key(CONTEXT_KEY)
-        self.mask_context_key_names = bool(dat["maskContextKeyNames"])
-        self.mask_context_key_values = bool(dat["maskContextKeyValues"])
-        self.context_key_predictors = dat["ContextKeyPredictors"]
+        self.mask_context_key_names = str2bool(dat["maskContextKeyNames"]) if "maskContextKeyNames" in dat else True
+        self.mask_context_key_values = str2bool(dat["maskContextKeyValues"]) if "maskContextKeyValues" in dat else True
+        self.context_key_predictors = dat["ContextKeyPredictors"] if "ContextKeyPredictors" in dat else "Context_*"
 
         dat = self.get_key(IH_PREDICTORS)
-        self.mask_ih_predictor_names = bool(dat["maskIHPredictorNames"])
-        self.mask_ih_predictor_values = bool(dat["maskIHPredictorValues"])
-        self.ih_predictors = dat["IHPredictors"]
+        self.mask_ih_predictor_names = str2bool(dat["maskIHPredictorNames"]) if "maskIHPredictorNames" in dat else True
+        self.mask_ih_predictor_values = str2bool(dat["maskIHPredictorValues"]) if "maskIHPredictorValues" in dat else True
+        self.ih_predictors = dat["IHPredictors"] if "IHPredictors" in dat else "IH_*"
 
         dat = self.get_key(OUTCOME_COLUMN)
-        self.mask_outcome_name = bool(dat["maskOutcomeName"])
-        self.mask_outcome_values = bool(dat["maskOutcomeValues"])
-        self.outcome_column = dat["OutcomeColumn"]
+        self.mask_outcome_name = str2bool(dat["maskOutcomeName"]) if "maskOutcomeName" in dat else True
+        self.mask_outcome_values = str2bool(dat["maskOutcomeValues"]) if "maskOutcomeValues" in dat else True
+        self.outcome_column = dat["OutcomeColumn"] if "OutcomeColumn" in dat else "Outcome"
+
+        dat = self.get_key(FILE_PATHS)
+        self.output_folder = dat["outputFolder"] if "outputFolder" in dat else "output/"
+        self.datamart_folder = dat["datamartFolder"] if "datamartFolder" in dat else "datamart/"
+        self.hdr_folder = dat["hdrDataFolder"] if "hdrDataFolder" in dat else "data/"
+
+        self.validate_filepaths()
 
     def get_key(self, in_key):
         for item in self.data:
             if in_key in item:
                 return item[in_key]
+
+    def validate_filepaths(self):
+        if not os.path.exists(self.output_folder):
+            os.makedirs(self.output_folder)
+
+        if not os.path.exists(self.datamart_folder):
+            os.makedirs(self.datamart_folder)
+
+        if not os.path.exists(self.hdr_folder):
+            os.makedirs(self.hdr_folder)
+
+
+
 
