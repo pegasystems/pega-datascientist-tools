@@ -7,8 +7,8 @@
     maskContextKeyValues: Y
     ContextKeyPredictors: Context_*
 - IHPredictors:
-    maskIHPredictorNames: Y
-    maskIHPredictorValues: Y
+    maskIHPredictorNames: y
+    maskIHPredictorValues: y
     IHPredictors: IH_*
 - OutcomeColumn:
     maskOutcomeName: Y
