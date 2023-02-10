@@ -85,7 +85,7 @@ class Plots:
         return df
 
     @staticmethod
-    def subsetted_top_n(df, top_n, facets=None):
+    def subsetted_top_n(df, top_n, facet=None):
         """Subsets top_n predictor of each facet according to their median performance
            Used if seperate dataframes are needed for each facet.
 
@@ -95,7 +95,7 @@ class Plots:
             Table to subset
         top_n : int
             Number of predictors to pick from each facet
-        facets : list
+        facet : list
             facet to subset on, in a list
             Ex = ["Configuration"]
 
@@ -106,35 +106,35 @@ class Plots:
         """
 
         top_n_predictor_per_conf = (
-            df.groupby(facets + ["PredictorName"])
+            df.groupby(facet + ["PredictorName"])
             .agg(pl.median("PerformanceBin"))
             .select(
                 [
-                    pl.col(facets[0])
+                    pl.col(facet[0])
                     .sort_by(["PerformanceBin", "PredictorName"], reverse=True)
                     .head(top_n)
                     .list()
-                    .over(facets[0])
+                    .over(facet[0])
                     .flatten(),
                     pl.col("PredictorName")
                     .sort_by(["PerformanceBin", "PredictorName"], reverse=True)
                     .head(top_n)
                     .list()
-                    .over(facets[0])
+                    .over(facet[0])
                     .flatten(),
                 ]
             )
         )
 
-        order_dict = {}
+        order = {}
         for facetted_val, group_df in top_n_predictor_per_conf.partition_by(
-            facets, as_dict=True
+            facet, as_dict=True
         ).items():
-            order_dict[facetted_val] = group_df.get_column("PredictorName").to_list()
+            order[facetted_val] = group_df.get_column("PredictorName").to_list()
 
-        df = top_n_predictor_per_conf.join(df, on=facets + ["PredictorName"])
+        df = top_n_predictor_per_conf.join(df, on=facet + ["PredictorName"])
 
-        return df, order_dict
+        return df, order
 
     def _subset_data(
         self,
@@ -808,7 +808,7 @@ class Plots:
         separate = kwargs.pop("separate", False)
         if separate:
             partition = "facet"
-            df, order = self.subsetted_top_n(df, top_n, facets=facets)
+            df, order = self.subsetted_top_n(df, top_n, facet=facets)
         else:
             partition = None
             df = self.top_n(df, top_n, to_plot)  # TODO: add groupby
