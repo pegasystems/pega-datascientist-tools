@@ -205,16 +205,12 @@ class Plots:
         if active_only and "PredictorName" in df.columns:
             df = df.filter(pl.col("EntryType") == "Active")
 
-        df = df.with_column(pl.col(pl.Categorical).cast(pl.Utf8)).with_columns(
-            [pl.col(pl.Utf8).fill_null("NA")]
-        )
         df, facets = self._generateFacets(df, facets)
 
         if include_cols is not None:
             required_columns = set(list(required_columns) + include_cols)
-            for col in include_cols:
-                if "/" in col:
-                    df = df.with_column(pl.concat_str(col.split("/"), "/").alias(col))
+            df, include_cols = self._generateFacets(df, include_cols)
+
         if facets is not [None] and facets is not None:
             required_columns = set(list(required_columns) + facets)
         required_columns = {x for x in required_columns if x is not None}
@@ -233,16 +229,16 @@ class Plots:
             facets = [facets]
         for facet in facets:
             if "/" in facet:
-                for split_facet in facet.split("/"):
-                    df = df.with_column(
-                        pl.col(split_facet).cast(pl.Utf8).fill_null("NA")
-                    )
+                for column in facet.split("/"):
+                    df = df.with_column(pl.col(column).cast(pl.Utf8).fill_null("NA"))
                 df = df.with_column(pl.concat_str(facet.split("/"), "/").alias(facet))
             df = df.with_column(pl.col(facet).cast(pl.Utf8).fill_null("MISSING"))
 
         return df, facets
 
     def facettedPlot(self, facets, plotFunc, partition=None, *args, **kwargs):
+        if kwargs.pop("verbose", False):
+            print(partition)
         if len(facets) > 0 and facets[0] is not None:
             figlist = []
             if partition is None:

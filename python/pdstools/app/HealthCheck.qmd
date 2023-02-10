@@ -756,11 +756,11 @@ facets = "Configuration"
 facet_col_wrap = 2
 response_counts = datamart.plotOverTime('ResponseCount', by="Channel/Direction", facets=facets, every="1h", facet_col_wrap=facet_col_wrap)
 
-unique_count = datamart.modelData.with_column(pl.concat_str(facet.split("/"), "/").alias(facet)).select(facet).collect().unique().shape[0]
+unique_count = datamart.modelData.select(facets).collect().unique().shape[0]
 height = 200 + (math.ceil( unique_count / 2) * 250)
 response_counts.update_layout(autosize=True, height=height)
 response_counts.for_each_annotation(
-    lambda a: a.update(text=a.text.replace(f"{facet}=", ""))
+    lambda a: a.update(text=a.text.replace(f"{facets}=", ""))
 )
 response_counts.show()
 ```
