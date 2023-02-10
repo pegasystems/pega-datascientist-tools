@@ -407,9 +407,12 @@ class ADMVisualisations:
             if facet is None
             else f"per {facet}"
         )
-
+        df = df.to_pandas()
+        df[y] = df[y].astype("category")
+        df[y] = df[y].cat.set_categories(order)
+        # This is a temporary sorting solution until the category sorting bug in plotly is solved
         fig = px.box(
-            df.to_pandas(),
+            df.sort_values([y]),
             x=to_plot,
             y=y,
             color="Legend",

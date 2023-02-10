@@ -86,27 +86,38 @@ class Plots:
 
     @staticmethod
     def subsetted_top_n(df, top_n, facets=None):
-        """Gets top_n predictor of each different facet according to their weighted performance
-        if facets are plotted on seperate figures
+        """Subsets top_n predictor of each facet according to their median performance
+           Used if seperate dataframes are needed for each facet.
 
-        Args:
-            df (_type_): _description_
-            top_n (_type_): _description_
-            to_plot (str, optional): _description_. Defaults to "PerformanceBin".
-            facets (_type_, optional): _description_. Defaults to None.
+        Parameters
+        ----------
+        df : pl.DataFrame
+            Table to subset
+        top_n : int
+            Number of predictors to pick from each facet
+        facets : list
+            facet to subset on, in a list
+            Ex = ["Configuration"]
 
-        Returns:
-            _type_: _description_
+        Returns
+        -------
+        (pl.DataFrame, Dictionary)
+            Subsetted dataframe with a dictionary of facet : predictor order pairs
         """
 
         top_n_predictor_per_conf = (
             df.groupby(facets + ["PredictorName"])
-            .agg(pl.mean("PerformanceBin").alias("Performance"))
+            .agg(pl.median("PerformanceBin"))
             .select(
                 [
-                    pl.col(facets[0]).head(top_n).list().over(facets[0]).flatten(),
+                    pl.col(facets[0])
+                    .sort_by(["PerformanceBin", "PredictorName"], reverse=True)
+                    .head(top_n)
+                    .list()
+                    .over(facets[0])
+                    .flatten(),
                     pl.col("PredictorName")
-                    .sort_by(pl.col("Performance"), reverse=True)
+                    .sort_by(["PerformanceBin", "PredictorName"], reverse=True)
                     .head(top_n)
                     .list()
                     .over(facets[0])
@@ -114,13 +125,13 @@ class Plots:
                 ]
             )
         )
+
         order_dict = {}
-        for facetted_val, group_df in (
-            top_n_predictor_per_conf.collect()
-            .partition_by(facets, as_dict=True)
-            .items()
-        ):
+        for facetted_val, group_df in top_n_predictor_per_conf.partition_by(
+            facets, as_dict=True
+        ).items():
             order_dict[facetted_val] = group_df.get_column("PredictorName").to_list()
+
         df = top_n_predictor_per_conf.join(df, on=facets + ["PredictorName"])
 
         return df, order_dict
@@ -783,12 +794,10 @@ class Plots:
             facets=facets,
             active_only=active_only,
         )
-        df = df.unique()
+        df = (
+            df.unique()
+        )  # if a predictor is binned to 10 groups, then it gets more weight when we calculate median predictor perf, if we dont take unique here
         df = df.filter(pl.col("PredictorName") != "Classifier")
-
-        separate = kwargs.pop("separate", False)
-        if separate:
-            df, order = self.subsetted_top_n(df, top_n, facets=facets)
 
         categorization = kwargs.pop("categorization", defaultPredictorCategorization)
         with pl.StringCache():
@@ -796,8 +805,10 @@ class Plots:
                 pl.col("PredictorName").apply(categorization).alias("Legend")
             )
 
+        separate = kwargs.pop("separate", False)
         if separate:
             partition = "facet"
+            df, order = self.subsetted_top_n(df, top_n, facets=facets)
         else:
             partition = None
             df = self.top_n(df, top_n, to_plot)  # TODO: add groupby
@@ -979,14 +990,11 @@ class Plots:
         )
 
         df, by = self._generateFacets(df, by)
-        
-        # TODO: implement facets.
         df = self.pivot_df(df, by=by[0])
-
         df = df.with_column(pl.all().exclude(by) * 100)
 
         if top_n > 0:
-            df = df[: 20, : top_n + 1]
+            df = df[:20, : top_n + 1]
 
         if kwargs.pop("return_df", False):
             return df
