@@ -17,5 +17,7 @@
     OutcomeRejects: Rejected
     OutcomeColumn: Decision_Outcome
 - FilePaths:
-    datamartFolder: datamart
-    hdrDataFolder: data
+    useDatamart: n
+    datamartFolder: /Users/hasss/dev/anonymizer/datamart/
+    outputFolder: /Users/hasss/dev/anonymizer/output/
+    hdrFile: /Users/hasss/dev/anonymizer/hds.zip
