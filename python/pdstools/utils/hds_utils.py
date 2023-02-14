@@ -2,13 +2,10 @@ import os
 import re
 import glob
 import yaml
-import zipfile
-import logging
 
 import polars as pl
 
-from io import BytesIO
-from pdstools import ADMDatamart
+from ..adm import ADMDatamart
 
 
 class Config:
@@ -23,38 +20,38 @@ class Config:
         self.data = self.validate_config_file()
 
         dat = self.get_key("Predictors")
-        self.mask_predictor_names = str2bool(dat["maskPredictorNames"]) if "maskPredictorNames" in dat else True
-        self.mask_predictor_values = str2bool(dat["maskPredictorValues"]) if "maskPredictorValues" in dat else True
+        self.mask_predictor_names = str2bool(dat.get('maskPredictorNames', "Y"))
+        self.mask_predictor_values = str2bool(dat.get('maskPredictorValues', "Y"))
         self.exclude_predictors = [x.strip() for x in
                                    dat["ExcludePredictors"].split(',')] if "ExcludePredictors" in dat else []
 
         dat = self.get_key("ContextKeys")
-        self.mask_context_key_names = str2bool(dat["maskContextKeyNames"]) if "maskContextKeyNames" in dat else True
-        self.mask_context_key_values = str2bool(dat["maskContextKeyValues"]) if "maskContextKeyValues" in dat else True
-        self.context_key_predictors = dat["ContextKeyPredictors"] if "ContextKeyPredictors" in dat else "Context_*"
+        self.mask_context_key_names = str2bool(dat.get('maskContextKeyNames', "Y"))
+        self.mask_context_key_values = str2bool(dat.get('maskContextKeyValues', "Y"))
+        self.context_key_predictors = dat.get('ContextKeyPredictors', "Context_*")
 
         dat = self.get_key("IHPredictors")
-        self.mask_ih_predictor_names = str2bool(dat["maskIHPredictorNames"]) if "maskIHPredictorNames" in dat else True
-        self.mask_ih_predictor_values = str2bool(
-            dat["maskIHPredictorValues"]) if "maskIHPredictorValues" in dat else True
-        self.ih_predictors = dat["IHPredictors"] if "IHPredictors" in dat else "IH_*"
+        self.mask_ih_predictor_names = str2bool(dat.get('maskIHPredictorNames', "Y"))
+        self.mask_ih_predictor_values = str2bool(dat.get('maskIHPredictorValues', "Y"))
+        self.ih_predictors = dat.get('IHPredictors', "IH_*")
 
         dat = self.get_key("OutcomeColumn")
-        self.mask_outcome_name = str2bool(dat["maskOutcomeName"]) if "maskOutcomeName" in dat else True
-        self.mask_outcome_values = str2bool(dat["maskOutcomeValues"]) if "maskOutcomeValues" in dat else True
+        self.mask_outcome_name = str2bool(dat.get('maskOutcomeName', "Y"))
+        self.mask_outcome_values = str2bool(dat.get('maskOutcomeValues', "Y"))
         self.outcome_accepts = [x.strip() for x in dat["OutcomeAccepts"].split(",")] if "OutcomeAccepts" in dat else [
             "Accepted"]
         self.outcome_rejects = [x.strip() for x in dat["OutcomeRejects"].split(",")] if "OutcomeRejects" in dat else [
             "Rejected"]
-        self.outcome_column = dat["OutcomeColumn"] if "OutcomeColumn" in dat else "Outcome"
+        self.outcome_column = dat.get('OutcomeColumn', "Outcome")
 
         dat = self.get_key("FilePaths")
-        self.output_folder = dat["outputFolder"] if "outputFolder" in dat else "output/"
-        self.datamart_folder = dat["datamartFolder"] if "datamartFolder" in dat else "datamart/"
-        self.hdr_folder = dat["hdrFolder"] if "hdrFolder" in dat else None
-        self.hdr_file = dat["hdrFile"] if "hdrFile" in dat else None
+        self.output_folder = dat.get('outputFolder', "output/")
+        self.datamart_folder = dat.get('datamartFolder', "datamart/")
+        self.hdr_folder = dat.get('hdrFolder', None)
+        self.hdr_file = dat.get('hdrFile', None)
 
-        self.use_datamart = str2bool(dat["useDatamart"]) if "useDatamart" in dat else False
+        self.use_datamart = str2bool(dat.get('useDatamart', "N"))
+        self.output_format = dat.get("outputFormat", "ndjson")
 
         self.validate_filepaths()
 
@@ -93,25 +90,8 @@ def create_mapping_files(map_filename, headers):
 
 def load_hdr_files(config):
     out = []
-
-    if config.hdr_folder is None:
-        file = config.hdr_file
-        if file is None:
-            print("No hds file or folder provided in config file")
-            return 1
-
-        with zipfile.ZipFile(file, mode="r") as z:
-            logging.debug("Opened zip file.")
-            files = z.namelist()
-            logging.debug(f"Files found: {files}")
-            for file in files:
-                if (file.endswith(".json")) and not (file.startswith('__')):
-                    with z.open(file) as zipped_file:
-                        out.append(pl.read_ndjson(BytesIO(zipped_file.read())).lazy())
-    else:
-        for file in glob.glob(f'{config.hdr_folder}/*'):
-            if (file.endswith(".json")) and not (file.startswith('__')):
-                out.append(pl.read_ndjson(file).lazy())
+    for file in glob.glob(f'{config.hdr_folder}/*.json'):
+        out.append(pl.scan_ndjson(file))
 
     df = pl.concat(out, how='diagonal')
     return df
@@ -123,10 +103,9 @@ def read_predictor_type_from_file(df):
     for col in df_.columns:
         try:
             df_.get_column(col).cast(pl.Float64)
+            types[col] = "numeric"
         except:
             types[col] = "symbolic"
-        else:
-            types[col] = "numeric"
 
     return types
 
@@ -205,6 +184,19 @@ def get_predictors_mapping(columns, predictors_by_type, config):
     return symbolic_predictors_to_mask, numeric_predictors_to_mask, headers
 
 
+def write_to_output(df, config):
+    out_filename = f'{config.output_folder}/hds_out'
+
+    if config.output_format == "ndjson":
+        df.write_ndjson(f'{out_filename}.json')
+    elif config.output_format == "parquet":
+        df.write_parquet(f'{out_filename}.parquet')
+    elif config.output_format == "arrow":
+        df.write_ipc(f'{out_filename}.arrow')
+    else:
+        df.write_csv(f'{out_filename}.csv')
+
+
 def process_df(df, symbolic_predictors_to_mask, numeric_predictors_to_mask, predictors_, config):
     out = df \
         .with_columns(pl.col(numeric_predictors_to_mask).cast(pl.Float64)) \
@@ -213,11 +205,11 @@ def process_df(df, symbolic_predictors_to_mask, numeric_predictors_to_mask, pred
                 pl.col(symbolic_predictors_to_mask).hash(),
                 ((pl.col(numeric_predictors_to_mask) - pl.col(numeric_predictors_to_mask).min()) /
                   (pl.col(numeric_predictors_to_mask).max() - pl.col(numeric_predictors_to_mask).min())),
-                (pl.when(pl.col(config.outcome_column).is_in(config.outcome_accepts)).then(1).otherwise(0)),
+                (pl.when(pl.col(config.outcome_column).is_in(config.outcome_accepts)).then(1).otherwise(0)).alias(config.outcome_column),
             ]
-        ).rename(predictors_).collect()
+        ).select(predictors_.keys()).rename(predictors_).collect()
 
-    out.write_csv(config.output_folder + "hds.csv")
+    write_to_output(out, config)
 
 
 def main():
@@ -230,14 +222,14 @@ def main():
     else:
         predictors_by_type = read_predictor_type_from_file(df)
 
-    symbolic_predictors_to_hash, numeric_predictors_to_norm, predictors_ = get_predictors_mapping(df.columns,
+    symbolic_predictors_to_mask, numeric_predictors_to_mask, predictors_ = get_predictors_mapping(df.columns,
                                                                                                   predictors_by_type,
                                                                                                   config)
 
-    map_filename = f'{config.output_folder}hds.map'
+    map_filename = f'{config.output_folder}/hds.map'
     create_mapping_files(map_filename, predictors_)
 
-    process_df(df, symbolic_predictors_to_hash, numeric_predictors_to_norm, predictors_, config)
+    process_df(df, symbolic_predictors_to_mask, numeric_predictors_to_mask, predictors_, config)
 
 
 if __name__ == "__main__":

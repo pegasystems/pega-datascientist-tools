@@ -18,6 +18,7 @@
     OutcomeColumn: Decision_Outcome
 - FilePaths:
     useDatamart: n
-    datamartFolder: /Users/hasss/dev/anonymizer/datamart/
-    outputFolder: /Users/hasss/dev/anonymizer/output/
-    hdrFile: /Users/hasss/dev/anonymizer/hds.zip
+    datamartFolder: /Users/hasss/dev/anonymizer/datamart
+    outputFolder: /Users/hasss/dev/anonymizer/output
+    hdrFolder: /Users/hasss/dev/anonymizer/data
+    outputFormat: ndjson
