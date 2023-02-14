@@ -257,7 +257,7 @@ class Plots:
                             )
                         )
                 elif partition == "facet":
-                    order = kwargs.pop("order")
+                    order = kwargs.pop("order", None)
                     for facet_val, groupdf in (
                         kwargs.pop("df").partition_by(facets, as_dict=True).items()
                     ):
@@ -455,6 +455,8 @@ class Plots:
                 mask=False,
                 pivot=False,
             )
+        if metric == "Performance":
+            metric = "weighted_performance"
 
         with pl.StringCache():
             df = df.collect()
@@ -737,6 +739,8 @@ class Plots:
             How many of the top predictors to show in the plot
         active_only: bool, default = False
             Whether to only plot active predictors
+        to_plot: str, default = Performance
+            Metric to compare predictors
         query: Union[str, dict], default = None
             The query to supply to _apply_query
             If a string, uses the default Pandas query function
@@ -790,9 +794,7 @@ class Plots:
             facets=facets,
             active_only=active_only,
         )
-        df = (
-            df.unique()
-        )  # if a predictor is binned to 10 groups, then it gets more weight when we calculate median predictor perf, if we dont take unique here
+        df = df.unique() # if a predictor is binned to 10 groups, then it gets more weight when we calculate median predictor perf, if we dont take unique here
         df = df.filter(pl.col("PredictorName") != "Classifier")
 
         categorization = kwargs.pop("categorization", defaultPredictorCategorization)
@@ -839,9 +841,51 @@ class Plots:
         to_plot="Performance",
         query: Union[str, dict] = None,
         facets: Optional[list] = None,
+        categorization=defaultPredictorCategorization,
         **kwargs,
     ) -> go.FigureWidget:
+        """Plots a bar chart of the performance of the predictor categories
 
+        By default, this plot shows the performance over all models
+        Use the querying functionality to drill down into a more specific subset
+
+        Parameters
+        ----------
+        active_only: bool, default = False
+            Whether to only plot active predictors
+        to_plot: str, default = Performance
+            Metric to compare predictor categories
+        query: Union[str, dict], default = None
+            The query to supply to _apply_query
+            If a string, uses the default Pandas query function
+            Else, a dict of lists where the key is the column name of the dataframe
+            and the corresponding value is a list of values to keep in the dataframe
+        facets: list, default = None
+            Whether to add facets to the plot, should be a list of columns
+        categorization: method
+            Function that categorizes predictors into groups. Function should return 
+            a string from a string. 
+            Ex.  categorization("IH.LastLogin") --> IH
+        Keyword arguments
+        -----------------
+        plotting_engine: str
+            'plotly' or a custom plot class
+        separate: bool
+            If set to true, dataset is subsetted using the facet column, creating seperate
+            plots
+        return_df : bool
+            If set to True, returns the dataframe instead of the plot
+            Can be useful for debugging or replicating the plots
+
+        Notes
+        -----
+        See the docs for the plotly plots (plots_plotly.py)
+        to see further parameters for this plot.
+
+        Returns
+        -------
+        go.FigureWidget
+        """
         plotting_engine = self.get_engine(
             kwargs.get("plotting_engine", self.plotting_engine)
         )()
@@ -871,8 +915,6 @@ class Plots:
         )
         df = df.filter(pl.col("PredictorName").cast(pl.Utf8) != "Classifier")
 
-        categorization = kwargs.pop("categorization", defaultPredictorCategorization)
-
         with pl.StringCache():
             df = df.collect().with_column(
                 pl.col("PredictorName")
@@ -895,12 +937,6 @@ class Plots:
             )
         )
 
-        order = (
-            df.sort("Predictor Category")
-            .unique()
-            .get_column("Predictor Category")
-            .to_list()
-        )
         if kwargs.pop("separate", False):
             partition = "facet"
         else:
@@ -915,7 +951,6 @@ class Plots:
             partition=partition,
             df=df,
             y="Predictor Category",
-            order=order,
             query=query,
             to_plot=to_plot,
             **kwargs,
@@ -939,6 +974,8 @@ class Plots:
         ----------
         top_n: int, default = 0
             How many of the top predictors to show in the plot
+        by: str, default = Name
+            The column to use at the x axis of the heatmap
         active_only: bool, default = False
             Whether to only plot active predictors
         query: Union[str, dict], default = None
@@ -972,9 +1009,8 @@ class Plots:
         table = "combinedData"
         required_columns = {"PredictorName", "Name", "PerformanceBin"}
         if by is not None:
-            by_columns = [i for i in by.split("/")]
             required_columns = required_columns.union(
-                set(by_columns + ["ResponseCount"])
+                set([col for col in by.split("/")] + ["ResponseCount"])
             )
         df, facets = self._subset_data(
             table,
@@ -986,7 +1022,7 @@ class Plots:
         )
 
         df, by = self._generateFacets(df, by)
-        df = self.pivot_df(df, by=by[0])
+        df = self.pivot_df(df, by=by)
         df = df.with_column(pl.all().exclude(by) * 100)
 
         if top_n > 0:
@@ -1057,15 +1093,13 @@ class Plots:
         required_columns = {"ResponseCount", "ModelID"}
 
         if by is not None:
-            by_columns = [i for i in by.split("/")]
             required_columns = required_columns.union(
-                set(by_columns + ["ResponseCount"])
+                set([col for col in by.split("/")] + ["ResponseCount"])
             )
         df, facets = self._subset_data(
             table, required_columns, query, facets=facets, last=last
         )
         df, by = self._generateFacets(df, by)
-        by = by[0]
         with pl.StringCache():
             df = self.response_gain_df(df, by=by).collect()
 
@@ -1197,7 +1231,7 @@ class Plots:
         if kwargs.get("plotting_engine", self.plotting_engine) != "plotly":
             print("Plot is only available in Plotly.")
 
-        context_keys = kwargs.pop("context_keys", self.context_keys)
+        tree_levels = kwargs.pop("tree_levels", self.context_keys)
         mapping = {
             f"{by}_count": "Model count",
             "Percentage_without_responses": "Percentage without responses",
@@ -1208,15 +1242,15 @@ class Plots:
         }
         with pl.StringCache():
             df = (
-                self.model_summary(by=by, query=query, context_keys=context_keys)
+                self.model_summary(by=by, query=query, context_keys=tree_levels)
                 .select(
                     [
-                        pl.col(context_keys).cast(pl.Utf8),
+                        pl.col(tree_levels).cast(pl.Utf8),
                         pl.col(list(mapping.keys())),
                     ]
                 )
                 .rename(mapping)
-                .sort(context_keys)
+                .sort(tree_levels)
                 .fill_null("Missing")
                 .with_column(
                     (pl.col("Performance weighted mean") * 100).fill_nan(pl.lit(50))
@@ -1314,7 +1348,7 @@ class Plots:
             log=log,
             midpoint=midpoint,
             format=format,
-            context_keys=context_keys,
+            context_keys=tree_levels,
             value_in_text=value_in_text,
             query=query,
             **kwargs,
@@ -1322,45 +1356,43 @@ class Plots:
 
     def plotPredictorCount(
         self,
-        facets: Optional[Union[list, str]] = "Configuration",
+        facets: str = "Configuration",
         query: Union[str, dict] = None,
+        by: str = "Type",
         **kwargs,
     ):
 
         plotting_engine = self.get_engine(
             kwargs.get("plotting_engine", self.plotting_engine)
         )()
-
+        
         required_columns = {
-            "Configuration",
+            facets,
+            by,
             "Name",
-            "Type",
             "EntryType",
             "PredictorName",
         }
         table = "combinedData"
         last = True
         df, facets = self._subset_data(
-            table, required_columns, query, facets=facets, last=last
+            table, required_columns, query, facets=facets, last=last, **kwargs
         )
-        by = ["Configuration", "Name", "Type", "EntryType"]
         last = (
             df.filter(pl.col("PredictorName") != "Classifier")
-            .groupby(by)
+            .groupby(list(required_columns - {"PredictorName"}))
             .agg(pl.n_unique("PredictorName").alias("Predictor Count"))
         )
 
-        by.remove("Type")
-
         overall = (
-            last.groupby(by)
+            last.groupby(list(required_columns - {"PredictorName", "Type"}))
             .agg(pl.sum("Predictor Count"))
             .with_column(pl.lit("Overall").alias("Type"))
             .select(last.columns)
         )
 
         with pl.StringCache():
-            box_plot_df = (
+            df = (
                 pl.concat([last, overall.select(last.columns)])
                 .with_column(pl.col("Predictor Count").cast(pl.Int64))
                 .collect()
@@ -1368,7 +1400,7 @@ class Plots:
 
         return self.facettedPlot(
             facets,
-            plotly().PredictorCount,
-            df=box_plot_df,
+            plotting_engine.PredictorCount,
+            df=df,
             **kwargs,
         )

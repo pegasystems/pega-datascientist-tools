@@ -259,7 +259,7 @@ Interactive chart with all success rates. Whiter is lower success rates, green i
 ```{python}
 fig = datamart.plotTreeMap(color_var="SuccessRate",
                      groupby_col= None,
-                     context_keys=['Channel', 'Direction', 'Issue', 'Group', "Name"], 
+                     tree_levels=['Channel', 'Direction', 'Issue', 'Group', "Name"], 
                      colorscale=color_scale["success"])
 fig
 ```
@@ -371,7 +371,7 @@ modelperformance.show()
 ### Model performance of all the actions (interactive Treemap)
 
 ```{python}
-fig = datamart.plotTreeMap(color_var="performance_weighted", groupby_col= None, context_keys=['Channel', 'Direction', 'Issue', 'Group', "Name"], color_scale=color_scale["performance"])
+fig = datamart.plotTreeMap(color_var="performance_weighted", groupby_col= None, tree_levels=['Channel', 'Direction', 'Issue', 'Group', "Name"], color_scale=color_scale["performance"])
 
 fig.show()
 ```
@@ -381,7 +381,7 @@ fig.show()
 This plot is wrong. It takes the mean of child sets instead of sum
 ```{python}
 # TODO:This needs work. Cant sum upwards
-fig = datamart.plotTreeMap(color_var="responsecount", context_keys=['Channel', 'Direction', 'Issue', 'Group', "Name"], colorscale=color_scale["bad_to_good"])
+fig = datamart.plotTreeMap(color_var="responsecount", tree_levels=['Channel', 'Direction', 'Issue', 'Group', "Name"], colorscale=color_scale["bad_to_good"])
 fig
 
 ```

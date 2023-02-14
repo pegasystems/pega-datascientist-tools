@@ -363,8 +363,8 @@ class ADMVisualisations:
     def PredictorPerformance(
         self,
         df,
-        order,
         facet,
+        order=None,
         to_plot="Performance",
         y="PredictorName",
         **kwargs,
@@ -408,8 +408,9 @@ class ADMVisualisations:
             else f"per {facet}"
         )
         df = df.to_pandas()
-        df[y] = df[y].astype("category")
-        df[y] = df[y].cat.set_categories(order)
+        if order:
+            df[y] = df[y].astype("category")
+            df[y] = df[y].cat.set_categories(order)
         # This is a temporary sorting solution until the category sorting bug in plotly is solved
         fig = px.box(
             df.sort_values([y]),
@@ -426,9 +427,9 @@ class ADMVisualisations:
             },
         )
 
-        fig.update_yaxes(
-            categoryorder="array", categoryarray=order, automargin=True, dtick=1
-        )
+        # fig.update_yaxes(
+        #    categoryorder="array", categoryarray=order, automargin=True, dtick=1
+        # )
 
         fig.update_layout(
             boxgap=0,
@@ -724,7 +725,7 @@ class ADMVisualisations:
             title=f"{title}",
             hover_data=hover_data,
             color_continuous_scale=colorscale,
-            #range_color=range_color,
+            # range_color=range_color,
         )
         fig.update_coloraxes(reversescale=reverse_scale)
 

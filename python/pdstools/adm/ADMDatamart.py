@@ -918,6 +918,8 @@ class ADMDatamart(Plots):
 
     def pivot_df(self, df: pl.LazyFrame, by="Name", allow_collect=True) -> pl.DataFrame:
         """Simple function to extract pivoted information"""
+        if isinstance(by, list):
+            by = by[0]
         if self.import_strategy == "lazy" and not allow_collect:
             raise ValueError("Only supported in eager mode.")
         df = df.filter(pl.col("PredictorName") != "Classifier")
@@ -954,6 +956,8 @@ class ADMDatamart(Plots):
     @staticmethod
     def response_gain_df(df: pd.DataFrame, by: str = "Channel") -> pd.DataFrame:
         """Simple function to extract the response gain per model"""
+        if isinstance(by, list):
+            by = by[0]
         return (
             df.groupby([by, "ModelID"])
             .agg(pl.max("ResponseCount"))
