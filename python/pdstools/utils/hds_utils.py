@@ -1,7 +1,8 @@
 import os
 import re
 import glob
-import yaml
+import json
+
 
 import polars as pl
 
@@ -11,166 +12,132 @@ from random import randint
 
 
 class Config:
+    def __init__(
+        self,
+        config_file=None,
+        hdr_folder=".",
+        use_datamart=False,
+        datamart_folder="datamart",
+        output_format="ndjson",
+        output_folder="output",
+        mapping_file="mapping.map",
+        mask_predictor_names=True,
+        mask_context_key_names=True,
+        mask_ih_names=True,
+        mask_outcome_name=True,
+        mask_predictor_values=True,
+        mask_context_key_values=True,
+        mask_ih_values=True,
+        mask_outcome_values=True,
+        context_key_label="Context_*",
+        ih_label="IH_*",
+        outcome_column="Decision_Outcome",
+        positive_outcomes=["Accepted", "Clicked"],
+        negative_outcomes=["Rejected", "Impression"],
+        special_predictors=[
+            "Decision_DecisionTime",
+            "Decision_OutcomeTime",
+        ],
+    ):
+        self._opts = {key: value for key, value in vars().items() if key != "self"}
+        if config_file is not None:
+            self.load_from_config_file(config_file)
+        for key, value in self._opts.items():
+            setattr(self, key, value)
+        if not os.path.exists(self.output_folder):
+            os.mkdir(self.output_folder)
 
-    def __init__(self, config_file=None):
+    def load_from_config_file(self, config_file):
+        if not os.path.exists(config_file):
+            raise ValueError("Config file does not exist.")
+        with open(config_file) as f:
+            self._opts = json.load(f)
 
-        self.config_file = "config.yml" if config_file is None else config_file
-
-        def str2bool(inp):
-            return True if inp.upper() == "Y" else False
-
-        def remove_(inp):
-            if inp is None:
-                return inp
-            return inp if not inp.endswith("/") else re.sub(r".$", "", inp)
-
-        self.data = self.validate_config_file()
-
-        dat = self.get_key("Predictors")
-        self.mask_predictor_names = str2bool(dat.get('maskPredictorNames', "Y"))
-        self.mask_predictor_values = str2bool(dat.get('maskPredictorValues', "Y"))
-
-        # no anonymization done on these predictors, output is same as input values
-        self.special_predictors = [x.strip() for x in
-                                   dat.get('specialPredictors', "Decision_DecisionTime,Decision_OutcomeTime").split(
-                                       ',')]
-
-        dat = self.get_key("ContextKeys")
-        self.mask_context_key_names = str2bool(dat.get('maskContextKeyNames', "Y"))
-        self.mask_context_key_values = str2bool(dat.get('maskContextKeyValues', "Y"))
-        self.context_key_predictors = dat.get('contextKeyPredictors', "Context_*")
-
-        dat = self.get_key("IHPredictors")
-        self.mask_ih_predictor_names = str2bool(dat.get('maskIHPredictorNames', "Y"))
-        self.mask_ih_predictor_values = str2bool(dat.get('maskIHPredictorValues', "Y"))
-        self.ih_predictors = dat.get('ihPredictors', "IH_*")
-
-        dat = self.get_key("OutcomeColumn")
-        self.mask_outcome_name = str2bool(dat.get('maskOutcomeName', "Y"))
-        self.mask_outcome_values = str2bool(dat.get('maskOutcomeValues', "Y"))
-        self.outcome_accepts = [x.strip() for x in dat.get('outcomeAccepts', "Accepted").split(',')]
-        self.outcome_rejects = [x.strip() for x in dat.get('outcomeRejects', "Rejected").split(',')]
-        self.outcome_column = dat.get('outcomeColumn', "Decision_Outcome")
-
-        dat = self.get_key("FilePaths")
-        self.output_folder = remove_(dat.get('outputFolder', "output"))
-        self.datamart_folder = remove_(dat.get('datamartFolder', "datamart"))
-        self.hdr_folder = remove_(dat.get('hdrFolder', None))
-        self.hash_mapping_folder = f'{self.output_folder}/hash_map'
-        self.numeric_mapping_folder = f'{self.output_folder}/numeric_map'
-
-        self.use_datamart = str2bool(dat.get('useDatamart', "N"))
-        self.output_format = dat.get("outputFormat", "ndjson")
-
-        self.mapping_filename = f'{self.output_folder}/hds.map'
-        self.output_filename = f'{self.output_folder}/hds_out'
-
-        self.validate_filepaths()
-
-    def get_key(self, in_key):
-        for item in self.data:
-            if in_key in item:
-                return item[in_key]
-        return {}
-
-    def validate_config_file(self):
-        if not os.path.exists(self.config_file):
-            return {}
-        else:
-            with open(self.config_file, "r") as yml_f:
-                return yaml.load(yml_f, Loader=yaml.FullLoader)
-
-    def validate_filepaths(self):
-        def make_dir(inp):
-            if inp is not None and not os.path.exists(inp):
-                os.makedirs(inp)
-
-        make_dir(self.output_folder)
-        make_dir(self.hdr_folder)
-        make_dir(self.hash_mapping_folder)
-        make_dir(self.numeric_mapping_folder)
-
-        if self.use_datamart:
-            make_dir(self.datamart_folder)
+    def save_to_config_file(self):
+        with open("config.json", "w") as f:
+            json.dump(self._opts, f)
 
 
 class DataAnonymization:
+    def __init__(
+        self,
+        config=None,
+        df: pl.LazyFrame = None,
+        datamart: ADMDatamart = None,
+        **config_args,
+    ):
 
-    def __init__(self, config=None, datamart: ADMDatamart = None):
+        self.config = Config(**config_args) if config is None else config
 
-        self.config = Config() if config is None else config
-
-        self.df = self.load_hdr_files()
+        if df is None:
+            self.df = self.load_hdr_files()
+        elif isinstance(df, pl.DataFrame):
+            self.df = df.lazy()
+        elif isinstance(df, pl.LazyFrame):
+            self.df = self.df
+        else:
+            raise ValueError("No data found.")
         self.df_out = None
-
-        self.rename_mapping = {}
-
         if self.config.use_datamart:
-            self.predictors_by_type = self.read_predictor_type_from_datamart(config.datamart_folder, datamart)
+            self.predictors_by_type = self.read_predictor_type_from_datamart(
+                config.datamart_folder, datamart
+            )
         else:
             self.predictors_by_type = self.read_predictor_type_from_file(self.df)
 
-        self.symbolic_predictors_to_mask, self.numeric_predictors_to_mask, self.column_mapping = \
-            self.get_predictors_mapping()
+        (
+            self.symbolic_predictors_to_mask,
+            self.numeric_predictors_to_mask,
+            self.column_mapping,
+        ) = self.get_predictors_mapping()
 
-        self.create_mapping_files()
-
-        self.process_df()
-
-        self.write_value_mapping_for_numeric_predictors()
-
-        self.write_value_mapping_for_symbolic_predictors()
-
-        self.write_to_output()
-
-    def write_value_mapping_for_symbolic_predictors(self):
-        for col in self.symbolic_predictors_to_mask:
-            self.df_out.select([self.column_mapping[col], col]).unique().write_csv(
-                f'{self.config.hash_mapping_folder}/{col}.map')
-
-    def write_value_mapping_for_numeric_predictors(self):
-        for col in self.numeric_predictors_to_mask:
-            columns = [self.column_mapping[col], col]
-            self.df_out.select(
-                pl.col(columns).min().append(
-                    pl.col(columns).max())
-            ).write_csv(f'{self.config.numeric_mapping_folder}/{col}.map')
-
-    def write_to_output(self, ext: Literal["ndjson", "parquet", "arrow", "csv"] = None):
+    def write_to_output(
+        self, df=None, ext: Literal["ndjson", "parquet", "arrow", "csv"] = None
+    ):
         out_filename = self.config.output_filename
         out_format = self.config.output_format if ext is None else ext
-
-        out = self.df_out.select(self.column_mapping.values())
-
+        if df is None:
+            df = self.process()
         if out_format == "ndjson":
-            out.write_ndjson(f'{out_filename}.json')
+            df.write_ndjson(f"{out_filename}.json")
         elif out_format == "parquet":
-            out.write_parquet(f'{out_filename}.parquet')
+            df.write_parquet(f"{out_filename}.parquet")
         elif out_format == "arrow":
-            out.write_ipc(f'{out_filename}.arrow')
+            df.write_ipc(f"{out_filename}.arrow")
         else:
-            out.write_csv(f'{out_filename}.csv')
+            df.write_csv(f"{out_filename}.csv")
 
     def create_mapping_files(self):
-        with open(self.config.mapping_filename, 'w') as wr:
+        with open(self.config.mapping_filename, "w") as wr:
             for key, mapped_val in self.column_mapping.items():
-                wr.write(f'{key}={mapped_val}')
+                wr.write(f"{key}={mapped_val}")
                 wr.write("\n")
 
     def load_hdr_files(self):
-        out = []
-        for file in glob.glob(f'{self.config.hdr_folder}/*.json'):
-            out.append(
-                pl.scan_ndjson(file)
+        files = glob.glob(f"{self.config.hdr_folder}/*.json")
+        if len(files) < 1:
+            raise FileNotFoundError(
+                """Files not found. Please check the `hdr_folder` 
+                and check if there are `.json` files in there. 
+                If preferred, you can also supply a polars Dataframe or Lazyframe 
+                directly with the `df` argument."""
             )
+        out = []
+        for file in files:
+            out.append(pl.scan_ndjson(file))
 
-        df = pl.concat(out, how='diagonal')
+        df = pl.concat(out, how="diagonal")
         return df
 
     @staticmethod
     def read_predictor_type_from_file(df):
         types = {}
-        df_ = df.collect().sample(100)
+        from numpy import random
+
+        count = df.with_row_count().tail(1).select("row_nr").collect().item() + 1
+        msk = [bool(i) for i in random.rand(count) < 1 - 0.3][0:50]
+        df_ = df.filter(msk).collect()
+
         for col in df_.columns:
             try:
                 df_.get_column(col).cast(pl.Float64)
@@ -184,11 +151,15 @@ class DataAnonymization:
     def read_predictor_type_from_datamart(datamart_folder, datamart=None):
         dm = ADMDatamart(path=datamart_folder) if datamart is None else datamart
         df = pl.DataFrame(dm.predictorData)
-        df = df.filter(pl.col('EntryType') != 'Classifier') \
-            .unique(subset='PredictorName') \
-            .select(['PredictorName', 'Type'])
-        df_dict = dict(zip(df.get_column('PredictorName'), df.get_column('Type')))
-        df_dict = dict((key.replace(".", "_"), value) for (key, value) in df_dict.items())
+        df = (
+            df.filter(pl.col("EntryType") != "Classifier")
+            .unique(subset="PredictorName")
+            .select(["PredictorName", "Type"])
+        )
+        df_dict = dict(zip(df.get_column("PredictorName"), df.get_column("Type")))
+        df_dict = dict(
+            (key.replace(".", "_"), value) for (key, value) in df_dict.items()
+        )
         return df_dict
 
     def get_columns_by_type(self):
@@ -196,8 +167,8 @@ class DataAnonymization:
         columns_ = ",".join(columns)
 
         exp = "[^,]+"
-        context_keys_t = re.findall(f"{self.config.context_key_predictors}{exp}", columns_)
-        ih_predictors_t = re.findall(f"{self.config.ih_predictors}{exp}", columns_)
+        context_keys_t = re.findall(f"{self.config.context_key_label}{exp}", columns_)
+        ih_predictors_t = re.findall(f"{self.config.ih_label}{exp}", columns_)
 
         special_predictors_t = []
         for exc in self.config.special_predictors:
@@ -205,15 +176,26 @@ class DataAnonymization:
                 special_predictors_t.append(e)
 
         outcome_column_t = [self.config.outcome_column]
-
         predictors_t = list(
-            set(columns) - set(context_keys_t + ih_predictors_t + special_predictors_t + outcome_column_t))
+            set(columns)
+            - set(
+                context_keys_t
+                + ih_predictors_t
+                + special_predictors_t
+                + outcome_column_t
+            )
+        )
         return context_keys_t, ih_predictors_t, special_predictors_t, predictors_t
 
     def get_predictors_mapping(self):
         symbolic_predictors_to_mask, numeric_predictors_to_mask = [], []
 
-        context_keys_t, ih_predictors_t, special_predictors_t, predictors_t = self.get_columns_by_type()
+        (
+            context_keys_t,
+            ih_predictors_t,
+            special_predictors_t,
+            predictors_t,
+        ) = self.get_columns_by_type()
         outcome_t = self.config.outcome_column
 
         outcome_column = {}
@@ -227,15 +209,19 @@ class DataAnonymization:
                     symbolic_predictors_to_mask.append(val)
                 else:
                     numeric_predictors_to_mask.append(val)
-            context_keys[val] = f'CK_PREDICTOR_{idx}' if self.config.mask_context_key_names else val
+            context_keys[val] = (
+                f"CK_PREDICTOR_{idx}" if self.config.mask_context_key_names else val
+            )
 
         for idx, val in enumerate(ih_predictors_t):
-            if self.config.mask_ih_predictor_values:
+            if self.config.mask_ih_values:
                 if self.predictors_by_type[val] == "symbolic":
                     symbolic_predictors_to_mask.append(val)
                 else:
                     numeric_predictors_to_mask.append(val)
-            ih_predictors[val] = f'IH_PREDICTOR_{idx}' if self.config.mask_ih_predictor_names else val
+            ih_predictors[val] = (
+                f"IH_PREDICTOR_{idx}" if self.config.mask_ih_names else val
+            )
 
         for idx, val in enumerate(predictors_t):
             if self.config.mask_predictor_values:
@@ -243,46 +229,49 @@ class DataAnonymization:
                     symbolic_predictors_to_mask.append(val)
                 else:
                     numeric_predictors_to_mask.append(val)
-            predictors[val] = f'PREDICTOR_{idx}' if self.config.mask_predictor_names else val
+            predictors[val] = (
+                f"PREDICTOR_{idx}" if self.config.mask_predictor_names else val
+            )
 
         special_predictors = {x: x for x in special_predictors_t}
 
-        outcome_column[outcome_t] = "OUTCOME" if self.config.mask_outcome_name else outcome_t
+        outcome_column[outcome_t] = (
+            "OUTCOME" if self.config.mask_outcome_name else outcome_t
+        )
 
-        column_mapping = predictors | context_keys | ih_predictors | special_predictors | outcome_column
+        column_mapping = (
+            predictors
+            | context_keys
+            | ih_predictors
+            | special_predictors
+            | outcome_column
+        )
 
         return symbolic_predictors_to_mask, numeric_predictors_to_mask, column_mapping
 
-    def process_df(self):
-        self.rename_mapping = self.column_mapping.copy()
-        for sym in self.symbolic_predictors_to_mask:
-            self.rename_mapping[f'{sym}_hashed'] = self.column_mapping[sym]
-            self.rename_mapping[sym] = f'{sym}'
-
-        for sym in self.numeric_predictors_to_mask:
-            self.rename_mapping[f'{sym}_norm'] = self.column_mapping[sym]
-            self.rename_mapping[sym] = f'{sym}'
-
+    def process(self):
         def to_hash(cols):
             return (
-                pl.when((pl.col(cols).is_not_null()) & (pl.col(cols) != "") & (
-                    pl.col(cols).is_in(["true", "false"]).is_not()))
+                pl.when(
+                    (pl.col(cols).is_not_null())
+                    & (pl.col(cols) != "")
+                    & (pl.col(cols).is_in(["true", "false"]).is_not())
+                )
                 .then(pl.col(cols).hash(seed=randint(1, 100)))
                 .otherwise(pl.col(cols))
-                .map_alias(lambda col_name: col_name + "_hashed")
             )
 
         def to_normalize(cols):
-            return (
-                    (pl.col(cols) - pl.col(cols).min()) / (pl.col(cols).max() - pl.col(cols).min())
-            ).map_alias(lambda col_name: col_name + "_norm")
+            return (pl.col(cols) - pl.col(cols).min()) / (
+                pl.col(cols).max() - pl.col(cols).min()
+            )
 
         def to_boolean(col, positives):
             return (
                 pl.when(pl.col(col).is_in(positives)).then(True).otherwise(False)
             ).alias(col)
 
-        self.df_out = (
+        return (
             self.df.with_columns(
                 pl.col(self.numeric_predictors_to_mask).cast(pl.Float64)
             )
@@ -290,10 +279,11 @@ class DataAnonymization:
                 [
                     to_hash(self.symbolic_predictors_to_mask),
                     to_normalize(self.numeric_predictors_to_mask),
-                    to_boolean(self.config.outcome_column, self.config.outcome_accepts),
+                    to_boolean(
+                        self.config.outcome_column, self.config.positive_outcomes
+                    ),
                 ]
             )
-            .select(self.rename_mapping.keys())
-            .rename(self.rename_mapping)
-            .collect()
-        )
+            .select(self.column_mapping.keys())
+            .rename(self.column_mapping)
+        ).collect()
