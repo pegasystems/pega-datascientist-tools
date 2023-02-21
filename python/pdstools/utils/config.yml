@@ -1,21 +1,21 @@
 - Predictors:
     maskPredictorNames: Y
     maskPredictorValues: Y
-    ExcludePredictors: Decision_DecisionTime,Decision_OutcomeTime
+    specialPredictors: Decision_DecisionTime,Decision_OutcomeTime
 - ContextKeys:
     maskContextKeyNames: Y
     maskContextKeyValues: Y
-    ContextKeyPredictors: Context_*
+    contextKeyPredictors: Context_*
 - IHPredictors:
     maskIHPredictorNames: y
     maskIHPredictorValues: y
-    IHPredictors: IH_*
+    ihPredictors: IH_*
 - OutcomeColumn:
     maskOutcomeName: Y
     maskOutcomeValues: Y
-    OutcomeAccepts: Accepted,Accept
-    OutcomeRejects: Rejected
-    OutcomeColumn: Decision_Outcome
+    outcomeAccepts: Accepted,Accept
+    outcomeRejects: Rejected
+    outcomeColumn: Decision_Outcome
 - FilePaths:
     useDatamart: n
     datamartFolder: /Users/hasss/dev/anonymizer/datamart
