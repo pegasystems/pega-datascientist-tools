@@ -7,5 +7,5 @@ jupyterlab
 ipywidgets
 pydot
 tqdm
-polars>=0.16.0
+polars>=0.16.6
 pyarrow
