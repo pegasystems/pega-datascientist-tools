@@ -712,7 +712,11 @@ def toPRPCDateTime(x: datetime.datetime) -> str:
 
 
 def weighed_average_polars(vals, weights) -> pl.Expr:
-    return ((pl.col(vals) * pl.col(weights)).sum()) / pl.col(weights).sum()
+    if isinstance(vals, str):
+        vals = pl.col(vals)
+    if isinstance(weights, str):
+        weights = pl.col(weights)
+    return ((vals * weights).sum()) / weights.sum()
 
 
 def weighed_performance_polars() -> pl.Expr:
@@ -763,6 +767,25 @@ def zRatio(
         ).alias("ZRatio")
 
     return zRatioimpl(*getFracs(posCol, negCol), posCol.sum(), negCol.sum())
+
+
+def LogOdds(
+    Positives=pl.col("Positives"),
+    Negatives=pl.col("ResponseCount") - pl.col("Positives"),
+):
+    return ((Positives + 1).log() - ((Negatives) + 1).log()).alias("LogOdds")
+
+
+def featureImportance(over=["PredictorName", "ModelID"]):
+    varImp = weighed_average_polars(
+        LogOdds(
+            pl.col("BinPositives"), pl.col("BinResponseCount") - pl.col("BinPositives")
+        ),
+        "BinResponseCount",
+    ).alias("FeatureImportance")
+    if over is not None:
+        varImp = varImp.over(over)
+    return varImp
 
 
 def readClientCredentialFile(credentialFile):
