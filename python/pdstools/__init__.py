@@ -1,6 +1,6 @@
 """Python pdstools."""
 
-__version__ = 3.0
+__version__ = "3.0.0"
 
 from .adm.ADMDatamart import ADMDatamart
 from .adm.ADMTrees import ADMTrees, MultiTrees
