@@ -257,7 +257,7 @@ class DataAnonymization:
                     & (pl.col(cols) != "")
                     & (pl.col(cols).is_in(["true", "false"]).is_not())
                 )
-                .then(pl.col(cols).hash(seed=randint(1, 100)))
+                .then(pl.col(cols).hash(seed=0))
                 .otherwise(pl.col(cols))
             )
 
