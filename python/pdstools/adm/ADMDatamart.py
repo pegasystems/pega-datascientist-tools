@@ -255,9 +255,10 @@ class ADMDatamart(Plots):
             )
 
         if df1 is not None and df2 is not None:
-            total_missing = (set(self.missing_model) & set(self.missing_preds) - set(
-                df1.columns
-            ) - set(df2.columns)) - {"Treatment"}
+            total_missing = (
+                set(self.missing_model)
+                & set(self.missing_preds) - set(df1.columns) - set(df2.columns)
+            ) - {"Treatment"}
             if len(total_missing) > 0 and verbose:
                 print(
                     "Missing expected field values.\n",
@@ -416,6 +417,10 @@ class ADMDatamart(Plots):
             "Contents",
         }  # NOTE: these default names are already capitalized properly, with py/px/pz removed.
 
+        rename = {i:"Name" for i in df.columns if i.lower() == 'modelname'}
+        if len(rename)>0:
+            df = df.rename(rename)
+
         include_cols = (
             set(cdh_utils._capitalize(include_cols)) if include_cols is not None else {}
         )
@@ -430,7 +435,7 @@ class ADMDatamart(Plots):
         return df, to_import, missing
 
     @staticmethod
-    def _set_types(df: any_frame) -> any_frame:
+    def _set_types(df: any_frame, **kwargs) -> any_frame:
         """A method to change columns to their proper type
 
         Parameters
@@ -458,7 +463,11 @@ class ADMDatamart(Plots):
         df = df.with_columns(to_retype)
         if df.schema["SnapshotTime"] == pl.Utf8:
             df = df.with_column(
-                pl.col("SnapshotTime").str.strptime(pl.Datetime, "%Y%m%dT%H%M%S.%f %Z")
+                pl.col("SnapshotTime").str.strptime(
+                    pl.Datetime,
+                    kwargs.pop("timestamp_fmt", "%Y%m%dT%H%M%S.%f %Z"),
+                    strict=kwargs.pop('strict_conversion', True),
+                )
             )
         return df
 
