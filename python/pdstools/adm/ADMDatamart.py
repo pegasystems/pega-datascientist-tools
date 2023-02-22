@@ -2,7 +2,7 @@ import json
 import logging
 import os
 from datetime import timedelta
-from typing import Dict, NoReturn, Optional, Tuple, Union, Literal
+from typing import Dict, NoReturn, Optional, Tuple, Union, Literal, Any
 from io import BytesIO
 import pandas as pd
 import polars as pl
@@ -30,6 +30,9 @@ class ADMDatamart(Plots):
         When data fits into memory, 'eager' is typically more efficient
         However, when data does not fit, the lazy methods typically allow
         you to still use the data.
+
+    Keyword arguments
+    -----------------
     query : Union[str, dict], default = None
         The query to supply to _apply_query
         If a string, uses the default Pandas query function
@@ -39,12 +42,6 @@ class ADMDatamart(Plots):
     plotting_engine : str, default = "plotly"
         Determines what package to use for plotting.
         Can also be supplied to most plotting functions directly.
-
-
-    Keyword arguments
-    -----------------
-    verbose : bool
-        Whether to print out information during importing
     model_filename : str
         The name, or extended filepath, towards the model file
     predictor_filename : str
@@ -60,16 +57,14 @@ class ADMDatamart(Plots):
         Supply columns to drop from the dataframe
     include_cols = list
         Supply columns to include with the dataframe
-    prequery : str
-        A way to apply a query to the data before any preprocessing
-        Uses the Pandas querying function, and beware that the columns
-        have not been renamed, so use the original naming
     context_keys : list
         Which columns to use as context keys
     extract_keys : bool
         Extra keys are typically hidden within the pyName column,
         extract_keys can expand that cell to also show these values.
         To extract, set extract_keys to True.
+    verbose : bool
+        Whether to print out information during importing
 
     Notes
     ----------------------------
@@ -104,28 +99,45 @@ class ADMDatamart(Plots):
         self,
         path: str = ".",
         import_strategy: Literal["eager", "lazy"] = "eager",
+        *,
+        model_filename: Optional[str] = "modelData",
+        predictor_filename: Optional[str] = "predictorData",
+        model_df: Optional[any_frame] = None,
+        predictor_df: Optional[any_frame] = None,
         query: Union[str, Dict[str, list]] = None,
-        plotting_engine="plotly",
-        **kwargs,
+        subset: bool = False,
+        drop_cols: Optional[list] = None,
+        include_cols: Optional[list] = None,
+        context_keys: list = ["Channel", "Direction", "Issue", "Group"],
+        extract_keys: bool = False,
+        plotting_engine: Union[str, Any] = "plotly",
+        verbose: bool = False,
+        **reading_opts,
     ):
-
-        self.context_keys = kwargs.pop(
-            "context_keys", ["Channel", "Direction", "Issue", "Group"]
-        )
         self.import_strategy = import_strategy
+        self.context_keys = context_keys
+        self.verbose = verbose
+        self.query = query
+
         self.modelData, self.predictorData = self.import_data(
             path,
-            query=query,
-            **kwargs,
+            model_filename=model_filename,
+            predictor_filename=predictor_filename,
+            model_df=model_df,
+            predictor_df=predictor_df,
+            subset=subset,
+            drop_cols=drop_cols,
+            include_cols=include_cols,
+            extract_keys=extract_keys,
+            **reading_opts,
         )
 
         if self.modelData is not None and self.predictorData is not None:
             self.combinedData = self.get_combined_data()
-        else:
-            if kwargs.get("verbose", True):
-                print(
-                    "Could not be combined. Do you have both model data and predictor data?"
-                )
+        elif verbose:
+            print(
+                "Could not be combined. Do you have both model data and predictor data?"
+            )
         self.context_keys = [
             key for key in self.context_keys if key in self.modelData.columns
         ]
@@ -149,11 +161,21 @@ class ADMDatamart(Plots):
     def import_data(
         self,
         path: Optional[str] = ".",
-        subset: bool = True,
+        import_strategy: Literal["eager", "lazy"] = "eager",
+        *,
+        model_filename: Optional[str] = "modelData",
+        predictor_filename: Optional[str] = "predictorData",
         model_df: Optional[any_frame] = None,
         predictor_df: Optional[any_frame] = None,
         query: Union[str, Dict[str, list]] = None,
-        **kwargs,
+        subset: bool = False,
+        drop_cols: Optional[list] = None,
+        include_cols: Optional[list] = None,
+        context_keys: list = ["Channel", "Direction", "Issue", "Group"],
+        extract_keys: bool = False,
+        plotting_engine: Union[str, Any] = "plotly",
+        verbose: bool = False,
+        **reading_opts,
     ) -> pl.LazyFrame:
         """Method to automatically import & format the relevant data.
 
@@ -187,29 +209,25 @@ class ADMDatamart(Plots):
         (pd.DataFrame, pd.DataFrame)
             The model data and predictor binning data as dataframes
         """
-        verbose = kwargs.pop("verbose", True)
-        model_filename = kwargs.pop("model_filename", "modelData")
-        predictor_filename = kwargs.pop("predictor_filename", "predictorData")
-        extract_keys = kwargs.pop("extract_keys", False)
 
         if model_df is not None:
             df1, self.renamed_model, self.missing_model = self._import_utils(
                 name=model_df,
                 subset=subset,
-                query=query,
-                verbose=verbose,
+                drop_cols=drop_cols,
+                include_cols=include_cols,
                 extract_keys=extract_keys,
-                **kwargs,
+                **reading_opts,
             )
         else:
             df1, self.renamed_model, self.missing_model = self._import_utils(
-                model_filename,
-                path,
-                subset,
-                query=query,
-                verbose=verbose,
+                name=model_filename,
+                path=path,
+                subset=subset,
+                drop_cols=drop_cols,
+                include_cols=include_cols,
                 extract_keys=extract_keys,
-                **kwargs,
+                **reading_opts,
             )
         if df1 is not None:
             df1 = df1.with_columns(
@@ -221,19 +239,19 @@ class ADMDatamart(Plots):
         if predictor_df is not None:
             df2, self.renamed_preds, self.missing_preds = self._import_utils(
                 name=predictor_df,
+                drop_cols=drop_cols,
+                include_cols=include_cols,
                 subset=subset,
-                query=query,
-                verbose=verbose,
-                **kwargs,
+                **reading_opts,
             )
         else:
             df2, self.renamed_preds, self.missing_preds = self._import_utils(
-                predictor_filename,
-                path,
-                subset,
-                query=query,
-                verbose=verbose,
-                **kwargs,
+                name=predictor_filename,
+                path=path,
+                drop_cols=drop_cols,
+                include_cols=include_cols,
+                subset=subset,
+                **reading_opts,
             )
         if df2 is not None:
             if "BinResponseCount" not in df2.columns:
@@ -278,10 +296,12 @@ class ADMDatamart(Plots):
         self,
         name: Union[str, any_frame],
         path: str = None,
+        *,
         subset: bool = True,
-        query: Union[str, Dict[str, list]] = None,
-        verbose: bool = True,
-        **kwargs,
+        extract_keys: bool = False,
+        drop_cols: Optional[list] = None,
+        include_cols: Optional[list] = None,
+        **reading_opts,
     ) -> Tuple[pl.LazyFrame, dict, dict]:
         """Handler function to interface to the cdh_utils methods
 
@@ -292,19 +312,13 @@ class ADMDatamart(Plots):
             or a dataframe
         path: str, default = None
             The path of the data file
-        subset : bool, default = True
-            Whether to only select the renamed columns,
-            set to False to keep all columns
-        query : Union[str, dict], default = None
-            The query to supply to _apply_query
-            If a string, uses the default Pandas query function
-            Else, a dict of lists where the key is the column name of the dataframe
-            and the corresponding value is a list of values to keep in the dataframe
-        verbose : bool
-            Whether to print out information during importing
+
 
         Keyword arguments
         -----------------
+        subset : bool, default = True
+            Whether to only select the renamed columns,
+            set to False to keep all columns
         drop_cols : list
             Supply columns to drop from the dataframe
         include_cols : list
@@ -331,7 +345,7 @@ class ADMDatamart(Plots):
 
         if isinstance(name, str) or isinstance(name, BytesIO):
             df = cdh_utils.readDSExport(
-                filename=name, path=path, verbose=verbose, **kwargs
+                filename=name, path=path, verbose=self.verbose, **reading_opts
             )
         else:
             df = name
@@ -340,24 +354,28 @@ class ADMDatamart(Plots):
 
         self.model_snapshots = True
 
-        if kwargs.get("prequery", None) is not None:
-            raise NotImplementedError("Not yet implemented for Polars version.")
-
         df = cdh_utils._polarsCapitalize(df)
-        df, cols, missing = self._available_columns(df, **kwargs)
+        df, cols, missing = self._available_columns(
+            df, include_cols=include_cols, drop_cols=drop_cols
+        )
         if subset:
             df = df.select(cols)
-        if kwargs.pop("extract_keys", False):
+        if extract_keys:
             df, extracted = self.extract_keys(df)
-        df = self._set_types(df)
 
-        if query is not None:
+        df = self._set_types(
+            df,
+            timestamp_fmt=reading_opts.get("timestamp_fmt", "%Y%m%dT%H%M%S.%f %Z"),
+            strict_conversion=reading_opts.get("strict_conversion", True),
+        )
+
+        if self.query is not None:
             try:
-                df = self._apply_query(df, query)
-                if verbose:
+                df = self._apply_query(df, self.query)
+                if self.verbose:
                     print(f"Query succesful for {name}.")
             except:
-                if verbose:
+                if self.verbose:
                     print(
                         f"""Query unsuccesful for {name}.
                 Maybe the filter you selected only applies to either model data or predictor data
@@ -371,7 +389,6 @@ class ADMDatamart(Plots):
         df: pl.LazyFrame,
         include_cols: Optional[list] = None,
         drop_cols: Optional[list] = None,
-        **kwargs,
     ) -> Tuple[pl.LazyFrame, set, set]:
         """Based on the default names for variables, rename available data to proper formatting
 
@@ -417,8 +434,8 @@ class ADMDatamart(Plots):
             "Contents",
         }  # NOTE: these default names are already capitalized properly, with py/px/pz removed.
 
-        rename = {i:"Name" for i in df.columns if i.lower() == 'modelname'}
-        if len(rename)>0:
+        rename = {i: "Name" for i in df.columns if i.lower() == "modelname"}
+        if len(rename) > 0:
             df = df.rename(rename)
 
         include_cols = (
@@ -435,7 +452,12 @@ class ADMDatamart(Plots):
         return df, to_import, missing
 
     @staticmethod
-    def _set_types(df: any_frame, **kwargs) -> any_frame:
+    def _set_types(
+        df: any_frame,
+        *,
+        timestamp_fmt: str = "%Y%m%dT%H%M%S.%f %Z",
+        strict_conversion: bool = True,
+    ) -> any_frame:
         """A method to change columns to their proper type
 
         Parameters
@@ -444,6 +466,9 @@ class ADMDatamart(Plots):
             The input dataframe
         verbose: bool, default = True
             Whether to print out issues with casting variable types
+
+        Keyword arguments
+        -----------------
 
         Returns
         -------
@@ -465,8 +490,8 @@ class ADMDatamart(Plots):
             df = df.with_columns(
                 pl.col("SnapshotTime").str.strptime(
                     pl.Datetime,
-                    kwargs.pop("timestamp_fmt", "%Y%m%dT%H%M%S.%f %Z"),
-                    strict=kwargs.pop('strict_conversion', True),
+                    timestamp_fmt,
+                    strict=strict_conversion,
                 )
             )
         return df
@@ -497,8 +522,7 @@ class ADMDatamart(Plots):
             assert table in {"modelData", "predictorData", "combinedData"}
             df = self._last(getattr(self, table))
         else:
-            print(table)
-            print("wat", df)
+            raise ValueError("This should not happen, please file a GitHub issue :).")
         with pl.StringCache():
             return df if not strategy == "eager" else df.collect()
 
@@ -572,7 +596,6 @@ class ADMDatamart(Plots):
             Filtered Pandas DataFrame
         """
         if query is not None:
-
             if isinstance(query, pl.Expr):
                 return df.filter(query)
 
