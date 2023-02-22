@@ -17,7 +17,6 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import pydot
-from IPython.display import Image, display
 from plotly.subplots import make_subplots
 from tqdm.auto import tqdm
 
@@ -130,7 +129,9 @@ class ADMTreesModel:
         logging.info("Calculating all values per split.")
         self.allValuesPerSplit = self.getAllValuesPerSplit()
         logging.info("Calculating splits per variable type.")
-        self.splitsPerVariableType = self.computeCategorizationOverTime(predictorCategorization = kwargs.pop('predictorCategorization', None))
+        self.splitsPerVariableType = self.computeCategorizationOverTime(
+            predictorCategorization=kwargs.pop("predictorCategorization", None)
+        )
         logging.info("Tree model initialization done.")
 
     def _read_model(self, file, **kwargs):
@@ -568,7 +569,6 @@ class ADMTreesModel:
         checked = False
 
         for key, value in tree.items():
-
             if key in {"left", "right"}:
                 nodelist[len(counter) + 1], _ = self.getNodesRecursively(
                     value, nodelist, counter, childs
@@ -705,6 +705,12 @@ class ADMTreesModel:
                 graph.add_edge(pydot.Edge(key, node["parent_node"]))
 
         if show:
+            try:
+                from IPython.display import Image, display
+            except:
+                raise ValueError(
+                    "IPython not installed, please install it using `pip install IPython`."
+                )
             display(Image(graph.create_png()))  # pragma: no cover
         return graph
 
@@ -857,7 +863,7 @@ class ADMTreesModel:
             title="Variable types per tree",
             labels={"index": "Tree number", "value": "Number of splits"},
             template="none",
-            **kwargs
+            **kwargs,
         )
         fig.layout["updatemenus"] += (
             dict(
@@ -958,7 +964,7 @@ class MultiTrees:
             title="Variable types per tree",
             labels={"index": "Tree number", "value": "Number of splits"},
             template="none",
-            **kwargs
+            **kwargs,
         )
         fig.layout["updatemenus"] += (
             dict(
