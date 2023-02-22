@@ -354,6 +354,9 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 Can be useful for debugging or replicating the plots</p></li>
 </ul>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]</p>
+</dd>
 </dl>
 <p class="rubric">Notes</p>
 <p>See the docs for either the matplotlib plots (plots_mpl.py) or the
@@ -364,6 +367,14 @@ html automatically or displaying figures while facetting.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>(plt.Axes, go.FigureWidget)</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>last</strong> (<em>bool</em>) – </p></li>
+<li><p><strong>add_bottom_left_text</strong> (<em>bool</em>) – </p></li>
+<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – </p></li>
+<li><p><strong>facets</strong> (<em>Optional</em><em>[</em><em>list</em><em>]</em>) – </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -391,12 +402,21 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 Can be useful for debugging or replicating the plots</p></li>
 </ul>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>matplotlib.pyplot.Axes</p>
+</dd>
 </dl>
 <p class="rubric">Notes</p>
 <p>See the docs for the matplotlib plots (plots_mpl.py).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>plt.Axes</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>day_interval</strong> (<em>int</em>) – </p></li>
+<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -426,6 +446,9 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 Can be useful for debugging or replicating the plots</p></li>
 </ul>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]</p>
+</dd>
 </dl>
 <p class="rubric">Notes</p>
 <p>See the docs for either the matplotlib plots (plots_mpl.py) or the
@@ -436,6 +459,14 @@ html automatically or displaying figures while facetting.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>(plt.Axes, go.FigureWidget)</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>metric</strong> (<em>str</em>) – </p></li>
+<li><p><strong>by</strong> (<em>str</em>) – </p></li>
+<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – </p></li>
+<li><p><strong>facets</strong> (<em>Optional</em><em>[</em><em>list</em><em>]</em>) – </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -462,12 +493,22 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 Can be useful for debugging or replicating the plots</p></li>
 </ul>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>matplotlib.pyplot.Axes</p>
+</dd>
 </dl>
 <p class="rubric">Notes</p>
 <p>See the docs for the matplotlib plots (plots_mpl.py).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>plt.Axes</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>lookback</strong> (<em>int</em>) – </p></li>
+<li><p><strong>fill_null_days</strong> (<em>bool</em>) – </p></li>
+<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -497,6 +538,9 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 Can be useful for debugging or replicating the plots</p></li>
 </ul>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]</p>
+</dd>
 </dl>
 <p class="rubric">Notes</p>
 <p>See the docs for either the matplotlib plots (plots_mpl.py) or the
@@ -507,6 +551,15 @@ html automatically or displaying figures while facetting.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>(plt.Axes, go.FigureWidget)</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>metric</strong> (<em>str</em>) – </p></li>
+<li><p><strong>by</strong> (<em>str</em>) – </p></li>
+<li><p><strong>show_error</strong> (<em>bool</em>) – </p></li>
+<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – </p></li>
+<li><p><strong>facets</strong> (<em>Optional</em><em>[</em><em>list</em><em>]</em>) – </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -534,6 +587,9 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 Can be useful for debugging or replicating the plots</p></li>
 </ul>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]</p>
+</dd>
 </dl>
 <p class="rubric">Notes</p>
 <p>See the docs for either the matplotlib plots (plots_mpl.py) or the
@@ -544,6 +600,13 @@ html automatically or displaying figures while facetting.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>(plt.Axes, go.FigureWidget)</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>by</strong> (<em>str</em>) – </p></li>
+<li><p><strong>show_zero_responses</strong> (<em>bool</em>) – </p></li>
+<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -650,6 +713,9 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 Can be useful for debugging or replicating the plots</p></li>
 </ul>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]</p>
+</dd>
 </dl>
 <p class="rubric">Notes</p>
 <p>See the docs for either the matplotlib plots (plots_mpl.py) or the
@@ -660,6 +726,14 @@ html automatically or displaying figures while facetting.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>(plt.Axes, go.FigureWidget)</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>top_n</strong> (<em>int</em>) – </p></li>
+<li><p><strong>active_only</strong> (<em>bool</em>) – </p></li>
+<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – </p></li>
+<li><p><strong>facets</strong> (<em>list</em>) – </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -686,12 +760,21 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 Can be useful for debugging or replicating the plots</p></li>
 </ul>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>matplotlib.pyplot.Axes</p>
+</dd>
 </dl>
 <p class="rubric">Notes</p>
 <p>See the docs for the matplotlib plots (plots_mpl.py).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>plt.Axes</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ModelID</strong> (<em>str</em>) – </p></li>
+<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -719,6 +802,9 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 Can be useful for debugging or replicating the plots</p></li>
 </ul>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>plotly.graph_objs.FigureWidget</p>
+</dd>
 </dl>
 <p class="rubric">Notes</p>
 <p>See the docs for the plotly plots (plots_plotly.py).
@@ -727,6 +813,12 @@ such as writing to html automatically or displaying figures while facetting.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>go.FigureWidget</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>by</strong> (<em>str</em>) – </p></li>
+<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -753,6 +845,9 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 Can be useful for debugging or replicating the plots</p></li>
 </ul>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>plotly.graph_objs.FigureWidget</p>
+</dd>
 </dl>
 <p class="rubric">Notes</p>
 <p>See the docs for the plotly plots (plots_plotly.py).
@@ -761,6 +856,12 @@ such as writing to html automatically or displaying figures while facetting.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>go.FigureWidget</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>by</strong> (<em>str</em>) – </p></li>
+<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -790,6 +891,7 @@ If a string, uses the default Pandas query function
 Else, a dict of lists where the key is the column name of the dataframe
 and the corresponding value is a list of values to keep in the dataframe</p></li>
 <li><p><strong>facets</strong> (<em>list</em><em>, </em><em>default = None</em>) – Whether to add facets to the plot, should be a list of columns</p></li>
+<li><p><strong>color_var</strong> (<em>str</em>) – </p></li>
 </ul>
 </dd>
 <dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
@@ -801,6 +903,9 @@ Should consist of three colors: ‘low’, ‘neutral’ and ‘high’</p></li>
 Can be useful for debugging or replicating the plots</p></li>
 </ul>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>plotly.graph_objs.FigureWidget</p>
+</dd>
 </dl>
 <p class="rubric">Notes</p>
 <p>See the docs for the plotly plots (plots_plotly.py).
@@ -809,6 +914,15 @@ such as writing to html automatically or displaying figures while facetting.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>go.FigureWidget</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>color_var</strong> (<em>str</em>) – </p></li>
+<li><p><strong>by</strong> (<em>str</em>) – </p></li>
+<li><p><strong>value_in_text</strong> (<em>bool</em>) – </p></li>
+<li><p><strong>midpoint</strong> (<em>Optional</em><em>[</em><em>float</em><em>]</em>) – </p></li>
+<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>

@@ -286,7 +286,12 @@
 <dd><dl class="py method">
 <dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTrees.getMultiTrees">
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">getMultiTrees</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTrees.getMultiTrees" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>file</strong> (<em>pandas.DataFrame</em>) – </p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -440,6 +445,14 @@ button, only that data is decompressed and decoded.</p>
 <dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel._depth">
 <span class="sig-name descname"><span class="pre">_depth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel._depth" title="Permalink to this definition">#</a></dt>
 <dd><p>Calculates the depth of the tree, used in TreeStats.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>d</strong> (<em>Dict</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dict</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -457,23 +470,41 @@ The direction of the split (&lt; or ‘in’)
 The value on which to split</p></li>
 </ul>
 </dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple[str, str, str]</p>
+</dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.parseSplitValuesWithSpaces">
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">parseSplitValuesWithSpaces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.parseSplitValuesWithSpaces" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[str, str, str]</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.getPredictors">
 <span class="sig-name descname"><span class="pre">getPredictors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.getPredictors" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.getGainsPerSplit">
 <span class="sig-name descname"><span class="pre">getGainsPerSplit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">pandas.DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.getGainsPerSplit" title="Permalink to this definition">#</a></dt>
 <dd><p>Function to compute the gains of each split in each tree.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[Dict, pandas.DataFrame, dict]</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -482,6 +513,11 @@ The value on which to split</p></li>
 <dd><p>Function to get the gains per split, grouped by split.</p>
 <p>It adds some additional information, such as the possible values,
 the mean gains, and the number of times the split is performed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pandas.DataFrame</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -507,6 +543,9 @@ empty lists when initially called.</p>
 </ul>
 </p>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[List, List]</p>
+</dd>
 </dl>
 </dd></dl>
 
@@ -531,12 +570,22 @@ empty lists when initially called.</p>
 <dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.getTreeStats">
 <span class="sig-name descname"><span class="pre">getTreeStats</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.getTreeStats" title="Permalink to this definition">#</a></dt>
 <dd><p>Generate a dataframe with useful stats for each tree</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pandas.DataFrame</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.getAllValuesPerSplit">
 <span class="sig-name descname"><span class="pre">getAllValuesPerSplit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.getAllValuesPerSplit" title="Permalink to this definition">#</a></dt>
 <dd><p>Generate a dictionary with the possible values for each split</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -561,6 +610,9 @@ empty dict, dict and list parameters.</p>
 </ul>
 </p>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[Dict, List]</p>
+</dd>
 </dl>
 </dd></dl>
 
@@ -568,6 +620,17 @@ empty dict, dict and list parameters.</p>
 <dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel._fillChildNodeIDs">
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_fillChildNodeIDs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nodeinfo</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">childs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel._fillChildNodeIDs" title="Permalink to this definition">#</a></dt>
 <dd><p>Utility function to add child info to nodes</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nodeinfo</strong> (<em>Dict</em>) – </p></li>
+<li><p><strong>childs</strong> (<em>Dict</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dict</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -583,6 +646,9 @@ with parent and child nodes added as well.</p>
 <li><p><strong>tree_number</strong> (<em>int</em>) – The number of the tree, in order of the original json</p></li>
 <li><p><strong>returns</strong> (<em>Dict</em>) – </p></li>
 </ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dict</p>
 </dd>
 </dl>
 </dd></dl>
@@ -648,18 +714,36 @@ The gains for each split in the visited nodes</p>
 <dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.score">
 <span class="sig-name descname"><span class="pre">score</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.score" title="Permalink to this definition">#</a></dt>
 <dd><p>Computes the score for a given x</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>Dict</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>float</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.plotContributionPerTree">
 <span class="sig-name descname"><span class="pre">plotContributionPerTree</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.plotContributionPerTree" title="Permalink to this definition">#</a></dt>
 <dd><p>Plots the contribution of each tree towards the final propensity.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>Dict</em>) – </p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.predictorCategorization">
 <span class="sig-name descname"><span class="pre">predictorCategorization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.adm.ADMTrees.ADMTreesModel.predictorCategorization" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>str</em>) – </p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.adm.ADMTrees.ADMTreesModel.computeCategorizationOverTime">

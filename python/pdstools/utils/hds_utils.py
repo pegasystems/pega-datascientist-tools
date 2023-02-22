@@ -126,16 +126,21 @@ class DataAnonymization:
 
     Parameters
     ----------
-    config : Optional[Config]
+    config
         Override the default configurations with the Config class
-    df : Optional[pl.LazyFrame]
+    df
         Manually supply a Polars lazyframe to anonymize
-    datamart : Optional[ADMDatamart]
+    datamart
         Manually supply a Datamart file to infer predictor types
 
     Keyword arguments
     -----------------
-    See :Class:`.Config`
+    **config_args
+        See :Class:`.Config`
+
+    Example
+    -------
+    See https://pegasystems.github.io/pega-datascientist-tools/Python/articles/Example_Data_Anonymization.html
     """
 
     def __init__(
@@ -377,13 +382,13 @@ class DataAnonymization:
             "OUTCOME" if self.config.mask_outcome_name else outcome_t
         )
 
-        column_mapping = (
-            predictors
-            | context_keys
-            | ih_predictors
-            | special_predictors
-            | outcome_column
-        )
+        column_mapping = {
+            **predictors,
+            **context_keys,
+            **ih_predictors,
+            **special_predictors,
+            **outcome_column,
+        }
 
         return symbolic_predictors_to_mask, numeric_predictors_to_mask, column_mapping
 

@@ -728,13 +728,14 @@ Functions
    Anonymize a historical dataset.
 
    :param config: Override the default configurations with the Config class
-   :type config: Optional[Config]
    :param df: Manually supply a Polars lazyframe to anonymize
-   :type df: Optional[pl.LazyFrame]
    :param datamart: Manually supply a Datamart file to infer predictor types
-   :type datamart: Optional[ADMDatamart]
 
-   :keyword See :Class:`.Config`:
+   :keyword \*\*config_args: See :Class:`.Config`
+
+   .. rubric:: Example
+
+   See https://pegasystems.github.io/pega-datascientist-tools/Python/articles/Example_Data_Anonymization.html
 
    .. py:method:: write_to_output(df: Optional[polars.DataFrame] = None, ext: Literal[ndjson, parquet, arrow, csv] = None)
 

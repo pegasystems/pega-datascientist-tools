@@ -346,12 +346,16 @@
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>config</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="#pdstools.utils.hds_utils.Config" title="pdstools.utils.hds_utils.Config"><em>Config</em></a><em>]</em>) – Override the default configurations with the Config class</p></li>
-<li><p><strong>df</strong> (<em>Optional</em><em>[</em><em>pl.LazyFrame</em><em>]</em>) – Manually supply a Polars lazyframe to anonymize</p></li>
-<li><p><strong>datamart</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="../../adm/ADMDatamart/index.html#pdstools.adm.ADMDatamart.ADMDatamart" title="pdstools.adm.ADMDatamart.ADMDatamart"><em>ADMDatamart</em></a><em>]</em>) – Manually supply a Datamart file to infer predictor types</p></li>
+<li><p><strong>df</strong> (<em>Optional</em><em>[</em><em>polars.LazyFrame</em><em>]</em>) – Manually supply a Polars lazyframe to anonymize</p></li>
+<li><p><strong>datamart</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="../../index.html#pdstools.ADMDatamart" title="pdstools.ADMDatamart"><em>pdstools.ADMDatamart</em></a><em>]</em>) – Manually supply a Datamart file to infer predictor types</p></li>
 </ul>
 </dd>
+<dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>**config_args</strong> – See <a class="reference internal" href="#pdstools.utils.hds_utils.Config" title="pdstools.utils.hds_utils.Config"><code class="xref py py-class docutils literal notranslate"><span class="pre">Config</span></code></a></p>
+</dd>
 </dl>
-<p>:keyword See <a class="reference internal" href="#pdstools.utils.hds_utils.Config" title="pdstools.utils.hds_utils.Config"><code class="xref py py-class docutils literal notranslate"><span class="pre">Config</span></code></a>:</p>
+<p class="rubric">Example</p>
+<p>See <a class="reference external" href="https://pegasystems.github.io/pega-datascientist-tools/Python/articles/Example_Data_Anonymization.html">https://pegasystems.github.io/pega-datascientist-tools/Python/articles/Example_Data_Anonymization.html</a></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.utils.hds_utils.DataAnonymization.write_to_output">
 <span class="sig-name descname"><span class="pre">write_to_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">polars.DataFrame</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ext</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="pre">ndjson</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">parquet</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">arrow</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">csv</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.hds_utils.DataAnonymization.write_to_output" title="Permalink to this definition">#</a></dt>

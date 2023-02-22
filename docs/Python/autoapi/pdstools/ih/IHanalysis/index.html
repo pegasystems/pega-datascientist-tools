@@ -304,12 +304,22 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.ih.IHAnalysis.SuccessRate">
 <span class="sig-prename descclassname"><span class="pre">pdstools.ih.IHAnalysis.</span></span><span class="sig-name descname"><span class="pre">SuccessRate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">outcome_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'pyOutcome'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.ih.IHAnalysis.SuccessRate" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>polars.Expr</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.ih.IHAnalysis.AUC">
 <span class="sig-prename descclassname"><span class="pre">pdstools.ih.IHAnalysis.</span></span><span class="sig-name descname"><span class="pre">AUC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">outcome_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'pyOutcome'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">propensity_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'pyModelPropensity'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.ih.IHAnalysis.AUC" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>polars.Expr</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.ih.IHAnalysis._metricPerPeriod">
@@ -334,22 +344,42 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.ih.IHAnalysis._plotPerPeriod">
 <span class="sig-prename descclassname"><span class="pre">pdstools.ih.IHAnalysis.</span></span><span class="sig-name descname"><span class="pre">_plotPerPeriod</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_plot</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">period</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facet_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facet_row</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ih.IHAnalysis._plotPerPeriod" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>polars.LazyFrame</em>) – </p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.ih.IHAnalysis.plotSuccessRatePerPeriod">
 <span class="sig-prename descclassname"><span class="pre">pdstools.ih.IHAnalysis.</span></span><span class="sig-name descname"><span class="pre">plotSuccessRatePerPeriod</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">period</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cumulative</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facet_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facet_row</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ih.IHAnalysis.plotSuccessRatePerPeriod" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>polars.LazyFrame</em>) – </p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.ih.IHAnalysis.plotVolumesPerPeriod">
 <span class="sig-prename descclassname"><span class="pre">pdstools.ih.IHAnalysis.</span></span><span class="sig-name descname"><span class="pre">plotVolumesPerPeriod</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">period</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cumulative</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facet_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facet_row</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ih.IHAnalysis.plotVolumesPerPeriod" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>polars.LazyFrame</em>) – </p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.ih.IHAnalysis.plotPropensityDistribution">
 <span class="sig-prename descclassname"><span class="pre">pdstools.ih.IHAnalysis.</span></span><span class="sig-name descname"><span class="pre">plotPropensityDistribution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">issue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">propensityType</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ih.IHAnalysis.plotPropensityDistribution" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>polars.LazyFrame</em>) – </p>
+</dd>
+</dl>
+</dd></dl>
 
 </section>
 </section>

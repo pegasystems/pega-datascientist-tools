@@ -382,6 +382,9 @@ if False, transforms to Pandas</p></li>
 </ul>
 </p>
 </dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Union[pandas.DataFrame, polars.DataFrame]</p>
+</dd>
 </dl>
 </dd></dl>
 
@@ -395,6 +398,7 @@ if False, transforms to Pandas</p></li>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>File</strong> (<em>str</em>) – The path to the file, passed directly to the read functions</p></li>
 <li><p><strong>extension</strong> (<em>str</em>) – The extension of the file, used to determine which function to use</p></li>
+<li><p><strong>file</strong> (<em>str</em>) – </p></li>
 </ul>
 </dd>
 <dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
@@ -492,7 +496,15 @@ Default is IPC, also supports parquet</p></li>
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.utils.cdh_utils.defaultPredictorCategorization">
 <span class="sig-prename descclassname"><span class="pre">pdstools.utils.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">defaultPredictorCategorization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.defaultPredictorCategorization" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>str</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.utils.cdh_utils.safe_range_auc">
@@ -531,6 +543,9 @@ True or 1. Negative values must be represented as False or 0.</p></li>
 </p></li>
 </ul>
 </dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>List[float]</p>
+</dd>
 </dl>
 </dd></dl>
 
@@ -556,6 +571,9 @@ and will return 0.5 when there is just one groundtruth label.</p>
 </ul>
 </p>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
 </dl>
 </dd></dl>
 
@@ -577,6 +595,9 @@ True or 1. Negative values must be represented as False or 0.</p></li>
 </div>
 </p></li>
 </ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>List[float]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -603,6 +624,9 @@ groundtruth label.</p>
 </ul>
 </p>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
 </dl>
 </dd></dl>
 
@@ -620,6 +644,9 @@ groundtruth label.</p>
 <li><p><em>Examples</em> – &gt;&gt;&gt; auc2GINI(0.8232)</p></li>
 </ul>
 </p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
 </dd>
 </dl>
 </dd></dl>
@@ -663,6 +690,9 @@ False it will return in datetime type</p></li>
 </ul>
 </p>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Union[datetime.datetime, str]</p>
+</dd>
 </dl>
 </dd></dl>
 
@@ -681,18 +711,31 @@ False it will return in datetime type</p></li>
 </ul>
 </p>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.utils.cdh_utils.weighed_average_polars">
 <span class="sig-prename descclassname"><span class="pre">pdstools.utils.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">weighed_average_polars</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.weighed_average_polars" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>polars.Expr</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.utils.cdh_utils.weighed_performance_polars">
 <span class="sig-prename descclassname"><span class="pre">pdstools.utils.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">weighed_performance_polars</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.weighed_performance_polars" title="Permalink to this definition">#</a></dt>
 <dd><p>Polars function to return a weighted performance</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>polars.Expr</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -711,6 +754,9 @@ See <cite>examples</cite>.</p>
 <li><p><strong>posCol</strong> (<em>pl.Expr</em>) – The (Polars) column of the bin positives</p></li>
 <li><p><strong>negCol</strong> (<em>pl.Expr</em>) – The (Polars) column of the bin positives</p></li>
 </ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>polars.Expr</p>
 </dd>
 </dl>
 <p class="rubric">Examples</p>
