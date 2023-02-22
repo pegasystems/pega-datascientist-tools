@@ -3,12 +3,11 @@ import re
 import glob
 import json
 
-
 import polars as pl
 
+from random import randint
 from typing import Literal
 from pdstools import ADMDatamart
-from random import randint
 
 
 class Config:
@@ -34,28 +33,30 @@ class Config:
         outcome_column="Decision_Outcome",
         positive_outcomes=["Accepted", "Clicked"],
         negative_outcomes=["Rejected", "Impression"],
-        special_predictors=[
-            "Decision_DecisionTime",
-            "Decision_OutcomeTime",
-        ],
+        special_predictors=["Decision_DecisionTime", "Decision_OutcomeTime"],
     ):
         self._opts = {key: value for key, value in vars().items() if key != "self"}
+
         if config_file is not None:
             self.load_from_config_file(config_file)
         for key, value in self._opts.items():
             setattr(self, key, value)
-        if not os.path.exists(self.output_folder):
-            os.mkdir(self.output_folder)
+        self.validate_paths()
 
     def load_from_config_file(self, config_file):
         if not os.path.exists(config_file):
             raise ValueError("Config file does not exist.")
         with open(config_file) as f:
             self._opts = json.load(f)
+        self.validate_paths()
 
-    def save_to_config_file(self):
-        with open("config.json", "w") as f:
+    def save_to_config_file(self, file_name=None):
+        with open("config.json" if file_name is None else file_name, "w") as f:
             json.dump(self._opts, f)
+
+    def validate_paths(self):
+        if not os.path.exists(self.output_folder):
+            os.mkdir(self.output_folder)
 
 
 class DataAnonymization:
@@ -94,7 +95,7 @@ class DataAnonymization:
     def write_to_output(
         self, df=None, ext: Literal["ndjson", "parquet", "arrow", "csv"] = None
     ):
-        out_filename = self.config.output_filename
+        out_filename = f'{self.config.output_folder}/hds'
         out_format = self.config.output_format if ext is None else ext
         if df is None:
             df = self.process()
@@ -108,7 +109,7 @@ class DataAnonymization:
             df.write_csv(f"{out_filename}.csv")
 
     def create_mapping_files(self):
-        with open(self.config.mapping_filename, "w") as wr:
+        with open(self.config.mapping_file, "w") as wr:
             for key, mapped_val in self.column_mapping.items():
                 wr.write(f"{key}={mapped_val}")
                 wr.write("\n")
@@ -132,11 +133,23 @@ class DataAnonymization:
     @staticmethod
     def read_predictor_type_from_file(df):
         types = {}
-        from numpy import random
 
-        count = df.with_row_count().tail(1).select("row_nr").collect().item() + 1
-        msk = [bool(i) for i in random.rand(count) < 1 - 0.3][0:50]
-        df_ = df.filter(msk).collect()
+        import numpy as np
+
+        def sample_it(s: pl.Series) -> pl.Series:
+            return pl.Series(
+                values=np.random.binomial(1, 0.2, s.len()),
+                dtype=pl.Boolean,
+            )
+
+        df_ = (
+            df
+            .lazy()
+            .with_columns(pl.first().map(sample_it).alias("_sample"))
+            .filter(pl.col("_sample"))
+            .drop("_sample")
+            .collect()
+        )
 
         for col in df_.columns:
             try:
@@ -257,7 +270,7 @@ class DataAnonymization:
                     & (pl.col(cols) != "")
                     & (pl.col(cols).is_in(["true", "false"]).is_not())
                 )
-                .then(pl.col(cols).hash(seed=0))
+                .then(pl.col(cols).hash(seed=randint(1, 100)))
                 .otherwise(pl.col(cols))
             )
 
