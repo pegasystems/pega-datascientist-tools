@@ -2,38 +2,86 @@ import os
 import re
 import glob
 import json
-
+from pathlib import Path
 import polars as pl
 
 from random import randint
-from typing import Literal
+from typing import Literal, Optional
 from pdstools import ADMDatamart
 
 
 class Config:
+    """Configuration file for the data anonymizer.
+
+    Parameters
+    ----------
+    config_file: str = None
+        An optional path to a config file
+    hdr_folder: Path = "."
+        The path to the hdr files
+    use_datamart: bool = False
+        Whether to use the datamart to infer predictor types
+    datamart_folder: Path = "datamart"
+        The folder of the datamart files
+    output_format: Literal["ndjson", "parquet", "arrow", "csv"] = "ndjson"
+        The output format to write the files in
+    output_folder: Path = "output"
+        The location to write the files to
+    mapping_file: str = "mapping.map"
+        The name of the predictor mapping file
+    mask_predictor_names: bool = True
+        Whether to mask the names of regular predictors
+    mask_context_key_names: bool = True
+        Whether to mask the names of context key predictors
+    mask_ih_names: bool = True
+        Whether to mask the name of Interaction History summary predictors
+    mask_outcome_name: bool = True
+        Whether to mask the name of the outcome column
+    mask_predictor_values: bool = True
+        Whether to mask the values of regular predictors
+    mask_context_key_values: bool = True
+        Whether to mask the values of context key predictors
+    mask_ih_values: bool = True
+        Whether to mask the values of Interaction History summary predictors
+    mask_outcome_values: bool = True
+        Whether to mask the values of the outcomes to binary
+    context_key_label: str = "Context_*"
+        The pattern of names for context key predictors
+    ih_label: str = "IH_*"
+        The pattern of names for Interaction History summary predictors
+    outcome_column: str = "Decision_Outcome"
+        The name of the outcome column
+    positive_outcomes: list = ["Accepted", "Clicked"]
+        Which positive outcomes to map to True
+    negative_outcomes: list = ["Rejected", "Impression"]
+        Which negative outcomes to map to False
+    special_predictors: list = ["Decision_DecisionTime", "Decision_OutcomeTime"]
+        A list of special predictors which are not touched
+    """
+
     def __init__(
         self,
-        config_file=None,
-        hdr_folder=".",
-        use_datamart=False,
-        datamart_folder="datamart",
-        output_format="ndjson",
-        output_folder="output",
-        mapping_file="mapping.map",
-        mask_predictor_names=True,
-        mask_context_key_names=True,
-        mask_ih_names=True,
-        mask_outcome_name=True,
-        mask_predictor_values=True,
-        mask_context_key_values=True,
-        mask_ih_values=True,
-        mask_outcome_values=True,
-        context_key_label="Context_*",
-        ih_label="IH_*",
-        outcome_column="Decision_Outcome",
-        positive_outcomes=["Accepted", "Clicked"],
-        negative_outcomes=["Rejected", "Impression"],
-        special_predictors=["Decision_DecisionTime", "Decision_OutcomeTime"],
+        config_file: Optional[str] = None,
+        hdr_folder: Path = ".",
+        use_datamart: bool = False,
+        datamart_folder: Path = "datamart",
+        output_format: Literal["ndjson", "parquet", "arrow", "csv"] = "ndjson",
+        output_folder: Path = "output",
+        mapping_file: str = "mapping.map",
+        mask_predictor_names: bool = True,
+        mask_context_key_names: bool = True,
+        mask_ih_names: bool = True,
+        mask_outcome_name: bool = True,
+        mask_predictor_values: bool = True,
+        mask_context_key_values: bool = True,
+        mask_ih_values: bool = True,
+        mask_outcome_values: bool = True,
+        context_key_label: str = "Context_*",
+        ih_label: str = "IH_*",
+        outcome_column: str = "Decision_Outcome",
+        positive_outcomes: list = ["Accepted", "Clicked"],
+        negative_outcomes: list = ["Rejected", "Impression"],
+        special_predictors: list = ["Decision_DecisionTime", "Decision_OutcomeTime"],
     ):
         self._opts = {key: value for key, value in vars().items() if key != "self"}
 
@@ -43,17 +91,32 @@ class Config:
             setattr(self, key, value)
         self.validate_paths()
 
-    def load_from_config_file(self, config_file):
+    def load_from_config_file(self, config_file: Path):
+        """Load the configurations from a file.
+
+        Parameters
+        ----------
+        config_file : Path
+            The path to the configuration file
+        """
         if not os.path.exists(config_file):
             raise ValueError("Config file does not exist.")
         with open(config_file) as f:
             self._opts = json.load(f)
 
-    def save_to_config_file(self, file_name=None):
+    def save_to_config_file(self, file_name: str = None):
+        """Save the configurations to a file.
+
+        Parameters
+        ----------
+        file_name : str
+            The name of the configuration file
+        """
         with open("config.json" if file_name is None else file_name, "w") as f:
             json.dump(self._opts, f)
 
     def validate_paths(self):
+        """Validate the outcome folder exists."""
         if not os.path.exists(self.output_folder):
             os.mkdir(self.output_folder)
 
@@ -61,12 +124,26 @@ class Config:
 class DataAnonymization:
     def __init__(
         self,
-        config=None,
-        df: pl.LazyFrame = None,
-        datamart: ADMDatamart = None,
+        config: Optional[Config] = None,
+        df: Optional[pl.LazyFrame] = None,
+        datamart: Optional[ADMDatamart] = None,
         **config_args,
     ):
+        """Anonymise a historical data recording dataset
 
+        Parameters
+        ----------
+        config : Optional[Config]
+            Override the default configurations with the Config class
+        df : Optional[pl.LazyFrame]
+            Manually supply a Polars lazyframe to anonymize
+        datamart : Optional[ADMDatamart]
+            Manually supply a Datamart file to infer predictor types
+
+        Keyword arguments
+        -----------------
+        See :Class:`.Config`
+        """
         self.config = Config(**config_args) if config is None else config
 
         if df is None:
@@ -92,8 +169,21 @@ class DataAnonymization:
         ) = self.get_predictors_mapping()
 
     def write_to_output(
-        self, df=None, ext: Literal["ndjson", "parquet", "arrow", "csv"] = None
+        self,
+        df: Optional[pl.DataFrame] = None,
+        ext: Literal["ndjson", "parquet", "arrow", "csv"] = None,
     ):
+        """Write the processed dataframe to an output file.
+
+        Parameters
+        ----------
+        df : Optional[pl.DataFrame]
+            Dataframe to write.
+            If not provided, runs `self.process()`
+        ext : Literal["ndjson", "parquet", "arrow", "csv"]
+            What extension to write the file to
+
+        """
         out_filename = f"{self.config.output_folder}/hds"
         out_format = self.config.output_format if ext is None else ext
         if df is None:
@@ -108,12 +198,14 @@ class DataAnonymization:
             df.write_csv(f"{out_filename}.csv")
 
     def create_mapping_file(self):
+        """Create a file to write the column mapping"""
         with open(self.config.mapping_file, "w") as wr:
             for key, mapped_val in self.column_mapping.items():
                 wr.write(f"{key}={mapped_val}")
                 wr.write("\n")
 
     def load_hdr_files(self):
+        """Load the hdr files from the `config.hdr_folder` location."""
         files = glob.glob(f"{self.config.hdr_folder}/*.json")
         if len(files) < 1:
             raise FileNotFoundError(
@@ -130,7 +222,23 @@ class DataAnonymization:
         return df
 
     @staticmethod
-    def read_predictor_type_from_file(df):
+    def read_predictor_type_from_file(df: pl.LazyFrame):
+        """Infer the types of the preditors from the data.
+
+        This is non-trivial, as it's not ideal to pull in all data to memory for this.
+        For this reason, we sample 1% of data, or all data if less than 50 rows,
+        and try to cast it to numeric. If that fails, we set it to categorical,
+        else we set it to numeric.
+
+        It is technically supported to manually override this, by just overriding
+        the `symbolic_predictors_to_mask` & `numeric_predictors_to_mask` properties.
+
+        Parameters
+        ----------
+        df : pl.LazyFrame
+            The lazyframe to infer the types with
+
+        """
         types = {}
 
         import numpy as np
@@ -140,10 +248,10 @@ class DataAnonymization:
                 values=np.random.binomial(1, 0.01, s.len()),
                 dtype=pl.Boolean,
             )
-            if out.len()<50:
-                out = pl.Series(values=[True]*out.len(), dtype=pl.Boolean)
+            if out.len() < 50:
+                out = pl.Series(values=[True] * out.len(), dtype=pl.Boolean)
             return out
-        
+
         df_ = (
             df.lazy()
             .with_columns(pl.first().map(sample_it).alias("_sample"))
@@ -162,7 +270,18 @@ class DataAnonymization:
         return types
 
     @staticmethod
-    def read_predictor_type_from_datamart(datamart_folder, datamart=None):
+    def read_predictor_type_from_datamart(
+        datamart_folder: Path, datamart: ADMDatamart = None
+    ):
+        """The datamart contains type information about each predictor.
+        This function extracts that information to infer types for the HDS.
+
+        Parameters:
+        datamart_folder : Path
+            The path to the datamart files
+        datamart : ADMDatamart
+            The direct ADMDatamart object
+        """
         dm = ADMDatamart(path=datamart_folder) if datamart is None else datamart
         df = pl.DataFrame(dm.predictorData)
         df = (
@@ -177,6 +296,7 @@ class DataAnonymization:
         return df_dict
 
     def get_columns_by_type(self):
+        """Get a list of columns for each type."""
         columns = self.df.columns
         columns_ = ",".join(columns)
 
@@ -202,6 +322,7 @@ class DataAnonymization:
         return context_keys_t, ih_predictors_t, special_predictors_t, predictors_t
 
     def get_predictors_mapping(self):
+        """Map the predictor names to their anonymized form."""
         symbolic_predictors_to_mask, numeric_predictors_to_mask = [], []
 
         (
@@ -264,6 +385,8 @@ class DataAnonymization:
         return symbolic_predictors_to_mask, numeric_predictors_to_mask, column_mapping
 
     def process(self):
+        """Anonymize the dataset."""
+
         def to_hash(cols):
             return (
                 pl.when(
