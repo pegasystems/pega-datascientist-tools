@@ -315,17 +315,17 @@ Classes
 
 
    .. py:attribute:: trees
-      :annotation: :dict
+      :type: dict
 
       
 
    .. py:attribute:: model_name
-      :annotation: :str
+      :type: str
 
       
 
    .. py:attribute:: context_keys
-      :annotation: :list
+      :type: list
 
       
 

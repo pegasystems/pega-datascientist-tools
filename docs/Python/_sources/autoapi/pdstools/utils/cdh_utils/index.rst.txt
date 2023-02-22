@@ -37,35 +37,45 @@ Functions
    pdstools.utils.cdh_utils._capitalize
    pdstools.utils.cdh_utils.fromPRPCDateTime
    pdstools.utils.cdh_utils.toPRPCDateTime
+   pdstools.utils.cdh_utils.weighed_average_polars
+   pdstools.utils.cdh_utils.weighed_performance_polars
+   pdstools.utils.cdh_utils.zRatio
    pdstools.utils.cdh_utils.readClientCredentialFile
    pdstools.utils.cdh_utils.getToken
 
 
 
-.. py:function:: readDSExport(filename: Union[pandas.DataFrame, str], path: str = '.', verbose: bool = True, **kwargs) -> pandas.DataFrame
+.. py:function:: readDSExport(filename: Union[pandas.DataFrame, polars.DataFrame, str], path: str = '.', verbose: bool = True, **kwargs) -> Union[pandas.DataFrame, polars.DataFrame]
 
    Read a Pega dataset export file.
    Can accept either a Pandas DataFrame or one of the following formats:
    - .csv
    - .json
    - .zip (zipped json or CSV)
+   - .feather
+   - .ipc
+   - .parquet
 
    It automatically infers the default file names for both model data as well as predictor data.
    If you supply either 'modelData' or 'predictorData' as the 'file' argument, it will search for them.
    If you supply the full name of the file in the 'path' directory, it will import that instead.
 
-   :param filename: Either a Pandas DataFrame with the source data (for compatibility),
+   :param filename: Either a Pandas/Polars DataFrame with the source data (for compatibility),
                     or a string, in which case it can either be:
                     - The name of the file (if a custom name) or
                     - Whether we want to look for 'modelData' or 'predictorData' in the path folder.
-   :type filename: [pd.DataFrame, str]
+   :type filename: [pd.DataFrame, pl.DataFrame, str]
    :param path: The location of the file
    :type path: str, default = '.'
    :param verbose: Whether to print out which file will be imported
    :type verbose: bool, default = True
-   :param Keyword arguments: Any arguments to plug into the read csv or json function, from either PyArrow or Pandas.
 
-   :returns: * *pd.DataFrame* -- The read data from the given file
+   :keyword return_pl: Whether to return polars dataframe
+                       if False, transforms to Pandas
+   :kwtype return_pl: bool
+   :keyword Any: Any arguments to plug into the read_* function from Polars.
+
+   :returns: * *pd.DataFrame | pl.DataFrame* -- The read data from the given file
              * *Examples* -- >>> df = readDSExport(filename = 'modelData', path = './datamart')
                >>> df = readDSExport(filename = 'ModelSnapshot.json', path = 'data/ADMData')
 
@@ -73,23 +83,39 @@ Functions
                >>> df = readDSExport(filename = df)
 
 
-.. py:function:: import_file(file, extension, **kwargs)
+.. py:function:: import_file(file: str, extension: str, **kwargs) -> Union[polars.DataFrame, pandas.DataFrame]
+
+   Imports a file using Polars
+
+   By default, exports to Pandas
+
+   :param File: The path to the file, passed directly to the read functions
+   :type File: str
+   :param extension: The extension of the file, used to determine which function to use
+   :type extension: str
+
+   :keyword return_pl: Whether to return Polars or Pandas
+                       If return_pl is True, then keeps the Polars dataframe
+   :kwtype return_pl: bool, default = False
+
+   :returns: A Pandas or Polars dataframe, depending on `return_pl`
+   :rtype: Union[pd.DataFrame | pl.DataFrame]
 
 
-.. py:function:: readZippedFile(file: str, verbose: bool = False, **kwargs) -> pandas.DataFrame
+.. py:function:: readZippedFile(file: str, verbose: bool = False, **kwargs) -> io.BytesIO
 
-   Read a zipped file.
+   Read a zipped NDJSON file.
    Reads a dataset export file as exported and downloaded from Pega. The export
-   file is formatted as a zipped multi-line JSON file or CSV file
-   and the data is read into a pandas dataframe.
+   file is formatted as a zipped multi-line JSON file. It reads the file,
+   and then returns the file as a BytesIO object.
 
    :param file: The full path to the file
    :type file: str
    :param verbose: Whether to print the names of the files within the unzipped file for debugging purposes
    :type verbose: str, default=False
 
-   :returns: A pandas dataframe with the contents.
-   :rtype: pd.DataFrame
+   :returns: A Polars dataframe with the contents.
+   :rtype: os.BytesIO
 
 
 .. py:function:: get_latest_file(path: str, target: str, verbose: bool = False) -> str
@@ -115,21 +141,22 @@ Functions
 .. py:function:: getMatches(files_dir, target)
 
 
-.. py:function:: cache_to_file(df: pandas.DataFrame, path: os.PathLike, name: str, cache_type='parquet') -> os.PathLike
+.. py:function:: cache_to_file(df: pandas.DataFrame, path: os.PathLike, name: str, cache_type: str = 'ipc', compression: str = 'uncompressed') -> os.PathLike
 
    Very simple convenience function to cache data.
    Caches in parquet format for very fast reading.
 
    :param df: The dataframe to cache
-   :type df: pd.DataFrame
+   :type df: pd.DataFrame | pl.DataFrame
    :param path: The location to cache the data
    :type path: os.PathLike
    :param name: The name to give to the file
    :type name: str
    :param cache_type: The type of file to export.
-                      Currently, only Parquet is supported,
-                      will support Arrow/Feather/IPC soon.
+                      Default is IPC, also supports parquet
    :type cache_type: str
+   :param compression: The compression to apply, default is uncompressed
+   :type compression: str
 
    :returns: The filepath to the cached file
    :rtype: os.PathLike
@@ -266,6 +293,36 @@ Functions
 
    :returns: * *str* -- A string representation in the format used by Pega
              * *Examples* -- >>> toPRPCDateTime(datetime.datetime.now())
+
+
+.. py:function:: weighed_average_polars(vals, weights) -> polars.Expr
+
+
+.. py:function:: weighed_performance_polars() -> polars.Expr
+
+   Polars function to return a weighted performance
+
+
+.. py:function:: zRatio(posCol: polars.Expr = pl.col('BinPositives'), negCol: polars.Expr = pl.col('BinNegatives')) -> polars.Expr
+
+   Calculates the Z-Ratio for predictor bins.
+
+   The Z-ratio is a measure of how the propensity in a bin differs from the average,
+   but takes into account the size of the bin and thus is statistically more relevant.
+   It represents the number of standard deviations from the avreage,
+   so centers around 0. The wider the spread, the better the predictor is.
+
+   To recreate the OOTB ZRatios from the datamart, use in a groupby.
+   See `examples`.
+
+   :param posCol: The (Polars) column of the bin positives
+   :type posCol: pl.Expr
+   :param negCol: The (Polars) column of the bin positives
+   :type negCol: pl.Expr
+
+   .. rubric:: Examples
+
+   >>> df.groupby(['ModelID', 'PredictorName']).agg([zRatio()]).explode()
 
 
 .. py:function:: readClientCredentialFile(credentialFile)

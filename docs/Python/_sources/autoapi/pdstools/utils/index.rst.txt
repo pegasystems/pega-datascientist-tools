@@ -12,5 +12,6 @@ Submodules
 
    cdh_utils/index.rst
    datasets/index.rst
+   hds_utils/index.rst
 
 

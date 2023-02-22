@@ -32,7 +32,7 @@ Classes
       :staticmethod:
 
 
-   .. py:method:: _subset_data(table: str, required_columns: set, query: Union[str, Dict[str, list]] = None, multi_snapshot: bool = False, last: bool = False, active_only: bool = False) -> pandas.DataFrame
+   .. py:method:: _subset_data(table: str, required_columns: set, query: Union[str, Dict[str, list]] = None, multi_snapshot: bool = False, last: bool = False, active_only: bool = False, include_cols: Optional[list] = None) -> pandas.DataFrame
 
       Retrieves and subsets the data and performs some assertion checks
 
@@ -55,6 +55,8 @@ Classes
       :type last: bool, default = False
       :param active_only: Whether to subset on just the active predictors
       :type active_only: bool, default = False
+      :param include_cols: Extra columns to include in the subsetting
+      :type include_cols: Optional[list]
 
       :returns: The subsetted dataframe
       :rtype: pd.DataFrame

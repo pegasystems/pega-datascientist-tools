@@ -1,0 +1,168 @@
+:py:mod:`pdstools.utils.hds_utils`
+==================================
+
+.. py:module:: pdstools.utils.hds_utils
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   pdstools.utils.hds_utils.Config
+   pdstools.utils.hds_utils.DataAnonymization
+
+
+
+
+.. py:class:: Config(config_file: Optional[str] = None, hds_folder: pathlib.Path = '.', use_datamart: bool = False, datamart_folder: pathlib.Path = 'datamart', output_format: Literal[ndjson, parquet, arrow, csv] = 'ndjson', output_folder: pathlib.Path = 'output', mapping_file: str = 'mapping.map', mask_predictor_names: bool = True, mask_context_key_names: bool = True, mask_ih_names: bool = True, mask_outcome_name: bool = True, mask_predictor_values: bool = True, mask_context_key_values: bool = True, mask_ih_values: bool = True, mask_outcome_values: bool = True, context_key_label: str = 'Context_*', ih_label: str = 'IH_*', outcome_column: str = 'Decision_Outcome', positive_outcomes: list = ['Accepted', 'Clicked'], negative_outcomes: list = ['Rejected', 'Impression'], special_predictors: list = ['Decision_DecisionTime', 'Decision_OutcomeTime'])
+
+   Configuration file for the data anonymizer.
+
+   :param config_file: An optional path to a config file
+   :type config_file: str = None
+   :param hds_folder: The path to the hds files
+   :type hds_folder: Path = "."
+   :param use_datamart: Whether to use the datamart to infer predictor types
+   :type use_datamart: bool = False
+   :param datamart_folder: The folder of the datamart files
+   :type datamart_folder: Path = "datamart"
+   :param output_format: The output format to write the files in
+   :type output_format: Literal["ndjson", "parquet", "arrow", "csv"] = "ndjson"
+   :param output_folder: The location to write the files to
+   :type output_folder: Path = "output"
+   :param mapping_file: The name of the predictor mapping file
+   :type mapping_file: str = "mapping.map"
+   :param mask_predictor_names: Whether to mask the names of regular predictors
+   :type mask_predictor_names: bool = True
+   :param mask_context_key_names: Whether to mask the names of context key predictors
+   :type mask_context_key_names: bool = True
+   :param mask_ih_names: Whether to mask the name of Interaction History summary predictors
+   :type mask_ih_names: bool = True
+   :param mask_outcome_name: Whether to mask the name of the outcome column
+   :type mask_outcome_name: bool = True
+   :param mask_predictor_values: Whether to mask the values of regular predictors
+   :type mask_predictor_values: bool = True
+   :param mask_context_key_values: Whether to mask the values of context key predictors
+   :type mask_context_key_values: bool = True
+   :param mask_ih_values: Whether to mask the values of Interaction History summary predictors
+   :type mask_ih_values: bool = True
+   :param mask_outcome_values: Whether to mask the values of the outcomes to binary
+   :type mask_outcome_values: bool = True
+   :param context_key_label: The pattern of names for context key predictors
+   :type context_key_label: str = "Context_*"
+   :param ih_label: The pattern of names for Interaction History summary predictors
+   :type ih_label: str = "IH_*"
+   :param outcome_column: The name of the outcome column
+   :type outcome_column: str = "Decision_Outcome"
+   :param positive_outcomes: Which positive outcomes to map to True
+   :type positive_outcomes: list = ["Accepted", "Clicked"]
+   :param negative_outcomes: Which negative outcomes to map to False
+   :type negative_outcomes: list = ["Rejected", "Impression"]
+   :param special_predictors: A list of special predictors which are not touched
+   :type special_predictors: list = ["Decision_DecisionTime", "Decision_OutcomeTime"]
+
+   .. py:method:: load_from_config_file(config_file: pathlib.Path)
+
+      Load the configurations from a file.
+
+      :param config_file: The path to the configuration file
+      :type config_file: Path
+
+
+   .. py:method:: save_to_config_file(file_name: str = None)
+
+      Save the configurations to a file.
+
+      :param file_name: The name of the configuration file
+      :type file_name: str
+
+
+   .. py:method:: validate_paths()
+
+      Validate the outcome folder exists.
+
+
+
+.. py:class:: DataAnonymization(config: Optional[Config] = None, df: Optional[polars.LazyFrame] = None, datamart: Optional[pdstools.ADMDatamart] = None, **config_args)
+
+   Anonymize a historical dataset.
+
+   :param config: Override the default configurations with the Config class
+   :type config: Optional[Config]
+   :param df: Manually supply a Polars lazyframe to anonymize
+   :type df: Optional[pl.LazyFrame]
+   :param datamart: Manually supply a Datamart file to infer predictor types
+   :type datamart: Optional[ADMDatamart]
+
+   :keyword See :Class:`.Config`:
+
+   .. py:method:: write_to_output(df: Optional[polars.DataFrame] = None, ext: Literal[ndjson, parquet, arrow, csv] = None)
+
+      Write the processed dataframe to an output file.
+
+      :param df: Dataframe to write.
+                 If not provided, runs `self.process()`
+      :type df: Optional[pl.DataFrame]
+      :param ext: What extension to write the file to
+      :type ext: Literal["ndjson", "parquet", "arrow", "csv"]
+
+
+   .. py:method:: create_mapping_file()
+
+      Create a file to write the column mapping
+
+
+   .. py:method:: load_hds_files()
+
+      Load the historical dataset files from the `config.hds_folder` location.
+
+
+   .. py:method:: read_predictor_type_from_file(df: polars.LazyFrame)
+      :staticmethod:
+
+      Infer the types of the preditors from the data.
+
+      This is non-trivial, as it's not ideal to pull in all data to memory for this.
+      For this reason, we sample 1% of data, or all data if less than 50 rows,
+      and try to cast it to numeric. If that fails, we set it to categorical,
+      else we set it to numeric.
+
+      It is technically supported to manually override this, by just overriding
+      the `symbolic_predictors_to_mask` & `numeric_predictors_to_mask` properties.
+
+      :param df: The lazyframe to infer the types with
+      :type df: pl.LazyFrame
+
+
+   .. py:method:: read_predictor_type_from_datamart(datamart_folder: pathlib.Path, datamart: pdstools.ADMDatamart = None)
+      :staticmethod:
+
+      The datamart contains type information about each predictor.
+      This function extracts that information to infer types for the HDS.
+
+      :param datamart_folder: The path to the datamart files
+      :type datamart_folder: Path
+      :param datamart: The direct ADMDatamart object
+      :type datamart: ADMDatamart
+
+
+   .. py:method:: get_columns_by_type()
+
+      Get a list of columns for each type.
+
+
+   .. py:method:: get_predictors_mapping()
+
+      Map the predictor names to their anonymized form.
+
+
+   .. py:method:: process()
+
+      Anonymize the dataset.
+
+
+

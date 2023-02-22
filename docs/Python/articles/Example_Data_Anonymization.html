@@ -3,10 +3,10 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
-<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Example data anonymization" href="Example_Data_Anonymization.html" /><link rel="prev" title="Tutorial notebooks" href="../tutorial_notebooks.html" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Example notebooks" href="../examples.html" /><link rel="prev" title="Hello pdstools" href="hello_cdhtools.html" />
 
     <link rel="shortcut icon" href="../_static/pegasystems-inc-vector-logo.svg"/><!-- Generated with Sphinx 5.3.0 and Furo 2022.12.07 -->
-        <title>Hello pdstools - pdstools</title>
+        <title>Example data anonymization - pdstools</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
@@ -166,8 +166,8 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="graph_gallery.html">Graph Gallery</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../tutorial_notebooks.html">Tutorial notebooks</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
-<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Hello pdstools</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Example_Data_Anonymization.html">Example data anonymization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hello_cdhtools.html">Hello pdstools</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Example data anonymization</a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../examples.html">Example notebooks</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -516,103 +516,959 @@ div.rendered_html tbody tr:hover {
   background: rgba(66, 165, 245, 0.2);
 }
 </style>
-<section id="Hello-pdstools">
-<h1>Hello pdstools<a class="headerlink" href="#Hello-pdstools" title="Permalink to this heading">#</a></h1>
-<p>This is a basic example of using pdstools to visualize the ADM datamart.</p>
-<p>To run this first install the <code class="docutils literal notranslate"><span class="pre">pdstools</span></code> library as per the <a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools/wiki#using-the-python-tools">installation instructions</a> of the GitHub repository <a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools">https://github.com/pegasystems/pega-datascientist-tools</a>. Then you can import the ADMDatamart class as such:</p>
+<section id="Example-data-anonymization">
+<h1>Example data anonymization<a class="headerlink" href="#Example-data-anonymization" title="Permalink to this heading">#</a></h1>
+<p>In Pega CDH 8.5 and up, it’s now possible to record the historical data as seen by the Adaptive Models. See <a class="reference external" href="https://academy.pega.com/challenge/exporting-historical-data/v4">this academy challenge</a> for reference. This historical data can be further used to experiment with offline models, but also to fine-tune the OOTB Gradient Boosting model. However, sharing this information with Pega can be sensitive as it contains raw predictor data.</p>
+<p>To this end, we provide a simple and transparent script to fully anonimize this dataset.</p>
+<p>The DataAnonymization script is now part of pdstools, and you can import it directly as such.</p>
 <div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pdstools</span> <span class="kn">import</span> <span class="n">ADMDatamart</span>
+<span class="kn">from</span> <span class="nn">pdstools</span> <span class="kn">import</span> <span class="n">Config</span><span class="p">,</span> <span class="n">DataAnonymization</span>
+<span class="kn">import</span> <span class="nn">polars</span> <span class="k">as</span> <span class="nn">pl</span>
+</pre></div>
+</div>
+</div>
+<section id="Input-data">
+<h2>Input data<a class="headerlink" href="#Input-data" title="Permalink to this heading">#</a></h2>
+<p>To demonstrate this process, we’re going to anonymise this toy example dataframe:</p>
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pdstools</span> <span class="kn">import</span> <span class="n">ADMDatamart</span><span class="p">,</span> <span class="n">datasets</span>
-</pre></div>
-</div>
-</div>
-<p>Then to run this example, use a sample dataset included or export your own from Pega. These steps are detailed on the <a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools/wiki/How-to-export-and-use-the-ADM-Datamart">Wiki</a>.</p>
-<p>Change the path if it is different from the current working directory. The class <code class="docutils literal notranslate"><span class="pre">ADMDatamart</span></code> will read ADM datamart and standardize the fields returned. It is very flexible and can read from datamart export zips, from CSV, parquet etc and has a number of arguments to fine tune the behavior.</p>
-<p>Because we import from the CDH Sample dataset hosted on GitHub, these two commands are identical:</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># ADMDatamart = ADMDatamart(&quot;../../data&quot;)</span>
-<span class="n">ADMDatamart</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">CDHSample</span><span class="p">()</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pl</span><span class="o">.</span><span class="n">read_ndjson</span><span class="p">(</span><span class="s1">&#39;../../data/SampleHDS.json&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-File Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip not found in dir https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data
-File Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip not found in dir https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data
-Could not be combined. Do you have both model data and predictor data?
-</pre></div></div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style>
+.pl-dataframe > thead > tr > th {
+  text-align: right;
+}
+</style>
+
+<table border="1" class="dataframe pl-dataframe">
+<small>shape: (7, 6)</small>
+<thead>
+<tr>
+<th>
+Context_Name
+</th>
+<th>
+Customer_MaritalStatus
+</th>
+<th>
+Customer_CLV
+</th>
+<th>
+Customer_City
+</th>
+<th>
+IH_Web_Inbound_Accepted_pxLastGroupID
+</th>
+<th>
+Decision_Outcome
+</th>
+</tr>
+<tr>
+<td>
+str
+</td>
+<td>
+str
+</td>
+<td>
+i64
+</td>
+<td>
+str
+</td>
+<td>
+str
+</td>
+<td>
+str
+</td>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+&quot;FirstMortgage3...
+</td>
+<td>
+&quot;Married&quot;
+</td>
+<td>
+1460
+</td>
+<td>
+&quot;Port Raoul&quot;
+</td>
+<td>
+&quot;Account&quot;
+</td>
+<td>
+&quot;Rejected&quot;
+</td>
+</tr>
+<tr>
+<td>
+&quot;FirstMortgage3...
+</td>
+<td>
+&quot;Unknown&quot;
+</td>
+<td>
+669
+</td>
+<td>
+&quot;Laurianneshire...
+</td>
+<td>
+&quot;AutoLoans&quot;
+</td>
+<td>
+&quot;Accepted&quot;
+</td>
+</tr>
+<tr>
+<td>
+&quot;MoneyMarketSav...
+</td>
+<td>
+&quot;No Resp+&quot;
+</td>
+<td>
+1174
+</td>
+<td>
+&quot;Jacobshaven&quot;
+</td>
+<td>
+&quot;Account&quot;
+</td>
+<td>
+&quot;Rejected&quot;
+</td>
+</tr>
+<tr>
+<td>
+&quot;BasicChecking&quot;
+</td>
+<td>
+&quot;Unknown&quot;
+</td>
+<td>
+1476
+</td>
+<td>
+&quot;Lindton&quot;
+</td>
+<td>
+&quot;Account&quot;
+</td>
+<td>
+&quot;Rejected&quot;
+</td>
+</tr>
+<tr>
+<td>
+&quot;BasicChecking&quot;
+</td>
+<td>
+&quot;Married&quot;
+</td>
+<td>
+1211
+</td>
+<td>
+&quot;South Jimmiesh...
+</td>
+<td>
+&quot;DepositAccount...
+</td>
+<td>
+&quot;Accepted&quot;
+</td>
+</tr>
+<tr>
+<td>
+&quot;UPlusFinPerson...
+</td>
+<td>
+&quot;No Resp+&quot;
+</td>
+<td>
+533
+</td>
+<td>
+&quot;Bergeville&quot;
+</td>
+<td>
+null
+</td>
+<td>
+&quot;Rejected&quot;
+</td>
+</tr>
+<tr>
+<td>
+&quot;BasicChecking&quot;
+</td>
+<td>
+&quot;No Resp+&quot;
+</td>
+<td>
+555
+</td>
+<td>
+&quot;Willyville&quot;
+</td>
+<td>
+&quot;DepositAccount...
+</td>
+<td>
+&quot;Rejected&quot;
+</td>
+</tr>
+</tbody>
+</table>
+</div></div>
 </div>
-<section id="Bubble-Chart">
-<h2>Bubble Chart<a class="headerlink" href="#Bubble-Chart" title="Permalink to this heading">#</a></h2>
-<p>The following plot shows the bubble chart as shown on the Pega out-of-the-box model report landing page. The methods has options to zoom in into only certain channels/issues etc.</p>
+<p>As you can see, this dataset consists of regular predictors, IH predictors, context keys and the outcome column. Additionally, some columns are numeric, others are strings. Let’s first initialize the DataAnonymization class.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">anon</span> <span class="o">=</span> <span class="n">DataAnonymization</span><span class="p">(</span><span class="n">hds_folder</span><span class="o">=</span><span class="s1">&#39;../../data&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>By default, the class applies a set of anonymisation techniques: - Column names are remapped to a non-descriptive name - Categorical values are hashed with a random seed - Numerical values are normalized between 0 and 1 - Outcomes are mapped to a binary outcome.</p>
+<p>To apply these techniques, simply call <code class="docutils literal notranslate"><span class="pre">.process()</span></code>:</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ADMDatamart</span><span class="o">.</span><span class="n">plotPerformanceSuccessRateBubbleChart</span><span class="p">()</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">anon</span><span class="o">.</span><span class="n">process</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NotApplicableError</span>                        Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In [4], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">ADMDatamart</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">plotPerformanceSuccessRateBubbleChart</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">)</span>
+<div class="output_area rendered_html docutils container">
+<div>
+<style>
+.pl-dataframe > thead > tr > th {
+  text-align: right;
+}
+</style>
 
-File <span class="ansi-green-fg">/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/pdstools/plots/plot_base.py:201</span>, in <span class="ansi-cyan-fg">Plots.plotPerformanceSuccessRateBubbleChart</span><span class="ansi-blue-fg">(self, last, add_bottom_left_text, query, facets, **kwargs)</span>
-<span class="ansi-green-intense-fg ansi-bold">    192</span> table <span style="color: rgb(98,98,98)">=</span> <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">modelData</span><span style="color: rgb(175,0,0)">&#34;</span>
-<span class="ansi-green-intense-fg ansi-bold">    193</span> required_columns <span style="color: rgb(98,98,98)">=</span> {
-<span class="ansi-green-intense-fg ansi-bold">    194</span>     <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">ModelID</span><span style="color: rgb(175,0,0)">&#34;</span>,
-<span class="ansi-green-intense-fg ansi-bold">    195</span>     <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Performance</span><span style="color: rgb(175,0,0)">&#34;</span>,
-<span class="ansi-green-fg">   (...)</span>
-<span class="ansi-green-intense-fg ansi-bold">    198</span>     <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">ModelName</span><span style="color: rgb(175,0,0)">&#34;</span>,
-<span class="ansi-green-intense-fg ansi-bold">    199</span> }
-<span class="ansi-green-fg">--&gt; 201</span> df <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg" style="color: rgb(0,135,0)">self</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">_subset_data</span><span class="ansi-yellow-bg">(</span>
-<span class="ansi-green-intense-fg ansi-bold">    202</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">table</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">table</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">required_columns</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">required_columns</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">query</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">query</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">last</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">last</span>
-<span class="ansi-green-intense-fg ansi-bold">    203</span> <span class="ansi-yellow-bg">)</span>
-<span class="ansi-green-intense-fg ansi-bold">    204</span> df[[<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Performance</span><span style="color: rgb(175,0,0)">&#34;</span>, <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">SuccessRate</span><span style="color: rgb(175,0,0)">&#34;</span>]] <span style="color: rgb(98,98,98)">=</span> df[[<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Performance</span><span style="color: rgb(175,0,0)">&#34;</span>, <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">SuccessRate</span><span style="color: rgb(175,0,0)">&#34;</span>]]<span style="color: rgb(98,98,98)">.</span>apply(
-<span class="ansi-green-intense-fg ansi-bold">    205</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">lambda</span> x: <span style="color: rgb(0,135,0)">round</span>(x <span style="color: rgb(98,98,98)">*</span> <span style="color: rgb(98,98,98)">100</span>, kwargs<span style="color: rgb(98,98,98)">.</span>pop(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">round</span><span style="color: rgb(175,0,0)">&#34;</span>, <span style="color: rgb(98,98,98)">5</span>))
-<span class="ansi-green-intense-fg ansi-bold">    206</span> )  <span style="color: rgb(95,135,135)"># fix to use .loc</span>
-<span class="ansi-green-intense-fg ansi-bold">    208</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> kwargs<span style="color: rgb(98,98,98)">.</span>pop(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">return_df</span><span style="color: rgb(175,0,0)">&#34;</span>, <span class="ansi-bold" style="color: rgb(0,135,0)">False</span>):
-
-File <span class="ansi-green-fg">/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/pdstools/plots/plot_base.py:112</span>, in <span class="ansi-cyan-fg">Plots._subset_data</span><span class="ansi-blue-fg">(self, table, required_columns, query, multi_snapshot, last, active_only, include_cols)</span>
-<span class="ansi-green-intense-fg ansi-bold">     80</span> <span style="color: rgb(175,0,0)">&#34;&#34;&#34;Retrieves and subsets the data and performs some assertion checks</span>
-<span class="ansi-green-intense-fg ansi-bold">     81</span>
-<span class="ansi-green-intense-fg ansi-bold">     82</span> <span style="color: rgb(175,0,0)">Parameters</span>
-<span class="ansi-green-fg">   (...)</span>
-<span class="ansi-green-intense-fg ansi-bold">    109</span> <span style="color: rgb(175,0,0)">    The subsetted dataframe</span>
-<span class="ansi-green-intense-fg ansi-bold">    110</span> <span style="color: rgb(175,0,0)">&#34;&#34;&#34;</span>
-<span class="ansi-green-intense-fg ansi-bold">    111</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> <span class="ansi-bold" style="color: rgb(175,0,255)">not</span> <span style="color: rgb(0,135,0)">hasattr</span>(<span style="color: rgb(0,135,0)">self</span>, table) <span class="ansi-bold" style="color: rgb(175,0,255)">or</span> <span style="color: rgb(0,135,0)">getattr</span>(<span style="color: rgb(0,135,0)">self</span>, table) <span class="ansi-bold" style="color: rgb(175,0,255)">is</span> <span class="ansi-bold" style="color: rgb(0,135,0)">None</span>:
-<span class="ansi-green-fg">--&gt; 112</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">raise</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>NotApplicableError(
-<span class="ansi-green-intense-fg ansi-bold">    113</span>         <span style="color: rgb(175,0,0)">f</span><span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">This visualisation requires </span><span class="ansi-bold" style="color: rgb(175,95,135)">{</span>table<span class="ansi-bold" style="color: rgb(175,95,135)">}</span><span style="color: rgb(175,0,0)">, but that table isn</span><span style="color: rgb(175,0,0)">&#39;</span><span style="color: rgb(175,0,0)">t in this dataset.</span><span style="color: rgb(175,0,0)">&#34;</span>
-<span class="ansi-green-intense-fg ansi-bold">    114</span>     )
-<span class="ansi-green-intense-fg ansi-bold">    116</span> df <span style="color: rgb(98,98,98)">=</span> <span style="color: rgb(0,135,0)">getattr</span>(<span style="color: rgb(0,135,0)">self</span>, table)
-<span class="ansi-green-intense-fg ansi-bold">    117</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> table <span style="color: rgb(98,98,98)">!=</span> <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">predictorData</span><span style="color: rgb(175,0,0)">&#34;</span>:
-
-<span class="ansi-red-fg">NotApplicableError</span>: This visualisation requires modelData, but that table isn&#39;t in this dataset.
-</pre></div></div>
+<table border="1" class="dataframe pl-dataframe">
+<small>shape: (7, 6)</small>
+<thead>
+<tr>
+<th>
+PREDICTOR_0
+</th>
+<th>
+PREDICTOR_1
+</th>
+<th>
+PREDICTOR_2
+</th>
+<th>
+CK_PREDICTOR_0
+</th>
+<th>
+IH_PREDICTOR_0
+</th>
+<th>
+OUTCOME
+</th>
+</tr>
+<tr>
+<td>
+f64
+</td>
+<td>
+str
+</td>
+<td>
+str
+</td>
+<td>
+str
+</td>
+<td>
+str
+</td>
+<td>
+bool
+</td>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+0.983033
+</td>
+<td>
+&quot;77659182060560...
+</td>
+<td>
+&quot;17687376713516...
+</td>
+<td>
+&quot;85472606184047...
+</td>
+<td>
+&quot;37025886780024...
+</td>
+<td>
+false
+</td>
+</tr>
+<tr>
+<td>
+0.144221
+</td>
+<td>
+&quot;35727389419330...
+</td>
+<td>
+&quot;14831975152123...
+</td>
+<td>
+&quot;85472606184047...
+</td>
+<td>
+&quot;18061424597309...
+</td>
+<td>
+true
+</td>
+</tr>
+<tr>
+<td>
+0.679745
+</td>
+<td>
+&quot;10160713527128...
+</td>
+<td>
+&quot;43548773850200...
+</td>
+<td>
+&quot;12127579634181...
+</td>
+<td>
+&quot;37025886780024...
+</td>
+<td>
+false
+</td>
+</tr>
+<tr>
+<td>
+1.0
+</td>
+<td>
+&quot;35727389419330...
+</td>
+<td>
+&quot;15527205212760...
+</td>
+<td>
+&quot;12210928210416...
+</td>
+<td>
+&quot;37025886780024...
+</td>
+<td>
+false
+</td>
+</tr>
+<tr>
+<td>
+0.718982
+</td>
+<td>
+&quot;77659182060560...
+</td>
+<td>
+&quot;19376293798010...
+</td>
+<td>
+&quot;12210928210416...
+</td>
+<td>
+&quot;46932658744559...
+</td>
+<td>
+true
+</td>
+</tr>
+<tr>
+<td>
+0.0
+</td>
+<td>
+&quot;10160713527128...
+</td>
+<td>
+&quot;16522686778959...
+</td>
+<td>
+&quot;70180634670251...
+</td>
+<td>
+null
+</td>
+<td>
+false
+</td>
+</tr>
+<tr>
+<td>
+0.02333
+</td>
+<td>
+&quot;10160713527128...
+</td>
+<td>
+&quot;56542100586670...
+</td>
+<td>
+&quot;12210928210416...
+</td>
+<td>
+&quot;46932658744559...
+</td>
+<td>
+false
+</td>
+</tr>
+</tbody>
+</table>
+</div></div>
 </div>
-</section>
-<section id="Predictor-Overview">
-<h2>Predictor Overview<a class="headerlink" href="#Predictor-Overview" title="Permalink to this heading">#</a></h2>
-<p>Load predictor data and show a basic predictor performance overview.</p>
+<p>To trace back the columns to their original names, the class also contains a mapping, which does not have to be provided.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ADMDatamart</span><span class="o">.</span><span class="n">plotPredictorPerformance</span><span class="p">(</span><span class="n">top_n</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">anon</span><span class="o">.</span><span class="n">column_mapping</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;Customer_CLV&#39;: &#39;PREDICTOR_0&#39;,
+ &#39;Customer_MaritalStatus&#39;: &#39;PREDICTOR_1&#39;,
+ &#39;Customer_City&#39;: &#39;PREDICTOR_2&#39;,
+ &#39;Context_Name&#39;: &#39;CK_PREDICTOR_0&#39;,
+ &#39;IH_Web_Inbound_Accepted_pxLastGroupID&#39;: &#39;IH_PREDICTOR_0&#39;,
+ &#39;Decision_Outcome&#39;: &#39;OUTCOME&#39;}
+</pre></div></div>
+</div>
+</section>
+<section id="Configs">
+<h2>Configs<a class="headerlink" href="#Configs" title="Permalink to this heading">#</a></h2>
+<p>Each capability can optionally be turned off - see below for the full list of config options, and refer to the API reference for the full description.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">Config</span><span class="o">.</span><span class="fm">__init__</span><span class="o">.</span><span class="vm">__code__</span><span class="o">.</span><span class="n">co_varnames</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">Config</span><span class="o">.</span><span class="fm">__init__</span><span class="o">.</span><span class="vm">__defaults__</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;config_file&#39;: None,
+ &#39;hds_folder&#39;: &#39;.&#39;,
+ &#39;use_datamart&#39;: False,
+ &#39;datamart_folder&#39;: &#39;datamart&#39;,
+ &#39;output_format&#39;: &#39;ndjson&#39;,
+ &#39;output_folder&#39;: &#39;output&#39;,
+ &#39;mapping_file&#39;: &#39;mapping.map&#39;,
+ &#39;mask_predictor_names&#39;: True,
+ &#39;mask_context_key_names&#39;: True,
+ &#39;mask_ih_names&#39;: True,
+ &#39;mask_outcome_name&#39;: True,
+ &#39;mask_predictor_values&#39;: True,
+ &#39;mask_context_key_values&#39;: True,
+ &#39;mask_ih_values&#39;: True,
+ &#39;mask_outcome_values&#39;: True,
+ &#39;context_key_label&#39;: &#39;Context_*&#39;,
+ &#39;ih_label&#39;: &#39;IH_*&#39;,
+ &#39;outcome_column&#39;: &#39;Decision_Outcome&#39;,
+ &#39;positive_outcomes&#39;: [&#39;Accepted&#39;, &#39;Clicked&#39;],
+ &#39;negative_outcomes&#39;: [&#39;Rejected&#39;, &#39;Impression&#39;],
+ &#39;special_predictors&#39;: [&#39;Decision_DecisionTime&#39;, &#39;Decision_OutcomeTime&#39;]}
+</pre></div></div>
+</div>
+<p>It’s easy to change these parameters by just passing the keyword arguments. In the following example, we - Keep the IH predictor names - Keep the outcome values - Keep the context key values - Keep the context key predictor names</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">anon</span> <span class="o">=</span> <span class="n">DataAnonymization</span><span class="p">(</span><span class="n">hds_folder</span><span class="o">=</span><span class="s1">&#39;../../data&#39;</span><span class="p">,</span> <span class="n">mask_ih_names</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mask_outcome_values</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mask_context_key_values</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mask_context_key_names</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">anon</span><span class="o">.</span><span class="n">process</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style>
+.pl-dataframe > thead > tr > th {
+  text-align: right;
+}
+</style>
+
+<table border="1" class="dataframe pl-dataframe">
+<small>shape: (7, 6)</small>
+<thead>
+<tr>
+<th>
+PREDICTOR_0
+</th>
+<th>
+PREDICTOR_1
+</th>
+<th>
+PREDICTOR_2
+</th>
+<th>
+Context_Name
+</th>
+<th>
+IH_Web_Inbound_Accepted_pxLastGroupID
+</th>
+<th>
+OUTCOME
+</th>
+</tr>
+<tr>
+<td>
+f64
+</td>
+<td>
+str
+</td>
+<td>
+str
+</td>
+<td>
+str
+</td>
+<td>
+str
+</td>
+<td>
+str
+</td>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+0.983033
+</td>
+<td>
+&quot;26147176613051...
+</td>
+<td>
+&quot;13749488081303...
+</td>
+<td>
+&quot;FirstMortgage3...
+</td>
+<td>
+&quot;14921383665438...
+</td>
+<td>
+&quot;Rejected&quot;
+</td>
+</tr>
+<tr>
+<td>
+0.144221
+</td>
+<td>
+&quot;71226778007428...
+</td>
+<td>
+&quot;88612884249396...
+</td>
+<td>
+&quot;FirstMortgage3...
+</td>
+<td>
+&quot;98996640880559...
+</td>
+<td>
+&quot;Accepted&quot;
+</td>
+</tr>
+<tr>
+<td>
+0.679745
+</td>
+<td>
+&quot;10609058199223...
+</td>
+<td>
+&quot;15135653830369...
+</td>
+<td>
+&quot;MoneyMarketSav...
+</td>
+<td>
+&quot;14921383665438...
+</td>
+<td>
+&quot;Rejected&quot;
+</td>
+</tr>
+<tr>
+<td>
+1.0
+</td>
+<td>
+&quot;71226778007428...
+</td>
+<td>
+&quot;86084059998400...
+</td>
+<td>
+&quot;BasicChecking&quot;
+</td>
+<td>
+&quot;14921383665438...
+</td>
+<td>
+&quot;Rejected&quot;
+</td>
+</tr>
+<tr>
+<td>
+0.718982
+</td>
+<td>
+&quot;26147176613051...
+</td>
+<td>
+&quot;94223062024558...
+</td>
+<td>
+&quot;BasicChecking&quot;
+</td>
+<td>
+&quot;84282893704966...
+</td>
+<td>
+&quot;Accepted&quot;
+</td>
+</tr>
+<tr>
+<td>
+0.0
+</td>
+<td>
+&quot;10609058199223...
+</td>
+<td>
+&quot;16594334543608...
+</td>
+<td>
+&quot;UPlusFinPerson...
+</td>
+<td>
+null
+</td>
+<td>
+&quot;Rejected&quot;
+</td>
+</tr>
+<tr>
+<td>
+0.02333
+</td>
+<td>
+&quot;10609058199223...
+</td>
+<td>
+&quot;12843537306871...
+</td>
+<td>
+&quot;BasicChecking&quot;
+</td>
+<td>
+&quot;84282893704966...
+</td>
+<td>
+&quot;Rejected&quot;
+</td>
+</tr>
+</tbody>
+</table>
+</div></div>
+</div>
+<p>The configs can also be written and read as such:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">anon</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">save_to_config_file</span><span class="p">(</span><span class="s1">&#39;config.json&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">anon</span> <span class="o">=</span> <span class="n">DataAnonymization</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">Config</span><span class="p">(</span><span class="n">config_file</span><span class="o">=</span><span class="s1">&#39;config.json&#39;</span><span class="p">))</span>
+<span class="n">anon</span><span class="o">.</span><span class="n">process</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style>
+.pl-dataframe > thead > tr > th {
+  text-align: right;
+}
+</style>
+
+<table border="1" class="dataframe pl-dataframe">
+<small>shape: (7, 6)</small>
+<thead>
+<tr>
+<th>
+PREDICTOR_0
+</th>
+<th>
+PREDICTOR_1
+</th>
+<th>
+PREDICTOR_2
+</th>
+<th>
+Context_Name
+</th>
+<th>
+IH_Web_Inbound_Accepted_pxLastGroupID
+</th>
+<th>
+OUTCOME
+</th>
+</tr>
+<tr>
+<td>
+f64
+</td>
+<td>
+str
+</td>
+<td>
+str
+</td>
+<td>
+str
+</td>
+<td>
+str
+</td>
+<td>
+str
+</td>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+0.983033
+</td>
+<td>
+&quot;11893116425855...
+</td>
+<td>
+&quot;11828761312301...
+</td>
+<td>
+&quot;FirstMortgage3...
+</td>
+<td>
+&quot;78977854655358...
+</td>
+<td>
+&quot;Rejected&quot;
+</td>
+</tr>
+<tr>
+<td>
+0.144221
+</td>
+<td>
+&quot;26649976646227...
+</td>
+<td>
+&quot;73047212535520...
+</td>
+<td>
+&quot;FirstMortgage3...
+</td>
+<td>
+&quot;11290340834939...
+</td>
+<td>
+&quot;Accepted&quot;
+</td>
+</tr>
+<tr>
+<td>
+0.679745
+</td>
+<td>
+&quot;10514599028942...
+</td>
+<td>
+&quot;13016209124633...
+</td>
+<td>
+&quot;MoneyMarketSav...
+</td>
+<td>
+&quot;78977854655358...
+</td>
+<td>
+&quot;Rejected&quot;
+</td>
+</tr>
+<tr>
+<td>
+1.0
+</td>
+<td>
+&quot;26649976646227...
+</td>
+<td>
+&quot;37494587438103...
+</td>
+<td>
+&quot;BasicChecking&quot;
+</td>
+<td>
+&quot;78977854655358...
+</td>
+<td>
+&quot;Rejected&quot;
+</td>
+</tr>
+<tr>
+<td>
+0.718982
+</td>
+<td>
+&quot;11893116425855...
+</td>
+<td>
+&quot;30566918725785...
+</td>
+<td>
+&quot;BasicChecking&quot;
+</td>
+<td>
+&quot;34242959334950...
+</td>
+<td>
+&quot;Accepted&quot;
+</td>
+</tr>
+<tr>
+<td>
+0.0
+</td>
+<td>
+&quot;10514599028942...
+</td>
+<td>
+&quot;10779814688149...
+</td>
+<td>
+&quot;UPlusFinPerson...
+</td>
+<td>
+null
+</td>
+<td>
+&quot;Rejected&quot;
+</td>
+</tr>
+<tr>
+<td>
+0.02333
+</td>
+<td>
+&quot;10514599028942...
+</td>
+<td>
+&quot;16474810134164...
+</td>
+<td>
+&quot;BasicChecking&quot;
+</td>
+<td>
+&quot;34242959334950...
+</td>
+<td>
+&quot;Rejected&quot;
+</td>
+</tr>
+</tbody>
+</table>
+</div></div>
+</div>
+</section>
+<section id="Exporting">
+<h2>Exporting<a class="headerlink" href="#Exporting" title="Permalink to this heading">#</a></h2>
+<p>Two functions export: - <code class="docutils literal notranslate"><span class="pre">create_mapping_file()</span></code> writes the mapping file of the predictor names - <code class="docutils literal notranslate"><span class="pre">write_to_output()</span></code> writes the processed dataframe to disk</p>
+<p>Write to output accepts the following extensions: <code class="docutils literal notranslate"><span class="pre">[&quot;ndjson&quot;,</span> <span class="pre">&quot;parquet&quot;,</span> <span class="pre">&quot;arrow&quot;,</span> <span class="pre">&quot;csv&quot;]</span></code></p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">anon</span><span class="o">.</span><span class="n">create_mapping_file</span><span class="p">()</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;mapping.map&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
 </pre></div>
 </div>
 </div>
@@ -621,41 +1477,232 @@ File <span class="ansi-green-fg">/Library/Frameworks/Python.framework/Versions/3
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NotApplicableError</span>                        Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In [5], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">ADMDatamart</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">plotPredictorPerformance</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">top_n</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">30</span><span class="ansi-yellow-bg">)</span>
+Customer_CLV=PREDICTOR_0
+Customer_MaritalStatus=PREDICTOR_1
+Customer_City=PREDICTOR_2
+Context_Name=Context_Name
+IH_Web_Inbound_Accepted_pxLastGroupID=IH_Web_Inbound_Accepted_pxLastGroupID
+Decision_Outcome=OUTCOME
 
-File <span class="ansi-green-fg">/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/pdstools/plots/plot_base.py:730</span>, in <span class="ansi-cyan-fg">Plots.plotPredictorPerformance</span><span class="ansi-blue-fg">(self, top_n, active_only, to_plot, query, facets, **kwargs)</span>
-<span class="ansi-green-intense-fg ansi-bold">    728</span> last <span style="color: rgb(98,98,98)">=</span> <span class="ansi-bold" style="color: rgb(0,135,0)">True</span>
-<span class="ansi-green-intense-fg ansi-bold">    729</span> required_columns <span style="color: rgb(98,98,98)">=</span> {<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Channel</span><span style="color: rgb(175,0,0)">&#34;</span>, <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">PredictorName</span><span style="color: rgb(175,0,0)">&#34;</span>, var_to_plot, <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Type</span><span style="color: rgb(175,0,0)">&#34;</span>}
-<span class="ansi-green-fg">--&gt; 730</span> df <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg" style="color: rgb(0,135,0)">self</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">_subset_data</span><span class="ansi-yellow-bg">(</span>
-<span class="ansi-green-intense-fg ansi-bold">    731</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">table</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">required_columns</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">query</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">last</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">last</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">active_only</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">active_only</span>
-<span class="ansi-green-intense-fg ansi-bold">    732</span> <span class="ansi-yellow-bg">)</span>
-<span class="ansi-green-intense-fg ansi-bold">    733</span> df <span style="color: rgb(98,98,98)">=</span> df<span style="color: rgb(98,98,98)">.</span>query(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">PredictorName != </span><span style="color: rgb(175,0,0)">&#39;</span><span style="color: rgb(175,0,0)">Classifier</span><span style="color: rgb(175,0,0)">&#39;</span><span style="color: rgb(175,0,0)">&#34;</span>)<span style="color: rgb(98,98,98)">.</span>reset_index(drop<span style="color: rgb(98,98,98)">=</span><span class="ansi-bold" style="color: rgb(0,135,0)">True</span>)
-<span class="ansi-green-intense-fg ansi-bold">    735</span> df <span style="color: rgb(98,98,98)">=</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>top_n(df, top_n, var_to_plot)
-
-File <span class="ansi-green-fg">/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/pdstools/plots/plot_base.py:112</span>, in <span class="ansi-cyan-fg">Plots._subset_data</span><span class="ansi-blue-fg">(self, table, required_columns, query, multi_snapshot, last, active_only, include_cols)</span>
-<span class="ansi-green-intense-fg ansi-bold">     80</span> <span style="color: rgb(175,0,0)">&#34;&#34;&#34;Retrieves and subsets the data and performs some assertion checks</span>
-<span class="ansi-green-intense-fg ansi-bold">     81</span>
-<span class="ansi-green-intense-fg ansi-bold">     82</span> <span style="color: rgb(175,0,0)">Parameters</span>
-<span class="ansi-green-fg">   (...)</span>
-<span class="ansi-green-intense-fg ansi-bold">    109</span> <span style="color: rgb(175,0,0)">    The subsetted dataframe</span>
-<span class="ansi-green-intense-fg ansi-bold">    110</span> <span style="color: rgb(175,0,0)">&#34;&#34;&#34;</span>
-<span class="ansi-green-intense-fg ansi-bold">    111</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> <span class="ansi-bold" style="color: rgb(175,0,255)">not</span> <span style="color: rgb(0,135,0)">hasattr</span>(<span style="color: rgb(0,135,0)">self</span>, table) <span class="ansi-bold" style="color: rgb(175,0,255)">or</span> <span style="color: rgb(0,135,0)">getattr</span>(<span style="color: rgb(0,135,0)">self</span>, table) <span class="ansi-bold" style="color: rgb(175,0,255)">is</span> <span class="ansi-bold" style="color: rgb(0,135,0)">None</span>:
-<span class="ansi-green-fg">--&gt; 112</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">raise</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>NotApplicableError(
-<span class="ansi-green-intense-fg ansi-bold">    113</span>         <span style="color: rgb(175,0,0)">f</span><span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">This visualisation requires </span><span class="ansi-bold" style="color: rgb(175,95,135)">{</span>table<span class="ansi-bold" style="color: rgb(175,95,135)">}</span><span style="color: rgb(175,0,0)">, but that table isn</span><span style="color: rgb(175,0,0)">&#39;</span><span style="color: rgb(175,0,0)">t in this dataset.</span><span style="color: rgb(175,0,0)">&#34;</span>
-<span class="ansi-green-intense-fg ansi-bold">    114</span>     )
-<span class="ansi-green-intense-fg ansi-bold">    116</span> df <span style="color: rgb(98,98,98)">=</span> <span style="color: rgb(0,135,0)">getattr</span>(<span style="color: rgb(0,135,0)">self</span>, table)
-<span class="ansi-green-intense-fg ansi-bold">    117</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> table <span style="color: rgb(98,98,98)">!=</span> <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">predictorData</span><span style="color: rgb(175,0,0)">&#34;</span>:
-
-<span class="ansi-red-fg">NotApplicableError</span>: This visualisation requires combinedData, but that table isn&#39;t in this dataset.
 </pre></div></div>
 </div>
-</section>
-<section id="Next-steps">
-<h2>Next steps<a class="headerlink" href="#Next-steps" title="Permalink to this heading">#</a></h2>
-<p>For more examples and sample code please see the <a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools/wiki">pdstools Wiki</a> and the documentation.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">anon</span><span class="o">.</span><span class="n">write_to_output</span><span class="p">(</span><span class="n">ext</span><span class="o">=</span><span class="s1">&#39;arrow&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pl</span><span class="o">.</span><span class="n">read_ipc</span><span class="p">(</span><span class="s1">&#39;output/hds.arrow&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style>
+.pl-dataframe > thead > tr > th {
+  text-align: right;
+}
+</style>
+
+<table border="1" class="dataframe pl-dataframe">
+<small>shape: (7, 6)</small>
+<thead>
+<tr>
+<th>
+PREDICTOR_0
+</th>
+<th>
+PREDICTOR_1
+</th>
+<th>
+PREDICTOR_2
+</th>
+<th>
+Context_Name
+</th>
+<th>
+IH_Web_Inbound_Accepted_pxLastGroupID
+</th>
+<th>
+OUTCOME
+</th>
+</tr>
+<tr>
+<td>
+f64
+</td>
+<td>
+str
+</td>
+<td>
+str
+</td>
+<td>
+str
+</td>
+<td>
+str
+</td>
+<td>
+str
+</td>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+0.983033
+</td>
+<td>
+&quot;13901847100685...
+</td>
+<td>
+&quot;20790230098784...
+</td>
+<td>
+&quot;FirstMortgage3...
+</td>
+<td>
+&quot;18080585646216...
+</td>
+<td>
+&quot;Rejected&quot;
+</td>
+</tr>
+<tr>
+<td>
+0.144221
+</td>
+<td>
+&quot;23684443556836...
+</td>
+<td>
+&quot;11260486451715...
+</td>
+<td>
+&quot;FirstMortgage3...
+</td>
+<td>
+&quot;57688128632934...
+</td>
+<td>
+&quot;Accepted&quot;
+</td>
+</tr>
+<tr>
+<td>
+0.679745
+</td>
+<td>
+&quot;64145511274717...
+</td>
+<td>
+&quot;70713395177550...
+</td>
+<td>
+&quot;MoneyMarketSav...
+</td>
+<td>
+&quot;18080585646216...
+</td>
+<td>
+&quot;Rejected&quot;
+</td>
+</tr>
+<tr>
+<td>
+1.0
+</td>
+<td>
+&quot;23684443556836...
+</td>
+<td>
+&quot;15333562304630...
+</td>
+<td>
+&quot;BasicChecking&quot;
+</td>
+<td>
+&quot;18080585646216...
+</td>
+<td>
+&quot;Rejected&quot;
+</td>
+</tr>
+<tr>
+<td>
+0.718982
+</td>
+<td>
+&quot;13901847100685...
+</td>
+<td>
+&quot;83744299430110...
+</td>
+<td>
+&quot;BasicChecking&quot;
+</td>
+<td>
+&quot;11044393919249...
+</td>
+<td>
+&quot;Accepted&quot;
+</td>
+</tr>
+<tr>
+<td>
+0.0
+</td>
+<td>
+&quot;64145511274717...
+</td>
+<td>
+&quot;10282151294859...
+</td>
+<td>
+&quot;UPlusFinPerson...
+</td>
+<td>
+null
+</td>
+<td>
+&quot;Rejected&quot;
+</td>
+</tr>
+<tr>
+<td>
+0.02333
+</td>
+<td>
+&quot;64145511274717...
+</td>
+<td>
+&quot;10797654301730...
+</td>
+<td>
+&quot;BasicChecking&quot;
+</td>
+<td>
+&quot;11044393919249...
+</td>
+<td>
+&quot;Rejected&quot;
+</td>
+</tr>
+</tbody>
+</table>
+</div></div>
+</div>
 </section>
 </section>
 
@@ -664,23 +1711,23 @@ File <span class="ansi-green-fg">/Library/Frameworks/Python.framework/Versions/3
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="Example_Data_Anonymization.html">
+          <a class="next-page" href="../examples.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Example data anonymization</div>
+                <div class="title">Example notebooks</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="../tutorial_notebooks.html">
+          <a class="prev-page" href="hello_cdhtools.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Tutorial notebooks</div>
+                <div class="title">Hello pdstools</div>
                 
               </div>
             </a>
@@ -721,10 +1768,10 @@ File <span class="ansi-green-fg">/Library/Frameworks/Python.framework/Versions/3
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">Hello pdstools</a><ul>
-<li><a class="reference internal" href="#Bubble-Chart">Bubble Chart</a></li>
-<li><a class="reference internal" href="#Predictor-Overview">Predictor Overview</a></li>
-<li><a class="reference internal" href="#Next-steps">Next steps</a></li>
+<li><a class="reference internal" href="#">Example data anonymization</a><ul>
+<li><a class="reference internal" href="#Input-data">Input data</a></li>
+<li><a class="reference internal" href="#Configs">Configs</a></li>
+<li><a class="reference internal" href="#Exporting">Exporting</a></li>
 </ul>
 </li>
 </ul>
