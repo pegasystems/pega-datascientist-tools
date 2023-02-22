@@ -731,7 +731,7 @@ class Plots:
             df.groupby("PredictorName")
             .agg(pl.mean(to_plot))
             .fill_nan(0)
-            .sort(to_plot, reverse=False)
+            .sort(to_plot)
             .get_column("PredictorName")
             .to_list()
         )

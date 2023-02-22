@@ -711,7 +711,9 @@ def toPRPCDateTime(x: datetime.datetime) -> str:
     return x.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
 
 
-def weighed_average_polars(vals, weights) -> pl.Expr:
+def weighed_average_polars(
+    vals: Union[str, pl.Expr], weights: Union[str, pl.Expr]
+) -> pl.Expr:
     if isinstance(vals, str):
         vals = pl.col(vals)
     if isinstance(weights, str):

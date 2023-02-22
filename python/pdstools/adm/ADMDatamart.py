@@ -212,7 +212,7 @@ class ADMDatamart(Plots):
                 **kwargs,
             )
         if df1 is not None:
-            df1 = df1.with_column(
+            df1 = df1.with_columns(
                 (pl.col("Positives") / pl.col("ResponseCount"))
                 .fill_nan(pl.lit(0))
                 .alias("SuccessRate")
@@ -237,7 +237,7 @@ class ADMDatamart(Plots):
             )
         if df2 is not None:
             if "BinResponseCount" not in df2.columns:
-                df2 = df2.with_column(
+                df2 = df2.with_columns(
                     (pl.col("BinPositives") + pl.col("BinNegatigves")).alias(
                         "BinResponseCount"
                     )
@@ -462,7 +462,7 @@ class ADMDatamart(Plots):
                     to_retype.append(pl.col(col).cast(type))
         df = df.with_columns(to_retype)
         if df.schema["SnapshotTime"] == pl.Utf8:
-            df = df.with_column(
+            df = df.with_columns(
                 pl.col("SnapshotTime").str.strptime(
                     pl.Datetime,
                     kwargs.pop("timestamp_fmt", "%Y%m%dT%H%M%S.%f %Z"),
@@ -651,7 +651,7 @@ class ADMDatamart(Plots):
                 .groupby(by)
                 .agg(pl.col("Modeldata").last())
                 .collect()
-                .with_column(pl.col("Modeldata").apply(lambda v: _getType(v)))
+                .with_columns(pl.col("Modeldata").apply(lambda v: _getType(v)))
                 .to_dicts()
             )
         return {key: value for key, value in [i.values() for i in types]}
@@ -739,9 +739,9 @@ class ADMDatamart(Plots):
         """
 
         df = (
-            df.with_column(pl.col("SnapshotTime").cast(pl.Date))
+            df.with_columns(pl.col("SnapshotTime").cast(pl.Date))
             .sort("SnapshotTime")
-            .with_column(
+            .with_columns(
                 pl.col(what)
                 .cast(pl.Int64)
                 .diff()
@@ -917,7 +917,7 @@ class ADMDatamart(Plots):
                     ).alias("SuccessRate_weighted"),
                 ],
             )
-            .with_column(
+            .with_columns(
                 (pl.col("Count_without_responses") / pl.col(f"{by}_count")).alias(
                     "Percentage_without_responses"
                 )
@@ -945,7 +945,7 @@ class ADMDatamart(Plots):
                 .arr.eval(pl.element().mean())
                 .arr.get(0)
             )
-            .select(pl.all().arg_sort(reverse=True))
+            .select(pl.all().arg_sort(descending=True))
             .to_series()
         )
         pred_order = [by] + [
@@ -953,7 +953,7 @@ class ADMDatamart(Plots):
             for i in 0
             + df.select(pl.col(pl.Float64).mean())
             .transpose()
-            .select(pl.all().arg_sort(reverse=True))
+            .select(pl.all().arg_sort(descending=True))
             .to_series()
         ]
         return df[mod_order].select(pred_order)
@@ -964,7 +964,7 @@ class ADMDatamart(Plots):
         return (
             df.groupby([by, "ModelID"])
             .agg(pl.max("ResponseCount"))
-            .sort([by, "ResponseCount"], reverse=True)
+            .sort([by, "ResponseCount"], descending=True)
             .with_columns(
                 [
                     (pl.cumsum("ResponseCount") / pl.sum("ResponseCount"))
@@ -1015,7 +1015,7 @@ class ADMDatamart(Plots):
             .lazy()
             .groupby([by, "PositivesBin"])
             .agg([pl.min("Positives"), pl.n_unique("ModelID").alias("ModelCount")])
-            .with_column(
+            .with_columns(
                 (pl.col("ModelCount") / (pl.sum("ModelCount").over(by))).alias(
                     "cumModels"
                 )
