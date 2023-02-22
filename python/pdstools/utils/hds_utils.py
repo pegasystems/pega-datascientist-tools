@@ -17,8 +17,8 @@ class Config:
     ----------
     config_file: str = None
         An optional path to a config file
-    hdr_folder: Path = "."
-        The path to the hdr files
+    hds_folder: Path = "."
+        The path to the hds files
     use_datamart: bool = False
         Whether to use the datamart to infer predictor types
     datamart_folder: Path = "datamart"
@@ -62,7 +62,7 @@ class Config:
     def __init__(
         self,
         config_file: Optional[str] = None,
-        hdr_folder: Path = ".",
+        hds_folder: Path = ".",
         use_datamart: bool = False,
         datamart_folder: Path = "datamart",
         output_format: Literal["ndjson", "parquet", "arrow", "csv"] = "ndjson",
@@ -122,6 +122,22 @@ class Config:
 
 
 class DataAnonymization:
+    """Anonymize a historical dataset.
+
+    Parameters
+    ----------
+    config : Optional[Config]
+        Override the default configurations with the Config class
+    df : Optional[pl.LazyFrame]
+        Manually supply a Polars lazyframe to anonymize
+    datamart : Optional[ADMDatamart]
+        Manually supply a Datamart file to infer predictor types
+
+    Keyword arguments
+    -----------------
+    See :Class:`.Config`
+    """
+
     def __init__(
         self,
         config: Optional[Config] = None,
@@ -129,25 +145,11 @@ class DataAnonymization:
         datamart: Optional[ADMDatamart] = None,
         **config_args,
     ):
-        """Anonymise a historical data recording dataset
 
-        Parameters
-        ----------
-        config : Optional[Config]
-            Override the default configurations with the Config class
-        df : Optional[pl.LazyFrame]
-            Manually supply a Polars lazyframe to anonymize
-        datamart : Optional[ADMDatamart]
-            Manually supply a Datamart file to infer predictor types
-
-        Keyword arguments
-        -----------------
-        See :Class:`.Config`
-        """
         self.config = Config(**config_args) if config is None else config
 
         if df is None:
-            self.df = self.load_hdr_files()
+            self.df = self.load_hds_files()
         elif isinstance(df, pl.DataFrame):
             self.df = df.lazy()
         elif isinstance(df, pl.LazyFrame):
@@ -204,12 +206,12 @@ class DataAnonymization:
                 wr.write(f"{key}={mapped_val}")
                 wr.write("\n")
 
-    def load_hdr_files(self):
-        """Load the hdr files from the `config.hdr_folder` location."""
-        files = glob.glob(f"{self.config.hdr_folder}/*.json")
+    def load_hds_files(self):
+        """Load the historical dataset files from the `config.hds_folder` location."""
+        files = glob.glob(f"{self.config.hds_folder}/*.json")
         if len(files) < 1:
             raise FileNotFoundError(
-                """Files not found. Please check the `hdr_folder` 
+                """Files not found. Please check the `hds_folder` 
                 and check if there are `.json` files in there. 
                 If preferred, you can also supply a polars Dataframe or Lazyframe 
                 directly with the `df` argument."""
@@ -276,7 +278,8 @@ class DataAnonymization:
         """The datamart contains type information about each predictor.
         This function extracts that information to infer types for the HDS.
 
-        Parameters:
+        Parameters
+        ----------
         datamart_folder : Path
             The path to the datamart files
         datamart : ADMDatamart
