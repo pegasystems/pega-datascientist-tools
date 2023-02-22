@@ -48,7 +48,6 @@ class Config:
             raise ValueError("Config file does not exist.")
         with open(config_file) as f:
             self._opts = json.load(f)
-        self.validate_paths()
 
     def save_to_config_file(self, file_name=None):
         with open("config.json" if file_name is None else file_name, "w") as f:
@@ -95,7 +94,7 @@ class DataAnonymization:
     def write_to_output(
         self, df=None, ext: Literal["ndjson", "parquet", "arrow", "csv"] = None
     ):
-        out_filename = f'{self.config.output_folder}/hds'
+        out_filename = f"{self.config.output_folder}/hds"
         out_format = self.config.output_format if ext is None else ext
         if df is None:
             df = self.process()
@@ -108,7 +107,7 @@ class DataAnonymization:
         else:
             df.write_csv(f"{out_filename}.csv")
 
-    def create_mapping_files(self):
+    def create_mapping_file(self):
         with open(self.config.mapping_file, "w") as wr:
             for key, mapped_val in self.column_mapping.items():
                 wr.write(f"{key}={mapped_val}")
@@ -137,14 +136,16 @@ class DataAnonymization:
         import numpy as np
 
         def sample_it(s: pl.Series) -> pl.Series:
-            return pl.Series(
-                values=np.random.binomial(1, 0.2, s.len()),
+            out = pl.Series(
+                values=np.random.binomial(1, 0.01, s.len()),
                 dtype=pl.Boolean,
             )
-
+            if out.len()<50:
+                out = pl.Series(values=[True]*out.len(), dtype=pl.Boolean)
+            return out
+        
         df_ = (
-            df
-            .lazy()
+            df.lazy()
             .with_columns(pl.first().map(sample_it).alias("_sample"))
             .filter(pl.col("_sample"))
             .drop("_sample")
@@ -284,19 +285,19 @@ class DataAnonymization:
                 pl.when(pl.col(col).is_in(positives)).then(True).otherwise(False)
             ).alias(col)
 
-        return (
-            self.df.with_columns(
-                pl.col(self.numeric_predictors_to_mask).cast(pl.Float64)
+        df = self.df.with_columns(
+            pl.col(self.numeric_predictors_to_mask).cast(pl.Float64)
+        ).with_columns(
+            [
+                to_hash(self.symbolic_predictors_to_mask),
+                to_normalize(self.numeric_predictors_to_mask),
+            ]
+        )
+        if self.config.mask_outcome_values:
+            df = df.with_columns(
+                to_boolean(self.config.outcome_column, self.config.positive_outcomes)
             )
-            .with_columns(
-                [
-                    to_hash(self.symbolic_predictors_to_mask),
-                    to_normalize(self.numeric_predictors_to_mask),
-                    to_boolean(
-                        self.config.outcome_column, self.config.positive_outcomes
-                    ),
-                ]
-            )
-            .select(self.column_mapping.keys())
-            .rename(self.column_mapping)
+        df = (
+            df.select(self.column_mapping.keys()).rename(self.column_mapping)
         ).collect()
+        return df
