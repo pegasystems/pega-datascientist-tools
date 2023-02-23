@@ -105,7 +105,7 @@ class ADMDatamart(Plots):
         model_df: Optional[any_frame] = None,
         predictor_df: Optional[any_frame] = None,
         query: Union[str, Dict[str, list]] = None,
-        subset: bool = False,
+        subset: bool = True,
         drop_cols: Optional[list] = None,
         include_cols: Optional[list] = None,
         context_keys: list = ["Channel", "Direction", "Issue", "Group"],
@@ -161,19 +161,15 @@ class ADMDatamart(Plots):
     def import_data(
         self,
         path: Optional[str] = ".",
-        import_strategy: Literal["eager", "lazy"] = "eager",
         *,
         model_filename: Optional[str] = "modelData",
         predictor_filename: Optional[str] = "predictorData",
         model_df: Optional[any_frame] = None,
         predictor_df: Optional[any_frame] = None,
-        query: Union[str, Dict[str, list]] = None,
-        subset: bool = False,
+        subset: bool = True,
         drop_cols: Optional[list] = None,
         include_cols: Optional[list] = None,
-        context_keys: list = ["Channel", "Direction", "Issue", "Group"],
         extract_keys: bool = False,
-        plotting_engine: Union[str, Any] = "plotly",
         verbose: bool = False,
         **reading_opts,
     ) -> pl.LazyFrame:
@@ -271,6 +267,8 @@ class ADMDatamart(Plots):
                     ).alias("BinAdjustedPropensity"),
                 ]
             )
+            # if self.query is not None:
+            #     df2 = df2.filter(pl.col("ModelID").is_in(df1.select(pl.col("ModelID"))))
 
         if df1 is not None and df2 is not None:
             total_missing = (
@@ -374,7 +372,7 @@ class ADMDatamart(Plots):
                 df = self._apply_query(df, self.query)
                 if self.verbose:
                     print(f"Query succesful for {name}.")
-            except:
+            except pl.ColumnNotFoundError:
                 if self.verbose:
                     print(
                         f"""Query unsuccesful for {name}.
@@ -597,7 +595,11 @@ class ADMDatamart(Plots):
         """
         if query is not None:
             if isinstance(query, pl.Expr):
-                return df.filter(query)
+                col_diff = set(query.meta.root_names()) - set(df.columns)
+                if len(col_diff) == 0:
+                    return df.filter(query)
+                else:
+                    raise pl.ColumnNotFoundError(col_diff)
 
             if isinstance(query, str):
                 print(
