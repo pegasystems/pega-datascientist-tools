@@ -608,6 +608,8 @@ class ADMDatamart(Plots):
                 )
                 if isinstance(df, pl.LazyFrame):
                     raise NotEagerError("Applying pandas queries")
+                else:
+                    return pl.DataFrame(df.to_pandas().query(query))
 
             if not isinstance(query, dict):
                 raise TypeError("query must be a dict where values are lists")
@@ -616,7 +618,7 @@ class ADMDatamart(Plots):
                     raise ValueError("query values must be list")
 
             for col, val in query.items():
-                df = df[df[col].isin(val)]
+                df = df.filter(pl.col(col).is_in(val))
         return df
 
     def extract_keys(
