@@ -474,7 +474,7 @@ class ADMDatamart(Plots):
             The input dataframe, but the proper typing applied
         """
         retype = {
-            pl.Categorical: ["Issue", "Group", "Channel", "Direction", "Name"],
+            pl.Categorical: ["Issue", "Group", "Channel", "Direction"],
             # pl.Int64: ["Positives", "Negatives", "ResponseCount"],
             pl.Float64: ["Performance"],
         }
@@ -629,6 +629,8 @@ class ADMDatamart(Plots):
         col="Name",
         verbose=True,
     ):
+        if self.import_strategy != "eager":
+            raise NotEagerError("Extracting keys")
         if verbose:
             print("Extracting keys...")
 
@@ -648,7 +650,7 @@ class ADMDatamart(Plots):
             )
             .drop(col)
             .unnest("tempName")
-        )
+        ).collect().lazy()
 
     def discover_modelTypes(self, df: pl.LazyFrame, by="Configuration"):
         if self.import_strategy != "eager":
