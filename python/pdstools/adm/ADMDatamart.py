@@ -257,18 +257,14 @@ class ADMDatamart(Plots):
                     )
                 )
             df2 = df2.with_columns(
-                [
-                    (pl.col("BinPositives") / pl.col("BinResponseCount")).alias(
-                        "BinPropensity"
-                    ),
-                    (
-                        (pl.col("BinPositives") + pl.lit(0.5))
-                        / (pl.col("BinResponseCount") + pl.lit(1))
-                    ).alias("BinAdjustedPropensity"),
-                ]
+                (pl.col("BinPositives") / pl.col("BinResponseCount")).alias(
+                    "BinPropensity"
+                ),
+                (
+                    (pl.col("BinPositives") + pl.lit(0.5))
+                    / (pl.col("BinResponseCount") + pl.lit(1))
+                ).alias("BinAdjustedPropensity"),
             )
-            # if self.query is not None:
-            #     df2 = df2.filter(pl.col("ModelID").is_in(df1.select(pl.col("ModelID"))))
 
         if df1 is not None and df2 is not None:
             total_missing = (
@@ -282,6 +278,10 @@ class ADMDatamart(Plots):
                     "and supply a custom mapping if the naming is different from default.\n",
                     f"Missing values: {total_missing}",
                 )
+
+            # if self.query is not None:
+            #     df2 = df2.filter(pl.col("ModelID").is_in(df1.select(pl.col("ModelID"))))
+
         if self.import_strategy == "eager":
             with pl.StringCache():
                 if df1 is not None:
@@ -359,7 +359,7 @@ class ADMDatamart(Plots):
         if subset:
             df = df.select(cols)
         if extract_keys:
-            df, extracted = self.extract_keys(df)
+            df = self.extract_keys(df)
 
         df = self._set_types(
             df,
@@ -615,7 +615,7 @@ class ADMDatamart(Plots):
 
             if not isinstance(query, dict):
                 raise TypeError("query must be a dict where values are lists")
-            for key, val in query.items():
+            for val in query.values():
                 if not type(val) == list:
                     raise ValueError("query values must be list")
 
@@ -626,35 +626,29 @@ class ADMDatamart(Plots):
     def extract_keys(
         self,
         df,
+        col="Name",
         verbose=True,
     ):
         if verbose:
             print("Extracting keys...")
-        if self.import_strategy != "eager":
-            raise NotEagerError("Extracting keys")
-        with pl.StringCache():
-            df = df.collect()
-        self.extracted = self._extract(df)
-        self.extracted = cdh_utils._polarsCapitalize(self.extracted)
-        df = df.drop([col for col in self.extracted.columns if col in df.columns])
-        for column in self.extracted.columns:
-            df.hstack([self.extracted.get_column(column)], in_place=True)
-        return df.lazy(), self.extracted.columns
 
-    def _extract(self, df, extract_col="Name"):
-        """Simple function to extract treatments from column"""
+        def safeName():
+            return (
+                pl.when(~pl.col("Name").cast(pl.Utf8).str.starts_with("{"))
+                .then(
+                    pl.concat_str([pl.lit('{"pyName":"'), pl.col("Name"), pl.lit('"}')])
+                )
+                .otherwise(pl.col("Name"))
+                .alias("tempName")
+            )
 
-        return df.select(
-            pl.col(extract_col).cast(pl.Utf8).apply(self.load_if_json)
-        ).unnest(extract_col)
-
-    @staticmethod
-    def load_if_json(input, defaultName="pyName"):
-        """Either extracts the whole column, or just the json strings"""
-        try:
-            return json.loads(input)
-        except:
-            return {defaultName: input}
+        return (
+            df.with_columns(
+                safeName().str.json_extract(),
+            )
+            .drop(col)
+            .unnest("tempName")
+        )
 
     def discover_modelTypes(self, df: pl.LazyFrame, by="Configuration"):
         if self.import_strategy != "eager":
@@ -734,7 +728,7 @@ class ADMDatamart(Plots):
         logging.info(f"Found AGB models: {AGB_models}")
         df = df.filter(pl.col("Configuration").is_in(AGB_models))
         with pl.StringCache():
-            if df["ModelID"].n_unique().collect() == 0:
+            if df.select(pl.col("ModelID").n_unique()).collect().item() == 0:
                 raise ValueError("No models found.")
 
         if last:
@@ -742,7 +736,12 @@ class ADMDatamart(Plots):
                 self.last(df), n_threads=n_threads, verbose=verbose, **kwargs
             )
         else:
-            return ADMTrees(df, n_threads=n_threads, verbose=verbose, **kwargs)
+            return ADMTrees(
+                df.select("Configuration", "SnapshotTime", "Modeldata").collect(),
+                n_threads=n_threads,
+                verbose=verbose,
+                **kwargs,
+            )
 
     @staticmethod
     def _create_sign_df(
@@ -787,109 +786,6 @@ class ADMDatamart(Plots):
         if mask:
             df = df.with_columns((pl.all().exclude("SnapshotTime").sign()))
         return df
-
-    def _create_heatmap_df(
-        self,
-        df: pd.DataFrame,
-        lookback: int = 5,
-        query: Union[str, dict] = None,
-        fill_null_days: bool = False,
-    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        """Generates dataframes needed to plot calendar heatmap
-        The method generates two dataframes where one is used to annotate the heatmap
-        and the other is used to apply colors based on the sign dataframe.
-        If there are multiple snapshots per day, the latest one will be selected
-
-        Parameters
-        ----------
-        lookback : int
-            Defines how many days to look back at data from the last snapshot
-        query : Union[str, dict]
-            The query to supply to _apply_query
-            If a string, uses the default Pandas query function
-            Else, a dict of lists where the key is column name in the dataframe
-            and the corresponding value is a list of values to keep in the dataframe
-        fill_null_days : bool
-            If True, null values will be generated in the dataframe for
-            days where there is no model snapshot
-
-        Returns
-        -------
-        Tuple[pd.DataFrame, pd.DataFrame]
-            Tuple of annotate and sign dataframes
-        """
-
-        df = self._apply_query(df, query)
-        required_columns = {"ModelID", "SnapshotTime", "ResponseCount"}
-        assert required_columns.issubset(df.columns)
-
-        df = (
-            df[["ModelID", "SnapshotTime", "ResponseCount"]]
-            .sort_values("SnapshotTime")
-            .reset_index(drop=True)
-        )
-        df["Date"] = pd.Series([i.date() for i in df["SnapshotTime"]])
-        df = df[df["Date"] > (df["Date"].max() - timedelta(lookback))]
-        if df.shape[0] < 1:
-            raise ValueError(("No data within lookback range"))
-
-        idx = (
-            df.groupby(["ModelID", "Date"])["SnapshotTime"].transform(max)
-            == df["SnapshotTime"]
-        )
-        df = df[idx]
-        if fill_null_days:
-            idx_date = pd.date_range(df["Date"].min(), df["Date"].max())
-            df = (
-                df.set_index("Date")
-                .groupby("ModelID")
-                .apply(lambda d: d.reindex(idx_date))
-                # .drop("ModelID", axis=1)
-                # .reset_index("ModelID")
-                .reset_index()
-                .rename(columns={"index": "Date"})
-            )
-            df["Date"] = pd.to_datetime(df["Date"]).dt.date
-        df_annot = df.pivot(columns="Date", values="ResponseCount", index="ModelID")
-        df_sign = self._create_sign_df(df_annot)
-        return (df_annot, df_sign)
-
-    @staticmethod
-    def _calculate_impact_influence(
-        df: pd.DataFrame, context_keys: list = None, ModelID: str = None
-    ) -> pd.DataFrame:
-        def _ImpactInfluence(X):
-            d = {}
-            X["BinResponseCountPercentage"] = (
-                X["BinResponseCount"] / X["BinResponseCount"].sum()
-            )
-            X["BinPositivesPercentage"] = X["BinPositives"] / X["BinPositives"].sum()
-            X["BinNegativesPercentage"] = X["BinNegatives"] / X["BinNegatives"].sum()
-            X["absIc"] = np.abs(
-                X["BinPositivesPercentage"] - X["BinNegativesPercentage"]
-            )
-
-            d["Impact(%)"] = X["absIc"].max()
-            d["Influence(%)"] = (
-                X["BinResponseCountPercentage"] * X["absIc"] / 100
-            ).sum()
-            return pd.Series(d)
-
-        df = df.query("PredictorName != 'Classifier'").reset_index(drop=True)
-        if ModelID is not None:
-            df = df.query("ModelID == @ModelID")
-
-        mergelist = ["ModelID", "Name"] + context_keys
-        df = (
-            df.groupby(["ModelID", "PredictorName"])
-            .apply(_ImpactInfluence)
-            .reset_index()
-            .merge(
-                df[mergelist].drop_duplicates(),
-                on="ModelID",
-            )
-        )
-        return df.sort_values(["PredictorName", "Impact(%)"], ascending=[False, False])
 
     def model_summary(
         self, by: str = "ModelID", query: Union[str, dict] = None, **kwargs
@@ -986,7 +882,7 @@ class ADMDatamart(Plots):
         return df[mod_order].select(pred_order)
 
     @staticmethod
-    def response_gain_df(df: pd.DataFrame, by: str = "Channel") -> pd.DataFrame:
+    def response_gain_df(df: any_frame, by: str = "Channel") -> any_frame:
         """Simple function to extract the response gain per model"""
         return (
             df.groupby([by, "ModelID"])
