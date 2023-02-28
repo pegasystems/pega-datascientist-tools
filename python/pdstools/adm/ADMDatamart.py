@@ -627,11 +627,10 @@ class ADMDatamart(Plots):
         self,
         df,
         col="Name",
-        verbose=True,
     ):
         if self.import_strategy != "eager":
             raise NotEagerError("Extracting keys")
-        if verbose:
+        if self.verbose:
             print("Extracting keys...")
 
         def safeName():
