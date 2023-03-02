@@ -13,7 +13,6 @@ from math import exp
 from statistics import mean
 from typing import Dict, List, Optional, Set, Tuple, Union
 
-import pandas as pd
 import polars as pl
 import plotly.express as px
 import plotly.graph_objects as go
@@ -587,7 +586,7 @@ class ADMTreesModel:
                 figlist.append(fig)
         return figlist
 
-    def getTreeStats(self) -> pd.DataFrame:
+    def getTreeStats(self) -> pl.DataFrame:
         """Generate a dataframe with useful stats for each tree"""
         stats = {
             k: [] for k in ["treeID", "score", "depth", "nsplits", "gains", "meangains"]
@@ -930,7 +929,7 @@ class ADMTreesModel:
             to_plot = self.computeCategorizationOverTime(predictorCategorization)[0]
         else:
             to_plot = self.splitsPerVariableType[0]
-        df = pd.DataFrame(to_plot)
+        df = pl.DataFrame(to_plot).to_pandas()
         fig = px.area(
             df.reindex(sorted(df.columns), axis=1),
             title="Variable types per tree",
