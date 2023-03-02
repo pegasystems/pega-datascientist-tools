@@ -1,7 +1,5 @@
-import json
 import logging
 import os
-from datetime import timedelta
 from typing import Dict, NoReturn, Optional, Tuple, Union, Literal, Any
 from io import BytesIO
 import pandas as pd
@@ -644,12 +642,16 @@ class ADMDatamart(Plots):
             )
 
         return (
-            df.with_columns(
-                safeName().str.json_extract(),
+            (
+                df.with_columns(
+                    safeName().str.json_extract(),
+                )
+                .drop(col)
+                .unnest("tempName")
             )
-            .drop(col)
-            .unnest("tempName")
-        ).collect().lazy()
+            .collect()
+            .lazy()
+        )
 
     def discover_modelTypes(self, df: pl.LazyFrame, by="Configuration"):
         if self.import_strategy != "eager":
@@ -902,8 +904,8 @@ class ADMDatamart(Plots):
         )
 
     def models_by_positives_df(
-        self, df: pd.DataFrame, by: str = "Channel", allow_collect=True
-    ) -> pd.DataFrame:
+        self, df: pl.DataFrame, by: str = "Channel", allow_collect=True
+    ) -> pl.DataFrame:
         if self.import_strategy == "lazy" and not allow_collect:
             raise ValueError("Only supported in eager mode.")
 
@@ -954,14 +956,15 @@ class ADMDatamart(Plots):
         data = self.last(self.modelData) if last else self.modelData
 
         ret = dict()
-
-        ret["models_n_snapshots"] = data.SnapshotTime.nunique()
+        ret["models_n_snapshots"] = data.select(pl.n_unique("SnapshotTime")).item()
         ret["models_total"] = len(data)
-        ret["models_empty"] = data.query("ResponseCount == 0")
-        ret["models_nopositives"] = data.query("ResponseCount > 0 & Positives == 0")
-        ret["models_isimmature"] = data.query("Positives > 0 & Positives < 200")
-        ret["models_noperformance"] = data.query(
-            "Positives >= 200 & Performance == 0.5"
+        ret["models_empty"] = data.filter(pl.col("ResponseCount") == 0)
+        ret["models_nopositives"] = data.filter(
+            (pl.col("ResponseCount") > 0) & (pl.col("Positives") == 0)
+        )
+        ret["models_isimmature"] = data.filter(pl.col("Positives").is_between(0, 200))
+        ret["models_noperformance"] = data.filter(
+            (pl.col("Positives") >= 200) & (pl.col("Performance") == 0.5)
         )
         ret["models_n_nonperforming"] = (
             len(ret["models_empty"])
@@ -970,23 +973,10 @@ class ADMDatamart(Plots):
             + len(ret["models_noperformance"])
         )
         for key in self.context_keys:
-            ret[f"models_missing_{key}"] = data.query(f'{key}=="NULL"')
-        ret["models_bottom_left"] = data.query(
-            "Performance == 0.5 & (SuccessRate.isnull() | SuccessRate == 0)"
+            ret[f"models_missing_{key}"] = data.filter(pl.col(key).is_null())
+        ret["models_bottom_left"] = data.filter(
+            (pl.col("Performance") == 0.5) & (pl.col("SuccessRate") == 0)
         )
-        ret["responses_per_model"] = pd.concat(
-            [
-                data.ResponseCount.value_counts().sort_index(),
-                data.ResponseCount.value_counts(normalize=True)
-                .mul(100)
-                .round(1)
-                .astype(str)
-                .sort_index()
-                + "%",
-            ],
-            axis=1,
-        )
-
         self.model_stats = ret
         return ret
 
