@@ -2,7 +2,6 @@ import logging
 import os
 from typing import Dict, NoReturn, Optional, Tuple, Union, Literal, Any
 from io import BytesIO
-import pandas as pd
 import polars as pl
 
 from ..utils import cdh_utils
