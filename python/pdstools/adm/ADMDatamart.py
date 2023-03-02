@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from datetime import timedelta
+from datetime import timedelta, datetime
 from typing import Dict, NoReturn, Optional, Tuple, Union, Literal
 from io import BytesIO
 import pandas as pd
@@ -217,7 +217,7 @@ class ADMDatamart(Plots):
                 .fill_nan(pl.lit(0))
                 .alias("SuccessRate")
             )
-
+            df1 = self.last_response(df1)
         if predictor_df is not None:
             df2, self.renamed_preds, self.missing_preds = self._import_utils(
                 name=predictor_df,
@@ -499,6 +499,30 @@ class ADMDatamart(Plots):
         """Method to retrieve only the last snapshot."""
         return df.filter(pl.col("SnapshotTime") == pl.col("SnapshotTime").max())
 
+    def last_response(self, df):
+        """Adds LastResponse column to a dataframe
+        Parameters
+        ----------
+        df : LazyFrame
+            Table to add the LastResponse column
+        Returns
+        -------
+        pl.LazyFrame
+        """
+
+        last_snapshot_per_model = (
+            df.with_columns(
+                ((pl.col("ResponseCount").diff().alias("DailyDiff") > 0)).over(
+                    "ModelID"
+                )
+            )
+            .filter(pl.col("DailyDiff") == True)
+            .groupby("ModelID")
+            .agg(pl.max("SnapshotTime").alias("LastResponse"))
+        ).select(["ModelID", "LastResponse"])
+
+        return df.join(last_snapshot_per_model, on="ModelID", how="left")
+
     def get_combined_data(
         self, last=True, strategy: Literal["eager", "lazy"] = "eager"
     ) -> any_frame:
@@ -549,9 +573,9 @@ class ADMDatamart(Plots):
             )
         return modeldata_cache, predictordata_cache
 
-    def _apply_query(self, df: any_frame, query: Union[str, dict] = None) -> any_frame:
+    @staticmethod
+    def _apply_query(df: any_frame, query: Union[str, dict] = None) -> any_frame:
         """Given an input pandas dataframe, it filters the dataframe based on input query
-
         Parameters
         ----------
         query: Union[str or dict]
@@ -564,9 +588,13 @@ class ADMDatamart(Plots):
             Filtered Pandas DataFrame
         """
         if query is not None:
-
             if isinstance(query, pl.Expr):
-                return df.filter(query)
+                col_diff = set(query.meta.root_names()) - set(df.columns)
+                if len(col_diff) == 0:
+                    with pl.StringCache():
+                        return df.filter(query)
+                else:
+                    raise pl.ColumnNotFoundError(col_diff)
 
             if isinstance(query, str):
                 print(
@@ -577,15 +605,17 @@ class ADMDatamart(Plots):
                 )
                 if isinstance(df, pl.LazyFrame):
                     raise NotEagerError("Applying pandas queries")
+                else:
+                    return pl.DataFrame(df.to_pandas().query(query))
 
             if not isinstance(query, dict):
                 raise TypeError("query must be a dict where values are lists")
-            for key, val in query.items():
+            for val in query.values():
                 if not type(val) == list:
                     raise ValueError("query values must be list")
 
             for col, val in query.items():
-                df = df[df[col].isin(val)]
+                df = df.filter(pl.col(col).is_in(val))
         return df
 
     def extract_keys(
@@ -916,7 +946,9 @@ class ADMDatamart(Plots):
             )
         )
 
-    def pivot_df(self, df: pl.LazyFrame, by="Name", allow_collect=True) -> pl.DataFrame:
+    def pivot_df(
+        self, df: pl.LazyFrame, by="Name", allow_collect=True, top_n=0
+    ) -> pl.DataFrame:
         """Simple function to extract pivoted information"""
         if isinstance(by, list):
             by = by[0]
@@ -924,8 +956,19 @@ class ADMDatamart(Plots):
             raise ValueError("Only supported in eager mode.")
         df = df.filter(pl.col("PredictorName") != "Classifier")
         if by not in ["ModelID", "Name"]:
-            df = df.groupby([by, "PredictorName"]).agg(
-                cdh_utils.weighed_average_polars("PerformanceBin", "ResponseCount")
+            df = (
+                df.with_columns(pl.col("ResponseCount"))
+                .groupby([by, "PredictorName"])
+                .agg(
+                    cdh_utils.weighed_average_polars("PerformanceBin", "ResponseCount")
+                )
+            )
+
+        if top_n > 0:
+            df = (
+                df.with_column(pl.col("PerformanceBin").fill_nan(0.5))
+                .sort("PerformanceBin", reverse=True)
+                .head(top_n)
             )
         with pl.StringCache():
             df = (

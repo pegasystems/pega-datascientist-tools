@@ -182,6 +182,8 @@ def import_file(file: str, extension: str, **kwargs) -> pl.LazyFrame:
         or extension.casefold() == ".ipc"
         or extension.casefold() == ".arrow"
     ):
+        if kwargs.get("verbose", False):
+            print(f"file to be read: {file}")
         file = pl.scan_ipc(file)
 
     else:
@@ -359,8 +361,16 @@ def cache_to_file(
     return outpath
 
 
-def defaultPredictorCategorization(x: str) -> str:
-    return x.split(".")[0] if len(x.split(".")) > 1 else "Primary"
+def defaultPredictorCategorization(
+    x: Union[str, pl.Expr] = pl.col("PredictorName")
+) -> pl.Expr:
+    if isinstance(x, str):
+        x = pl.col(x)
+    return (
+        pl.when(x.str.split(".").arr.lengths() > 1)
+        .then(x.str.split(".").arr.get(0))
+        .otherwise(pl.lit("Primary"))
+    ).alias("PredictorCategory")
 
 
 def safe_range_auc(auc: float) -> float:
@@ -784,12 +794,6 @@ def getToken(credentialFile, verify=True, **kwargs):
         auth=(creds["Client ID"], creds["Client Secret"]),
         verify=verify,
     ).json()["access_token"]
-
-def calc_reach(num_positives):
-    reach = 100 * (0.02 + 0.98 * (min(200, num_positives) / 200))
-    reach = "{:.2f}".format(reach)
-    reach_percentage = f"%{reach}"
-    return reach_percentage
 
 
 def legend_color_order(fig):
