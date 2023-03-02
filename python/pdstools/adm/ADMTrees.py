@@ -1,7 +1,7 @@
 import base64
 import collections
 import functools
-from functools import cached_property
+from functools import cached_property, lru_cache
 import json
 import logging
 import multiprocessing
@@ -20,7 +20,7 @@ import plotly.graph_objects as go
 import pydot
 from IPython.display import Image, display
 from plotly.subplots import make_subplots
-from tqdm.auto import tqdm
+from tqdm import tqdm
 import copy
 
 
@@ -50,38 +50,37 @@ class ADMTrees:
         return ADMTreesModel(file, **kwargs)
 
     @staticmethod
-    def getMultiTrees(file: pl.DataFrame, n_threads=6, verbose=True, **kwargs):
-        models = dict()
-        for configuration, data in file.groupby("Configuration"):
-            if verbose:
-                print(f"Extracting {configuration}, {len(data)} snapshots found")
-            with multiprocessing.Pool(n_threads) as p:
-                pbar = True if (not verbose or len(data) < 2) else False
-                models[configuration] = MultiTrees(
-                    dict(
-                        zip(
-                            data.select(
-                                pl.col("SnapshotTime")
-                                .dt.round("1s")
-                                .cast(pl.Utf8)
-                                .str.rstrip(".000000000")
-                            )
-                            .to_series()
-                            .to_list(),
-                            tqdm(
-                                p.imap(
-                                    ADMTreesModel,
-                                    data.select(pl.col("Modeldata"))
-                                    .to_series()
-                                    .to_list(),
-                                ),
-                                total=len(data),
-                                disable=pbar,
-                            ),
-                        )
-                    )
+    def getMultiTrees(file: pl.DataFrame, n_threads=1, verbose=True, **kwargs):
+        out = {}
+        df = file.filter(pl.col("Modeldata").is_not_null()).select(
+            pl.col("SnapshotTime")
+            .dt.round("1s")
+            .cast(pl.Utf8)
+            .str.rstrip(".000000000"),
+            pl.col("Modeldata").str.decode("base64"),
+            pl.col("Configuration"),
+        )
+        if len(df) > 20 and n_threads == 1 and verbose:
+            print(
+                f"""Decoding {len(df)} models, 
+            setting n_threads to a higher value may speed up processing time."""
+            )
+        df2 = df.select(
+            pl.concat_list(["Configuration", "SnapshotTime"]), "Modeldata"
+        ).to_dict()
+
+        with multiprocessing.Pool(n_threads) as p:
+            f = map if n_threads < 2 else p.imap
+            out = dict(
+                zip(
+                    map(tuple, df2["Configuration"].to_list()),
+                    list(f(ADMTrees, tqdm(df2["Modeldata"]))),
                 )
-        return models
+            )
+        out2 = dict.fromkeys([key[0] for key in out.keys()], {})
+        for key, value in out.items():
+            out2[key[0]][key[1]] = value
+        return {key: MultiTrees(value, model_name=key) for key, value in out2.items()}
 
 
 class ADMTreesModel:
@@ -181,7 +180,12 @@ class ADMTreesModel:
                         )
 
                         raise ValueError(msg)
-
+        elif isinstance(file, bytes):
+            self.trees = json.loads(zlib.decompress(file))
+            if not self.trees["_serialClass"].endswith("GbModel"):
+                return ValueError("Not an AGB model")
+            decode = True
+            logging.info("Model needs to be decoded")
         elif isinstance(file, dict):
             logging.info("Dict supplied, so no reading required")
             self.trees = file
@@ -190,8 +194,6 @@ class ADMTreesModel:
         self._post_import_cleanup(decode=decode, **kwargs)
 
     def _decodeTrees(self):
-        print("DECODING NOW")
-
         def quantileDecoder(encoder: dict, index: int, verbose=False):
             if encoder["summaryType"] == "INITIAL_SUMMARY":
                 return encoder["summary"]["initialValues"][
@@ -442,6 +444,7 @@ class ADMTreesModel:
             predictorsDict[predictor["name"]] = predictor["type"]
         return predictorsDict
 
+    @lru_cache
     def getGainsPerSplit(self) -> Tuple[Dict, pl.DataFrame, dict]:
         """Function to compute the gains of each split in each tree."""
         self.predictors
@@ -604,8 +607,7 @@ class ADMTreesModel:
     def getAllValuesPerSplit(self) -> Dict:
         """Generate a dictionary with the possible values for each split"""
         splitvalues = {}
-        for group in self.groupedGainsPerSplit.groupby("predictor"):
-            name = group.select(pl.first("predictor"))[0, 0]
+        for name, group in self.groupedGainsPerSplit.groupby("predictor"):
             if name not in splitvalues.keys():
                 splitvalues[name] = set()
             splitvalue = group.get_column("values").to_list()
@@ -979,8 +981,9 @@ class MultiTrees:
     context_keys: list = None
 
     def __repr__(self):
+        mod = "" if self.model_name is None else f" for {self.model_name}"
         return repr(
-            f"MultiTree object, with {len(self)} trees ranging from {list(self.trees.keys())[0]} to {list(self.trees.keys())[-1]}"
+            f"MultiTree object{mod}, with {len(self)} trees ranging from {list(self.trees.keys())[0]} to {list(self.trees.keys())[-1]}"
         )
 
     def __getitem__(self, index):
