@@ -15,7 +15,7 @@ pl.toggle_string_cache = True
 
 
 class ADMDatamart(Plots):
-    """Main class for importing, preprocessing and structuring Pega ADM Datamart snapshot data.
+    """Main class for importing, preprocessing and structuring Pega ADM Datamart.
     Gets all available data, properly names and merges into one main dataframe
 
     Parameters
@@ -23,51 +23,43 @@ class ADMDatamart(Plots):
     path : str, default = "."
         The path of the data files
     import_strategy: Literal['eager', 'lazy'], default = 'eager'
-        Whether to import the file fully, or scan the file
+        Whether to import the file fully to memory, or scan the file
         When data fits into memory, 'eager' is typically more efficient
         However, when data does not fit, the lazy methods typically allow
         you to still use the data.
 
     Keyword arguments
     -----------------
-    query : Union[str, dict], default = None
-        The query to supply to _apply_query
-        If a string, uses the default Pandas query function
-        Else, a dict of lists where the key is the column name of the dataframe
-        and the corresponding value is a list of values to keep in the dataframe
-        Can be applied to an individual function, or used here to apply to the whole dataset
-    plotting_engine : str, default = "plotly"
-        Determines what package to use for plotting.
-        Can also be supplied to most plotting functions directly.
-    model_filename : str
+    model_filename : Optional[str]
         The name, or extended filepath, towards the model file
-    predictor_filename : str
+    predictor_filename : Optional[str]
         The name, or extended filepath, towards the predictors file
     model_df : Union[pl.DataFrame, pl.LazyFrame, pd.DataFrame]
         Optional override to supply a dataframe instead of a file
     predictor_df : Union[pl.DataFrame, pl.LazyFrame, pd.DataFrame]
         Optional override to supply a dataframe instead of a file
+    query : Union[pl.Expr, str, Dict[str, list]], default = None
+        Please refer to :meth:`._apply_query`
+    plotting_engine : str, default = "plotly"
+        Please refer to :meth:`.get_engine`
     subset : bool, default = True
-        Whether to only select the renamed columns,
-        set to False to keep all columns
-    drop_cols = list
-        Supply columns to drop from the dataframe
-    include_cols = list
-        Supply columns to include with the dataframe
-    context_keys : list
+        Whether to only keep a subset of columns for efficiency purposes
+        Refer to :meth:`_available_columns` for the default list of columns.
+    drop_cols  Optional[list]
+        Columns to exclude from reading
+    include_cols : Optional[list]
+        Additionial columns to include when reading
+    context_keys : list, default = ["Channel", "Direction", "Issue", "Group"]
         Which columns to use as context keys
-    extract_keys : bool
-        Extra keys are typically hidden within the pyName column,
+    extract_keys : bool, default = False
+        Extra keys, particularly pyTreatment, are hidden within the pyName column.
         extract_keys can expand that cell to also show these values.
-        To extract, set extract_keys to True.
-    verbose : bool
+        To extract these extra keys, set extract_keys to True.
+    verbose : bool, default = False
         Whether to print out information during importing
-
-    Notes
-    ----------------------------
-    Depending on the importing function, typically it is possible to
-    supply more arguments. For instance, you can set the csv separator
-    for Polars' `scan_csv()` method.
+    **reading_opts
+        Additional parameters used while reading.
+        Refer to :meth:`pdstools.utils.cdh_utils.import_file` for more info.
 
     Attributes
     ----------
@@ -78,6 +70,14 @@ class ADMDatamart(Plots):
     combinedData : pl.LazyFrame
         If both modelData and predictorData are available,
         holds the merged data about the models and predictors
+    import_strategy
+        See the `import_strategy` parameter
+    query
+        See the `query` parameter
+    context_keys
+        See the `context_keys` parameter
+    verbose
+        See the `verbose` parameter
 
 
     Examples
@@ -101,7 +101,7 @@ class ADMDatamart(Plots):
         predictor_filename: Optional[str] = "predictorData",
         model_df: Optional[any_frame] = None,
         predictor_df: Optional[any_frame] = None,
-        query: Union[str, Dict[str, list]] = None,
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
         subset: bool = True,
         drop_cols: Optional[list] = None,
         include_cols: Optional[list] = None,
@@ -143,6 +143,11 @@ class ADMDatamart(Plots):
 
     @staticmethod
     def get_engine(plotting_engine):
+        """Which engine to use for creating the plots.
+
+        By supplying a custom class here, you can re-use the pdstools functions
+        but create visualisations to your own specifications, in any library.
+        """
         if not isinstance(plotting_engine, str):
             return plotting_engine
         elif plotting_engine == "plotly":
@@ -169,11 +174,14 @@ class ADMDatamart(Plots):
         extract_keys: bool = False,
         verbose: bool = False,
         **reading_opts,
-    ) -> pl.LazyFrame:
-        """Method to automatically import & format the relevant data.
+    ) -> Tuple[Optional[pl.LazyFrame], Optional[pl.LazyFrame]]:
+        """Method to import & format the relevant data.
 
         The method first imports the model data, and then the predictor data.
         If model_df or predictor_df is supplied, it will use those instead
+        If any filters are included in the the `query` argument of the ADMDatmart,
+        those will be applied to the modeldata, and the predictordata will be
+        filtered such that it only contains the modelids leftover after filtering.
         After reading, some additional values (such as success rate) are
         automatically computed.
         Lastly, if there are missing columns from both datasets,
@@ -191,15 +199,10 @@ class ADMDatamart(Plots):
             Optional override to supply a dataframe instead of a file
         predictor_df : pd.DataFrame
             Optional override to supply a dataframe instead of a file
-        query : Union[str, dict], default = None
-            The query to supply to _apply_query
-            If a string, uses the default Pandas query function
-            Else, a dict of lists where the key is the column name of the dataframe
-            and the corresponding value is a list of values to keep in the dataframe
 
         Returns
         -------
-        (pd.DataFrame, pd.DataFrame)
+        (pl.DataFrame, pl.DataFrame)
             The model data and predictor binning data as dataframes
         """
 
@@ -276,8 +279,8 @@ class ADMDatamart(Plots):
                     f"Missing values: {total_missing}",
                 )
 
-            # if self.query is not None:
-            #     df2 = df2.filter(pl.col("ModelID").is_in(df1.select(pl.col("ModelID"))))
+            if self.query is not None:
+                df2 = df2.join(df1.select(pl.col("ModelID").unique()), on="ModelID")
 
         if self.import_strategy == "eager":
             with pl.StringCache():
