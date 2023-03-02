@@ -821,7 +821,6 @@ class Plots:
                 .get_column("PredictorName")
                 .to_list()
             )
-
         if to_plot == "PerformanceBin":
             df = df.with_column(pl.col(to_plot) * 100)
         if kwargs.pop("return_df", False):
@@ -937,6 +936,13 @@ class Plots:
                     (pl.col("PerformanceBin") * 100),
                 ]
             )
+        order = (
+            df.groupby("PredictorName")
+            .agg(pl.mean(to_plot))
+            .fill_nan(0)
+            .sort(to_plot)
+            .get_column("PredictorName")
+            .to_list()
         )
 
         if kwargs.pop("separate", False):

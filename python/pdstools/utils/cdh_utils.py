@@ -25,7 +25,7 @@ def readDSExport(
     filename: Union[pd.DataFrame, pl.DataFrame, str],
     path: str = ".",
     verbose: bool = True,
-    **kwargs,
+    **reading_opts,
 ) -> pl.LazyFrame:
     """Read a Pega dataset export file.
     Can accept either a Pandas DataFrame or one of the following formats:
@@ -93,7 +93,7 @@ def readDSExport(
     if isinstance(filename, BytesIO):
         logging.debug("Filename is of type BytesIO, importing that directly")
         name, extension = os.path.splitext(filename.name)
-        return import_file(filename, extension, **kwargs)
+        return import_file(filename, extension, **reading_opts)
 
     # If the filename is simply a string, then we first
     # extract the extension of the file, then look for
@@ -109,7 +109,7 @@ def readDSExport(
     # if the file's a URL. If it is, we need to wrap
     # the file in a BytesIO object, and read the file
     # fully to disk for pyarrow to read it.
-    if file == "Target not found" or file == None:
+    if file == "Target not found" or file is None:
         logging.debug("Could not find file in directory, checking if URL")
         import requests
 
@@ -134,10 +134,10 @@ def readDSExport(
 
     # Now we should either have a full path to a file, or a
     # BytesIO wrapper around the file. Polars can read those both.
-    return import_file(file, extension, **kwargs)
+    return import_file(file, extension, **reading_opts)
 
 
-def import_file(file: str, extension: str, **kwargs) -> pl.LazyFrame:
+def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
     """Imports a file using Polars
 
     Parameters
@@ -160,7 +160,7 @@ def import_file(file: str, extension: str, **kwargs) -> pl.LazyFrame:
     if extension == ".csv":
         file = pl.scan_csv(
             file,
-            sep=kwargs.get("sep", ","),
+            sep=reading_opts.get("sep", ","),
         )
 
     elif extension == ".json":
@@ -169,7 +169,8 @@ def import_file(file: str, extension: str, **kwargs) -> pl.LazyFrame:
                 file = pl.read_ndjson(file).lazy()
             else:
                 file = pl.scan_ndjson(
-                    file, infer_schema_length=kwargs.pop("infer_schema_length", 10000)
+                    file,
+                    infer_schema_length=reading_opts.pop("infer_schema_length", 10000),
                 )
         except:
             file = pl.read_json(file).lazy()
@@ -192,7 +193,7 @@ def import_file(file: str, extension: str, **kwargs) -> pl.LazyFrame:
     return file
 
 
-def readZippedFile(file: str, verbose: bool = False, **kwargs) -> BytesIO:
+def readZippedFile(file: str, verbose: bool = False) -> BytesIO:
     """Read a zipped NDJSON file.
     Reads a dataset export file as exported and downloaded from Pega. The export
     file is formatted as a zipped multi-line JSON file. It reads the file,
@@ -721,8 +722,14 @@ def toPRPCDateTime(x: datetime.datetime) -> str:
     return x.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
 
 
-def weighed_average_polars(vals, weights) -> pl.Expr:
-    return ((pl.col(vals) * pl.col(weights)).sum()) / pl.col(weights).sum()
+def weighed_average_polars(
+    vals: Union[str, pl.Expr], weights: Union[str, pl.Expr]
+) -> pl.Expr:
+    if isinstance(vals, str):
+        vals = pl.col(vals)
+    if isinstance(weights, str):
+        weights = pl.col(weights)
+    return ((vals * weights).sum()) / weights.sum()
 
 
 def weighed_performance_polars() -> pl.Expr:
@@ -773,6 +780,25 @@ def zRatio(
         ).alias("ZRatio")
 
     return zRatioimpl(*getFracs(posCol, negCol), posCol.sum(), negCol.sum())
+
+
+def LogOdds(
+    Positives=pl.col("Positives"),
+    Negatives=pl.col("ResponseCount") - pl.col("Positives"),
+):
+    return ((Positives + 1).log() - ((Negatives) + 1).log()).alias("LogOdds")
+
+
+def featureImportance(over=["PredictorName", "ModelID"]):
+    varImp = weighed_average_polars(
+        LogOdds(
+            pl.col("BinPositives"), pl.col("BinResponseCount") - pl.col("BinPositives")
+        ),
+        "BinResponseCount",
+    ).alias("FeatureImportance")
+    if over is not None:
+        varImp = varImp.over(over)
+    return varImp
 
 
 def readClientCredentialFile(credentialFile):
