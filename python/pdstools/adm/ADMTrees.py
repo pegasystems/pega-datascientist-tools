@@ -842,7 +842,6 @@ class ADMTreesModel:
             visited_nodes.append(visits[0])
             score.append(visits[1])
             splits.append(visits[2])
-        # return tree_ids, visited_nodes, score, splits
         df = pl.DataFrame(
             [tree_ids, visited_nodes, score, [str(path) for path in splits]],
             columns=["treeID", "visited_nodes", "score", "splits"],
