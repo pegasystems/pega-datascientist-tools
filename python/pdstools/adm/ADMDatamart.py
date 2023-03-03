@@ -322,10 +322,6 @@ class ADMDatamart(Plots):
             Supply columns to drop from the dataframe
         include_cols : list
             Supply columns to include with the dataframe
-        prequery : str
-            A way to apply a query to the data before any preprocessing
-            Uses the Pandas querying function, and beware that the columns
-            have not been renamed, so use the original naming
         extract_keys : bool
             Treatments are typically hidden within the pyName column,
             extract_keys can expand that cell to also show these values.
@@ -461,17 +457,18 @@ class ADMDatamart(Plots):
 
         Parameters
         ----------
-        df : pl.LazyFrame
+        df : pl.DataFrame | pl.LazyFrame
             The input dataframe
-        verbose: bool, default = True
-            Whether to print out issues with casting variable types
 
         Keyword arguments
         -----------------
-
+        timestamp_fmt: str
+            The format of Date type columns
+        strict_conversion: bool
+            Raise an error if any conversion fails.
         Returns
         -------
-        pl.LazyFrame
+        pl.DataFrame | pl.LazyFrame
             The input dataframe, but the proper typing applied
         """
         retype = {
@@ -530,15 +527,17 @@ class ADMDatamart(Plots):
         """Method to retrieve only the last snapshot."""
         return df.filter(pl.col("SnapshotTime") == pl.col("SnapshotTime").max())
 
-    def last_response(self, df):
+    def last_response(self, df: any_frame) -> any_frame:
         """Adds LastResponse column to a dataframe
         Parameters
         ----------
         df : LazyFrame
             Table to add the LastResponse column
+
         Returns
         -------
-        pl.LazyFrame
+        pl.DataFrame | pl.LazyFrame
+            Input DataFrame with LastResponse column added to it
         """
 
         last_snapshot_per_model = (
@@ -563,10 +562,12 @@ class ADMDatamart(Plots):
         ----------
         last:bool, default=True
             Whether to only use the last snapshot for each table
+        strategy: Literal['eager', 'lazy']
+            Wheter to return eager or lazy frame
 
         Returns
         -------
-        pl.LazyFrame
+        pl.DataFrame | pl.LazyFrame
             The combined dataframe
         """
         models = self.last(self.modelData, "lazy") if last else self.modelData
@@ -606,17 +607,19 @@ class ADMDatamart(Plots):
 
     @staticmethod
     def _apply_query(df: any_frame, query: Union[str, dict] = None) -> any_frame:
-        """Given an input pandas dataframe, it filters the dataframe based on input query
+        """Given an input polars dataframe, it filters the dataframe based on input query
         Parameters
         ----------
+        df : pl.DataFrame | pl.LazyFrame
+            The input dataframe
         query: Union[str or dict]
             If a string, uses the default Pandas query function
             Else, a dict of lists where the key is column name in the dataframe
             and the corresponding value is a list of values to keep in the dataframe
         Returns
         -------
-        pd.DataFrame
-            Filtered Pandas DataFrame
+        pl.DataFrame
+            Filtered Polars DataFrame
         """
         if query is not None:
             if isinstance(query, pl.Expr):
@@ -777,23 +780,43 @@ class ADMDatamart(Plots):
 
     @staticmethod
     def _create_sign_df(
-        df: pl.LazyFrame, by, what="ResponseCount", every="1d", pivot=True, mask=True
+        df: pl.LazyFrame,
+        by: str = "Name",
+        *,
+        what: str = "ResponseCount",
+        every: str = "1d",
+        pivot: bool = True,
+        mask: bool = True,
     ) -> pl.LazyFrame:
         """Generates dataframe to show whether responses decreased/increased from day to day
-        For a given dataframe where columns are dates and rows are model names,
+
+        For a given dataframe where columns are dates and rows are model names(by parameter),
         subtracts each day's value from the previous day's value per model. Then masks the data.
-        If decreased (desired situtation), it will put 1 in the cell, if no change, it will
+        If increased (desired situtation), it will put 1 in the cell, if no change, it will
         put 0, and if decreased it will put -1. This dataframe then could be used in the heatmap
 
         Parameters
         ----------
         df: pd.DataFrame
-            This typically is pivoted ModelData
+            This is typically pivoted ModelData
+        by: str, default = Name
+            Column to calculate the daily change for.
+
+        Keyword arguments
+        -----------------
+        what: str, default = ResponseCount
+            Column that contains response counts
+        every: str, default = 1d
+            Interval of the change window
+        pivot: bool, default = True
+            Returns a pivotted table with signs as value if set to true
+        mask: bool, default = True
+            Drops SnapshotTime and returns direction of change(sign).
+
         Returns
         -------
-        pd.DataFrame
+        pd.LazyFrame
             The dataframe with signs for increase or decrease in day to day
-
         """
 
         df = (
@@ -816,13 +839,14 @@ class ADMDatamart(Plots):
                 .lazy()
             )
         if mask:
-            df = df.with_columns((pl.all().exclude("SnapshotTime").sign()))
+            df = df.with_columns((pl.all().exclude([by, "SnapshotTime"]).sign()))
         return df
 
     def model_summary(
         self, by: str = "ModelID", query: Union[str, dict] = None, **kwargs
-    ):
+    ) -> pl.LazyFrame:
         """Convenience method to automatically generate a summary over models
+
         By default, it summarizes ResponseCount, Performance, SuccessRate & Positives by model ID.
         It also adds weighted means for Performance and SuccessRate,
         And adds the count of models without responses and the percentage.
@@ -839,7 +863,7 @@ class ADMDatamart(Plots):
 
         Returns
         -------
-        pd.DataFrame:
+        pl.LazyFrame:
             Groupby dataframe over all models
         """
         df = self._apply_query(self.modelData, query)
@@ -880,9 +904,32 @@ class ADMDatamart(Plots):
         )
 
     def pivot_df(
-        self, df: pl.LazyFrame, by="Name", allow_collect=True, top_n=0
+        self,
+        df: pl.LazyFrame,
+        by: Union[str, list] = "Name",
+        *,
+        allow_collect: bool = True,
+        top_n: int = 0
     ) -> pl.DataFrame:
-        """Simple function to extract pivoted information"""
+        """Simple function to extract pivoted information
+        
+        Parameters
+        ----------
+        df : pl.LazyFrame
+            The input DataFrame.
+        by : Union[str, list], default = Name
+            The column(s) to pivot the DataFrame by. If a list is provided, only the first element is used.
+        allow_collect : bool, default = True
+            Whether to allow eager computation. If set to False and the import strategy is "lazy", an error will be raised.
+        top_n : int, optional (default=0)
+            The number of rows to include in the pivoted DataFrame. If set to 0, all rows are included.
+
+        Returns
+        -------
+        pl.DataFrame
+            The pivoted DataFrame.
+        """
+        
         if isinstance(by, list):
             by = by[0]
         if self.import_strategy == "lazy" and not allow_collect:
@@ -951,8 +998,27 @@ class ADMDatamart(Plots):
         )
 
     def models_by_positives_df(
-        self, df: pl.DataFrame, by: str = "Channel", allow_collect=True
+        self, df: pl.LazyFrame, by: str = "Channel", allow_collect=True
     ) -> pl.DataFrame:
+        """
+        Compute statistics on the dataframe by grouping it by a given column `by`
+        and computing the count of unique ModelIDs and cumulative percentage of unique 
+        models for with regard to the number of positive answers. 
+
+        Parameters
+        ----------
+        df : pl.LazyFrame
+            The input DataFrame
+        by : str, default = Channel
+            The column name to group the DataFrame by, by default "Channel"
+        allow_collect : bool, default = True
+            Whether to allow eager computation. If set to False and the import strategy is "lazy", an error will be raised.
+            
+        Returns
+        -------
+        pl.LazyFrame
+           DataFrame with PositivesBin column and model count statistics
+        """
         if self.import_strategy == "lazy" and not allow_collect:
             raise ValueError("Only supported in eager mode.")
 
@@ -997,6 +1063,27 @@ class ADMDatamart(Plots):
         )
 
     def get_model_stats(self, last: bool = True) -> dict:
+        """Returns a dictionary containing various statistics for the model data.
+
+        Parameters
+        ----------
+        last : bool
+            Whether to compute statistics only on the last snapshot. Defaults to True.
+
+        Returns
+        -------
+        Dict
+            A dictionary containing the following keys:
+            'models_n_snapshots': The number of distinct snapshot times in the data.
+            'models_total': The total number of models in the data.
+            'models_empty': The models with no responses.
+            'models_nopositives': The models with responses but no positive responses.
+            'models_isimmature': The models with less than 200 positive responses.
+            'models_noperformance': The models with at least 200 positive responses but a performance of 50.
+            'models_n_nonperforming': The total number of models that are not performing well.
+            'models_missing_{key}': The number of models with missing values for each context key.
+            'models_bottom_left': The models with a performance of 50 and a success rate of 0.
+        """
         if self.modelData is None:
             raise ValueError("No model data to analyze.")
 

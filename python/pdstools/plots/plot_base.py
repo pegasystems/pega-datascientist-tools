@@ -12,6 +12,22 @@ import plotly.graph_objs as go
 
 
 class Plots:
+    """
+    Base plotting class
+    
+    Attributes
+    ----------
+    hasModels : bool
+        A flag indicating whether the object has model data.
+    hasPredictorBinning : bool
+        A flag indicating whether the object has predictor data.
+    hasCombined : bool
+        A flag indicating whether the object has combined data.
+    AvailableVisualisations : pl.DataFrame
+        A dataframe with available visualizations and whether they require model data, predictor data, or multiple snapshots.
+    import_strategy : str
+        A string indicating the import strategy.
+    """
     def __init__(self):
         self.hasModels = self.modelData is not None
         self.hasPredictorBinning = self.predictorData is not None
@@ -68,12 +84,12 @@ class Plots:
 
     @staticmethod
     def top_n(
-        df,
-        top_n,
+        df: pl.DataFrame,
+        top_n: int,
         to_plot: str = "PerformanceBin",
         facets: Optional[List] = None,
     ):
-        """Subsets Table to contain only top_n predictors.
+        """Subsets DataFrame to contain only top_n predictors.
 
         Parameters
         ----------
@@ -88,8 +104,8 @@ class Plots:
 
         Returns
         -------
-        (pl.DataFrame, Dict)
-            Subsetted dataframe with a dictionary of facet : predictor order pairs
+        pl.DataFrame
+            Subsetted dataframe
         """
 
         if top_n < 1:
@@ -132,7 +148,7 @@ class Plots:
         facets=None,
         active_only: bool = False,
         include_cols: Optional[list] = None,
-    ) -> pd.DataFrame:
+    ) -> pl.DataFrame:
         """Retrieves and subsets the data and performs some assertion checks
 
         Parameters
@@ -144,11 +160,8 @@ class Plots:
             Which columns we want to use for the visualisation
             Asserts those columns are in the data, and returns only those columns for efficiency
             By default, the context keys are added as required columns.
-        query : Union[str, dict], default = None
-            The query to supply to _apply_query
-            If a string, uses the default Pandas query function
-            Else, a dict of lists where the key is the column name of the dataframe
-            and the corresponding value is a list of values to keep in the dataframe
+        query : Union[pl.Expr, str, Dict[str, list]], default = None
+            Please refer to :meth:`._apply_query`
         multi_snapshot : bool, default = None
             Whether to make sure there are multiple snapshots present in the data
             Sometimes required for visualisations over time
@@ -209,6 +222,33 @@ class Plots:
         )
 
     def _generateFacets(self, df, facets: Union[str, list, set] = None) -> list:
+        """Generates a list of facets based on the given dataframe and facet columns.
+        Given a string with column names combined with backslash, the function generates that column,
+        adds it to the dataframe and return the new dataframe together with the generated column's name
+        
+        Parameters
+        ----------
+        df : pl.DataFrame | pl.LazyFrame
+            The input dataframe for which the facets are to be generated.
+        facets : str | list | set, deafult = None
+            The columns of the dataframe on which to generate the facets. If `None`, returns the
+            dataframe with a `None` facet. If a string is provided, creates a new column using 
+            the columns provided in the string facets
+            If a list or set is provided, generates facets for each column in the list or set.
+            Default is `None`.
+
+        Returns
+        -------
+        df : DataFrame
+            The input dataframe with additional facet columns added.
+        facets : list
+        A list of facet column names generated based on the input dataframe and facet columns.
+        
+        Examples
+        --------
+        >>> df, facets =  _generateFacets(df, "Direction/Channel")
+        >>> df, facets =  _generateFacets(df, ["Direction/Channel", "Direction/Channel/Issue/Group"])
+        """
         if facets is None:
             return df, [None]
         if not isinstance(facets, list):
