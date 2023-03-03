@@ -14,7 +14,7 @@ else:
     from .datamart_utils import import_data, generate_modeldata_filters
 
 
-def run():
+def run(**kwargs):
     import os
 
     st.title("Generate a health check :male-doctor:")
@@ -25,7 +25,7 @@ def run():
         st.write("Please enter a valid name, without any spaces.")
         return None
     st.write("### Data settings")
-    params, data = import_data(params, 1)
+    params, data = import_data(params, 1, **kwargs)
     if data is None:
         return None
     

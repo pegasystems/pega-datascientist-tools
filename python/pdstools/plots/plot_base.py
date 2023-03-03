@@ -935,7 +935,7 @@ class Plots:
                     (pl.col("Predictor Category").alias("Legend")),
                     (pl.col("PerformanceBin") * 100),
                 ]
-            )
+            ))
         order = (
             df.groupby("PredictorName")
             .agg(pl.mean(to_plot))

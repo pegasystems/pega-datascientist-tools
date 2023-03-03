@@ -152,16 +152,20 @@ def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
     pl.LazyFrame
         The (imported) lazy dataframe
     """
-
     if extension == ".zip":
         logging.debug("Zip file found, extracting data.json to BytesIO.")
         file, extension = readZippedFile(file)
 
     if extension == ".csv":
-        file = pl.scan_csv(
-            file,
-            sep=reading_opts.get("sep", ","),
-        )
+        if isinstance(file, BytesIO):
+            file = pl.read_csv(
+                file, infer_schema_length=10000, try_parse_dates=True
+            ).lazy()
+        else:
+            file = pl.scan_csv(
+                file,
+                sep=reading_opts.get("sep", ","),
+            )
 
     elif extension == ".json":
         try:
@@ -183,7 +187,7 @@ def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
         or extension.casefold() == ".ipc"
         or extension.casefold() == ".arrow"
     ):
-        if kwargs.get("verbose", False):
+        if reading_opts.get("verbose", False):
             print(f"file to be read: {file}")
         file = pl.scan_ipc(file)
 

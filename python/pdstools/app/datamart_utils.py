@@ -26,7 +26,7 @@ def remove_duplicate_expressions(exprs):
     return list(expr_dict.values())
 
 
-def import_data(params, default=0):
+def import_data(params, default=0, **kwargs):
     config_type = st.selectbox(
         "Data import type",
         options=[
@@ -49,12 +49,10 @@ def import_data(params, default=0):
             params["kwargs"] = ADMDatamart_options()
             if st.checkbox("Use this data source"):
                 if model_file is not None:
-                    from io import BytesIO
-
                     data = import_datamart(
                         ADMDatamart,
-                        model_df=BytesIO(model_file),
-                        predictor_df=BytesIO(predictor_file),
+                        model_df=model_file,
+                        predictor_df=predictor_file,
                         **params["kwargs"],
                     )
                 else:
@@ -115,7 +113,7 @@ def import_data(params, default=0):
                 response = get_from_s3(bucket, key, sql_query)
                 data = import_datamart(
                     ADMDatamart(
-                        model_df=pd.read_json(str("".join(response)), lines=True)
+                        model_df=pd.read_json(str("".join(response)), lines=True, **kwargs)
                     )
                 )
     try:
@@ -141,7 +139,7 @@ def ADMDatamart_options():
         "Select context keys", context_keys, default=context_keys
     )
     params["plotting_engine"] = "plotly"
-
+    params['timestamp_fmt'] = st.text_input('Timestamp format', value="%Y%m%dT%H%M%S.%f %Z")
     return params
 
 

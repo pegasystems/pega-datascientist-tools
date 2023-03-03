@@ -107,7 +107,7 @@ class ADMTreesModel:
     treeStats: Dict
     splitsPerTree: Dict
     gainsPerTree: Dict
-    gainsPerSplit: pd.DataFrame
+    gainsPerSplit: pl.DataFrame
     groupedGainsPerSplit: Dict
     predictors: Set
     allValuesPerSplit: Dict
@@ -823,7 +823,7 @@ class ADMTreesModel:
                 leaf = True
         return visited, current_node["score"], scores
 
-    def getAllVisitedNodes(self, x: Dict) -> pd.DataFrame:
+    def getAllVisitedNodes(self, x: Dict) -> pl.DataFrame:
         """Loops through each tree, and records the scoring info
 
         Parameters
@@ -833,7 +833,7 @@ class ADMTreesModel:
 
         Returns
         -------
-            pd.DataFrame
+            pl.DataFrame
         """
         tree_ids, visited_nodes, score, splits = [], [], [], []
         for treeID in range(0, len(self.model)):
