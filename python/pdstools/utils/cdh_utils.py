@@ -320,7 +320,7 @@ def getMatches(files_dir, target):
 
 
 def cache_to_file(
-    df: Union[pd.DataFrame, pl.DataFrame, pl.LazyFrame],
+    df: Union[pl.DataFrame, pl.LazyFrame],
     path: os.PathLike,
     name: str,
     cache_type: str = "ipc",
@@ -331,7 +331,7 @@ def cache_to_file(
 
     Parameters
     ----------
-    df: pd.DataFrame | pl.DataFrame
+    df: pl.DataFrame
         The dataframe to cache
     path: os.PathLike
         The location to cache the data
@@ -349,8 +349,6 @@ def cache_to_file(
         The filepath to the cached file
     """
     outpath = f"{path}/{name}"
-    if isinstance(df, pd.DataFrame):
-        df = pl.DataFrame(df)
     if isinstance(df, pl.LazyFrame):
         df = df.collect()
     if cache_type == "ipc":
