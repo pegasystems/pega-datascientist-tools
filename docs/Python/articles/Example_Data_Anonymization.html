@@ -538,7 +538,7 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pl</span><span class="o">.</span><span class="n">read_ndjson</span><span class="p">(</span><span class="s1">&#39;../../data/SampleHDS.json&#39;</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pl</span><span class="o">.</span><span class="n">read_ndjson</span><span class="p">(</span><span class="s1">&#39;../../../../data/SampleHDS.json&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -748,7 +748,7 @@ null
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">anon</span> <span class="o">=</span> <span class="n">DataAnonymization</span><span class="p">(</span><span class="n">hds_folder</span><span class="o">=</span><span class="s1">&#39;../../data&#39;</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">anon</span> <span class="o">=</span> <span class="n">DataAnonymization</span><span class="p">(</span><span class="n">hds_folder</span><span class="o">=</span><span class="s1">&#39;../../../../data/&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -821,13 +821,13 @@ bool
 <tbody>
 <tr>
 <td>
-&quot;23716298007734...
+&quot;10351438876947...
 </td>
 <td>
 0.983033
 </td>
 <td>
-&quot;10351438876947...
+&quot;23716298007734...
 </td>
 <td>
 &quot;17925016031664...
@@ -841,13 +841,13 @@ false
 </tr>
 <tr>
 <td>
-&quot;58335094937080...
+&quot;87523394113139...
 </td>
 <td>
 0.144221
 </td>
 <td>
-&quot;87523394113139...
+&quot;58335094937080...
 </td>
 <td>
 &quot;17925016031664...
@@ -861,13 +861,13 @@ true
 </tr>
 <tr>
 <td>
-&quot;82891935285723...
+&quot;11497268930446...
 </td>
 <td>
 0.679745
 </td>
 <td>
-&quot;11497268930446...
+&quot;82891935285723...
 </td>
 <td>
 &quot;17584060957230...
@@ -881,13 +881,13 @@ false
 </tr>
 <tr>
 <td>
-&quot;76635517368914...
+&quot;87523394113139...
 </td>
 <td>
 1.0
 </td>
 <td>
-&quot;87523394113139...
+&quot;76635517368914...
 </td>
 <td>
 &quot;10616365382318...
@@ -901,13 +901,13 @@ false
 </tr>
 <tr>
 <td>
-&quot;96034035185335...
+&quot;10351438876947...
 </td>
 <td>
 0.718982
 </td>
 <td>
-&quot;10351438876947...
+&quot;96034035185335...
 </td>
 <td>
 &quot;10616365382318...
@@ -921,13 +921,13 @@ true
 </tr>
 <tr>
 <td>
-&quot;35479062579420...
+&quot;11497268930446...
 </td>
 <td>
 0.0
 </td>
 <td>
-&quot;11497268930446...
+&quot;35479062579420...
 </td>
 <td>
 &quot;10922250202202...
@@ -941,13 +941,13 @@ false
 </tr>
 <tr>
 <td>
-&quot;13951124795423...
+&quot;11497268930446...
 </td>
 <td>
 0.02333
 </td>
 <td>
-&quot;11497268930446...
+&quot;13951124795423...
 </td>
 <td>
 &quot;10616365382318...
@@ -978,9 +978,9 @@ false
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-{&#39;Customer_City&#39;: &#39;PREDICTOR_0&#39;,
+{&#39;Customer_MaritalStatus&#39;: &#39;PREDICTOR_0&#39;,
  &#39;Customer_CLV&#39;: &#39;PREDICTOR_1&#39;,
- &#39;Customer_MaritalStatus&#39;: &#39;PREDICTOR_2&#39;,
+ &#39;Customer_City&#39;: &#39;PREDICTOR_2&#39;,
  &#39;Context_Name&#39;: &#39;CK_PREDICTOR_0&#39;,
  &#39;IH_Web_Inbound_Accepted_pxLastGroupID&#39;: &#39;IH_PREDICTOR_0&#39;,
  &#39;Decision_Outcome&#39;: &#39;OUTCOME&#39;}
@@ -1032,9 +1032,15 @@ false
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">anon</span> <span class="o">=</span> <span class="n">DataAnonymization</span><span class="p">(</span><span class="n">hds_folder</span><span class="o">=</span><span class="s1">&#39;../../data&#39;</span><span class="p">,</span> <span class="n">mask_ih_names</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mask_outcome_values</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mask_context_key_values</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mask_context_key_names</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">anon</span> <span class="o">=</span> <span class="n">DataAnonymization</span><span class="p">(</span>
+    <span class="n">hds_folder</span><span class="o">=</span><span class="s1">&#39;../../../../data/&#39;</span><span class="p">,</span>
+    <span class="n">mask_ih_names</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">mask_outcome_values</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">mask_context_key_values</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">mask_context_key_names</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="n">anon</span><span class="o">.</span><span class="n">process</span><span class="p">()</span>
-</pre></div>
+<br/></pre></div>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -1096,13 +1102,13 @@ str
 <tbody>
 <tr>
 <td>
-&quot;23716298007734...
+&quot;10351438876947...
 </td>
 <td>
 0.983033
 </td>
 <td>
-&quot;10351438876947...
+&quot;23716298007734...
 </td>
 <td>
 &quot;FirstMortgage3...
@@ -1116,13 +1122,13 @@ str
 </tr>
 <tr>
 <td>
-&quot;58335094937080...
+&quot;87523394113139...
 </td>
 <td>
 0.144221
 </td>
 <td>
-&quot;87523394113139...
+&quot;58335094937080...
 </td>
 <td>
 &quot;FirstMortgage3...
@@ -1136,13 +1142,13 @@ str
 </tr>
 <tr>
 <td>
-&quot;82891935285723...
+&quot;11497268930446...
 </td>
 <td>
 0.679745
 </td>
 <td>
-&quot;11497268930446...
+&quot;82891935285723...
 </td>
 <td>
 &quot;MoneyMarketSav...
@@ -1156,13 +1162,13 @@ str
 </tr>
 <tr>
 <td>
-&quot;76635517368914...
+&quot;87523394113139...
 </td>
 <td>
 1.0
 </td>
 <td>
-&quot;87523394113139...
+&quot;76635517368914...
 </td>
 <td>
 &quot;BasicChecking&quot;
@@ -1176,13 +1182,13 @@ str
 </tr>
 <tr>
 <td>
-&quot;96034035185335...
+&quot;10351438876947...
 </td>
 <td>
 0.718982
 </td>
 <td>
-&quot;10351438876947...
+&quot;96034035185335...
 </td>
 <td>
 &quot;BasicChecking&quot;
@@ -1196,13 +1202,13 @@ str
 </tr>
 <tr>
 <td>
-&quot;35479062579420...
+&quot;11497268930446...
 </td>
 <td>
 0.0
 </td>
 <td>
-&quot;11497268930446...
+&quot;35479062579420...
 </td>
 <td>
 &quot;UPlusFinPerson...
@@ -1216,13 +1222,13 @@ null
 </tr>
 <tr>
 <td>
-&quot;13951124795423...
+&quot;11497268930446...
 </td>
 <td>
 0.02333
 </td>
 <td>
-&quot;11497268930446...
+&quot;13951124795423...
 </td>
 <td>
 &quot;BasicChecking&quot;
@@ -1315,13 +1321,13 @@ str
 <tbody>
 <tr>
 <td>
-&quot;23716298007734...
+&quot;10351438876947...
 </td>
 <td>
 0.983033
 </td>
 <td>
-&quot;10351438876947...
+&quot;23716298007734...
 </td>
 <td>
 &quot;FirstMortgage3...
@@ -1335,13 +1341,13 @@ str
 </tr>
 <tr>
 <td>
-&quot;58335094937080...
+&quot;87523394113139...
 </td>
 <td>
 0.144221
 </td>
 <td>
-&quot;87523394113139...
+&quot;58335094937080...
 </td>
 <td>
 &quot;FirstMortgage3...
@@ -1355,13 +1361,13 @@ str
 </tr>
 <tr>
 <td>
-&quot;82891935285723...
+&quot;11497268930446...
 </td>
 <td>
 0.679745
 </td>
 <td>
-&quot;11497268930446...
+&quot;82891935285723...
 </td>
 <td>
 &quot;MoneyMarketSav...
@@ -1375,13 +1381,13 @@ str
 </tr>
 <tr>
 <td>
-&quot;76635517368914...
+&quot;87523394113139...
 </td>
 <td>
 1.0
 </td>
 <td>
-&quot;87523394113139...
+&quot;76635517368914...
 </td>
 <td>
 &quot;BasicChecking&quot;
@@ -1395,13 +1401,13 @@ str
 </tr>
 <tr>
 <td>
-&quot;96034035185335...
+&quot;10351438876947...
 </td>
 <td>
 0.718982
 </td>
 <td>
-&quot;10351438876947...
+&quot;96034035185335...
 </td>
 <td>
 &quot;BasicChecking&quot;
@@ -1415,13 +1421,13 @@ str
 </tr>
 <tr>
 <td>
-&quot;35479062579420...
+&quot;11497268930446...
 </td>
 <td>
 0.0
 </td>
 <td>
-&quot;11497268930446...
+&quot;35479062579420...
 </td>
 <td>
 &quot;UPlusFinPerson...
@@ -1435,13 +1441,13 @@ null
 </tr>
 <tr>
 <td>
-&quot;13951124795423...
+&quot;11497268930446...
 </td>
 <td>
 0.02333
 </td>
 <td>
-&quot;11497268930446...
+&quot;13951124795423...
 </td>
 <td>
 &quot;BasicChecking&quot;
@@ -1477,9 +1483,9 @@ null
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Customer_City=PREDICTOR_0
+Customer_MaritalStatus=PREDICTOR_0
 Customer_CLV=PREDICTOR_1
-Customer_MaritalStatus=PREDICTOR_2
+Customer_City=PREDICTOR_2
 Context_Name=Context_Name
 IH_Web_Inbound_Accepted_pxLastGroupID=IH_Web_Inbound_Accepted_pxLastGroupID
 Decision_Outcome=OUTCOME
@@ -1561,13 +1567,13 @@ str
 <tbody>
 <tr>
 <td>
-&quot;23716298007734...
+&quot;10351438876947...
 </td>
 <td>
 0.983033
 </td>
 <td>
-&quot;10351438876947...
+&quot;23716298007734...
 </td>
 <td>
 &quot;FirstMortgage3...
@@ -1581,13 +1587,13 @@ str
 </tr>
 <tr>
 <td>
-&quot;58335094937080...
+&quot;87523394113139...
 </td>
 <td>
 0.144221
 </td>
 <td>
-&quot;87523394113139...
+&quot;58335094937080...
 </td>
 <td>
 &quot;FirstMortgage3...
@@ -1601,13 +1607,13 @@ str
 </tr>
 <tr>
 <td>
-&quot;82891935285723...
+&quot;11497268930446...
 </td>
 <td>
 0.679745
 </td>
 <td>
-&quot;11497268930446...
+&quot;82891935285723...
 </td>
 <td>
 &quot;MoneyMarketSav...
@@ -1621,13 +1627,13 @@ str
 </tr>
 <tr>
 <td>
-&quot;76635517368914...
+&quot;87523394113139...
 </td>
 <td>
 1.0
 </td>
 <td>
-&quot;87523394113139...
+&quot;76635517368914...
 </td>
 <td>
 &quot;BasicChecking&quot;
@@ -1641,13 +1647,13 @@ str
 </tr>
 <tr>
 <td>
-&quot;96034035185335...
+&quot;10351438876947...
 </td>
 <td>
 0.718982
 </td>
 <td>
-&quot;10351438876947...
+&quot;96034035185335...
 </td>
 <td>
 &quot;BasicChecking&quot;
@@ -1661,13 +1667,13 @@ str
 </tr>
 <tr>
 <td>
-&quot;35479062579420...
+&quot;11497268930446...
 </td>
 <td>
 0.0
 </td>
 <td>
-&quot;11497268930446...
+&quot;35479062579420...
 </td>
 <td>
 &quot;UPlusFinPerson...
@@ -1681,13 +1687,13 @@ null
 </tr>
 <tr>
 <td>
-&quot;13951124795423...
+&quot;11497268930446...
 </td>
 <td>
 0.02333
 </td>
 <td>
-&quot;11497268930446...
+&quot;13951124795423...
 </td>
 <td>
 &quot;BasicChecking&quot;
@@ -1706,7 +1712,8 @@ null
 </section>
 <section id="Advanced:-Hash-fuctions">
 <h2>Advanced: Hash fuctions<a class="headerlink" href="#Advanced:-Hash-fuctions" title="Permalink to this heading">#</a></h2>
-<p>By default, we use <a class="reference external" href="https://pola-rs.github.io/polars/py-polars/html/reference/expressions/api/polars.Expr.hash.html#polars.Expr.hash">the same hashing algorithm Polars</a> uses: <a class="reference external" href="https://github.com/Cyan4973/xxHash">xxhash</a>, as implemented <a class="reference external" href="https://github.com/pola-rs/polars/blob/3f287f370b3c388ed2f3f218b2c096382548136f/polars/polars-core/src/vector_hasher.rs#L266">here</a>. Not only is xxhash fast to compute, it is also robust against collision, dispersion and randomness.</p>
+<p>By default, we use <a class="reference external" href="https://pola-rs.github.io/polars/py-polars/html/reference/expressions/api/polars.Expr.hash.html#polars.Expr.hash">the same hashing algorithm Polars</a> uses: <a class="reference external" href="https://github.com/Cyan4973/xxHash">xxhash</a>, as implemented <a class="reference external" href="https://github.com/pola-rs/polars/blob/3f287f370b3c388ed2f3f218b2c096382548136f/polars/polars-core/src/vector_hasher.rs#L266">here</a>. xxhash is fast to compute, and you can check its performance in collision, dispersion and randomness
+<a class="reference external" href="https://github.com/Cyan4973/xxHash/tree/dev/tests">here</a>.</p>
 <p>xxhash accepts four distinct seeds, but by default we set the seeds to <code class="docutils literal notranslate"><span class="pre">0</span></code>. It is possible to set the <code class="docutils literal notranslate"><span class="pre">seed</span></code> argument of the <code class="docutils literal notranslate"><span class="pre">process()</span></code> function to <code class="docutils literal notranslate"><span class="pre">'random'</span></code>, which will set all four seeds to a random integer between <code class="docutils literal notranslate"><span class="pre">0</span></code> and <code class="docutils literal notranslate"><span class="pre">1000000000</span></code>. Alternatively, it is possible to supply the four seeds manually with arguments <code class="docutils literal notranslate"><span class="pre">seed</span></code>, <code class="docutils literal notranslate"><span class="pre">seed_1</span></code>, <code class="docutils literal notranslate"><span class="pre">seed_2</span></code> and <code class="docutils literal notranslate"><span class="pre">seed_3</span></code>.</p>
 <p>If the xxhash with (random) seed(s) is not deemed sufficiently secure, it is possible to use your own hashing algorithm.</p>
 <p>Note that since we’re now running python code and not native Polars code anymore, this will be <em>significantly</em> slower. Nonetheless, it is possible.</p>
@@ -1780,13 +1787,13 @@ str
 <tbody>
 <tr>
 <td>
-&quot;c73023dda51de1...
+&quot;af486bc1815c72...
 </td>
 <td>
 0.983033
 </td>
 <td>
-&quot;af486bc1815c72...
+&quot;c73023dda51de1...
 </td>
 <td>
 &quot;FirstMortgage3...
@@ -1800,13 +1807,13 @@ str
 </tr>
 <tr>
 <td>
-&quot;5414b197fb87b3...
+&quot;3cdf7b1ae1342e...
 </td>
 <td>
 0.144221
 </td>
 <td>
-&quot;3cdf7b1ae1342e...
+&quot;5414b197fb87b3...
 </td>
 <td>
 &quot;FirstMortgage3...
@@ -1820,13 +1827,13 @@ str
 </tr>
 <tr>
 <td>
-&quot;892f5d61a9215e...
+&quot;806ef34eb8237f...
 </td>
 <td>
 0.679745
 </td>
 <td>
-&quot;806ef34eb8237f...
+&quot;892f5d61a9215e...
 </td>
 <td>
 &quot;MoneyMarketSav...
@@ -1840,13 +1847,13 @@ str
 </tr>
 <tr>
 <td>
-&quot;c3aa807d9e927a...
+&quot;3cdf7b1ae1342e...
 </td>
 <td>
 1.0
 </td>
 <td>
-&quot;3cdf7b1ae1342e...
+&quot;c3aa807d9e927a...
 </td>
 <td>
 &quot;BasicChecking&quot;
@@ -1860,13 +1867,13 @@ str
 </tr>
 <tr>
 <td>
-&quot;c2d492f9a05073...
+&quot;af486bc1815c72...
 </td>
 <td>
 0.718982
 </td>
 <td>
-&quot;af486bc1815c72...
+&quot;c2d492f9a05073...
 </td>
 <td>
 &quot;BasicChecking&quot;
@@ -1880,13 +1887,13 @@ str
 </tr>
 <tr>
 <td>
-&quot;b21059221605c4...
+&quot;806ef34eb8237f...
 </td>
 <td>
 0.0
 </td>
 <td>
-&quot;806ef34eb8237f...
+&quot;b21059221605c4...
 </td>
 <td>
 &quot;UPlusFinPerson...
@@ -1900,13 +1907,13 @@ null
 </tr>
 <tr>
 <td>
-&quot;80cbe489dcecd4...
+&quot;806ef34eb8237f...
 </td>
 <td>
 0.02333
 </td>
 <td>
-&quot;806ef34eb8237f...
+&quot;80cbe489dcecd4...
 </td>
 <td>
 &quot;BasicChecking&quot;
