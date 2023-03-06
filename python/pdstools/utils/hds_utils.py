@@ -6,7 +6,7 @@ from pathlib import Path
 import polars as pl
 
 from random import randint
-from typing import Literal, Optional
+from typing import Literal, Optional, Union
 from pdstools import ADMDatamart
 
 
@@ -150,7 +150,6 @@ class DataAnonymization:
         datamart: Optional[ADMDatamart] = None,
         **config_args,
     ):
-
         self.config = Config(**config_args) if config is None else config
 
         if df is None:
@@ -392,17 +391,43 @@ class DataAnonymization:
 
         return symbolic_predictors_to_mask, numeric_predictors_to_mask, column_mapping
 
-    def process(self):
+    def getHasher(
+        self,
+        cols,
+        algorithm="xxhash",
+        seed: Union[Literal[0, "random"], int] = 0,
+        seed_1=None,
+        seed_2=None,
+        seed_3=None,
+    ):
+        if algorithm == "xxhash":
+            if seed == "random":
+                seed, seed_1, seed_2, seed_3 = (
+                    randint(0, 1000000000),
+                    randint(0, 1000000000),
+                    randint(0, 1000000000),
+                    randint(0, 1000000000),
+                )
+
+            return pl.col(cols).hash(
+                seed=seed, seed_1=seed_1, seed_2=seed_2, seed_3=seed_3
+            )
+
+        else:
+            return pl.col(cols).apply(algorithm)
+
+    def process(self, **kwargs):
         """Anonymize the dataset."""
 
-        def to_hash(cols):
+        def to_hash(cols, **kwargs):
+            hasher = self.getHasher(cols, **kwargs)
             return (
                 pl.when(
                     (pl.col(cols).is_not_null())
                     & (pl.col(cols) != "")
                     & (pl.col(cols).is_in(["true", "false"]).is_not())
                 )
-                .then(pl.col(cols).hash(seed=randint(1, 100)))
+                .then(hasher)
                 .otherwise(pl.col(cols))
             )
 
@@ -420,7 +445,10 @@ class DataAnonymization:
             pl.col(self.numeric_predictors_to_mask).cast(pl.Float64)
         ).with_columns(
             [
-                to_hash(self.symbolic_predictors_to_mask),
+                to_hash(
+                    self.symbolic_predictors_to_mask,
+                    **kwargs,
+                ),
                 to_normalize(self.numeric_predictors_to_mask),
             ]
         )
