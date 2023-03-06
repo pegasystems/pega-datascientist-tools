@@ -52,7 +52,7 @@ version = {attr="pdstools.__version__"}
 
 [project.optional-dependencies]
 docs = ['sphinx','furo','sphinx-autoapi','nbsphinx','sphinx-copybutton','myst-parser']
-app = ['streamlit', 'quarto', 'papermill']
+app = ['streamlit', 'quarto', 'papermill', 'itables']
 
 [project.urls]
 "Homepage" = "https://github.com/pegasystems/pega-datascientist-tools"

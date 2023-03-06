@@ -86,9 +86,10 @@ def import_data(params, default=0, **kwargs):
                 ]
                 import sys
 
-                if "boto3" not in sys.modules:
+                try:
+                    from boto3 import client
+                except ModuleNotFoundError:
                     raise ImportError("To use an S3 connection, please install boto3.")
-                from boto3 import client
 
                 @st.cache(show_spinner=True)
                 def get_from_s3(bucket, key, sql_query):
@@ -139,7 +140,9 @@ def ADMDatamart_options():
         "Select context keys", context_keys, default=context_keys
     )
     params["plotting_engine"] = "plotly"
-    params['timestamp_fmt'] = st.text_input('Timestamp format', value="%Y%m%dT%H%M%S.%f %Z")
+    params["timestamp_fmt"] = st.text_input(
+        "Timestamp format", value="%Y%m%dT%H%M%S.%f %Z"
+    )
     return params
 
 
