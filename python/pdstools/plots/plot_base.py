@@ -976,14 +976,6 @@ class Plots:
                     (pl.col("PerformanceBin") * 100),
                 ]
             ))
-        order = (
-            df.groupby("PredictorName")
-            .agg(pl.mean(to_plot))
-            .fill_nan(0)
-            .sort(to_plot)
-            .get_column("PredictorName")
-            .to_list()
-        )
 
         if kwargs.pop("separate", False):
             partition = "facet"
