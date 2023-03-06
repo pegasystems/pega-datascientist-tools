@@ -1321,8 +1321,18 @@ This function extracts that information to infer types for the HDS.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DataAnonymization.getHasher">
+<span class="sig-name descname"><span class="pre">getHasher</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">algorithm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'xxhash'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">random</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed_1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed_2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed_3</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DataAnonymization.getHasher" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>seed</strong> (<em>Union</em><em>[</em><em>Literal</em><em>[</em><em>0</em><em>, </em><em>random</em><em>]</em><em>, </em><em>int</em><em>]</em>) – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="pdstools.DataAnonymization.process">
-<span class="sig-name descname"><span class="pre">process</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DataAnonymization.process" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DataAnonymization.process" title="Permalink to this definition">#</a></dt>
 <dd><p>Anonymize the dataset.</p>
 </dd></dl>
 
@@ -1472,6 +1482,7 @@ This function extracts that information to infer types for the HDS.</p>
 <li><a class="reference internal" href="#pdstools.DataAnonymization.read_predictor_type_from_datamart"><code class="docutils literal notranslate"><span class="pre">DataAnonymization.read_predictor_type_from_datamart()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.DataAnonymization.get_columns_by_type"><code class="docutils literal notranslate"><span class="pre">DataAnonymization.get_columns_by_type()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.DataAnonymization.get_predictors_mapping"><code class="docutils literal notranslate"><span class="pre">DataAnonymization.get_predictors_mapping()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DataAnonymization.getHasher"><code class="docutils literal notranslate"><span class="pre">DataAnonymization.getHasher()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.DataAnonymization.process"><code class="docutils literal notranslate"><span class="pre">DataAnonymization.process()</span></code></a></li>
 </ul>
 </li>
@@ -1554,6 +1565,7 @@ This function extracts that information to infer types for the HDS.</p>
 <li><a class="reference internal" href="#pdstools.DataAnonymization.read_predictor_type_from_datamart">read_predictor_type_from_datamart</a></li>
 <li><a class="reference internal" href="#pdstools.DataAnonymization.get_columns_by_type">get_columns_by_type</a></li>
 <li><a class="reference internal" href="#pdstools.DataAnonymization.get_predictors_mapping">get_predictors_mapping</a></li>
+<li><a class="reference internal" href="#pdstools.DataAnonymization.getHasher">getHasher</a></li>
 <li><a class="reference internal" href="#pdstools.DataAnonymization.process">process</a></li>
 </ul>
 </li>

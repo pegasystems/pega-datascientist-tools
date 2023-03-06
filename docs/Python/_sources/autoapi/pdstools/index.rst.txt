@@ -797,7 +797,10 @@ Functions
       Map the predictor names to their anonymized form.
 
 
-   .. py:method:: process()
+   .. py:method:: getHasher(cols, algorithm='xxhash', seed: Union[Literal[0, random], int] = 0, seed_1=None, seed_2=None, seed_3=None)
+
+
+   .. py:method:: process(**kwargs)
 
       Anonymize the dataset.
 

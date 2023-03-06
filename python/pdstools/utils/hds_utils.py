@@ -157,7 +157,7 @@ class DataAnonymization:
         elif isinstance(df, pl.DataFrame):
             self.df = df.lazy()
         elif isinstance(df, pl.LazyFrame):
-            self.df = self.df
+            self.df = df
         else:
             raise ValueError("No data found.")
         self.df_out = None
