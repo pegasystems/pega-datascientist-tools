@@ -30,6 +30,7 @@ help:
 	mkdir ../../docs/Python/tmp
 	rm -r ../../docs/Python/*
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	rm -rf source/articles/output
 	rm source/articles/*
 	mv build/html/* ../../docs/Python
 	rm build/html/.buildinfo
