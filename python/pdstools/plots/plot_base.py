@@ -26,7 +26,10 @@ class Plots:
     AvailableVisualisations : pl.DataFrame
         A dataframe with available visualizations and whether they require model data, predictor data, or multiple snapshots.
     import_strategy : str
-        A string indicating the import strategy.
+        Whether to import the file fully to memory, or scan the file
+        When data fits into memory, 'eager' is typically more efficient
+        However, when data does not fit, the lazy methods typically allow
+        you to still use the data.
     """
     def __init__(self):
         self.hasModels = self.modelData is not None

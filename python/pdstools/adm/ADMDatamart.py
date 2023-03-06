@@ -465,7 +465,8 @@ class ADMDatamart(Plots):
         timestamp_fmt: str
             The format of Date type columns
         strict_conversion: bool
-            Raise an error if any conversion fails.
+            Raises an error if timestamp conversion to given/default date format(timestamp_fmt) fails
+            See 'https://strftime.org/' for timestamp formats
         Returns
         -------
         pl.DataFrame | pl.LazyFrame
@@ -502,8 +503,11 @@ class ADMDatamart(Plots):
         table : str, default = modelData
             Which table to get the last values for
             One of {modelData, predictorData, combinedData}
-        strategy: Literal['eager', 'lazy']
-            Wheter to return eager or lazy frame
+        strategy: Literal['eager', 'lazy'], default = 'eager'
+            Whether to import the file fully to memory, or scan the file
+            When data fits into memory, 'eager' is typically more efficient
+            However, when data does not fit, the lazy methods typically allow
+            you to still use the data.
 
         Returns
         -------
@@ -562,8 +566,11 @@ class ADMDatamart(Plots):
         ----------
         last:bool, default=True
             Whether to only use the last snapshot for each table
-        strategy: Literal['eager', 'lazy']
-            Wheter to return eager or lazy frame
+        strategy: Literal['eager', 'lazy'], default = 'eager'
+            Whether to import the file fully to memory, or scan the file
+            When data fits into memory, 'eager' is typically more efficient
+            However, when data does not fit, the lazy methods typically allow
+            you to still use the data.
 
         Returns
         -------
@@ -607,7 +614,7 @@ class ADMDatamart(Plots):
 
     @staticmethod
     def _apply_query(df: any_frame, query: Union[str, dict] = None) -> any_frame:
-        """Given an input polars dataframe, it filters the dataframe based on input query
+        """Given an input Polars DataFrame, it filters the dataframe based on input query
         Parameters
         ----------
         df : pl.DataFrame | pl.LazyFrame
