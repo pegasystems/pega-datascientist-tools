@@ -277,13 +277,17 @@ class ADMTreesModel:
     def _post_import_cleanup(self, decode, **kwargs):
         if not hasattr(self, "model"):
             logging.info("Adding model tag")
+
             try:
                 self.model = self.trees["model"]["boosters"][0]["trees"]
-            except:
+            except Exception as e1:
                 try:
                     self.model = self.trees["model"]["model"]["boosters"][0]["trees"]
-                except Exception as e:
-                    print(self.__dir__())
+                except Exception as e2:
+                    try:
+                        self.model = self.trees["model"]["model"]["booster"]["trees"]
+                    except Exception as e3:
+                        raise (e1, e2, e3)
 
         if decode:
             logging.info("Decoding the tree splits.")
