@@ -76,7 +76,7 @@ last_data = (
             pl.col("SuccessRate").fill_nan(0).fill_null(0),
             pl.col("Performance").fill_nan(0).fill_null(0),
             pl.col("ResponseCount").fill_null(0),
-            (pl.concat_str("Channel/Direction".split("/"), sep="/")).alias("Channel/Direction"),
+            (pl.concat_str("Channel/Direction".split("/"), separator="/")).alias("Channel/Direction"),
         ]
     )
 ).collect()
@@ -157,7 +157,7 @@ Showing the current success rate of the treatments. Different channels usually h
 ```{python}
 facet = "Channel/Direction"
 hover_columns = ["Issue", "Group", "Name"]
-df = last_data.lazy().with_columns(pl.concat_str(facet.split("/"), sep="/").alias(facet)).with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
+df = last_data.lazy().with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet)).with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
 df = (
     df
     .filter(pl.col("ResponseCount") > 100)
@@ -172,7 +172,7 @@ df = (
     .groupby(["Channel/Direction"])
     .head(20)
     .collect()
-).to_pandas()
+).to_pandas(use_pyarrow_extension_array=True)
 
 hover_data = {
     "SuccessRate": ":.2%",
@@ -205,7 +205,7 @@ fig.for_each_annotation(
 )
 fig.update(layout_coloraxis_showscale=False)
 
-unique_count = datamart.last(strategy='lazy').with_columns(pl.concat_str(facet.split("/"), sep="/").alias(facet)).select(facet).collect().to_series().n_unique()
+unique_count = datamart.last(strategy='lazy').with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet)).select(facet).collect().to_series().n_unique()
 
 height = 200 + (math.ceil( unique_count / facet_col_wrap) * 250)
 
@@ -236,7 +236,7 @@ facet = "Configuration"
 fig = datamart.plotOverTime('SuccessRate', by=by, facets=facet, facet_col_wrap=2, query=pl.col("ResponseCount") > 100)
 fig.update_yaxes(matches=None)
 fig.for_each_yaxis(lambda yaxis: yaxis.update(showticklabels=True, rangemode="tozero"))
-unique_count = datamart.modelData.with_columns(pl.concat_str(facet.split("/"), sep="/").alias(facet)).select(facet).collect().unique().shape[0]
+unique_count = datamart.modelData.with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet)).select(facet).collect().unique().shape[0]
 height = 200 + (math.ceil( unique_count / 2) * 250)
 fig.update_layout(autosize=True, height=height)
 fig.for_each_annotation(
@@ -260,7 +260,7 @@ model_overview = last_data.groupby(["Configuration", "Channel", "Direction"]).ag
     pl.col("Configuration").is_in(standardNBADNames).alias("Standard in NBAD Framework"),
     (pl.col("Number of Models") / pl.col("Number of Actions")).round(2).alias("Average number of Treatments per Action")
     ]
-).sort("Configuration").to_pandas()
+).sort("Configuration").to_pandas(use_pyarrow_extension_array=True)
 show(model_overview)
 print(f"There are a total of {len(last_data.select('ModelID').unique())} unique models in the latest snapshot. \n " )
 ```
@@ -319,7 +319,7 @@ Aggregating up to Channel and splitting by model configuration.
 facet = "Configuration"
 modelperformance = datamart.plotOverTime('weighted_performance', by="Channel/Direction", facets=facet, facet_col_wrap=2)
 
-unique_count = datamart.modelData.with_columns(pl.concat_str(facet.split("/"), sep="/").alias(facet)).select(facet).collect().unique().shape[0]
+unique_count = datamart.modelData.with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet)).select(facet).collect().unique().shape[0]
 height = 200 + (math.ceil( unique_count / 2) * 250)
 modelperformance.update_layout(autosize=True, height=height)
 modelperformance.for_each_annotation(
@@ -364,7 +364,7 @@ predictors_per_configuration = datamart.combinedData.groupby("Configuration").ag
                             pl.col("PredictorName").unique().count().alias("Predictor Count"),
                             pl.col("Channel").unique().alias("Used in (Channels)"),
                             pl.col("Issue").unique().alias("Used for (Issues)")
-                        ]).collect().to_pandas()
+                        ]).collect().to_pandas(use_pyarrow_extension_array=True)
 df_dict["predictors_per_configuration"] = predictors_per_configuration
 show(predictors_per_configuration)
 ```
@@ -450,7 +450,7 @@ df = (
         )
     )
     .collect()
-    .to_pandas()
+    .to_pandas(use_pyarrow_extension_array=True)
 )
 
 color = "PredictorCategory"
@@ -497,7 +497,7 @@ bad_predictors = (
         ]
     )
     .sort("Mean", reverse=False)
-).collect().to_pandas()
+).collect().to_pandas(use_pyarrow_extension_array=True)
 
 df_dict["bad_predictors"] = bad_predictors
 show(bad_predictors, scrollX=True)
@@ -583,7 +583,7 @@ hover_data = {
 }
 
 fig = px.treemap(
-    with_missing.to_pandas(),
+    with_missing.to_pandas(use_pyarrow_extension_array=True),
     path=path,
     color="Percentage without responses",
     template="pega",
@@ -617,7 +617,7 @@ counts = datamart.modelData.groupby(columns).agg(
         pl.mean("Performance")
     ]
 )
-zero_response = counts.filter(pl.col("ResponseCount") == 0).collect().to_pandas()
+zero_response = counts.filter(pl.col("ResponseCount") == 0).collect().to_pandas(use_pyarrow_extension_array=True)
 
 if zero_response.shape[0] >0:
     Text('''These models have no responses at all: no positives but also no negatives.
@@ -633,7 +633,7 @@ else:
 
 ```{python}
 #| output: asis
-zero_positives = counts.filter(pl.col("Positives") == 0).collect().to_pandas()
+zero_positives = counts.filter(pl.col("Positives") == 0).collect().to_pandas(use_pyarrow_extension_array=True)
 if zero_positives.shape[0] >0:
     print("### Models that have have been used but never received a positive response")
     df_dict["zero_positives"] = zero_positives
@@ -666,7 +666,7 @@ last_counts = last_data.groupby(columns).agg(
 reach = (
     last_counts.with_columns((pl.col("Positives").apply(calc_reach)).alias("Reach"))
     .filter((pl.col("Positives") < 200) & (pl.col("Positives") > 0))
-    .to_pandas()
+    .to_pandas(use_pyarrow_extension_array=True)
 )
 df_dict["reach_df"] = reach
 show(reach, scrollX=True)
@@ -676,7 +676,7 @@ show(reach, scrollX=True)
 
 ```{python}
 #| output: asis
-min_perf_df = last_counts.filter((pl.col("Positives") >= 200) & (pl.col("Performance") == 0.5)).to_pandas()
+min_perf_df = last_counts.filter((pl.col("Positives") >= 200) & (pl.col("Performance") == 0.5)).to_pandas(use_pyarrow_extension_array=True)
 if min_perf_df.shape[0] >0:
     print('''### Models that have received sufficient responses but are still at their minimum performance \n
     These models also have received over 200 positives but still show the minimum model performance. \n
@@ -718,7 +718,7 @@ df = (
 )
 
 facet = "Channel/Direction"
-df = df.with_columns(pl.concat_str(facet.split("/"), sep="/").alias(facet)).with_columns(pl.col(facet).cast(pl.Utf8).fill_null("NA"))
+df = df.with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet)).with_columns(pl.col(facet).cast(pl.Utf8).fill_null("NA"))
 df_pd = df.collect().to_pandas()
 y = df_pd.iloc[:,len(by):].columns.tolist() #slice `df.columns` to get this easily
 fig = px.line(df_pd,
@@ -785,7 +785,7 @@ for split_facet in facet.split("/"):
     last_data = last_data.with_columns(
         pl.col(split_facet).cast(pl.Utf8).fill_null("NA")
     )
-last_data = last_data.with_columns(pl.concat_str(facet.split("/"), sep="/").alias(facet))
+last_data = last_data.with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet))
 response_counts = last_data.groupby([facet,"Channel"]).agg(
     [
         pl.sum("ResponseCount").alias("all_responses"),
@@ -794,7 +794,7 @@ response_counts = last_data.groupby([facet,"Channel"]).agg(
     )
 
 all_responses = response_counts.sort("all_responses", reverse=True).head(20)
-fig = px.bar(all_responses.to_pandas(), x ="all_responses", y=facet, color="Channel", title="Top 20 Highest Responses", template="pega")
+fig = px.bar(all_responses.to_pandas(use_pyarrow_extension_array=True), x ="all_responses", y=facet, color="Channel", title="Top 20 Highest Responses", template="pega")
 fig.update_yaxes(matches=None, showticklabels=False, visible=False).update_xaxes(matches=None).update_traces(textposition='inside')
 
 fig.update_layout(yaxis={'categoryorder':'total ascending'})
@@ -807,7 +807,7 @@ And these are the 20 models with the largest number of positives.
 
 ```{python}
 positives = response_counts.sort("positive_sum", reverse=True).head(20)
-fig = px.bar(positives.to_pandas(), x ="positive_sum", y=facet, color="Channel", title="Top 20 Highest Positives", template="pega")
+fig = px.bar(positives.to_pandas(use_pyarrow_extension_array=True), x ="positive_sum", y=facet, color="Channel", title="Top 20 Highest Positives", template="pega")
 fig.update_yaxes(matches=None, showticklabels=False).update_xaxes(matches=None).update_traces(textposition='inside')
 fig.update_layout(yaxis={'categoryorder':'total ascending'})
 fig.data[0]
@@ -833,7 +833,7 @@ df = (
 
 cut_off_value = [percentile for percentile in range(50, 100, 3)]
 
-df_pl = pl.cut(df.get_column(property).fill_null(0).fill_nan(0), bins=cut_off_value).lazy().with_columns(pl.col("category").alias("PerformanceBin"))
+df_pl = pl.cut(df.get_column(property).fill_null(0).fill_nan(0), bins=cut_off_value, category_label="PerformanceBin").lazy()
 join = df.lazy().join(
     df_pl.select([property, "PerformanceBin"]).unique(), on=property, how="left"
 )
@@ -872,6 +872,8 @@ for channel_num, channel in enumerate(channels):
 #fig.add_scatter(go.Scatter(x=["a","b","c"], y=[50,70,90], name="second trace"))
 
 fig.update_yaxes(tickformat=",.0%")
+fig.update_xaxes(categoryorder='array', categoryarray = out.sort_values("PerformanceBin")["PerformanceBin"].unique())
+
 fig.show()
 
 ```
@@ -956,7 +958,7 @@ appendix = datamart.modelData.groupby(available_context_keys + ["ModelID"]).agg(
         pl.max("ResponseCount").alias("Responses"),
         pl.count("SnapshotTime").alias("Snapshots")
     ]
-).collect().to_pandas()
+).collect().to_pandas(use_pyarrow_extension_array=True)
 
 df_dict["Appendix"] = appendix
 show(appendix)

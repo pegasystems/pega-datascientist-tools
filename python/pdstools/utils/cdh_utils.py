@@ -189,7 +189,11 @@ def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
     ):
         if reading_opts.get("verbose", False):
             print(f"file to be read: {file}")
-        file = pl.scan_ipc(file)
+        if isinstance(file, BytesIO):
+            with pl.StringCache():
+                file = pl.read_ipc(file).lazy()
+        else:
+            file = pl.scan_ipc(file)
 
     else:
         raise ValueError(f"Could not import file: {file}, with extension {extension}")

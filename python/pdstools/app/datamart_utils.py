@@ -114,7 +114,9 @@ def import_data(params, default=0, **kwargs):
                 response = get_from_s3(bucket, key, sql_query)
                 data = import_datamart(
                     ADMDatamart(
-                        model_df=pd.read_json(str("".join(response)), lines=True, **kwargs)
+                        model_df=pd.read_json(
+                            str("".join(response)), lines=True, **kwargs
+                        )
                     )
                 )
     try:
@@ -123,9 +125,12 @@ def import_data(params, default=0, **kwargs):
         return params, None
 
 
-@st.cache(show_spinner=True)
-def import_datamart(fun, *args, **kwargs):
-    return fun(*args, **kwargs)
+@st.cache_resource(show_spinner=True)
+def import_datamart(_fun, *args, **kwargs):
+    dm = _fun(*args, **kwargs)
+    dm.modelData = dm.modelData.collect()
+    dm.predictorData = dm.predictorData.collect()
+    return dm
 
 
 def ADMDatamart_options():

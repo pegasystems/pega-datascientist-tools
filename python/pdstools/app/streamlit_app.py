@@ -28,7 +28,9 @@ def run(**kwargs):
     params, data = import_data(params, 1, **kwargs)
     if data is None:
         return None
-    
+    data.modelData = data.modelData.lazy()
+    data.predictorData = data.predictorData.lazy()
+
     filtereddf, params = generate_modeldata_filters(data, params)
 
     st.write(
@@ -54,33 +56,32 @@ def run(**kwargs):
     )
     with st.expander("Export options", expanded=False):
         output_type = st.selectbox("Export format", ["pdf", "html", "docx"], index=1)
+        cache_location = f"{file_loc}/CachedFiles"
         st.write("Cache location")
-        st.code(file_loc)
-        output_location = file_loc
-        params['name'] = params['name'].replace(' ', '_')
+        st.code(cache_location)
+        params["name"] = params["name"].replace(" ", "_")
         output_filename = f'HealthCheck_{params["name"]}.{output_type}'
         cwd = os.getcwd()
         quarto_file_name = "HealthCheck.qmd"
-        param_file = f"{output_location}/params.yaml"
+        param_file = f"{cache_location}/params.yaml"
         persist_cache = st.checkbox("Keep cached files", value=False)
 
     if st.button("Generate healthcheck"):
-
         with st.spinner("Saving cached data..."):
             if "kwargs" not in params:
                 params["kwargs"] = dict()
             import os
 
-            params["kwargs"]["path"] = os.path.abspath(output_location)
+            params["kwargs"]["path"] = os.path.abspath(cache_location)
             params["kwargs"]["model_filename"] = "models.arrow"
             filtereddf.collect().write_ipc(
-                f"{output_location}/{params['kwargs']['model_filename']}"
+                f"{cache_location}/{params['kwargs']['model_filename']}"
             )
             params["kwargs"]["include_cols"] = list(filtereddf.columns)
             if data.predictorData is not None:
                 params["kwargs"]["predictor_filename"] = "preds.arrow"
                 filteredpreds.collect().write_ipc(
-                    f"{output_location}/{params['kwargs']['predictor_filename']}"
+                    f"{cache_location}/{params['kwargs']['predictor_filename']}"
                 )
 
         try:
@@ -124,6 +125,9 @@ def run(**kwargs):
                                     f"{params['kwargs']['path']}/{params['kwargs']['predictor_filename']}"
                                 }
                             )
+                        if file_loc != cwd:
+                            to_remove.append(os.path.join(cwd, quarto_file_name))
+
                         for i in to_remove:
                             logging.info(f"Removing {i}")
                             os.remove(i)
