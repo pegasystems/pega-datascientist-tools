@@ -457,7 +457,7 @@ class ADMDatamart(Plots):
 
         Parameters
         ----------
-        df : pl.DataFrame | pl.LazyFrame
+        df : Union[pl.DataFrame, pl.LazyFrame]
             The input dataframe
 
         Keyword arguments
@@ -469,7 +469,7 @@ class ADMDatamart(Plots):
             See 'https://strftime.org/' for timestamp formats
         Returns
         -------
-        pl.DataFrame | pl.LazyFrame
+        Union[pl.DataFrame, pl.LazyFrame]
             The input dataframe, but the proper typing applied
         """
         retype = {
@@ -511,7 +511,7 @@ class ADMDatamart(Plots):
 
         Returns
         -------
-        pl.DataFrame | pl.LazyFrame
+        Union[pl.DataFrame, pl.LazyFrame]
             The last snapshot for each model
         """
 
@@ -540,7 +540,7 @@ class ADMDatamart(Plots):
 
         Returns
         -------
-        pl.DataFrame | pl.LazyFrame
+        Union[pl.DataFrame, pl.LazyFrame]
             Input DataFrame with LastResponse column added to it
         """
 
@@ -574,7 +574,7 @@ class ADMDatamart(Plots):
 
         Returns
         -------
-        pl.DataFrame | pl.LazyFrame
+        Union[pl.DataFrame, pl.LazyFrame]
             The combined dataframe
         """
         models = self.last(self.modelData, "lazy") if last else self.modelData
@@ -617,7 +617,7 @@ class ADMDatamart(Plots):
         """Given an input Polars DataFrame, it filters the dataframe based on input query
         Parameters
         ----------
-        df : pl.DataFrame | pl.LazyFrame
+        df : Union[pl.DataFrame, pl.LazyFrame]
             The input dataframe
         query: Optional[Union[pl.Expr, str, Dict[str, list]]] 
             If a Polars Expression, passes the expression into Polars' filter function
