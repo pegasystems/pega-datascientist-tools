@@ -50,7 +50,6 @@ class ADMVisualisations:
         to_html=False,
         **kwargs,
     ):
-
         if query is not None:
             fig.layout.title.text += f"<br><sup>Query: {query}</sup>"
 
@@ -484,7 +483,7 @@ class ADMVisualisations:
         df.set_index(df.columns[0], inplace=True)
         fig = px.imshow(
             df.T,
-            text_auto=kwargs.get("text_format", ".1r"),
+            text_auto=kwargs.get("text_format", ".1f"),
             aspect="auto",
             color_continuous_scale=kwargs.get(
                 "colorscale",
@@ -786,7 +785,6 @@ class ADMVisualisations:
         return self.post_plot(fig, name="TreeMap", **kwargs)
 
     def PredictorCount(self, df, facet, **kwargs):
-
         title = "over all models" if facet == None else f"per {facet}"
 
         fig = px.box(

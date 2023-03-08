@@ -8,13 +8,14 @@ from ..utils.cdh_utils import (
     weighed_average_polars,
 )
 from ..utils.errors import NotApplicableError
+from ..utils.types import any_frame
 import plotly.graph_objs as go
 
 
 class Plots:
     """
     Base plotting class
-    
+
     Attributes
     ----------
     hasModels : bool
@@ -31,6 +32,7 @@ class Plots:
         However, when data does not fit, the lazy methods typically allow
         you to still use the data.
     """
+
     def __init__(self):
         self.hasModels = self.modelData is not None
         self.hasPredictorBinning = self.predictorData is not None
@@ -90,7 +92,7 @@ class Plots:
         df: pl.DataFrame,
         top_n: int,
         to_plot: str = "PerformanceBin",
-        facets: Optional[List] = None,
+        facets: Union[str, list] = None,
     ):
         """Subsets DataFrame to contain only top_n predictors.
 
@@ -148,10 +150,10 @@ class Plots:
         query: Union[str, Dict[str, list]] = None,
         multi_snapshot: bool = False,
         last: bool = False,
-        facets=None,
+        facets: Union[str, list] = None,
         active_only: bool = False,
         include_cols: Optional[list] = None,
-    ) -> pl.DataFrame:
+    ) -> Union[pl.DataFrame, List[str]]:
         """Retrieves and subsets the data and performs some assertion checks
 
         Parameters
@@ -164,12 +166,11 @@ class Plots:
             Asserts those columns are in the data, and returns only those columns for efficiency
             By default, the context keys are added as required columns.
         query : Union[pl.Expr, str, Dict[str, list]], default = None
-            Please refer to :meth:`._apply_query`
-        multi_snapshot : bool, default = None
-            Whether to make sure there are multiple snapshots present in the data
-            Sometimes required for visualisations over time
+            Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
         last : bool, default = False
             Whether to subset on just the last known value for each model ID/predictor/bin
+        facets : Union[str, list], deafult = None
+            Please refer to :meth:`._generateFacets`
         active_only : bool, default = False
             Whether to subset on just the active predictors
         include_cols: Optional[list]
@@ -177,8 +178,9 @@ class Plots:
 
         Returns
         -------
-        pd.DataFrame
+        Union[pl.DataFrame, List[str]]
             The subsetted dataframe
+            Generated facet column name
         """
         if not hasattr(self, table) or getattr(self, table) is None:
             raise NotApplicableError(
@@ -194,12 +196,6 @@ class Plots:
         ), f"The following columns are missing in the data: {required_columns - set(df.columns)}"
 
         df = self._apply_query(df, query)
-
-        # if multi_snapshot and not last:
-        #     if not df["SnapshotTime"].nunique() > 1:
-        #         raise self.NotApplicableError(
-        #             "There is only one snapshot, so this visualisation doesn't make sense."
-        #         ) #Move check to plots directly
 
         if last:
             df = self.last(df, "lazy")
@@ -224,33 +220,37 @@ class Plots:
             facets,
         )
 
-    def _generateFacets(self, df, facets: Union[str, list, set] = None) -> list:
+    def _generateFacets(self, df: any_frame, facets: Union[str, List[str]] = None) -> list:
         """Generates a list of facets based on the given dataframe and facet columns.
+
         Given a string with column names combined with backslash, the function generates that column,
         adds it to the dataframe and return the new dataframe together with the generated column's name
-        
+
         Parameters
         ----------
         df : pl.DataFrame | pl.LazyFrame
-            The input dataframe for which the facets are to be generated.
-        facets : str | list | set, deafult = None
-            The columns of the dataframe on which to generate the facets. If `None`, returns the
-            dataframe with a `None` facet. If a string is provided, creates a new column using 
-            the columns provided in the string facets
-            If a list or set is provided, generates facets for each column in the list or set.
-            Default is `None`.
+            The input dataframe for which the facets are to be generated.            
+        facets: Union[str, list], default = None
+            By which columns to facet the plots.
+            If string, facets it by just that one column.
+            If list, facets it by every element of the list.
+            If a string contains a `/`, it will combine those columns as one facet.
 
         Returns
         -------
-        df : DataFrame
+        DataFrame
             The input dataframe with additional facet columns added.
-        facets : list
-        A list of facet column names generated based on the input dataframe and facet columns.
-        
+        Union[str, list], deafult = None
+            The generated facets
+
         Examples
         --------
-        >>> df, facets =  _generateFacets(df, "Direction/Channel")
-        >>> df, facets =  _generateFacets(df, ["Direction/Channel", "Direction/Channel/Issue/Group"])
+        >>> df, facets = _generateFacets(df, "Configuration")
+            Creates a plot for each Configuration
+        >>> df, facets = _generateFacets(df, ["Channel", "Direction"])
+            Creates a plot for each Channel and for each Direction as separate facets
+        >>> df, facets = _generateFacets(df, "Channel/Configuration")
+            Creates a plot for each combination of Channel and Configuration
         """
         if facets is None:
             return df, [None]
@@ -260,11 +260,10 @@ class Plots:
             if "/" in facet:
                 df = df.with_columns(
                     pl.concat_str(
-                        pl.col(facet.split("/")).cast(pl.Utf8).fill_null("NA"), sep="/"
+                        pl.col(facet.split("/")).cast(pl.Utf8).fill_null("NA"),
+                        separator="/",
                     ).alias(facet)
                 )
-            df = df.with_column(pl.col(facet).cast(pl.Utf8).fill_null("MISSING"))
-
         return df, facets
 
     def facettedPlot(self, facets, plotFunc, partition=None, *args, **kwargs):
@@ -297,7 +296,7 @@ class Plots:
                                 df=groupdf,
                                 facet=None,
                                 facet_val=facet_val,
-                                order=order[facet_val],
+                                order=order[facet_val] if order is not None else None,
                                 *args,
                                 **kwargs,
                             )
@@ -310,8 +309,8 @@ class Plots:
         self,
         last: bool = True,
         add_bottom_left_text: bool = True,
-        query: Union[str, dict] = None,
-        facets: Optional[list] = None,
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
+        facets: Union[str, list] = None,
         **kwargs,
     ) -> go.FigureWidget:
         """Creates bubble chart similar to ADM OOTB.
@@ -323,13 +322,10 @@ class Plots:
         add_bottom_left_text: bool, default = True
             Whether to display how many models are in the bottom left of the chart
             In other words, who have no performance and no success rate
-        query: Union[str, dict], default = None
-            The query to supply to _apply_query
-            If a string, uses the default Pandas query function
-            Else, a dict of lists where the key is the column name of the dataframe
-            and the corresponding value is a list of values to keep in the dataframe
-        facets: list, default = None
-            Whether to add facets to the plot, should be a list of columns
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+            Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
+        facets : Union[str, list], deafult = None
+            Please refer to :meth:`._generateFacets`
 
         Keyword arguments
         -----------------
@@ -395,8 +391,8 @@ class Plots:
         metric: str = "Performance",
         by: str = "ModelID",
         every: int = "1d",
-        query: Union[str, dict] = None,
-        facets: Optional[list] = None,
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
+        facets: Union[str, list] = None,
         **kwargs,
     ) -> go.FigureWidget:
         """Plots a given metric over time
@@ -411,13 +407,10 @@ class Plots:
             One of {ModelID, Name}
         every: int, default = 1d
             How often to consider the metrics
-        query: Union[str, dict], default = None
-            The query to supply to _apply_query
-            If a string, uses the default Pandas query function
-            Else, a dict of lists where the key is the column name of the dataframe
-            and the corresponding value is a list of values to keep in the dataframe
-        facets: list, default = None
-            Whether to add facets to the plot, should be a list of columns
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+            Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
+        facets : Union[str, list], deafult = None
+            Please refer to :meth:`._generateFacets`
 
         Keyword arguments
         -----------------
@@ -510,9 +503,8 @@ class Plots:
         by: str = "Name",
         show_error: bool = True,
         top_n=0,
-        subsetted_top_n=False,
-        query: Union[str, dict] = None,
-        facets: Optional[list] = None,
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
+        facets: Union[str, list] = None,
         **kwargs,
     ) -> go.FigureWidget:
         """Plots all latest proposition success rates
@@ -526,13 +518,12 @@ class Plots:
             One of {ModelID, Name}
         show_error: bool, default = True
             Whether to show error bars in the bar plots
-        query: Union[str, dict], default = None
-            The query to supply to _apply_query
-            If a string, uses the default Pandas query function
-            Else, a dict of lists where the key is the column name of the dataframe
-            and the corresponding value is a list of values to keep in the dataframe
-        facets: list, default = None
-            Whether to add facets to the plot, should be a list of columns
+        top_n: int, default = 0
+            The number of rows to include in the pivoted DataFrame. If set to 0, all rows are included.
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+            Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
+        facets : Union[str, list], deafult = None
+            Please refer to :meth:`._generateFacets`
 
         Keyword arguments
         -----------------
@@ -597,9 +588,10 @@ class Plots:
     def plotScoreDistribution(
         self,
         by: str = "ModelID",
+        *,
         show_zero_responses: bool = False,
         modelids: Optional[List] = None,
-        query: Union[str, dict] = None,
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
         show_each=False,
         **kwargs,
     ) -> go.FigureWidget:
@@ -610,13 +602,18 @@ class Plots:
         by: str, default = Name
             What variable to group the data by
             One of {ModelID, Name}
+            
+        Keyword arguments
+        -----------------
         show_zero_responses: bool, default = False
             Whether to include bins with no responses at all
-        query: Union[str, dict], default = None
-            The query to supply to _apply_query
-            If a string, uses the default Pandas query function
-            Else, a dict of lists where the key is the column name of the dataframe
-            and the corresponding value is a list of values to keep in the dataframe
+        modelids: Optional[List], default = None
+            Models to plot for. If multiple ids are given, 
+            returns a list of Plots for each model
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+            Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
+        show_each : bool
+            Whether to show each file when multiple facets are used
 
         Keyword arguments
         -----------------
@@ -652,7 +649,7 @@ class Plots:
         if modelids is not None:
             df = df.filter(pl.col("ModelID").is_in(modelids))
         with pl.StringCache():
-            df = df.filter(pl.col("PredictorName") == "Classifier").collect()
+            df = df.filter(pl.col("PredictorName") != "Classifier").collect()
 
         if kwargs.pop("return_df", False):
             return df
@@ -674,7 +671,7 @@ class Plots:
         predictors: list = None,
         modelids: list = None,
         show_each=False,
-        query: Union[str, dict] = None,
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
         **kwargs,
     ) -> go.FigureWidget:
         """Plots the binning of given predictors
@@ -686,11 +683,8 @@ class Plots:
             Useful for plotting one or more variables over multiple models
         modelids: list, default = None
             An optional list of model ids to plot the predictors for
-        query: Union[str, dict], default = None
-            The query to supply to _apply_query
-            If a string, uses the default Pandas query function
-            Else, a dict of lists where the key is the column name of the dataframe
-            and the corresponding value is a list of values to keep in the dataframe
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+            Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
 
         Keyword arguments
         -----------------
@@ -755,8 +749,8 @@ class Plots:
         top_n: int = 0,
         active_only: bool = False,
         to_plot="Performance",
-        query: Union[str, dict] = None,
-        facets: Optional[list] = None,
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
+        facets: Union[str, list] = None,
         **kwargs,
     ) -> go.FigureWidget:
         """Plots a bar chart of the performance of the predictors
@@ -772,13 +766,10 @@ class Plots:
             Whether to only plot active predictors
         to_plot: str, default = Performance
             Metric to compare predictors
-        query: Union[str, dict], default = None
-            The query to supply to _apply_query
-            If a string, uses the default Pandas query function
-            Else, a dict of lists where the key is the column name of the dataframe
-            and the corresponding value is a list of values to keep in the dataframe
-        facets: list, default = None
-            Whether to add facets to the plot, should be a list of columns
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+            Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
+        facets : Union[str, list], deafult = None
+            Please refer to :meth:`._generateFacets`
         Keyword arguments
         -----------------
         categorization: method
@@ -831,8 +822,7 @@ class Plots:
         df = (
             df.unique()
             .filter(pl.col("PredictorName") != "Classifier")
-            .with_columns(pl.col("PredictorName"),
-                          categorization().alias("Legend"))
+            .with_columns(pl.col("PredictorName"), categorization().alias("Legend"))
         )
 
         separate = kwargs.pop("separate", False)
@@ -884,8 +874,8 @@ class Plots:
         self,
         active_only: bool = False,
         to_plot="Performance",
-        query: Union[str, dict] = None,
-        facets: Optional[list] = None,
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
+        facets: Union[str, list] = None,
         categorization=defaultPredictorCategorization,
         **kwargs,
     ) -> go.FigureWidget:
@@ -900,14 +890,11 @@ class Plots:
             Whether to only plot active predictors
         to_plot: str, default = Performance
             Metric to compare predictor categories
-        query: Union[str, dict], default = None
-            The query to supply to _apply_query
-            If a string, uses the default Pandas query function
-            Else, a dict of lists where the key is the column name of the dataframe
-            and the corresponding value is a list of values to keep in the dataframe
-        facets: list, default = None
-            Whether to add facets to the plot, should be a list of columns
-        categorization: method
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+            Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
+        facets : Union[str, list], deafult = None
+            Please refer to :meth:`._generateFacets`
+        categorization: defaultPredictorCategorization
             Function that categorizes predictors into groups. Function should return
             a string from a string.
             Ex.  categorization("IH.LastLogin") --> IH
@@ -962,9 +949,8 @@ class Plots:
 
         with pl.StringCache():
             df = df.collect().with_columns(
-                pl.col("PredictorName"),
-                categorization().alias("Predictor Category"))
-            
+                pl.col("PredictorName"), categorization().alias("Predictor Category")
+            )
 
         df = (
             df.groupby(facets + ["Name", "Predictor Category"])
@@ -978,7 +964,8 @@ class Plots:
                     (pl.col("Predictor Category").alias("Legend")),
                     (pl.col("PerformanceBin") * 100),
                 ]
-            ))
+            )
+        )
 
         if kwargs.pop("separate", False):
             partition = "facet"
@@ -1004,7 +991,7 @@ class Plots:
         top_n: int = 0,
         by="Name",
         active_only: bool = False,
-        query: Union[str, dict] = None,
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
         facets: list = None,
         **kwargs,
     ) -> go.FigureWidget:
@@ -1021,13 +1008,10 @@ class Plots:
             The column to use at the x axis of the heatmap
         active_only: bool, default = False
             Whether to only plot active predictors
-        query: Union[str, dict], default = None
-            The query to supply to _apply_query
-            If a string, uses the default Pandas query function
-            Else, a dict of lists where the key is the column name of the dataframe
-            and the corresponding value is a list of values to keep in the dataframe
-        facets: list, default = None
-            Whether to add facets to the plot, should be a list of columns
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+            Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
+        facets : Union[str, list], deafult = None
+            Please refer to :meth:`._generateFacets`
 
         Keyword arguments
         -----------------
@@ -1089,7 +1073,7 @@ class Plots:
     def plotResponseGain(
         self,
         by: str = "Channel",
-        query: Union[str, dict] = None,
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
         facets=None,
         **kwargs,
     ) -> go.FigureWidget:
@@ -1100,13 +1084,10 @@ class Plots:
         by: str, default = Channel
             The column by which to calculate response gain
             Default is Channel, to see the response/gain chart per channel
-        query: Union[str, dict], default = None
-            The query to supply to _apply_query
-            If a string, uses the default Pandas query function
-            Else, a dict of lists where the key is the column name of the dataframe
-            and the corresponding value is a list of values to keep in the dataframe
-        facets: list, default = None
-            Whether to add facets to the plot, should be a list of columns
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+            Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
+        facets : Union[str, list], deafult = None
+            Please refer to :meth:`._generateFacets`
 
         Keyword arguments
         -----------------
@@ -1142,7 +1123,11 @@ class Plots:
         )
         df, by = self._generateFacets(df, by)
         with pl.StringCache():
-            df = self.response_gain_df(df, by=by).sort(by + ["TotalModelsFraction"]).collect()
+            df = (
+                self.response_gain_df(df, by=by)
+                .sort(by + ["TotalModelsFraction"])
+                .collect()
+            )
 
         if kwargs.pop("return_df", False):
             return df
@@ -1152,7 +1137,7 @@ class Plots:
     def plotModelsByPositives(
         self,
         by: str = "Channel",
-        query: Union[str, dict] = None,
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
         facets=None,
         **kwargs,
     ) -> go.FigureWidget:
@@ -1162,13 +1147,10 @@ class Plots:
         ----------
         by: str, default = Channel
             The column to calculate the model percentage by
-        query: Union[str, dict], default = None
-            The query to supply to _apply_query
-            If a string, uses the default Pandas query function
-            Else, a dict of lists where the key is the column name of the dataframe
-            and the corresponding value is a list of values to keep in the dataframe
-        facets: list, default = None
-            Whether to add facets to the plot, should be a list of columns
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+            Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
+        facets : Union[str, list], deafult = None
+            Please refer to :meth:`._generateFacets`
 
         Keyword arguments
         -----------------
@@ -1216,7 +1198,7 @@ class Plots:
         by: str = "ModelID",
         value_in_text: bool = True,
         midpoint: Optional[float] = None,
-        query: Union[str, dict] = None,
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
         **kwargs,
     ) -> go.FigureWidget:
         """Plots a treemap to view performance over multiple context keys
@@ -1240,13 +1222,10 @@ class Plots:
             Necessary for, for example, Success Rate, where rates lie very far apart
             If not supplied in such cases, there is no difference in the color
             between low values such as 0.001 and 0.1, so midpoint should be set low
-        query: Union[str, dict], default = None
-            The query to supply to _apply_query
-            If a string, uses the default Pandas query function
-            Else, a dict of lists where the key is the column name of the dataframe
-            and the corresponding value is a list of values to keep in the dataframe
-        facets: list, default = None
-            Whether to add facets to the plot, should be a list of columns
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+            Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
+        facets : Union[str, list], deafult = None
+            Please refer to :meth:`._generateFacets`
 
         Keyword arguments
         -----------------
@@ -1397,12 +1376,11 @@ class Plots:
 
     def plotPredictorCount(
         self,
-        facets: Optional[List],
-        query: Union[str, dict] = None,
+        facets: Union[str, list],
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
         by: str = "Type",
         **kwargs,
     ):
-
         plotting_engine = self.get_engine(
             kwargs.get("plotting_engine", self.plotting_engine)
         )()
@@ -1451,4 +1429,3 @@ class Plots:
             df=df,
             **kwargs,
         )
-    

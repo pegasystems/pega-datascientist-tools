@@ -373,6 +373,7 @@ def defaultPredictorCategorization(
 ) -> pl.Expr:
     if isinstance(x, str):
         x = pl.col(x)
+    x = x.cast(pl.Utf8) if not isinstance(x, pl.Utf8) else x
     return (
         pl.when(x.str.split(".").arr.lengths() > 1)
         .then(x.str.split(".").arr.get(0))

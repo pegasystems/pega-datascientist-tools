@@ -56,7 +56,7 @@ def run(**kwargs):
     )
     with st.expander("Export options", expanded=False):
         output_type = st.selectbox("Export format", ["pdf", "html", "docx"], index=1)
-        cache_location = f"{file_loc}/CachedFiles"
+        cache_location = file_loc
         st.write("Cache location")
         st.code(cache_location)
         params["name"] = params["name"].replace(" ", "_")

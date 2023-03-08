@@ -168,7 +168,7 @@ df = (
         )
     )
     .with_columns(pl.col("SuccessRate").round(4))
-    .sort(["Channel/Direction", "SuccessRate"], reverse=True)
+    .sort(["Channel/Direction", "SuccessRate"], descending=True)
     .groupby(["Channel/Direction"])
     .head(20)
     .collect()
@@ -364,7 +364,7 @@ predictors_per_configuration = datamart.combinedData.groupby("Configuration").ag
                             pl.col("PredictorName").unique().count().alias("Predictor Count"),
                             pl.col("Channel").unique().alias("Used in (Channels)"),
                             pl.col("Issue").unique().alias("Used for (Issues)")
-                        ]).collect().to_pandas(use_pyarrow_extension_array=True)
+                        ]).collect().to_pandas()
 df_dict["predictors_per_configuration"] = predictors_per_configuration
 show(predictors_per_configuration)
 ```
@@ -496,7 +496,7 @@ bad_predictors = (
             (pl.max("Performance") * 100).alias("max"),
         ]
     )
-    .sort("Mean", reverse=False)
+    .sort("Mean", descending=False)
 ).collect().to_pandas(use_pyarrow_extension_array=True)
 
 df_dict["bad_predictors"] = bad_predictors
@@ -524,7 +524,6 @@ fig.show()
 A view of predictor performance across all propositions, ordered so that the best performing predictors are at the top and the best performing propositions are on the left. Green indicates good performance, red means more problematic - either too low or too good to be true.
 
 ```{python}
-print("here I take only last 25 chars of x axis ticks. Should we go for sth else?")
 index_cols = [col for col in ['Issue', 'Group', "Name", "Treatment"] if col in datamart_all_columns]
 if datamart.predictorData is not None:
     unique_configurations = datamart.combinedData.collect().get_column("Configuration").unique().to_list()
@@ -583,7 +582,7 @@ hover_data = {
 }
 
 fig = px.treemap(
-    with_missing.to_pandas(use_pyarrow_extension_array=True),
+    with_missing.to_pandas(),
     path=path,
     color="Percentage without responses",
     template="pega",
@@ -714,7 +713,7 @@ df = (
             
         ]
     )
-    .sort(["Channel","Direction","SnapshotTime"], reverse=True)
+    .sort(["Channel","Direction","SnapshotTime"], descending=True)
 )
 
 facet = "Channel/Direction"
@@ -786,18 +785,28 @@ for split_facet in facet.split("/"):
         pl.col(split_facet).cast(pl.Utf8).fill_null("NA")
     )
 last_data = last_data.with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet))
-response_counts = last_data.groupby([facet,"Channel"]).agg(
+response_counts = last_data.groupby([facet] + facet.split("/")).agg(
     [
         pl.sum("ResponseCount").alias("all_responses"),
         pl.sum("Positives").alias("positive_sum")
         ]
     )
 
-all_responses = response_counts.sort("all_responses", reverse=True).head(20)
-fig = px.bar(all_responses.to_pandas(use_pyarrow_extension_array=True), x ="all_responses", y=facet, color="Channel", title="Top 20 Highest Responses", template="pega")
-fig.update_yaxes(matches=None, showticklabels=False, visible=False).update_xaxes(matches=None).update_traces(textposition='inside')
-
-fig.update_layout(yaxis={'categoryorder':'total ascending'})
+all_responses = response_counts.sort("all_responses", descending=True).head(20)
+hover_data = {
+    "Configuration": ":.d",
+    "Issue": ":.d",
+    "Group": ":.d",
+    "Name": ":.d",
+    "Channel": ":.d",
+    "Direction": ":.d",
+    facet: False
+}
+fig = px.bar(all_responses.to_pandas(use_pyarrow_extension_array=True), x ="all_responses", y=facet, color="Channel", title="Top 20 Highest Responses", template="pega", text=facet, hover_data=hover_data)
+fig.update_yaxes(matches=None, showticklabels=False, visible=False).update_traces(textposition="inside")
+fig.for_each_annotation(
+    lambda a: a.update(text=a.text.replace(facet, ""))
+)
     
 cdh_utils.legend_color_order(fig).show()
 ```
@@ -806,9 +815,12 @@ cdh_utils.legend_color_order(fig).show()
 And these are the 20 models with the largest number of positives.
 
 ```{python}
-positives = response_counts.sort("positive_sum", reverse=True).head(20)
-fig = px.bar(positives.to_pandas(use_pyarrow_extension_array=True), x ="positive_sum", y=facet, color="Channel", title="Top 20 Highest Positives", template="pega")
-fig.update_yaxes(matches=None, showticklabels=False).update_xaxes(matches=None).update_traces(textposition='inside')
+positives = response_counts.sort("positive_sum", descending=True).head(20)
+fig = px.bar(positives.to_pandas(use_pyarrow_extension_array=True), x ="positive_sum", y=facet, color="Channel", title="Top 20 Highest Positives", template="pega", text=facet, hover_data=hover_data)
+fig.update_yaxes(matches=None, showticklabels=False, visible=False).update_xaxes(matches=None).update_traces(textposition='inside')
+fig.for_each_annotation(
+    lambda a: a.update(text=a.text.replace(facet, ""))
+)
 fig.update_layout(yaxis={'categoryorder':'total ascending'})
 fig.data[0]
 
@@ -833,7 +845,7 @@ df = (
 
 cut_off_value = [percentile for percentile in range(50, 100, 3)]
 
-df_pl = pl.cut(df.get_column(property).fill_null(0).fill_nan(0), bins=cut_off_value, category_label="PerformanceBin").lazy()
+df_pl = df.get_column(property).fill_null(0).fill_nan(0).cut(bins=cut_off_value, category_label="PerformanceBin").lazy()
 join = df.lazy().join(
     df_pl.select([property, "PerformanceBin"]).unique(), on=property, how="left"
 )
@@ -869,7 +881,6 @@ for channel_num, channel in enumerate(channels):
     channel_df = out[out["Channel"] == channel]
     fig.add_traces(go.Scatter(x = channel_df.PerformanceBin, y=channel_df.Volume, line_shape = 'spline', marker_color = fig.data[channel_num].marker.color, name=channel))
 
-#fig.add_scatter(go.Scatter(x=["a","b","c"], y=[50,70,90], name="second trace"))
 
 fig.update_yaxes(tickformat=",.0%")
 fig.update_xaxes(categoryorder='array', categoryarray = out.sort_values("PerformanceBin")["PerformanceBin"].unique())
@@ -906,7 +917,6 @@ Note that the propensity bins are not of equal width. Propensities are typically
 So when one of the graphs shows more volume on the left, that is to be interpreted as relative to the other graphs.
 
 ```{python}
-# Todo: Maybe log scale the 
 property = "Propensity"
 if property == "Propensity" and property not in datamart.predictorData.columns:
     property = "BinPropensity"
@@ -919,28 +929,30 @@ for color in df.get_column(color_col).unique().to_list():
     propensity_list = list(set(color_df.select(property).fill_null(0).fill_nan(0).filter(pl.col(property)>0).get_column(property).to_list()))
     if len(propensity_list) > 0:
         if (np.percentile(propensity_list, 10) > smallest_bin):
-            print(color)
             smallest_bin = np.percentile(propensity_list, 10)
             cut_off_value = np.percentile(propensity_list, [percentile for percentile in range(0,101,5)])
 
-df_pl = pl.cut(df.get_column(property).fill_null(0).fill_nan(0), bins=cut_off_value).lazy()
-join= df.lazy().join(df_pl.select([property, "category"]).unique(), on=property, how="left")
-grouped = join.groupby(["Channel","category"]).agg(pl.sum("BinResponseCount"))
+df_pl = df.get_column(property).fill_null(0).fill_nan(0).cut(bins=cut_off_value, category_label="propensity").lazy()
+join= df.lazy().join(df_pl.select([property, "propensity"]).unique(), on=property, how="left")
+grouped = join.groupby(["Channel","propensity"]).agg(pl.sum("BinResponseCount"))
 
-out = grouped.sort(["Channel","category"]).select(
+out = grouped.sort(["Channel","propensity"]).select(
     [
         "Channel",
-        "category",
+        "propensity",
         "BinResponseCount",
         pl.col("BinResponseCount").sum().over("Channel").alias("sum"),
         
     ]
 ).with_columns([
-    (pl.col("BinResponseCount")/ pl.col("sum")).alias("percentage")
+    (pl.col("BinResponseCount")/ pl.col("sum")).alias("Responses")
     ])
 
-fig = px.bar(out.sort(["Channel", "category"]).collect().to_pandas(), x='category', y='percentage', color=color_col,template="pega", barmode="overlay")
+out = out.sort(["Channel", "propensity"]).collect().to_pandas()
+fig = px.bar(out, x='propensity', y='Responses', color=color_col,template="pega", barmode="overlay")
 fig.update_yaxes(tickformat=",.0%")
+fig.update_xaxes(categoryorder='array', categoryarray = out.sort_values("propensity")["propensity"].unique())
+
 fig.show()
 
 ```

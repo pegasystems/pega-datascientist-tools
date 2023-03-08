@@ -135,19 +135,20 @@ def import_datamart(_fun, *args, **kwargs):
 
 def ADMDatamart_options():
     params = dict()
-    extract_treatment = st.checkbox("Extract treatments", False)
-    if extract_treatment:
-        params["extract_treatment"] = "pyName"
-    context_keys = ["Issue", "Group", "Channel", "Direction"]
-    if extract_treatment:
-        context_keys.append("Treatment")
-    params["context_keys"] = st.multiselect(
-        "Select context keys", context_keys, default=context_keys
-    )
-    params["plotting_engine"] = "plotly"
-    params["timestamp_fmt"] = st.text_input(
-        "Timestamp format", value="%Y%m%dT%H%M%S.%f %Z"
-    )
+    if st.checkbox("Edit Parameters"):
+        extract_treatment = st.checkbox("Extract treatments", False)
+        if extract_treatment:
+            params["extract_treatment"] = "pyName"
+        context_keys = ["Issue", "Group", "Channel", "Direction"]
+        if extract_treatment:
+            context_keys.append("Treatment")
+        params["context_keys"] = st.multiselect(
+            "Select context keys", context_keys, default=context_keys
+        )
+        params["plotting_engine"] = "plotly"
+        params["timestamp_fmt"] = st.text_input(
+            "Timestamp format", value="%Y%m%dT%H%M%S.%f %Z"
+        )
     return params
 
 

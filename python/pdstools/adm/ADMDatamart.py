@@ -613,14 +613,15 @@ class ADMDatamart(Plots):
         return modeldata_cache, predictordata_cache
 
     @staticmethod
-    def _apply_query(df: any_frame, query: Union[str, dict] = None) -> any_frame:
+    def _apply_query(df: any_frame, query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None) -> any_frame:
         """Given an input Polars DataFrame, it filters the dataframe based on input query
         Parameters
         ----------
         df : pl.DataFrame | pl.LazyFrame
             The input dataframe
-        query: Union[str or dict]
-            If a string, uses the default Pandas query function
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]] 
+            If a Polars Expression, passes the expression into Polars' filter function
+            If a string, uses the default Pandas query function (works only in eager mode)
             Else, a dict of lists where the key is column name in the dataframe
             and the corresponding value is a list of values to keep in the dataframe
         Returns
@@ -724,7 +725,7 @@ class ADMDatamart(Plots):
         last: bool = False,
         by: str = "Configuration",
         n_threads: int = 6,
-        query: Union[str, dict] = None,
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
         verbose: bool = True,
         **kwargs,
     ) -> Dict:
@@ -745,8 +746,12 @@ class ADMDatamart(Plots):
             The number of threads to use for extracting the models.
             Since we use multithreading, setting this to a reasonable value
             helps speed up the import.
-        query: Union[str, dict], default = None
-            The pandas query to apply to the modelData frame
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]] 
+            The query to supply to :meth:`._apply_query`      
+            If a Polars Expression, passes the expression into Polars' filter function
+            If a string, uses the default Pandas query function (works only in eager mode)
+            Else, a dict of lists where the key is column name in the dataframe
+            and the corresponding value is a list of values to keep in the dataframe
         verbose: bool, default = False
             Whether to print out information while importing
 
@@ -850,7 +855,7 @@ class ADMDatamart(Plots):
         return df
 
     def model_summary(
-        self, by: str = "ModelID", query: Union[str, dict] = None, **kwargs
+        self, by: str = "ModelID", query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None, **kwargs
     ) -> pl.LazyFrame:
         """Convenience method to automatically generate a summary over models
 
@@ -862,9 +867,10 @@ class ADMDatamart(Plots):
         ----------
         by: str, default = ModelID
             By what column to summarize the models
-        query : Union[str, dict]
-            The query to supply to _apply_query
-            If a string, uses the default Pandas query function
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]] 
+            The query to supply to :meth:`._apply_query`      
+            If a Polars Expression, passes the expression into Polars' filter function
+            If a string, uses the default Pandas query function (works only in eager mode)
             Else, a dict of lists where the key is column name in the dataframe
             and the corresponding value is a list of values to keep in the dataframe
 
