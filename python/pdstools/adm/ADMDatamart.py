@@ -131,7 +131,7 @@ class ADMDatamart(Plots):
         )
 
         if self.modelData is not None and self.predictorData is not None:
-            self.combinedData = self.get_combined_data()
+            self.combinedData = self._get_combined_data()
         elif verbose:
             print(
                 "Could not be combined. Do you have both model data and predictor data?"
@@ -230,9 +230,9 @@ class ADMDatamart(Plots):
             df1 = df1.with_columns(
                 (pl.col("Positives") / pl.col("ResponseCount"))
                 .fill_nan(pl.lit(0))
-                .alias("SuccessRate")
+                .alias("SuccessRate"),
             )
-            df1 = self.last_response(df1)
+            df1 = self._add_last_response_col(df1)
         if predictor_df is not None:
             df2, self.renamed_preds, self.missing_preds = self._import_utils(
                 name=predictor_df,
@@ -531,7 +531,7 @@ class ADMDatamart(Plots):
         """Method to retrieve only the last snapshot."""
         return df.filter(pl.col("SnapshotTime") == pl.col("SnapshotTime").max())
 
-    def last_response(self, df: any_frame) -> any_frame:
+    def _add_last_response_col(self, df: any_frame) -> any_frame:
         """Adds LastResponse column to a dataframe
         Parameters
         ----------
@@ -557,7 +557,7 @@ class ADMDatamart(Plots):
 
         return df.join(last_snapshot_per_model, on="ModelID", how="left")
 
-    def get_combined_data(
+    def _get_combined_data(
         self, last=True, strategy: Literal["eager", "lazy"] = "eager"
     ) -> any_frame:
         """Combines the model data and predictor data into one dataframe.
