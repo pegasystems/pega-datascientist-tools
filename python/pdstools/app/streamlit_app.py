@@ -126,7 +126,7 @@ def run(**kwargs):
                                 }
                             )
                         if file_loc != cwd:
-                            to_remove.append(os.path.join(cwd, quarto_file_name))
+                            to_remove.union({os.path.join(cwd, quarto_file_name)})
 
                         for i in to_remove:
                             logging.info(f"Removing {i}")

@@ -1,4 +1,5 @@
 import warnings
+import logging
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 import numpy as np
@@ -154,7 +155,7 @@ class ADMVisualisations:
                     )
                 )
                 newtext = f"{len(df)} models: {bottomleft} ({round(bottomleft/len(df)*100, 2)}%) at (50,0)"
-                fig.layout.title.text += f"<br><sup>{newtext}"
+                fig.layout.title.text += f"<br><sup>{newtext}</sup>"
                 fig.data[0].marker.size *= bubble_size
 
         return self.post_plot(fig, name="Bubble", title=title, **kwargs)
@@ -432,6 +433,50 @@ class ADMVisualisations:
 
         return self.post_plot(fig, name=f"Predictor_{to_plot}", **kwargs)
 
+    def _divide_context(func):
+        """
+        Divides the context keys if they are combined
+        """
+        from functools import wraps
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            fig = func(*args, **kwargs)
+            try:
+                context_cols = kwargs.get("by").split("/")
+                x_axis_values = fig.data[0].x
+                y_axis_values = fig.data[0].y
+                custom_values = []
+                hover_template = "PredictorName: %{y}<br>Performance: %{z:.2f}"
+                if context_cols is not None:
+                    for i, col in enumerate(context_cols):
+                        my_column_values = [x.split("/")[i] for x in x_axis_values]
+                        index_column = np.repeat(
+                            my_column_values, len(y_axis_values)
+                        ).reshape(len(y_axis_values), len(x_axis_values))
+                        custom_values.append(index_column)
+                        template_text = f"<br>{col}: %{{customdata[{i}]}}"
+                        hover_template += template_text
+
+                custom_data = tuple(custom_values)
+                fig.update(
+                    data=[
+                        {
+                            "customdata": np.dstack(custom_data),
+                            "hovertemplate": hover_template,
+                        }
+                    ]
+                )
+                return fig
+            except Exception as e:
+                logging.info(
+                    f"Couldn't seperate the context keys because of the error: {e}"
+                )
+                return fig
+
+        return wrapper
+
+    @_divide_context
     def PredictorPerformanceHeatmap(
         self,
         df,
@@ -501,55 +546,7 @@ class ADMVisualisations:
             range_color=kwargs.get("range_color", [50, 100]),
         )
         fig.update_yaxes(dtick=1, automargin=True)
-        fig.update_xaxes(dtick=1, tickangle=kwargs.get("tickangle", None))        
-
-        def _context_to_hover(
-            fig: go.FigureWidget, context_cols: Optional[list] = None
-        ) -> go.FigureWidget:
-            """Adds new information to the hover of a heatmap
-
-            Aside from default PredictorName and Performance, this function adds given context columns to the hover
-
-            Parameters
-            ----------
-            fig: go.FigureWidget
-                The figure to add context into it's hover
-            context_cols: Optional[list], default = None
-                The context keys to include in the hover
-            Returns
-            -------
-            fig: go.FigureWidget
-            """
-
-            x_axis_values = fig.data[0].x
-            y_axis_values = fig.data[0].y
-            custom_values = []
-            hover_template = "PredictorName: %{y}<br>Performance: %{z:.2f}"
-            if context_cols is not None:
-                for i, col in enumerate(context_cols):
-                    my_column_values = [x.split("/")[i] for x in x_axis_values]
-                    index_column = np.repeat(
-                        my_column_values, len(y_axis_values)
-                    ).reshape(len(y_axis_values), len(x_axis_values))
-                    custom_values.append(index_column)
-                    template_text = f"<br>{col}: %{{customdata[{i}]}}"
-                    hover_template += template_text
-
-            custom_data = tuple(custom_values)
-            fig.update(
-                data=[
-                    {
-                        "customdata": np.dstack(custom_data),
-                        "hovertemplate": hover_template,
-                    }
-                ]
-            )
-
-            return fig
-
-        fig = _context_to_hover(
-            fig, context_cols=kwargs.get("by").split("/") if kwargs.get("by") else None
-        )
+        fig.update_xaxes(dtick=1, tickangle=kwargs.get("tickangle", None))
 
         return self.post_plot(fig, name="Predictor_performance_heatmap", **kwargs)
 

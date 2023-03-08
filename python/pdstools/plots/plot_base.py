@@ -220,7 +220,9 @@ class Plots:
             facets,
         )
 
-    def _generateFacets(self, df: any_frame, facets: Union[str, List[str]] = None) -> list:
+    def _generateFacets(
+        self, df: any_frame, facets: Union[str, List[str]] = None
+    ) -> list:
         """Generates a list of facets based on the given dataframe and facet columns.
 
         Given a string with column names combined with backslash, the function generates that column,
@@ -229,7 +231,7 @@ class Plots:
         Parameters
         ----------
         df : pl.DataFrame | pl.LazyFrame
-            The input dataframe for which the facets are to be generated.            
+            The input dataframe for which the facets are to be generated.
         facets: Union[str, list], default = None
             By which columns to facet the plots.
             If string, facets it by just that one column.
@@ -602,13 +604,13 @@ class Plots:
         by: str, default = Name
             What variable to group the data by
             One of {ModelID, Name}
-            
+
         Keyword arguments
         -----------------
         show_zero_responses: bool, default = False
             Whether to include bins with no responses at all
         modelids: Optional[List], default = None
-            Models to plot for. If multiple ids are given, 
+            Models to plot for. If multiple ids are given,
             returns a list of Plots for each model
         query: Optional[Union[pl.Expr, str, Dict[str, list]]]
             Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
