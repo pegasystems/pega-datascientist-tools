@@ -8,7 +8,7 @@ include = ['pdstools*']
 exclude = ['/tests/*', '*.dist-info', '/docs/*']
 
 [tool.setuptools.package-data]
-pdstools = ['healthcheck/*.qmd']
+"*" = ['*.qmd']
 
 [project]
 name = "pdstools"
@@ -52,7 +52,7 @@ version = {attr="pdstools.__version__"}
 
 [project.optional-dependencies]
 docs = ['sphinx','furo','sphinx-autoapi','nbsphinx','sphinx-copybutton','myst-parser']
-app = ['streamlit', 'quarto', 'papermill']
+app = ['streamlit', 'quarto', 'papermill', 'itables']
 
 [project.urls]
 "Homepage" = "https://github.com/pegasystems/pega-datascientist-tools"
@@ -61,4 +61,4 @@ app = ['streamlit', 'quarto', 'papermill']
 "Docs" = "https://pegasystems.github.io/pega-datascientist-tools/"
 
 [project.scripts]
-pdstools = 'pdstools.pds_app:main'
+pdstools = 'pdstools.app.pds_app:main'
