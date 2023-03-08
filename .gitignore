@@ -18,5 +18,6 @@ r/tests/testthat/*.pdf
 *.pyc
 build/
 *.egg-info/
+.vscode
 
 .DS_Store

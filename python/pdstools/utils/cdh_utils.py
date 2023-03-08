@@ -152,16 +152,20 @@ def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
     pl.LazyFrame
         The (imported) lazy dataframe
     """
-
     if extension == ".zip":
         logging.debug("Zip file found, extracting data.json to BytesIO.")
         file, extension = readZippedFile(file)
 
     if extension == ".csv":
-        file = pl.scan_csv(
-            file,
-            sep=reading_opts.get("sep", ","),
-        )
+        if isinstance(file, BytesIO):
+            file = pl.read_csv(
+                file, infer_schema_length=10000, try_parse_dates=True
+            ).lazy()
+        else:
+            file = pl.scan_csv(
+                file,
+                sep=reading_opts.get("sep", ","),
+            )
 
     elif extension == ".json":
         try:
@@ -183,7 +187,13 @@ def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
         or extension.casefold() == ".ipc"
         or extension.casefold() == ".arrow"
     ):
-        file = pl.scan_ipc(file)
+        if reading_opts.get("verbose", False):
+            print(f"file to be read: {file}")
+        if isinstance(file, BytesIO):
+            with pl.StringCache():
+                file = pl.read_ipc(file).lazy()
+        else:
+            file = pl.scan_ipc(file)
 
     else:
         raise ValueError(f"Could not import file: {file}, with extension {extension}")
@@ -358,8 +368,17 @@ def cache_to_file(
     return outpath
 
 
-def defaultPredictorCategorization(x: str) -> str:
-    return x.split(".")[0] if len(x.split(".")) > 1 else "Primary"
+def defaultPredictorCategorization(
+    x: Union[str, pl.Expr] = pl.col("PredictorName")
+) -> pl.Expr:
+    if isinstance(x, str):
+        x = pl.col(x)
+    x = x.cast(pl.Utf8) if not isinstance(x, pl.Utf8) else x
+    return (
+        pl.when(x.str.split(".").arr.lengths() > 1)
+        .then(x.str.split(".").arr.get(0))
+        .otherwise(pl.lit("Primary"))
+    ).alias("PredictorCategory")
 
 
 def safe_range_auc(auc: float) -> float:
@@ -808,3 +827,39 @@ def getToken(credentialFile, verify=True, **kwargs):
         auth=(creds["Client ID"], creds["Client Secret"]),
         verify=verify,
     ).json()["access_token"]
+
+
+def legend_color_order(fig):
+    """Orders legend colors alphabetically in order to provide pega color
+    consistency among different categories"""
+
+    colorway = [
+        "#001F5F",  # dark blue
+        "#10A5AC",
+        "#F76923",  # orange
+        "#661D34",  # wine
+        "#86CAC6",  # mint
+        "#005154",  # forest
+        "#86CAC6",  # mint
+        "#5F67B9",  # violet
+        "#FFC836",  # yellow
+        "#E63690",  # pink
+        "#AC1361",  # berry
+        "#63666F",  # dark grey
+        "#A7A9B4",  # medium grey
+        "#D0D1DB",  # light grey
+    ]
+
+    colors = []
+    for trace in fig.data:
+        colors.append(trace.legendgroup)
+    colors.sort()
+    indexed_colors = {k: v for v, k in enumerate(colors)}
+    for trace in fig.data:
+        try:
+            trace.marker.color = colorway[indexed_colors[trace.legendgroup]]
+            trace.line.color = colorway[indexed_colors[trace.legendgroup]]
+        except AttributeError:
+            pass
+
+    return fig

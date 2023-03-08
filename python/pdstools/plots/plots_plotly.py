@@ -1,11 +1,14 @@
 import warnings
+import logging
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 import polars as pl
+import math
 from plotly.subplots import make_subplots
+from typing import Optional
 
 
 class ADMVisualisations:
@@ -48,7 +51,6 @@ class ADMVisualisations:
         to_html=False,
         **kwargs,
     ):
-
         if query is not None:
             fig.layout.title.text += f"<br><sup>Query: {query}</sup>"
 
@@ -116,8 +118,7 @@ class ADMVisualisations:
             hover_name="Name",
             hover_data=["ModelID"] + context_keys,
             title=f'Bubble Chart {title} {kwargs.get("title_text","")}',
-            color_continuous_scale="Bluered",
-            template="none",
+            template="pega",
         )
         fig.update_traces(marker=dict(line=dict(color="black")))
 
@@ -183,13 +184,19 @@ class ADMVisualisations:
         """
 
         hide_legend = kwargs.pop("hide_legend", False)
-
+        metric_hovers = {
+            "SuccessRate": ":.2%",
+            "Performance": ":.2f",
+            "weighted_performance": ":.2f",
+            "Positives": ":.d",
+            "ResponseCount": ":.d",
+        }
         if metric in ["Performance", "weighted_performance", "SuccessRate"]:
             df = df.to_pandas()
             x = "SnapshotTime"
             y = metric
             color = by
-            hover_data = [by, metric, "SuccessRate"]
+            hover_data = {by: ":.d", metric: metric_hovers[metric]}
         else:
             df = df.to_pandas().set_index("SnapshotTime")
             x = None
@@ -211,10 +218,13 @@ class ADMVisualisations:
             title=f'{metric} over time, per {by} {title} {kwargs.get("title_text","")}',
             facet_col=facet,
             facet_col_wrap=kwargs.pop("facet_col_wrap", 5),
-            template="none",
+            template="pega",
         )
         if hide_legend:
             fig.update_layout(showlegend=False)
+        if metric == "SuccessRate":
+            fig.update_yaxes(tickformat=",.0%")
+            fig.update_layout(yaxis={"rangemode": "tozero"})
 
         return self.post_plot(fig, name="Lines_over_time", title=title, **kwargs)
 
@@ -257,7 +267,7 @@ class ADMVisualisations:
             facet_col_wrap=kwargs.get("facet_col_wrap", 5),
             histfunc="avg",
             title=f'{metric} of each proposition {title} {kwargs.get("title_text","")}',
-            template="none",
+            template="pega",
         )
         fig.update_yaxes(categoryorder="total ascending")
         fig.update_layout(showlegend=False)
@@ -353,9 +363,10 @@ class ADMVisualisations:
     def PredictorPerformance(
         self,
         df,
-        order,
-        facet,
+        facet=None,
+        order=None,
         to_plot="Performance",
+        y="PredictorName",
         **kwargs,
     ):
         """Shows a box plot of predictor performance
@@ -376,13 +387,8 @@ class ADMVisualisations:
             If a string, uses the default Pandas query function
             Else, a dict of lists where the key is column name in the dataframe
             and the corresponding value is a list of values to keep in the dataframe
-        show_each : bool
-            Whether to show each file when multiple facets are used
         facets : Optional[Union[list, str]]
             Whether to create a chart for multiple facets or subsets.
-            For example, if facets == 'Channel', a bubble plot is made for each channel
-            Depending on show_each, every chart is either shown or not
-            If more than one facet is visualised, they are returned in a list
 
         Returns
         -------
@@ -391,51 +397,86 @@ class ADMVisualisations:
 
         # TODO: perhaps get top n & order per facet.
 
-        colormap = df["Legend"].unique()
-
-        title = "over all models" if facet is None else f"per {facet}"
-
+        title = (
+            f"{kwargs.get('facet_val','over all models')}"
+            if facet is None
+            else f"per {facet}"
+        )
+        df = df.to_pandas()
+        if order:
+            df[y] = df[y].astype("category")
+            df[y] = df[y].cat.set_categories(order)
         fig = px.box(
-            df.to_pandas(),
+            df.sort_values([y]),
             x=to_plot,
-            y="PredictorName",
+            y=y,
             color="Legend",
-            template="none",
-            title=f"Predictor {to_plot} {title} {kwargs.get('title_text','')}",
+            template="pega",
+            title=f"Predictor Performance {title} {kwargs.get('title_text','')}",
             facet_col=facet,
-            facet_col_wrap=5,
+            facet_col_wrap=kwargs.get("facet_col_wrap", 5),
             labels={
                 "PredictorName": "Predictor Name",
+                "PerformanceBin": "Performance",
             },
         )
 
-        fig.update_yaxes(
-            categoryorder="array", categoryarray=order, automargin=True, dtick=1
+        # fig.update_yaxes(
+        #    categoryorder="array", categoryarray=order, automargin=True, dtick=1
+        # )
+
+        fig.update_layout(
+            boxgap=0,
+            boxgroupgap=0,
+            legend_title_text="Predictor category",
         )
-        fig.update_traces(marker=dict(color="rgb(0,0,0)"), width=0.6)
 
-        colors = [
-            "rgb(14,94,165)",
-            "rgb(28,168,154)",
-            "rgb(254,183,85)",
-            "rgb(45,130,66)",
-            "rgb(252,136,72)",
-            "rgb(125,94,187)",
-            "rgb(252,139,130)",
-            "rgb(140,81,43)",
-            "rgb(175,161,156)",
-        ]
-
-        if len(colormap) > 9:  # pragma: no cover
-            colors = px.colors.qualitative.Alphabet
-
-        for i in range(len(fig.data)):
-            color = fig.data[i].legendgroup
-            fig.data[i].fillcolor = colors[np.where(colormap == color)[0].tolist()[0]]
-
-        fig.update_layout(boxgap=0, boxgroupgap=0, legend_title_text="Predictor type")
         return self.post_plot(fig, name=f"Predictor_{to_plot}", **kwargs)
 
+    def _divide_context(func):
+        """
+        Divides the context keys if they are combined
+        """
+        from functools import wraps
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            fig = func(*args, **kwargs)
+            try:
+                context_cols = kwargs.get("by").split("/")
+                x_axis_values = fig.data[0].x
+                y_axis_values = fig.data[0].y
+                custom_values = []
+                hover_template = "PredictorName: %{y}<br>Performance: %{z:.2f}"
+                if context_cols is not None:
+                    for i, col in enumerate(context_cols):
+                        my_column_values = [x.split("/")[i] for x in x_axis_values]
+                        index_column = np.repeat(
+                            my_column_values, len(y_axis_values)
+                        ).reshape(len(y_axis_values), len(x_axis_values))
+                        custom_values.append(index_column)
+                        template_text = f"<br>{col}: %{{customdata[{i}]}}"
+                        hover_template += template_text
+
+                custom_data = tuple(custom_values)
+                fig.update(
+                    data=[
+                        {
+                            "customdata": np.dstack(custom_data),
+                            "hovertemplate": hover_template,
+                        }
+                    ]
+                )
+                return fig
+            except Exception as e:
+                logging.info(
+                    f"Couldn't seperate the context keys because of the error: {e}"
+                )
+                return fig
+
+        return wrapper
+
+    @_divide_context
     def PredictorPerformanceHeatmap(
         self,
         df,
@@ -487,7 +528,7 @@ class ADMVisualisations:
         df.set_index(df.columns[0], inplace=True)
         fig = px.imshow(
             df.T,
-            text_auto=kwargs.get("text_format", ".0%"),
+            text_auto=kwargs.get("text_format", ".1f"),
             aspect="auto",
             color_continuous_scale=kwargs.get(
                 "colorscale",
@@ -502,7 +543,7 @@ class ADMVisualisations:
             facet_col=facet,
             facet_col_wrap=5,
             title=f'Top predictors {title} {kwargs.get("title_text","")}',
-            range_color=kwargs.get("range_color", [0.5, 1]),
+            range_color=kwargs.get("range_color", [50, 100]),
         )
         fig.update_yaxes(dtick=1, automargin=True)
         fig.update_xaxes(dtick=1, tickangle=kwargs.get("tickangle", None))
@@ -545,6 +586,8 @@ class ADMVisualisations:
         -------
         px.Figure
         """
+        if isinstance(by, list):
+            by = by[0]
         title = "over all models" if facet is None else f"per {facet}"
 
         title = f"Cumulative Responses {title}"
@@ -558,10 +601,10 @@ class ADMVisualisations:
                 "TotalModelsFraction": "Percentage of Models",
             },
             title=f'{title} {kwargs.get("title_text","")}<br><sup>by {by}</sup>',
-            template="none",
+            template="pega",
         )
-        fig.layout.yaxis.tickformat = ",.0%"
-        fig.layout.xaxis.tickformat = ",.0%"
+        fig.layout.yaxis.tickformat = ",.1%"
+        fig.layout.xaxis.tickformat = ",.1%"
         fig = self.post_plot(fig, name="Response_gain", **kwargs)
         return fig
 
@@ -610,7 +653,7 @@ class ADMVisualisations:
             markers=True,
             title=title,
             labels={"cumModels": "Percentage of Models", "PositivesBin": "Positives"},
-            template="none",
+            template="pega",
             category_orders={"PositivesBin": df["PositivesBin"].unique().to_list()},
         )
         fig.layout.yaxis.tickformat = ",.0%"
@@ -689,15 +732,14 @@ class ADMVisualisations:
                 (0.8, "#20aa50"),
                 (1, "#0000FF"),
             ]
-            range_color = kwargs.get("range_color", [0.5, 1])
+            range_color = kwargs.get("range_color", [50, 100])
 
         elif log:
             df.select(
                 pl.when(pl.log(color) == float("-inf")).then(0).otherwise(pl.log(color))
             ).to_series()
-        else:
-            color = df.get_column(color)
-
+        if color == "Success Rate mean":
+            range_color = kwargs.get("range_color", [0, 100])
         if midpoint is not None:
             midpoint = color.quantile(midpoint)
             colorscale = [
@@ -710,8 +752,8 @@ class ADMVisualisations:
             "Model count": ":.d",
             "Percentage without responses": ":.0%",
             "Response Count sum": ":.d",
-            "Success Rate mean": ":.3%",
-            "Performance weighted mean": ":.0%",
+            "Success Rate mean": ":.2%",
+            "Performance weighted mean": ":.2f",
             "Positives sum": ":.d",
         }
 
@@ -737,5 +779,20 @@ class ADMVisualisations:
             fig.update_layout(
                 uniformtext_minsize=kwargs.pop("min_text_size"), uniformtext_mode="hide"
             )
-        fig = self.post_plot(fig, name="TreeMap", **kwargs)
-        return fig
+        return self.post_plot(fig, name="TreeMap", **kwargs)
+
+    def PredictorCount(self, df, facet, **kwargs):
+        title = "over all models" if facet == None else f"per {facet}"
+
+        fig = px.box(
+            df.to_pandas(),
+            x="Predictor Count",
+            y="Type",
+            color="EntryType",
+            template="pega",
+            title=f"Predictor Count {title}",
+            facet_col=facet,
+            facet_col_wrap=2,
+        )
+
+        return self.post_plot(fig, name="TreeMap", **kwargs)
