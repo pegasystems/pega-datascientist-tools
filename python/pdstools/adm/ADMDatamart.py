@@ -747,11 +747,7 @@ class ADMDatamart(Plots):
             Since we use multithreading, setting this to a reasonable value
             helps speed up the import.
         query: Optional[Union[pl.Expr, str, Dict[str, list]]] 
-            The query to supply to :meth:`._apply_query`      
-            If a Polars Expression, passes the expression into Polars' filter function
-            If a string, uses the default Pandas query function (works only in eager mode)
-            Else, a dict of lists where the key is column name in the dataframe
-            and the corresponding value is a list of values to keep in the dataframe
+            Please refer to :meth:`._apply_query`
         verbose: bool, default = False
             Whether to print out information while importing
 
@@ -868,11 +864,7 @@ class ADMDatamart(Plots):
         by: str, default = ModelID
             By what column to summarize the models
         query: Optional[Union[pl.Expr, str, Dict[str, list]]] 
-            The query to supply to :meth:`._apply_query`      
-            If a Polars Expression, passes the expression into Polars' filter function
-            If a string, uses the default Pandas query function (works only in eager mode)
-            Else, a dict of lists where the key is column name in the dataframe
-            and the corresponding value is a list of values to keep in the dataframe
+            Please refer to :meth:`._apply_query`
 
         Returns
         -------
@@ -880,7 +872,7 @@ class ADMDatamart(Plots):
             Groupby dataframe over all models
         """
         df = self._apply_query(self.modelData, query)
-        data = self.last(df, strategy="lazy")
+        data = self.last(df, strategy="lazy").lazy()
 
         aggcols = ["ResponseCount", "Performance", "SuccessRate", "Positives"]
         required_columns = set(aggcols).union({by})
