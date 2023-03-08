@@ -17,7 +17,7 @@ Classes
 
 
 
-.. py:class:: ValueFinder(path: Optional[str] = None, df: Optional[Union[pandas.DataFrame, polars.DataFrame, pyarrow.Table]] = None, verbose: bool = True, **kwargs)
+.. py:class:: ValueFinder(path: Optional[str] = None, df: Optional[pdstools.utils.types.any_frame] = None, strategy='eager', verbose: bool = True, **kwargs)
 
    Class to analyze Value Finder datasets.
 
@@ -31,7 +31,7 @@ Classes
    :param path: Path to the ValueFinder data files
    :type path: Optional[str]
    :param df: Override to supply a dataframe instead of a file.
-              Supports pandas or polars dataframes or pyarrow tables
+              Supports pandas or polars dataframes
    :type df: Optional[DataFrame]
    :param verbose: Whether to print out information during importing
    :type verbose: bool
@@ -53,7 +53,7 @@ Classes
       :rtype: PathLike
 
 
-   .. py:method:: getCustomerSummary(th: Optional[float] = None, verbose: bool = True) -> polars.DataFrame
+   .. py:method:: getCustomerSummary(th: Optional[float] = None, strategy='eager', verbose: bool = True) -> polars.DataFrame
 
       Computes the summary of propensities for all customers
 
@@ -66,7 +66,7 @@ Classes
       :type verbose: bool, default = True
 
 
-   .. py:method:: getCountsPerStage(customersummary: Optional[polars.DataFrame] = None, verbose: bool = True) -> polars.DataFrame
+   .. py:method:: getCountsPerStage(customersummary: Optional[polars.DataFrame] = None, strategy='eager', verbose: bool = True) -> polars.DataFrame
 
       Generates an aggregated view per stage.
 

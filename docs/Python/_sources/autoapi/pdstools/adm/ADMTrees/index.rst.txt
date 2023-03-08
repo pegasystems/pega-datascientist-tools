@@ -21,7 +21,7 @@ Classes
 
 .. py:class:: ADMTrees
 
-   .. py:method:: getMultiTrees(file: pandas.DataFrame, n_threads=6, verbose=True, **kwargs)
+   .. py:method:: getMultiTrees(file: polars.DataFrame, n_threads=1, verbose=True, **kwargs)
       :staticmethod:
 
 
@@ -86,7 +86,7 @@ Classes
 
       
 
-      :type: pd.DataFrame
+      :type: pl.DataFrame
 
    .. attribute:: groupedGainsPerSplit
 
@@ -128,6 +128,30 @@ Classes
       Calculates the depth of the tree, used in TreeStats.
 
 
+   .. py:method:: predictors()
+
+
+   .. py:method:: treeStats()
+
+
+   .. py:method:: splitsPerTree()
+
+
+   .. py:method:: gainsPerTree()
+
+
+   .. py:method:: gainsPerSplit()
+
+
+   .. py:method:: groupedGainsPerSplit()
+
+
+   .. py:method:: allValuesPerSplit()
+
+
+   .. py:method:: splitsPerVariableType(**kwargs)
+
+
    .. py:method:: parseSplitValues(value) -> Tuple[str, str, str]
 
       Parses the raw 'split' string into its three components.
@@ -149,12 +173,12 @@ Classes
    .. py:method:: getPredictors() -> Dict
 
 
-   .. py:method:: getGainsPerSplit() -> Tuple[Dict, pandas.DataFrame, dict]
+   .. py:method:: getGainsPerSplit() -> Tuple[Dict, polars.DataFrame, dict]
 
       Function to compute the gains of each split in each tree.
 
 
-   .. py:method:: getGroupedGainsPerSplit() -> pandas.DataFrame
+   .. py:method:: getGroupedGainsPerSplit() -> polars.DataFrame
 
       Function to get the gains per split, grouped by split.
 
@@ -194,7 +218,7 @@ Classes
       :rtype: plt.figure
 
 
-   .. py:method:: getTreeStats() -> pandas.DataFrame
+   .. py:method:: getTreeStats() -> polars.DataFrame
 
       Generate a dataframe with useful stats for each tree
 
@@ -276,14 +300,14 @@ Classes
       :rtype: List, float, List
 
 
-   .. py:method:: getAllVisitedNodes(x: Dict) -> pandas.DataFrame
+   .. py:method:: getAllVisitedNodes(x: Dict) -> polars.DataFrame
 
       Loops through each tree, and records the scoring info
 
       :param x: Features to split on, with their values
       :type x: Dict
 
-      :rtype: pd.DataFrame
+      :rtype: pl.DataFrame
 
 
    .. py:method:: score(x: Dict) -> float
@@ -315,17 +339,17 @@ Classes
 
 
    .. py:attribute:: trees
-      :annotation: :dict
+      :type: dict
 
       
 
    .. py:attribute:: model_name
-      :annotation: :str
+      :type: str
 
       
 
    .. py:attribute:: context_keys
-      :annotation: :list
+      :type: list
 
       
 

@@ -32,7 +32,7 @@ Classes
       :staticmethod:
 
 
-   .. py:method:: _subset_data(table: str, required_columns: set, query: Union[str, Dict[str, list]] = None, multi_snapshot: bool = False, last: bool = False, active_only: bool = False) -> pandas.DataFrame
+   .. py:method:: _subset_data(table: str, required_columns: set, query: Union[str, Dict[str, list]] = None, multi_snapshot: bool = False, last: bool = False, facets=None, active_only: bool = False, include_cols: Optional[list] = None) -> pandas.DataFrame
 
       Retrieves and subsets the data and performs some assertion checks
 
@@ -55,12 +55,20 @@ Classes
       :type last: bool, default = False
       :param active_only: Whether to subset on just the active predictors
       :type active_only: bool, default = False
+      :param include_cols: Extra columns to include in the subsetting
+      :type include_cols: Optional[list]
 
       :returns: The subsetted dataframe
       :rtype: pd.DataFrame
 
 
-   .. py:method:: plotPerformanceSuccessRateBubbleChart(last: bool = True, add_bottom_left_text: bool = True, query: Union[str, dict] = None, facets: Optional[list] = None, **kwargs) -> Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]
+   .. py:method:: _generateFacets(df, facets: Union[str, list, set] = None) -> list
+
+
+   .. py:method:: facettedPlot(facets, plotFunc, partition=None, *args, **kwargs)
+
+
+   .. py:method:: plotPerformanceSuccessRateBubbleChart(last: bool = True, add_bottom_left_text: bool = True, query: Union[str, dict] = None, facets: Optional[list] = None, **kwargs) -> plotly.graph_objs.FigureWidget
 
       Creates bubble chart similar to ADM OOTB.
 
@@ -79,7 +87,7 @@ Classes
 
       :keyword round: To how many digits to round the hover data
       :kwtype round: int, default = 5
-      :keyword plotting_engine: One of {plotly, mpl}, see ADMDatamart class
+      :keyword plotting_engine: 'plotly' or a custom plot class
       :kwtype plotting_engine: str
       :keyword return_df: If set to True, returns the dataframe instead of the plot
                           Can be useful for debugging or replicating the plots
@@ -87,45 +95,13 @@ Classes
 
       .. rubric:: Notes
 
-      See the docs for either the matplotlib plots (plots_mpl.py) or the
-      plotly plots (plots_plotly.py). Some visualisations have parameters
-      that differ slightly between the two, and plotly has an additional
-      post_plot function defining some more actions, such as writing to
-      html automatically or displaying figures while facetting.
+      See the docs for the plotly plots (plots_plotly.py)
+      to see further parameters for this plot.
 
-      :rtype: (plt.Axes, go.FigureWidget)
+      :rtype: go.FigureWidget
 
 
-   .. py:method:: plotPerformanceAndSuccessRateOverTime(day_interval: int = 7, query: Union[str, dict] = None, **kwargs) -> matplotlib.pyplot.Axes
-
-      Plots both performance and success rate over time
-
-      Currently only supported for matplotlib.
-
-      :param day_interval: The interval of tick labels along the x axis
-      :type day_interval: int, default = 7
-      :param query: The query to supply to _apply_query
-                    If a string, uses the default Pandas query function
-                    Else, a dict of lists where the key is the column name of the dataframe
-                    and the corresponding value is a list of values to keep in the dataframe
-      :type query: Union[str, dict], default = None
-
-      :keyword figsize: The size of the graph
-      :kwtype figsize: tuple
-      :keyword plotting_engine: This chart is only supported in matplotlib (mpl)
-      :kwtype plotting_engine: str
-      :keyword return_df: If set to True, returns the dataframe instead of the plot
-                          Can be useful for debugging or replicating the plots
-      :kwtype return_df: bool
-
-      .. rubric:: Notes
-
-      See the docs for the matplotlib plots (plots_mpl.py).
-
-      :rtype: plt.Axes
-
-
-   .. py:method:: plotOverTime(metric: str = 'Performance', by: str = 'ModelID', query: Union[str, dict] = None, facets: Optional[list] = None, **kwargs) -> Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]
+   .. py:method:: plotOverTime(metric: str = 'Performance', by: str = 'ModelID', every: int = '1d', query: Union[str, dict] = None, facets: Optional[list] = None, **kwargs) -> plotly.graph_objs.FigureWidget
 
       Plots a given metric over time
 
@@ -133,8 +109,10 @@ Classes
                      {ResponseCount, Performance, SuccessRate, Positives}
       :type metric: str, default = Performance
       :param by: What variable to group the data by
-                 One of {ModelID, ModelName}
+                 One of {ModelID, Name}
       :type by: str, default = ModelID
+      :param every: How often to consider the metrics
+      :type every: int, default = 1d
       :param query: The query to supply to _apply_query
                     If a string, uses the default Pandas query function
                     Else, a dict of lists where the key is the column name of the dataframe
@@ -143,7 +121,7 @@ Classes
       :param facets: Whether to add facets to the plot, should be a list of columns
       :type facets: list, default = None
 
-      :keyword plotting_engine: One of {plotly, mpl}, see ADMDatamart class
+      :keyword plotting_engine: 'plotly' or a custom plot class
       :kwtype plotting_engine: str
       :keyword return_df: If set to True, returns the dataframe instead of the plot
                           Can be useful for debugging or replicating the plots
@@ -151,51 +129,21 @@ Classes
 
       .. rubric:: Notes
 
-      See the docs for either the matplotlib plots (plots_mpl.py) or the
-      plotly plots (plots_plotly.py). Some visualisations have parameters
-      that differ slightly between the two, and plotly has an additional
-      post_plot function defining some more actions, such as writing to
-      html automatically or displaying figures while facetting.
+      See the docs for the plotly plots (plots_plotly.py)
+      to see further parameters for this plot.
 
-      :rtype: (plt.Axes, go.FigureWidget)
+      :rtype: go.FigureWidget
 
 
-   .. py:method:: plotResponseCountMatrix(lookback: int = 15, fill_null_days: bool = False, query: Union[str, dict] = None, **kwargs) -> matplotlib.pyplot.Axes
-
-      Plots the response count over time in a matrix
-
-      :param lookback: How many days to look back from the last snapshot
-      :type lookback: int, default = 15
-      :param fill_null_days: If True, null values will be generated for days without a snapshot
-      :type fill_null_days: bool, default = False
-      :param query: The query to supply to _apply_query
-                    If a string, uses the default Pandas query function
-                    Else, a dict of lists where the key is the column name of the dataframe
-                    and the corresponding value is a list of values to keep in the dataframe
-      :type query: Union[str, dict], default = None
-
-      :keyword plotting_engine: This chart is only supported in matplotlib (mpl)
-      :kwtype plotting_engine: str
-      :keyword return_df: If set to True, returns the dataframe instead of the plot
-                          Can be useful for debugging or replicating the plots
-      :kwtype return_df: bool
-
-      .. rubric:: Notes
-
-      See the docs for the matplotlib plots (plots_mpl.py).
-
-      :rtype: plt.Axes
-
-
-   .. py:method:: plotPropositionSuccessRates(metric: str = 'SuccessRate', by: str = 'ModelName', show_error: bool = True, query: Union[str, dict] = None, facets: Optional[list] = None, **kwargs) -> Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]
+   .. py:method:: plotPropositionSuccessRates(metric: str = 'SuccessRate', by: str = 'Name', show_error: bool = True, top_n=0, subsetted_top_n=False, query: Union[str, dict] = None, facets: Optional[list] = None, **kwargs) -> plotly.graph_objs.FigureWidget
 
       Plots all latest proposition success rates
 
       :param metric: Can be changed to plot a different metric
       :type metric: str, default = SuccessRate
       :param by: What variable to group the data by
-                 One of {ModelID, ModelName}
-      :type by: str, default = ModelName
+                 One of {ModelID, Name}
+      :type by: str, default = Name
       :param show_error: Whether to show error bars in the bar plots
       :type show_error: bool, default = True
       :param query: The query to supply to _apply_query
@@ -206,7 +154,7 @@ Classes
       :param facets: Whether to add facets to the plot, should be a list of columns
       :type facets: list, default = None
 
-      :keyword plotting_engine: One of {plotly, mpl}, see ADMDatamart class
+      :keyword plotting_engine: 'plotly' or a custom plot class
       :kwtype plotting_engine: str
       :keyword return_df: If set to True, returns the dataframe instead of the plot
                           Can be useful for debugging or replicating the plots
@@ -214,22 +162,19 @@ Classes
 
       .. rubric:: Notes
 
-      See the docs for either the matplotlib plots (plots_mpl.py) or the
-      plotly plots (plots_plotly.py). Some visualisations have parameters
-      that differ slightly between the two, and plotly has an additional
-      post_plot function defining some more actions, such as writing to
-      html automatically or displaying figures while facetting.
+      See the docs for the plotly plots (plots_plotly.py)
+      to see further parameters for this plot.
 
-      :rtype: (plt.Axes, go.FigureWidget)
+      :rtype: go.FigureWidget
 
 
-   .. py:method:: plotScoreDistribution(by: str = 'ModelID', show_zero_responses: bool = False, query: Union[str, dict] = None, **kwargs) -> Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]
+   .. py:method:: plotScoreDistribution(by: str = 'ModelID', show_zero_responses: bool = False, modelids: Optional[List] = None, query: Union[str, dict] = None, show_each=False, **kwargs) -> plotly.graph_objs.FigureWidget
 
       Plots the score distribution, similar to OOTB
 
       :param by: What variable to group the data by
-                 One of {ModelID, ModelName}
-      :type by: str, default = ModelName
+                 One of {ModelID, Name}
+      :type by: str, default = Name
       :param show_zero_responses: Whether to include bins with no responses at all
       :type show_zero_responses: bool, default = False
       :param query: The query to supply to _apply_query
@@ -238,7 +183,7 @@ Classes
                     and the corresponding value is a list of values to keep in the dataframe
       :type query: Union[str, dict], default = None
 
-      :keyword plotting_engine: One of {plotly, mpl}, see ADMDatamart class
+      :keyword plotting_engine: 'plotly' or a custom plot class
       :kwtype plotting_engine: str
       :keyword return_df: If set to True, returns the dataframe instead of the plot
                           Can be useful for debugging or replicating the plots
@@ -246,16 +191,13 @@ Classes
 
       .. rubric:: Notes
 
-      See the docs for either the matplotlib plots (plots_mpl.py) or the
-      plotly plots (plots_plotly.py). Some visualisations have parameters
-      that differ slightly between the two, and plotly has an additional
-      post_plot function defining some more actions, such as writing to
-      html automatically or displaying figures while facetting.
+      See the docs for the plotly plots (plots_plotly.py)
+      to see further parameters for this plot.
 
-      :rtype: (plt.Axes, go.FigureWidget)
+      :rtype: go.FigureWidget
 
 
-   .. py:method:: plotPredictorBinning(predictors: list = None, modelids: list = None, query: Union[str, dict] = None, **kwargs) -> Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]
+   .. py:method:: plotPredictorBinning(predictors: list = None, modelids: list = None, show_each=False, query: Union[str, dict] = None, **kwargs) -> plotly.graph_objs.FigureWidget
 
       Plots the binning of given predictors
 
@@ -270,23 +212,21 @@ Classes
                     and the corresponding value is a list of values to keep in the dataframe
       :type query: Union[str, dict], default = None
 
-      :keyword plotting_engine: One of {plotly, mpl}, see ADMDatamart class
+      :keyword plotting_engine: 'plotly' or a custom plot class
       :kwtype plotting_engine: str
       :keyword return_df: If set to True, returns the dataframe instead of the plot
                           Can be useful for debugging or replicating the plots
       :kwtype return_df: bool
-      :keyword Additional keyword arguments:
-      :keyword ----------------------------:
-      :keyword See the docs for either the matplotlib plots (plots_mpl.py) or the:
-      :keyword plotly plots (plots_plotly.py). Some visualisations have parameters:
-      :keyword that differ slightly between the two, and plotly has an additional:
-      :keyword post_plot function defining some more actions, such as writing to:
-      :keyword html automatically or displaying figures while facetting.:
 
-      :rtype: (plt.Axes, go.FigureWidget)
+      .. rubric:: Notes
+
+      See the docs for the plotly plots (plots_plotly.py)
+      to see further parameters for this plot.
+
+      :rtype: go.FigureWidget
 
 
-   .. py:method:: plotPredictorPerformance(top_n: int = 0, active_only: bool = False, to_plot='Performance', query: Union[str, dict] = None, facets: Optional[list] = None, **kwargs) -> Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]
+   .. py:method:: plotPredictorPerformance(top_n: int = 0, active_only: bool = False, to_plot='Performance', query: Union[str, dict] = None, facets: Optional[list] = None, **kwargs) -> plotly.graph_objs.FigureWidget
 
       Plots a bar chart of the performance of the predictors
 
@@ -309,23 +249,21 @@ Classes
                                Useful if you want to be more specific in the legend of the plot
                                Function should return a string from a string
       :kwtype categorization: method
-      :keyword plotting_engine: One of {plotly, mpl}, see ADMDatamart class
+      :keyword plotting_engine: 'plotly' or a custom plot class
       :kwtype plotting_engine: str
       :keyword return_df: If set to True, returns the dataframe instead of the plot
                           Can be useful for debugging or replicating the plots
       :kwtype return_df: bool
-      :keyword Additional keyword arguments:
-      :keyword ----------------------------:
-      :keyword See the docs for either the matplotlib plots (plots_mpl.py) or the:
-      :keyword plotly plots (plots_plotly.py). Some visualisations have parameters:
-      :keyword that differ slightly between the two, and plotly has an additional:
-      :keyword post_plot function defining some more actions, such as writing to:
-      :keyword html automatically or displaying figures while facetting.:
 
-      :rtype: (plt.Axes, go.FigureWidget)
+      .. rubric:: Notes
+
+      See the docs for the plotly plots (plots_plotly.py)
+      to see further parameters for this plot.
+
+      :rtype: go.FigureWidget
 
 
-   .. py:method:: plotPredictorPerformanceHeatmap(top_n: int = 0, active_only: bool = False, query: Union[str, dict] = None, facets: list = None, **kwargs) -> Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]
+   .. py:method:: plotPredictorPerformanceHeatmap(top_n: int = 0, by='Name', active_only: bool = False, query: Union[str, dict] = None, facets: list = None, **kwargs) -> plotly.graph_objs.FigureWidget
 
       Plots heatmap of the performance of the predictors
 
@@ -344,7 +282,7 @@ Classes
       :param facets: Whether to add facets to the plot, should be a list of columns
       :type facets: list, default = None
 
-      :keyword plotting_engine: One of {plotly, mpl}, see ADMDatamart class
+      :keyword plotting_engine: 'plotly' or a custom plot class
       :kwtype plotting_engine: str
       :keyword return_df: If set to True, returns the dataframe instead of the plot
                           Can be useful for debugging or replicating the plots
@@ -352,43 +290,13 @@ Classes
 
       .. rubric:: Notes
 
-      See the docs for either the matplotlib plots (plots_mpl.py) or the
-      plotly plots (plots_plotly.py). Some visualisations have parameters
-      that differ slightly between the two, and plotly has an additional
-      post_plot function defining some more actions, such as writing to
-      html automatically or displaying figures while facetting.
+      See the docs for the plotly plots (plots_plotly.py)
+      to see further parameters for this plot.
 
-      :rtype: (plt.Axes, go.FigureWidget)
+      :rtype: go.FigureWidget
 
 
-   .. py:method:: plotImpactInfluence(ModelID: str = None, query: Union[str, dict] = None, **kwargs) -> matplotlib.pyplot.Axes
-
-      Plots the impact and the influence of a given model's predictors
-
-      :param ModelID: The selected model ID
-      :type ModelID: str, default = None
-      :param query: The query to supply to _apply_query
-                    If a string, uses the default Pandas query function
-                    Else, a dict of lists where the key is the column name of the dataframe
-                    and the corresponding value is a list of values to keep in the dataframe
-      :type query: Union[str, dict], default = None
-      :param facets: Whether to add facets to the plot, should be a list of columns
-      :type facets: list, default = None
-
-      :keyword plotting_engine: This chart is only supported in matplotlib (mpl)
-      :kwtype plotting_engine: str
-      :keyword return_df: If set to True, returns the dataframe instead of the plot
-                          Can be useful for debugging or replicating the plots
-      :kwtype return_df: bool
-
-      .. rubric:: Notes
-
-      See the docs for the matplotlib plots (plots_mpl.py).
-
-      :rtype: plt.Axes
-
-
-   .. py:method:: plotResponseGain(by: str = 'Channel', query: Union[str, dict] = None, **kwargs) -> plotly.graph_objs.FigureWidget
+   .. py:method:: plotResponseGain(by: str = 'Channel', query: Union[str, dict] = None, facets=None, **kwargs) -> plotly.graph_objs.FigureWidget
 
       Plots the cumulative response per model
 
@@ -418,7 +326,7 @@ Classes
       :rtype: go.FigureWidget
 
 
-   .. py:method:: plotModelsByPositives(by: str = 'Channel', query: Union[str, dict] = None, **kwargs) -> plotly.graph_objs.FigureWidget
+   .. py:method:: plotModelsByPositives(by: str = 'Channel', query: Union[str, dict] = None, facets=None, **kwargs) -> plotly.graph_objs.FigureWidget
 
       Plots the percentage of models vs the number of positive responses
 

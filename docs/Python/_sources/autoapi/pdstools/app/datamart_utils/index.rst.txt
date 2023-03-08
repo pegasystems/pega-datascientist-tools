@@ -43,32 +43,29 @@ Functions
 .. py:class:: Filters
 
    .. py:attribute:: params
-      :annotation: :Dict
+      :type: Dict
 
       
 
    .. py:attribute:: df
-      :annotation: :pandas.DataFrame
+      :type: pandas.DataFrame
 
       
 
    .. py:attribute:: categoricals
-      
 
       
 
    .. py:attribute:: numericals
-      
 
       
 
    .. py:attribute:: dateFields
-      
 
       
 
    .. py:attribute:: pandasquery
-      :annotation: = 
+      :value: ''
 
       
 

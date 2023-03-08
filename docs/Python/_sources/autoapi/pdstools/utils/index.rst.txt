@@ -12,5 +12,7 @@ Submodules
 
    cdh_utils/index.rst
    datasets/index.rst
+   errors/index.rst
+   types/index.rst
 
 

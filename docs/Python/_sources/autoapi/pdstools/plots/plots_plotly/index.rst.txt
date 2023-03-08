@@ -27,7 +27,7 @@ Classes
       :staticmethod:
 
 
-   .. py:method:: PerformanceSuccessRateBubbleChart(df, add_bottom_left_text=True, facets=None, context_keys=None, **kwargs)
+   .. py:method:: PerformanceSuccessRateBubbleChart(df, add_bottom_left_text=True, facet=None, context_keys=None, **kwargs)
 
       Creates bubble chart similar to ADM OOTB reports
 
@@ -57,7 +57,7 @@ Classes
       :rtype: px.Figure
 
 
-   .. py:method:: OverTime(df, metric='Performance', by='ModelID', facets=None, **kwargs)
+   .. py:method:: OverTime(df, metric='Performance', by='ModelID', facet=None, **kwargs)
 
       Shows metric of models over time
 
@@ -70,7 +70,7 @@ Classes
       :rtype: plt.figure
 
 
-   .. py:method:: PropositionSuccessRates(df, metric='SuccessRate', by='ModelName', show_error=True, facets=None, **kwargs)
+   .. py:method:: PropositionSuccessRates(df, metric='SuccessRate', by='Name', show_error=True, facet=None, **kwargs)
 
       Shows all latest proposition success rates
 
@@ -86,7 +86,7 @@ Classes
       :rtype: plt.figure
 
 
-   .. py:method:: ScoreDistribution(df, show_zero_responses: bool = False, **kwargs)
+   .. py:method:: ScoreDistribution(df, facet, **kwargs)
 
       Show score distribution similar to ADM out-of-the-box report
 
@@ -107,7 +107,7 @@ Classes
       :rtype: plt.figure
 
 
-   .. py:method:: PredictorBinning(df, **kwargs)
+   .. py:method:: PredictorBinning(df, facet, **kwargs)
 
       Show predictor graphs for a given model
 
@@ -129,7 +129,7 @@ Classes
       :rtype: plt.figure
 
 
-   .. py:method:: PredictorPerformance(df, order, facets=None, to_plot='Performance', **kwargs)
+   .. py:method:: PredictorPerformance(df, order, facet, to_plot='Performance', **kwargs)
 
       Shows a box plot of predictor performance
 
@@ -158,7 +158,7 @@ Classes
       :rtype: px.Figure
 
 
-   .. py:method:: PredictorPerformanceHeatmap(df, facets=None, **kwargs)
+   .. py:method:: PredictorPerformanceHeatmap(df, facet=None, **kwargs)
 
       Shows a heatmap plot of predictor performance across models
 
@@ -187,7 +187,7 @@ Classes
       :rtype: px.Figure
 
 
-   .. py:method:: ResponseGain(df, by='Channel', **kwargs)
+   .. py:method:: ResponseGain(df, by='Channel', facet=None, **kwargs)
 
       Plots the cumulative response per model, subsetted by 'by'
 
