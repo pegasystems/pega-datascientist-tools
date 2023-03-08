@@ -6,7 +6,7 @@ Various utilities to access and manipulate data from Pega for purposes
 of data analysis, reporting and monitoring.
 """
 
-from typing import List, Union
+from typing import List, Union, Literal
 import pandas as pd
 import polars as pl
 import os
@@ -321,9 +321,9 @@ def cache_to_file(
     df: Union[pl.DataFrame, pl.LazyFrame],
     path: os.PathLike,
     name: str,
-    cache_type: str = "ipc",
+    cache_type: Literal['ipc', 'parquet'] = "ipc",
     compression: str = "uncompressed",
-) -> os.PathLike:
+) -> str:
     """Very simple convenience function to cache data.
     Caches in arrow format for very fast reading.
 

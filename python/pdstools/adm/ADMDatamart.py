@@ -135,9 +135,12 @@ class ADMDatamart(Plots):
             print(
                 "Could not be combined. Do you have both model data and predictor data?"
             )
-        self.context_keys = [
-            key for key in self.context_keys if key in self.modelData.columns
-        ]
+        self.context_keys = (
+            [key for key in self.context_keys if key in self.modelData.columns]
+            if self.modelData is not None
+            else context_keys
+        )
+
         self.plotting_engine = plotting_engine
         super().__init__()
 
@@ -293,7 +296,7 @@ class ADMDatamart(Plots):
     def _import_utils(
         self,
         name: Union[str, any_frame],
-        path: str = None,
+        path: Optional[str] = None,
         *,
         subset: bool = True,
         extract_keys: bool = False,
@@ -345,21 +348,22 @@ class ADMDatamart(Plots):
             df = cdh_utils.readDSExport(
                 filename=name, path=path, verbose=self.verbose, **reading_opts
             )
+        elif isinstance(name, pl.DataFrame) or isinstance(name, pl.LazyFrame):
+            df = name.lazy()
         else:
-            df = name
-        if not isinstance(df, pl.LazyFrame):
             return None, None, None
 
         self.model_snapshots = True
 
         df = cdh_utils._polarsCapitalize(df)
-        df, cols, missing = self._available_columns(
+        cols, missing = self._available_columns(
             df, include_cols=include_cols, drop_cols=drop_cols
         )
         if subset:
             df = df.select(cols)
         if extract_keys:
             df = self.extract_keys(df)
+            df = cdh_utils._polarsCapitalize(df)
 
         df = self._set_types(
             df,
@@ -387,7 +391,7 @@ class ADMDatamart(Plots):
         df: pl.LazyFrame,
         include_cols: Optional[list] = None,
         drop_cols: Optional[list] = None,
-    ) -> Tuple[pl.LazyFrame, set, set]:
+    ) -> Tuple[set, set]:
         """Based on the default names for variables, rename available data to proper formatting
 
         Parameters
@@ -447,7 +451,7 @@ class ADMDatamart(Plots):
         missing = {col for col in include_cols if col not in df.columns}
         to_import = include_cols.intersection(set(df.columns))
 
-        return df, to_import, missing
+        return to_import, missing
 
     @staticmethod
     def _set_types(
@@ -484,7 +488,9 @@ class ADMDatamart(Plots):
                 if col in set(df.columns):
                     to_retype.append(pl.col(col).cast(type))
         df = df.with_columns(to_retype)
-        if df.schema["SnapshotTime"] == pl.Utf8:
+        if "SnapshotTime" not in df.columns:
+            df = df.with_columns(SnapshotTime=None)
+        elif df.schema["SnapshotTime"] == pl.Utf8:
             df = df.with_columns(
                 pl.col("SnapshotTime").str.strptime(
                     pl.Datetime,
@@ -527,7 +533,10 @@ class ADMDatamart(Plots):
     @staticmethod
     def _last(df: any_frame) -> any_frame:
         """Method to retrieve only the last snapshot."""
-        return df.filter(pl.col("SnapshotTime") == pl.col("SnapshotTime").max())
+        return df.filter(
+            pl.col("SnapshotTime").fill_null(1)
+            == pl.col("SnapshotTime").fill_null(1).max()
+        )
 
     def get_combined_data(
         self, last=True, strategy: Literal["eager", "lazy"] = "eager"
@@ -579,7 +588,9 @@ class ADMDatamart(Plots):
             )
         return modeldata_cache, predictordata_cache
 
-    def _apply_query(self, df: any_frame, query: Union[str, dict] = None) -> any_frame:
+    def _apply_query(
+        self, df: any_frame, query: Union[str, dict] = None
+    ) -> pl.LazyFrame:
         """Given an input pandas dataframe, it filters the dataframe based on input query
 
         Parameters
@@ -590,9 +601,11 @@ class ADMDatamart(Plots):
             and the corresponding value is a list of values to keep in the dataframe
         Returns
         -------
-        pd.DataFrame
+        pl.LazyFrame
             Filtered Pandas DataFrame
         """
+        if isinstance(df, pl.DataFrame):
+            df = df.lazy()
         if query is not None:
             if isinstance(query, pl.Expr):
                 col_diff = set(query.meta.root_names()) - set(df.columns)
@@ -608,10 +621,14 @@ class ADMDatamart(Plots):
                     "to Polars. For faster performance, please pass a Polars Expression ",
                     "which can be used in the `filter()` method.",
                 )
-                if isinstance(df, pl.LazyFrame):
+                if not self.import_strategy == "eager":
                     raise NotEagerError("Applying pandas queries")
                 else:
-                    return pl.DataFrame(df.to_pandas().query(query))
+                    return pl.LazyFrame(
+                        df.collect()
+                        .to_pandas(use_pyarrow_extension_array=True)
+                        .query(query)
+                    )
 
             if not isinstance(query, dict):
                 raise TypeError("query must be a dict where values are lists")

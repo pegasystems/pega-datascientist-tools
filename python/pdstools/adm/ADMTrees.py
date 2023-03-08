@@ -24,7 +24,7 @@ import copy
 
 
 class ADMTrees:
-    def __new__(self, file, n_threads=6, verbose=True, **kwargs):
+    def __new__(cls, file, n_threads=6, verbose=True, **kwargs):
         if isinstance(file, pl.DataFrame):
             logging.info("DataFrame supplied.")
             file = file.filter(pl.col("Modeldata").is_not_null())
@@ -34,7 +34,7 @@ class ADMTrees:
                     print(
                         f"AGB models found: {file.select(pl.col('Configuration').unique())}"
                     )
-                return self.getMultiTrees(
+                return cls.getMultiTrees(
                     file=file, n_threads=n_threads, verbose=verbose, **kwargs
                 )
             else:
