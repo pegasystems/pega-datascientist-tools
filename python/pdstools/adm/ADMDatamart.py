@@ -234,8 +234,9 @@ class ADMDatamart(Plots):
                 (pl.col("Positives") / pl.col("ResponseCount"))
                 .fill_nan(pl.lit(0))
                 .alias("SuccessRate"),
+                self._last_timestamp("Positives"),
+                self._last_timestamp("ResponseCount"),
             )
-            df1 = self._add_last_response_col(df1)
         if predictor_df is not None:
             df2, self.renamed_preds, self.missing_preds = self._import_utils(
                 name=predictor_df,
@@ -540,31 +541,23 @@ class ADMDatamart(Plots):
             == pl.col("SnapshotTime").fill_null(1).max()
         )
 
-    def _add_last_response_col(self, df: any_frame) -> any_frame:
-        """Adds LastResponse column to a dataframe
+    @staticmethod
+    def _last_timestamp(col: Literal["ResponseCount", "Positives"]) -> pl.Expr:
+        """Add a column to indicate the last timestamp a column has changed.
+
         Parameters
         ----------
-        df : LazyFrame
-            Table to add the LastResponse column
-
-        Returns
-        -------
-        Union[pl.DataFrame, pl.LazyFrame]
-            Input DataFrame with LastResponse column added to it
+        col : Literal['ResponseCount', 'Positives']
+            The column to calculate the diff for
         """
 
-        last_snapshot_per_model = (
-            df.with_columns(
-                ((pl.col("ResponseCount").diff().alias("DailyDiff") > 0)).over(
-                    "ModelID"
-                )
-            )
-            .filter(pl.col("DailyDiff") == True)
-            .groupby("ModelID")
-            .agg(pl.max("SnapshotTime").alias("LastResponse"))
-        ).select(["ModelID", "LastResponse"])
-
-        return df.join(last_snapshot_per_model, on="ModelID", how="left")
+        return (
+            pl.col("SnapshotTime")
+            .where(pl.col(col).diff() != 0)
+            .max()
+            .over("ModelID")
+            .alias(f"Last_{col}")
+        )
 
     def _get_combined_data(
         self, last=True, strategy: Literal["eager", "lazy"] = "eager"
@@ -621,7 +614,11 @@ class ADMDatamart(Plots):
             )
         return modeldata_cache, predictordata_cache
 
-    def _apply_query(self, df: any_frame, query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None) -> pl.LazyFrame:
+    def _apply_query(
+        self,
+        df: any_frame,
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
+    ) -> pl.LazyFrame:
         """Given an input pandas dataframe, it filters the dataframe based on input query
 
         Parameters
