@@ -708,6 +708,14 @@ class ADMDatamart(Plots):
     def discover_modelTypes(self, df: pl.LazyFrame, by="Configuration"):
         if self.import_strategy != "eager":
             raise NotEagerError("Discovering AGB models")
+        if "Modeldata" not in df.columns:
+            raise ValueError(
+                (
+                    "Modeldata column not in the data. "
+                    "Please make sure to include it by using the 'include_cols' "
+                    "argument with your ADMDatamart call, or setting 'subset' to False."
+                )
+            )
 
         def _getType(val):
             import zlib
@@ -765,14 +773,6 @@ class ADMDatamart(Plots):
 
         """
         df = self.modelData
-        if "Modeldata" not in df.columns:
-            raise ValueError(
-                (
-                    "Modeldata column not in the data. "
-                    "Please make sure to include it by using the 'include_cols' "
-                    "argument with your ADMDatamart call, or setting 'subset' to False."
-                )
-            )
         if query is not None:
             df = self._apply_query(df, query)
 
@@ -938,11 +938,14 @@ class ADMDatamart(Plots):
         df : pl.LazyFrame
             The input DataFrame.
         by : Union[str, list], default = Name
-            The column(s) to pivot the DataFrame by. If a list is provided, only the first element is used.
+            The column(s) to pivot the DataFrame by. 
+            If a list is provided, only the first element is used.
         allow_collect : bool, default = True
-            Whether to allow eager computation. If set to False and the import strategy is "lazy", an error will be raised.
+            Whether to allow eager computation. 
+            If set to False and the import strategy is "lazy", an error will be raised.
         top_n : int, optional (default=0)
-            The number of rows to include in the pivoted DataFrame. If set to 0, all rows are included.
+            The number of rows to include in the pivoted DataFrame. 
+            If set to 0, all rows are included.
 
         Returns
         -------
@@ -966,7 +969,7 @@ class ADMDatamart(Plots):
 
         if top_n > 0:
             df = (
-                df.with_column(pl.col("PerformanceBin").fill_nan(0.5))
+                df.with_columns(pl.col("PerformanceBin").fill_nan(0.5))
                 .sort("PerformanceBin", reverse=True)
                 .head(top_n)
             )
