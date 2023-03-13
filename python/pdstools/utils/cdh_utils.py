@@ -190,8 +190,7 @@ def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
         if reading_opts.get("verbose", False):
             print(f"file to be read: {file}")
         if isinstance(file, BytesIO):
-            with pl.StringCache():
-                file = pl.read_ipc(file).lazy()
+            file = pl.read_ipc(file).lazy()
         else:
             file = pl.scan_ipc(file)
 
@@ -331,7 +330,7 @@ def cache_to_file(
     df: Union[pl.DataFrame, pl.LazyFrame],
     path: os.PathLike,
     name: str,
-    cache_type: Literal['ipc', 'parquet'] = "ipc",
+    cache_type: Literal["ipc", "parquet"] = "ipc",
     compression: str = "uncompressed",
 ) -> str:
     """Very simple convenience function to cache data.
