@@ -12,9 +12,6 @@ from ..plots.plot_base import Plots
 from ..plots.plots_plotly import ADMVisualisations as plotly_plot
 from ..utils.errors import NotEagerError
 
-pl.toggle_string_cache = True
-
-
 class ADMDatamart(Plots):
     """Main class for importing, preprocessing and structuring Pega ADM Datamart.
     Gets all available data, properly names and merges into one main dataframe
@@ -131,7 +128,7 @@ class ADMDatamart(Plots):
         )
 
         if self.modelData is not None and self.predictorData is not None:
-            self.combinedData = self._get_combined_data()
+            self.combinedData = self._get_combined_data(strategy=self.import_strategy)
         elif verbose:
             print(
                 "Could not be combined. Do you have both model data and predictor data?"
@@ -255,7 +252,7 @@ class ADMDatamart(Plots):
                 **reading_opts,
             )
         if df2 is not None:
-            if "BinResponseCount" not in df2.columns:
+            if "BinResponseCount" not in df2.columns:  # pragma: no cover
                 df2 = df2.with_columns(
                     (pl.col("BinPositives") + pl.col("BinNegatigves")).alias(
                         "BinResponseCount"
@@ -276,7 +273,7 @@ class ADMDatamart(Plots):
                 set(self.missing_model)
                 & set(self.missing_preds) - set(df1.columns) - set(df2.columns)
             ) - {"Treatment"}
-            if len(total_missing) > 0 and verbose:
+            if len(total_missing) > 0 and verbose:  # pragma: no cover
                 print(
                     "Missing expected field values.\n",
                     "Please check if they are available in the data,\n",
@@ -288,11 +285,10 @@ class ADMDatamart(Plots):
                 df2 = df2.join(df1.select(pl.col("ModelID").unique()), on="ModelID")
 
         if self.import_strategy == "eager":
-            with pl.StringCache():
-                if df1 is not None:
-                    df1 = df1.collect().lazy()
-                if df2 is not None:
-                    df2 = df2.collect().lazy()
+            if df1 is not None:
+                df1 = df1.collect().lazy()
+            if df2 is not None:
+                df2 = df2.collect().lazy()
         return df1, df2
 
     def _import_utils(
@@ -528,10 +524,9 @@ class ADMDatamart(Plots):
         elif isinstance(table, str):
             assert table in {"modelData", "predictorData", "combinedData"}
             df = self._last(getattr(self, table))
-        else:
+        else:  # pragma: no cover
             raise ValueError("This should not happen, please file a GitHub issue :).")
-        with pl.StringCache():
-            return df if not strategy == "eager" else df.collect()
+        return df if not strategy == "eager" else df.collect()
 
     @staticmethod
     def _last(df: any_frame) -> any_frame:
@@ -583,8 +578,7 @@ class ADMDatamart(Plots):
         preds = self.last(self.predictorData, "lazy") if last else self.predictorData
         combined = models.join(preds, on="ModelID", how="inner", suffix="Bin")
         if strategy == "eager":
-            with pl.StringCache():
-                return combined.collect().lazy()
+            return combined.collect().lazy()
         else:
             return combined
 
@@ -641,8 +635,7 @@ class ADMDatamart(Plots):
             if isinstance(query, pl.Expr):
                 col_diff = set(query.meta.root_names()) - set(df.columns)
                 if len(col_diff) == 0:
-                    with pl.StringCache():
-                        return df.filter(query)
+                    return df.filter(query)
 
                 else:
                     raise pl.ColumnNotFoundError(col_diff)
@@ -705,7 +698,9 @@ class ADMDatamart(Plots):
             .lazy()
         )
 
-    def discover_modelTypes(self, df: pl.LazyFrame, by="Configuration"):
+    def discover_modelTypes(
+        self, df: pl.LazyFrame, by="Configuration"
+    ):  # pragma: no cover
         if self.import_strategy != "eager":
             raise NotEagerError("Discovering AGB models")
         if "Modeldata" not in df.columns:
@@ -729,15 +724,14 @@ class ADMDatamart(Plots):
 
         if isinstance(df, pl.DataFrame):
             df = df.lazy()
-        with pl.StringCache():
-            types = (
-                df.filter(pl.col("Modeldata").is_not_null())
-                .groupby(by)
-                .agg(pl.col("Modeldata").last())
-                .collect()
-                .with_columns(pl.col("Modeldata").apply(lambda v: _getType(v)))
-                .to_dicts()
-            )
+        types = (
+            df.filter(pl.col("Modeldata").is_not_null())
+            .groupby(by)
+            .agg(pl.col("Modeldata").last())
+            .collect()
+            .with_columns(pl.col("Modeldata").apply(lambda v: _getType(v)))
+            .to_dicts()
+        )
         return {key: value for key, value in [i.values() for i in types]}
 
     def get_AGB_models(
@@ -748,7 +742,7 @@ class ADMDatamart(Plots):
         query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
         verbose: bool = True,
         **kwargs,
-    ) -> Dict:
+    ) -> Dict:  # pragma: no cover
         """Method to automatically extract AGB models.
 
         Recommended to subset using the querying functionality
@@ -782,9 +776,8 @@ class ADMDatamart(Plots):
         ]
         logging.info(f"Found AGB models: {AGB_models}")
         df = df.filter(pl.col("Configuration").is_in(AGB_models))
-        with pl.StringCache():
-            if df.select(pl.col("ModelID").n_unique()).collect().item() == 0:
-                raise ValueError("No models found.")
+        if df.select(pl.col("ModelID").n_unique()).collect().item() == 0:
+            raise ValueError("No models found.")
 
         if last:
             return ADMTrees(
@@ -938,13 +931,13 @@ class ADMDatamart(Plots):
         df : pl.LazyFrame
             The input DataFrame.
         by : Union[str, list], default = Name
-            The column(s) to pivot the DataFrame by. 
+            The column(s) to pivot the DataFrame by.
             If a list is provided, only the first element is used.
         allow_collect : bool, default = True
-            Whether to allow eager computation. 
+            Whether to allow eager computation.
             If set to False and the import strategy is "lazy", an error will be raised.
         top_n : int, optional (default=0)
-            The number of rows to include in the pivoted DataFrame. 
+            The number of rows to include in the pivoted DataFrame.
             If set to 0, all rows are included.
 
         Returns
@@ -973,13 +966,12 @@ class ADMDatamart(Plots):
                 .sort("PerformanceBin", reverse=True)
                 .head(top_n)
             )
-        with pl.StringCache():
-            df = (
-                df.collect()
-                .pivot(index=by, columns="PredictorName", values="PerformanceBin")
-                .fill_null(0.5)
-                .fill_nan(0.5)
-            )
+        df = (
+            df.collect()
+            .pivot(index=by, columns="PredictorName", values="PerformanceBin")
+            .fill_null(0.5)
+            .fill_nan(0.5)
+        )
         mod_order = (
             df.select(
                 pl.concat_list(pl.col(pl.Float64))
@@ -1043,7 +1035,7 @@ class ADMDatamart(Plots):
            DataFrame with PositivesBin column and model count statistics
         """
         if self.import_strategy == "lazy" and not allow_collect:
-            raise ValueError("Only supported in eager mode.")
+            raise NotEagerError("Models by positive df.")
 
         def orderedCut(
             s, label="PositivesBin", bins=list(range(0, 210, 10))
@@ -1064,8 +1056,7 @@ class ADMDatamart(Plots):
                 .to_series()
             )
 
-        with pl.StringCache():
-            modelsByPositives = df.select([by, "Positives", "ModelID"]).collect()
+        modelsByPositives = df.select([by, "Positives", "ModelID"]).collect()
         return (
             modelsByPositives.hstack(
                 [
