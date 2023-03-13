@@ -30,6 +30,26 @@ class Shape:
         return (ldf.select(pl.first().count()).collect().item(), len(ldf.columns))
 
 
+@pl.api.register_lazyframe_namespace("frame")
+class Equals:
+    """Get the shape of a lazy dataframe.
+
+    This is just for testing purposes. This will break the computation graph.
+    For testing it's convenient though because we can use shape interchangeably
+    for both dataframes as well as lazyframes.
+    """
+
+    def __init__(self, ldf: pl.LazyFrame):
+        self.ldf = ldf
+
+    def equal(self, other):
+        df = self.ldf.with_columns(pl.col(pl.Categorical).cast(pl.Utf8)).collect()
+        other = other.with_columns(pl.col(pl.Categorical).cast(pl.Utf8)).collect()
+        return all(
+            df.get_column(col).series_equal(other.get_column(col)) for col in df.columns
+        )
+
+
 @pytest.fixture
 def test():
     """Fixture to serve as class to call functions from."""
@@ -42,7 +62,9 @@ def test():
 
 
 def test_basic_available_columns(test):
-    df = pl.DataFrame(schema=["ModelID", "Issue", "Unknown", "Auc", "ResponseCount"])
+    df = pl.DataFrame(
+        schema=["ModelID", "Issue", "Unknown", "Auc", "ResponseCount", "ModelName"]
+    )
     include_cols = ["Auc"]
     drop_cols = ["Issue"]
 
@@ -55,7 +77,7 @@ def test_basic_available_columns(test):
     assert {"ModelID", "Issue", "ResponseCount"} not in missing
     assert "ResponseCount" in variables
     assert "Performance" not in variables
-    assert "Name" in missing
+    assert "Name" not in missing
 
     # Testing include_cols & drop_cols
     assert "Issue" not in variables
@@ -159,24 +181,30 @@ def test_extract_treatment(test, data):
     out = test.extract_keys(jsonnames).collect()
     assert list(out["pyName"]) == ["ABC", "abc", "ABCD"]
     assert list(out["pyTreatment"]) == ["XYZ", "xyz", "XYZ1"]
+    # Just checking that this'll work without raising errors
+    ADMDatamart(
+        path="data",
+        model_filename="Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip",
+        predictor_filename=None,
+        extract_keys=True,
+        verbose=True,
+    )
 
 
 def test_apply_query(test, data):
     mods = ["model1", "model2"]
     frames = [
         # with lazyframe
-        test._apply_query(data, query=pl.col("pymodelid").is_in(mods)).collect(),
+        test._apply_query(data, query=pl.col("pymodelid").is_in(mods)),
         # with eager frame
-        test._apply_query(
-            data.collect(), query=pl.col("pymodelid").is_in(mods)
-        ).collect(),
+        test._apply_query(data.collect(), query=pl.col("pymodelid").is_in(mods)),
         # with dict-based query
-        test._apply_query(data, query={"pymodelid": mods}).collect(),
+        test._apply_query(data, query={"pymodelid": mods}),
         # with pandas query
-        test._apply_query(data, query=f"pymodelid.isin({mods})").collect(),
+        test._apply_query(data, query=f"pymodelid.isin({mods})"),
     ]
     assert all(
-        frame1.frame_equal(frame2)
+        frame1.frame.equal(frame2)
         for frame1, frame2 in itertools.combinations(frames, 2)
     )
 
@@ -257,7 +285,9 @@ def cdhsample_predictors():
 
 def test_import_models_only(cdhsample_models):
     assert cdhsample_models.shape == (20, 23)
-    output = ADMDatamart(model_df=cdhsample_models, predictor_filename=None)
+    output = ADMDatamart(
+        model_df=cdhsample_models, predictor_filename=None, verbose=True
+    )
     assert output.modelData is not None
     assert output.modelData.shape == (20, 13)
     assert output.predictorData is None
@@ -271,6 +301,8 @@ def test_init_preds_only(cdhsample_predictors):
     assert output.predictorData.shape == (1755, 17)
     assert not hasattr(output, "combinedData")
     assert output.context_keys == ["Channel", "Direction", "Issue", "Group"]
+    with pytest.raises(ValueError):
+        output.get_model_stats()
 
 
 def test_init_both(cdhsample_models, cdhsample_predictors):
@@ -315,13 +347,26 @@ def test_eagerFunctionalityFailsInLazy(test):
             import_strategy="lazy",
             query="Channel=='Web'",
         )
+    lazyADM = ADMDatamart(
+        path="data",
+        model_filename="Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip",
+        predictor_filename="Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip",
+        import_strategy="lazy",
+    )
     with pytest.raises(errors.NotEagerError):
-        ADMDatamart(
-            path="data",
-            model_filename="Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip",
-            predictor_filename="Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip",
-            import_strategy="lazy",
-        ).discover_modelTypes(test.modelData)
+        lazyADM.discover_modelTypes(test.modelData)
+    with pytest.raises(errors.NotEagerError):
+        lazyADM.models_by_positives_df(test.modelData, allow_collect=False)
+    with pytest.raises(errors.NotEagerError):
+        lazyADM.pivot_df(lazyADM.modelData, allow_collect=False)
+
+
+def test_explicit_plotting_engine(test):
+    from pdstools.plots.plots_plotly import ADMVisualisations as plotly
+
+    test.get_engine(plotly)
+    with pytest.raises(ValueError):
+        test.get_engine("UNDEFINED ENGINE")
 
 
 def test_last():
@@ -332,12 +377,13 @@ def test_last_timestamp():
     pass
 
 
-def test_available_columns():
-    pass
+def test_save_data(test):
+    out = test.save_data()
+    imported = ADMDatamart(".")
+    assert imported.modelData.frame.equal(test.modelData)
+    from os import remove
 
-
-def test_save_data():
-    pass
+    [remove(f) for f in out]
 
 
 def test_discover_modelTypes():
@@ -345,15 +391,22 @@ def test_discover_modelTypes():
 
 
 def test_create_sign_df():
-    pass
+    from pdstools import datasets
+
+    dm = datasets.CDHSample()
+    dm._create_sign_df(dm.combinedData).collect()
+    dm._create_sign_df(dm.combinedData, pivot=False).collect()
+    dm._create_sign_df(dm.combinedData, mask=False).collect()
+    # TODO: make this a good test rather than test for no fail
 
 
 def test_model_summary():
     pass
 
 
-def test_pivot_df():
-    pass
+def test_pivot_df(test):
+    test.pivot_df(test.combinedData, by="Configuration")
+    # TODO: make this a good test rather than test for no fail
 
 
 def test_response_gain_df():
@@ -368,5 +421,6 @@ def test_get_model_stats():
     pass
 
 
-def test_describe_models():
-    pass
+def test_describe_models(test):
+    test.describe_models()
+    # TODO: make this a good test rather than test for no fail
