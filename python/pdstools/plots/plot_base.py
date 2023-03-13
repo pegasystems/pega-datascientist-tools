@@ -64,7 +64,7 @@ class Plots:
                 "plotTreeMap": [1, 0, 0],
             },
         )
-        df = df.transpose().with_column(pl.Series(df.columns))
+        df = df.transpose().with_columns(pl.Series(df.columns))
         df.columns = ["modelData", "predictorData", "Multiple snapshots", "Type"]
         return df.select(["Type", "modelData", "predictorData", "Multiple snapshots"])
 
@@ -463,7 +463,7 @@ class Plots:
                         weighed_performance_polars().alias("weighted_performance"),
                     ]
                 )
-                .with_column(pl.col("weighted_performance") * 100)
+                .with_columns(pl.col("weighted_performance") * 100)
             ).sort(["SnapshotTime", by])
         else:
             df = self._create_sign_df(
@@ -840,12 +840,12 @@ class Plots:
                 df.groupby("PredictorName")
                 .agg(pl.median(to_plot))
                 .fill_nan(0)
-                .sort(to_plot, reverse=False)
+                .sort(to_plot, descending=False)
                 .get_column("PredictorName")
                 .to_list()
             )
         if to_plot == "PerformanceBin":
-            df = df.with_column(pl.col(to_plot) * 100)
+            df = df.with_columns(pl.col(to_plot) * 100)
         if kwargs.pop("return_df", False):
             return df, order
 
@@ -1039,7 +1039,7 @@ class Plots:
 
         df, facet_col = self._generateFacets(df, by)
         df = self.pivot_df(df, by=facet_col, top_n=top_n)
-        df = df.with_column(pl.all().exclude(facet_col) * 100)
+        df = df.with_columns(pl.all().exclude(facet_col) * 100)
 
         if kwargs.pop("return_df", False):
             return df
@@ -1258,7 +1258,7 @@ class Plots:
             .rename(mapping)
             .sort(levels)
             .fill_null("Missing")
-            .with_column(
+            .with_columns(
                 (pl.col("Performance weighted mean") * 100).fill_nan(pl.lit(50))
             )
             .fill_nan(0)
@@ -1396,7 +1396,7 @@ class Plots:
         overall = (
             df.groupby(pl.all().exclude(["PredictorName", "Type", "Predictor Count"]))
             .agg(pl.sum("Predictor Count"))
-            .with_column(pl.lit("Overall").alias("Type"))
+            .with_columns(pl.lit("Overall").alias("Type"))
         )
 
         df = (

@@ -15,7 +15,7 @@ from pdstools.utils import pega_template
 class ADMVisualisations:
     @staticmethod
     def distribution_graph(df, title):
-        df = df.to_pandas()
+        df = df.to_pandas(use_pyarrow_extension_array=True)
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(
             go.Bar(x=df["BinSymbol"], y=df["BinResponseCount"], name="Responses")
@@ -109,7 +109,7 @@ class ADMVisualisations:
         bubble_size = kwargs.pop("bubble_size", 1)
         title = "over all models" if facet is None else f"per {facet}"
         fig = px.scatter(
-            df.to_pandas(),
+            df.to_pandas(use_pyarrow_extension_array=True),
             x="Performance",
             y="SuccessRate",
             color="Performance",
@@ -193,13 +193,13 @@ class ADMVisualisations:
             "ResponseCount": ":.d",
         }
         if metric in ["Performance", "weighted_performance", "SuccessRate"]:
-            df = df.to_pandas()
+            df = df.to_pandas(use_pyarrow_extension_array=True)
             x = "SnapshotTime"
             y = metric
             color = by
             hover_data = {by: ":.d", metric: metric_hovers[metric]}
         else:
-            df = df.to_pandas().set_index("SnapshotTime")
+            df = df.to_pandas(use_pyarrow_extension_array=True).set_index("SnapshotTime")
             x = None
             y = "Increase"
             color = by
@@ -260,7 +260,7 @@ class ADMVisualisations:
         title = "over all models" if facet is None else f"per {facet}"
         facet = facet if facet in df.columns else None
         fig = px.histogram(
-            df.to_pandas(),
+            df.to_pandas(use_pyarrow_extension_array=True),
             x=metric,
             y=by,
             color=by,
@@ -278,7 +278,7 @@ class ADMVisualisations:
                 i[0]: i[1]
                 for i in df.groupby(by, maintain_order=True)
                 .agg(pl.std("SuccessRate").fill_nan(0))
-                .iterrows()
+                .iter_rows()
             }
             for i, bar in enumerate(fig.data):
                 fig.data[i]["error_x"] = {
@@ -403,7 +403,7 @@ class ADMVisualisations:
             if facet is None
             else f"per {facet}"
         )
-        df = df.to_pandas()
+        df = df.to_pandas(use_pyarrow_extension_array=True)
         if order:
             df[y] = df[y].astype("category")
             df[y] = df[y].cat.set_categories(order)
@@ -525,7 +525,7 @@ class ADMVisualisations:
         title = "over all models" if facet is None else f"per {facet}"
         if kwargs.get("reindex", None) is not None:
             df = df[kwargs["reindex"]]
-        df = df.to_pandas()
+        df = df.to_pandas(use_pyarrow_extension_array=True)
         df.set_index(df.columns[0], inplace=True)
         fig = px.imshow(
             df.T,
@@ -593,7 +593,7 @@ class ADMVisualisations:
 
         title = f"Cumulative Responses {title}"
         fig = px.line(
-            df.to_pandas(),
+            df.to_pandas(use_pyarrow_extension_array=True),
             x="TotalModelsFraction",
             y="TotalResponseFraction",
             color=by,
@@ -647,7 +647,7 @@ class ADMVisualisations:
 
         title = f"Percentage of models vs number of positive responses {kwargs.get('title_text','')}<br><sup>By {by}</sup>"
         fig = px.line(
-            df.filter(pl.col("ModelCount") > 0).to_pandas(),
+            df.filter(pl.col("ModelCount") > 0).to_pandas(use_pyarrow_extension_array=True),
             x="PositivesBin",
             y="cumModels",
             color=by,
@@ -759,7 +759,7 @@ class ADMVisualisations:
         }
 
         fig = px.treemap(
-            df.to_pandas(),
+            df.to_pandas(use_pyarrow_extension_array=True),
             path=context_keys,
             color=color,
             values=values,
@@ -786,7 +786,7 @@ class ADMVisualisations:
         title = "over all models" if facet == None else f"per {facet}"
 
         fig = px.box(
-            df.to_pandas(),
+            df.to_pandas(use_pyarrow_extension_array=True),
             x="Predictor Count",
             y="Type",
             color="EntryType",

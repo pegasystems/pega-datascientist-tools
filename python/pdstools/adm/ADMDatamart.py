@@ -12,6 +12,7 @@ from ..plots.plot_base import Plots
 from ..plots.plots_plotly import ADMVisualisations as plotly_plot
 from ..utils.errors import NotEagerError
 
+
 class ADMDatamart(Plots):
     """Main class for importing, preprocessing and structuring Pega ADM Datamart.
     Gets all available data, properly names and merges into one main dataframe
@@ -963,7 +964,7 @@ class ADMDatamart(Plots):
         if top_n > 0:
             df = (
                 df.with_columns(pl.col("PerformanceBin").fill_nan(0.5))
-                .sort("PerformanceBin", reverse=True)
+                .sort("PerformanceBin", descending=True)
                 .head(top_n)
             )
         df = (
@@ -1014,7 +1015,7 @@ class ADMDatamart(Plots):
 
     def models_by_positives_df(
         self, df: pl.LazyFrame, by: str = "Channel", allow_collect=True
-    ) -> pl.DataFrame:
+    ) -> pl.LazyFrame:
         """
         Compute statistics on the dataframe by grouping it by a given column `by`
         and computing the count of unique ModelIDs and cumulative percentage of unique
@@ -1040,7 +1041,7 @@ class ADMDatamart(Plots):
         def orderedCut(
             s, label="PositivesBin", bins=list(range(0, 210, 10))
         ) -> pl.Series:
-            _arg_sort = pl.Series(name="_sort", values=s.argsort())
+            _arg_sort = pl.Series(name="_sort", values=s.arg_sort())
             result = pl.cut(
                 s, bins=[bins + [float("inf")]][0], category_label="PositivesBin"
             )

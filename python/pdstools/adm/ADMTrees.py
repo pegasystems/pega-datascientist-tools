@@ -860,7 +860,7 @@ class ADMTreesModel:
 
     def plotContributionPerTree(self, x: Dict, show=True):
         """Plots the contribution of each tree towards the final propensity."""
-        scores = self.getAllVisitedNodes(x).sort("treeID").to_pandas()
+        scores = self.getAllVisitedNodes(x).sort("treeID").to_pandas(use_pyarrow_extension_array=True)
         scores["mean"] = scores["score"].expanding().mean()
         scores["scoresum"] = scores["score"].expanding().sum()
         scores["propensity"] = scores["scoresum"].apply(lambda x: 1 / (1 + exp(-x)))
@@ -933,7 +933,8 @@ class ADMTreesModel:
             to_plot = self.computeCategorizationOverTime(predictorCategorization)[0]
         else:
             to_plot = self.splitsPerVariableType[0]
-        df = pl.DataFrame(to_plot).to_pandas()
+        df = pl.DataFrame(to_plot).to_pandas(use_pyarrow_extension_array=True)
+
         fig = px.area(
             df.reindex(sorted(df.columns), axis=1),
             title="Variable types per tree",
@@ -1034,7 +1035,7 @@ class MultiTrees:
         return pl.concat(outdf, how="diagonal")
 
     def plotSplitsPerVariableType(self, predictorCategorization=None, **kwargs):
-        df = self.computeOverTime(predictorCategorization).to_pandas()
+        df = self.computeOverTime(predictorCategorization).to_pandas(use_pyarrow_extension_array=True)
         fig = px.area(
             df.reindex(sorted(df.columns), axis=1),
             animation_frame="SnapshotTime",
