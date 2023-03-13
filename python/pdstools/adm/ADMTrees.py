@@ -390,7 +390,7 @@ class ADMTreesModel:
         if len(splitvalue) == 1 and isinstance(splitvalue, list):
             splitvalue = splitvalue[0]
 
-        if sign in {"<", ">", "=="}:
+        if sign in {"<", ">", "=="} or splitvalue == "Missing":
             splitvalue = {splitvalue}
         else:
             splitvalue = "".join(splitvalue[1:-1])
@@ -465,12 +465,10 @@ class ADMTreesModel:
         total_split_list = functools.reduce(operator.iconcat, splitlist, [])
         total_gains_list = functools.reduce(operator.iconcat, gainslist, [])
         gainsPerSplit = pl.DataFrame(
-            list(zip(total_split_list, total_gains_list)), columns=["split", "gains"]
+            list(zip(total_split_list, total_gains_list)), schema=["split", "gains"]
         )
-        gainsPerSplit = gainsPerSplit.with_column(
-            pl.col("split")
-            .apply(lambda x: self.parseSplitValues(x)[0])
-            .alias("predictor")
+        gainsPerSplit = gainsPerSplit.with_columns(
+            predictor=pl.col("split").apply(lambda x: self.parseSplitValues(x)[0])
         )
         return splitsPerTree, gainsPerTree, gainsPerSplit
 
@@ -495,7 +493,7 @@ class ADMTreesModel:
                     .alias("values"),
                 ]
             )
-            .with_column(pl.col("gains").arr.lengths().alias("n"))
+            .with_columns(n=pl.col("gains").arr.lengths())
         )
 
     def getSplitsRecursively(
@@ -819,6 +817,9 @@ class ADMTreesModel:
                 splitvalue = f"'{x[variable]}'" if type in {"in", "is"} else x[variable]
                 if save_all:
                     scores += [{current_node["split"]: current_node["gain"]}]
+                if type in {"<", ">"} and isinstance(split, set):
+                    split = float(split.pop())
+                print(f"{variable} {splitvalue} {type} {split}")
                 if eval(f"{splitvalue} {type} {split}"):
                     current_node_id = current_node["left_child"]
                 else:
@@ -848,7 +849,7 @@ class ADMTreesModel:
             splits.append(visits[2])
         df = pl.DataFrame(
             [tree_ids, visited_nodes, score, [str(path) for path in splits]],
-            columns=["treeID", "visited_nodes", "score", "splits"],
+            schema=["treeID", "visited_nodes", "score", "splits"],
         )
         return df
 
@@ -1023,10 +1024,10 @@ class MultiTrees:
             if predictorCategorization is not None:
                 to_plot = tree.computeCategorizationOverTime(predictorCategorization)[0]
             outdf.append(
-                pl.DataFrame(to_plot).with_column(
-                    pl.lit(timestamp)
-                    .str.strptime(pl.Date, fmt="%Y-%m-%d %X")
-                    .alias("SnapshotTime")
+                pl.DataFrame(to_plot).with_columns(
+                    SnapshotTime=pl.lit(timestamp).str.strptime(
+                        pl.Date, fmt="%Y-%m-%d %X"
+                    )
                 )
             )
 
