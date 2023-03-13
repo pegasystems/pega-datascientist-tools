@@ -259,7 +259,7 @@ def test_import_models_only(cdhsample_models):
     assert cdhsample_models.shape == (20, 23)
     output = ADMDatamart(model_df=cdhsample_models, predictor_filename=None)
     assert output.modelData is not None
-    assert output.modelData.shape == (20, 12)
+    assert output.modelData.shape == (20, 13)
     assert output.predictorData is None
     assert not hasattr(output, "combinedData")
     assert output.context_keys == ["Channel", "Issue", "Group"]
@@ -276,10 +276,10 @@ def test_init_preds_only(cdhsample_predictors):
 def test_init_both(cdhsample_models, cdhsample_predictors):
     output = ADMDatamart(model_df=cdhsample_models, predictor_df=cdhsample_predictors)
     assert output.modelData is not None
-    assert output.modelData.shape == (20, 12)
+    assert output.modelData.shape == (20, 13)
     assert output.predictorData is not None
     assert output.predictorData.shape == (1755, 17)
-    assert output.combinedData.shape == (1648, 28)
+    assert output.combinedData.shape == (1648, 29)
     assert output.context_keys == ["Channel", "Issue", "Group"]
 
 
