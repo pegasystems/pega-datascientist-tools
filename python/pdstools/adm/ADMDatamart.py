@@ -949,7 +949,7 @@ class ADMDatamart(Plots):
         if isinstance(by, list):
             by = by[0]
         if self.import_strategy == "lazy" and not allow_collect:
-            raise ValueError("Only supported in eager mode.")
+            raise NotEagerError("Pivot df.")
         df = df.filter(pl.col("PredictorName") != "Classifier")
         if by not in ["ModelID", "Name"]:
             df = (
