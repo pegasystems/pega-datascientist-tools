@@ -9,7 +9,7 @@ import polars as pl
 import math
 from plotly.subplots import make_subplots
 from typing import Optional
-from pdstools.utils import pega_template 
+from pdstools.utils import pega_template
 
 
 class ADMVisualisations:
@@ -288,7 +288,7 @@ class ADMVisualisations:
 
         return self.post_plot(fig, name="Success_rates", title=title, **kwargs)
 
-    def ScoreDistribution(self, df, facet, **kwargs):
+    def ScoreDistribution(self, df, facet_val, **kwargs):
         """Show score distribution similar to ADM out-of-the-box report
 
         Shows a score distribution graph per model. If certain models selected,
@@ -317,7 +317,7 @@ class ADMVisualisations:
             df,
             f"""Classifier score distribution<br>
             <sup>Model name: {df['Name'].unique().item()}
-            <br>Model ID {facet}</sup>""",
+            <br>Model ID {facet_val[0]}</sup>""",
         )
         return self.post_plot(
             fig,
@@ -328,7 +328,7 @@ class ADMVisualisations:
     def PredictorBinning(
         self,
         df,
-        facet,
+        facet_val,
         **kwargs,
     ):
         """Show predictor graphs for a given model
@@ -356,7 +356,7 @@ class ADMVisualisations:
         """
 
         name = df.select(["Name"]).row(0)
-        modelid, predictorname = facet
+        modelid, predictorname = facet_val
         title = f"Model name: {name}<br><sup>Model ID: {modelid}<br>Predictor name: {predictorname}</sup>"
         fig = self.distribution_graph(df, title)
         return self.post_plot(fig, name="Predictor_binning", **kwargs)

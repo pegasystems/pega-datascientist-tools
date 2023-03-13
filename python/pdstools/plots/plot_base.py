@@ -278,11 +278,7 @@ class Plots:
                     figlist.append(plotFunc(facet=facet, *args, **kwargs))
             else:
                 if partition == "by":
-                    for name, groupdf in (
-                        kwargs.pop("df")
-                        .partition_by(kwargs.pop("by"), as_dict=True)
-                        .items()
-                    ):
+                    for name, groupdf in kwargs.pop("df").groupby(kwargs.pop("by")):
                         figlist.append(
                             plotFunc(
                                 facet=facet, name=name, df=groupdf, *args, **kwargs
@@ -290,9 +286,7 @@ class Plots:
                         )
                 elif partition == "facet":
                     order = kwargs.pop("order", None)
-                    for facet_val, groupdf in (
-                        kwargs.pop("df").partition_by(facets, as_dict=True).items()
-                    ):
+                    for facet_val, groupdf in kwargs.pop("df").groupby(facets):
                         figlist.append(
                             plotFunc(
                                 df=groupdf,
@@ -373,8 +367,7 @@ class Plots:
                 kwargs.pop("round", 5)
             )
         )
-        with pl.StringCache():
-            df = df.collect()
+        df = df.collect()
         if kwargs.pop("return_df", False):
             return df
 
@@ -484,8 +477,7 @@ class Plots:
         if metric == "Performance":
             metric = "weighted_performance"
 
-        with pl.StringCache():
-            df = df.collect()
+        df = df.collect()
         if kwargs.pop("return_df", False):
             return df
 
@@ -569,8 +561,7 @@ class Plots:
                 .select(facets),
                 on=facets,
             )
-        with pl.StringCache():
-            df = df.collect()
+        df = df.collect()
 
         if kwargs.pop("return_df", False):
             return df
@@ -650,8 +641,7 @@ class Plots:
         df, _ = self._subset_data(table, required_columns, query)
         if modelids is not None:
             df = df.filter(pl.col("ModelID").is_in(modelids))
-        with pl.StringCache():
-            df = df.filter(pl.col("PredictorName") != "Classifier").collect()
+        df = df.filter(pl.col("PredictorName") == "Classifier").collect()
 
         if kwargs.pop("return_df", False):
             return df
@@ -725,8 +715,7 @@ class Plots:
             df = df.filter(pl.col("ModelID").is_in(modelids))
         if predictors is not None:
             df = df.filter(pl.col("PredictorName").is_in(predictors))
-        with pl.StringCache():
-            df = df.collect()
+        df = df.collect()
 
         if df["ModelID"].n_unique() == 0:
             raise ValueError(
@@ -828,8 +817,7 @@ class Plots:
         )
 
         separate = kwargs.pop("separate", False)
-        with pl.StringCache():
-            df = df.collect()
+        df = df.collect()
 
         if separate:
             partition = "facet"
@@ -949,10 +937,9 @@ class Plots:
         )
         df = df.filter(pl.col("PredictorName").cast(pl.Utf8) != "Classifier")
 
-        with pl.StringCache():
-            df = df.collect().with_columns(
-                pl.col("PredictorName"), categorization().alias("Predictor Category")
-            )
+        df = df.collect().with_columns(
+            pl.col("PredictorName"), categorization().alias("Predictor Category")
+        )
 
         df = (
             df.groupby(facets + ["Name", "Predictor Category"])
@@ -1124,12 +1111,11 @@ class Plots:
             table, required_columns, query, facets=facets, last=last
         )
         df, by = self._generateFacets(df, by)
-        with pl.StringCache():
-            df = (
-                self.response_gain_df(df, by=by)
-                .sort(by + ["TotalModelsFraction"])
-                .collect()
-            )
+        df = (
+            self.response_gain_df(df, by=by)
+            .sort(by + ["TotalModelsFraction"])
+            .collect()
+        )
 
         if kwargs.pop("return_df", False):
             return df
@@ -1180,8 +1166,7 @@ class Plots:
         df, facets = self._subset_data(
             table, required_columns, query, facets=facets, last=last
         )
-        with pl.StringCache():
-            df = self.models_by_positives_df(df, by=by).collect()
+        df = self.models_by_positives_df(df, by=by).collect()
         if kwargs.pop("return_df", False):
             return df
 
@@ -1262,24 +1247,23 @@ class Plots:
             "Performance_weighted": "Performance weighted mean",
             "Positives_sum": "Positives sum",
         }
-        with pl.StringCache():
-            df = (
-                self.model_summary(by=by, query=query, context_keys=levels)
-                .select(
-                    [
-                        pl.col(levels).cast(pl.Utf8),
-                        pl.col(list(mapping.keys())),
-                    ]
-                )
-                .rename(mapping)
-                .sort(levels)
-                .fill_null("Missing")
-                .with_column(
-                    (pl.col("Performance weighted mean") * 100).fill_nan(pl.lit(50))
-                )
-                .fill_nan(0)
-                .collect()
+        df = (
+            self.model_summary(by=by, query=query, context_keys=levels)
+            .select(
+                [
+                    pl.col(levels).cast(pl.Utf8),
+                    pl.col(list(mapping.keys())),
+                ]
             )
+            .rename(mapping)
+            .sort(levels)
+            .fill_null("Missing")
+            .with_column(
+                (pl.col("Performance weighted mean") * 100).fill_nan(pl.lit(50))
+            )
+            .fill_nan(0)
+            .collect()
+        )
 
         if "Issue" in df.columns and "OmniChannel" in df["Issue"].unique():
             print(
@@ -1415,13 +1399,12 @@ class Plots:
             .with_column(pl.lit("Overall").alias("Type"))
         )
 
-        with pl.StringCache():
-            df = (
-                pl.concat([df, overall.select(df.columns)])
-                .with_column(pl.col("Predictor Count").cast(pl.Int64))
-                .sort(["EntryType", "Type"])
-                .collect()
-            )
+        df = (
+            pl.concat([df, overall.select(df.columns)])
+            .with_columns(pl.col("Predictor Count").cast(pl.Int64))
+            .sort(["EntryType", "Type"])
+            .collect()
+        )
         if kwargs.pop("return_df", False):
             return df
 
