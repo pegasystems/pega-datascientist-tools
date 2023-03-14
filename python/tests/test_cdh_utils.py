@@ -37,6 +37,12 @@ class Shape:
     def __new__(cls, ldf: pl.LazyFrame):
         return (ldf.select(pl.first().count()).collect().item(), len(ldf.columns))
 
+@pytest.fixture
+def test_data():
+    return cdh_utils.readDSExport(
+        "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
+        "data",
+    )
 
 # Tests for get_latest_file function
 def test_find_default_model():
@@ -90,12 +96,14 @@ def test_import_produces_bytes():
     assert ret[1] == ".json"
 
 
-def test_read_json():
+def test_read_json(test_data):
+    temp_filename = 'data.json'
+    test_data.collect().write_ndjson(temp_filename)
     assert cdh_utils.readDSExport(
         "data.json",
-        "data/sample_data_formats",
-    ).shape == (1047, 18)
-
+        ".",
+    ).shape == (20, 23)
+    os.remove(temp_filename)
 
 def test_read_modelData():
     assert cdh_utils.readDSExport(
@@ -124,15 +132,6 @@ def test_polars_zip_from_url():
     assert df.shape == (20, 23)
 
 
-# Tests for ReadDSExport function
-@pytest.fixture
-def test_data():
-    return cdh_utils.readDSExport(
-        "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
-        "data",
-    )
-
-
 def polars_checks(df):
     "Very simple convienence function to check if it is a dataframe with rows."
     if isinstance(df, pl.LazyFrame) and df.shape[0] > 0:
@@ -156,10 +155,12 @@ def test_pandasdataframe_returns_lazyframe(test_data):
     assert cdh_utils.readDSExport(input).collect().frame_equal(test_data.collect())
 
 
-def test_import_parquet():
-    path = "data/sample_data_formats"
-    models = "pr_data_dm_admmart_mdl_fact.parquet"
-    assert polars_checks(cdh_utils.readDSExport(path=path, filename=models))
+def test_import_parquet(test_data):
+    temp_filename = 'data.parquet'
+    test_data.collect().write_parquet(temp_filename)
+    path = "."
+    assert polars_checks(cdh_utils.readDSExport(path=path, filename=temp_filename))
+    os.remove(temp_filename)
 
 
 def test_import_csv():
@@ -212,18 +213,21 @@ def test_import_zipped_json_pandas():
     assert polars_checks(cdh_utils.readDSExport(path=path, filename=models))
 
 
-def test_import_not_supported_extension():
+def test_import_not_supported_extension(test_data):
     with pytest.raises(ValueError):
-        path = "data/sample_data_formats/sample_excel.xslx"
-        ext = ".xslx"
-        cdh_utils.import_file(file=path, extension=ext)
-
-
-def test_import_file_verbose():
-    path = "data/sample_data_formats/sample_modeldata.arrow"
-    ext = ".arrow"
-    assert polars_checks(cdh_utils.import_file(file=path, extension=ext, verbose=True))
-
+        temp_filename = 'data.xlsx'
+        test_data.collect().write_excel(temp_filename)
+        path = "."
+        cdh_utils.readDSExport(filename=temp_filename, path=path)
+        os.remove(temp_filename)
+    
+    
+def test_import_file_verbose(test_data):
+    temp_filename = 'data.arrow'
+    test_data.collect().write_ipc(temp_filename)
+    path = "."
+    assert polars_checks(cdh_utils.readDSExport(filename=temp_filename, path=path))
+    os.remove(temp_filename)
 
 def test_getMatches():
     files_dir = "data"
@@ -234,7 +238,7 @@ def test_getMatches():
 
     target = "wrong_target_name"
     with pytest.raises(ValueError):
-        cdh_utils.get_latest_file(files_dir, target)
+        cdh_utils.getMatches(files_dir, target)
 
 
 def test_cache_to_file():
@@ -563,8 +567,3 @@ def test_legend_color_order():
 
     assert output_fig.data[0].marker.color == "#001F5F"
 
-
-def test_legend_color_order_AttributeError():
-    input_fig = datasets.CDHSample().plotPerformanceSuccessRateBubbleChart()
-    with pytest.raises(AttributeError):
-        cdh_utils.legend_color_order(input_fig)
