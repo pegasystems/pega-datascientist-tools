@@ -17,7 +17,6 @@ import polars as pl
 import plotly.express as px
 import plotly.graph_objects as go
 import pydot
-from IPython.display import Image, display
 from plotly.subplots import make_subplots
 from tqdm import tqdm
 import copy
@@ -778,6 +777,12 @@ class ADMTreesModel:
                 graph.add_edge(pydot.Edge(key, node["parent_node"]))
 
         if show:
+            try:
+                from IPython.display import Image, display
+            except:
+                raise ValueError(
+                    "IPython not installed, please install it using `pip install IPython`."
+                )
             display(Image(graph.create_png()))  # pragma: no cover
         return graph
 

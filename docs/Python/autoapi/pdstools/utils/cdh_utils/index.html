@@ -167,6 +167,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/graph_gallery.html">Graph Gallery</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../tutorial_notebooks.html">Tutorial notebooks</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../../articles/hello_cdhtools.html">Hello pdstools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../articles/Example_Data_Anonymization.html">Example data anonymization</a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../examples.html">Example notebooks</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -212,8 +213,12 @@
 <li class="toctree-l3 current has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l4 current current-page"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../datasets/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.datasets</span></code></a></li>
+<<<<<<< HEAD
 <li class="toctree-l4"><a class="reference internal" href="../errors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.errors</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../types/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.types</span></code></a></li>
+=======
+<li class="toctree-l4"><a class="reference internal" href="../hds_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.hds_utils</span></code></a></li>
+>>>>>>> master
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../valuefinder/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.valuefinder</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -270,10 +275,17 @@ of data analysis, reporting and monitoring.</p>
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
+<<<<<<< HEAD
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.readDSExport" title="pdstools.utils.cdh_utils.readDSExport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readDSExport</span></code></a>(→ polars.LazyFrame)</p></td>
 <td><p>Read a Pega dataset export file.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.import_file" title="pdstools.utils.cdh_utils.import_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">import_file</span></code></a>(→ polars.LazyFrame)</p></td>
+=======
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.readDSExport" title="pdstools.utils.cdh_utils.readDSExport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readDSExport</span></code></a>(→ Union[pandas.DataFrame, polars.DataFrame])</p></td>
+<td><p>Read a Pega dataset export file.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.import_file" title="pdstools.utils.cdh_utils.import_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">import_file</span></code></a>(→ Union[polars.DataFrame, pandas.DataFrame])</p></td>
+>>>>>>> master
 <td><p>Imports a file using Polars</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.readZippedFile" title="pdstools.utils.cdh_utils.readZippedFile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readZippedFile</span></code></a>(→ io.BytesIO)</p></td>
@@ -321,6 +333,7 @@ of data analysis, reporting and monitoring.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.toPRPCDateTime" title="pdstools.utils.cdh_utils.toPRPCDateTime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">toPRPCDateTime</span></code></a>(→ str)</p></td>
 <td><p>Convert to a Pega date-time string</p></td>
 </tr>
+<<<<<<< HEAD
 <tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.weighed_average_polars" title="pdstools.utils.cdh_utils.weighed_average_polars"><code class="xref py py-obj docutils literal notranslate"><span class="pre">weighed_average_polars</span></code></a>(→ polars.Expr)</p></td>
 <td><p></p></td>
 </tr>
@@ -337,9 +350,21 @@ of data analysis, reporting and monitoring.</p>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.readClientCredentialFile" title="pdstools.utils.cdh_utils.readClientCredentialFile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readClientCredentialFile</span></code></a>(credentialFile)</p></td>
+=======
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.weighed_average_polars" title="pdstools.utils.cdh_utils.weighed_average_polars"><code class="xref py py-obj docutils literal notranslate"><span class="pre">weighed_average_polars</span></code></a>(→ polars.Expr)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.getToken" title="pdstools.utils.cdh_utils.getToken"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getToken</span></code></a>(credentialFile[, verify])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.weighed_performance_polars" title="pdstools.utils.cdh_utils.weighed_performance_polars"><code class="xref py py-obj docutils literal notranslate"><span class="pre">weighed_performance_polars</span></code></a>(→ polars.Expr)</p></td>
+<td><p>Polars function to return a weighted performance</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.zRatio" title="pdstools.utils.cdh_utils.zRatio"><code class="xref py py-obj docutils literal notranslate"><span class="pre">zRatio</span></code></a>(, negCol)</p></td>
+<td><p>Calculates the Z-Ratio for predictor bins.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.readClientCredentialFile" title="pdstools.utils.cdh_utils.readClientCredentialFile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readClientCredentialFile</span></code></a>(credentialFile)</p></td>
+>>>>>>> master
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.getToken" title="pdstools.utils.cdh_utils.getToken"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getToken</span></code></a>(credentialFile[, verify])</p></td>
 <td><p></p></td>
 </tr>
 </tbody>
@@ -347,7 +372,11 @@ of data analysis, reporting and monitoring.</p>
 </div>
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.utils.cdh_utils.readDSExport">
+<<<<<<< HEAD
 <span class="sig-prename descclassname"><span class="pre">pdstools.utils.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">readDSExport</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">pandas.DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">polars.DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'.'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">reading_opts</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.readDSExport" title="Permalink to this definition">#</a></dt>
+=======
+<span class="sig-prename descclassname"><span class="pre">pdstools.utils.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">readDSExport</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">pandas.DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">polars.DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'.'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">pandas.DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">polars.DataFrame</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.readDSExport" title="Permalink to this definition">#</a></dt>
+>>>>>>> master
 <dd><p>Read a Pega dataset export file.
 Can accept either a Pandas DataFrame or one of the following formats:
 - .csv
@@ -372,11 +401,23 @@ or a string, in which case it can either be:
 </ul>
 </dd>
 <dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
+<<<<<<< HEAD
 <dd class="field-even"><p><strong>Any</strong> – Any arguments to plug into the scan_* function from Polars.</p>
 </dd>
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p><ul>
 <li><p><em>pl.LazyFrame</em> – The (lazy) dataframe</p></li>
+=======
+<dd class="field-even"><ul class="simple">
+<li><p><strong>return_pl</strong> (<em>bool</em>) – Whether to return polars dataframe
+if False, transforms to Pandas</p></li>
+<li><p><strong>Any</strong> – Any arguments to plug into the read_* function from Polars.</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul>
+<li><p><em>pd.DataFrame | pl.DataFrame</em> – The read data from the given file</p></li>
+>>>>>>> master
 <li><p><em>Examples</em> – &gt;&gt;&gt; df = readDSExport(filename = ‘modelData’, path = ‘./datamart’)
 &gt;&gt;&gt; df = readDSExport(filename = ‘ModelSnapshot.json’, path = ‘data/ADMData’)</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">&#39;file.csv&#39;</span><span class="p">)</span>
@@ -387,18 +428,28 @@ or a string, in which case it can either be:
 </ul>
 </p>
 </dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Union[pandas.DataFrame, polars.DataFrame]</p>
+</dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.utils.cdh_utils.import_file">
+<<<<<<< HEAD
 <span class="sig-prename descclassname"><span class="pre">pdstools.utils.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">import_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extension</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">reading_opts</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.import_file" title="Permalink to this definition">#</a></dt>
 <dd><p>Imports a file using Polars</p>
+=======
+<span class="sig-prename descclassname"><span class="pre">pdstools.utils.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">import_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extension</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">polars.DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">pandas.DataFrame</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.import_file" title="Permalink to this definition">#</a></dt>
+<dd><p>Imports a file using Polars</p>
+<p>By default, exports to Pandas</p>
+>>>>>>> master
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>File</strong> (<em>str</em>) – The path to the file, passed directly to the read functions</p></li>
 <li><p><strong>extension</strong> (<em>str</em>) – The extension of the file, used to determine which function to use</p></li>
+<<<<<<< HEAD
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -406,13 +457,31 @@ or a string, in which case it can either be:
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>pl.LazyFrame</p>
+=======
+<li><p><strong>file</strong> (<em>str</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>return_pl</strong> (<em>bool</em><em>, </em><em>default = False</em>) – Whether to return Polars or Pandas
+If return_pl is True, then keeps the Polars dataframe</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A Pandas or Polars dataframe, depending on <cite>return_pl</cite></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Union[pd.DataFrame | pl.DataFrame]</p>
+>>>>>>> master
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.utils.cdh_utils.readZippedFile">
+<<<<<<< HEAD
 <span class="sig-prename descclassname"><span class="pre">pdstools.utils.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">readZippedFile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">io.BytesIO</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.readZippedFile" title="Permalink to this definition">#</a></dt>
+=======
+<span class="sig-prename descclassname"><span class="pre">pdstools.utils.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">readZippedFile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">io.BytesIO</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.readZippedFile" title="Permalink to this definition">#</a></dt>
+>>>>>>> master
 <dd><p>Read a zipped NDJSON file.
 Reads a dataset export file as exported and downloaded from Pega. The export
 file is formatted as a zipped multi-line JSON file. It reads the file,
@@ -425,7 +494,11 @@ and then returns the file as a BytesIO object.</p>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
+<<<<<<< HEAD
 <dd class="field-even"><p>The raw bytes object to pass through to Polars</p>
+=======
+<dd class="field-even"><p>A Polars dataframe with the contents.</p>
+>>>>>>> master
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>os.BytesIO</p>
@@ -466,13 +539,21 @@ or the predictor bins (‘predictorData’)</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.utils.cdh_utils.cache_to_file">
+<<<<<<< HEAD
 <span class="sig-prename descclassname"><span class="pre">pdstools.utils.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">cache_to_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">polars.DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">polars.LazyFrame</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">os.PathLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'ipc'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compression</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'uncompressed'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">os.PathLike</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.cache_to_file" title="Permalink to this definition">#</a></dt>
+=======
+<span class="sig-prename descclassname"><span class="pre">pdstools.utils.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">cache_to_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">os.PathLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'ipc'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compression</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'uncompressed'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">os.PathLike</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.cache_to_file" title="Permalink to this definition">#</a></dt>
+>>>>>>> master
 <dd><p>Very simple convenience function to cache data.
 Caches in arrow format for very fast reading.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
+<<<<<<< HEAD
 <li><p><strong>df</strong> (<em>pl.DataFrame</em>) – The dataframe to cache</p></li>
+=======
+<li><p><strong>df</strong> (<em>pd.DataFrame</em><em> | </em><em>pl.DataFrame</em>) – The dataframe to cache</p></li>
+>>>>>>> master
 <li><p><strong>path</strong> (<em>os.PathLike</em>) – The location to cache the data</p></li>
 <li><p><strong>name</strong> (<em>str</em>) – The name to give to the file</p></li>
 <li><p><strong>cache_type</strong> (<em>str</em>) – The type of file to export.
@@ -492,7 +573,15 @@ Default is IPC, also supports parquet</p></li>
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.utils.cdh_utils.defaultPredictorCategorization">
 <span class="sig-prename descclassname"><span class="pre">pdstools.utils.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">defaultPredictorCategorization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.defaultPredictorCategorization" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>str</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.utils.cdh_utils.safe_range_auc">
@@ -531,6 +620,9 @@ True or 1. Negative values must be represented as False or 0.</p></li>
 </p></li>
 </ul>
 </dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>List[float]</p>
+</dd>
 </dl>
 </dd></dl>
 
@@ -556,6 +648,9 @@ and will return 0.5 when there is just one groundtruth label.</p>
 </ul>
 </p>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
 </dl>
 </dd></dl>
 
@@ -577,6 +672,9 @@ True or 1. Negative values must be represented as False or 0.</p></li>
 </div>
 </p></li>
 </ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>List[float]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -603,6 +701,9 @@ groundtruth label.</p>
 </ul>
 </p>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
 </dl>
 </dd></dl>
 
@@ -620,6 +721,9 @@ groundtruth label.</p>
 <li><p><em>Examples</em> – &gt;&gt;&gt; auc2GINI(0.8232)</p></li>
 </ul>
 </p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
 </dd>
 </dl>
 </dd></dl>
@@ -668,6 +772,9 @@ False it will return in datetime type</p></li>
 </ul>
 </p>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Union[datetime.datetime, str]</p>
+</dd>
 </dl>
 </dd></dl>
 
@@ -686,18 +793,39 @@ False it will return in datetime type</p></li>
 </ul>
 </p>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.utils.cdh_utils.weighed_average_polars">
+<<<<<<< HEAD
 <span class="sig-prename descclassname"><span class="pre">pdstools.utils.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">weighed_average_polars</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">polars.Expr</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">polars.Expr</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.weighed_average_polars" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
+=======
+<span class="sig-prename descclassname"><span class="pre">pdstools.utils.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">weighed_average_polars</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.weighed_average_polars" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>polars.Expr</p>
+</dd>
+</dl>
+</dd></dl>
+>>>>>>> master
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.utils.cdh_utils.weighed_performance_polars">
 <span class="sig-prename descclassname"><span class="pre">pdstools.utils.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">weighed_performance_polars</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.weighed_performance_polars" title="Permalink to this definition">#</a></dt>
 <dd><p>Polars function to return a weighted performance</p>
+<<<<<<< HEAD
+=======
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>polars.Expr</p>
+</dd>
+</dl>
+>>>>>>> master
 </dd></dl>
 
 <dl class="py function">
@@ -717,6 +845,12 @@ See <cite>examples</cite>.</p>
 <li><p><strong>negCol</strong> (<em>pl.Expr</em>) – The (Polars) column of the bin positives</p></li>
 </ul>
 </dd>
+<<<<<<< HEAD
+=======
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>polars.Expr</p>
+</dd>
+>>>>>>> master
 </dl>
 <p class="rubric">Examples</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">&#39;ModelID&#39;</span><span class="p">,</span> <span class="s1">&#39;PredictorName&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">agg</span><span class="p">([</span><span class="n">zRatio</span><span class="p">()])</span><span class="o">.</span><span class="n">explode</span><span class="p">()</span>
@@ -725,6 +859,7 @@ See <cite>examples</cite>.</p>
 </dd></dl>
 
 <dl class="py function">
+<<<<<<< HEAD
 <dt class="sig sig-object py" id="pdstools.utils.cdh_utils.LogOdds">
 <span class="sig-prename descclassname"><span class="pre">pdstools.utils.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">LogOdds</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Positives</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">pl.col('Positives')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Negatives</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">pl.col('ResponseCount')</span> <span class="pre">-</span> <span class="pre">pl.col('Positives')</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.cdh_utils.LogOdds" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
@@ -735,6 +870,8 @@ See <cite>examples</cite>.</p>
 <dd></dd></dl>
 
 <dl class="py function">
+=======
+>>>>>>> master
 <dt class="sig sig-object py" id="pdstools.utils.cdh_utils.readClientCredentialFile">
 <span class="sig-prename descclassname"><span class="pre">pdstools.utils.cdh_utils.</span></span><span class="sig-name descname"><span class="pre">readClientCredentialFile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">credentialFile</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.cdh_utils.readClientCredentialFile" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
@@ -815,8 +952,11 @@ See <cite>examples</cite>.</p>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.weighed_average_polars"><code class="docutils literal notranslate"><span class="pre">weighed_average_polars()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.weighed_performance_polars"><code class="docutils literal notranslate"><span class="pre">weighed_performance_polars()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.zRatio"><code class="docutils literal notranslate"><span class="pre">zRatio()</span></code></a></li>
+<<<<<<< HEAD
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.LogOdds"><code class="docutils literal notranslate"><span class="pre">LogOdds()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.featureImportance"><code class="docutils literal notranslate"><span class="pre">featureImportance()</span></code></a></li>
+=======
+>>>>>>> master
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.readClientCredentialFile"><code class="docutils literal notranslate"><span class="pre">readClientCredentialFile()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.getToken"><code class="docutils literal notranslate"><span class="pre">getToken()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.readDSExport">readDSExport</a></li>
@@ -839,8 +979,11 @@ See <cite>examples</cite>.</p>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.weighed_average_polars">weighed_average_polars</a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.weighed_performance_polars">weighed_performance_polars</a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.zRatio">zRatio</a></li>
+<<<<<<< HEAD
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.LogOdds">LogOdds</a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.featureImportance">featureImportance</a></li>
+=======
+>>>>>>> master
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.readClientCredentialFile">readClientCredentialFile</a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.getToken">getToken</a></li>
 </ul>

@@ -182,7 +182,7 @@ def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
     elif extension == ".parquet":
         file = pl.scan_parquet(file)
 
-    elif extension.casefold() in {".feather",".ipc",".arrow"}:
+    elif extension.casefold() in {".feather", ".ipc", ".arrow"}:
         if isinstance(file, BytesIO):
             file = pl.read_ipc(file).lazy()
         else:
@@ -312,7 +312,7 @@ def getMatches(files_dir, target):
     elif target == "ValueFinder":
         names = ValueFinder_names
     else:
-        raise ValueError(f'Target {target} not found.')
+        raise ValueError(f"Target {target} not found.")
     for file in files_dir:
         match = [file for name in names if re.findall(name.casefold(), file.casefold())]
         if len(match) > 0:

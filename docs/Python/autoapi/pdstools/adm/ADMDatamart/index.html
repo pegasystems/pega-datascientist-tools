@@ -167,6 +167,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/graph_gallery.html">Graph Gallery</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../tutorial_notebooks.html">Tutorial notebooks</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../../articles/hello_cdhtools.html">Hello pdstools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../articles/Example_Data_Anonymization.html">Example data anonymization</a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../examples.html">Example notebooks</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -212,8 +213,12 @@
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../utils/cdh_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../utils/datasets/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.datasets</span></code></a></li>
+<<<<<<< HEAD
 <li class="toctree-l4"><a class="reference internal" href="../../utils/errors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.errors</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../utils/types/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.types</span></code></a></li>
+=======
+<li class="toctree-l4"><a class="reference internal" href="../../utils/hds_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.hds_utils</span></code></a></li>
+>>>>>>> master
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../valuefinder/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.valuefinder</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -525,8 +530,21 @@ One of {modelData, predictorData, combinedData}</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.adm.ADMDatamart.ADMDatamart._last">
+<<<<<<< HEAD
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_last</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pdstools.utils.types.any_frame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pdstools.utils.types.any_frame</span></span></span><a class="headerlink" href="#pdstools.adm.ADMDatamart.ADMDatamart._last" title="Permalink to this definition">#</a></dt>
 <dd><p>Method to retrieve only the last snapshot.</p>
+=======
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_last</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="headerlink" href="#pdstools.adm.ADMDatamart.ADMDatamart._last" title="Permalink to this definition">#</a></dt>
+<dd><p>Method to retrieve only the last values for a given dataframe.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>pandas.DataFrame</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>pandas.DataFrame</p>
+</dd>
+</dl>
+>>>>>>> master
 </dd></dl>
 
 <dl class="py method">
@@ -564,6 +582,22 @@ One of {modelData, predictorData, combinedData}</p></li>
 </dd></dl>
 
 <dl class="py method">
+<<<<<<< HEAD
+=======
+<dt class="sig sig-object py" id="pdstools.adm.ADMDatamart.ADMDatamart.fix_pdc">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fix_pdc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="headerlink" href="#pdstools.adm.ADMDatamart.ADMDatamart.fix_pdc" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>pandas.DataFrame</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>pandas.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+>>>>>>> master
 <dt class="sig sig-object py" id="pdstools.adm.ADMDatamart.ADMDatamart._apply_query">
 <span class="sig-name descname"><span class="pre">_apply_query</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pdstools.utils.types.any_frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pdstools.utils.types.any_frame</span></span></span><a class="headerlink" href="#pdstools.adm.ADMDatamart.ADMDatamart._apply_query" title="Permalink to this definition">#</a></dt>
 <dd><p>Given an input pandas dataframe, it filters the dataframe based on input query</p>
@@ -612,6 +646,9 @@ helps speed up the import.</p></li>
 <li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>default = False</em>) – Whether to print out information while importing</p></li>
 </ul>
 </dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dict</p>
+</dd>
 </dl>
 </dd></dl>
 
@@ -637,6 +674,55 @@ put 0, and if decreased it will put -1. This dataframe then could be used in the
 </dd></dl>
 
 <dl class="py method">
+<<<<<<< HEAD
+=======
+<dt class="sig sig-object py" id="pdstools.adm.ADMDatamart.ADMDatamart._create_heatmap_df">
+<span class="sig-name descname"><span class="pre">_create_heatmap_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lookback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fill_null_days</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">pandas.DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">pandas.DataFrame</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.adm.ADMDatamart.ADMDatamart._create_heatmap_df" title="Permalink to this definition">#</a></dt>
+<dd><p>Generates dataframes needed to plot calendar heatmap
+The method generates two dataframes where one is used to annotate the heatmap
+and the other is used to apply colors based on the sign dataframe.
+If there are multiple snapshots per day, the latest one will be selected</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lookback</strong> (<em>int</em>) – Defines how many days to look back at data from the last snapshot</p></li>
+<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – The query to supply to _apply_query
+If a string, uses the default Pandas query function
+Else, a dict of lists where the key is column name in the dataframe
+and the corresponding value is a list of values to keep in the dataframe</p></li>
+<li><p><strong>fill_null_days</strong> (<em>bool</em>) – If True, null values will be generated in the dataframe for
+days where there is no model snapshot</p></li>
+<li><p><strong>df</strong> (<em>pandas.DataFrame</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple of annotate and sign dataframes</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[pd.DataFrame, pd.DataFrame]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMDatamart.ADMDatamart._calculate_impact_influence">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_calculate_impact_influence</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ModelID</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="headerlink" href="#pdstools.adm.ADMDatamart.ADMDatamart._calculate_impact_influence" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>pandas.DataFrame</em>) – </p></li>
+<li><p><strong>context_keys</strong> (<em>list</em>) – </p></li>
+<li><p><strong>ModelID</strong> (<em>str</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>pandas.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+>>>>>>> master
 <dt class="sig sig-object py" id="pdstools.adm.ADMDatamart.ADMDatamart.model_summary">
 <span class="sig-name descname"><span class="pre">model_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'ModelID'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.adm.ADMDatamart.ADMDatamart.model_summary" title="Permalink to this definition">#</a></dt>
 <dd><p>Convenience method to automatically generate a summary over models
@@ -666,28 +752,76 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 <dt class="sig sig-object py" id="pdstools.adm.ADMDatamart.ADMDatamart.pivot_df">
 <span class="sig-name descname"><span class="pre">pivot_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Name'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_collect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span></span></span><a class="headerlink" href="#pdstools.adm.ADMDatamart.ADMDatamart.pivot_df" title="Permalink to this definition">#</a></dt>
 <dd><p>Simple function to extract pivoted information</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>pandas.DataFrame</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>pandas.DataFrame</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.adm.ADMDatamart.ADMDatamart.response_gain_df">
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">response_gain_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pdstools.utils.types.any_frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Channel'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pdstools.utils.types.any_frame</span></span></span><a class="headerlink" href="#pdstools.adm.ADMDatamart.ADMDatamart.response_gain_df" title="Permalink to this definition">#</a></dt>
 <dd><p>Simple function to extract the response gain per model</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>pandas.DataFrame</em>) – </p></li>
+<li><p><strong>by</strong> (<em>str</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>pandas.DataFrame</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.adm.ADMDatamart.ADMDatamart.models_by_positives_df">
+<<<<<<< HEAD
 <span class="sig-name descname"><span class="pre">models_by_positives_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Channel'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_collect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span></span></span><a class="headerlink" href="#pdstools.adm.ADMDatamart.ADMDatamart.models_by_positives_df" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
+=======
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">models_by_positives_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Channel'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="headerlink" href="#pdstools.adm.ADMDatamart.ADMDatamart.models_by_positives_df" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>pandas.DataFrame</em>) – </p></li>
+<li><p><strong>by</strong> (<em>str</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>pandas.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+>>>>>>> master
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.adm.ADMDatamart.ADMDatamart.get_model_stats">
 <span class="sig-name descname"><span class="pre">get_model_stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">last</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#pdstools.adm.ADMDatamart.ADMDatamart.get_model_stats" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>last</strong> (<em>bool</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.adm.ADMDatamart.ADMDatamart.describe_models">
 <span class="sig-name descname"><span class="pre">describe_models</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">NoReturn</span></span></span><a class="headerlink" href="#pdstools.adm.ADMDatamart.ADMDatamart.describe_models" title="Permalink to this definition">#</a></dt>
 <dd><p>Convenience method to quickly summarize the models</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>NoReturn</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>

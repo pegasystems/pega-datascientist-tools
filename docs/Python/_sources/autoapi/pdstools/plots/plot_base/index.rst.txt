@@ -32,7 +32,11 @@ Classes
       :staticmethod:
 
 
+<<<<<<< HEAD
    .. py:method:: _subset_data(table: str, required_columns: set, query: Union[str, Dict[str, list]] = None, multi_snapshot: bool = False, last: bool = False, facets=None, active_only: bool = False, include_cols: Optional[list] = None) -> pandas.DataFrame
+=======
+   .. py:method:: _subset_data(table: str, required_columns: set, query: Union[str, Dict[str, list]] = None, multi_snapshot: bool = False, last: bool = False, active_only: bool = False, include_cols: Optional[list] = None) -> pandas.DataFrame
+>>>>>>> master
 
       Retrieves and subsets the data and performs some assertion checks
 

@@ -1,0 +1,292 @@
+{
+    "cells": [
+        {
+            "attachments": {},
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "# Example data anonymization\n",
+                "\n",
+                "In Pega CDH 8.5 and up, it's now possible to record the historical data as seen by the Adaptive Models. See [this academy challenge](https://academy.pega.com/challenge/exporting-historical-data/v4) for reference. This historical data can be further used to experiment with offline models, but also to fine-tune the OOTB Gradient Boosting model. However, sharing this information with Pega can be sensitive as it contains raw predictor data. \n",
+                "\n",
+                "To this end, we provide a simple and transparent script to fully anonimize this dataset.\n",
+                "\n",
+                "The DataAnonymization script is now part of pdstools, and you can import it directly as such."
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {
+                "nbsphinx": "hidden"
+            },
+            "outputs": [],
+            "source": [
+                "# These lines are only for rendering in the docs, and are hidden through Jupyter tags\n",
+                "# Do not run if you're running the notebook seperately\n",
+                "\n",
+                "import sys\n",
+                "sys.path.append('../../../')"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "from pdstools import ADMDatamart\n",
+                "from pdstools import Config, DataAnonymization\n",
+                "import polars as pl"
+            ]
+        },
+        {
+            "attachments": {},
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## Input data\n",
+                "\n",
+                "To demonstrate this process, we're going to anonymise this toy example dataframe:"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "pl.read_ndjson('../../../../data/SampleHDS.json')"
+            ]
+        },
+        {
+            "attachments": {},
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "As you can see, this dataset consists of regular predictors, IH predictors, context keys and the outcome column. Additionally, some columns are numeric, others are strings. Let's first initialize the DataAnonymization class."
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "anon = DataAnonymization(hds_folder='../../../../data/')"
+            ]
+        },
+        {
+            "attachments": {},
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "By default, the class applies a set of anonymisation techniques:\n",
+                "- Column names are remapped to a non-descriptive name\n",
+                "- Categorical values are hashed with a random seed\n",
+                "- Numerical values are normalized between 0 and 1\n",
+                "- Outcomes are mapped to a binary outcome.\n",
+                "\n",
+                "To apply these techniques, simply call `.process()`:"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "anon.process()"
+            ]
+        },
+        {
+            "attachments": {},
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "To trace back the columns to their original names, the class also contains a mapping, which does not have to be provided."
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "anon.column_mapping"
+            ]
+        },
+        {
+            "attachments": {},
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## Configs\n",
+                "\n",
+                "Each capability can optionally be turned off - see below for the full list of config options, and refer to the API reference for the full description."
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "dict(zip(Config.__init__.__code__.co_varnames[1:], Config.__init__.__defaults__))"
+            ]
+        },
+        {
+            "attachments": {},
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "It's easy to change these parameters by just passing the keyword arguments. In the following example, we\n",
+                "- Keep the IH predictor names\n",
+                "- Keep the outcome values\n",
+                "- Keep the context key values\n",
+                "- Keep the context key predictor names"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "anon = DataAnonymization(\n",
+                "    hds_folder='../../../../data/',\n",
+                "    mask_ih_names=False,\n",
+                "    mask_outcome_values=False,\n",
+                "    mask_context_key_values=False,\n",
+                "    mask_context_key_names=False,\n",
+                ")\n",
+                "anon.process()\n"
+            ]
+        },
+        {
+            "attachments": {},
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "The configs can also be written and read as such:"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "anon.config.save_to_config_file('config.json')"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "anon = DataAnonymization(config=Config(config_file='config.json'))\n",
+                "anon.process()"
+            ]
+        },
+        {
+            "attachments": {},
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## Exporting\n",
+                "Two functions export:\n",
+                "- `create_mapping_file()` writes the mapping file of the predictor names\n",
+                "- `write_to_output()` writes the processed dataframe to disk\n",
+                "\n",
+                "Write to output accepts the following extensions: `[\"ndjson\", \"parquet\", \"arrow\", \"csv\"]`"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "anon.create_mapping_file()\n",
+                "with open('mapping.map') as f:\n",
+                "    print(f.read())"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "anon.write_to_output(ext='arrow')"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "pl.read_ipc('output/hds.arrow')"
+            ]
+        },
+        {
+            "attachments": {},
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## Advanced: Hash fuctions\n",
+                "\n",
+                "By default, we use [the same hashing algorithm Polars](https://pola-rs.github.io/polars/py-polars/html/reference/expressions/api/polars.Expr.hash.html#polars.Expr.hash) uses: [xxhash](https://github.com/Cyan4973/xxHash), as implemented [here](https://github.com/pola-rs/polars/blob/3f287f370b3c388ed2f3f218b2c096382548136f/polars/polars-core/src/vector_hasher.rs#L266). xxhash is fast to compute, and you can check its performance in collision, dispersion and randomness [here](https://github.com/Cyan4973/xxHash/tree/dev/tests). \n",
+                "\n",
+                "xxhash accepts four distinct seeds, but by default we set the seeds to `0`. It is possible to set the `seed` argument of the `process()` function to `'random'`, which will set all four seeds to a random integer between `0` and `1000000000`. Alternatively, it is possible to supply the four seeds manually with arguments `seed`, `seed_1`, `seed_2` and `seed_3`. \n",
+                "\n",
+                "If the xxhash with (random) seed(s) is not deemed sufficiently secure, it is possible to use your own hashing algorithm.\n",
+                "\n",
+                "Note that since we're now running python code and not native Polars code anymore, this will be _significantly_ slower. Nonetheless, it is possible.\n",
+                "\n",
+                "Just as an example - this is how one would use sha3_256:"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "from hashlib import sha3_256\n",
+                "\n",
+                "anon.process(algorithm=lambda x: sha3_256(x.encode()).hexdigest())"
+            ]
+        }
+    ],
+    "metadata": {
+        "kernelspec": {
+            "display_name": "Python 3",
+            "language": "python",
+            "name": "python3"
+        },
+        "language_info": {
+            "codemirror_mode": {
+                "name": "ipython",
+                "version": 3
+            },
+            "file_extension": ".py",
+            "mimetype": "text/x-python",
+            "name": "python",
+            "nbconvert_exporter": "python",
+            "pygments_lexer": "ipython3",
+            "version": "3.11.0"
+        },
+        "orig_nbformat": 4,
+        "vscode": {
+            "interpreter": {
+                "hash": "aee8b7b246df8f9039afb4144a1f6fd8d2ca17a180786b69acc140d282b71a49"
+            }
+        }
+    },
+    "nbformat": 4,
+    "nbformat_minor": 2
+}

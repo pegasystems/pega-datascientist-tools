@@ -167,6 +167,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../articles/graph_gallery.html">Graph Gallery</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../tutorial_notebooks.html">Tutorial notebooks</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../articles/hello_cdhtools.html">Hello pdstools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../articles/Example_Data_Anonymization.html">Example data anonymization</a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../examples.html">Example notebooks</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -212,8 +213,12 @@
 <li class="toctree-l3 has-children"><a class="reference internal" href="utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="utils/cdh_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="utils/datasets/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.datasets</span></code></a></li>
+<<<<<<< HEAD
 <li class="toctree-l4"><a class="reference internal" href="utils/errors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.errors</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="utils/types/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.types</span></code></a></li>
+=======
+<li class="toctree-l4"><a class="reference internal" href="utils/hds_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.hds_utils</span></code></a></li>
+>>>>>>> master
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="valuefinder/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.valuefinder</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -289,8 +294,12 @@
 <li class="toctree-l1"><a class="reference internal" href="utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils</span></code></a><ul>
 <li class="toctree-l2"><a class="reference internal" href="utils/cdh_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils/datasets/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.datasets</span></code></a></li>
+<<<<<<< HEAD
 <li class="toctree-l2"><a class="reference internal" href="utils/errors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.errors</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils/types/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.types</span></code></a></li>
+=======
+<li class="toctree-l2"><a class="reference internal" href="utils/hds_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.hds_utils</span></code></a></li>
+>>>>>>> master
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="valuefinder/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.valuefinder</span></code></a><ul>
@@ -318,6 +327,30 @@
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pdstools.ValueFinder" title="pdstools.ValueFinder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueFinder</span></code></a></p></td>
 <td><p>Class to analyze Value Finder datasets.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.Config" title="pdstools.Config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Config</span></code></a></p></td>
+<td><p>Configuration file for the data anonymizer.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.DataAnonymization" title="pdstools.DataAnonymization"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DataAnonymization</span></code></a></p></td>
+<td><p>Anonymize a historical dataset.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="functions">
+<h3>Functions<a class="headerlink" href="#functions" title="Permalink to this heading">#</a></h3>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.CDHSample" title="pdstools.CDHSample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CDHSample</span></code></a>([plotting_engine, query])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.SampleTrees" title="pdstools.SampleTrees"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SampleTrees</span></code></a>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.SampleValueFinder" title="pdstools.SampleValueFinder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SampleValueFinder</span></code></a>([verbose])</p></td>
+<td><p></p></td>
 </tr>
 </tbody>
 </table>
@@ -591,8 +624,21 @@ One of {modelData, predictorData, combinedData}</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMDatamart._last">
+<<<<<<< HEAD
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_last</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pdstools.utils.types.any_frame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pdstools.utils.types.any_frame</span></span></span><a class="headerlink" href="#pdstools.ADMDatamart._last" title="Permalink to this definition">#</a></dt>
 <dd><p>Method to retrieve only the last snapshot.</p>
+=======
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_last</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="headerlink" href="#pdstools.ADMDatamart._last" title="Permalink to this definition">#</a></dt>
+<dd><p>Method to retrieve only the last values for a given dataframe.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>pandas.DataFrame</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>pandas.DataFrame</p>
+</dd>
+</dl>
+>>>>>>> master
 </dd></dl>
 
 <dl class="py method">
@@ -630,6 +676,22 @@ One of {modelData, predictorData, combinedData}</p></li>
 </dd></dl>
 
 <dl class="py method">
+<<<<<<< HEAD
+=======
+<dt class="sig sig-object py" id="pdstools.ADMDatamart.fix_pdc">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fix_pdc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="headerlink" href="#pdstools.ADMDatamart.fix_pdc" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>pandas.DataFrame</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>pandas.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+>>>>>>> master
 <dt class="sig sig-object py" id="pdstools.ADMDatamart._apply_query">
 <span class="sig-name descname"><span class="pre">_apply_query</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pdstools.utils.types.any_frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pdstools.utils.types.any_frame</span></span></span><a class="headerlink" href="#pdstools.ADMDatamart._apply_query" title="Permalink to this definition">#</a></dt>
 <dd><p>Given an input pandas dataframe, it filters the dataframe based on input query</p>
@@ -678,6 +740,9 @@ helps speed up the import.</p></li>
 <li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>default = False</em>) – Whether to print out information while importing</p></li>
 </ul>
 </dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dict</p>
+</dd>
 </dl>
 </dd></dl>
 
@@ -703,6 +768,55 @@ put 0, and if decreased it will put -1. This dataframe then could be used in the
 </dd></dl>
 
 <dl class="py method">
+<<<<<<< HEAD
+=======
+<dt class="sig sig-object py" id="pdstools.ADMDatamart._create_heatmap_df">
+<span class="sig-name descname"><span class="pre">_create_heatmap_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lookback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fill_null_days</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">pandas.DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">pandas.DataFrame</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.ADMDatamart._create_heatmap_df" title="Permalink to this definition">#</a></dt>
+<dd><p>Generates dataframes needed to plot calendar heatmap
+The method generates two dataframes where one is used to annotate the heatmap
+and the other is used to apply colors based on the sign dataframe.
+If there are multiple snapshots per day, the latest one will be selected</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lookback</strong> (<em>int</em>) – Defines how many days to look back at data from the last snapshot</p></li>
+<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – The query to supply to _apply_query
+If a string, uses the default Pandas query function
+Else, a dict of lists where the key is column name in the dataframe
+and the corresponding value is a list of values to keep in the dataframe</p></li>
+<li><p><strong>fill_null_days</strong> (<em>bool</em>) – If True, null values will be generated in the dataframe for
+days where there is no model snapshot</p></li>
+<li><p><strong>df</strong> (<em>pandas.DataFrame</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple of annotate and sign dataframes</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[pd.DataFrame, pd.DataFrame]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.ADMDatamart._calculate_impact_influence">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_calculate_impact_influence</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ModelID</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="headerlink" href="#pdstools.ADMDatamart._calculate_impact_influence" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>pandas.DataFrame</em>) – </p></li>
+<li><p><strong>context_keys</strong> (<em>list</em>) – </p></li>
+<li><p><strong>ModelID</strong> (<em>str</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>pandas.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+>>>>>>> master
 <dt class="sig sig-object py" id="pdstools.ADMDatamart.model_summary">
 <span class="sig-name descname"><span class="pre">model_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'ModelID'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMDatamart.model_summary" title="Permalink to this definition">#</a></dt>
 <dd><p>Convenience method to automatically generate a summary over models
@@ -732,28 +846,76 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 <dt class="sig sig-object py" id="pdstools.ADMDatamart.pivot_df">
 <span class="sig-name descname"><span class="pre">pivot_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Name'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_collect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span></span></span><a class="headerlink" href="#pdstools.ADMDatamart.pivot_df" title="Permalink to this definition">#</a></dt>
 <dd><p>Simple function to extract pivoted information</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>pandas.DataFrame</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>pandas.DataFrame</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMDatamart.response_gain_df">
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">response_gain_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pdstools.utils.types.any_frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Channel'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pdstools.utils.types.any_frame</span></span></span><a class="headerlink" href="#pdstools.ADMDatamart.response_gain_df" title="Permalink to this definition">#</a></dt>
 <dd><p>Simple function to extract the response gain per model</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>pandas.DataFrame</em>) – </p></li>
+<li><p><strong>by</strong> (<em>str</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>pandas.DataFrame</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMDatamart.models_by_positives_df">
+<<<<<<< HEAD
 <span class="sig-name descname"><span class="pre">models_by_positives_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Channel'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_collect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span></span></span><a class="headerlink" href="#pdstools.ADMDatamart.models_by_positives_df" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
+=======
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">models_by_positives_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Channel'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="headerlink" href="#pdstools.ADMDatamart.models_by_positives_df" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>pandas.DataFrame</em>) – </p></li>
+<li><p><strong>by</strong> (<em>str</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>pandas.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+>>>>>>> master
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMDatamart.get_model_stats">
 <span class="sig-name descname"><span class="pre">get_model_stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">last</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#pdstools.ADMDatamart.get_model_stats" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>last</strong> (<em>bool</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMDatamart.describe_models">
 <span class="sig-name descname"><span class="pre">describe_models</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">NoReturn</span></span></span><a class="headerlink" href="#pdstools.ADMDatamart.describe_models" title="Permalink to this definition">#</a></dt>
 <dd><p>Convenience method to quickly summarize the models</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>NoReturn</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -763,8 +925,18 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pdstools.</span></span><span class="sig-name descname"><span class="pre">ADMTrees</span></span><a class="headerlink" href="#pdstools.ADMTrees" title="Permalink to this definition">#</a></dt>
 <dd><dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMTrees.getMultiTrees">
+<<<<<<< HEAD
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">getMultiTrees</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.getMultiTrees" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
+=======
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">getMultiTrees</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMTrees.getMultiTrees" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>file</strong> (<em>pandas.DataFrame</em>) – </p>
+</dd>
+</dl>
+</dd></dl>
+>>>>>>> master
 
 </dd></dl>
 
@@ -831,7 +1003,11 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 
 <dl class="py class">
 <dt class="sig sig-object py" id="pdstools.ValueFinder">
+<<<<<<< HEAD
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pdstools.</span></span><span class="sig-name descname"><span class="pre">ValueFinder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">pdstools.utils.types.any_frame</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strategy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'eager'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ValueFinder" title="Permalink to this definition">#</a></dt>
+=======
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pdstools.</span></span><span class="sig-name descname"><span class="pre">ValueFinder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">pandas.DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">polars.DataFrame</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ValueFinder" title="Permalink to this definition">#</a></dt>
+>>>>>>> master
 <dd><p>Class to analyze Value Finder datasets.</p>
 <p>Relies heavily on polars for faster reading and transformations.
 See <a class="reference external" href="https://pola-rs.github.io/polars/py-polars/html/index.html">https://pola-rs.github.io/polars/py-polars/html/index.html</a></p>
@@ -886,6 +1062,9 @@ If not given, will default to 5th quantile.</p></li>
 <li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>default = True</em>) – Whether to print out the execution times</p></li>
 </ul>
 </dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>polars.DataFrame</p>
+</dd>
 </dl>
 </dd></dl>
 
@@ -901,12 +1080,15 @@ which can be generated by getCustomerSummary().</p></li>
 <li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>default = True</em>) – Whether to print execution times.</p></li>
 </ul>
 </dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>polars.DataFrame</p>
+</dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ValueFinder.addCountsPerThresholdRange">
-<span class="sig-name descname"><span class="pre">addCountsPerThresholdRange</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ValueFinder.addCountsPerThresholdRange" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">addCountsPerThresholdRange</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">propType</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Literal['quantile',</span> <span class="pre">'absolute']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ValueFinder.addCountsPerThresholdRange" title="Permalink to this definition">#</a></dt>
 <dd><p>Adds the counts per stage for a range of quantiles.</p>
 <p>In the background, uses numpy’s arange function
 to generate the range of quantiles.
@@ -920,11 +1102,18 @@ already previously computed, it simply adds that computed dataframe.</p>
 <li><p><strong>start</strong> (<em>float</em>) – The starting quantile</p></li>
 <li><p><strong>stop</strong> (<em>float</em>) – The ending quantile</p></li>
 <li><p><strong>step</strong> (<em>float</em>) – The steps to compute between start and stop</p></li>
+<li><p><strong>type</strong> (<em>Literal</em><em>[</em><em>&quot;quantile&quot;</em><em>, </em><em>&quot;absolute&quot;</em><em>]</em>) – Whether to plot absolute propensity thresholds
+or propensities based on their quantile-based threshold</p></li>
 <li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>default = True</em>) – Whether to print out the progress of computation</p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.ValueFinder._generateCountsQuery">
+<span class="sig-name descname"><span class="pre">_generateCountsQuery</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">th</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ValueFinder._generateCountsQuery" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ValueFinder.plotPropensityDistribution">
@@ -937,6 +1126,9 @@ we have to sample to a reasonable amount of data points.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>sampledN</strong> (<em>int</em><em>, </em><em>default = 10_000</em>) – The number of datapoints to sample</p>
 </dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>plotly.graph_objects.Figure</p>
+</dd>
 </dl>
 </dd></dl>
 
@@ -948,12 +1140,15 @@ we have to sample to a reasonable amount of data points.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>sampledN</strong> (<em>int</em><em>, </em><em>default = 10_000</em>) – The number of datapoints to sample</p>
 </dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>plotly.graph_objects.Figure</p>
+</dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ValueFinder.plotPieCharts">
-<span class="sig-name descname"><span class="pre">plotPieCharts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ValueFinder.plotPieCharts" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">plotPieCharts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">propType</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="pre">ValueFinder.plotPieCharts.quantile</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">absolute</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'quantile'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ValueFinder.plotPieCharts" title="Permalink to this definition">#</a></dt>
 <dd><p>Plots the pie chart, split per stage.</p>
 <p>If start, stop and step are supplied,
 it will generate a slider to set the threshold
@@ -966,7 +1161,10 @@ threshold based on the 5th quantile.</p>
 <li><p><strong>start</strong> (<em>float</em>) – The starting quantile</p></li>
 <li><p><strong>stop</strong> (<em>float</em>) – The ending quantile</p></li>
 <li><p><strong>step</strong> (<em>float</em>) – The steps to compute between start and stop</p></li>
+<li><p><strong>type</strong> (<em>Literal</em><em>[</em><em>&quot;quantile&quot;</em><em>, </em><em>&quot;absolute&quot;</em><em>]</em>) – Whether to plot absolute propensity thresholds
+or propensities based on their quantile-based threshold</p></li>
 <li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>default = True</em>) – Whether to print out the progress of computation</p></li>
+<li><p><strong>propType</strong> (<em>Literal</em><em>[</em><em>ValueFinder.plotPieCharts.quantile</em><em>, </em><em>absolute</em><em>]</em>) – </p></li>
 </ul>
 </dd>
 </dl>
@@ -1014,6 +1212,189 @@ One of: {‘Quantile’, ‘Propensity’}</p>
 </dd></dl>
 
 </dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pdstools.Config">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pdstools.</span></span><span class="sig-name descname"><span class="pre">Config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hds_folder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pathlib.Path</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'.'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_datamart</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">datamart_folder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pathlib.Path</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'datamart'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_format</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="pre">ndjson</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">parquet</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">arrow</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">csv</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'ndjson'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_folder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pathlib.Path</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'output'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mapping_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'mapping.map'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_predictor_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_context_key_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_ih_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_outcome_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_predictor_values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_context_key_values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_ih_values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_outcome_values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context_key_label</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Context_*'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ih_label</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'IH_*'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outcome_column</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Decision_Outcome'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positive_outcomes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">['Accepted',</span> <span class="pre">'Clicked']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">negative_outcomes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">['Rejected',</span> <span class="pre">'Impression']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">special_predictors</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">['Decision_DecisionTime',</span> <span class="pre">'Decision_OutcomeTime']</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.Config" title="Permalink to this definition">#</a></dt>
+<dd><p>Configuration file for the data anonymizer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>config_file</strong> (<em>str = None</em>) – An optional path to a config file</p></li>
+<li><p><strong>hds_folder</strong> (<em>Path = &quot;.&quot;</em>) – The path to the hds files</p></li>
+<li><p><strong>use_datamart</strong> (<em>bool = False</em>) – Whether to use the datamart to infer predictor types</p></li>
+<li><p><strong>datamart_folder</strong> (<em>Path = &quot;datamart&quot;</em>) – The folder of the datamart files</p></li>
+<li><p><strong>output_format</strong> (<em>Literal</em><em>[</em><em>&quot;ndjson&quot;</em><em>, </em><em>&quot;parquet&quot;</em><em>, </em><em>&quot;arrow&quot;</em><em>, </em><em>&quot;csv&quot;</em><em>] </em><em>= &quot;ndjson&quot;</em>) – The output format to write the files in</p></li>
+<li><p><strong>output_folder</strong> (<em>Path = &quot;output&quot;</em>) – The location to write the files to</p></li>
+<li><p><strong>mapping_file</strong> (<em>str = &quot;mapping.map&quot;</em>) – The name of the predictor mapping file</p></li>
+<li><p><strong>mask_predictor_names</strong> (<em>bool = True</em>) – Whether to mask the names of regular predictors</p></li>
+<li><p><strong>mask_context_key_names</strong> (<em>bool = True</em>) – Whether to mask the names of context key predictors</p></li>
+<li><p><strong>mask_ih_names</strong> (<em>bool = True</em>) – Whether to mask the name of Interaction History summary predictors</p></li>
+<li><p><strong>mask_outcome_name</strong> (<em>bool = True</em>) – Whether to mask the name of the outcome column</p></li>
+<li><p><strong>mask_predictor_values</strong> (<em>bool = True</em>) – Whether to mask the values of regular predictors</p></li>
+<li><p><strong>mask_context_key_values</strong> (<em>bool = True</em>) – Whether to mask the values of context key predictors</p></li>
+<li><p><strong>mask_ih_values</strong> (<em>bool = True</em>) – Whether to mask the values of Interaction History summary predictors</p></li>
+<li><p><strong>mask_outcome_values</strong> (<em>bool = True</em>) – Whether to mask the values of the outcomes to binary</p></li>
+<li><p><strong>context_key_label</strong> (<em>str = &quot;Context_*&quot;</em>) – The pattern of names for context key predictors</p></li>
+<li><p><strong>ih_label</strong> (<em>str = &quot;IH_*&quot;</em>) – The pattern of names for Interaction History summary predictors</p></li>
+<li><p><strong>outcome_column</strong> (<em>str = &quot;Decision_Outcome&quot;</em>) – The name of the outcome column</p></li>
+<li><p><strong>positive_outcomes</strong> (<em>list =</em><em> [</em><em>&quot;Accepted&quot;</em><em>, </em><em>&quot;Clicked&quot;</em><em>]</em>) – Which positive outcomes to map to True</p></li>
+<li><p><strong>negative_outcomes</strong> (<em>list =</em><em> [</em><em>&quot;Rejected&quot;</em><em>, </em><em>&quot;Impression&quot;</em><em>]</em>) – Which negative outcomes to map to False</p></li>
+<li><p><strong>special_predictors</strong> (<em>list =</em><em> [</em><em>&quot;Decision_DecisionTime&quot;</em><em>, </em><em>&quot;Decision_OutcomeTime&quot;</em><em>]</em>) – A list of special predictors which are not touched</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.Config.load_from_config_file">
+<span class="sig-name descname"><span class="pre">load_from_config_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pathlib.Path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.Config.load_from_config_file" title="Permalink to this definition">#</a></dt>
+<dd><p>Load the configurations from a file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config_file</strong> (<em>Path</em>) – The path to the configuration file</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.Config.save_to_config_file">
+<span class="sig-name descname"><span class="pre">save_to_config_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.Config.save_to_config_file" title="Permalink to this definition">#</a></dt>
+<dd><p>Save the configurations to a file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>file_name</strong> (<em>str</em>) – The name of the configuration file</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.Config.validate_paths">
+<span class="sig-name descname"><span class="pre">validate_paths</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.Config.validate_paths" title="Permalink to this definition">#</a></dt>
+<dd><p>Validate the outcome folder exists.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pdstools.DataAnonymization">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pdstools.</span></span><span class="sig-name descname"><span class="pre">DataAnonymization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pdstools.Config" title="pdstools.Config"><span class="pre">Config</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">polars.LazyFrame</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">datamart</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pdstools.ADMDatamart" title="pdstools.ADMDatamart"><span class="pre">pdstools.ADMDatamart</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">config_args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DataAnonymization" title="Permalink to this definition">#</a></dt>
+<dd><p>Anonymize a historical dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>config</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="#pdstools.Config" title="pdstools.Config"><em>Config</em></a><em>]</em>) – Override the default configurations with the Config class</p></li>
+<li><p><strong>df</strong> (<em>Optional</em><em>[</em><em>polars.LazyFrame</em><em>]</em>) – Manually supply a Polars lazyframe to anonymize</p></li>
+<li><p><strong>datamart</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="#pdstools.ADMDatamart" title="pdstools.ADMDatamart"><em>pdstools.ADMDatamart</em></a><em>]</em>) – Manually supply a Datamart file to infer predictor types</p></li>
+</ul>
+</dd>
+<dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>**config_args</strong> – See <a class="reference internal" href="#pdstools.Config" title="pdstools.Config"><code class="xref py py-class docutils literal notranslate"><span class="pre">Config</span></code></a></p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<p>See <a class="reference external" href="https://pegasystems.github.io/pega-datascientist-tools/Python/articles/Example_Data_Anonymization.html">https://pegasystems.github.io/pega-datascientist-tools/Python/articles/Example_Data_Anonymization.html</a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DataAnonymization.write_to_output">
+<span class="sig-name descname"><span class="pre">write_to_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">polars.DataFrame</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ext</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="pre">ndjson</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">parquet</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">arrow</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">csv</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DataAnonymization.write_to_output" title="Permalink to this definition">#</a></dt>
+<dd><p>Write the processed dataframe to an output file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>Optional</em><em>[</em><em>pl.DataFrame</em><em>]</em>) – Dataframe to write.
+If not provided, runs <cite>self.process()</cite></p></li>
+<li><p><strong>ext</strong> (<em>Literal</em><em>[</em><em>&quot;ndjson&quot;</em><em>, </em><em>&quot;parquet&quot;</em><em>, </em><em>&quot;arrow&quot;</em><em>, </em><em>&quot;csv&quot;</em><em>]</em>) – What extension to write the file to</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DataAnonymization.create_mapping_file">
+<span class="sig-name descname"><span class="pre">create_mapping_file</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DataAnonymization.create_mapping_file" title="Permalink to this definition">#</a></dt>
+<dd><p>Create a file to write the column mapping</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DataAnonymization.load_hds_files">
+<span class="sig-name descname"><span class="pre">load_hds_files</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DataAnonymization.load_hds_files" title="Permalink to this definition">#</a></dt>
+<dd><p>Load the historical dataset files from the <cite>config.hds_folder</cite> location.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DataAnonymization.read_predictor_type_from_file">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read_predictor_type_from_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DataAnonymization.read_predictor_type_from_file" title="Permalink to this definition">#</a></dt>
+<dd><p>Infer the types of the preditors from the data.</p>
+<p>This is non-trivial, as it’s not ideal to pull in all data to memory for this.
+For this reason, we sample 1% of data, or all data if less than 50 rows,
+and try to cast it to numeric. If that fails, we set it to categorical,
+else we set it to numeric.</p>
+<p>It is technically supported to manually override this, by just overriding
+the <cite>symbolic_predictors_to_mask</cite> &amp; <cite>numeric_predictors_to_mask</cite> properties.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>pl.LazyFrame</em>) – The lazyframe to infer the types with</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DataAnonymization.read_predictor_type_from_datamart">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read_predictor_type_from_datamart</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">datamart_folder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">datamart</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pdstools.ADMDatamart" title="pdstools.ADMDatamart"><span class="pre">pdstools.ADMDatamart</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DataAnonymization.read_predictor_type_from_datamart" title="Permalink to this definition">#</a></dt>
+<dd><p>The datamart contains type information about each predictor.
+This function extracts that information to infer types for the HDS.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>datamart_folder</strong> (<em>Path</em>) – The path to the datamart files</p></li>
+<li><p><strong>datamart</strong> (<a class="reference internal" href="#pdstools.ADMDatamart" title="pdstools.ADMDatamart"><em>ADMDatamart</em></a>) – The direct ADMDatamart object</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DataAnonymization.get_columns_by_type">
+<span class="sig-name descname"><span class="pre">get_columns_by_type</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DataAnonymization.get_columns_by_type" title="Permalink to this definition">#</a></dt>
+<dd><p>Get a list of columns for each type.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DataAnonymization.get_predictors_mapping">
+<span class="sig-name descname"><span class="pre">get_predictors_mapping</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DataAnonymization.get_predictors_mapping" title="Permalink to this definition">#</a></dt>
+<dd><p>Map the predictor names to their anonymized form.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DataAnonymization.getHasher">
+<span class="sig-name descname"><span class="pre">getHasher</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">algorithm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'xxhash'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">random</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed_1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed_2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed_3</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DataAnonymization.getHasher" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>seed</strong> (<em>Union</em><em>[</em><em>Literal</em><em>[</em><em>0</em><em>, </em><em>random</em><em>]</em><em>, </em><em>int</em><em>]</em>) – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DataAnonymization.process">
+<span class="sig-name descname"><span class="pre">process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DataAnonymization.process" title="Permalink to this definition">#</a></dt>
+<dd><p>Anonymize the dataset.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.CDHSample">
+<span class="sig-prename descclassname"><span class="pre">pdstools.</span></span><span class="sig-name descname"><span class="pre">CDHSample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plotting_engine</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'plotly'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.CDHSample" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.SampleTrees">
+<span class="sig-prename descclassname"><span class="pre">pdstools.</span></span><span class="sig-name descname"><span class="pre">SampleTrees</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.SampleTrees" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.SampleValueFinder">
+<span class="sig-prename descclassname"><span class="pre">pdstools.</span></span><span class="sig-name descname"><span class="pre">SampleValueFinder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.SampleValueFinder" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
 
 </section>
 </section>
@@ -1067,8 +1448,12 @@ One of: {‘Quantile’, ‘Propensity’}</p>
 <li><a class="reference internal" href="#subpackages">Subpackages</a></li>
 <li><a class="reference internal" href="#package-contents">Package Contents</a><ul>
 <li><a class="reference internal" href="#classes">Classes</a></li>
+<<<<<<< HEAD
 <li><a class="reference internal" href="#attributes">Attributes</a><ul>
 <li><a class="reference internal" href="#pdstools.__version__"><code class="docutils literal notranslate"><span class="pre">__version__</span></code></a></li>
+=======
+<li><a class="reference internal" href="#functions">Functions</a><ul>
+>>>>>>> master
 <li><a class="reference internal" href="#pdstools.ADMDatamart"><code class="docutils literal notranslate"><span class="pre">ADMDatamart</span></code></a><ul>
 <li><a class="reference internal" href="#pdstools.ADMDatamart.modelData"><code class="docutils literal notranslate"><span class="pre">ADMDatamart.modelData</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart.predictorData"><code class="docutils literal notranslate"><span class="pre">ADMDatamart.predictorData</span></code></a></li>
@@ -1122,6 +1507,7 @@ One of: {‘Quantile’, ‘Propensity’}</p>
 <li><a class="reference internal" href="#pdstools.ValueFinder.getCustomerSummary"><code class="docutils literal notranslate"><span class="pre">ValueFinder.getCustomerSummary()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ValueFinder.getCountsPerStage"><code class="docutils literal notranslate"><span class="pre">ValueFinder.getCountsPerStage()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ValueFinder.addCountsPerThresholdRange"><code class="docutils literal notranslate"><span class="pre">ValueFinder.addCountsPerThresholdRange()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ValueFinder._generateCountsQuery"><code class="docutils literal notranslate"><span class="pre">ValueFinder._generateCountsQuery()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ValueFinder.plotPropensityDistribution"><code class="docutils literal notranslate"><span class="pre">ValueFinder.plotPropensityDistribution()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ValueFinder.plotPropensityThreshold"><code class="docutils literal notranslate"><span class="pre">ValueFinder.plotPropensityThreshold()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ValueFinder.plotPieCharts"><code class="docutils literal notranslate"><span class="pre">ValueFinder.plotPieCharts()</span></code></a></li>
@@ -1129,7 +1515,31 @@ One of: {‘Quantile’, ‘Propensity’}</p>
 <li><a class="reference internal" href="#pdstools.ValueFinder.plotFunnelChart"><code class="docutils literal notranslate"><span class="pre">ValueFinder.plotFunnelChart()</span></code></a></li>
 </ul>
 </li>
+<<<<<<< HEAD
 <li><a class="reference internal" href="#pdstools.__version__">__version__</a></li>
+=======
+<li><a class="reference internal" href="#pdstools.Config"><code class="docutils literal notranslate"><span class="pre">Config</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.Config.load_from_config_file"><code class="docutils literal notranslate"><span class="pre">Config.load_from_config_file()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.Config.save_to_config_file"><code class="docutils literal notranslate"><span class="pre">Config.save_to_config_file()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.Config.validate_paths"><code class="docutils literal notranslate"><span class="pre">Config.validate_paths()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pdstools.DataAnonymization"><code class="docutils literal notranslate"><span class="pre">DataAnonymization</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.DataAnonymization.write_to_output"><code class="docutils literal notranslate"><span class="pre">DataAnonymization.write_to_output()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DataAnonymization.create_mapping_file"><code class="docutils literal notranslate"><span class="pre">DataAnonymization.create_mapping_file()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DataAnonymization.load_hds_files"><code class="docutils literal notranslate"><span class="pre">DataAnonymization.load_hds_files()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DataAnonymization.read_predictor_type_from_file"><code class="docutils literal notranslate"><span class="pre">DataAnonymization.read_predictor_type_from_file()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DataAnonymization.read_predictor_type_from_datamart"><code class="docutils literal notranslate"><span class="pre">DataAnonymization.read_predictor_type_from_datamart()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DataAnonymization.get_columns_by_type"><code class="docutils literal notranslate"><span class="pre">DataAnonymization.get_columns_by_type()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DataAnonymization.get_predictors_mapping"><code class="docutils literal notranslate"><span class="pre">DataAnonymization.get_predictors_mapping()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DataAnonymization.getHasher"><code class="docutils literal notranslate"><span class="pre">DataAnonymization.getHasher()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DataAnonymization.process"><code class="docutils literal notranslate"><span class="pre">DataAnonymization.process()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pdstools.CDHSample"><code class="docutils literal notranslate"><span class="pre">CDHSample()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.SampleTrees"><code class="docutils literal notranslate"><span class="pre">SampleTrees()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.SampleValueFinder"><code class="docutils literal notranslate"><span class="pre">SampleValueFinder()</span></code></a></li>
+>>>>>>> master
 <li><a class="reference internal" href="#pdstools.ADMDatamart">ADMDatamart</a><ul>
 <li><a class="reference internal" href="#pdstools.ADMDatamart.modelData">modelData</a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart.predictorData">predictorData</a></li>
@@ -1183,6 +1593,7 @@ One of: {‘Quantile’, ‘Propensity’}</p>
 <li><a class="reference internal" href="#pdstools.ValueFinder.getCustomerSummary">getCustomerSummary</a></li>
 <li><a class="reference internal" href="#pdstools.ValueFinder.getCountsPerStage">getCountsPerStage</a></li>
 <li><a class="reference internal" href="#pdstools.ValueFinder.addCountsPerThresholdRange">addCountsPerThresholdRange</a></li>
+<li><a class="reference internal" href="#pdstools.ValueFinder._generateCountsQuery">_generateCountsQuery</a></li>
 <li><a class="reference internal" href="#pdstools.ValueFinder.plotPropensityDistribution">plotPropensityDistribution</a></li>
 <li><a class="reference internal" href="#pdstools.ValueFinder.plotPropensityThreshold">plotPropensityThreshold</a></li>
 <li><a class="reference internal" href="#pdstools.ValueFinder.plotPieCharts">plotPieCharts</a></li>
@@ -1190,6 +1601,27 @@ One of: {‘Quantile’, ‘Propensity’}</p>
 <li><a class="reference internal" href="#pdstools.ValueFinder.plotFunnelChart">plotFunnelChart</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#pdstools.Config">Config</a><ul>
+<li><a class="reference internal" href="#pdstools.Config.load_from_config_file">load_from_config_file</a></li>
+<li><a class="reference internal" href="#pdstools.Config.save_to_config_file">save_to_config_file</a></li>
+<li><a class="reference internal" href="#pdstools.Config.validate_paths">validate_paths</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pdstools.DataAnonymization">DataAnonymization</a><ul>
+<li><a class="reference internal" href="#pdstools.DataAnonymization.write_to_output">write_to_output</a></li>
+<li><a class="reference internal" href="#pdstools.DataAnonymization.create_mapping_file">create_mapping_file</a></li>
+<li><a class="reference internal" href="#pdstools.DataAnonymization.load_hds_files">load_hds_files</a></li>
+<li><a class="reference internal" href="#pdstools.DataAnonymization.read_predictor_type_from_file">read_predictor_type_from_file</a></li>
+<li><a class="reference internal" href="#pdstools.DataAnonymization.read_predictor_type_from_datamart">read_predictor_type_from_datamart</a></li>
+<li><a class="reference internal" href="#pdstools.DataAnonymization.get_columns_by_type">get_columns_by_type</a></li>
+<li><a class="reference internal" href="#pdstools.DataAnonymization.get_predictors_mapping">get_predictors_mapping</a></li>
+<li><a class="reference internal" href="#pdstools.DataAnonymization.getHasher">getHasher</a></li>
+<li><a class="reference internal" href="#pdstools.DataAnonymization.process">process</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pdstools.CDHSample">CDHSample</a></li>
+<li><a class="reference internal" href="#pdstools.SampleTrees">SampleTrees</a></li>
+<li><a class="reference internal" href="#pdstools.SampleValueFinder">SampleValueFinder</a></li>
 </ul>
 </li>
 </ul>

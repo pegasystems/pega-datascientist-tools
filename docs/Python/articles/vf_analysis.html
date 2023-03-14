@@ -167,6 +167,7 @@
 <li class="toctree-l1"><a class="reference internal" href="graph_gallery.html">Graph Gallery</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../tutorial_notebooks.html">Tutorial notebooks</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="hello_cdhtools.html">Hello pdstools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Example_Data_Anonymization.html">Example data anonymization</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../examples.html">Example notebooks</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
@@ -212,8 +213,12 @@
 <li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/cdh_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/datasets/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.datasets</span></code></a></li>
+<<<<<<< HEAD
 <li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/errors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.errors</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/types/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.types</span></code></a></li>
+=======
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/hds_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.hds_utils</span></code></a></li>
+>>>>>>> master
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/valuefinder/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.valuefinder</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -545,9 +550,15 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
+<<<<<<< HEAD
 Data import took 1.52 seconds
 Transforming to polars... Took: 0.0 seconds
 Generating: Customer Summary... Took: 0.0 seconds
+=======
+Data import took 0.55 seconds
+Transforming to polars... Took: 0.0 seconds
+Generating: Customer Summary... Took: 0.02 seconds
+>>>>>>> master
 Generating: Counts per stage... Took: 0.0 seconds
 </pre></div></div>
 </div>
@@ -566,6 +577,7 @@ Generating: Counts per stage... Took: 0.0 seconds
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
+<<<<<<< HEAD
 <h4>NAIVE QUERY PLAN</h4><p>run <b>LazyFrame.show_graph()</b> to see the optimized version</p><?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
@@ -606,6 +618,268 @@ Generating: Counts per stage... Took: 0.0 seconds
 </g>
 </g>
 </svg></div>
+=======
+<div>
+<style>
+.pl-dataframe > thead > tr > th {
+  text-align: right;
+}
+</style>
+
+<table border="1" class="dataframe pl-dataframe">
+<small>shape: (5, 11)</small>
+<thead>
+<tr>
+<th>
+pyStage
+</th>
+<th>
+pyIssue
+</th>
+<th>
+pyGroup
+</th>
+<th>
+pyChannel
+</th>
+<th>
+pyDirection
+</th>
+<th>
+CustomerID
+</th>
+<th>
+pyName
+</th>
+<th>
+pyWorkID
+</th>
+<th>
+pyModelPropensity
+</th>
+<th>
+pyPropensity
+</th>
+<th>
+FinalPropensity
+</th>
+</tr>
+<tr>
+<td>
+str
+</td>
+<td>
+str
+</td>
+<td>
+str
+</td>
+<td>
+str
+</td>
+<td>
+str
+</td>
+<td>
+str
+</td>
+<td>
+str
+</td>
+<td>
+str
+</td>
+<td>
+f64
+</td>
+<td>
+f64
+</td>
+<td>
+f64
+</td>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+&quot;Applicability&quot;
+</td>
+<td>
+&quot;Sales&quot;
+</td>
+<td>
+&quot;DepositAccount...
+</td>
+<td>
+&quot;SMS&quot;
+</td>
+<td>
+&quot;Outbound&quot;
+</td>
+<td>
+&quot;Customer-1&quot;
+</td>
+<td>
+&quot;StudentCheckin...
+</td>
+<td>
+&quot;Opp_NBA_AlDF_S...
+</td>
+<td>
+0.269231
+</td>
+<td>
+0.269231
+</td>
+<td>
+0.278077
+</td>
+</tr>
+<tr>
+<td>
+&quot;Applicability&quot;
+</td>
+<td>
+&quot;Usage&quot;
+</td>
+<td>
+&quot;Mobilebanking&quot;
+</td>
+<td>
+&quot;SMS&quot;
+</td>
+<td>
+&quot;Outbound&quot;
+</td>
+<td>
+&quot;Customer-100&quot;
+</td>
+<td>
+&quot;GetTheUMobileA...
+</td>
+<td>
+&quot;Opp_NBA_AlDF_S...
+</td>
+<td>
+0.5
+</td>
+<td>
+0.5
+</td>
+<td>
+0.713095
+</td>
+</tr>
+<tr>
+<td>
+&quot;Applicability&quot;
+</td>
+<td>
+&quot;Collections&quot;
+</td>
+<td>
+&quot;Recommendation...
+</td>
+<td>
+&quot;SMS&quot;
+</td>
+<td>
+&quot;Outbound&quot;
+</td>
+<td>
+&quot;Customer-1000&quot;
+</td>
+<td>
+&quot;SetupAutopayTo...
+</td>
+<td>
+&quot;Opp_NBA_AlDF_S...
+</td>
+<td>
+0.5
+</td>
+<td>
+0.5
+</td>
+<td>
+0.421306
+</td>
+</tr>
+<tr>
+<td>
+&quot;Applicability&quot;
+</td>
+<td>
+&quot;Sales&quot;
+</td>
+<td>
+&quot;DepositAccount...
+</td>
+<td>
+&quot;SMS&quot;
+</td>
+<td>
+&quot;Outbound&quot;
+</td>
+<td>
+&quot;Customer-10000...
+</td>
+<td>
+&quot;StudentCheckin...
+</td>
+<td>
+&quot;Opp_NBA_AlDF_S...
+</td>
+<td>
+0.269231
+</td>
+<td>
+0.269231
+</td>
+<td>
+0.244777
+</td>
+</tr>
+<tr>
+<td>
+&quot;Applicability&quot;
+</td>
+<td>
+&quot;Sales&quot;
+</td>
+<td>
+&quot;Bundles&quot;
+</td>
+<td>
+&quot;SMS&quot;
+</td>
+<td>
+&quot;Outbound&quot;
+</td>
+<td>
+&quot;Customer-1001&quot;
+</td>
+<td>
+&quot;StudentChoice&quot;
+</td>
+<td>
+&quot;Opp_NBA_AlDF_S...
+</td>
+<td>
+0.15
+</td>
+<td>
+0.15
+</td>
+<td>
+0.24831
+</td>
+</tr>
+</tbody>
+</table>
+</div></div>
+>>>>>>> master
 </div>
 <p>This is already enough information to generate the same piechart as shown in platform, but to replicate the same values, we would need to compute the propensity threshold. In this case, the quantile of <code class="docutils literal notranslate"><span class="pre">0.052</span></code> of the propensity distribution seems to represent the same counts as in platform. Whilst we see the final pie chart after arbitration which correlates, it is also possible to view the same pie chart after each engagement policy stage. Simply call the <code class="docutils literal notranslate"><span class="pre">plotPieCharts()</span></code> function on the
 data:</p>
@@ -623,6 +897,7 @@ data:</p>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 <span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<<<<<<< HEAD
 <span class="ansi-red-fg">AttributeError</span>                            Traceback (most recent call last)
 Cell <span class="ansi-green-fg">In [4], line 1</span>
 <span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">vf</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">plotPieCharts</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">0.052</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">verbose</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg ansi-bold" style="color: rgb(0,135,0)">False</span><span class="ansi-yellow-bg">)</span>
@@ -640,6 +915,29 @@ File <span class="ansi-green-fg">~/Documents/Code/pdstools-polars/pega-datascien
 <span class="ansi-green-intense-fg ansi-bold">    458</span> founddefault <span style="color: rgb(98,98,98)">=</span> <span class="ansi-bold" style="color: rgb(0,135,0)">False</span>
 
 <span class="ansi-red-fg">AttributeError</span>: &#39;ValueFinder&#39; object has no attribute &#39;NBADStages&#39;
+=======
+<span class="ansi-red-fg">UnboundLocalError</span>                         Traceback (most recent call last)
+Cell <span class="ansi-green-fg">In [4], line 1</span>
+<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">vf</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">plotPieCharts</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">0.052</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">verbose</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg ansi-bold" style="color: rgb(0,135,0)">False</span><span class="ansi-yellow-bg">)</span>
+
+File <span class="ansi-green-fg">~/Documents/Code/pdstools-working/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/valuefinder/ValueFinder.py:458</span>, in <span class="ansi-cyan-fg">ValueFinder.plotPieCharts</span><span class="ansi-blue-fg">(self, start, stop, step, propType, verbose)</span>
+<span class="ansi-green-intense-fg ansi-bold">    455</span>         visible <span style="color: rgb(98,98,98)">=</span> <span class="ansi-bold" style="color: rgb(0,135,0)">False</span>
+<span class="ansi-green-intense-fg ansi-bold">    456</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">for</span> i, stage <span class="ansi-bold" style="color: rgb(175,0,255)">in</span> <span style="color: rgb(0,135,0)">enumerate</span>(<span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>NBADStages):
+<span class="ansi-green-intense-fg ansi-bold">    457</span>         data <span style="color: rgb(98,98,98)">=</span> (
+<span class="ansi-green-fg">--&gt; 458</span>             <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>countsPerThreshold[<span class="ansi-yellow-bg">quantile</span>][<span style="color: rgb(98,98,98)">1</span>]
+<span class="ansi-green-intense-fg ansi-bold">    459</span>             <span style="color: rgb(98,98,98)">.</span>filter(pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">pyStage</span><span style="color: rgb(175,0,0)">&#34;</span>) <span style="color: rgb(98,98,98)">==</span> stage)
+<span class="ansi-green-intense-fg ansi-bold">    460</span>             <span style="color: rgb(98,98,98)">.</span>drop(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">pyStage</span><span style="color: rgb(175,0,0)">&#34;</span>)
+<span class="ansi-green-intense-fg ansi-bold">    461</span>         )
+<span class="ansi-green-intense-fg ansi-bold">    462</span>         fig<span style="color: rgb(98,98,98)">.</span>add_trace(
+<span class="ansi-green-intense-fg ansi-bold">    463</span>             go<span style="color: rgb(98,98,98)">.</span>Pie(
+<span class="ansi-green-intense-fg ansi-bold">    464</span>                 values<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(0,135,0)">list</span>(data<span style="color: rgb(98,98,98)">.</span>collect()<span style="color: rgb(98,98,98)">.</span>to_numpy())[<span style="color: rgb(98,98,98)">0</span>],
+<span class="ansi-green-fg">   (...)</span>
+<span class="ansi-green-intense-fg ansi-bold">    479</span>             i <span style="color: rgb(98,98,98)">+</span> <span style="color: rgb(98,98,98)">1</span>,
+<span class="ansi-green-intense-fg ansi-bold">    480</span>         )
+<span class="ansi-green-intense-fg ansi-bold">    481</span> steps <span style="color: rgb(98,98,98)">=</span> []
+
+<span class="ansi-red-fg">UnboundLocalError</span>: cannot access local variable &#39;quantile&#39; where it is not associated with a value
+>>>>>>> master
 </pre></div></div>
 </div>
 <p>By hovering over the rightmost pie chart, you can see the numbers match up exactly to that shown in the value finder simulation. What’s more, we don’t just show the counts in the final arbitration stage, but also the counts of the eligibility, applicability, and the suitability stages. This view shows you the movement of customers from having at least one relevant action to only irrelevant actions and no actions over the application of the engagement policies. This will show you the most
@@ -659,6 +957,7 @@ impactful stage of your policies.</p>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 <span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<<<<<<< HEAD
 <span class="ansi-red-fg">TypeError</span>                                 Traceback (most recent call last)
 Cell <span class="ansi-green-fg">In [5], line 1</span>
 <span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">vf</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">plotPropensityThreshold</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">)</span>
@@ -671,6 +970,43 @@ File <span class="ansi-green-fg">~/Documents/Code/pdstools-polars/pega-datascien
 <span class="ansi-green-intense-fg ansi-bold">    364</span> <span class="ansi-bold" style="color: rgb(0,135,0)">for</span> ptype <span class="ansi-bold" style="color: rgb(175,0,255)">in</span> propensities:
 
 <span class="ansi-red-fg">TypeError</span>: object of type &#39;LazyFrame&#39; has no len()
+=======
+<span class="ansi-red-fg">ImportError</span>                               Traceback (most recent call last)
+Cell <span class="ansi-green-fg">In [5], line 1</span>
+<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">vf</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">plotPropensityThreshold</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">)</span>
+
+File <span class="ansi-green-fg">~/Documents/Code/pdstools-working/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/valuefinder/ValueFinder.py:355</span>, in <span class="ansi-cyan-fg">ValueFinder.plotPropensityThreshold</span><span class="ansi-blue-fg">(self, sampledN, stage)</span>
+<span class="ansi-green-intense-fg ansi-bold">    353</span> <span class="ansi-bold" style="color: rgb(0,135,0)">for</span> ptype <span class="ansi-bold" style="color: rgb(175,0,255)">in</span> propensities:
+<span class="ansi-green-intense-fg ansi-bold">    354</span>     plotdf <span style="color: rgb(98,98,98)">=</span> data[ptype]<span style="color: rgb(98,98,98)">.</span>to_list()
+<span class="ansi-green-fg">--&gt; 355</span>     temp <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">ff</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">create_distplot</span><span class="ansi-yellow-bg">(</span>
+<span class="ansi-green-intense-fg ansi-bold">    356</span> <span class="ansi-yellow-bg">        </span><span class="ansi-yellow-bg">[</span><span class="ansi-yellow-bg">plotdf</span><span class="ansi-yellow-bg">]</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">[</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">value</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg">]</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">show_rug</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg ansi-bold" style="color: rgb(0,135,0)">False</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">show_hist</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg ansi-bold" style="color: rgb(0,135,0)">False</span>
+<span class="ansi-green-intense-fg ansi-bold">    357</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">    358</span>     tempdf <span style="color: rgb(98,98,98)">=</span> pd<span style="color: rgb(98,98,98)">.</span>DataFrame(
+<span class="ansi-green-intense-fg ansi-bold">    359</span>         {<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">x</span><span style="color: rgb(175,0,0)">&#34;</span>: temp[<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">data</span><span style="color: rgb(175,0,0)">&#34;</span>][<span style="color: rgb(98,98,98)">0</span>][<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">x</span><span style="color: rgb(175,0,0)">&#34;</span>], <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">y</span><span style="color: rgb(175,0,0)">&#34;</span>: temp[<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">data</span><span style="color: rgb(175,0,0)">&#34;</span>][<span style="color: rgb(98,98,98)">0</span>][<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">y</span><span style="color: rgb(175,0,0)">&#34;</span>]}
+<span class="ansi-green-intense-fg ansi-bold">    360</span>     )
+<span class="ansi-green-intense-fg ansi-bold">    361</span>     figs<span style="color: rgb(98,98,98)">.</span>add_trace(
+<span class="ansi-green-intense-fg ansi-bold">    362</span>         go<span style="color: rgb(98,98,98)">.</span>Scatter(
+<span class="ansi-green-intense-fg ansi-bold">    363</span>             x<span style="color: rgb(98,98,98)">=</span>tempdf[<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">x</span><span style="color: rgb(175,0,0)">&#34;</span>],
+<span class="ansi-green-fg">   (...)</span>
+<span class="ansi-green-intense-fg ansi-bold">    371</span>         col<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(98,98,98)">1</span>,
+<span class="ansi-green-intense-fg ansi-bold">    372</span>     )
+
+File <span class="ansi-green-fg">/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/plotly/figure_factory/_distplot.py:180</span>, in <span class="ansi-cyan-fg">create_distplot</span><span class="ansi-blue-fg">(hist_data, group_labels, bin_size, curve_type, colors, rug_text, histnorm, show_hist, show_curve, show_rug)</span>
+<span class="ansi-green-intense-fg ansi-bold">    177</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> rug_text <span class="ansi-bold" style="color: rgb(175,0,255)">is</span> <span class="ansi-bold" style="color: rgb(0,135,0)">None</span>:
+<span class="ansi-green-intense-fg ansi-bold">    178</span>     rug_text <span style="color: rgb(98,98,98)">=</span> []
+<span class="ansi-green-fg">--&gt; 180</span> <span class="ansi-yellow-bg">validate_distplot</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">hist_data</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">curve_type</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">    181</span> utils<span style="color: rgb(98,98,98)">.</span>validate_equal_length(hist_data, group_labels)
+<span class="ansi-green-intense-fg ansi-bold">    183</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> <span style="color: rgb(0,135,0)">isinstance</span>(bin_size, (<span style="color: rgb(0,135,0)">float</span>, <span style="color: rgb(0,135,0)">int</span>)):
+
+File <span class="ansi-green-fg">/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/plotly/figure_factory/_distplot.py:49</span>, in <span class="ansi-cyan-fg">validate_distplot</span><span class="ansi-blue-fg">(hist_data, curve_type)</span>
+<span class="ansi-green-intense-fg ansi-bold">     44</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">raise</span> exceptions<span style="color: rgb(98,98,98)">.</span>PlotlyError(
+<span class="ansi-green-intense-fg ansi-bold">     45</span>         <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">curve_type must be defined as </span><span style="color: rgb(175,0,0)">&#34;</span> <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">&#39;</span><span style="color: rgb(175,0,0)">kde</span><span style="color: rgb(175,0,0)">&#39;</span><span style="color: rgb(175,0,0)"> or </span><span style="color: rgb(175,0,0)">&#39;</span><span style="color: rgb(175,0,0)">normal</span><span style="color: rgb(175,0,0)">&#39;</span><span style="color: rgb(175,0,0)">&#34;</span>
+<span class="ansi-green-intense-fg ansi-bold">     46</span>     )
+<span class="ansi-green-intense-fg ansi-bold">     48</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> <span class="ansi-bold" style="color: rgb(175,0,255)">not</span> scipy:
+<span class="ansi-green-fg">---&gt; 49</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">raise</span> <span class="ansi-bold" style="color: rgb(215,95,95)">ImportError</span>(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">FigureFactory.create_distplot requires scipy</span><span style="color: rgb(175,0,0)">&#34;</span>)
+
+<span class="ansi-red-fg">ImportError</span>: FigureFactory.create_distplot requires scipy
+>>>>>>> master
 </pre></div></div>
 </div>
 <p>These different propensities represent the raw propensities from the models (pyModelPropensity), the propensities which may be overridden by the random control group (pyPropensity) and the final propensity from a prediction (FinalPropensity). In a prediction, Thompson Sampling may have been applied, smoothing the final distribution.</p>
@@ -689,6 +1025,7 @@ File <span class="ansi-green-fg">~/Documents/Code/pdstools-polars/pega-datascien
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 <span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<<<<<<< HEAD
 <span class="ansi-red-fg">AttributeError</span>                            Traceback (most recent call last)
 Cell <span class="ansi-green-fg">In [6], line 1</span>
 <span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">vf</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">plotPropensityDistribution</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">)</span>
@@ -708,6 +1045,46 @@ File <span class="ansi-green-fg">~/Documents/Code/pdstools-polars/pega-datascien
 <span class="ansi-green-intense-fg ansi-bold">    310</span>     data <span style="color: rgb(98,98,98)">=</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>df<span style="color: rgb(98,98,98)">.</span>filter(pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">pyStage</span><span style="color: rgb(175,0,0)">&#34;</span>) <span style="color: rgb(98,98,98)">==</span> stage)
 
 <span class="ansi-red-fg">AttributeError</span>: &#39;ValueFinder&#39; object has no attribute &#39;NBADStages&#39;
+=======
+<span class="ansi-red-fg">ImportError</span>                               Traceback (most recent call last)
+Cell <span class="ansi-green-fg">In [6], line 1</span>
+<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">vf</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">plotPropensityDistribution</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">)</span>
+
+File <span class="ansi-green-fg">~/Documents/Code/pdstools-working/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/valuefinder/ValueFinder.py:303</span>, in <span class="ansi-cyan-fg">ValueFinder.plotPropensityDistribution</span><span class="ansi-blue-fg">(self, sampledN)</span>
+<span class="ansi-green-intense-fg ansi-bold">    301</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> <span style="color: rgb(0,135,0)">len</span>(data) <span style="color: rgb(98,98,98)">&gt;</span> sampledN:
+<span class="ansi-green-intense-fg ansi-bold">    302</span>     data <span style="color: rgb(98,98,98)">=</span> data<span style="color: rgb(98,98,98)">.</span>sample(sampledN)
+<span class="ansi-green-fg">--&gt; 303</span> temp <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">ff</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">create_distplot</span><span class="ansi-yellow-bg">(</span>
+<span class="ansi-green-intense-fg ansi-bold">    304</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">[</span><span class="ansi-yellow-bg">data</span><span class="ansi-yellow-bg">[</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">pyModelPropensity</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg">]</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">to_list</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">)</span><span class="ansi-yellow-bg">]</span><span class="ansi-yellow-bg">,</span>
+<span class="ansi-green-intense-fg ansi-bold">    305</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">[</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">pyModelPropensity</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg">]</span><span class="ansi-yellow-bg">,</span>
+<span class="ansi-green-intense-fg ansi-bold">    306</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">show_rug</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg ansi-bold" style="color: rgb(0,135,0)">False</span><span class="ansi-yellow-bg">,</span>
+<span class="ansi-green-intense-fg ansi-bold">    307</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">show_hist</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg ansi-bold" style="color: rgb(0,135,0)">False</span><span class="ansi-yellow-bg">,</span>
+<span class="ansi-green-intense-fg ansi-bold">    308</span> <span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">    309</span> tempdf <span style="color: rgb(98,98,98)">=</span> pd<span style="color: rgb(98,98,98)">.</span>DataFrame(
+<span class="ansi-green-intense-fg ansi-bold">    310</span>     {<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">x</span><span style="color: rgb(175,0,0)">&#34;</span>: temp[<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">data</span><span style="color: rgb(175,0,0)">&#34;</span>][<span style="color: rgb(98,98,98)">0</span>][<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">x</span><span style="color: rgb(175,0,0)">&#34;</span>], <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">y</span><span style="color: rgb(175,0,0)">&#34;</span>: temp[<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">data</span><span style="color: rgb(175,0,0)">&#34;</span>][<span style="color: rgb(98,98,98)">0</span>][<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">y</span><span style="color: rgb(175,0,0)">&#34;</span>]}
+<span class="ansi-green-intense-fg ansi-bold">    311</span> )
+<span class="ansi-green-intense-fg ansi-bold">    312</span> fig <span style="color: rgb(98,98,98)">=</span> go<span style="color: rgb(98,98,98)">.</span>Scatter(
+<span class="ansi-green-intense-fg ansi-bold">    313</span>     x<span style="color: rgb(98,98,98)">=</span>tempdf[<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">x</span><span style="color: rgb(175,0,0)">&#34;</span>],
+<span class="ansi-green-intense-fg ansi-bold">    314</span>     y<span style="color: rgb(98,98,98)">=</span>tempdf[<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">y</span><span style="color: rgb(175,0,0)">&#34;</span>],
+<span class="ansi-green-fg">   (...)</span>
+<span class="ansi-green-intense-fg ansi-bold">    317</span>     line_color<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">rgba(0,0,0)</span><span style="color: rgb(175,0,0)">&#34;</span>,
+<span class="ansi-green-intense-fg ansi-bold">    318</span> )
+
+File <span class="ansi-green-fg">/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/plotly/figure_factory/_distplot.py:180</span>, in <span class="ansi-cyan-fg">create_distplot</span><span class="ansi-blue-fg">(hist_data, group_labels, bin_size, curve_type, colors, rug_text, histnorm, show_hist, show_curve, show_rug)</span>
+<span class="ansi-green-intense-fg ansi-bold">    177</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> rug_text <span class="ansi-bold" style="color: rgb(175,0,255)">is</span> <span class="ansi-bold" style="color: rgb(0,135,0)">None</span>:
+<span class="ansi-green-intense-fg ansi-bold">    178</span>     rug_text <span style="color: rgb(98,98,98)">=</span> []
+<span class="ansi-green-fg">--&gt; 180</span> <span class="ansi-yellow-bg">validate_distplot</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">hist_data</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">curve_type</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">    181</span> utils<span style="color: rgb(98,98,98)">.</span>validate_equal_length(hist_data, group_labels)
+<span class="ansi-green-intense-fg ansi-bold">    183</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> <span style="color: rgb(0,135,0)">isinstance</span>(bin_size, (<span style="color: rgb(0,135,0)">float</span>, <span style="color: rgb(0,135,0)">int</span>)):
+
+File <span class="ansi-green-fg">/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/plotly/figure_factory/_distplot.py:49</span>, in <span class="ansi-cyan-fg">validate_distplot</span><span class="ansi-blue-fg">(hist_data, curve_type)</span>
+<span class="ansi-green-intense-fg ansi-bold">     44</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">raise</span> exceptions<span style="color: rgb(98,98,98)">.</span>PlotlyError(
+<span class="ansi-green-intense-fg ansi-bold">     45</span>         <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">curve_type must be defined as </span><span style="color: rgb(175,0,0)">&#34;</span> <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">&#39;</span><span style="color: rgb(175,0,0)">kde</span><span style="color: rgb(175,0,0)">&#39;</span><span style="color: rgb(175,0,0)"> or </span><span style="color: rgb(175,0,0)">&#39;</span><span style="color: rgb(175,0,0)">normal</span><span style="color: rgb(175,0,0)">&#39;</span><span style="color: rgb(175,0,0)">&#34;</span>
+<span class="ansi-green-intense-fg ansi-bold">     46</span>     )
+<span class="ansi-green-intense-fg ansi-bold">     48</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> <span class="ansi-bold" style="color: rgb(175,0,255)">not</span> scipy:
+<span class="ansi-green-fg">---&gt; 49</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">raise</span> <span class="ansi-bold" style="color: rgb(215,95,95)">ImportError</span>(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">FigureFactory.create_distplot requires scipy</span><span style="color: rgb(175,0,0)">&#34;</span>)
+
+<span class="ansi-red-fg">ImportError</span>: FigureFactory.create_distplot requires scipy
+>>>>>>> master
 </pre></div></div>
 </div>
 <p>So there is a spread out distribution of propensities - making the selection of the relevant action setting an important choice as this will influence whether customers are considered as having at least one relevant action or only irrelevant actions.</p>
@@ -726,6 +1103,7 @@ File <span class="ansi-green-fg">~/Documents/Code/pdstools-polars/pega-datascien
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 <span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<<<<<<< HEAD
 <span class="ansi-red-fg">AttributeError</span>                            Traceback (most recent call last)
 Cell <span class="ansi-green-fg">In [7], line 1</span>
 <span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">vf</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">plotPieCharts</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">start</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">0.01</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">stop</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">0.5</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">step</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">0.01</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">verbose</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg ansi-bold" style="color: rgb(0,135,0)">False</span><span class="ansi-yellow-bg">)</span>
@@ -743,6 +1121,29 @@ File <span class="ansi-green-fg">~/Documents/Code/pdstools-polars/pega-datascien
 <span class="ansi-green-intense-fg ansi-bold">    458</span> founddefault <span style="color: rgb(98,98,98)">=</span> <span class="ansi-bold" style="color: rgb(0,135,0)">False</span>
 
 <span class="ansi-red-fg">AttributeError</span>: &#39;ValueFinder&#39; object has no attribute &#39;NBADStages&#39;
+=======
+<span class="ansi-red-fg">UnboundLocalError</span>                         Traceback (most recent call last)
+Cell <span class="ansi-green-fg">In [7], line 1</span>
+<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">vf</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">plotPieCharts</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">start</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">0.01</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">stop</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">0.5</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">step</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">0.01</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">verbose</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg ansi-bold" style="color: rgb(0,135,0)">False</span><span class="ansi-yellow-bg">)</span>
+
+File <span class="ansi-green-fg">~/Documents/Code/pdstools-working/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/valuefinder/ValueFinder.py:458</span>, in <span class="ansi-cyan-fg">ValueFinder.plotPieCharts</span><span class="ansi-blue-fg">(self, start, stop, step, propType, verbose)</span>
+<span class="ansi-green-intense-fg ansi-bold">    455</span>         visible <span style="color: rgb(98,98,98)">=</span> <span class="ansi-bold" style="color: rgb(0,135,0)">False</span>
+<span class="ansi-green-intense-fg ansi-bold">    456</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">for</span> i, stage <span class="ansi-bold" style="color: rgb(175,0,255)">in</span> <span style="color: rgb(0,135,0)">enumerate</span>(<span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>NBADStages):
+<span class="ansi-green-intense-fg ansi-bold">    457</span>         data <span style="color: rgb(98,98,98)">=</span> (
+<span class="ansi-green-fg">--&gt; 458</span>             <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>countsPerThreshold[<span class="ansi-yellow-bg">quantile</span>][<span style="color: rgb(98,98,98)">1</span>]
+<span class="ansi-green-intense-fg ansi-bold">    459</span>             <span style="color: rgb(98,98,98)">.</span>filter(pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">pyStage</span><span style="color: rgb(175,0,0)">&#34;</span>) <span style="color: rgb(98,98,98)">==</span> stage)
+<span class="ansi-green-intense-fg ansi-bold">    460</span>             <span style="color: rgb(98,98,98)">.</span>drop(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">pyStage</span><span style="color: rgb(175,0,0)">&#34;</span>)
+<span class="ansi-green-intense-fg ansi-bold">    461</span>         )
+<span class="ansi-green-intense-fg ansi-bold">    462</span>         fig<span style="color: rgb(98,98,98)">.</span>add_trace(
+<span class="ansi-green-intense-fg ansi-bold">    463</span>             go<span style="color: rgb(98,98,98)">.</span>Pie(
+<span class="ansi-green-intense-fg ansi-bold">    464</span>                 values<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(0,135,0)">list</span>(data<span style="color: rgb(98,98,98)">.</span>collect()<span style="color: rgb(98,98,98)">.</span>to_numpy())[<span style="color: rgb(98,98,98)">0</span>],
+<span class="ansi-green-fg">   (...)</span>
+<span class="ansi-green-intense-fg ansi-bold">    479</span>             i <span style="color: rgb(98,98,98)">+</span> <span style="color: rgb(98,98,98)">1</span>,
+<span class="ansi-green-intense-fg ansi-bold">    480</span>         )
+<span class="ansi-green-intense-fg ansi-bold">    481</span> steps <span style="color: rgb(98,98,98)">=</span> []
+
+<span class="ansi-red-fg">UnboundLocalError</span>: cannot access local variable &#39;quantile&#39; where it is not associated with a value
+>>>>>>> master
 </pre></div></div>
 </div>
 <p>Note the slider at the bottom: playing around with this, you can easily see how choosing a different threshold changes the view of a customer. This makes intuitive sense: if you consider an action ‘good’ from a lower propensity threshold, then more customers will be well served than if you consider an action ‘good’ from a higher propensity threshold.</p>
@@ -755,6 +1156,7 @@ File <span class="ansi-green-fg">~/Documents/Code/pdstools-polars/pega-datascien
 </pre></div>
 </div>
 </div>
+<<<<<<< HEAD
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
@@ -790,6 +1192,63 @@ File <span class="ansi-green-fg">~/Documents/Code/pdstools-polars/pega-datascien
 
 <span class="ansi-red-fg">AttributeError</span>: &#39;ValueFinder&#39; object has no attribute &#39;countsPerThreshold&#39;
 </pre></div></div>
+=======
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"version_major": 2, "version_minor": 0, "model_id": "e8bbac32a987493baed575d20d9a0fef"}</script></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<script type="text/javascript">
+window.PlotlyConfig = {MathJaxConfig: 'local'};
+if (window.MathJax && window.MathJax.Hub && window.MathJax.Hub.Config) {window.MathJax.Hub.Config({SVG: {font: "STIX-Web"}});}
+if (typeof require !== 'undefined') {
+require.undef("plotly");
+requirejs.config({
+    paths: {
+        'plotly': ['https://cdn.plot.ly/plotly-2.18.2.min']
+    }
+});
+require(['plotly'], function(Plotly) {
+    window._Plotly = Plotly;
+});
+}
+</script></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>                            <div id="702024df-8ab6-4f09-91e4-2f090b417f79" class="plotly-graph-div" style="height:525px; width:100%;"></div>            <script type="text/javascript">                require(["plotly"], function(Plotly) {                    window.PLOTLYENV=window.PLOTLYENV || {};                                    if (document.getElementById("702024df-8ab6-4f09-91e4-2f090b417f79")) {                    Plotly.newPlot(                        "702024df-8ab6-4f09-91e4-2f090b417f79",                        [{"fillpattern":{"shape":""},"hovertemplate":"variable=At least one relevant action<br>pyStage=Eligibility<br>Quantile=%{x}<br>Number of people=%{y}<extra></extra>","legendgroup":"At least one relevant action","line":{"color":"#219e3f"},"marker":{"symbol":"circle"},"mode":"lines","name":"At least one relevant action","orientation":"v","showlegend":true,"stackgroup":"1","x":[0.0,0.12,0.13,0.14,0.15000000000000002,0.19,0.2,0.21000000000000002,0.25,0.26,0.27,0.42000000000000004,0.34,0.060000000000000005,0.43,0.35000000000000003,0.05,0.09999999999999999,0.11,0.44,0.36000000000000004,0.04,0.28,0.45,0.37,0.03,0.09,0.17,0.18000000000000002,0.16,0.22,0.23,0.24000000000000002,0.29000000000000004,0.38,0.46,0.3,0.47000000000000003,0.02,0.39,0.31,0.06999999999999999,0.08,0.48000000000000004,0.4,0.01,0.32,0.49,0.41000000000000003,0.33,0.26770460181868283,0.6800771562413888,1.0,0.6820060622761092,0.4216037475888675,0.04918710388536787],"xaxis":"x","y":[7258.0,6414.0,6414.0,6300.0,6300.0,5957.0,5830.0,5783.0,5650.0,5650.0,5315.0,4623.0,4879.0,6854.0,4198.0,4879.0,6901.0,6551.0,6491.0,4198.0,4879.0,7045.0,5257.0,4198.0,4623.0,7045.0,6605.0,6122.0,5957.0,6122.0,5718.0,5650.0,5650.0,5257.0,4623.0,4198.0,5257.0,4198.0,7118.0,4623.0,5257.0,6777.0,6723.0,3846.0,4623.0,7221.0,4982.0,3846.0,4623.0,4879.0,5315.0,2322.0,0.0,2308.0,4198.0,6901.0],"yaxis":"y","type":"scatter"},{"fillpattern":{"shape":""},"hovertemplate":"variable=At least one relevant action<br>pyStage=Applicability<br>Quantile=%{x}<br>Number of people=%{y}<extra></extra>","legendgroup":"At least one relevant action","line":{"color":"#219e3f"},"marker":{"symbol":"circle"},"mode":"lines","name":"At least one relevant action","orientation":"v","showlegend":false,"stackgroup":"1","x":[0.0,0.12,0.13,0.14,0.15000000000000002,0.19,0.2,0.21000000000000002,0.25,0.26,0.27,0.42000000000000004,0.34,0.060000000000000005,0.43,0.35000000000000003,0.05,0.09999999999999999,0.11,0.44,0.36000000000000004,0.04,0.28,0.45,0.37,0.03,0.09,0.17,0.18000000000000002,0.16,0.22,0.23,0.24000000000000002,0.29000000000000004,0.38,0.46,0.3,0.47000000000000003,0.02,0.39,0.31,0.06999999999999999,0.08,0.48000000000000004,0.4,0.01,0.32,0.49,0.41000000000000003,0.33,0.26770460181868283,0.6800771562413888,1.0,0.6820060622761092,0.4216037475888675,0.04918710388536787],"xaxis":"x2","y":[6803.0,5862.0,5862.0,5730.0,5730.0,5349.0,5208.0,5149.0,4989.0,4989.0,4746.0,4190.0,4253.0,6351.0,3728.0,4253.0,6398.0,5996.0,5913.0,3728.0,4253.0,6553.0,4679.0,3728.0,4190.0,6553.0,6070.0,5543.0,5349.0,5543.0,5071.0,4989.0,4989.0,4679.0,4190.0,3728.0,4679.0,3728.0,6635.0,4190.0,4679.0,6266.0,6199.0,3350.0,4190.0,6760.0,4376.0,3350.0,4190.0,4253.0,4746.0,1704.0,0.0,1690.0,3728.0,6398.0],"yaxis":"y2","type":"scatter"},{"fillpattern":{"shape":""},"hovertemplate":"variable=At least one relevant action<br>pyStage=Suitability<br>Quantile=%{x}<br>Number of people=%{y}<extra></extra>","legendgroup":"At least one relevant action","line":{"color":"#219e3f"},"marker":{"symbol":"circle"},"mode":"lines","name":"At least one relevant action","orientation":"v","showlegend":false,"stackgroup":"1","x":[0.0,0.12,0.13,0.14,0.15000000000000002,0.19,0.2,0.21000000000000002,0.25,0.26,0.27,0.42000000000000004,0.34,0.060000000000000005,0.43,0.35000000000000003,0.05,0.09999999999999999,0.11,0.44,0.36000000000000004,0.04,0.28,0.45,0.37,0.03,0.09,0.17,0.18000000000000002,0.16,0.22,0.23,0.24000000000000002,0.29000000000000004,0.38,0.46,0.3,0.47000000000000003,0.02,0.39,0.31,0.06999999999999999,0.08,0.48000000000000004,0.4,0.01,0.32,0.49,0.41000000000000003,0.33,0.26770460181868283,0.6800771562413888,1.0,0.6820060622761092,0.4216037475888675,0.04918710388536787],"xaxis":"x3","y":[6563.0,5591.0,5591.0,5453.0,5453.0,5049.0,4896.0,4833.0,4683.0,4683.0,4649.0,4101.0,4145.0,6080.0,3629.0,4145.0,6130.0,5728.0,5647.0,3629.0,4145.0,6296.0,4584.0,3629.0,4101.0,6296.0,5811.0,5254.0,5049.0,5254.0,4770.0,4683.0,4683.0,4584.0,4101.0,3629.0,4584.0,3629.0,6384.0,4101.0,4584.0,5995.0,5950.0,3246.0,4101.0,6516.0,4275.0,3246.0,4101.0,4145.0,4649.0,1566.0,0.0,1554.0,3629.0,6130.0],"yaxis":"y3","type":"scatter"},{"fillpattern":{"shape":""},"hovertemplate":"variable=At least one relevant action<br>pyStage=Arbitration<br>Quantile=%{x}<br>Number of people=%{y}<extra></extra>","legendgroup":"At least one relevant action","line":{"color":"#219e3f"},"marker":{"symbol":"circle"},"mode":"lines","name":"At least one relevant action","orientation":"v","showlegend":false,"stackgroup":"1","x":[0.0,0.12,0.13,0.14,0.15000000000000002,0.19,0.2,0.21000000000000002,0.25,0.26,0.27,0.42000000000000004,0.34,0.060000000000000005,0.43,0.35000000000000003,0.05,0.09999999999999999,0.11,0.44,0.36000000000000004,0.04,0.28,0.45,0.37,0.03,0.09,0.17,0.18000000000000002,0.16,0.22,0.23,0.24000000000000002,0.29000000000000004,0.38,0.46,0.3,0.47000000000000003,0.02,0.39,0.31,0.06999999999999999,0.08,0.48000000000000004,0.4,0.01,0.32,0.49,0.41000000000000003,0.33,0.26770460181868283,0.6800771562413888,1.0,0.6820060622761092,0.4216037475888675,0.04918710388536787],"xaxis":"x4","y":[6509.0,5215.0,5215.0,5064.0,5064.0,4724.0,4585.0,4528.0,4391.0,4391.0,4355.0,3851.0,3894.0,5917.0,3357.0,3894.0,5965.0,5420.0,5332.0,3357.0,3894.0,6217.0,4317.0,3357.0,3851.0,6217.0,5510.0,4877.0,4724.0,4877.0,4477.0,4391.0,4391.0,4317.0,3851.0,3357.0,4317.0,3357.0,6315.0,3851.0,4317.0,5867.0,5846.0,2930.0,3851.0,6461.0,4014.0,2930.0,3851.0,3894.0,4355.0,1315.0,0.0,1299.0,3357.0,6001.0],"yaxis":"y4","type":"scatter"},{"fillpattern":{"shape":""},"hovertemplate":"variable=Only irrelevant actions<br>pyStage=Eligibility<br>Quantile=%{x}<br>Number of people=%{y}<extra></extra>","legendgroup":"Only irrelevant actions","line":{"color":"#fca52e"},"marker":{"symbol":"circle"},"mode":"lines","name":"Only irrelevant actions","orientation":"v","showlegend":true,"stackgroup":"1","x":[0.0,0.12,0.13,0.14,0.15000000000000002,0.19,0.2,0.21000000000000002,0.25,0.26,0.27,0.42000000000000004,0.34,0.060000000000000005,0.43,0.35000000000000003,0.05,0.09999999999999999,0.11,0.44,0.36000000000000004,0.04,0.28,0.45,0.37,0.03,0.09,0.17,0.18000000000000002,0.16,0.22,0.23,0.24000000000000002,0.29000000000000004,0.38,0.46,0.3,0.47000000000000003,0.02,0.39,0.31,0.06999999999999999,0.08,0.48000000000000004,0.4,0.01,0.32,0.49,0.41000000000000003,0.33,0.26770460181868283,0.6800771562413888,1.0,0.6820060622761092,0.4216037475888675,0.04918710388536787],"xaxis":"x","y":[0.0,844.0,844.0,958.0,958.0,1301.0,1428.0,1475.0,1608.0,1608.0,1943.0,2635.0,2379.0,404.0,3060.0,2379.0,357.0,707.0,767.0,3060.0,2379.0,213.0,2001.0,3060.0,2635.0,213.0,653.0,1136.0,1301.0,1136.0,1540.0,1608.0,1608.0,2001.0,2635.0,3060.0,2001.0,3060.0,140.0,2635.0,2001.0,481.0,535.0,3412.0,2635.0,37.0,2276.0,3412.0,2635.0,2379.0,1943.0,4936.0,7258.0,4950.0,3060.0,357.0],"yaxis":"y","type":"scatter"},{"fillpattern":{"shape":""},"hovertemplate":"variable=Only irrelevant actions<br>pyStage=Applicability<br>Quantile=%{x}<br>Number of people=%{y}<extra></extra>","legendgroup":"Only irrelevant actions","line":{"color":"#fca52e"},"marker":{"symbol":"circle"},"mode":"lines","name":"Only irrelevant actions","orientation":"v","showlegend":false,"stackgroup":"1","x":[0.0,0.12,0.13,0.14,0.15000000000000002,0.19,0.2,0.21000000000000002,0.25,0.26,0.27,0.42000000000000004,0.34,0.060000000000000005,0.43,0.35000000000000003,0.05,0.09999999999999999,0.11,0.44,0.36000000000000004,0.04,0.28,0.45,0.37,0.03,0.09,0.17,0.18000000000000002,0.16,0.22,0.23,0.24000000000000002,0.29000000000000004,0.38,0.46,0.3,0.47000000000000003,0.02,0.39,0.31,0.06999999999999999,0.08,0.48000000000000004,0.4,0.01,0.32,0.49,0.41000000000000003,0.33,0.26770460181868283,0.6800771562413888,1.0,0.6820060622761092,0.4216037475888675,0.04918710388536787],"xaxis":"x2","y":[0.0,941.0,941.0,1073.0,1073.0,1454.0,1595.0,1654.0,1814.0,1814.0,2057.0,2613.0,2550.0,452.0,3075.0,2550.0,405.0,807.0,890.0,3075.0,2550.0,250.0,2124.0,3075.0,2613.0,250.0,733.0,1260.0,1454.0,1260.0,1732.0,1814.0,1814.0,2124.0,2613.0,3075.0,2124.0,3075.0,168.0,2613.0,2124.0,537.0,604.0,3453.0,2613.0,43.0,2427.0,3453.0,2613.0,2550.0,2057.0,5099.0,6803.0,5113.0,3075.0,405.0],"yaxis":"y2","type":"scatter"},{"fillpattern":{"shape":""},"hovertemplate":"variable=Only irrelevant actions<br>pyStage=Suitability<br>Quantile=%{x}<br>Number of people=%{y}<extra></extra>","legendgroup":"Only irrelevant actions","line":{"color":"#fca52e"},"marker":{"symbol":"circle"},"mode":"lines","name":"Only irrelevant actions","orientation":"v","showlegend":false,"stackgroup":"1","x":[0.0,0.12,0.13,0.14,0.15000000000000002,0.19,0.2,0.21000000000000002,0.25,0.26,0.27,0.42000000000000004,0.34,0.060000000000000005,0.43,0.35000000000000003,0.05,0.09999999999999999,0.11,0.44,0.36000000000000004,0.04,0.28,0.45,0.37,0.03,0.09,0.17,0.18000000000000002,0.16,0.22,0.23,0.24000000000000002,0.29000000000000004,0.38,0.46,0.3,0.47000000000000003,0.02,0.39,0.31,0.06999999999999999,0.08,0.48000000000000004,0.4,0.01,0.32,0.49,0.41000000000000003,0.33,0.26770460181868283,0.6800771562413888,1.0,0.6820060622761092,0.4216037475888675,0.04918710388536787],"xaxis":"x3","y":[0.0,972.0,972.0,1110.0,1110.0,1514.0,1667.0,1730.0,1880.0,1880.0,1914.0,2462.0,2418.0,483.0,2934.0,2418.0,433.0,835.0,916.0,2934.0,2418.0,267.0,1979.0,2934.0,2462.0,267.0,752.0,1309.0,1514.0,1309.0,1793.0,1880.0,1880.0,1979.0,2462.0,2934.0,1979.0,2934.0,179.0,2462.0,1979.0,568.0,613.0,3317.0,2462.0,47.0,2288.0,3317.0,2462.0,2418.0,1914.0,4997.0,6563.0,5009.0,2934.0,433.0],"yaxis":"y3","type":"scatter"},{"fillpattern":{"shape":""},"hovertemplate":"variable=Only irrelevant actions<br>pyStage=Arbitration<br>Quantile=%{x}<br>Number of people=%{y}<extra></extra>","legendgroup":"Only irrelevant actions","line":{"color":"#fca52e"},"marker":{"symbol":"circle"},"mode":"lines","name":"Only irrelevant actions","orientation":"v","showlegend":false,"stackgroup":"1","x":[0.0,0.12,0.13,0.14,0.15000000000000002,0.19,0.2,0.21000000000000002,0.25,0.26,0.27,0.42000000000000004,0.34,0.060000000000000005,0.43,0.35000000000000003,0.05,0.09999999999999999,0.11,0.44,0.36000000000000004,0.04,0.28,0.45,0.37,0.03,0.09,0.17,0.18000000000000002,0.16,0.22,0.23,0.24000000000000002,0.29000000000000004,0.38,0.46,0.3,0.47000000000000003,0.02,0.39,0.31,0.06999999999999999,0.08,0.48000000000000004,0.4,0.01,0.32,0.49,0.41000000000000003,0.33,0.26770460181868283,0.6800771562413888,1.0,0.6820060622761092,0.4216037475888675,0.04918710388536787],"xaxis":"x4","y":[0.0,1294.0,1294.0,1445.0,1445.0,1785.0,1924.0,1981.0,2118.0,2118.0,2154.0,2658.0,2615.0,592.0,3152.0,2615.0,544.0,1089.0,1177.0,3152.0,2615.0,292.0,2192.0,3152.0,2658.0,292.0,999.0,1632.0,1785.0,1632.0,2032.0,2118.0,2118.0,2192.0,2658.0,3152.0,2192.0,3152.0,194.0,2658.0,2192.0,642.0,663.0,3579.0,2658.0,48.0,2495.0,3579.0,2658.0,2615.0,2154.0,5194.0,6509.0,5210.0,3152.0,508.0],"yaxis":"y4","type":"scatter"},{"fillpattern":{"shape":""},"hovertemplate":"variable=Without actions<br>pyStage=Eligibility<br>Quantile=%{x}<br>Number of people=%{y}<extra></extra>","legendgroup":"Without actions","line":{"color":"#cd001f"},"marker":{"symbol":"circle"},"mode":"lines","name":"Without actions","orientation":"v","showlegend":true,"stackgroup":"1","x":[0.0,0.12,0.13,0.14,0.15000000000000002,0.19,0.2,0.21000000000000002,0.25,0.26,0.27,0.42000000000000004,0.34,0.060000000000000005,0.43,0.35000000000000003,0.05,0.09999999999999999,0.11,0.44,0.36000000000000004,0.04,0.28,0.45,0.37,0.03,0.09,0.17,0.18000000000000002,0.16,0.22,0.23,0.24000000000000002,0.29000000000000004,0.38,0.46,0.3,0.47000000000000003,0.02,0.39,0.31,0.06999999999999999,0.08,0.48000000000000004,0.4,0.01,0.32,0.49,0.41000000000000003,0.33,0.26770460181868283,0.6800771562413888,1.0,0.6820060622761092,0.4216037475888675,0.04918710388536787],"xaxis":"x","y":[2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0,2742.0],"yaxis":"y","type":"scatter"},{"fillpattern":{"shape":""},"hovertemplate":"variable=Without actions<br>pyStage=Applicability<br>Quantile=%{x}<br>Number of people=%{y}<extra></extra>","legendgroup":"Without actions","line":{"color":"#cd001f"},"marker":{"symbol":"circle"},"mode":"lines","name":"Without actions","orientation":"v","showlegend":false,"stackgroup":"1","x":[0.0,0.12,0.13,0.14,0.15000000000000002,0.19,0.2,0.21000000000000002,0.25,0.26,0.27,0.42000000000000004,0.34,0.060000000000000005,0.43,0.35000000000000003,0.05,0.09999999999999999,0.11,0.44,0.36000000000000004,0.04,0.28,0.45,0.37,0.03,0.09,0.17,0.18000000000000002,0.16,0.22,0.23,0.24000000000000002,0.29000000000000004,0.38,0.46,0.3,0.47000000000000003,0.02,0.39,0.31,0.06999999999999999,0.08,0.48000000000000004,0.4,0.01,0.32,0.49,0.41000000000000003,0.33,0.26770460181868283,0.6800771562413888,1.0,0.6820060622761092,0.4216037475888675,0.04918710388536787],"xaxis":"x2","y":[3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0,3197.0],"yaxis":"y2","type":"scatter"},{"fillpattern":{"shape":""},"hovertemplate":"variable=Without actions<br>pyStage=Suitability<br>Quantile=%{x}<br>Number of people=%{y}<extra></extra>","legendgroup":"Without actions","line":{"color":"#cd001f"},"marker":{"symbol":"circle"},"mode":"lines","name":"Without actions","orientation":"v","showlegend":false,"stackgroup":"1","x":[0.0,0.12,0.13,0.14,0.15000000000000002,0.19,0.2,0.21000000000000002,0.25,0.26,0.27,0.42000000000000004,0.34,0.060000000000000005,0.43,0.35000000000000003,0.05,0.09999999999999999,0.11,0.44,0.36000000000000004,0.04,0.28,0.45,0.37,0.03,0.09,0.17,0.18000000000000002,0.16,0.22,0.23,0.24000000000000002,0.29000000000000004,0.38,0.46,0.3,0.47000000000000003,0.02,0.39,0.31,0.06999999999999999,0.08,0.48000000000000004,0.4,0.01,0.32,0.49,0.41000000000000003,0.33,0.26770460181868283,0.6800771562413888,1.0,0.6820060622761092,0.4216037475888675,0.04918710388536787],"xaxis":"x3","y":[3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0,3437.0],"yaxis":"y3","type":"scatter"},{"fillpattern":{"shape":""},"hovertemplate":"variable=Without actions<br>pyStage=Arbitration<br>Quantile=%{x}<br>Number of people=%{y}<extra></extra>","legendgroup":"Without actions","line":{"color":"#cd001f"},"marker":{"symbol":"circle"},"mode":"lines","name":"Without actions","orientation":"v","showlegend":false,"stackgroup":"1","x":[0.0,0.12,0.13,0.14,0.15000000000000002,0.19,0.2,0.21000000000000002,0.25,0.26,0.27,0.42000000000000004,0.34,0.060000000000000005,0.43,0.35000000000000003,0.05,0.09999999999999999,0.11,0.44,0.36000000000000004,0.04,0.28,0.45,0.37,0.03,0.09,0.17,0.18000000000000002,0.16,0.22,0.23,0.24000000000000002,0.29000000000000004,0.38,0.46,0.3,0.47000000000000003,0.02,0.39,0.31,0.06999999999999999,0.08,0.48000000000000004,0.4,0.01,0.32,0.49,0.41000000000000003,0.33,0.26770460181868283,0.6800771562413888,1.0,0.6820060622761092,0.4216037475888675,0.04918710388536787],"xaxis":"x4","y":[3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0,3491.0],"yaxis":"y4","type":"scatter"},{"fillpattern":{"shape":""},"hovertemplate":"variable=Threshold<br>pyStage=Eligibility<br>Quantile=%{x}<br>Number of people=%{y}<extra></extra>","legendgroup":"Threshold","line":{"color":"#219e3f"},"marker":{"symbol":"circle"},"mode":"lines","name":"Threshold","orientation":"v","showlegend":true,"stackgroup":"1","x":[0.0,0.12,0.13,0.14,0.15000000000000002,0.19,0.2,0.21000000000000002,0.25,0.26,0.27,0.42000000000000004,0.34,0.060000000000000005,0.43,0.35000000000000003,0.05,0.09999999999999999,0.11,0.44,0.36000000000000004,0.04,0.28,0.45,0.37,0.03,0.09,0.17,0.18000000000000002,0.16,0.22,0.23,0.24000000000000002,0.29000000000000004,0.38,0.46,0.3,0.47000000000000003,0.02,0.39,0.31,0.06999999999999999,0.08,0.48000000000000004,0.4,0.01,0.32,0.49,0.41000000000000003,0.33,0.26770460181868283,0.6800771562413888,1.0,0.6820060622761092,0.4216037475888675,0.04918710388536787],"xaxis":"x","y":[0.0002688172043010753,0.06,0.06,0.06338028169014084,0.06338028169014084,0.07352941176470588,0.07446808510638298,0.08333333333333333,0.10869565217391304,0.10869565217391304,0.11290322580645161,0.19230769230769232,0.16176470588235295,0.02027027027027027,0.24193548387096775,0.16176470588235295,0.012096774193548388,0.03731343283582089,0.05,0.24193548387096775,0.16176470588235295,0.007575757575757576,0.125,0.24193548387096775,0.19230769230769232,0.007575757575757576,0.03125,0.07291666666666667,0.07352941176470588,0.07291666666666667,0.10714285714285714,0.10869565217391304,0.10869565217391304,0.125,0.19230769230769232,0.24193548387096775,0.125,0.24193548387096775,0.007352941176470588,0.19230769230769232,0.125,0.021739130434782608,0.025,0.2584745762711864,0.19230769230769232,0.005376344086021506,0.15517241379310345,0.2584745762711864,0.19230769230769232,0.16176470588235295,0.11,0.31000000000000005,0.51,0.41000000000000003,0.21000000000000002,0.01],"yaxis":"y","type":"scatter"},{"fillpattern":{"shape":""},"hovertemplate":"variable=Threshold<br>pyStage=Applicability<br>Quantile=%{x}<br>Number of people=%{y}<extra></extra>","legendgroup":"Threshold","line":{"color":"#219e3f"},"marker":{"symbol":"circle"},"mode":"lines","name":"Threshold","orientation":"v","showlegend":false,"stackgroup":"1","x":[0.0,0.12,0.13,0.14,0.15000000000000002,0.19,0.2,0.21000000000000002,0.25,0.26,0.27,0.42000000000000004,0.34,0.060000000000000005,0.43,0.35000000000000003,0.05,0.09999999999999999,0.11,0.44,0.36000000000000004,0.04,0.28,0.45,0.37,0.03,0.09,0.17,0.18000000000000002,0.16,0.22,0.23,0.24000000000000002,0.29000000000000004,0.38,0.46,0.3,0.47000000000000003,0.02,0.39,0.31,0.06999999999999999,0.08,0.48000000000000004,0.4,0.01,0.32,0.49,0.41000000000000003,0.33,0.26770460181868283,0.6800771562413888,1.0,0.6820060622761092,0.4216037475888675,0.04918710388536787],"xaxis":"x2","y":[0.0002688172043010753,0.06,0.06,0.06338028169014084,0.06338028169014084,0.07352941176470588,0.07446808510638298,0.08333333333333333,0.10869565217391304,0.10869565217391304,0.11290322580645161,0.19230769230769232,0.16176470588235295,0.02027027027027027,0.24193548387096775,0.16176470588235295,0.012096774193548388,0.03731343283582089,0.05,0.24193548387096775,0.16176470588235295,0.007575757575757576,0.125,0.24193548387096775,0.19230769230769232,0.007575757575757576,0.03125,0.07291666666666667,0.07352941176470588,0.07291666666666667,0.10714285714285714,0.10869565217391304,0.10869565217391304,0.125,0.19230769230769232,0.24193548387096775,0.125,0.24193548387096775,0.007352941176470588,0.19230769230769232,0.125,0.021739130434782608,0.025,0.2584745762711864,0.19230769230769232,0.005376344086021506,0.15517241379310345,0.2584745762711864,0.19230769230769232,0.16176470588235295,0.11,0.31000000000000005,0.51,0.41000000000000003,0.21000000000000002,0.01],"yaxis":"y2","type":"scatter"},{"fillpattern":{"shape":""},"hovertemplate":"variable=Threshold<br>pyStage=Suitability<br>Quantile=%{x}<br>Number of people=%{y}<extra></extra>","legendgroup":"Threshold","line":{"color":"#219e3f"},"marker":{"symbol":"circle"},"mode":"lines","name":"Threshold","orientation":"v","showlegend":false,"stackgroup":"1","x":[0.0,0.12,0.13,0.14,0.15000000000000002,0.19,0.2,0.21000000000000002,0.25,0.26,0.27,0.42000000000000004,0.34,0.060000000000000005,0.43,0.35000000000000003,0.05,0.09999999999999999,0.11,0.44,0.36000000000000004,0.04,0.28,0.45,0.37,0.03,0.09,0.17,0.18000000000000002,0.16,0.22,0.23,0.24000000000000002,0.29000000000000004,0.38,0.46,0.3,0.47000000000000003,0.02,0.39,0.31,0.06999999999999999,0.08,0.48000000000000004,0.4,0.01,0.32,0.49,0.41000000000000003,0.33,0.26770460181868283,0.6800771562413888,1.0,0.6820060622761092,0.4216037475888675,0.04918710388536787],"xaxis":"x3","y":[0.0002688172043010753,0.06,0.06,0.06338028169014084,0.06338028169014084,0.07352941176470588,0.07446808510638298,0.08333333333333333,0.10869565217391304,0.10869565217391304,0.11290322580645161,0.19230769230769232,0.16176470588235295,0.02027027027027027,0.24193548387096775,0.16176470588235295,0.012096774193548388,0.03731343283582089,0.05,0.24193548387096775,0.16176470588235295,0.007575757575757576,0.125,0.24193548387096775,0.19230769230769232,0.007575757575757576,0.03125,0.07291666666666667,0.07352941176470588,0.07291666666666667,0.10714285714285714,0.10869565217391304,0.10869565217391304,0.125,0.19230769230769232,0.24193548387096775,0.125,0.24193548387096775,0.007352941176470588,0.19230769230769232,0.125,0.021739130434782608,0.025,0.2584745762711864,0.19230769230769232,0.005376344086021506,0.15517241379310345,0.2584745762711864,0.19230769230769232,0.16176470588235295,0.11,0.31000000000000005,0.51,0.41000000000000003,0.21000000000000002,0.01],"yaxis":"y3","type":"scatter"},{"fillpattern":{"shape":""},"hovertemplate":"variable=Threshold<br>pyStage=Arbitration<br>Quantile=%{x}<br>Number of people=%{y}<extra></extra>","legendgroup":"Threshold","line":{"color":"#219e3f"},"marker":{"symbol":"circle"},"mode":"lines","name":"Threshold","orientation":"v","showlegend":false,"stackgroup":"1","x":[0.0,0.12,0.13,0.14,0.15000000000000002,0.19,0.2,0.21000000000000002,0.25,0.26,0.27,0.42000000000000004,0.34,0.060000000000000005,0.43,0.35000000000000003,0.05,0.09999999999999999,0.11,0.44,0.36000000000000004,0.04,0.28,0.45,0.37,0.03,0.09,0.17,0.18000000000000002,0.16,0.22,0.23,0.24000000000000002,0.29000000000000004,0.38,0.46,0.3,0.47000000000000003,0.02,0.39,0.31,0.06999999999999999,0.08,0.48000000000000004,0.4,0.01,0.32,0.49,0.41000000000000003,0.33,0.26770460181868283,0.6800771562413888,1.0,0.6820060622761092,0.4216037475888675,0.04918710388536787],"xaxis":"x4","y":[0.0002688172043010753,0.06,0.06,0.06338028169014084,0.06338028169014084,0.07352941176470588,0.07446808510638298,0.08333333333333333,0.10869565217391304,0.10869565217391304,0.11290322580645161,0.19230769230769232,0.16176470588235295,0.02027027027027027,0.24193548387096775,0.16176470588235295,0.012096774193548388,0.03731343283582089,0.05,0.24193548387096775,0.16176470588235295,0.007575757575757576,0.125,0.24193548387096775,0.19230769230769232,0.007575757575757576,0.03125,0.07291666666666667,0.07352941176470588,0.07291666666666667,0.10714285714285714,0.10869565217391304,0.10869565217391304,0.125,0.19230769230769232,0.24193548387096775,0.125,0.24193548387096775,0.007352941176470588,0.19230769230769232,0.125,0.021739130434782608,0.025,0.2584745762711864,0.19230769230769232,0.005376344086021506,0.15517241379310345,0.2584745762711864,0.19230769230769232,0.16176470588235295,0.11,0.31000000000000005,0.51,0.41000000000000003,0.21000000000000002,0.01],"yaxis":"y4","type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"anchor":"y","domain":[0.0,0.235],"title":{"text":"Quantile"}},"yaxis":{"anchor":"x","domain":[0.0,1.0],"title":{"text":"Number of people"}},"xaxis2":{"anchor":"y2","domain":[0.255,0.49],"matches":"x","title":{"text":"Quantile"}},"yaxis2":{"anchor":"x2","domain":[0.0,1.0],"matches":"y","showticklabels":false},"xaxis3":{"anchor":"y3","domain":[0.51,0.745],"matches":"x","title":{"text":"Quantile"}},"yaxis3":{"anchor":"x3","domain":[0.0,1.0],"matches":"y","showticklabels":false},"xaxis4":{"anchor":"y4","domain":[0.7649999999999999,0.9999999999999999],"matches":"x","title":{"text":"Quantile"}},"yaxis4":{"anchor":"x4","domain":[0.0,1.0],"matches":"y","showticklabels":false},"annotations":[{"font":{},"showarrow":false,"text":"pyStage=Eligibility","x":0.1175,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{},"showarrow":false,"text":"pyStage=Applicability","x":0.3725,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{},"showarrow":false,"text":"pyStage=Suitability","x":0.6275,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{},"showarrow":false,"text":"pyStage=Arbitration","x":0.8824999999999998,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"}],"legend":{"title":{"text":"Status"},"tracegroupgap":0},"title":{"text":"Distribution of offers per stage"}},                        {"responsive": true}                    ).then(function(){
+
+var gd = document.getElementById('702024df-8ab6-4f09-91e4-2f090b417f79');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };                });            </script>        </div></div>
+>>>>>>> master
 </div>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
@@ -803,6 +1262,7 @@ File <span class="ansi-green-fg">~/Documents/Code/pdstools-polars/pega-datascien
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
+<<<<<<< HEAD
 <div class="highlight"><pre>
 <span class="ansi-red-fg">---------------------------------------------------------------------------</span>
 <span class="ansi-red-fg">AttributeError</span>                            Traceback (most recent call last)
@@ -835,6 +1295,45 @@ File <span class="ansi-green-fg">~/Documents/Code/pdstools-polars/pega-datascien
 <span class="ansi-red-fg">AttributeError</span>: &#39;ValueFinder&#39; object has no attribute &#39;countsPerThreshold&#39;
 </pre></div></div>
 </div>
+=======
+<script type="application/vnd.jupyter.widget-view+json">{"version_major": 2, "version_minor": 0, "model_id": "ce690226cd2946a0aeeb2e10a30b94a1"}</script></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">ValueError</span>                                Traceback (most recent call last)
+Cell <span class="ansi-green-fg">In [9], line 1</span>
+<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">vf</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">plotDistributionPerThreshold</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">target</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#39;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">Propensity</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#39;</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">verbose</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg ansi-bold" style="color: rgb(0,135,0)">False</span><span class="ansi-yellow-bg">)</span>
+
+File <span class="ansi-green-fg">~/Documents/Code/pdstools-working/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/valuefinder/ValueFinder.py:551</span>, in <span class="ansi-cyan-fg">ValueFinder.plotDistributionPerThreshold</span><span class="ansi-blue-fg">(self, target, **kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">    549</span> <span class="ansi-bold" style="color: rgb(0,135,0)">for</span> quantile, data <span class="ansi-bold" style="color: rgb(175,0,255)">in</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>countsPerThreshold<span style="color: rgb(98,98,98)">.</span>items():
+<span class="ansi-green-intense-fg ansi-bold">    550</span>     target2 <span style="color: rgb(98,98,98)">=</span> data[<span style="color: rgb(98,98,98)">0</span>] <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> target<span style="color: rgb(98,98,98)">.</span>casefold() <span style="color: rgb(98,98,98)">==</span> <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">propensity</span><span style="color: rgb(175,0,0)">&#34;</span> <span class="ansi-bold" style="color: rgb(0,135,0)">else</span> quantile
+<span class="ansi-green-fg">--&gt; 551</span>     df<span style="color: rgb(98,98,98)">.</span>append(data[<span style="color: rgb(98,98,98)">1</span>]<span style="color: rgb(98,98,98)">.</span>with_column(<span class="ansi-yellow-bg">pl</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">lit</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">target2</span><span class="ansi-yellow-bg">)</span><span style="color: rgb(98,98,98)">.</span>alias(target)))
+<span class="ansi-green-intense-fg ansi-bold">    552</span> df <span style="color: rgb(98,98,98)">=</span> pl<span style="color: rgb(98,98,98)">.</span>concat(df)<span style="color: rgb(98,98,98)">.</span>collect()<span style="color: rgb(98,98,98)">.</span>to_pandas()<span style="color: rgb(98,98,98)">.</span>set_index(target)
+<span class="ansi-green-intense-fg ansi-bold">    553</span> fig <span style="color: rgb(98,98,98)">=</span> px<span style="color: rgb(98,98,98)">.</span>area(
+<span class="ansi-green-intense-fg ansi-bold">    554</span>     df<span style="color: rgb(98,98,98)">.</span>rename(
+<span class="ansi-green-intense-fg ansi-bold">    555</span>         columns<span style="color: rgb(98,98,98)">=</span>{
+<span class="ansi-green-fg">   (...)</span>
+<span class="ansi-green-intense-fg ansi-bold">    566</span>     template<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">none</span><span style="color: rgb(175,0,0)">&#34;</span>,
+<span class="ansi-green-intense-fg ansi-bold">    567</span> )
+
+File <span class="ansi-green-fg">/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/polars/utils.py:531</span>, in <span class="ansi-cyan-fg">deprecate_nonkeyword_arguments.&lt;locals&gt;.decorate.&lt;locals&gt;.wrapper</span><span class="ansi-blue-fg">(*args, **kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">    529</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> <span style="color: rgb(0,135,0)">len</span>(args) <span style="color: rgb(98,98,98)">&gt;</span> num_allowed_args:
+<span class="ansi-green-intense-fg ansi-bold">    530</span>     warnings<span style="color: rgb(98,98,98)">.</span>warn(msg, <span class="ansi-bold" style="color: rgb(215,95,95)">DeprecationWarning</span>, stacklevel<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(98,98,98)">2</span>)
+<span class="ansi-green-fg">--&gt; 531</span> <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> <span class="ansi-yellow-bg">function</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">*</span><span class="ansi-yellow-bg">args</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">*</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">*</span><span class="ansi-yellow-bg">kwargs</span><span class="ansi-yellow-bg">)</span>
+
+File <span class="ansi-green-fg">/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/polars/internals/lazy_functions.py:1217</span>, in <span class="ansi-cyan-fg">lit</span><span class="ansi-blue-fg">(value, dtype, allow_object)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1215</span> <span class="ansi-bold" style="color: rgb(0,135,0)">except</span> <span class="ansi-bold" style="color: rgb(215,95,95)">AttributeError</span>:
+<span class="ansi-green-intense-fg ansi-bold">   1216</span>     item <span style="color: rgb(98,98,98)">=</span> value
+<span class="ansi-green-fg">-&gt; 1217</span> <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> pli<span style="color: rgb(98,98,98)">.</span>wrap_expr(<span class="ansi-yellow-bg">pylit</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">item</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">allow_object</span><span class="ansi-yellow-bg">)</span>)
+
+<span class="ansi-red-fg">ValueError</span>: could not convert value &#39;[0.0002688172043010753]&#39; as a Literal
+</pre></div></div>
+</div>
+>>>>>>> master
 <p>One area to consider is how your action distribution changes through the stages. Simply call the <code class="docutils literal notranslate"><span class="pre">plotFunnelChart()</span></code> function for an overview of this funnel effect throughout each stage. As a rule of thumb, if there are only a few actions in each stage, this is not a good sign. If certain actions are completely filtered out from one stage to the next, it may also be a warning of agressive filtering. In this case, let’s also use the <code class="docutils literal notranslate"><span class="pre">‘query’</span></code> functionality to only look at actions in the
 <code class="docutils literal notranslate"><span class="pre">'Sales'</span></code> issue</p>
 <div class="nbinput docutils container">
@@ -848,6 +1347,7 @@ File <span class="ansi-green-fg">~/Documents/Code/pdstools-polars/pega-datascien
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
+<<<<<<< HEAD
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 <span class="ansi-red-fg">---------------------------------------------------------------------------</span>
@@ -869,6 +1369,34 @@ File <span class="ansi-green-fg">~/Documents/Code/pdstools-polars/pega-datascien
 
 <span class="ansi-red-fg">NameError</span>: name &#39;pd&#39; is not defined
 </pre></div></div>
+=======
+<div class="output_area rendered_html docutils container">
+<div>                            <div id="10773264-d2c7-457b-9329-20c4e9c70c0b" class="plotly-graph-div" style="height:525px; width:100%;"></div>            <script type="text/javascript">                require(["plotly"], function(Plotly) {                    window.PLOTLYENV=window.PLOTLYENV || {};                                    if (document.getElementById("10773264-d2c7-457b-9329-20c4e9c70c0b")) {                    Plotly.newPlot(                        "10773264-d2c7-457b-9329-20c4e9c70c0b",                        [{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"AMEXPersonal","marker":{"color":"#1F77B4"},"name":"AMEXPersonal","orientation":"v","showlegend":true,"text":["AMEXPersonal","AMEXPersonal","AMEXPersonal","AMEXPersonal"],"x":["Eligibility","Suitability","Arbitration","Applicability"],"xaxis":"x","y":[261,44,43,63],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"AutoNew36Months","marker":{"color":"#FF7F0E"},"name":"AutoNew36Months","orientation":"v","showlegend":true,"text":["AutoNew36Months","AutoNew36Months","AutoNew36Months","AutoNew36Months"],"x":["Eligibility","Applicability","Suitability","Arbitration"],"xaxis":"x","y":[264,293,299,292],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"AutoNew48Months","marker":{"color":"#2CA02C"},"name":"AutoNew48Months","orientation":"v","showlegend":true,"text":["AutoNew48Months","AutoNew48Months","AutoNew48Months","AutoNew48Months"],"x":["Arbitration","Applicability","Suitability","Eligibility"],"xaxis":"x","y":[156,137,143,119],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"AutoNew84Months","marker":{"color":"#D62728"},"name":"AutoNew84Months","orientation":"v","showlegend":true,"text":["AutoNew84Months","AutoNew84Months","AutoNew84Months","AutoNew84Months"],"x":["Eligibility","Applicability","Suitability","Arbitration"],"xaxis":"x","y":[441,477,488,513],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"AutoUsed36Months","marker":{"color":"#9467BD"},"name":"AutoUsed36Months","orientation":"v","showlegend":true,"text":["AutoUsed36Months","AutoUsed36Months","AutoUsed36Months","AutoUsed36Months"],"x":["Eligibility","Applicability","Suitability","Arbitration"],"xaxis":"x","y":[80,93,98,108],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"AutoUsed48Months","marker":{"color":"#8C564B"},"name":"AutoUsed48Months","orientation":"v","showlegend":true,"text":["AutoUsed48Months","AutoUsed48Months","AutoUsed48Months","AutoUsed48Months"],"x":["Arbitration","Eligibility","Suitability","Applicability"],"xaxis":"x","y":[1001,905,1002,979],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"AutoUsed60Months","marker":{"color":"#E377C2"},"name":"AutoUsed60Months","orientation":"v","showlegend":true,"text":["AutoUsed60Months","AutoUsed60Months","AutoUsed60Months","AutoUsed60Months"],"x":["Suitability","Eligibility","Arbitration","Applicability"],"xaxis":"x","y":[210,169,223,200],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"AutoUsed84Months","marker":{"color":"#7F7F7F"},"name":"AutoUsed84Months","orientation":"v","showlegend":true,"text":["AutoUsed84Months","AutoUsed84Months","AutoUsed84Months","AutoUsed84Months"],"x":["Arbitration","Applicability","Eligibility","Suitability"],"xaxis":"x","y":[72,61,56,60],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"CongratsOnYourNewMortgage","marker":{"color":"#BCBD22"},"name":"CongratsOnYourNewMortgage","orientation":"v","showlegend":true,"text":["CongratsOnYourNewMortgage","CongratsOnYourNewMortgage","CongratsOnYourNewMortgage","CongratsOnYourNewMortgage"],"x":["Applicability","Eligibility","Arbitration","Suitability"],"xaxis":"x","y":[21,17,26,23],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"CongratsYourLoanIsApproved","marker":{"color":"#17BECF"},"name":"CongratsYourLoanIsApproved","orientation":"v","showlegend":true,"text":["CongratsYourLoanIsApproved","CongratsYourLoanIsApproved","CongratsYourLoanIsApproved","CongratsYourLoanIsApproved"],"x":["Eligibility","Suitability","Arbitration","Applicability"],"xaxis":"x","y":[25,40,44,35],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"FirstMortgage","marker":{"color":"#1F77B4"},"name":"FirstMortgage","orientation":"v","showlegend":true,"text":["FirstMortgage","FirstMortgage","FirstMortgage","FirstMortgage"],"x":["Applicability","Eligibility","Arbitration","Suitability"],"xaxis":"x","y":[5,4,7,6],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"FirstMortgage15yr","marker":{"color":"#FF7F0E"},"name":"FirstMortgage15yr","orientation":"v","showlegend":true,"text":["FirstMortgage15yr","FirstMortgage15yr","FirstMortgage15yr","FirstMortgage15yr"],"x":["Arbitration","Applicability","Eligibility","Suitability"],"xaxis":"x","y":[28,25,25,28],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"FirstMortgageFHA","marker":{"color":"#2CA02C"},"name":"FirstMortgageFHA","orientation":"v","showlegend":true,"text":["FirstMortgageFHA","FirstMortgageFHA","FirstMortgageFHA","FirstMortgageFHA"],"x":["Applicability","Eligibility","Arbitration","Suitability"],"xaxis":"x","y":[60,47,57,64],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"FirstMortgageFiveOneARM","marker":{"color":"#D62728"},"name":"FirstMortgageFiveOneARM","orientation":"v","showlegend":true,"text":["FirstMortgageFiveOneARM","FirstMortgageFiveOneARM","FirstMortgageFiveOneARM","FirstMortgageFiveOneARM"],"x":["Applicability","Eligibility","Arbitration","Suitability"],"xaxis":"x","y":[27,22,37,32],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"FirstMortgageFloat","marker":{"color":"#9467BD"},"name":"FirstMortgageFloat","orientation":"v","showlegend":true,"text":["FirstMortgageFloat","FirstMortgageFloat","FirstMortgageFloat","FirstMortgageFloat"],"x":["Arbitration","Suitability","Eligibility","Applicability"],"xaxis":"x","y":[123,133,106,126],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"FirstMortgageSevenOneARM","marker":{"color":"#8C564B"},"name":"FirstMortgageSevenOneARM","orientation":"v","showlegend":true,"text":["FirstMortgageSevenOneARM","FirstMortgageSevenOneARM","FirstMortgageSevenOneARM","FirstMortgageSevenOneARM"],"x":["Arbitration","Applicability","Eligibility","Suitability"],"xaxis":"x","y":[58,51,36,56],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"FirstMortgageThreeOneARM","marker":{"color":"#E377C2"},"name":"FirstMortgageThreeOneARM","orientation":"v","showlegend":true,"text":["FirstMortgageThreeOneARM","FirstMortgageThreeOneARM","FirstMortgageThreeOneARM","FirstMortgageThreeOneARM"],"x":["Eligibility","Applicability","Suitability","Arbitration"],"xaxis":"x","y":[68,82,87,94],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"FreeChecking","marker":{"color":"#7F7F7F"},"name":"FreeChecking","orientation":"v","showlegend":true,"text":["FreeChecking","FreeChecking","FreeChecking","FreeChecking"],"x":["Suitability","Arbitration","Eligibility","Applicability"],"xaxis":"x","y":[392,438,360,386],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"GetAPersonalizedRateQuoteToday","marker":{"color":"#BCBD22"},"name":"GetAPersonalizedRateQuoteToday","orientation":"v","showlegend":true,"text":["GetAPersonalizedRateQuoteToday","GetAPersonalizedRateQuoteToday","GetAPersonalizedRateQuoteToday","GetAPersonalizedRateQuoteToday"],"x":["Eligibility","Applicability","Suitability","Arbitration"],"xaxis":"x","y":[31,39,42,48],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"MasterCardGold","marker":{"color":"#17BECF"},"name":"MasterCardGold","orientation":"v","showlegend":true,"text":["MasterCardGold","MasterCardGold","MasterCardGold"],"x":["Eligibility","Applicability","Suitability"],"xaxis":"x","y":[59,72,56],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"MasterCardWorld","marker":{"color":"#1F77B4"},"name":"MasterCardWorld","orientation":"v","showlegend":true,"text":["MasterCardWorld","MasterCardWorld","MasterCardWorld"],"x":["Eligibility","Suitability","Applicability"],"xaxis":"x","y":[29,9,12],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"MoneyMarketSavingsAccount","marker":{"color":"#FF7F0E"},"name":"MoneyMarketSavingsAccount","orientation":"v","showlegend":true,"text":["MoneyMarketSavingsAccount","MoneyMarketSavingsAccount","MoneyMarketSavingsAccount","MoneyMarketSavingsAccount"],"x":["Arbitration","Suitability","Applicability","Eligibility"],"xaxis":"x","y":[36,37,32,20],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"PremierChecking","marker":{"color":"#2CA02C"},"name":"PremierChecking","orientation":"v","showlegend":true,"text":["PremierChecking","PremierChecking","PremierChecking","PremierChecking"],"x":["Arbitration","Eligibility","Suitability","Applicability"],"xaxis":"x","y":[4,44,4,4],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"PremiumBanking","marker":{"color":"#D62728"},"name":"PremiumBanking","orientation":"v","showlegend":true,"text":["PremiumBanking","PremiumBanking","PremiumBanking","PremiumBanking"],"x":["Arbitration","Eligibility","Applicability","Suitability"],"xaxis":"x","y":[27,22,25,26],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"RatesAreFalling","marker":{"color":"#9467BD"},"name":"RatesAreFalling","orientation":"v","showlegend":true,"text":["RatesAreFalling","RatesAreFalling","RatesAreFalling","RatesAreFalling"],"x":["Suitability","Arbitration","Applicability","Eligibility"],"xaxis":"x","y":[55,56,49,35],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"RegularSaving","marker":{"color":"#8C564B"},"name":"RegularSaving","orientation":"v","showlegend":true,"text":["RegularSaving","RegularSaving","RegularSaving","RegularSaving"],"x":["Arbitration","Eligibility","Applicability","Suitability"],"xaxis":"x","y":[90,67,78,77],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"SeniorChecking","marker":{"color":"#E377C2"},"name":"SeniorChecking","orientation":"v","showlegend":true,"text":["SeniorChecking","SeniorChecking"],"x":["Arbitration","Suitability"],"xaxis":"x","y":[1,1],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"StillWorkingOnYourLoanApplication","marker":{"color":"#7F7F7F"},"name":"StillWorkingOnYourLoanApplication","orientation":"v","showlegend":true,"text":["StillWorkingOnYourLoanApplication","StillWorkingOnYourLoanApplication","StillWorkingOnYourLoanApplication","StillWorkingOnYourLoanApplication"],"x":["Arbitration","Suitability","Eligibility","Applicability"],"xaxis":"x","y":[32,30,17,26],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"StudentChecking","marker":{"color":"#BCBD22"},"name":"StudentChecking","orientation":"v","showlegend":true,"text":["StudentChecking","StudentChecking","StudentChecking","StudentChecking"],"x":["Arbitration","Suitability","Applicability","Eligibility"],"xaxis":"x","y":[650,718,705,657],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"StudentChoice","marker":{"color":"#17BECF"},"name":"StudentChoice","orientation":"v","showlegend":true,"text":["StudentChoice","StudentChoice","StudentChoice","StudentChoice"],"x":["Applicability","Eligibility","Suitability","Arbitration"],"xaxis":"x","y":[34,32,33,39],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"SuperSaver","marker":{"color":"#1F77B4"},"name":"SuperSaver","orientation":"v","showlegend":true,"text":["SuperSaver","SuperSaver","SuperSaver","SuperSaver"],"x":["Suitability","Arbitration","Eligibility","Applicability"],"xaxis":"x","y":[90,100,74,84],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"UFixedRateMortgage","marker":{"color":"#FF7F0E"},"name":"UFixedRateMortgage","orientation":"v","showlegend":true,"text":["UFixedRateMortgage","UFixedRateMortgage","UFixedRateMortgage","UFixedRateMortgage"],"x":["Applicability","Arbitration","Eligibility","Suitability"],"xaxis":"x","y":[36,233,28,40],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"UPlusFinGold","marker":{"color":"#2CA02C"},"name":"UPlusFinGold","orientation":"v","showlegend":true,"text":["UPlusFinGold","UPlusFinGold","UPlusFinGold","UPlusFinGold"],"x":["Arbitration","Eligibility","Suitability","Applicability"],"xaxis":"x","y":[23,22,21,28],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"UPlusFinPersonal","marker":{"color":"#D62728"},"name":"UPlusFinPersonal","orientation":"v","showlegend":true,"text":["UPlusFinPersonal","UPlusFinPersonal","UPlusFinPersonal","UPlusFinPersonal"],"x":["Arbitration","Suitability","Applicability","Eligibility"],"xaxis":"x","y":[22,21,28,24],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"UPlusPersonal","marker":{"color":"#9467BD"},"name":"UPlusPersonal","orientation":"v","showlegend":true,"text":["UPlusPersonal","UPlusPersonal","UPlusPersonal","UPlusPersonal"],"x":["Eligibility","Applicability","Suitability","Arbitration"],"xaxis":"x","y":[157,39,35,37],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"UPlusProductBundles","marker":{"color":"#8C564B"},"name":"UPlusProductBundles","orientation":"v","showlegend":true,"text":["UPlusProductBundles","UPlusProductBundles","UPlusProductBundles","UPlusProductBundles"],"x":["Suitability","Arbitration","Eligibility","Applicability"],"xaxis":"x","y":[201,211,158,185],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"VisaGold","marker":{"color":"#E377C2"},"name":"VisaGold","orientation":"v","showlegend":true,"text":["VisaGold","VisaGold","VisaGold"],"x":["Applicability","Suitability","Eligibility"],"xaxis":"x","y":[42,27,33],"yaxis":"y","type":"funnel"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"anchor":"y","domain":[0.0,1.0],"title":{"text":"Stage"},"categoryorder":"array","categoryarray":["Eligibility","Applicability","Suitability","Arbitration"]},"yaxis":{"anchor":"x","domain":[0.0,1.0],"title":{"text":"Count"}},"legend":{"title":{"text":"Actions"},"tracegroupgap":0},"title":{"text":"Distribution of actions over the stages"}},                        {"responsive": true}                    ).then(function(){
+
+var gd = document.getElementById('10773264-d2c7-457b-9329-20c4e9c70c0b');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };                });            </script>        </div></div>
+>>>>>>> master
 </div>
 <p>Of course this is quite a lot of information. If instead we want to look at the distribution of <em>issues</em> over each stage, simply supply the <code class="docutils literal notranslate"><span class="pre">level</span></code> parameters as <code class="docutils literal notranslate"><span class="pre">'Issue'</span></code>:</p>
 <div class="nbinput docutils container">
@@ -882,6 +1410,7 @@ File <span class="ansi-green-fg">~/Documents/Code/pdstools-polars/pega-datascien
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
+<<<<<<< HEAD
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 <span class="ansi-red-fg">---------------------------------------------------------------------------</span>
@@ -903,6 +1432,34 @@ File <span class="ansi-green-fg">~/Documents/Code/pdstools-polars/pega-datascien
 
 <span class="ansi-red-fg">NameError</span>: name &#39;pd&#39; is not defined
 </pre></div></div>
+=======
+<div class="output_area rendered_html docutils container">
+<div>                            <div id="f9cd65b7-9675-4b07-a86f-afcce522030b" class="plotly-graph-div" style="height:525px; width:100%;"></div>            <script type="text/javascript">                require(["plotly"], function(Plotly) {                    window.PLOTLYENV=window.PLOTLYENV || {};                                    if (document.getElementById("f9cd65b7-9675-4b07-a86f-afcce522030b")) {                    Plotly.newPlot(                        "f9cd65b7-9675-4b07-a86f-afcce522030b",                        [{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"Collections","marker":{"color":"#1F77B4"},"name":"Collections","orientation":"v","showlegend":true,"text":["Collections","Collections","Collections","Collections"],"x":["Eligibility","Applicability","Arbitration","Suitability"],"xaxis":"x","y":[170,170,65,94],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"Crosssell","marker":{"color":"#FF7F0E"},"name":"Crosssell","orientation":"v","showlegend":true,"text":["Crosssell","Crosssell","Crosssell","Crosssell"],"x":["Eligibility","Applicability","Suitability","Arbitration"],"xaxis":"x","y":[1095,467,361,291],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"Financialliteracy","marker":{"color":"#2CA02C"},"name":"Financialliteracy","orientation":"v","showlegend":true,"text":["Financialliteracy","Financialliteracy","Financialliteracy","Financialliteracy"],"x":["Eligibility","Applicability","Suitability","Arbitration"],"xaxis":"x","y":[751,825,841,784],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"Sales","marker":{"color":"#D62728"},"name":"Sales","orientation":"v","showlegend":true,"text":["Sales","Sales","Sales","Sales"],"x":["Arbitration","Suitability","Applicability","Eligibility"],"xaxis":"x","y":[4929,4728,4639,4514],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"Services","marker":{"color":"#9467BD"},"name":"Services","orientation":"v","showlegend":true,"text":["Services","Services","Services","Services"],"x":["Eligibility","Arbitration","Applicability","Suitability"],"xaxis":"x","y":[392,255,441,252],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"Usage","marker":{"color":"#8C564B"},"name":"Usage","orientation":"v","showlegend":true,"text":["Usage","Usage","Usage","Usage"],"x":["Eligibility","Applicability","Suitability","Arbitration"],"xaxis":"x","y":[336,261,287,185],"yaxis":"y","type":"funnel"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"anchor":"y","domain":[0.0,1.0],"title":{"text":"Stage"},"categoryorder":"array","categoryarray":["Eligibility","Applicability","Suitability","Arbitration"]},"yaxis":{"anchor":"x","domain":[0.0,1.0],"title":{"text":"Count"}},"legend":{"title":{"text":"Issues"},"tracegroupgap":0},"title":{"text":"Distribution of issues over the stages"}},                        {"responsive": true}                    ).then(function(){
+
+var gd = document.getElementById('f9cd65b7-9675-4b07-a86f-afcce522030b');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };                });            </script>        </div></div>
+>>>>>>> master
 </div>
 <p>Lastly, it may also be interesting to look at the distribution of groups over the different stages. Here, let’s again filter on the <code class="docutils literal notranslate"><span class="pre">'Sales'</span></code> issue only.</p>
 <div class="nbinput docutils container">
@@ -916,6 +1473,7 @@ File <span class="ansi-green-fg">~/Documents/Code/pdstools-polars/pega-datascien
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
+<<<<<<< HEAD
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 <span class="ansi-red-fg">---------------------------------------------------------------------------</span>
@@ -939,6 +1497,38 @@ File <span class="ansi-green-fg">~/Documents/Code/pdstools-polars/pega-datascien
 </pre></div></div>
 </div>
 </section>
+=======
+<div class="output_area rendered_html docutils container">
+<div>                            <div id="0841c83c-3e5f-48e5-bf2d-a2aa8db9f99c" class="plotly-graph-div" style="height:525px; width:100%;"></div>            <script type="text/javascript">                require(["plotly"], function(Plotly) {                    window.PLOTLYENV=window.PLOTLYENV || {};                                    if (document.getElementById("0841c83c-3e5f-48e5-bf2d-a2aa8db9f99c")) {                    Plotly.newPlot(                        "0841c83c-3e5f-48e5-bf2d-a2aa8db9f99c",                        [{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"AutoLoans","marker":{"color":"#1F77B4"},"name":"AutoLoans","orientation":"v","showlegend":true,"text":["AutoLoans","AutoLoans","AutoLoans","AutoLoans"],"x":["Eligibility","Applicability","Suitability","Arbitration"],"xaxis":"x","y":[2034,2240,2300,2365],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"Bundles","marker":{"color":"#FF7F0E"},"name":"Bundles","orientation":"v","showlegend":true,"text":["Bundles","Bundles","Bundles","Bundles"],"x":["Eligibility","Applicability","Suitability","Arbitration"],"xaxis":"x","y":[286,328,350,377],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"CreditCards","marker":{"color":"#2CA02C"},"name":"CreditCards","orientation":"v","showlegend":true,"text":["CreditCards","CreditCards","CreditCards","CreditCards"],"x":["Arbitration","Applicability","Eligibility","Suitability"],"xaxis":"x","y":[125,284,585,213],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"DepositAccounts","marker":{"color":"#D62728"},"name":"DepositAccounts","orientation":"v","showlegend":true,"text":["DepositAccounts","DepositAccounts","DepositAccounts","DepositAccounts"],"x":["Applicability","Suitability","Arbitration","Eligibility"],"xaxis":"x","y":[1205,1229,1219,1148],"yaxis":"y","type":"funnel"},{"hovertemplate":"Name=%{text}<br>Stage=%{x}<br>Count=%{y}<extra></extra>","legendgroup":"HomeLoans","marker":{"color":"#9467BD"},"name":"HomeLoans","orientation":"v","showlegend":true,"text":["HomeLoans","HomeLoans","HomeLoans","HomeLoans"],"x":["Eligibility","Applicability","Suitability","Arbitration"],"xaxis":"x","y":[461,582,636,843],"yaxis":"y","type":"funnel"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"anchor":"y","domain":[0.0,1.0],"title":{"text":"Stage"},"categoryorder":"array","categoryarray":["Eligibility","Applicability","Suitability","Arbitration"]},"yaxis":{"anchor":"x","domain":[0.0,1.0],"title":{"text":"Count"}},"legend":{"title":{"text":"Groups"},"tracegroupgap":0},"title":{"text":"Distribution of groups over the stages"}},                        {"responsive": true}                    ).then(function(){
+
+var gd = document.getElementById('0841c83c-3e5f-48e5-bf2d-a2aa8db9f99c');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };                });            </script>        </div></div>
+</div>
+<script type="application/vnd.jupyter.widget-state+json">
+{"state": {"deb51eef0a5e42379462288440be81e7": {"model_name": "LayoutModel", "model_module": "@jupyter-widgets/base", "model_module_version": "2.0.0", "state": {"_model_module": "@jupyter-widgets/base", "_model_module_version": "2.0.0", "_model_name": "LayoutModel", "_view_count": null, "_view_module": "@jupyter-widgets/base", "_view_module_version": "2.0.0", "_view_name": "LayoutView", "align_content": null, "align_items": null, "align_self": null, "border_bottom": null, "border_left": null, "border_right": null, "border_top": null, "bottom": null, "display": null, "flex": null, "flex_flow": null, "grid_area": null, "grid_auto_columns": null, "grid_auto_flow": null, "grid_auto_rows": null, "grid_column": null, "grid_gap": null, "grid_row": null, "grid_template_areas": null, "grid_template_columns": null, "grid_template_rows": null, "height": null, "justify_content": null, "justify_items": null, "left": null, "margin": null, "max_height": null, "max_width": null, "min_height": null, "min_width": null, "object_fit": null, "object_position": null, "order": null, "overflow": null, "padding": null, "right": null, "top": null, "visibility": null, "width": null}}, "182de14a855b46bd8dd8616a58378eac": {"model_name": "ProgressStyleModel", "model_module": "@jupyter-widgets/controls", "model_module_version": "2.0.0", "state": {"_model_module": "@jupyter-widgets/controls", "_model_module_version": "2.0.0", "_model_name": "ProgressStyleModel", "_view_count": null, "_view_module": "@jupyter-widgets/base", "_view_module_version": "2.0.0", "_view_name": "StyleView", "bar_color": null, "description_width": ""}}, "a684329045dd4c8380188ad1d5957d1e": {"model_name": "FloatProgressModel", "model_module": "@jupyter-widgets/controls", "model_module_version": "2.0.0", "state": {"_dom_classes": [], "_model_module": "@jupyter-widgets/controls", "_model_module_version": "2.0.0", "_model_name": "FloatProgressModel", "_view_count": null, "_view_module": "@jupyter-widgets/controls", "_view_module_version": "2.0.0", "_view_name": "ProgressView", "bar_style": "success", "description": "", "description_allow_html": false, "layout": "IPY_MODEL_deb51eef0a5e42379462288440be81e7", "max": 10.0, "min": 0.0, "orientation": "horizontal", "style": "IPY_MODEL_182de14a855b46bd8dd8616a58378eac", "tabbable": null, "tooltip": null, "value": 10.0}}, "1566ff76040943c8ab645acb13db8a3b": {"model_name": "LayoutModel", "model_module": "@jupyter-widgets/base", "model_module_version": "2.0.0", "state": {"_model_module": "@jupyter-widgets/base", "_model_module_version": "2.0.0", "_model_name": "LayoutModel", "_view_count": null, "_view_module": "@jupyter-widgets/base", "_view_module_version": "2.0.0", "_view_name": "LayoutView", "align_content": null, "align_items": null, "align_self": null, "border_bottom": null, "border_left": null, "border_right": null, "border_top": null, "bottom": null, "display": null, "flex": null, "flex_flow": null, "grid_area": null, "grid_auto_columns": null, "grid_auto_flow": null, "grid_auto_rows": null, "grid_column": null, "grid_gap": null, "grid_row": null, "grid_template_areas": null, "grid_template_columns": null, "grid_template_rows": null, "height": null, "justify_content": null, "justify_items": null, "left": null, "margin": null, "max_height": null, "max_width": null, "min_height": null, "min_width": null, "object_fit": null, "object_position": null, "order": null, "overflow": null, "padding": null, "right": null, "top": null, "visibility": null, "width": null}}, "a6a03dc9dc504cdf91506d0499fb8e22": {"model_name": "HTMLStyleModel", "model_module": "@jupyter-widgets/controls", "model_module_version": "2.0.0", "state": {"_model_module": "@jupyter-widgets/controls", "_model_module_version": "2.0.0", "_model_name": "HTMLStyleModel", "_view_count": null, "_view_module": "@jupyter-widgets/base", "_view_module_version": "2.0.0", "_view_name": "StyleView", "background": null, "description_width": "", "font_size": null, "text_color": null}}, "4f26d6af4e06412d89a704d118781771": {"model_name": "HTMLModel", "model_module": "@jupyter-widgets/controls", "model_module_version": "2.0.0", "state": {"_dom_classes": [], "_model_module": "@jupyter-widgets/controls", "_model_module_version": "2.0.0", "_model_name": "HTMLModel", "_view_count": null, "_view_module": "@jupyter-widgets/controls", "_view_module_version": "2.0.0", "_view_name": "HTMLView", "description": "", "description_allow_html": false, "layout": "IPY_MODEL_1566ff76040943c8ab645acb13db8a3b", "placeholder": "\u200b", "style": "IPY_MODEL_a6a03dc9dc504cdf91506d0499fb8e22", "tabbable": null, "tooltip": null, "value": "100%"}}, "06fe501f2e4b4db4901934c42ba6f219": {"model_name": "LayoutModel", "model_module": "@jupyter-widgets/base", "model_module_version": "2.0.0", "state": {"_model_module": "@jupyter-widgets/base", "_model_module_version": "2.0.0", "_model_name": "LayoutModel", "_view_count": null, "_view_module": "@jupyter-widgets/base", "_view_module_version": "2.0.0", "_view_name": "LayoutView", "align_content": null, "align_items": null, "align_self": null, "border_bottom": null, "border_left": null, "border_right": null, "border_top": null, "bottom": null, "display": null, "flex": null, "flex_flow": null, "grid_area": null, "grid_auto_columns": null, "grid_auto_flow": null, "grid_auto_rows": null, "grid_column": null, "grid_gap": null, "grid_row": null, "grid_template_areas": null, "grid_template_columns": null, "grid_template_rows": null, "height": null, "justify_content": null, "justify_items": null, "left": null, "margin": null, "max_height": null, "max_width": null, "min_height": null, "min_width": null, "object_fit": null, "object_position": null, "order": null, "overflow": null, "padding": null, "right": null, "top": null, "visibility": null, "width": null}}, "da75bcf7674d4281a31b41a9d03f8b65": {"model_name": "HTMLStyleModel", "model_module": "@jupyter-widgets/controls", "model_module_version": "2.0.0", "state": {"_model_module": "@jupyter-widgets/controls", "_model_module_version": "2.0.0", "_model_name": "HTMLStyleModel", "_view_count": null, "_view_module": "@jupyter-widgets/base", "_view_module_version": "2.0.0", "_view_name": "StyleView", "background": null, "description_width": "", "font_size": null, "text_color": null}}, "d410675de42046a1a353b46de4183831": {"model_name": "HTMLModel", "model_module": "@jupyter-widgets/controls", "model_module_version": "2.0.0", "state": {"_dom_classes": [], "_model_module": "@jupyter-widgets/controls", "_model_module_version": "2.0.0", "_model_name": "HTMLModel", "_view_count": null, "_view_module": "@jupyter-widgets/controls", "_view_module_version": "2.0.0", "_view_name": "HTMLView", "description": "", "description_allow_html": false, "layout": "IPY_MODEL_06fe501f2e4b4db4901934c42ba6f219", "placeholder": "\u200b", "style": "IPY_MODEL_da75bcf7674d4281a31b41a9d03f8b65", "tabbable": null, "tooltip": null, "value": " 10/10 [00:00&lt;00:00, 1270.15it/s]"}}, "0007c9a8f74a488c994e3ebcea47ffb4": {"model_name": "LayoutModel", "model_module": "@jupyter-widgets/base", "model_module_version": "2.0.0", "state": {"_model_module": "@jupyter-widgets/base", "_model_module_version": "2.0.0", "_model_name": "LayoutModel", "_view_count": null, "_view_module": "@jupyter-widgets/base", "_view_module_version": "2.0.0", "_view_name": "LayoutView", "align_content": null, "align_items": null, "align_self": null, "border_bottom": null, "border_left": null, "border_right": null, "border_top": null, "bottom": null, "display": null, "flex": null, "flex_flow": null, "grid_area": null, "grid_auto_columns": null, "grid_auto_flow": null, "grid_auto_rows": null, "grid_column": null, "grid_gap": null, "grid_row": null, "grid_template_areas": null, "grid_template_columns": null, "grid_template_rows": null, "height": null, "justify_content": null, "justify_items": null, "left": null, "margin": null, "max_height": null, "max_width": null, "min_height": null, "min_width": null, "object_fit": null, "object_position": null, "order": null, "overflow": null, "padding": null, "right": null, "top": null, "visibility": null, "width": null}}, "e8bbac32a987493baed575d20d9a0fef": {"model_name": "HBoxModel", "model_module": "@jupyter-widgets/controls", "model_module_version": "2.0.0", "state": {"_dom_classes": [], "_model_module": "@jupyter-widgets/controls", "_model_module_version": "2.0.0", "_model_name": "HBoxModel", "_view_count": null, "_view_module": "@jupyter-widgets/controls", "_view_module_version": "2.0.0", "_view_name": "HBoxView", "box_style": "", "children": ["IPY_MODEL_4f26d6af4e06412d89a704d118781771", "IPY_MODEL_a684329045dd4c8380188ad1d5957d1e", "IPY_MODEL_d410675de42046a1a353b46de4183831"], "layout": "IPY_MODEL_0007c9a8f74a488c994e3ebcea47ffb4", "tabbable": null, "tooltip": null}}, "e47b59b29f3640a8ace5b6c9fe12f048": {"model_name": "LayoutModel", "model_module": "@jupyter-widgets/base", "model_module_version": "2.0.0", "state": {"_model_module": "@jupyter-widgets/base", "_model_module_version": "2.0.0", "_model_name": "LayoutModel", "_view_count": null, "_view_module": "@jupyter-widgets/base", "_view_module_version": "2.0.0", "_view_name": "LayoutView", "align_content": null, "align_items": null, "align_self": null, "border_bottom": null, "border_left": null, "border_right": null, "border_top": null, "bottom": null, "display": null, "flex": null, "flex_flow": null, "grid_area": null, "grid_auto_columns": null, "grid_auto_flow": null, "grid_auto_rows": null, "grid_column": null, "grid_gap": null, "grid_row": null, "grid_template_areas": null, "grid_template_columns": null, "grid_template_rows": null, "height": null, "justify_content": null, "justify_items": null, "left": null, "margin": null, "max_height": null, "max_width": null, "min_height": null, "min_width": null, "object_fit": null, "object_position": null, "order": null, "overflow": null, "padding": null, "right": null, "top": null, "visibility": null, "width": null}}, "fd9613d62cc64b8d9190cc7d322d3c2b": {"model_name": "ProgressStyleModel", "model_module": "@jupyter-widgets/controls", "model_module_version": "2.0.0", "state": {"_model_module": "@jupyter-widgets/controls", "_model_module_version": "2.0.0", "_model_name": "ProgressStyleModel", "_view_count": null, "_view_module": "@jupyter-widgets/base", "_view_module_version": "2.0.0", "_view_name": "StyleView", "bar_color": null, "description_width": ""}}, "5e2c57adc9224c678b224cbf28a47f6a": {"model_name": "FloatProgressModel", "model_module": "@jupyter-widgets/controls", "model_module_version": "2.0.0", "state": {"_dom_classes": [], "_model_module": "@jupyter-widgets/controls", "_model_module_version": "2.0.0", "_model_name": "FloatProgressModel", "_view_count": null, "_view_module": "@jupyter-widgets/controls", "_view_module_version": "2.0.0", "_view_name": "ProgressView", "bar_style": "success", "description": "", "description_allow_html": false, "layout": "IPY_MODEL_e47b59b29f3640a8ace5b6c9fe12f048", "max": 10.0, "min": 0.0, "orientation": "horizontal", "style": "IPY_MODEL_fd9613d62cc64b8d9190cc7d322d3c2b", "tabbable": null, "tooltip": null, "value": 10.0}}, "b0ca2ba3fbd64622b021075334090c1a": {"model_name": "LayoutModel", "model_module": "@jupyter-widgets/base", "model_module_version": "2.0.0", "state": {"_model_module": "@jupyter-widgets/base", "_model_module_version": "2.0.0", "_model_name": "LayoutModel", "_view_count": null, "_view_module": "@jupyter-widgets/base", "_view_module_version": "2.0.0", "_view_name": "LayoutView", "align_content": null, "align_items": null, "align_self": null, "border_bottom": null, "border_left": null, "border_right": null, "border_top": null, "bottom": null, "display": null, "flex": null, "flex_flow": null, "grid_area": null, "grid_auto_columns": null, "grid_auto_flow": null, "grid_auto_rows": null, "grid_column": null, "grid_gap": null, "grid_row": null, "grid_template_areas": null, "grid_template_columns": null, "grid_template_rows": null, "height": null, "justify_content": null, "justify_items": null, "left": null, "margin": null, "max_height": null, "max_width": null, "min_height": null, "min_width": null, "object_fit": null, "object_position": null, "order": null, "overflow": null, "padding": null, "right": null, "top": null, "visibility": null, "width": null}}, "b85e58a2cb3140a68626adb7049e1c5a": {"model_name": "HTMLStyleModel", "model_module": "@jupyter-widgets/controls", "model_module_version": "2.0.0", "state": {"_model_module": "@jupyter-widgets/controls", "_model_module_version": "2.0.0", "_model_name": "HTMLStyleModel", "_view_count": null, "_view_module": "@jupyter-widgets/base", "_view_module_version": "2.0.0", "_view_name": "StyleView", "background": null, "description_width": "", "font_size": null, "text_color": null}}, "cd63f8e243944534bcd064335f39d73f": {"model_name": "HTMLModel", "model_module": "@jupyter-widgets/controls", "model_module_version": "2.0.0", "state": {"_dom_classes": [], "_model_module": "@jupyter-widgets/controls", "_model_module_version": "2.0.0", "_model_name": "HTMLModel", "_view_count": null, "_view_module": "@jupyter-widgets/controls", "_view_module_version": "2.0.0", "_view_name": "HTMLView", "description": "", "description_allow_html": false, "layout": "IPY_MODEL_b0ca2ba3fbd64622b021075334090c1a", "placeholder": "\u200b", "style": "IPY_MODEL_b85e58a2cb3140a68626adb7049e1c5a", "tabbable": null, "tooltip": null, "value": "100%"}}, "b60aa73493a4473da864bd9beb622c3a": {"model_name": "LayoutModel", "model_module": "@jupyter-widgets/base", "model_module_version": "2.0.0", "state": {"_model_module": "@jupyter-widgets/base", "_model_module_version": "2.0.0", "_model_name": "LayoutModel", "_view_count": null, "_view_module": "@jupyter-widgets/base", "_view_module_version": "2.0.0", "_view_name": "LayoutView", "align_content": null, "align_items": null, "align_self": null, "border_bottom": null, "border_left": null, "border_right": null, "border_top": null, "bottom": null, "display": null, "flex": null, "flex_flow": null, "grid_area": null, "grid_auto_columns": null, "grid_auto_flow": null, "grid_auto_rows": null, "grid_column": null, "grid_gap": null, "grid_row": null, "grid_template_areas": null, "grid_template_columns": null, "grid_template_rows": null, "height": null, "justify_content": null, "justify_items": null, "left": null, "margin": null, "max_height": null, "max_width": null, "min_height": null, "min_width": null, "object_fit": null, "object_position": null, "order": null, "overflow": null, "padding": null, "right": null, "top": null, "visibility": null, "width": null}}, "53a4e7f83a0a48afa2d22b023a6d5602": {"model_name": "HTMLStyleModel", "model_module": "@jupyter-widgets/controls", "model_module_version": "2.0.0", "state": {"_model_module": "@jupyter-widgets/controls", "_model_module_version": "2.0.0", "_model_name": "HTMLStyleModel", "_view_count": null, "_view_module": "@jupyter-widgets/base", "_view_module_version": "2.0.0", "_view_name": "StyleView", "background": null, "description_width": "", "font_size": null, "text_color": null}}, "082f83e8c4654f65bb75a5c2b7a7d963": {"model_name": "HTMLModel", "model_module": "@jupyter-widgets/controls", "model_module_version": "2.0.0", "state": {"_dom_classes": [], "_model_module": "@jupyter-widgets/controls", "_model_module_version": "2.0.0", "_model_name": "HTMLModel", "_view_count": null, "_view_module": "@jupyter-widgets/controls", "_view_module_version": "2.0.0", "_view_name": "HTMLView", "description": "", "description_allow_html": false, "layout": "IPY_MODEL_b60aa73493a4473da864bd9beb622c3a", "placeholder": "\u200b", "style": "IPY_MODEL_53a4e7f83a0a48afa2d22b023a6d5602", "tabbable": null, "tooltip": null, "value": " 10/10 [00:00&lt;00:00, 1467.36it/s]"}}, "a5ed24c6b783478297d85e46bb2dd178": {"model_name": "LayoutModel", "model_module": "@jupyter-widgets/base", "model_module_version": "2.0.0", "state": {"_model_module": "@jupyter-widgets/base", "_model_module_version": "2.0.0", "_model_name": "LayoutModel", "_view_count": null, "_view_module": "@jupyter-widgets/base", "_view_module_version": "2.0.0", "_view_name": "LayoutView", "align_content": null, "align_items": null, "align_self": null, "border_bottom": null, "border_left": null, "border_right": null, "border_top": null, "bottom": null, "display": null, "flex": null, "flex_flow": null, "grid_area": null, "grid_auto_columns": null, "grid_auto_flow": null, "grid_auto_rows": null, "grid_column": null, "grid_gap": null, "grid_row": null, "grid_template_areas": null, "grid_template_columns": null, "grid_template_rows": null, "height": null, "justify_content": null, "justify_items": null, "left": null, "margin": null, "max_height": null, "max_width": null, "min_height": null, "min_width": null, "object_fit": null, "object_position": null, "order": null, "overflow": null, "padding": null, "right": null, "top": null, "visibility": null, "width": null}}, "ce690226cd2946a0aeeb2e10a30b94a1": {"model_name": "HBoxModel", "model_module": "@jupyter-widgets/controls", "model_module_version": "2.0.0", "state": {"_dom_classes": [], "_model_module": "@jupyter-widgets/controls", "_model_module_version": "2.0.0", "_model_name": "HBoxModel", "_view_count": null, "_view_module": "@jupyter-widgets/controls", "_view_module_version": "2.0.0", "_view_name": "HBoxView", "box_style": "", "children": ["IPY_MODEL_cd63f8e243944534bcd064335f39d73f", "IPY_MODEL_5e2c57adc9224c678b224cbf28a47f6a", "IPY_MODEL_082f83e8c4654f65bb75a5c2b7a7d963"], "layout": "IPY_MODEL_a5ed24c6b783478297d85e46bb2dd178", "tabbable": null, "tooltip": null}}}, "version_major": 2, "version_minor": 0}
+</script></section>
+>>>>>>> master
 
         </article>
       </div>

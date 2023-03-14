@@ -167,6 +167,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/graph_gallery.html">Graph Gallery</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../tutorial_notebooks.html">Tutorial notebooks</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../../articles/hello_cdhtools.html">Hello pdstools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../articles/Example_Data_Anonymization.html">Example data anonymization</a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../examples.html">Example notebooks</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -212,8 +213,12 @@
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../utils/cdh_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../utils/datasets/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.datasets</span></code></a></li>
+<<<<<<< HEAD
 <li class="toctree-l4"><a class="reference internal" href="../../utils/errors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.errors</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../utils/types/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.types</span></code></a></li>
+=======
+<li class="toctree-l4"><a class="reference internal" href="../../utils/hds_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.hds_utils</span></code></a></li>
+>>>>>>> master
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../valuefinder/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.valuefinder</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -298,7 +303,11 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.plots.plot_base.Plots._subset_data">
+<<<<<<< HEAD
 <span class="sig-name descname"><span class="pre">_subset_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">required_columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">set</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multi_snapshot</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">last</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facets</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">active_only</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_cols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="headerlink" href="#pdstools.plots.plot_base.Plots._subset_data" title="Permalink to this definition">#</a></dt>
+=======
+<span class="sig-name descname"><span class="pre">_subset_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">required_columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">set</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multi_snapshot</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">last</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">active_only</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_cols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="headerlink" href="#pdstools.plots.plot_base.Plots._subset_data" title="Permalink to this definition">#</a></dt>
+>>>>>>> master
 <dd><p>Retrieves and subsets the data and performs some assertion checks</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -358,10 +367,65 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 <dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
 <li><p><strong>round</strong> (<em>int</em><em>, </em><em>default = 5</em>) – To how many digits to round the hover data</p></li>
+<<<<<<< HEAD
 <li><p><strong>plotting_engine</strong> (<em>str</em>) – ‘plotly’ or a custom plot class</p></li>
+=======
+<li><p><strong>plotting_engine</strong> (<em>str</em>) – One of {plotly, mpl}, see ADMDatamart class</p></li>
 <li><p><strong>return_df</strong> (<em>bool</em>) – If set to True, returns the dataframe instead of the plot
 Can be useful for debugging or replicating the plots</p></li>
 </ul>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>See the docs for either the matplotlib plots (plots_mpl.py) or the
+plotly plots (plots_plotly.py). Some visualisations have parameters
+that differ slightly between the two, and plotly has an additional
+post_plot function defining some more actions, such as writing to
+html automatically or displaying figures while facetting.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(plt.Axes, go.FigureWidget)</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>last</strong> (<em>bool</em>) – </p></li>
+<li><p><strong>add_bottom_left_text</strong> (<em>bool</em>) – </p></li>
+<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – </p></li>
+<li><p><strong>facets</strong> (<em>Optional</em><em>[</em><em>list</em><em>]</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.plots.plot_base.Plots.plotPerformanceAndSuccessRateOverTime">
+<span class="sig-name descname"><span class="pre">plotPerformanceAndSuccessRateOverTime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">day_interval</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">7</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.pyplot.Axes</span></span></span><a class="headerlink" href="#pdstools.plots.plot_base.Plots.plotPerformanceAndSuccessRateOverTime" title="Permalink to this definition">#</a></dt>
+<dd><p>Plots both performance and success rate over time</p>
+<p>Currently only supported for matplotlib.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>day_interval</strong> (<em>int</em><em>, </em><em>default = 7</em>) – The interval of tick labels along the x axis</p></li>
+<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em><em>, </em><em>default = None</em>) – The query to supply to _apply_query
+If a string, uses the default Pandas query function
+Else, a dict of lists where the key is the column name of the dataframe
+and the corresponding value is a list of values to keep in the dataframe</p></li>
+</ul>
+</dd>
+<dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>figsize</strong> (<em>tuple</em>) – The size of the graph</p></li>
+<li><p><strong>plotting_engine</strong> (<em>str</em>) – This chart is only supported in matplotlib (mpl)</p></li>
+>>>>>>> master
+<li><p><strong>return_df</strong> (<em>bool</em>) – If set to True, returns the dataframe instead of the plot
+Can be useful for debugging or replicating the plots</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>matplotlib.pyplot.Axes</p>
 </dd>
 </dl>
 <p class="rubric">Notes</p>
@@ -370,6 +434,12 @@ to see further parameters for this plot.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>go.FigureWidget</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>day_interval</strong> (<em>int</em>) – </p></li>
+<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -395,10 +465,64 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 </dd>
 <dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
+<<<<<<< HEAD
 <li><p><strong>plotting_engine</strong> (<em>str</em>) – ‘plotly’ or a custom plot class</p></li>
+=======
+<li><p><strong>plotting_engine</strong> (<em>str</em>) – One of {plotly, mpl}, see ADMDatamart class</p></li>
 <li><p><strong>return_df</strong> (<em>bool</em>) – If set to True, returns the dataframe instead of the plot
 Can be useful for debugging or replicating the plots</p></li>
 </ul>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>See the docs for either the matplotlib plots (plots_mpl.py) or the
+plotly plots (plots_plotly.py). Some visualisations have parameters
+that differ slightly between the two, and plotly has an additional
+post_plot function defining some more actions, such as writing to
+html automatically or displaying figures while facetting.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(plt.Axes, go.FigureWidget)</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>metric</strong> (<em>str</em>) – </p></li>
+<li><p><strong>by</strong> (<em>str</em>) – </p></li>
+<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – </p></li>
+<li><p><strong>facets</strong> (<em>Optional</em><em>[</em><em>list</em><em>]</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.plots.plot_base.Plots.plotResponseCountMatrix">
+<span class="sig-name descname"><span class="pre">plotResponseCountMatrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lookback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fill_null_days</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.pyplot.Axes</span></span></span><a class="headerlink" href="#pdstools.plots.plot_base.Plots.plotResponseCountMatrix" title="Permalink to this definition">#</a></dt>
+<dd><p>Plots the response count over time in a matrix</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lookback</strong> (<em>int</em><em>, </em><em>default = 15</em>) – How many days to look back from the last snapshot</p></li>
+<li><p><strong>fill_null_days</strong> (<em>bool</em><em>, </em><em>default = False</em>) – If True, null values will be generated for days without a snapshot</p></li>
+<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em><em>, </em><em>default = None</em>) – The query to supply to _apply_query
+If a string, uses the default Pandas query function
+Else, a dict of lists where the key is the column name of the dataframe
+and the corresponding value is a list of values to keep in the dataframe</p></li>
+</ul>
+</dd>
+<dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>plotting_engine</strong> (<em>str</em>) – This chart is only supported in matplotlib (mpl)</p></li>
+>>>>>>> master
+<li><p><strong>return_df</strong> (<em>bool</em>) – If set to True, returns the dataframe instead of the plot
+Can be useful for debugging or replicating the plots</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>matplotlib.pyplot.Axes</p>
 </dd>
 </dl>
 <p class="rubric">Notes</p>
@@ -407,6 +531,13 @@ to see further parameters for this plot.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>go.FigureWidget</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>lookback</strong> (<em>int</em>) – </p></li>
+<li><p><strong>fill_null_days</strong> (<em>bool</em>) – </p></li>
+<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -436,6 +567,9 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 Can be useful for debugging or replicating the plots</p></li>
 </ul>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]</p>
+</dd>
 </dl>
 <p class="rubric">Notes</p>
 <p>See the docs for the plotly plots (plots_plotly.py)
@@ -443,6 +577,15 @@ to see further parameters for this plot.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>go.FigureWidget</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>metric</strong> (<em>str</em>) – </p></li>
+<li><p><strong>by</strong> (<em>str</em>) – </p></li>
+<li><p><strong>show_error</strong> (<em>bool</em>) – </p></li>
+<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – </p></li>
+<li><p><strong>facets</strong> (<em>Optional</em><em>[</em><em>list</em><em>]</em>) – </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -470,6 +613,9 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 Can be useful for debugging or replicating the plots</p></li>
 </ul>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]</p>
+</dd>
 </dl>
 <p class="rubric">Notes</p>
 <p>See the docs for the plotly plots (plots_plotly.py)
@@ -477,6 +623,13 @@ to see further parameters for this plot.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>go.FigureWidget</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>by</strong> (<em>str</em>) – </p></li>
+<li><p><strong>show_zero_responses</strong> (<em>bool</em>) – </p></li>
+<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -574,10 +727,64 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 </dd>
 <dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
+<<<<<<< HEAD
 <li><p><strong>plotting_engine</strong> (<em>str</em>) – ‘plotly’ or a custom plot class</p></li>
+=======
+<li><p><strong>plotting_engine</strong> (<em>str</em>) – One of {plotly, mpl}, see ADMDatamart class</p></li>
 <li><p><strong>return_df</strong> (<em>bool</em>) – If set to True, returns the dataframe instead of the plot
 Can be useful for debugging or replicating the plots</p></li>
 </ul>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Union[matplotlib.pyplot.Axes, plotly.graph_objs.FigureWidget]</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>See the docs for either the matplotlib plots (plots_mpl.py) or the
+plotly plots (plots_plotly.py). Some visualisations have parameters
+that differ slightly between the two, and plotly has an additional
+post_plot function defining some more actions, such as writing to
+html automatically or displaying figures while facetting.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(plt.Axes, go.FigureWidget)</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>top_n</strong> (<em>int</em>) – </p></li>
+<li><p><strong>active_only</strong> (<em>bool</em>) – </p></li>
+<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – </p></li>
+<li><p><strong>facets</strong> (<em>list</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.plots.plot_base.Plots.plotImpactInfluence">
+<span class="sig-name descname"><span class="pre">plotImpactInfluence</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ModelID</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.pyplot.Axes</span></span></span><a class="headerlink" href="#pdstools.plots.plot_base.Plots.plotImpactInfluence" title="Permalink to this definition">#</a></dt>
+<dd><p>Plots the impact and the influence of a given model’s predictors</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ModelID</strong> (<em>str</em><em>, </em><em>default = None</em>) – The selected model ID</p></li>
+<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em><em>, </em><em>default = None</em>) – The query to supply to _apply_query
+If a string, uses the default Pandas query function
+Else, a dict of lists where the key is the column name of the dataframe
+and the corresponding value is a list of values to keep in the dataframe</p></li>
+<li><p><strong>facets</strong> (<em>list</em><em>, </em><em>default = None</em>) – Whether to add facets to the plot, should be a list of columns</p></li>
+</ul>
+</dd>
+<dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>plotting_engine</strong> (<em>str</em>) – This chart is only supported in matplotlib (mpl)</p></li>
+>>>>>>> master
+<li><p><strong>return_df</strong> (<em>bool</em>) – If set to True, returns the dataframe instead of the plot
+Can be useful for debugging or replicating the plots</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>matplotlib.pyplot.Axes</p>
 </dd>
 </dl>
 <p class="rubric">Notes</p>
@@ -586,6 +793,12 @@ to see further parameters for this plot.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>go.FigureWidget</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ModelID</strong> (<em>str</em>) – </p></li>
+<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -613,6 +826,9 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 Can be useful for debugging or replicating the plots</p></li>
 </ul>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>plotly.graph_objs.FigureWidget</p>
+</dd>
 </dl>
 <p class="rubric">Notes</p>
 <p>See the docs for the plotly plots (plots_plotly.py).
@@ -621,6 +837,12 @@ such as writing to html automatically or displaying figures while facetting.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>go.FigureWidget</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>by</strong> (<em>str</em>) – </p></li>
+<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -647,6 +869,9 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 Can be useful for debugging or replicating the plots</p></li>
 </ul>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>plotly.graph_objs.FigureWidget</p>
+</dd>
 </dl>
 <p class="rubric">Notes</p>
 <p>See the docs for the plotly plots (plots_plotly.py).
@@ -655,6 +880,12 @@ such as writing to html automatically or displaying figures while facetting.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>go.FigureWidget</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>by</strong> (<em>str</em>) – </p></li>
+<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -684,6 +915,7 @@ If a string, uses the default Pandas query function
 Else, a dict of lists where the key is the column name of the dataframe
 and the corresponding value is a list of values to keep in the dataframe</p></li>
 <li><p><strong>facets</strong> (<em>list</em><em>, </em><em>default = None</em>) – Whether to add facets to the plot, should be a list of columns</p></li>
+<li><p><strong>color_var</strong> (<em>str</em>) – </p></li>
 </ul>
 </dd>
 <dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
@@ -695,6 +927,9 @@ Should consist of three colors: ‘low’, ‘neutral’ and ‘high’</p></li>
 Can be useful for debugging or replicating the plots</p></li>
 </ul>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>plotly.graph_objs.FigureWidget</p>
+</dd>
 </dl>
 <p class="rubric">Notes</p>
 <p>See the docs for the plotly plots (plots_plotly.py).
@@ -703,6 +938,15 @@ such as writing to html automatically or displaying figures while facetting.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>go.FigureWidget</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>color_var</strong> (<em>str</em>) – </p></li>
+<li><p><strong>by</strong> (<em>str</em>) – </p></li>
+<li><p><strong>value_in_text</strong> (<em>bool</em>) – </p></li>
+<li><p><strong>midpoint</strong> (<em>Optional</em><em>[</em><em>float</em><em>]</em>) – </p></li>
+<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>

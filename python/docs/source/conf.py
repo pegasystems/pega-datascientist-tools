@@ -32,24 +32,22 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx_copybutton",
     "myst_parser",
+    "sphinx.ext.intersphinx"
     # "jupyter_sphinx",
     # "sphinx_gallery.gen_gallery",
 ]
 
 source_suffix = [".rst", ".md"]
+intersphinx_mapping = {
+    "polars":("https://pola-rs.github.io/polars/py-polars/html", None)
+}
 
-# from plotly.io._sg_scraper import plotly_sg_scraper
-# sphinx_gallery_conf = {
-#     "examples_dirs": "examples",
-#     "gallery_dirs": "gallery",
-#     "image_scrapers": (plotly_sg_scraper),
-#     "backreferences_dir":'backreferences',
-# }
 
 # -- Autoapi settings --------------------------------------------------------
 autoapi_type = "python"
 autoapi_dirs = ["../../pdstools"]
 nbsphinx_allow_errors = True
+autodoc_typehints = "both"
 
 # -- Napoleon settings -------------------------------------------------------
 napoleon_google_docstring = False
