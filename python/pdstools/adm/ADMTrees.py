@@ -815,11 +815,11 @@ class ADMTreesModel:
             if "split" in current_node:
                 variable, type, split = self.parseSplitValues(current_node["split"])
                 splitvalue = f"'{x[variable]}'" if type in {"in", "is"} else x[variable]
+                type = "in" if type == "is" else type
                 if save_all:
                     scores += [{current_node["split"]: current_node["gain"]}]
                 if type in {"<", ">"} and isinstance(split, set):
                     split = float(split.pop())
-                print(f"{variable} {splitvalue} {type} {split}")
                 if eval(f"{splitvalue} {type} {split}"):
                     current_node_id = current_node["left_child"]
                 else:
@@ -860,7 +860,11 @@ class ADMTreesModel:
 
     def plotContributionPerTree(self, x: Dict, show=True):
         """Plots the contribution of each tree towards the final propensity."""
-        scores = self.getAllVisitedNodes(x).sort("treeID").to_pandas(use_pyarrow_extension_array=True)
+        scores = (
+            self.getAllVisitedNodes(x)
+            .sort("treeID")
+            .to_pandas(use_pyarrow_extension_array=True)
+        )
         scores["mean"] = scores["score"].expanding().mean()
         scores["scoresum"] = scores["score"].expanding().sum()
         scores["propensity"] = scores["scoresum"].apply(lambda x: 1 / (1 + exp(-x)))
@@ -1035,7 +1039,9 @@ class MultiTrees:
         return pl.concat(outdf, how="diagonal")
 
     def plotSplitsPerVariableType(self, predictorCategorization=None, **kwargs):
-        df = self.computeOverTime(predictorCategorization).to_pandas(use_pyarrow_extension_array=True)
+        df = self.computeOverTime(predictorCategorization).to_pandas(
+            use_pyarrow_extension_array=True
+        )
         fig = px.area(
             df.reindex(sorted(df.columns), axis=1),
             animation_frame="SnapshotTime",
