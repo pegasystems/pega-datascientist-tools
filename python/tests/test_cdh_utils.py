@@ -233,7 +233,7 @@ def test_getMatches():
     files_dir = "data"
     target = "ValueFinder"
     expected_outcome = "Data-Insights_pyValueFinder_20210824T112615_GMT.zip"
-    outcome = cdh_utils.get_latest_file(files_dir, target).split("/")[-1]
+    outcome = pathlib.Path(cdh_utils.get_latest_file(files_dir, target)).name
     assert outcome == expected_outcome
 
     target = "wrong_target_name"

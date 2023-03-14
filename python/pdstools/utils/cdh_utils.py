@@ -349,7 +349,7 @@ def cache_to_file(
     os.PathLike:
         The filepath to the cached file
     """
-    outpath = f"{path}/{name}"
+    outpath = os.path.join(path, name)
     if isinstance(df, pl.LazyFrame):
         df = df.collect()
     if cache_type == "ipc":
