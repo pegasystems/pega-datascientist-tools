@@ -193,13 +193,15 @@ class ADMVisualisations:
             "ResponseCount": ":.d",
         }
         if metric in ["Performance", "weighted_performance", "SuccessRate"]:
-            df = df.to_pandas(use_pyarrow_extension_array=True)
+            df = df.to_pandas(use_pyarrow_extension_array=False)
             x = "SnapshotTime"
             y = metric
             color = by
             hover_data = {by: ":.d", metric: metric_hovers[metric]}
         else:
-            df = df.to_pandas(use_pyarrow_extension_array=True).set_index("SnapshotTime")
+            df = df.to_pandas(use_pyarrow_extension_array=False).set_index(
+                "SnapshotTime"
+            )
             x = None
             y = "Increase"
             color = by
@@ -422,9 +424,9 @@ class ADMVisualisations:
             },
         )
 
-        # fig.update_yaxes(
-        #    categoryorder="array", categoryarray=order, automargin=True, dtick=1
-        # )
+        fig.update_yaxes(
+           categoryorder="array", categoryarray=order, automargin=True, dtick=1
+        )
 
         fig.update_layout(
             boxgap=0,
@@ -647,7 +649,9 @@ class ADMVisualisations:
 
         title = f"Percentage of models vs number of positive responses {kwargs.get('title_text','')}<br><sup>By {by}</sup>"
         fig = px.line(
-            df.filter(pl.col("ModelCount") > 0).to_pandas(use_pyarrow_extension_array=True),
+            df.filter(pl.col("ModelCount") > 0).to_pandas(
+                use_pyarrow_extension_array=True
+            ),
             x="PositivesBin",
             y="cumModels",
             color=by,
@@ -739,8 +743,8 @@ class ADMVisualisations:
             df.select(
                 pl.when(pl.log(color) == float("-inf")).then(0).otherwise(pl.log(color))
             ).to_series()
-        if color == "Success Rate mean":
-            range_color = kwargs.get("range_color", [0, 100])
+        if 'range_color' in kwargs:
+            range_color = kwargs.get("range_color")
         if midpoint is not None:
             midpoint = color.quantile(midpoint)
             colorscale = [
@@ -774,7 +778,7 @@ class ADMVisualisations:
             fig.update_traces(text=fig.data[0].marker.colors.round(3))
             fig.data[0].textinfo = "label+text"
             if format == "%":
-                fig.data[0].texttemplate = "%{label}<br>%{text:.2%}"
+                fig.data[0].texttemplate = "%{label}<br>%{text:.2f}%"
 
         if kwargs.get("min_text_size", None) is not None:
             fig.update_layout(
