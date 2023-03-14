@@ -17,11 +17,7 @@ Classes
 
 
 
-<<<<<<< HEAD
-.. py:class:: ValueFinder(path: Optional[str] = None, df: Optional[pdstools.utils.types.any_frame] = None, strategy='eager', verbose: bool = True, **kwargs)
-=======
 .. py:class:: ValueFinder(path: Optional[str] = None, df: Optional[Union[pandas.DataFrame, polars.DataFrame]] = None, verbose: bool = True, **kwargs)
->>>>>>> master
 
    Class to analyze Value Finder datasets.
 
@@ -57,7 +53,7 @@ Classes
       :rtype: PathLike
 
 
-   .. py:method:: getCustomerSummary(th: Optional[float] = None, strategy='eager', verbose: bool = True) -> polars.DataFrame
+   .. py:method:: getCustomerSummary(th: Optional[float] = None, verbose: bool = True) -> polars.DataFrame
 
       Computes the summary of propensities for all customers
 
@@ -70,7 +66,7 @@ Classes
       :type verbose: bool, default = True
 
 
-   .. py:method:: getCountsPerStage(customersummary: Optional[polars.DataFrame] = None, strategy='eager', verbose: bool = True) -> polars.DataFrame
+   .. py:method:: getCountsPerStage(customersummary: Optional[polars.DataFrame] = None, verbose: bool = True) -> polars.DataFrame
 
       Generates an aggregated view per stage.
 
@@ -81,7 +77,7 @@ Classes
       :type verbose: bool, default = True
 
 
-   .. py:method:: addCountsPerThresholdRange(start: float, stop: float, step: float, propType=Literal['quantile', 'absolute'], verbose: bool = True)
+   .. py:method:: addCountsPerThresholdRange(start: float, stop: float, step: float, verbose: bool = True)
 
       Adds the counts per stage for a range of quantiles.
 
@@ -98,14 +94,8 @@ Classes
       :type stop: float
       :param step: The steps to compute between start and stop
       :type step: float
-      :param type: Whether to plot absolute propensity thresholds
-                   or propensities based on their quantile-based threshold
-      :type type: Literal["quantile", "absolute"]
       :param verbose: Whether to print out the progress of computation
       :type verbose: bool, default = True
-
-
-   .. py:method:: _generateCountsQuery(df, th)
 
 
    .. py:method:: plotPropensityDistribution(sampledN: int = 10000) -> plotly.graph_objects.Figure
@@ -128,7 +118,7 @@ Classes
       :type sampledN: int, default = 10_000
 
 
-   .. py:method:: plotPieCharts(start: Optional[float] = None, stop: Optional[float] = None, step: Optional[float] = None, propType: Literal[ValueFinder.plotPieCharts.quantile, absolute] = 'quantile', verbose: bool = True)
+   .. py:method:: plotPieCharts(start: Optional[float] = None, stop: Optional[float] = None, step: Optional[float] = None, verbose: bool = True)
 
       Plots the pie chart, split per stage.
 
@@ -144,9 +134,6 @@ Classes
       :type stop: float
       :param step: The steps to compute between start and stop
       :type step: float
-      :param type: Whether to plot absolute propensity thresholds
-                   or propensities based on their quantile-based threshold
-      :type type: Literal["quantile", "absolute"]
       :param verbose: Whether to print out the progress of computation
       :type verbose: bool, default = True
 

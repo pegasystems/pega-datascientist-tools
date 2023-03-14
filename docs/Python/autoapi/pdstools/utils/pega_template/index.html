@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../../../genindex.html" /><link rel="search" title="Search" href="../../../../search.html" />
 
     <link rel="shortcut icon" href="../../../../_static/pegasystems-inc-vector-logo.svg"/><!-- Generated with Sphinx 5.3.0 and Furo 2022.12.07 -->
-        <title>pdstools.utils.types - pdstools</title>
+        <title>pdstools.utils.pega_template - pdstools</title>
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
@@ -215,8 +215,8 @@
 <li class="toctree-l4"><a class="reference internal" href="../datasets/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.datasets</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../errors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.errors</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../hds_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.hds_utils</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../pega_template/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.pega_template</span></code></a></li>
-<li class="toctree-l4 current current-page"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.types</span></code></a></li>
+<li class="toctree-l4 current current-page"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.pega_template</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../types/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.types</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../valuefinder/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.valuefinder</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -261,13 +261,43 @@
           </label>
         </div>
         <article role="main">
-          <section id="module-pdstools.utils.types">
-<span id="pdstools-utils-types"></span><h1><a class="reference internal" href="#module-pdstools.utils.types" title="pdstools.utils.types"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.types</span></code></a><a class="headerlink" href="#module-pdstools.utils.types" title="Permalink to this heading">#</a></h1>
+          <section id="module-pdstools.utils.pega_template">
+<span id="pdstools-utils-pega-template"></span><h1><a class="reference internal" href="#module-pdstools.utils.pega_template" title="pdstools.utils.pega_template"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.pega_template</span></code></a><a class="headerlink" href="#module-pdstools.utils.pega_template" title="Permalink to this heading">#</a></h1>
 <section id="module-contents">
 <h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this heading">#</a></h2>
 <dl class="py data">
-<dt class="sig sig-object py" id="pdstools.utils.types.any_frame">
-<span class="sig-prename descclassname"><span class="pre">pdstools.utils.types.</span></span><span class="sig-name descname"><span class="pre">any_frame</span></span><a class="headerlink" href="#pdstools.utils.types.any_frame" title="Permalink to this definition">#</a></dt>
+<dt class="sig sig-object py" id="pdstools.utils.pega_template.colorway">
+<span class="sig-prename descclassname"><span class="pre">pdstools.utils.pega_template.</span></span><span class="sig-name descname"><span class="pre">colorway</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['#001F5F',</span> <span class="pre">'#10A5AC',</span> <span class="pre">'#F76923',</span> <span class="pre">'#661D34',</span> <span class="pre">'#86CAC6',</span> <span class="pre">'#005154',</span> <span class="pre">'#86CAC6',</span> <span class="pre">'#5F67B9',...</span></em><a class="headerlink" href="#pdstools.utils.pega_template.colorway" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pdstools.utils.pega_template.neutral_positive">
+<span class="sig-prename descclassname"><span class="pre">pdstools.utils.pega_template.</span></span><span class="sig-name descname"><span class="pre">neutral_positive</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[(0,</span> <span class="pre">'#FFB546'),</span> <span class="pre">(0.1,</span> <span class="pre">'#FCE880'),</span> <span class="pre">(0.6,</span> <span class="pre">'#66CB66'),</span> <span class="pre">(1,</span> <span class="pre">'#27803E')]</span></em><a class="headerlink" href="#pdstools.utils.pega_template.neutral_positive" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pdstools.utils.pega_template.negative_positive">
+<span class="sig-prename descclassname"><span class="pre">pdstools.utils.pega_template.</span></span><span class="sig-name descname"><span class="pre">negative_positive</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[(0,</span> <span class="pre">'#FFB546'),</span> <span class="pre">(0.1,</span> <span class="pre">'#FCE880'),</span> <span class="pre">(0.6,</span> <span class="pre">'#66CB66'),</span> <span class="pre">(1,</span> <span class="pre">'#27803E')]</span></em><a class="headerlink" href="#pdstools.utils.pega_template.negative_positive" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pdstools.utils.pega_template.positive_negative">
+<span class="sig-prename descclassname"><span class="pre">pdstools.utils.pega_template.</span></span><span class="sig-name descname"><span class="pre">positive_negative</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[(0,</span> <span class="pre">'#27803E'),</span> <span class="pre">(0.01,</span> <span class="pre">'#66CB66'),</span> <span class="pre">(0.5,</span> <span class="pre">'#FCE880'),</span> <span class="pre">(0.6,</span> <span class="pre">'#FFB546'),</span> <span class="pre">(0.8,</span> <span class="pre">'#FF853D'),</span> <span class="pre">(1,</span> <span class="pre">'#DE4342')]</span></em><a class="headerlink" href="#pdstools.utils.pega_template.positive_negative" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="id0">
+<span class="sig-prename descclassname"><span class="pre">pdstools.utils.pega_template.</span></span><span class="sig-name descname"><span class="pre">positive_negative</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[(0,</span> <span class="pre">'#27803E'),</span> <span class="pre">(0.01,</span> <span class="pre">'#66CB66'),</span> <span class="pre">(0.5,</span> <span class="pre">'#FCE880'),</span> <span class="pre">(0.6,</span> <span class="pre">'#FFB546'),</span> <span class="pre">(0.8,</span> <span class="pre">'#FF853D'),</span> <span class="pre">(1,</span> <span class="pre">'#DE4342')]</span></em><a class="headerlink" href="#id0" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pdstools.utils.pega_template.performance">
+<span class="sig-prename descclassname"><span class="pre">pdstools.utils.pega_template.</span></span><span class="sig-name descname"><span class="pre">performance</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[(0,</span> <span class="pre">'#DE4342'),</span> <span class="pre">(0.1,</span> <span class="pre">'#FFB546'),</span> <span class="pre">(0.3,</span> <span class="pre">'#66CB66'),</span> <span class="pre">(0.6,</span> <span class="pre">'#27803E'),</span> <span class="pre">(0.9,</span> <span class="pre">'#FFB546'),</span> <span class="pre">(1,</span> <span class="pre">'#0000FF')]</span></em><a class="headerlink" href="#pdstools.utils.pega_template.performance" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pdstools.utils.pega_template.success">
+<span class="sig-prename descclassname"><span class="pre">pdstools.utils.pega_template.</span></span><span class="sig-name descname"><span class="pre">success</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[(0,</span> <span class="pre">'#DE4342'),</span> <span class="pre">(0.2,</span> <span class="pre">'#66CB66'),</span> <span class="pre">(1,</span> <span class="pre">'#27803E')]</span></em><a class="headerlink" href="#pdstools.utils.pega_template.success" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
 
 </section>
@@ -317,10 +347,22 @@
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.types</span></code></a><ul>
+<li><a class="reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.pega_template</span></code></a><ul>
 <li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
-<li><a class="reference internal" href="#pdstools.utils.types.any_frame"><code class="docutils literal notranslate"><span class="pre">any_frame</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.utils.types.any_frame">any_frame</a></li>
+<li><a class="reference internal" href="#pdstools.utils.pega_template.colorway"><code class="docutils literal notranslate"><span class="pre">colorway</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.pega_template.neutral_positive"><code class="docutils literal notranslate"><span class="pre">neutral_positive</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.pega_template.negative_positive"><code class="docutils literal notranslate"><span class="pre">negative_positive</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.pega_template.positive_negative"><code class="docutils literal notranslate"><span class="pre">positive_negative</span></code></a></li>
+<li><a class="reference internal" href="#id0"><code class="docutils literal notranslate"><span class="pre">positive_negative</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.pega_template.performance"><code class="docutils literal notranslate"><span class="pre">performance</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.pega_template.success"><code class="docutils literal notranslate"><span class="pre">success</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.pega_template.colorway">colorway</a></li>
+<li><a class="reference internal" href="#pdstools.utils.pega_template.neutral_positive">neutral_positive</a></li>
+<li><a class="reference internal" href="#pdstools.utils.pega_template.negative_positive">negative_positive</a></li>
+<li><a class="reference internal" href="#pdstools.utils.pega_template.positive_negative">positive_negative</a></li>
+<li><a class="reference internal" href="#id0">positive_negative</a></li>
+<li><a class="reference internal" href="#pdstools.utils.pega_template.performance">performance</a></li>
+<li><a class="reference internal" href="#pdstools.utils.pega_template.success">success</a></li>
 </ul>
 </li>
 </ul>

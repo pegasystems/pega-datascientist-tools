@@ -12,11 +12,9 @@ Submodules
 
    cdh_utils/index.rst
    datasets/index.rst
-<<<<<<< HEAD
    errors/index.rst
-   types/index.rst
-=======
    hds_utils/index.rst
->>>>>>> master
+   pega_template/index.rst
+   types/index.rst
 
 

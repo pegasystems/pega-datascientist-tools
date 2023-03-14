@@ -213,12 +213,10 @@
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../utils/cdh_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../utils/datasets/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.datasets</span></code></a></li>
-<<<<<<< HEAD
 <li class="toctree-l4"><a class="reference internal" href="../../utils/errors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.errors</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../utils/types/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.types</span></code></a></li>
-=======
 <li class="toctree-l4"><a class="reference internal" href="../../utils/hds_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.hds_utils</span></code></a></li>
->>>>>>> master
+<li class="toctree-l4"><a class="reference internal" href="../../utils/pega_template/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.pega_template</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/types/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.types</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../valuefinder/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.valuefinder</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -358,7 +356,7 @@ and the corresponding value is a list of values to keep in the dataframe</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.plots.plots_plotly.ADMVisualisations.ScoreDistribution">
-<span class="sig-name descname"><span class="pre">ScoreDistribution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facet</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.plots.plots_plotly.ADMVisualisations.ScoreDistribution" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">ScoreDistribution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facet_val</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.plots.plots_plotly.ADMVisualisations.ScoreDistribution" title="Permalink to this definition">#</a></dt>
 <dd><p>Show score distribution similar to ADM out-of-the-box report</p>
 <p>Shows a score distribution graph per model. If certain models selected,
 only those models will be shown.
@@ -383,7 +381,7 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.plots.plots_plotly.ADMVisualisations.PredictorBinning">
-<span class="sig-name descname"><span class="pre">PredictorBinning</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facet</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.plots.plots_plotly.ADMVisualisations.PredictorBinning" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">PredictorBinning</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facet_val</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.plots.plots_plotly.ADMVisualisations.PredictorBinning" title="Permalink to this definition">#</a></dt>
 <dd><p>Show predictor graphs for a given model</p>
 <p>For a given model (query) shows all its predictors’ graphs. If certain predictors
 selected, only those predictor graphs will be shown</p>
@@ -407,7 +405,7 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.plots.plots_plotly.ADMVisualisations.PredictorPerformance">
-<span class="sig-name descname"><span class="pre">PredictorPerformance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facet</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_plot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Performance'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.plots.plots_plotly.ADMVisualisations.PredictorPerformance" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">PredictorPerformance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_plot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Performance'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'PredictorName'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.plots.plots_plotly.ADMVisualisations.PredictorPerformance" title="Permalink to this definition">#</a></dt>
 <dd><p>Shows a box plot of predictor performance</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -421,17 +419,19 @@ If 0 (default), all predictors are shown</p></li>
 If a string, uses the default Pandas query function
 Else, a dict of lists where the key is column name in the dataframe
 and the corresponding value is a list of values to keep in the dataframe</p></li>
-<li><p><strong>show_each</strong> (<em>bool</em>) – Whether to show each file when multiple facets are used</p></li>
-<li><p><strong>facets</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>list</em><em>, </em><em>str</em><em>]</em><em>]</em>) – Whether to create a chart for multiple facets or subsets.
-For example, if facets == ‘Channel’, a bubble plot is made for each channel
-Depending on show_each, every chart is either shown or not
-If more than one facet is visualised, they are returned in a list</p></li>
+<li><p><strong>facets</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>list</em><em>, </em><em>str</em><em>]</em><em>]</em>) – Whether to create a chart for multiple facets or subsets.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>px.Figure</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.plots.plots_plotly.ADMVisualisations._divide_context">
+<span class="sig-name descname"><span class="pre">_divide_context</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.plots.plots_plotly.ADMVisualisations._divide_context" title="Permalink to this definition">#</a></dt>
+<dd><p>Divides the context keys if they are combined</p>
 </dd></dl>
 
 <dl class="py method">
@@ -559,6 +559,11 @@ If more than one facet is visualised, they are returned in a list</p></li>
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.plots.plots_plotly.ADMVisualisations.PredictorCount">
+<span class="sig-name descname"><span class="pre">PredictorCount</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facet</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.plots.plots_plotly.ADMVisualisations.PredictorCount" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 </section>
@@ -621,10 +626,12 @@ If more than one facet is visualised, they are returned in a list</p></li>
 <li><a class="reference internal" href="#pdstools.plots.plots_plotly.ADMVisualisations.ScoreDistribution"><code class="docutils literal notranslate"><span class="pre">ADMVisualisations.ScoreDistribution()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.plots.plots_plotly.ADMVisualisations.PredictorBinning"><code class="docutils literal notranslate"><span class="pre">ADMVisualisations.PredictorBinning()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.plots.plots_plotly.ADMVisualisations.PredictorPerformance"><code class="docutils literal notranslate"><span class="pre">ADMVisualisations.PredictorPerformance()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.plots.plots_plotly.ADMVisualisations._divide_context"><code class="docutils literal notranslate"><span class="pre">ADMVisualisations._divide_context()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.plots.plots_plotly.ADMVisualisations.PredictorPerformanceHeatmap"><code class="docutils literal notranslate"><span class="pre">ADMVisualisations.PredictorPerformanceHeatmap()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.plots.plots_plotly.ADMVisualisations.ResponseGain"><code class="docutils literal notranslate"><span class="pre">ADMVisualisations.ResponseGain()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.plots.plots_plotly.ADMVisualisations.ModelsByPositives"><code class="docutils literal notranslate"><span class="pre">ADMVisualisations.ModelsByPositives()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.plots.plots_plotly.ADMVisualisations.TreeMap"><code class="docutils literal notranslate"><span class="pre">ADMVisualisations.TreeMap()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.plots.plots_plotly.ADMVisualisations.PredictorCount"><code class="docutils literal notranslate"><span class="pre">ADMVisualisations.PredictorCount()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#pdstools.plots.plots_plotly.ADMVisualisations">ADMVisualisations</a><ul>
@@ -636,10 +643,12 @@ If more than one facet is visualised, they are returned in a list</p></li>
 <li><a class="reference internal" href="#pdstools.plots.plots_plotly.ADMVisualisations.ScoreDistribution">ScoreDistribution</a></li>
 <li><a class="reference internal" href="#pdstools.plots.plots_plotly.ADMVisualisations.PredictorBinning">PredictorBinning</a></li>
 <li><a class="reference internal" href="#pdstools.plots.plots_plotly.ADMVisualisations.PredictorPerformance">PredictorPerformance</a></li>
+<li><a class="reference internal" href="#pdstools.plots.plots_plotly.ADMVisualisations._divide_context">_divide_context</a></li>
 <li><a class="reference internal" href="#pdstools.plots.plots_plotly.ADMVisualisations.PredictorPerformanceHeatmap">PredictorPerformanceHeatmap</a></li>
 <li><a class="reference internal" href="#pdstools.plots.plots_plotly.ADMVisualisations.ResponseGain">ResponseGain</a></li>
 <li><a class="reference internal" href="#pdstools.plots.plots_plotly.ADMVisualisations.ModelsByPositives">ModelsByPositives</a></li>
 <li><a class="reference internal" href="#pdstools.plots.plots_plotly.ADMVisualisations.TreeMap">TreeMap</a></li>
+<li><a class="reference internal" href="#pdstools.plots.plots_plotly.ADMVisualisations.PredictorCount">PredictorCount</a></li>
 </ul>
 </li>
 </ul>
@@ -667,5 +676,6 @@ If more than one facet is visualised, they are returned in a list</p></li>
     <script src="../../../../_static/clipboard.min.js"></script>
     <script src="../../../../_static/copybutton.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
     </body>
 </html>

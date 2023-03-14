@@ -42,10 +42,12 @@
                 "# Do not run if you're running the notebook seperately\n",
                 "\n",
                 "import plotly.io as pio\n",
-                "pio.renderers.default='notebook_connected'\n",
+                "\n",
+                "pio.renderers.default = \"notebook_connected\"\n",
                 "\n",
                 "import sys\n",
-                "sys.path.append('../../../')"
+                "\n",
+                "sys.path.append(\"../../../\")\n"
             ]
         },
         {
@@ -55,8 +57,9 @@
             "outputs": [],
             "source": [
                 "from pdstools import ADMDatamart, datasets\n",
+                "import polars as pl\n",
                 "\n",
-                "CDHSample = datasets.CDHSample()"
+                "CDHSample = datasets.CDHSample()\n"
             ]
         },
         {
@@ -73,7 +76,7 @@
             "metadata": {},
             "outputs": [],
             "source": [
-                "CDHSample.AvailableVisualisations"
+                "CDHSample.AvailableVisualisations\n"
             ]
         },
         {
@@ -91,7 +94,7 @@
             "metadata": {},
             "outputs": [],
             "source": [
-                "CDHSample.plotPerformanceSuccessRateBubbleChart()"
+                "CDHSample.plotPerformanceSuccessRateBubbleChart()\n"
             ]
         },
         {
@@ -109,8 +112,8 @@
             "metadata": {},
             "outputs": [],
             "source": [
-                "query='ResponseCount > 500 and Group == \"CreditCards\"'\n",
-                "CDHSample.plotPerformanceSuccessRateBubbleChart(query=query)"
+                "query = (pl.col(\"ResponseCount\") > 500) & (pl.col(\"Group\") == \"CreditCards\")\n",
+                "CDHSample.plotPerformanceSuccessRateBubbleChart(query=query)\n"
             ]
         },
         {
@@ -128,9 +131,16 @@
             "metadata": {},
             "outputs": [],
             "source": [
-                "top30ids = list(CDHSample.last(CDHSample.modelData).sort_values('Performance', ascending=False).reset_index()['ModelID'][0:30])\n",
+                "top30ids = (\n",
+                "    CDHSample.last(strategy='lazy').sort(\"Performance\", descending=True)\n",
+                "    .select(\"ModelID\")\n",
+                "    .head(30)\n",
+                "    .collect()\n",
+                "    .to_series()\n",
+                "    .to_list()\n",
+                ")\n",
                 "\n",
-                "CDHSample.plotPerformanceSuccessRateBubbleChart(query={'ModelID':top30ids})"
+                "CDHSample.plotPerformanceSuccessRateBubbleChart(query={\"ModelID\": top30ids})\n"
             ]
         },
         {
@@ -146,7 +156,7 @@
             "metadata": {},
             "outputs": [],
             "source": [
-                "CDHSample.plotTreeMap()"
+                "CDHSample.plotTreeMap()\n"
             ]
         },
         {
@@ -162,14 +172,15 @@
             "metadata": {},
             "outputs": [],
             "source": [
-                "CDHSample.plotTreeMap('SuccessRate')"
+                "CDHSample.plotTreeMap(\"SuccessRate\")\n"
             ]
         },
         {
+            "attachments": {},
             "cell_type": "markdown",
             "metadata": {},
             "source": [
-                "If we want to look at the response rate and the AUC of some models over time, we can call plotPerformanceAndSuccessRateOverTime. Here, we filter a bit to limit the amount of information."
+                "Similar to the responses, the success rate over time can also be of interest. With 'plotOverTime', you can plot the success rate of different models as they develop over time."
             ]
         },
         {
@@ -178,23 +189,7 @@
             "metadata": {},
             "outputs": [],
             "source": [
-                "CDHSample.plotPerformanceAndSuccessRateOverTime(query = \"Channel == 'Web'\")"
-            ]
-        },
-        {
-            "cell_type": "markdown",
-            "metadata": {},
-            "source": [
-                "Similar to the responses, the success rate over time can also be of interest. With 'plotSuccessRateOverTime', you can plot the success rate of different models as they develop over time."
-            ]
-        },
-        {
-            "cell_type": "code",
-            "execution_count": null,
-            "metadata": {},
-            "outputs": [],
-            "source": [
-                "CDHSample.plotOverTime('SuccessRate',by='ModelID', query=\"Channel=='Web'\")"
+                "CDHSample.plotOverTime(\"SuccessRate\", by=\"ModelID\", query=pl.col(\"Channel\") == \"Web\")\n"
             ]
         },
         {
@@ -210,7 +205,7 @@
             "metadata": {},
             "outputs": [],
             "source": [
-                "CDHSample.plotPropositionSuccessRates(query=\"Channel=='Web'\")"
+                "CDHSample.plotPropositionSuccessRates(query=pl.col(\"Channel\") == \"Web\")\n"
             ]
         },
         {
@@ -226,7 +221,9 @@
             "metadata": {},
             "outputs": [],
             "source": [
-                "CDHSample.plotScoreDistribution(query='ModelID == \"08ca1302-9fc0-57bf-9031-d4179d400493\"', show_each=False)"
+                "CDHSample.plotScoreDistribution(\n",
+                "    query=pl.col(\"ModelID\") == \"08ca1302-9fc0-57bf-9031-d4179d400493\", show_each=False\n",
+                ")\n"
             ]
         },
         {
@@ -242,7 +239,13 @@
             "metadata": {},
             "outputs": [],
             "source": [
-                "CDHSample.plotScoreDistribution(query='ModelName == \"HomeOwners\" and Group == \"Bundles\" and Issue == \"Sales\" and Channel == \"Web\" and Configuration == \"OmniAdaptiveModel\"')"
+                "CDHSample.plotScoreDistribution(\n",
+                "    query=(pl.col(\"Name\") == \"HomeOwners\")\n",
+                "    & (pl.col(\"Group\") == \"Bundles\")\n",
+                "    & (pl.col(\"Issue\") == \"Sales\")\n",
+                "    & (pl.col(\"Channel\") == \"Web\")\n",
+                "    & (pl.col(\"Configuration\") == \"OmniAdaptiveModel\")\n",
+                ")\n"
             ]
         },
         {
@@ -258,7 +261,19 @@
             "metadata": {},
             "outputs": [],
             "source": [
-                "CDHSample.plotPredictorBinning(query=f'ModelID == \"08ca1302-9fc0-57bf-9031-d4179d400493\" and PredictorName in {[\"Customer.Age\", \"Customer.AnnualIncome\", \"IH.Email.Outbound.Accepted.pxLastGroupID\"]}', show_each=True);"
+                "CDHSample.plotPredictorBinning(\n",
+                "    query=(pl.col(\"ModelID\") == \"08ca1302-9fc0-57bf-9031-d4179d400493\")\n",
+                "    & (\n",
+                "        pl.col(\"PredictorName\").is_in(\n",
+                "            [\n",
+                "                \"Customer.Age\",\n",
+                "                \"Customer.AnnualIncome\",\n",
+                "                \"IH.Email.Outbound.Accepted.pxLastGroupID\",\n",
+                "            ]\n",
+                "        )\n",
+                "    ),\n",
+                "    show_each=True,\n",
+                ");\n"
             ]
         },
         {
@@ -274,7 +289,14 @@
             "metadata": {},
             "outputs": [],
             "source": [
-                "CDHSample.plotPredictorPerformance(query=f'PredictorName in {[\"Customer.Age\", \"Customer.AnnualIncome\", \"IH.Email.Outbound.Accepted.pxLastGroupID\"]}')"
+                "CDHSample.plotPredictorPerformance(\n",
+                "    query=pl.col(\"PredictorName\").is_in(\n",
+                "        [\n",
+                "            \"Customer.Age\",\n",
+                "            \"Customer.AnnualIncome\",\n",
+                "            \"IH.Email.Outbound.Accepted.pxLastGroupID\",\n",
+                "        ]\n",
+                "    ))"
             ]
         },
         {
@@ -290,13 +312,24 @@
             "metadata": {},
             "outputs": [],
             "source": [
-                "CDHSample.plotPredictorPerformanceHeatmap(query=f'PredictorName in {[\"Customer.Age\", \"Customer.AnnualIncome\", \"IH.Email.Outbound.Accepted.pxLastGroupID\"]}')"
+                "CDHSample.plotPredictorPerformanceHeatmap(\n",
+                "    query=pl.col(\"PredictorName\").is_in(\n",
+                "        [\n",
+                "            \"Customer.Age\",\n",
+                "            \"Customer.AnnualIncome\",\n",
+                "            \"IH.Email.Outbound.Accepted.pxLastGroupID\",\n",
+                "        ]\n",
+                "    )\n",
+                ")\n"
             ]
         }
     ],
     "metadata": {
+        "interpreter": {
+            "hash": "31f2aee4e71d21fbe5cf8b01ff0e069b9275f58929596ceb00d14d90e3e16cd6"
+        },
         "kernelspec": {
-            "display_name": "Python 3",
+            "display_name": "Python 3.8.2 64-bit",
             "language": "python",
             "name": "python3"
         },
@@ -312,12 +345,7 @@
             "pygments_lexer": "ipython3",
             "version": "3.11.0"
         },
-        "orig_nbformat": 4,
-        "vscode": {
-            "interpreter": {
-                "hash": "aee8b7b246df8f9039afb4144a1f6fd8d2ca17a180786b69acc140d282b71a49"
-            }
-        }
+        "orig_nbformat": 4
     },
     "nbformat": 4,
     "nbformat_minor": 2

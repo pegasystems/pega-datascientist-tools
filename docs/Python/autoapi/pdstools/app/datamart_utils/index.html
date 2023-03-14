@@ -213,12 +213,10 @@
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../utils/cdh_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../utils/datasets/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.datasets</span></code></a></li>
-<<<<<<< HEAD
 <li class="toctree-l4"><a class="reference internal" href="../../utils/errors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.errors</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../utils/types/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.types</span></code></a></li>
-=======
 <li class="toctree-l4"><a class="reference internal" href="../../utils/hds_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.hds_utils</span></code></a></li>
->>>>>>> master
+<li class="toctree-l4"><a class="reference internal" href="../../utils/pega_template/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.pega_template</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/types/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.types</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../valuefinder/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.valuefinder</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -284,29 +282,45 @@
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.app.datamart_utils.multiFilter" title="pdstools.app.datamart_utils.multiFilter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">multiFilter</span></code></a>(df, q)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.app.datamart_utils.remove_duplicate_expressions" title="pdstools.app.datamart_utils.remove_duplicate_expressions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">remove_duplicate_expressions</span></code></a>(exprs)</p></td>
+<td><p></p></td>
+</tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.app.datamart_utils.import_data" title="pdstools.app.datamart_utils.import_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">import_data</span></code></a>(params[, default])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.app.datamart_utils.import_datamart" title="pdstools.app.datamart_utils.import_datamart"><code class="xref py py-obj docutils literal notranslate"><span class="pre">import_datamart</span></code></a>(fun, *args, **kwargs)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.app.datamart_utils.import_datamart" title="pdstools.app.datamart_utils.import_datamart"><code class="xref py py-obj docutils literal notranslate"><span class="pre">import_datamart</span></code></a>(_fun, *args, **kwargs)</p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.app.datamart_utils.ADMDatamart_options" title="pdstools.app.datamart_utils.ADMDatamart_options"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ADMDatamart_options</span></code></a>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.app.datamart_utils.generate_modeldata_filters" title="pdstools.app.datamart_utils.generate_modeldata_filters"><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate_modeldata_filters</span></code></a>(df, params)</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.app.datamart_utils.generate_modeldata_filters" title="pdstools.app.datamart_utils.generate_modeldata_filters"><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate_modeldata_filters</span></code></a>(→ List[polars.Expr])</p></td>
+<td><p>Generates and applies filters to our dataframe.</p></td>
 </tr>
 </tbody>
 </table>
 </div>
 <dl class="py function">
+<dt class="sig sig-object py" id="pdstools.app.datamart_utils.multiFilter">
+<span class="sig-prename descclassname"><span class="pre">pdstools.app.datamart_utils.</span></span><span class="sig-name descname"><span class="pre">multiFilter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.app.datamart_utils.multiFilter" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.app.datamart_utils.remove_duplicate_expressions">
+<span class="sig-prename descclassname"><span class="pre">pdstools.app.datamart_utils.</span></span><span class="sig-name descname"><span class="pre">remove_duplicate_expressions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exprs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.app.datamart_utils.remove_duplicate_expressions" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="pdstools.app.datamart_utils.import_data">
-<span class="sig-prename descclassname"><span class="pre">pdstools.app.datamart_utils.</span></span><span class="sig-name descname"><span class="pre">import_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.app.datamart_utils.import_data" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pdstools.app.datamart_utils.</span></span><span class="sig-name descname"><span class="pre">import_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.app.datamart_utils.import_data" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.app.datamart_utils.import_datamart">
-<span class="sig-prename descclassname"><span class="pre">pdstools.app.datamart_utils.</span></span><span class="sig-name descname"><span class="pre">import_datamart</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fun</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.app.datamart_utils.import_datamart" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pdstools.app.datamart_utils.</span></span><span class="sig-name descname"><span class="pre">import_datamart</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_fun</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.app.datamart_utils.import_datamart" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
@@ -316,78 +330,52 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.app.datamart_utils.generate_modeldata_filters">
-<span class="sig-prename descclassname"><span class="pre">pdstools.app.datamart_utils.</span></span><span class="sig-name descname"><span class="pre">generate_modeldata_filters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.app.datamart_utils.generate_modeldata_filters" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">pdstools.app.datamart_utils.</span></span><span class="sig-name descname"><span class="pre">generate_modeldata_filters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../index.html#pdstools.ADMDatamart" title="pdstools.ADMDatamart"><span class="pre">pdstools.ADMDatamart</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">polars.Expr</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.app.datamart_utils.generate_modeldata_filters" title="Permalink to this definition">#</a></dt>
+<dd><p>Generates and applies filters to our dataframe.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<a class="reference internal" href="../../adm/ADMDatamart/index.html#pdstools.adm.ADMDatamart.ADMDatamart" title="pdstools.adm.ADMDatamart.ADMDatamart"><em>ADMDatamart</em></a>) – Our original, unfiltered datamart class</p></li>
+<li><p><strong>params</strong> (<em>dict</em>) – A dictionary of all configurations,
+Not really used here except for keeping track of what we do</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Our original params file, updated with
+whatever queries we’ve added.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="pdstools.app.datamart_utils.Filters">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pdstools.app.datamart_utils.</span></span><span class="sig-name descname"><span class="pre">Filters</span></span><a class="headerlink" href="#pdstools.app.datamart_utils.Filters" title="Permalink to this definition">#</a></dt>
 <dd><dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.app.datamart_utils.Filters.params">
-<span class="sig-name descname"><span class="pre">params</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span></em><a class="headerlink" href="#pdstools.app.datamart_utils.Filters.params" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
 <dt class="sig sig-object py" id="pdstools.app.datamart_utils.Filters.df">
-<span class="sig-name descname"><span class="pre">df</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pandas.DataFrame</span></em><a class="headerlink" href="#pdstools.app.datamart_utils.Filters.df" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">df</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">polars.DataFrame</span></em><a class="headerlink" href="#pdstools.app.datamart_utils.Filters.df" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.app.datamart_utils.Filters.categoricals">
-<span class="sig-name descname"><span class="pre">categoricals</span></span><a class="headerlink" href="#pdstools.app.datamart_utils.Filters.categoricals" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.app.datamart_utils.Filters.numericals">
-<span class="sig-name descname"><span class="pre">numericals</span></span><a class="headerlink" href="#pdstools.app.datamart_utils.Filters.numericals" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.app.datamart_utils.Filters.dateFields">
-<span class="sig-name descname"><span class="pre">dateFields</span></span><a class="headerlink" href="#pdstools.app.datamart_utils.Filters.dateFields" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.app.datamart_utils.Filters.pandasquery">
-<span class="sig-name descname"><span class="pre">pandasquery</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></em><a class="headerlink" href="#pdstools.app.datamart_utils.Filters.pandasquery" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.app.datamart_utils.Filters.__post_init__">
-<span class="sig-name descname"><span class="pre">__post_init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.app.datamart_utils.Filters.__post_init__" title="Permalink to this definition">#</a></dt>
+<dt class="sig sig-object py" id="pdstools.app.datamart_utils.Filters.exprs">
+<span class="sig-name descname"><span class="pre">exprs</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="headerlink" href="#pdstools.app.datamart_utils.Filters.exprs" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.app.datamart_utils.Filters.add_filter">
-<span class="sig-name descname"><span class="pre">add_filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.app.datamart_utils.Filters.add_filter" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">add_filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">column</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.app.datamart_utils.Filters.add_filter" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.app.datamart_utils.Filters.CategoryFilter">
-<span class="sig-name descname"><span class="pre">CategoryFilter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.app.datamart_utils.Filters.CategoryFilter" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">CategoryFilter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column_name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.app.datamart_utils.Filters.CategoryFilter" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.app.datamart_utils.Filters.ValueFilter">
-<span class="sig-name descname"><span class="pre">ValueFilter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.app.datamart_utils.Filters.ValueFilter" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.app.datamart_utils.Filters.DateFilter">
-<span class="sig-name descname"><span class="pre">DateFilter</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.app.datamart_utils.Filters.DateFilter" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.app.datamart_utils.Filters.CustomFilter">
-<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">CustomFilter</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.app.datamart_utils.Filters.CustomFilter" title="Permalink to this definition">#</a></dt>
-<dd><p>Custom query
-You can also supply a custom query.
-This query should be formatted according to Pandas’ <cite>query</cite> functionality.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.app.datamart_utils.Filters.generatePandasFilters">
-<span class="sig-name descname"><span class="pre">generatePandasFilters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.app.datamart_utils.Filters.generatePandasFilters" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ValueFilter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column_name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.app.datamart_utils.Filters.ValueFilter" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -444,44 +432,32 @@ This query should be formatted according to Pandas’ <cite>query</cite> functio
 <li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
 <li><a class="reference internal" href="#classes">Classes</a></li>
 <li><a class="reference internal" href="#functions">Functions</a><ul>
+<li><a class="reference internal" href="#pdstools.app.datamart_utils.multiFilter"><code class="docutils literal notranslate"><span class="pre">multiFilter()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.app.datamart_utils.remove_duplicate_expressions"><code class="docutils literal notranslate"><span class="pre">remove_duplicate_expressions()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.app.datamart_utils.import_data"><code class="docutils literal notranslate"><span class="pre">import_data()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.app.datamart_utils.import_datamart"><code class="docutils literal notranslate"><span class="pre">import_datamart()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.app.datamart_utils.ADMDatamart_options"><code class="docutils literal notranslate"><span class="pre">ADMDatamart_options()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.app.datamart_utils.generate_modeldata_filters"><code class="docutils literal notranslate"><span class="pre">generate_modeldata_filters()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters"><code class="docutils literal notranslate"><span class="pre">Filters</span></code></a><ul>
-<li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.params"><code class="docutils literal notranslate"><span class="pre">Filters.params</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.df"><code class="docutils literal notranslate"><span class="pre">Filters.df</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.categoricals"><code class="docutils literal notranslate"><span class="pre">Filters.categoricals</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.numericals"><code class="docutils literal notranslate"><span class="pre">Filters.numericals</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.dateFields"><code class="docutils literal notranslate"><span class="pre">Filters.dateFields</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.pandasquery"><code class="docutils literal notranslate"><span class="pre">Filters.pandasquery</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.__post_init__"><code class="docutils literal notranslate"><span class="pre">Filters.__post_init__()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.exprs"><code class="docutils literal notranslate"><span class="pre">Filters.exprs</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.add_filter"><code class="docutils literal notranslate"><span class="pre">Filters.add_filter()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.CategoryFilter"><code class="docutils literal notranslate"><span class="pre">Filters.CategoryFilter()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.ValueFilter"><code class="docutils literal notranslate"><span class="pre">Filters.ValueFilter()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.DateFilter"><code class="docutils literal notranslate"><span class="pre">Filters.DateFilter()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.CustomFilter"><code class="docutils literal notranslate"><span class="pre">Filters.CustomFilter()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.generatePandasFilters"><code class="docutils literal notranslate"><span class="pre">Filters.generatePandasFilters()</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#pdstools.app.datamart_utils.multiFilter">multiFilter</a></li>
+<li><a class="reference internal" href="#pdstools.app.datamart_utils.remove_duplicate_expressions">remove_duplicate_expressions</a></li>
 <li><a class="reference internal" href="#pdstools.app.datamart_utils.import_data">import_data</a></li>
 <li><a class="reference internal" href="#pdstools.app.datamart_utils.import_datamart">import_datamart</a></li>
 <li><a class="reference internal" href="#pdstools.app.datamart_utils.ADMDatamart_options">ADMDatamart_options</a></li>
 <li><a class="reference internal" href="#pdstools.app.datamart_utils.generate_modeldata_filters">generate_modeldata_filters</a></li>
 <li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters">Filters</a><ul>
-<li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.params">params</a></li>
 <li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.df">df</a></li>
-<li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.categoricals">categoricals</a></li>
-<li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.numericals">numericals</a></li>
-<li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.dateFields">dateFields</a></li>
-<li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.pandasquery">pandasquery</a></li>
-<li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.__post_init__">__post_init__</a></li>
+<li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.exprs">exprs</a></li>
 <li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.add_filter">add_filter</a></li>
 <li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.CategoryFilter">CategoryFilter</a></li>
 <li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.ValueFilter">ValueFilter</a></li>
-<li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.DateFilter">DateFilter</a></li>
-<li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.CustomFilter">CustomFilter</a></li>
-<li><a class="reference internal" href="#pdstools.app.datamart_utils.Filters.generatePandasFilters">generatePandasFilters</a></li>
 </ul>
 </li>
 </ul>
@@ -509,5 +485,6 @@ This query should be formatted according to Pandas’ <cite>query</cite> functio
     <script src="../../../../_static/clipboard.min.js"></script>
     <script src="../../../../_static/copybutton.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
     </body>
 </html>

@@ -86,7 +86,7 @@ Classes
       :rtype: plt.figure
 
 
-   .. py:method:: ScoreDistribution(df, facet, **kwargs)
+   .. py:method:: ScoreDistribution(df, facet_val, **kwargs)
 
       Show score distribution similar to ADM out-of-the-box report
 
@@ -107,7 +107,7 @@ Classes
       :rtype: plt.figure
 
 
-   .. py:method:: PredictorBinning(df, facet, **kwargs)
+   .. py:method:: PredictorBinning(df, facet_val, **kwargs)
 
       Show predictor graphs for a given model
 
@@ -129,7 +129,7 @@ Classes
       :rtype: plt.figure
 
 
-   .. py:method:: PredictorPerformance(df, order, facet, to_plot='Performance', **kwargs)
+   .. py:method:: PredictorPerformance(df, facet=None, order=None, to_plot='Performance', y='PredictorName', **kwargs)
 
       Shows a box plot of predictor performance
 
@@ -147,15 +147,15 @@ Classes
                     Else, a dict of lists where the key is column name in the dataframe
                     and the corresponding value is a list of values to keep in the dataframe
       :type query: Union[str, dict]
-      :param show_each: Whether to show each file when multiple facets are used
-      :type show_each: bool
       :param facets: Whether to create a chart for multiple facets or subsets.
-                     For example, if facets == 'Channel', a bubble plot is made for each channel
-                     Depending on show_each, every chart is either shown or not
-                     If more than one facet is visualised, they are returned in a list
       :type facets: Optional[Union[list, str]]
 
       :rtype: px.Figure
+
+
+   .. py:method:: _divide_context()
+
+      Divides the context keys if they are combined
 
 
    .. py:method:: PredictorPerformanceHeatmap(df, facet=None, **kwargs)
@@ -284,6 +284,9 @@ Classes
       :type facets: Optional[Union[list, str]]
 
       :rtype: px.Figure
+
+
+   .. py:method:: PredictorCount(df, facet, **kwargs)
 
 
 

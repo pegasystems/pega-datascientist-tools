@@ -598,7 +598,7 @@ class ADMDatamart(Plots):
         """
         from datetime import datetime
 
-        time = cdh_utils.toPRPCDateTime(datetime.now())
+        time = datetime.now().strftime("%Y%m%dT%H%M%S.%f")[:-3]
         if self.modelData is not None:
             modeldata_cache = cdh_utils.cache_to_file(
                 self.modelData, path, name=f"cached_modelData_{time}"
