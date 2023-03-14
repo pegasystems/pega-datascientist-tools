@@ -783,7 +783,12 @@ class ADMTreesModel:
                 raise ValueError(
                     "IPython not installed, please install it using `pip install IPython`."
                 )
-            display(Image(graph.create_png()))  # pragma: no cover
+            try:
+                display(Image(graph.create_png()))  # pragma: no cover
+            except FileNotFoundError as e:
+                print(
+                    "Dot/Graphviz not installed. Please install it to your machine.", e
+                )
         return graph
 
     def getVisitedNodes(
