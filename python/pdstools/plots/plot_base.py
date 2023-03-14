@@ -308,10 +308,10 @@ class Plots:
             print(partition)
         if len(facets) > 0 and facets[0] is not None:
             figlist = []
-            if partition is None:
+            if not partition:
                 for facet in facets:
                     figlist.append(plotFunc(facet=facet, *args, **kwargs))
-            elif partition == "facet":
+            else:
                 order = kwargs.pop("order", None)
                 for facet_val, groupdf in kwargs.pop("df").groupby(facets):
                     figlist.append(
@@ -610,7 +610,7 @@ class Plots:
         return self.facettedPlot(
             facets,
             plotting_engine.PropositionSuccessRates,
-            partition="facet",
+            partition=True,
             df=df,
             metric=metric,
             by=by,
@@ -690,7 +690,7 @@ class Plots:
         return self.facettedPlot(
             ["ModelID"],
             plotting_engine.ScoreDistribution,
-            partition="facet",
+            partition=True,
             df=df,
             by=by,
             show_zero_responses=show_zero_responses,
@@ -769,7 +769,7 @@ class Plots:
         return self.facettedPlot(
             ["ModelID", "PredictorName"],
             plotting_engine.PredictorBinning,
-            partition="facet",
+            partition=True,
             df=df,
             query=query,
             show_each=show_each,

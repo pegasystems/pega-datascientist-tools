@@ -58,7 +58,7 @@ jobs:
           pip install testbook
 
       - name: Run tests
-        run: pytest --cov=./python/pdstools --cov-report=xml
+        run: pytest --cov=./python/pdstools --cov-report=xml --cov-config=./python/tests/.coveragerc
         
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
