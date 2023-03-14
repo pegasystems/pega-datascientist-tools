@@ -55,6 +55,7 @@ jobs:
           pip install -r python/requirements.txt
           pip install pytest-cov
           pip install scipy
+          pip install testbook
 
       - name: Run tests
         run: pytest --cov=./python/pdstools --cov-report=xml
