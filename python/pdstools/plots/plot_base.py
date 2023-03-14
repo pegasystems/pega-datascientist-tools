@@ -308,10 +308,10 @@ class Plots:
             print(partition)
         if len(facets) > 0 and facets[0] is not None:
             figlist = []
-            if partition is None:
+            if not partition:
                 for facet in facets:
                     figlist.append(plotFunc(facet=facet, *args, **kwargs))
-            elif partition == "facet":
+            else:
                 order = kwargs.pop("order", None)
                 for facet_val, groupdf in kwargs.pop("df").groupby(facets):
                     figlist.append(
