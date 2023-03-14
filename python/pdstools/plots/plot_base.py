@@ -277,26 +277,19 @@ class Plots:
                 for facet in facets:
                     figlist.append(plotFunc(facet=facet, *args, **kwargs))
             else:
-                if partition == "by":
-                    for name, groupdf in kwargs.pop("df").groupby(kwargs.pop("by")):
-                        figlist.append(
-                            plotFunc(
-                                facet=facet, name=name, df=groupdf, *args, **kwargs
-                            )
+                order = kwargs.pop("order", None)
+                df = kwargs.pop("df")
+                for facet_val, groupdf in df.groupby(facets[0]):
+                    figlist.append(
+                        plotFunc(
+                            df=groupdf,
+                            facet=None,
+                            facet_val=facet_val,
+                            order=order[facet_val] if order is not None else None,
+                            *args,
+                            **kwargs,
                         )
-                elif partition == "facet":
-                    order = kwargs.pop("order", None)
-                    for facet_val, groupdf in kwargs.pop("df").groupby(facets):
-                        figlist.append(
-                            plotFunc(
-                                df=groupdf,
-                                facet=None,
-                                facet_val=facet_val,
-                                order=order[facet_val] if order is not None else None,
-                                *args,
-                                **kwargs,
-                            )
-                        )
+                    )
             return figlist if len(figlist) > 1 else figlist[0]
         else:
             return plotFunc(*args, **kwargs)
