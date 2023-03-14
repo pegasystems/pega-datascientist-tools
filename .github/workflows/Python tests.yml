@@ -59,6 +59,9 @@ jobs:
           pip install XlsxWriter
           pip install ipython 
           pip install ipykernel
+                  
+      - name: Install jupyter kernel
+        run: |
           ipython kernel install --name "python3" --user
 
       - name: Run tests
