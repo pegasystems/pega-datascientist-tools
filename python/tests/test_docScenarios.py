@@ -4,7 +4,6 @@ Testing that none of the docs examples produce errors.
 
 
 import pytest
-import polars as pl
 import sys
 
 sys.path.append("python")
@@ -16,44 +15,36 @@ def data():
     return datasets.CDHSample()
 
 
-def test_GraphGallery(data):
-    fig = data.plotModelsByPositives()
-    fig = data.plotOverTime(query=pl.col("Channel") == "Web", by="Name")
-    fig = data.plotPerformanceSuccessRateBubbleChart()
-    fig = data.plotPredictorBinning(
-        query=(pl.col("ModelID") == "08ca1302-9fc0-57bf-9031-d4179d400493")
-        & pl.col("PredictorName").is_in(
-            [
-                "Customer.Age",
-                "Customer.AnnualIncome",
-                "IH.Email.Outbound.Accepted.pxLastGroupID",
-            ]
-        ),
-        show_each=False,
-    )
-    fig = data.plotPredictorPerformance(top_n=30)
-    fig = data.plotPredictorPerformanceHeatmap(top_n=20)
-    fig = data.plotPropositionSuccessRates(query=pl.col("Channel") == "Web")
-    fig = data.plotResponseGain()
-    fig = data.plotScoreDistribution(show_each=False)
-    fig = data.plotTreeMap()
+def test_all_notebooks():
+    from testbook import testbook
+    import glob
 
+    root_dir = "./"
 
-def test_HelloPdstools():
-    pass
+    files = [
+        root_dir + f
+        for f in [
+            "examples/datamart/Example_ADM_Analysis.ipynb",
+            "examples/graph_gallery/graph_gallery.ipynb",
+            "examples/helloworld/hello_cdhtools.ipynb",
+            "examples/adm/AGBModelVisualisation.ipynb",
+        ]
+    ]
+
+    # files += glob.glob("examples/valuefinder/*.ipynb", root_dir=root_dir)
+
+    def test_get_details(file):
+        with testbook(file) as tb:
+            tb.inject(
+                """
+            import sys
+            sys.path.append('./python')"""
+            )
+            tb.execute()
+        return True
+
+    assert all(map(test_get_details, files))
 
 
 def test_ExampleDataAnonymization():
-    pass
-
-
-def test_ExampleADMAnalysis():
-    pass
-
-
-def test_AnalyzingADMTrees():
-    pass
-
-
-def test_ValueFinder():
     pass
