@@ -1,4 +1,4 @@
-from typing import Optional, Union, Dict, List
+from typing import Optional, Union, Dict, List, Any
 import pandas as pd
 import polars as pl
 from .plots_plotly import ADMVisualisations as plotly
@@ -118,17 +118,17 @@ class Plots:
 
         if facets:
             df = df.join(
-                df.groupby(facets + ["PredictorName"])
-                .agg(pl.median("PerformanceBin"))
+                df.groupby(facets, "PredictorName")
+                .agg(pl.median(to_plot))
                 .select(
-                    pl.col(facets + ["PredictorName"])
-                    .sort_by(["PerformanceBin", "PredictorName"])
+                    pl.col(facets, "PredictorName")
+                    .sort_by(to_plot, "PredictorName")
                     .tail(top_n)
                     .list()
                     .over(facets)
                     .flatten()
                 ),
-                on=(facets + ["PredictorName"]),
+                on=(facets, "PredictorName"),
             )
 
         else:
@@ -136,7 +136,7 @@ class Plots:
                 df.filter(pl.col("PredictorName").cast(pl.Utf8) != "Classifier")
                 .groupby("PredictorName")
                 .agg(pl.median(to_plot))
-                .sort("PerformanceBin")
+                .sort(to_plot)
                 .tail(top_n)
                 .select("PredictorName"),
                 on="PredictorName",
@@ -215,7 +215,8 @@ class Plots:
 
         return (
             df.select(list(required_columns)).with_columns(
-                pl.col(pl.Categorical).cast(pl.Utf8)
+                pl.col(pl.Categorical).cast(pl.Utf8),
+                pl.col(pl.Datetime).dt.replace_time_zone(None),
             ),
             facets,
         )
@@ -268,7 +269,41 @@ class Plots:
                 )
         return df, facets
 
-    def facettedPlot(self, facets, plotFunc, partition=None, *args, **kwargs):
+    @staticmethod
+    def facettedPlot(
+        facets: Optional[list], plotFunc: Any, partition: bool = False, *args, **kwargs
+    ):
+        """Takes care of facetting the plots.
+
+        If `partition` is True, generates a new dataframe for each plot
+        If `partition` is False, simply gives the facet as the facet argument
+
+        In effect, this means that `facet = False` give a 'plotly-native' facet,
+        while `facet = True` gives a distinct plot for every facet.
+
+        Parameters
+        ----------
+        facets : Optional[list]
+            If there's no facet supplied, we just return the plot
+            Else, we loop through each facet and create the plot
+        plotFunc : Any
+            The original function to create the plot
+            The plot is simply passed through to this function
+            Along with all arguments
+        partition: bool, default=False
+            If True, generates a new dataframe for each plot
+            If False, simply gives the facet as the facet argument
+        *args:
+            Any additional arguments, depending on the plotFunc
+
+        Keyword arguments
+        -----------------
+        order: dict
+            The order of categories, for each facet
+        **kwargs:
+            Any additional keyword arguments, depending on the plotFunc
+
+        """
         if kwargs.pop("verbose", False):
             print(partition)
         if len(facets) > 0 and facets[0] is not None:
@@ -276,27 +311,19 @@ class Plots:
             if partition is None:
                 for facet in facets:
                     figlist.append(plotFunc(facet=facet, *args, **kwargs))
-            else:
-                if partition == "by":
-                    for name, groupdf in kwargs.pop("df").groupby(kwargs.pop("by")):
-                        figlist.append(
-                            plotFunc(
-                                facet=facet, name=name, df=groupdf, *args, **kwargs
-                            )
+            elif partition == "facet":
+                order = kwargs.pop("order", None)
+                for facet_val, groupdf in kwargs.pop("df").groupby(facets):
+                    figlist.append(
+                        plotFunc(
+                            df=groupdf,
+                            facet=None,
+                            facet_val=facet_val,
+                            order=order[facet_val] if order is not None else None,
+                            *args,
+                            **kwargs,
                         )
-                elif partition == "facet":
-                    order = kwargs.pop("order", None)
-                    for facet_val, groupdf in kwargs.pop("df").groupby(facets):
-                        figlist.append(
-                            plotFunc(
-                                df=groupdf,
-                                facet=None,
-                                facet_val=facet_val,
-                                order=order[facet_val] if order is not None else None,
-                                *args,
-                                **kwargs,
-                            )
-                        )
+                    )
             return figlist if len(figlist) > 1 else figlist[0]
         else:
             return plotFunc(*args, **kwargs)
@@ -793,6 +820,7 @@ class Plots:
         required_columns = {
             "Channel",
             "PredictorName",
+            "ModelID",
             "Name",
             "ResponseCountBin",
             to_plot,
@@ -811,8 +839,9 @@ class Plots:
         categorization = kwargs.pop("categorization", defaultPredictorCategorization)
 
         df = (
-            df.unique()
-            .filter(pl.col("PredictorName") != "Classifier")
+            df.filter(pl.col("PredictorName") != "Classifier")
+            .groupby("ModelID", "PredictorName")
+            .agg(pl.all().first())
             .with_columns(pl.col("PredictorName"), categorization().alias("Legend"))
         )
 
@@ -825,9 +854,9 @@ class Plots:
 
             order = {}
             for facet, group_df in (
-                df.groupby(facets + ["PredictorName"])
-                .agg(pl.median("PerformanceBin"))
-                .sort("PerformanceBin")
+                df.groupby(facets, "PredictorName")
+                .agg(pl.median(to_plot))
+                .sort(to_plot)
                 .partition_by(facets, as_dict=True)
                 .items()
             ):
