@@ -67,12 +67,7 @@ class ADMVisualisations:
         return fig
 
     def PerformanceSuccessRateBubbleChart(
-        self,
-        df,
-        add_bottom_left_text=True,
-        facet=None,
-        context_keys=None,
-        **kwargs,
+        self, df, add_bottom_left_text=True, facet=None, context_keys=None, **kwargs
     ):
         """Creates bubble chart similar to ADM OOTB reports
 
@@ -161,14 +156,7 @@ class ADMVisualisations:
 
         return self.post_plot(fig, name="Bubble", title=title, **kwargs)
 
-    def OverTime(
-        self,
-        df,
-        metric="Performance",
-        by="ModelID",
-        facet=None,
-        **kwargs,
-    ):
+    def OverTime(self, df, metric="Performance", by="ModelID", facet=None, **kwargs):
         """Shows metric of models over time
 
         Parameters
@@ -232,13 +220,7 @@ class ADMVisualisations:
         return self.post_plot(fig, name="Lines_over_time", title=title, **kwargs)
 
     def PropositionSuccessRates(
-        self,
-        df,
-        metric="SuccessRate",
-        by="Name",
-        show_error=True,
-        facet=None,
-        **kwargs,
+        self, df, metric="SuccessRate", by="Name", show_error=True, facet=None, **kwargs
     ):
         """Shows all latest proposition success rates
 
@@ -321,18 +303,9 @@ class ADMVisualisations:
             <sup>Model name: {df['Name'].unique().item()}
             <br>Model ID {facet_val[0]}</sup>""",
         )
-        return self.post_plot(
-            fig,
-            name="Score_distribution",
-            **kwargs,
-        )
+        return self.post_plot(fig, name="Score_distribution", **kwargs)
 
-    def PredictorBinning(
-        self,
-        df,
-        facet_val,
-        **kwargs,
-    ):
+    def PredictorBinning(self, df, facet_val, **kwargs):
         """Show predictor graphs for a given model
 
         For a given model (query) shows all its predictors' graphs. If certain predictors
@@ -418,20 +391,15 @@ class ADMVisualisations:
             title=f"Predictor Performance {title} {kwargs.get('title_text','')}",
             facet_col=facet,
             facet_col_wrap=kwargs.get("facet_col_wrap", 5),
-            labels={
-                "PredictorName": "Predictor Name",
-                "PerformanceBin": "Performance",
-            },
+            labels={"PredictorName": "Predictor Name", "PerformanceBin": "Performance"},
         )
 
         fig.update_yaxes(
-           categoryorder="array", categoryarray=order, automargin=True, dtick=1
+            categoryorder="array", categoryarray=order, automargin=True, dtick=1
         )
 
         fig.update_layout(
-            boxgap=0,
-            boxgroupgap=0,
-            legend_title_text="Predictor category",
+            boxgap=0, boxgroupgap=0, legend_title_text="Predictor category"
         )
 
         return self.post_plot(fig, name=f"Predictor_{to_plot}", **kwargs)
@@ -480,12 +448,7 @@ class ADMVisualisations:
         return wrapper
 
     @_divide_context
-    def PredictorPerformanceHeatmap(
-        self,
-        df,
-        facet=None,
-        **kwargs,
-    ):
+    def PredictorPerformanceHeatmap(self, df, facet=None, **kwargs):
         """Shows a heatmap plot of predictor performance across models
 
         Parameters
@@ -553,13 +516,7 @@ class ADMVisualisations:
 
         return self.post_plot(fig, name="Predictor_performance_heatmap", **kwargs)
 
-    def ResponseGain(
-        self,
-        df,
-        by="Channel",
-        facet=None,
-        **kwargs,
-    ):
+    def ResponseGain(self, df, by="Channel", facet=None, **kwargs):
         """Plots the cumulative response per model, subsetted by 'by'
 
         Parameters
@@ -595,7 +552,7 @@ class ADMVisualisations:
 
         title = f"Cumulative Responses {title}"
         fig = px.line(
-            df.to_pandas(use_pyarrow_extension_array=True),
+            df.to_pandas(use_pyarrow_extension_array=False),
             x="TotalModelsFraction",
             y="TotalResponseFraction",
             color=by,
@@ -611,12 +568,7 @@ class ADMVisualisations:
         fig = self.post_plot(fig, name="Response_gain", **kwargs)
         return fig
 
-    def ModelsByPositives(
-        self,
-        df,
-        by="Channel",
-        **kwargs,
-    ):
+    def ModelsByPositives(self, df, by="Channel", **kwargs):
         """Plots the percentage of models vs the number of positive responses
 
         Parameters
@@ -743,7 +695,7 @@ class ADMVisualisations:
             df.select(
                 pl.when(pl.log(color) == float("-inf")).then(0).otherwise(pl.log(color))
             ).to_series()
-        if 'range_color' in kwargs:
+        if "range_color" in kwargs:
             range_color = kwargs.get("range_color")
         if midpoint is not None:
             midpoint = color.quantile(midpoint)

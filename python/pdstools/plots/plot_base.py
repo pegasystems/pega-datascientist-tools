@@ -62,7 +62,7 @@ class Plots:
                 "plotResponseGain": [1, 0, 0],
                 "plotModelsByPositives": [1, 0, 0],
                 "plotTreeMap": [1, 0, 0],
-            },
+            }
         )
         df = df.transpose().with_columns(pl.Series(df.columns))
         df.columns = ["modelData", "predictorData", "Multiple snapshots", "Type"]
@@ -92,7 +92,7 @@ class Plots:
         df: pl.DataFrame,
         top_n: int,
         to_plot: str = "PerformanceBin",
-        facets: Union[str, list] = None,
+        facets: Optional[list] = None,
     ):
         """Subsets DataFrame to contain only top_n predictors.
 
@@ -118,17 +118,17 @@ class Plots:
 
         if facets:
             df = df.join(
-                df.groupby(facets, "PredictorName")
+                df.groupby(*facets, "PredictorName")
                 .agg(pl.median(to_plot))
                 .select(
-                    pl.col(facets, "PredictorName")
+                    pl.col(*facets, "PredictorName")
                     .sort_by(to_plot, "PredictorName")
                     .tail(top_n)
                     .list()
                     .over(facets)
                     .flatten()
                 ),
-                on=(facets, "PredictorName"),
+                on=(*facets, "PredictorName"),
             )
 
         else:
@@ -313,21 +313,7 @@ class Plots:
                     figlist.append(plotFunc(facet=facet, *args, **kwargs))
             else:
                 order = kwargs.pop("order", None)
-                for facet_val, groupdf in kwargs.pop("df").groupby(facets):
-                    figlist.append(
-                        plotFunc(
-                            df=groupdf,
-                            facet=None,
-                            facet_val=facet_val,
-                            order=order[facet_val] if order is not None else None,
-                            *args,
-                            **kwargs,
-                        )
-                    )
-            else:
-                order = kwargs.pop("order", None)
-                df = kwargs.pop("df")
-                for facet_val, groupdf in df.groupby(facets[0]):
+                for facet_val, groupdf in kwargs.pop("df").groupby(*facets):
                     figlist.append(
                         plotFunc(
                             df=groupdf,
@@ -508,12 +494,7 @@ class Plots:
             ).sort(["SnapshotTime", by])
         else:
             df = self._create_sign_df(
-                df,
-                by=groupby,
-                what=metric,
-                every=every,
-                mask=False,
-                pivot=False,
+                df, by=groupby, what=metric, every=every, mask=False, pivot=False
             )
         if metric == "Performance":
             metric = "weighted_performance"
@@ -868,10 +849,10 @@ class Plots:
 
             order = {}
             for facet, group_df in (
-                df.groupby(facets, "PredictorName")
+                df.groupby(*facets, "PredictorName")
                 .agg(pl.median(to_plot))
                 .sort(to_plot)
-                .partition_by(facets, as_dict=True)
+                .partition_by(*facets, as_dict=True)
                 .items()
             ):
                 order[facet] = group_df.get_column("PredictorName").to_list()
@@ -1292,17 +1273,12 @@ class Plots:
         }
         df = (
             self.model_summary(by=by, query=query, context_keys=levels)
-            .select(
-                [
-                    pl.col(levels).cast(pl.Utf8),
-                    pl.col(list(mapping.keys())),
-                ]
-            )
+            .select(pl.col(levels).cast(pl.Utf8), pl.col(list(mapping.keys())))
             .rename(mapping)
             .sort(levels)
             .fill_null("Missing")
             .with_columns(
-                (pl.col("Performance weighted mean") * 100).fill_nan(pl.lit(50))
+                pl.col("Performance weighted mean") * 100).fill_nan(pl.lit(50)
             )
             .fill_nan(0)
             .collect()
@@ -1414,20 +1390,11 @@ class Plots:
             kwargs.get("plotting_engine", self.plotting_engine)
         )()
 
-        required_columns = {
-            "Name",
-            "EntryType",
-            "PredictorName",
-        }
+        required_columns = {"Name", "EntryType", "PredictorName"}
         table = "combinedData"
         last = True
         df, facets = self._subset_data(
-            table,
-            required_columns,
-            query,
-            facets=facets,
-            last=last,
-            include_cols=[by],
+            table, required_columns, query, facets=facets, last=last, include_cols=[by]
         )
 
         df = (
@@ -1452,8 +1419,5 @@ class Plots:
             return df
 
         return self.facettedPlot(
-            facets,
-            plotting_engine.PredictorCount,
-            df=df,
-            **kwargs,
+            facets, plotting_engine.PredictorCount, df=df, **kwargs
         )
