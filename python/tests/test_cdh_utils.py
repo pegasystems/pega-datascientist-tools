@@ -219,7 +219,7 @@ def test_import_not_supported_extension(test_data):
         test_data.collect().write_excel(temp_filename)
         path = "."
         cdh_utils.readDSExport(filename=temp_filename, path=path)
-        os.remove(temp_filename)
+    os.remove(temp_filename)
     
     
 def test_import_file_verbose(test_data):
