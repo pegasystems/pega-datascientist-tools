@@ -596,7 +596,7 @@ class Plots:
         return self.facettedPlot(
             facets,
             plotting_engine.PropositionSuccessRates,
-            partition="facet",
+            partition=True,
             df=df,
             metric=metric,
             by=by,
@@ -676,7 +676,7 @@ class Plots:
         return self.facettedPlot(
             ["ModelID"],
             plotting_engine.ScoreDistribution,
-            partition="facet",
+            partition=True,
             df=df,
             by=by,
             show_zero_responses=show_zero_responses,
@@ -755,7 +755,7 @@ class Plots:
         return self.facettedPlot(
             ["ModelID", "PredictorName"],
             plotting_engine.PredictorBinning,
-            partition="facet",
+            partition=True,
             df=df,
             query=query,
             show_each=show_each,
