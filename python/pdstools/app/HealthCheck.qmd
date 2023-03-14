@@ -743,11 +743,19 @@ response_counts = datamart.plotOverTime('ResponseCount', by="Channel/Direction",
 
 unique_count = datamart.modelData.select(facets).unique().collect().shape[0]
 height = 200 + (math.ceil( unique_count / 2) * 250)
-response_counts.update_layout(autosize=True, height=height)
-response_counts.for_each_annotation(
-    lambda a: a.update(text=a.text.replace(f"{facets}=", ""))
-)
-response_counts.show()
+if isinstance(response_counts, list):
+    for plot in response_counts:
+        plot.update_layout(autosize=True, height=height)
+        plot.for_each_annotation(
+            lambda a: a.update(text=a.text.replace(f"{facets}=", ""))
+        )
+        plot.show()
+else:
+    response_counts.update_layout(autosize=True, height=height)
+    response_counts.for_each_annotation(
+        lambda a: a.update(text=a.text.replace(f"{facets}=", ""))
+    )
+    response_counts.show()
 ```
 
 # Which Models drive most of the Volume
