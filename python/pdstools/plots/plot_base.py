@@ -854,10 +854,10 @@ class Plots:
 
             order = {}
             for facet, group_df in (
-                df.groupby(facets, "PredictorName")
+                df.groupby(*facets, "PredictorName")
                 .agg(pl.median(to_plot))
                 .sort(to_plot)
-                .partition_by(facets, as_dict=True)
+                .partition_by(*facets, as_dict=True)
                 .items()
             ):
                 order[facet] = group_df.get_column("PredictorName").to_list()
