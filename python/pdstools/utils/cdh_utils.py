@@ -176,19 +176,13 @@ def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
                     file,
                     infer_schema_length=reading_opts.pop("infer_schema_length", 10000),
                 )
-        except:
+        except:  # pragma: no cover
             file = pl.read_json(file).lazy()
 
     elif extension == ".parquet":
         file = pl.scan_parquet(file)
 
-    elif (
-        extension == ".feather"
-        or extension.casefold() == ".ipc"
-        or extension.casefold() == ".arrow"
-    ):
-        if reading_opts.get("verbose", False):
-            print(f"file to be read: {file}")
+    elif extension.casefold() in {".feather",".ipc",".arrow"}:
         if isinstance(file, BytesIO):
             file = pl.read_ipc(file).lazy()
         else:
@@ -271,8 +265,8 @@ def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
         print(files_dir)  # pragma: no cover
     matches = getMatches(files_dir, target)
 
-    if len(matches) == 0:
-        if verbose:  # pragma: no cover
+    if len(matches) == 0:  # pragma: no cover
+        if verbose:
             print(
                 f"Unable to find data for {target}. Please check if the data is available."
             )
@@ -318,7 +312,7 @@ def getMatches(files_dir, target):
     elif target == "ValueFinder":
         names = ValueFinder_names
     else:
-        raise ValueError(target)
+        raise ValueError(f'Target {target} not found.')
     for file in files_dir:
         match = [file for name in names if re.findall(name.casefold(), file.casefold())]
         if len(match) > 0:
@@ -807,7 +801,7 @@ def featureImportance(over=["PredictorName", "ModelID"]):
     return varImp
 
 
-def readClientCredentialFile(credentialFile):
+def readClientCredentialFile(credentialFile):  # pragma: no cover
     outputdict = {}
     with open(credentialFile) as f:
         for idx, line in enumerate(f.readlines()):
@@ -818,7 +812,7 @@ def readClientCredentialFile(credentialFile):
         return outputdict
 
 
-def getToken(credentialFile, verify=True, **kwargs):
+def getToken(credentialFile, verify=True, **kwargs):  # pragma: no cover
     creds = readClientCredentialFile(credentialFile)
     return requests.post(
         url=kwargs.get("URL", creds["Access token endpoint"]),
@@ -858,7 +852,7 @@ def legend_color_order(fig):
         try:
             trace.marker.color = colorway[indexed_colors[trace.legendgroup]]
             trace.line.color = colorway[indexed_colors[trace.legendgroup]]
-        except AttributeError:
+        except AttributeError:  # pragma: no cover
             pass
 
     return fig
