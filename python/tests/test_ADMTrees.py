@@ -43,19 +43,18 @@ def test_plotSplitsPerVariable(treeSample):
 
 def sampleX(trees):
     from random import sample
-
     x = {}
     for variable, values in trees.allValuesPerSplit.items():
         if len(values) == 1:
-            if "true" in values or "false" in values:
-                values = {"true", "false"}
+            if 'true' in values or 'false' in values:
+                values = {'true', 'false'}
             if isinstance(list(values)[0], str):
-                try:
+                try: 
                     float(list(values)[0])
                 except:
-                    print("FAILED ON ", values)
-                    values = values.union({"Other"})
-        x[variable] = sample(list(values), 1)[0]
+                    print('FAILED ON ', values)
+                    values = values.union({'Other'})
+        x[variable]= sample(list(values), 1)[0]
     return x
 
 
