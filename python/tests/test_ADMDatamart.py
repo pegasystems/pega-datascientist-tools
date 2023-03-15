@@ -382,14 +382,33 @@ def test_save_data(test):
     imported = ADMDatamart(".")
     assert imported.modelData.frame.equal(test.modelData)
     from os import remove
+
     try:
         [remove(f) for f in out]
     except PermissionError as e:
-        print('Could not remove file: ', e)
+        print("Could not remove file: ", e)
 
 
-def test_discover_modelTypes():
-    pass
+@pytest.fixture
+def sample_with_agb():
+    return ADMDatamart(
+        model_df=pl.scan_ipc("data/sample_datamart_with_AGB.arrow"),
+        predictor_filename=None,
+        include_cols="Modeldata",
+    )
+
+
+def test_discover_modelTypes(sample_with_agb):
+    assert sample_with_agb.discover_modelTypes(sample_with_agb.modelData) == {
+        "WebClickthroughAGB": "GbModel",
+        "Web_Click_Through_Rate": "NbModel",
+    }
+
+
+def test_get_AGB_models(sample_with_agb):
+    trees = sample_with_agb.get_AGB_models()
+    assert "WebClickthroughAGB" in trees
+    assert len(trees["WebClickthroughAGB"]) == 35
 
 
 def test_create_sign_df():
