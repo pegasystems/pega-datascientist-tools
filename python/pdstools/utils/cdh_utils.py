@@ -704,7 +704,7 @@ def fromPRPCDateTime(
         return dt
 
 
-def toPRPCDateTime(x: datetime.datetime) -> str:
+def toPRPCDateTime(dt: datetime.datetime) -> str:
     """Convert to a Pega date-time string
 
     Parameters
@@ -720,7 +720,8 @@ def toPRPCDateTime(x: datetime.datetime) -> str:
     Examples:
         >>> toPRPCDateTime(datetime.datetime.now())
     """
-    dt = x.astimezone()
+    if dt.tzinfo is None:
+        dt = dt.astimezone()
     return dt.strftime("%Y%m%dT%H%M%S.%f")[:-3]+ dt.strftime(' GMT%z')
 
 

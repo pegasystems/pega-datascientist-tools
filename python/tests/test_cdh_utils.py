@@ -37,12 +37,14 @@ class Shape:
     def __new__(cls, ldf: pl.LazyFrame):
         return (ldf.select(pl.first().count()).collect().item(), len(ldf.columns))
 
+
 @pytest.fixture
 def test_data():
     return cdh_utils.readDSExport(
         "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
         "data",
     )
+
 
 # Tests for get_latest_file function
 def test_find_default_model():
@@ -97,13 +99,14 @@ def test_import_produces_bytes():
 
 
 def test_read_json(test_data):
-    temp_filename = 'data.json'
+    temp_filename = "data.json"
     test_data.collect().write_ndjson(temp_filename)
     assert cdh_utils.readDSExport(
         "data.json",
         ".",
     ).shape == (20, 23)
     os.remove(temp_filename)
+
 
 def test_read_modelData():
     assert cdh_utils.readDSExport(
@@ -156,7 +159,7 @@ def test_pandasdataframe_returns_lazyframe(test_data):
 
 
 def test_import_parquet(test_data):
-    temp_filename = 'data.parquet'
+    temp_filename = "data.parquet"
     test_data.collect().write_parquet(temp_filename)
     path = "."
     assert polars_checks(cdh_utils.readDSExport(path=path, filename=temp_filename))
@@ -215,19 +218,20 @@ def test_import_zipped_json_pandas():
 
 def test_import_not_supported_extension(test_data):
     with pytest.raises(ValueError):
-        temp_filename = 'data.xlsx'
+        temp_filename = "data.xlsx"
         test_data.collect().write_excel(temp_filename)
         path = "."
         cdh_utils.readDSExport(filename=temp_filename, path=path)
     os.remove(temp_filename)
-    
-    
+
+
 def test_import_file_verbose(test_data):
-    temp_filename = 'data.arrow'
+    temp_filename = "data.arrow"
     test_data.collect().write_ipc(temp_filename)
     path = "."
     assert polars_checks(cdh_utils.readDSExport(filename=temp_filename, path=path))
     os.remove(temp_filename)
+
 
 def test_getMatches():
     files_dir = "data"
@@ -385,9 +389,21 @@ def test_fromPRPCDateTime():
 def test_toPRPCDateTime():
     assert (
         cdh_utils.toPRPCDateTime(
-            datetime.datetime(2018, 3, 16, 13, 41, 27, 847, tzinfo=timezone("GMT"))
+            datetime.datetime(2018, 3, 16, 13, 41, 27, 847000, tzinfo=timezone("GMT"))
         )
-        == "2018-03-16T13:41:27.000"
+        == "20180316T134127.847 GMT+0000"
+    )
+    assert (
+        cdh_utils.toPRPCDateTime(
+            datetime.datetime(
+                2018, 3, 16, 13, 41, 27, 847000, tzinfo=timezone("US/Eastern")
+            )
+        )
+        == "20180316T134127.847 GMT-0456"
+    )
+    assert (
+        cdh_utils.toPRPCDateTime(datetime.datetime(2018, 3, 16, 13, 41, 27, 847000))[:-3]
+        == "20180316T134127.847 GMT+0000"[:-3]
     )
 
 
@@ -566,4 +582,3 @@ def test_legend_color_order():
     output_fig = cdh_utils.legend_color_order(input_fig)
 
     assert output_fig.data[0].marker.color == "#001F5F"
-
