@@ -56,9 +56,9 @@ class ADMTrees:
             .cast(pl.Utf8)
             .str.rstrip(".000000000"),
             pl.col("Modeldata").str.decode("base64"),
-            pl.col("Configuration"),
+            pl.col("Configuration").cast(pl.Utf8),
         )
-        if len(df) > 20 and n_threads == 1 and verbose:
+        if len(df) > 50 and n_threads == 1 and verbose:
             print(
                 f"""Decoding {len(df)} models, 
             setting n_threads to a higher value may speed up processing time."""

@@ -475,7 +475,7 @@ class ADMDatamart(Plots):
             The input dataframe, but the proper typing applied
         """
         retype = {
-            pl.Categorical: ["Issue", "Group", "Channel", "Direction"],
+            pl.Categorical: ["Issue", "Group", "Channel", "Direction", "Configuration"],
             # pl.Int64: ["Positives", "Negatives", "ResponseCount"],
             pl.Float64: ["Performance"],
         }
@@ -739,7 +739,7 @@ class ADMDatamart(Plots):
         self,
         last: bool = False,
         by: str = "Configuration",
-        n_threads: int = 6,
+        n_threads: int = 1,
         query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
         verbose: bool = True,
         **kwargs,
