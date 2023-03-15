@@ -290,12 +290,12 @@ class DataAnonymization:
             The direct ADMDatamart object
         """
         dm = ADMDatamart(path=datamart_folder) if datamart is None else datamart
-        df = pl.DataFrame(dm.predictorData)
+        df = dm.predictorData
         df = (
             df.filter(pl.col("EntryType") != "Classifier")
             .unique(subset="PredictorName")
             .select(["PredictorName", "Type"])
-        )
+        ).collect()
         df_dict = dict(zip(df.get_column("PredictorName"), df.get_column("Type")))
         df_dict = dict(
             (key.replace(".", "_"), value) for (key, value) in df_dict.items()
