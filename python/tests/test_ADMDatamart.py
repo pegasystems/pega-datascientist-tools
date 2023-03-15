@@ -382,8 +382,10 @@ def test_save_data(test):
     imported = ADMDatamart(".")
     assert imported.modelData.frame.equal(test.modelData)
     from os import remove
-
-    [remove(f) for f in out]
+    try:
+        [remove(f) for f in out]
+    except PermissionError as e:
+        print('Could not remove file: ', e)
 
 
 def test_discover_modelTypes():
