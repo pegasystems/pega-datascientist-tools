@@ -720,8 +720,8 @@ def toPRPCDateTime(x: datetime.datetime) -> str:
     Examples:
         >>> toPRPCDateTime(datetime.datetime.now())
     """
-
-    return x.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
+    dt = x.astimezone()
+    return dt.strftime("%Y%m%dT%H%M%S.%f")[:-3]+ dt.strftime(' GMT%z')
 
 
 def weighed_average_polars(
