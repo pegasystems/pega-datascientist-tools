@@ -12,11 +12,13 @@ examples/**/*.html
 r/*.csv
 r/tests/testthat/*.html
 r/tests/testthat/*.pdf
+/*.ipynb
 
 # Python
 *.pyc
 build/
 *.egg-info/
+.vscode
 
 .DS_Store
 .idea

@@ -18,7 +18,24 @@ Functions
 
 
 
-.. py:function:: run()
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   pdstools.app.streamlit_app.dir_path
+   pdstools.app.streamlit_app.cwd
+
+
+.. py:data:: dir_path
+
+   
+
+.. py:data:: cwd
+
+   
+
+.. py:function:: run(**kwargs)
 
 
 .. py:function:: add_params(paramfile, params)

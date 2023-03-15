@@ -35,17 +35,21 @@ Functions
    pdstools.utils.cdh_utils.aucpr_from_bincounts
    pdstools.utils.cdh_utils.auc2GINI
    pdstools.utils.cdh_utils._capitalize
+   pdstools.utils.cdh_utils._polarsCapitalize
    pdstools.utils.cdh_utils.fromPRPCDateTime
    pdstools.utils.cdh_utils.toPRPCDateTime
    pdstools.utils.cdh_utils.weighed_average_polars
    pdstools.utils.cdh_utils.weighed_performance_polars
    pdstools.utils.cdh_utils.zRatio
+   pdstools.utils.cdh_utils.LogOdds
+   pdstools.utils.cdh_utils.featureImportance
    pdstools.utils.cdh_utils.readClientCredentialFile
    pdstools.utils.cdh_utils.getToken
+   pdstools.utils.cdh_utils.legend_color_order
 
 
 
-.. py:function:: readDSExport(filename: Union[pandas.DataFrame, polars.DataFrame, str], path: str = '.', verbose: bool = True, **kwargs) -> Union[pandas.DataFrame, polars.DataFrame]
+.. py:function:: readDSExport(filename: Union[pandas.DataFrame, polars.DataFrame, str], path: str = '.', verbose: bool = True, **reading_opts) -> polars.LazyFrame
 
    Read a Pega dataset export file.
    Can accept either a Pandas DataFrame or one of the following formats:
@@ -59,6 +63,7 @@ Functions
    It automatically infers the default file names for both model data as well as predictor data.
    If you supply either 'modelData' or 'predictorData' as the 'file' argument, it will search for them.
    If you supply the full name of the file in the 'path' directory, it will import that instead.
+   Since pdstools V3.x, returns a Polars LazyFrame. Simply call `.collect()` to get an eager frame.
 
    :param filename: Either a Pandas/Polars DataFrame with the source data (for compatibility),
                     or a string, in which case it can either be:
@@ -70,12 +75,9 @@ Functions
    :param verbose: Whether to print out which file will be imported
    :type verbose: bool, default = True
 
-   :keyword return_pl: Whether to return polars dataframe
-                       if False, transforms to Pandas
-   :kwtype return_pl: bool
-   :keyword Any: Any arguments to plug into the read_* function from Polars.
+   :keyword Any: Any arguments to plug into the scan_* function from Polars.
 
-   :returns: * *pd.DataFrame | pl.DataFrame* -- The read data from the given file
+   :returns: * *pl.LazyFrame* -- The (lazy) dataframe
              * *Examples* -- >>> df = readDSExport(filename = 'modelData', path = './datamart')
                >>> df = readDSExport(filename = 'ModelSnapshot.json', path = 'data/ADMData')
 
@@ -83,26 +85,20 @@ Functions
                >>> df = readDSExport(filename = df)
 
 
-.. py:function:: import_file(file: str, extension: str, **kwargs) -> Union[polars.DataFrame, pandas.DataFrame]
+.. py:function:: import_file(file: str, extension: str, **reading_opts) -> polars.LazyFrame
 
    Imports a file using Polars
-
-   By default, exports to Pandas
 
    :param File: The path to the file, passed directly to the read functions
    :type File: str
    :param extension: The extension of the file, used to determine which function to use
    :type extension: str
 
-   :keyword return_pl: Whether to return Polars or Pandas
-                       If return_pl is True, then keeps the Polars dataframe
-   :kwtype return_pl: bool, default = False
-
-   :returns: A Pandas or Polars dataframe, depending on `return_pl`
-   :rtype: Union[pd.DataFrame | pl.DataFrame]
+   :returns: The (imported) lazy dataframe
+   :rtype: pl.LazyFrame
 
 
-.. py:function:: readZippedFile(file: str, verbose: bool = False, **kwargs) -> io.BytesIO
+.. py:function:: readZippedFile(file: str, verbose: bool = False) -> io.BytesIO
 
    Read a zipped NDJSON file.
    Reads a dataset export file as exported and downloaded from Pega. The export
@@ -114,7 +110,7 @@ Functions
    :param verbose: Whether to print the names of the files within the unzipped file for debugging purposes
    :type verbose: str, default=False
 
-   :returns: A Polars dataframe with the contents.
+   :returns: The raw bytes object to pass through to Polars
    :rtype: os.BytesIO
 
 
@@ -123,7 +119,7 @@ Functions
    Convenience method to find the latest model snapshot.
    It has a set of default names to search for and finds all files who match it.
    Once it finds all matching files in the directory, it chooses the most recent one.
-   It only looks at .json, .csv and .zip files for now, as they are supported.
+   Supports [".json", ".csv", ".zip", ".parquet", ".feather", ".ipc"].
    Needs a path to the directory and a target of either 'modelData' or 'predictorData'.
 
    :param path: The filepath where the data is stored
@@ -141,13 +137,13 @@ Functions
 .. py:function:: getMatches(files_dir, target)
 
 
-.. py:function:: cache_to_file(df: pandas.DataFrame, path: os.PathLike, name: str, cache_type: str = 'ipc', compression: str = 'uncompressed') -> os.PathLike
+.. py:function:: cache_to_file(df: Union[polars.DataFrame, polars.LazyFrame], path: os.PathLike, name: str, cache_type: Literal[ipc, parquet] = 'ipc', compression: str = 'uncompressed') -> str
 
    Very simple convenience function to cache data.
-   Caches in parquet format for very fast reading.
+   Caches in arrow format for very fast reading.
 
    :param df: The dataframe to cache
-   :type df: pd.DataFrame | pl.DataFrame
+   :type df: pl.DataFrame
    :param path: The location to cache the data
    :type path: os.PathLike
    :param name: The name to give to the file
@@ -162,7 +158,7 @@ Functions
    :rtype: os.PathLike
 
 
-.. py:function:: defaultPredictorCategorization(x: str) -> str
+.. py:function:: defaultPredictorCategorization(x: Union[str, polars.Expr] = pl.col('PredictorName')) -> polars.Expr
 
 
 .. py:function:: safe_range_auc(auc: float) -> float
@@ -267,6 +263,9 @@ Functions
    :rtype: list
 
 
+.. py:function:: _polarsCapitalize(df: polars.LazyFrame)
+
+
 .. py:function:: fromPRPCDateTime(x: str, return_string: bool = False) -> Union[datetime.datetime, str]
 
    Convert from a Pega date-time string.
@@ -295,7 +294,7 @@ Functions
              * *Examples* -- >>> toPRPCDateTime(datetime.datetime.now())
 
 
-.. py:function:: weighed_average_polars(vals, weights) -> polars.Expr
+.. py:function:: weighed_average_polars(vals: Union[str, polars.Expr], weights: Union[str, polars.Expr]) -> polars.Expr
 
 
 .. py:function:: weighed_performance_polars() -> polars.Expr
@@ -325,9 +324,21 @@ Functions
    >>> df.groupby(['ModelID', 'PredictorName']).agg([zRatio()]).explode()
 
 
+.. py:function:: LogOdds(Positives=pl.col('Positives'), Negatives=pl.col('ResponseCount') - pl.col('Positives'))
+
+
+.. py:function:: featureImportance(over=['PredictorName', 'ModelID'])
+
+
 .. py:function:: readClientCredentialFile(credentialFile)
 
 
 .. py:function:: getToken(credentialFile, verify=True, **kwargs)
+
+
+.. py:function:: legend_color_order(fig)
+
+   Orders legend colors alphabetically in order to provide pega color
+   consistency among different categories
 
 

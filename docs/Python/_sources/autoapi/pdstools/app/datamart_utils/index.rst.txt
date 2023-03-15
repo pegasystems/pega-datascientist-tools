@@ -21,6 +21,8 @@ Functions
 
 .. autoapisummary::
 
+   pdstools.app.datamart_utils.multiFilter
+   pdstools.app.datamart_utils.remove_duplicate_expressions
    pdstools.app.datamart_utils.import_data
    pdstools.app.datamart_utils.import_datamart
    pdstools.app.datamart_utils.ADMDatamart_options
@@ -28,71 +30,57 @@ Functions
 
 
 
-.. py:function:: import_data(params, default=1)
+.. py:function:: multiFilter(df, q)
 
 
-.. py:function:: import_datamart(fun, *args, **kwargs)
+.. py:function:: remove_duplicate_expressions(exprs)
+
+
+.. py:function:: import_data(params, default=0, **kwargs)
+
+
+.. py:function:: import_datamart(_fun, *args, **kwargs)
 
 
 .. py:function:: ADMDatamart_options()
 
 
-.. py:function:: generate_modeldata_filters(df, params)
+.. py:function:: generate_modeldata_filters(data: pdstools.ADMDatamart, params: dict) -> List[polars.Expr]
+
+   Generates and applies filters to our dataframe.
+
+   :param data: Our original, unfiltered datamart class
+   :type data: ADMDatamart
+   :param params: A dictionary of all configurations,
+                  Not really used here except for keeping track of what we do
+   :type params: dict
+
+   :returns: Our original params file, updated with
+             whatever queries we've added.
+   :rtype: dict
 
 
 .. py:class:: Filters
 
-   .. py:attribute:: params
-      :type: Dict
-
-      
-
    .. py:attribute:: df
-      :type: pandas.DataFrame
+      :type: polars.DataFrame
 
       
 
-   .. py:attribute:: categoricals
+   .. py:attribute:: exprs
+      :value: []
 
       
 
-   .. py:attribute:: numericals
-
-      
-
-   .. py:attribute:: dateFields
-
-      
-
-   .. py:attribute:: pandasquery
-      :value: ''
-
-      
-
-   .. py:method:: __post_init__()
+   .. py:method:: add_filter(column)
 
 
-   .. py:method:: add_filter(key)
+   .. py:method:: CategoryFilter(df, column_name)
+      :staticmethod:
 
 
-   .. py:method:: CategoryFilter(key)
-
-
-   .. py:method:: ValueFilter(key)
-
-
-   .. py:method:: DateFilter()
-
-
-   .. py:method:: CustomFilter()
-      :abstractmethod:
-
-      Custom query
-      You can also supply a custom query.
-      This query should be formatted according to Pandas' `query` functionality.
-
-
-   .. py:method:: generatePandasFilters()
+   .. py:method:: ValueFilter(df, column_name)
+      :staticmethod:
 
 
 

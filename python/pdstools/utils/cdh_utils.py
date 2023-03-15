@@ -6,7 +6,7 @@ Various utilities to access and manipulate data from Pega for purposes
 of data analysis, reporting and monitoring.
 """
 
-from typing import List, Union
+from typing import List, Union, Literal
 import pandas as pd
 import polars as pl
 import os
@@ -25,8 +25,8 @@ def readDSExport(
     filename: Union[pd.DataFrame, pl.DataFrame, str],
     path: str = ".",
     verbose: bool = True,
-    **kwargs,
-) -> Union[pd.DataFrame, pl.DataFrame]:
+    **reading_opts,
+) -> pl.LazyFrame:
     """Read a Pega dataset export file.
     Can accept either a Pandas DataFrame or one of the following formats:
     - .csv
@@ -39,6 +39,7 @@ def readDSExport(
     It automatically infers the default file names for both model data as well as predictor data.
     If you supply either 'modelData' or 'predictorData' as the 'file' argument, it will search for them.
     If you supply the full name of the file in the 'path' directory, it will import that instead.
+    Since pdstools V3.x, returns a Polars LazyFrame. Simply call `.collect()` to get an eager frame.
 
     Parameters
     ----------
@@ -54,16 +55,13 @@ def readDSExport(
 
     Keyword arguments
     -----------------
-    return_pl: bool
-        Whether to return polars dataframe
-        if False, transforms to Pandas
     Any:
-        Any arguments to plug into the read_* function from Polars.
+        Any arguments to plug into the scan_* function from Polars.
 
     Returns
     -------
-    pd.DataFrame | pl.DataFrame
-        The read data from the given file
+    pl.LazyFrame
+        The (lazy) dataframe
 
     Examples:
         >>> df = readDSExport(filename = 'modelData', path = './datamart')
@@ -74,10 +72,20 @@ def readDSExport(
 
     """
 
-    # If a dataframe is supplied directly, we can just return it
-    if isinstance(filename, pd.DataFrame) | isinstance(filename, pl.DataFrame):
-        logging.debug("Dataframe returned directly")
+    # If a lazy frame is supplied directly, we just pass it through
+    if isinstance(filename, pl.LazyFrame):
+        logging.debug("Lazyframe returned directly")
         return filename
+
+    # If a dataframe is supplied directly, we can just return its lazy version
+    if isinstance(filename, pl.DataFrame):
+        logging.debug("Dataframe returned directly")
+        return filename.lazy()
+
+    # If dataframe is pandas, we transform to Polars
+    if isinstance(filename, pd.DataFrame):
+        logging.debug("Pandas dataframe supplied, transforming to polars")
+        return pl.DataFrame(filename).lazy()
 
     # If the data is a BytesIO object, such as an uploaded file
     # in certain webapps, then we can simply return the object
@@ -85,7 +93,7 @@ def readDSExport(
     if isinstance(filename, BytesIO):
         logging.debug("Filename is of type BytesIO, importing that directly")
         name, extension = os.path.splitext(filename.name)
-        return import_file(filename, extension, **kwargs)
+        return import_file(filename, extension, **reading_opts)
 
     # If the filename is simply a string, then we first
     # extract the extension of the file, then look for
@@ -101,7 +109,7 @@ def readDSExport(
     # if the file's a URL. If it is, we need to wrap
     # the file in a BytesIO object, and read the file
     # fully to disk for pyarrow to read it.
-    if file == "Target not found" or file == None:
+    if file == "Target not found" or file is None:
         logging.debug("Could not find file in directory, checking if URL")
         import requests
 
@@ -126,15 +134,11 @@ def readDSExport(
 
     # Now we should either have a full path to a file, or a
     # BytesIO wrapper around the file. Polars can read those both.
-    return import_file(file, extension, **kwargs)
+    return import_file(file, extension, **reading_opts)
 
 
-def import_file(
-    file: str, extension: str, **kwargs
-) -> Union[pl.DataFrame, pd.DataFrame]:
+def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
     """Imports a file using Polars
-
-    By default, exports to Pandas
 
     Parameters
     ----------
@@ -143,59 +147,54 @@ def import_file(
     extension: str
         The extension of the file, used to determine which function to use
 
-    Keyword arguments
-    -----------------
-    return_pl: bool, default = False
-        Whether to return Polars or Pandas
-        If return_pl is True, then keeps the Polars dataframe
-
     Returns
     -------
-    Union[pd.DataFrame | pl.DataFrame]
-        A Pandas or Polars dataframe, depending on `return_pl`
+    pl.LazyFrame
+        The (imported) lazy dataframe
     """
-
     if extension == ".zip":
         logging.debug("Zip file found, extracting data.json to BytesIO.")
         file, extension = readZippedFile(file)
 
     if extension == ".csv":
-        file = pl.read_csv(
-            file,
-            sep=kwargs.get("sep", ","),
-        )
+        if isinstance(file, BytesIO):
+            file = pl.read_csv(
+                file, infer_schema_length=10000, try_parse_dates=True
+            ).lazy()
+        else:
+            file = pl.scan_csv(
+                file,
+                sep=reading_opts.get("sep", ","),
+            )
 
     elif extension == ".json":
         try:
             if isinstance(file, BytesIO):
-                file = pl.read_ndjson(file)
+                file = pl.read_ndjson(file).lazy()
             else:
                 file = pl.scan_ndjson(
-                    file, infer_schema_length=kwargs.pop("infer_schema_length", 10000)
-                ).collect()
-        except:
-            file = pl.read_json(file)
+                    file,
+                    infer_schema_length=reading_opts.pop("infer_schema_length", 10000),
+                )
+        except:  # pragma: no cover
+            file = pl.read_json(file).lazy()
 
     elif extension == ".parquet":
-        file = pl.read_parquet(file)
+        file = pl.scan_parquet(file)
 
-    elif (
-        extension == ".feather"
-        or extension.casefold() == ".ipc"
-        or extension.casefold() == ".arrow"
-    ):
-        file = pl.read_ipc(file)
+    elif extension.casefold() in {".feather", ".ipc", ".arrow"}:
+        if isinstance(file, BytesIO):
+            file = pl.read_ipc(file).lazy()
+        else:
+            file = pl.scan_ipc(file)
 
     else:
         raise ValueError(f"Could not import file: {file}, with extension {extension}")
 
-    if kwargs.pop("return_pl", False):
-        return file
-    else:
-        return file.to_pandas()
+    return file
 
 
-def readZippedFile(file: str, verbose: bool = False, **kwargs) -> BytesIO:
+def readZippedFile(file: str, verbose: bool = False) -> BytesIO:
     """Read a zipped NDJSON file.
     Reads a dataset export file as exported and downloaded from Pega. The export
     file is formatted as a zipped multi-line JSON file. It reads the file,
@@ -211,7 +210,7 @@ def readZippedFile(file: str, verbose: bool = False, **kwargs) -> BytesIO:
     Returns
     -------
     os.BytesIO
-        A Polars dataframe with the contents.
+        The raw bytes object to pass through to Polars
     """
     with zipfile.ZipFile(file, mode="r") as z:
         logging.debug("Opened zip file.")
@@ -219,17 +218,25 @@ def readZippedFile(file: str, verbose: bool = False, **kwargs) -> BytesIO:
         logging.debug(f"Files found: {files}")
         if "data.json" in files:
             logging.debug("data.json found.")
+            if verbose:
+                print(
+                    (
+                        "Zipped json file found. For faster reading, we recommend",
+                        "parsing the files to a format such as arrow or parquet. ",
+                        "See example in docs #TODO",
+                    )
+                )
             with z.open("data.json") as zippedfile:
                 return (BytesIO(zippedfile.read()), ".json")
         else:  # pragma: no cover
-            raise FileNotFoundError("Cannot find a 'data' file in the zip folder.")
+            raise FileNotFoundError("Cannot find a 'data.json' file in the zip folder.")
 
 
 def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
     """Convenience method to find the latest model snapshot.
     It has a set of default names to search for and finds all files who match it.
     Once it finds all matching files in the directory, it chooses the most recent one.
-    It only looks at .json, .csv and .zip files for now, as they are supported.
+    Supports [".json", ".csv", ".zip", ".parquet", ".feather", ".ipc"].
     Needs a path to the directory and a target of either 'modelData' or 'predictorData'.
 
     Parameters
@@ -250,7 +257,7 @@ def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
     if target not in {"modelData", "predictorData", "ValueFinder"}:
         return f"Target not found"
 
-    supported = [".json", ".csv", ".zip", ".parquet", ".feather", ".ipc"]
+    supported = [".json", ".csv", ".zip", ".parquet", ".feather", ".ipc", ".arrow"]
 
     files_dir = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
     files_dir = [f for f in files_dir if os.path.splitext(f)[-1].lower() in supported]
@@ -258,8 +265,8 @@ def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
         print(files_dir)  # pragma: no cover
     matches = getMatches(files_dir, target)
 
-    if len(matches) == 0:
-        if verbose:  # pragma: no cover
+    if len(matches) == 0:  # pragma: no cover
+        if verbose:
             print(
                 f"Unable to find data for {target}. Please check if the data is available."
             )
@@ -304,6 +311,8 @@ def getMatches(files_dir, target):
         names = default_predictor_names
     elif target == "ValueFinder":
         names = ValueFinder_names
+    else:
+        raise ValueError(f"Target {target} not found.")
     for file in files_dir:
         match = [file for name in names if re.findall(name.casefold(), file.casefold())]
         if len(match) > 0:
@@ -312,18 +321,18 @@ def getMatches(files_dir, target):
 
 
 def cache_to_file(
-    df: pd.DataFrame,
+    df: Union[pl.DataFrame, pl.LazyFrame],
     path: os.PathLike,
     name: str,
-    cache_type: str = "ipc",
+    cache_type: Literal["ipc", "parquet"] = "ipc",
     compression: str = "uncompressed",
-) -> os.PathLike:
+) -> str:
     """Very simple convenience function to cache data.
-    Caches in parquet format for very fast reading.
+    Caches in arrow format for very fast reading.
 
     Parameters
     ----------
-    df: pd.DataFrame | pl.DataFrame
+    df: pl.DataFrame
         The dataframe to cache
     path: os.PathLike
         The location to cache the data
@@ -340,9 +349,11 @@ def cache_to_file(
     os.PathLike:
         The filepath to the cached file
     """
-    outpath = f"{path}/{name}"
-    if isinstance(df, pd.DataFrame):
-        df = pl.DataFrame(df)
+    import pathlib
+
+    outpath = pathlib.Path(path).joinpath(pathlib.Path(name))
+    if isinstance(df, pl.LazyFrame):
+        df = df.collect()
     if cache_type == "ipc":
         outpath = f"{outpath}.arrow"
         df.write_ipc(outpath, compression=compression)
@@ -352,8 +363,17 @@ def cache_to_file(
     return outpath
 
 
-def defaultPredictorCategorization(x: str) -> str:
-    return x.split(".")[0] if len(x.split(".")) > 1 else "Primary"
+def defaultPredictorCategorization(
+    x: Union[str, pl.Expr] = pl.col("PredictorName")
+) -> pl.Expr:
+    if isinstance(x, str):
+        x = pl.col(x)
+    x = x.cast(pl.Utf8) if not isinstance(x, pl.Utf8) else x
+    return (
+        pl.when(x.str.split(".").arr.lengths() > 1)
+        .then(x.str.split(".").arr.get(0))
+        .otherwise(pl.lit("Primary"))
+    ).alias("PredictorCategory")
 
 
 def safe_range_auc(auc: float) -> float:
@@ -607,11 +627,27 @@ def _capitalize(fields: list) -> list:
         "ConfigurationName",
         "Configuration",
     ]
+    if not isinstance(fields, list):
+        fields = [fields]
     fields = [re.sub("^p(x|y|z)", "", field.lower()) for field in fields]
+    fields = list(
+        map(lambda x: x.replace("configurationname", "configuration"), fields)
+    )
     for word in capitalizeEndWords:
         fields = [re.sub(word, word, field, flags=re.I) for field in fields]
         fields = [field[:1].upper() + field[1:] for field in fields]
     return fields
+
+
+def _polarsCapitalize(df: pl.LazyFrame):
+    return df.rename(
+        dict(
+            zip(
+                df.columns,
+                _capitalize(df.columns),
+            )
+        )
+    )
 
 
 def fromPRPCDateTime(
@@ -688,8 +724,14 @@ def toPRPCDateTime(x: datetime.datetime) -> str:
     return x.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
 
 
-def weighed_average_polars(vals, weights) -> pl.Expr:
-    return ((pl.col(vals) * pl.col(weights)).sum()) / pl.col(weights).sum()
+def weighed_average_polars(
+    vals: Union[str, pl.Expr], weights: Union[str, pl.Expr]
+) -> pl.Expr:
+    if isinstance(vals, str):
+        vals = pl.col(vals)
+    if isinstance(weights, str):
+        weights = pl.col(weights)
+    return ((vals * weights).sum()) / weights.sum()
 
 
 def weighed_performance_polars() -> pl.Expr:
@@ -704,7 +746,7 @@ def zRatio(
 
     The Z-ratio is a measure of how the propensity in a bin differs from the average,
     but takes into account the size of the bin and thus is statistically more relevant.
-    It represents the number of standard deviations from the avreage, 
+    It represents the number of standard deviations from the avreage,
     so centers around 0. The wider the spread, the better the predictor is.
 
     To recreate the OOTB ZRatios from the datamart, use in a groupby.
@@ -720,7 +762,6 @@ def zRatio(
     Examples
     --------
     >>> df.groupby(['ModelID', 'PredictorName']).agg([zRatio()]).explode()
-
     """
 
     def getFracs(posCol=pl.col("BinPositives"), negCol=pl.col("BinNegatives")):
@@ -743,7 +784,26 @@ def zRatio(
     return zRatioimpl(*getFracs(posCol, negCol), posCol.sum(), negCol.sum())
 
 
-def readClientCredentialFile(credentialFile):
+def LogOdds(
+    Positives=pl.col("Positives"),
+    Negatives=pl.col("ResponseCount") - pl.col("Positives"),
+):
+    return ((Positives + 1).log() - ((Negatives) + 1).log()).alias("LogOdds")
+
+
+def featureImportance(over=["PredictorName", "ModelID"]):
+    varImp = weighed_average_polars(
+        LogOdds(
+            pl.col("BinPositives"), pl.col("BinResponseCount") - pl.col("BinPositives")
+        ),
+        "BinResponseCount",
+    ).alias("FeatureImportance")
+    if over is not None:
+        varImp = varImp.over(over)
+    return varImp
+
+
+def readClientCredentialFile(credentialFile):  # pragma: no cover
     outputdict = {}
     with open(credentialFile) as f:
         for idx, line in enumerate(f.readlines()):
@@ -754,7 +814,7 @@ def readClientCredentialFile(credentialFile):
         return outputdict
 
 
-def getToken(credentialFile, verify=True, **kwargs):
+def getToken(credentialFile, verify=True, **kwargs):  # pragma: no cover
     creds = readClientCredentialFile(credentialFile)
     return requests.post(
         url=kwargs.get("URL", creds["Access token endpoint"]),
@@ -762,3 +822,39 @@ def getToken(credentialFile, verify=True, **kwargs):
         auth=(creds["Client ID"], creds["Client Secret"]),
         verify=verify,
     ).json()["access_token"]
+
+
+def legend_color_order(fig):
+    """Orders legend colors alphabetically in order to provide pega color
+    consistency among different categories"""
+
+    colorway = [
+        "#001F5F",  # dark blue
+        "#10A5AC",
+        "#F76923",  # orange
+        "#661D34",  # wine
+        "#86CAC6",  # mint
+        "#005154",  # forest
+        "#86CAC6",  # mint
+        "#5F67B9",  # violet
+        "#FFC836",  # yellow
+        "#E63690",  # pink
+        "#AC1361",  # berry
+        "#63666F",  # dark grey
+        "#A7A9B4",  # medium grey
+        "#D0D1DB",  # light grey
+    ]
+
+    colors = []
+    for trace in fig.data:
+        colors.append(trace.legendgroup)
+    colors.sort()
+    indexed_colors = {k: v for v, k in enumerate(colors)}
+    for trace in fig.data:
+        try:
+            trace.marker.color = colorway[indexed_colors[trace.legendgroup]]
+            trace.line.color = colorway[indexed_colors[trace.legendgroup]]
+        except AttributeError:  # pragma: no cover
+            pass
+
+    return fig
