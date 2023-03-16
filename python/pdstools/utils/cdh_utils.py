@@ -159,7 +159,9 @@ def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
     if extension == ".csv":
         if isinstance(file, BytesIO):
             file = pl.read_csv(
-                file, infer_schema_length=10000, try_parse_dates=True
+                file,
+                infer_schema_length=reading_opts.pop("infer_schema_length", 10000),
+                try_parse_dates=True,
             ).lazy()
         else:
             file = pl.scan_csv(
@@ -170,7 +172,13 @@ def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
     elif extension == ".json":
         try:
             if isinstance(file, BytesIO):
-                file = pl.read_ndjson(file).lazy()
+                from pyarrow import json
+
+                file = pl.LazyFrame(
+                    json.read_json(
+                        file,
+                    )
+                )
             else:
                 file = pl.scan_ndjson(
                     file,
@@ -722,7 +730,7 @@ def toPRPCDateTime(dt: datetime.datetime) -> str:
     """
     if dt.tzinfo is None:
         dt = dt.astimezone()
-    return dt.strftime("%Y%m%dT%H%M%S.%f")[:-3]+ dt.strftime(' GMT%z')
+    return dt.strftime("%Y%m%dT%H%M%S.%f")[:-3] + dt.strftime(" GMT%z")
 
 
 def weighed_average_polars(

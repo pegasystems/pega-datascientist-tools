@@ -119,7 +119,7 @@ def test_read_predictorData():
     assert cdh_utils.readDSExport(
         "Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210101T010000_GMT.zip",
         "data",
-    ).shape == (1755, 34)
+    ).shape == (1755, 35)
 
 
 def test_polars_zip_from_url():
