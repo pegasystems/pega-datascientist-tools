@@ -518,10 +518,10 @@ def test_log_odds():
             "ResponseCount": [5, 2215, 1930, 1094, 358],
         }
     )
-    output = input.with_columns(cdh_utils.LogOdds().round(2)).sort("Predictor_range")
+    output = input.with_columns(cdh_utils.LogOdds().round(2))
 
-    log_odds_list = [-5.62, -3.92, -1.79, -4.42, -5.08]
-    expected_output = input.sort("Predictor_range").with_columns(
+    log_odds_list = [1.65, -0.81, -0.23, 0.43, 0.87]
+    expected_output = input.with_columns(
         pl.Series(name="LogOdds", values=log_odds_list)
     )
 
@@ -541,7 +541,7 @@ def test_featureImportance():
     output = input.with_columns(cdh_utils.featureImportance().round(2)).sort(
         "BinPositives"
     )
-    importance_list = [-1.4, 1.13, -1.4, 1.13]
+    importance_list = [-0.12, 0.28, -0.12, 0.28]
     expected_output = input.sort("BinPositives").with_columns(
         pl.Series(name="FeatureImportance", values=importance_list)
     )

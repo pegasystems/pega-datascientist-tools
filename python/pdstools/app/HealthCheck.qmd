@@ -66,6 +66,11 @@ globalQuery = None
 # Initialize the class after the parameters have been overwritten.
 
 datamart = ADMDatamart(**kwargs)
+modelData = datamart.modelData.with_columns(pl.col(pl.Null).fill_null("NA"))
+predictorData = datamart.predictorData.with_columns(pl.col(pl.Null).fill_null("NA"))
+combinedData = datamart.combinedData.with_columns(pl.col(pl.Null).fill_null("NA"))
+
+
  
 last_data = (
     datamart.last(strategy='lazy')
@@ -73,6 +78,7 @@ last_data = (
     .with_columns(
         [
             pl.col(pl.Utf8).fill_null("NA"),
+            pl.col(pl.Null).fill_null("NA"),
             pl.col("SuccessRate").fill_nan(0).fill_null(0),
             pl.col("Performance").fill_nan(0).fill_null(0),
             pl.col("ResponseCount").fill_null(0),
@@ -80,9 +86,7 @@ last_data = (
         ]
     )
 ).collect()
-
-datamart_all_columns = datamart.combinedData.columns
-
+datamart_all_columns = combinedData.columns
 standardNBADNames = [
     "Assisted_Click_Through_Rate",
     "CallCenter_Click_Through_Rate",
@@ -236,7 +240,7 @@ facet = "Configuration"
 fig = datamart.plotOverTime('SuccessRate', by=by, facets=facet, facet_col_wrap=2, query=pl.col("ResponseCount") > 100)
 fig.update_yaxes(matches=None)
 fig.for_each_yaxis(lambda yaxis: yaxis.update(showticklabels=True, rangemode="tozero"))
-unique_count = datamart.modelData.with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet)).select(facet).collect().unique().shape[0]
+unique_count = modelData.with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet)).select(facet).collect().unique().shape[0]
 height = 200 + (math.ceil( unique_count / 2) * 250)
 fig.update_layout(autosize=True, height=height)
 fig.for_each_annotation(
@@ -319,7 +323,7 @@ Aggregating up to Channel and splitting by model configuration.
 facet = "Configuration"
 modelperformance = datamart.plotOverTime('weighted_performance', by="Channel/Direction", facets=facet, facet_col_wrap=2)
 
-unique_count = datamart.modelData.with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet)).select(facet).collect().unique().shape[0]
+unique_count = modelData.with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet)).select(facet).collect().unique().shape[0]
 height = 200 + (math.ceil( unique_count / 2) * 250)
 modelperformance.update_layout(autosize=True, height=height)
 modelperformance.for_each_annotation(
@@ -360,7 +364,7 @@ The predictors are categorized (by color) by the “source”. By default this t
 ## Number of Predictors per model configuration 
 
 ```{python}
-predictors_per_configuration = datamart.combinedData.groupby("Configuration").agg([
+predictors_per_configuration = combinedData.groupby("Configuration").agg([
                             pl.col("PredictorName").unique().count().alias("Predictor Count"),
                             pl.col("Channel").unique().alias("Used in (Channels)"),
                             pl.col("Issue").unique().alias("Used for (Issues)")
@@ -372,6 +376,7 @@ show(predictors_per_configuration)
 
 ## Predictor Importance across all models per configuration
 Box plots of the predictor importance. Importance can be shown either as a global feature importance or simply as the univariate predictor importance.
+
 ### Guidance
 - Number of predictors per model 200 - 700
 - There should be IH* predictors
@@ -379,7 +384,7 @@ Box plots of the predictor importance. Importance can be shown either as a globa
 - No more than a few dozen Param predictors
 
 ```{python}
-if datamart.predictorData is not None:
+if predictorData is not None:
     figs = datamart.plotPredictorPerformance(top_n=20, facets='Configuration',separate=True, active_only=True)
     if not isinstance(figs, list):
         figs = [figs]
@@ -421,12 +426,12 @@ fig.show()
 ```
 
 ### Relative Predictor Category importance per Configuration
-Although the same could be achieved using the standard 'plotPredictorImportance' method, now that we only split by Configuration this allows for a more compact visualization using a stacked bar chart.
+Although the same could be achieved using the standard **plotPredictorImportance** method, now that we only split by Configuration this allows for a more compact visualization using a stacked bar chart.
 
 ```{python}
 ''' By dividing a predictor category's weighted performance to the sum of all predictor categories weighted performance in a configuration, creates a plot that displays relative importance of categories in a configuration.
 Changes the Predictor performance range from 50-100 to 0-100 in order to increase visibilty of performance differences among categories.'''
-df = datamart.combinedData.with_columns(cdh_utils.defaultPredictorCategorization().alias("PredictorCategory"))
+df = combinedData.with_columns(cdh_utils.defaultPredictorCategorization().alias("PredictorCategory"))
 predictor_perf = (
     df.with_columns((pl.col("PerformanceBin") - 0.5)*2)
     .groupby(["Configuration", "PredictorCategory"])
@@ -484,7 +489,7 @@ See if there are predictors that are just always perform poorly.
 ```{python}
 # weighted performance
 bad_predictors = (
-    datamart.predictorData
+    predictorData
     .filter(pl.col("PredictorName") != "Classifier")
     .groupby("PredictorName")
     .agg(
@@ -505,8 +510,9 @@ show(bad_predictors, scrollX=True)
 
 ## Number of Active and Inactive Predictors
 Showing the number of active and inactive predictors per model.
+
 ### Guidance
-We expect a few dozen active predictors for every model instance
+- We expect a few dozen active predictors for every model instance
 ```{python}
 facets= ["Configuration"]
 fig = datamart.plotPredictorCount(facets = facets)
@@ -525,8 +531,8 @@ A view of predictor performance across all propositions, ordered so that the bes
 
 ```{python}
 index_cols = [col for col in ['Issue', 'Group', "Name", "Treatment"] if col in datamart_all_columns]
-if datamart.predictorData is not None:
-    unique_configurations = datamart.combinedData.collect().get_column("Configuration").unique().to_list()
+if predictorData is not None:
+    unique_configurations = combinedData.collect().get_column("Configuration").unique().to_list()
     for conf in unique_configurations:
         try:
             fig = datamart.plotPredictorPerformanceHeatmap(top_n=20, 
@@ -557,7 +563,7 @@ else:
 ## Missing values
 If a predictor is low performing: are there too many missing values? This could point to a technical problem
 Missing % is number of missing vs all responses, really just a filter on model data
-This (currently) only shows the fields that have any missing values
+This TreeMap only shows the fields that have any missing values.
 
 ```{python}
 path =  [col for col in ["Configuration", "PredictorCategory", "PredictorName"] if col in datamart_all_columns]
@@ -565,12 +571,12 @@ gb_cols = path
 path = [px.Constant("All Models")] + path 
 
 missing = (
-    datamart.combinedData.filter(pl.col("BinSymbol") == "MISSING")
+    combinedData.filter(pl.col("BinSymbol") == "MISSING")
     .groupby(gb_cols)
     .agg(pl.sum("BinResponseCount").alias("MissingCount"))
 )
 whole_df = (
-    datamart.combinedData.groupby(gb_cols).agg(pl.sum("BinResponseCount"))
+    combinedData.groupby(gb_cols).agg(pl.sum("BinResponseCount"))
 )
 
 with_missing = whole_df.join(missing, on=gb_cols, how="inner").with_columns(
@@ -600,8 +606,10 @@ fig.show()
 # Responses
 
 In the sections below we check which of these models have reached certain reliability (or “maturity”) thresholds. This is based on heuristics on both the number of positives (> 200 considered mature) and performance.
+
 ## Empty and Immature Models
 All below lists are guidance. There should be just a small percentage of immature or empty models overall. Having no or just 1 active predictor is very suspicious
+
 ### Models that have never been used
 These models have no responses at all: no positives but also no negatives. The models for these actions/treatments exist, so they must have been created in the evaluation of the actions/treatments, but they were never selected to show to the customer, so never received any responses.
 
@@ -609,7 +617,7 @@ Often these represent actions that never made it into production and were only u
 ```{python}
 columns = ["Configuration", "Issue", "Group", "Name", "Channel", "Direction", "Treatment"]
 columns =  [col for col in columns if col in datamart_all_columns]
-counts = datamart.modelData.groupby(columns).agg(
+counts = modelData.groupby(columns).agg(
     [
         pl.sum("ResponseCount"),
         pl.sum("Positives"),
@@ -699,7 +707,7 @@ Empty is defined as having no responses at all. Immature is defined as having < 
 ```{python}
 by= ["SnapshotTime", "Channel", "Direction"]
 df = (
-    datamart.modelData
+    modelData
     .with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
     .with_columns(pl.col(pl.Utf8).fill_null("Missing"))
     .groupby(by)
@@ -741,7 +749,7 @@ facets = "Configuration"
 facet_col_wrap = 2
 response_counts = datamart.plotOverTime('ResponseCount', by="Channel/Direction", facets=facets, every="1h", facet_col_wrap=facet_col_wrap)
 
-unique_count = datamart.modelData.select(facets).unique().collect().shape[0]
+unique_count = modelData.select(facets).unique().collect().shape[0]
 height = 200 + (math.ceil( unique_count / 2) * 250)
 response_counts.update_layout(autosize=True, height=height)
 response_counts.for_each_annotation(
@@ -836,7 +844,7 @@ A lot of volume on the first bins, where the performance is minimal, means that 
 ```{python}
 property = "Performance"
 df = (
-    datamart.combinedData.with_columns(pl.col(property) * 100)
+    combinedData.with_columns(pl.col(property) * 100)
     .groupby([property, "Channel", "Direction"])
     .agg(pl.sum("BinResponseCount"))
     .with_columns(pl.col(property).round(2))
@@ -918,9 +926,9 @@ So when one of the graphs shows more volume on the left, that is to be interpret
 
 ```{python}
 property = "Propensity"
-if property == "Propensity" and property not in datamart.predictorData.columns:
+if property == "Propensity" and property not in predictorData.columns:
     property = "BinPropensity"
-    df = datamart.combinedData.filter(pl.col("PredictorName")!="Classifier").groupby([property, "Channel", "Direction"]).agg(pl.sum("BinResponseCount")).with_columns(pl.col(property).round(4)).collect()
+    df = combinedData.filter(pl.col("PredictorName")!="Classifier").groupby([property, "Channel", "Direction"]).agg(pl.sum("BinResponseCount")).with_columns(pl.col(property).round(4)).collect()
 color_col = "Channel"
 smallest_bin = 0
 
@@ -965,7 +973,7 @@ Generally you will want to apply some filtering, or do this for specific models 
 ```{python}
 available_context_keys=  ["Configuration", "Issue","Group","Name","Channel","Direction","Treatment"]
 available_context_keys =  [col for col in available_context_keys if col in datamart_all_columns]
-appendix = datamart.modelData.groupby(available_context_keys + ["ModelID"]).agg(
+appendix = modelData.groupby(available_context_keys + ["ModelID"]).agg(
     [
         pl.max("ResponseCount").alias("Responses"),
         pl.count("SnapshotTime").alias("Snapshots")
