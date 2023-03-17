@@ -523,7 +523,7 @@ div.rendered_html tbody tr:hover {
 }
 </style>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[57]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -550,7 +550,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[133]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">px</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
@@ -558,7 +558,6 @@ div.rendered_html tbody tr:hover {
     <span class="n">x</span><span class="o">=</span><span class="s2">&quot;positives&quot;</span><span class="p">,</span>
     <span class="n">y</span><span class="o">=</span><span class="s2">&quot;sampled_propensity&quot;</span><span class="p">,</span>
     <span class="n">color</span><span class="o">=</span><span class="s2">&quot;p&quot;</span><span class="p">,</span>
-    <span class="n">size_max</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
     <span class="n">opacity</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
     <span class="n">labels</span><span class="o">=</span><span class="p">{</span>
         <span class="s2">&quot;sampled_propensity&quot;</span><span class="p">:</span> <span class="s2">&quot;Sampled Propensity&quot;</span><span class="p">,</span>
@@ -568,7 +567,7 @@ div.rendered_html tbody tr:hover {
     <span class="n">range_y</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">],</span>
     <span class="n">title</span><span class="o">=</span><span class="s1">&#39;Thompson Sampling&#39;</span><span class="p">,</span>
     <span class="n">template</span><span class="o">=</span><span class="s2">&quot;pega&quot;</span><span class="p">,</span>
-<span class="p">)</span><span class="o">.</span><span class="n">update_coloraxes</span><span class="p">(</span><span class="n">showscale</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="p">)</span><span class="o">.</span><span class="n">update_coloraxes</span><span class="p">(</span><span class="n">showscale</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">update_traces</span><span class="p">(</span><span class="n">marker</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;size&quot;</span><span class="p">:</span><span class="mi">3</span><span class="p">})</span>
 </pre></div>
 </div>
 </div>
@@ -582,18 +581,12 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[59]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">thompsonSamplingSimulation</span> <span class="o">=</span> <span class="n">thompsonSamplingSimulation</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">thompsonSamplingSimulation</span><span class="p">[</span><span class="s1">&#39;positives&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">cut</span><span class="p">(</span><span class="n">bins</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span> <span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">max</span><span class="p">())</span><span class="o">+</span><span class="mi">20</span><span class="p">,</span> <span class="mi">20</span><span class="p">))</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="nb">bin</span><span class="o">=</span><span class="s1">&#39;category&#39;</span><span class="p">))</span>
-</pre></div>
-</div>
-</div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[87]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">s</span> <span class="o">=</span> <span class="n">thompsonSamplingSimulation</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;p&quot;</span><span class="p">,</span> <span class="s2">&quot;bin&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">s</span> <span class="o">=</span> <span class="n">thompsonSamplingSimulation</span><span class="p">[</span><span class="s1">&#39;positives&#39;</span><span class="p">]</span>
+<span class="n">thompsonSamplingSimulation2</span> <span class="o">=</span> <span class="n">thompsonSamplingSimulation</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">cut</span><span class="p">(</span><span class="n">bins</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span> <span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">max</span><span class="p">())</span><span class="o">+</span><span class="mi">20</span><span class="p">,</span> <span class="mi">20</span><span class="p">))</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="nb">bin</span><span class="o">=</span><span class="s1">&#39;category&#39;</span><span class="p">))</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">thompsonSamplingSimulation2</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;p&quot;</span><span class="p">,</span> <span class="s2">&quot;bin&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span>
     <span class="n">n</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">count</span><span class="p">(),</span>
     <span class="n">n90</span><span class="o">=</span><span class="p">(((</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;sampled_propensity&quot;</span><span class="p">)</span> <span class="o">-</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;p&quot;</span><span class="p">))</span> <span class="o">/</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;p&quot;</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mf">0.1</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span>
     <span class="n">positives</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="s2">&quot;positives&quot;</span><span class="p">),</span>
@@ -602,10 +595,213 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[130]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">px</span><span class="o">.</span><span class="n">line</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">(),</span> <span class="n">x</span><span class="o">=</span><span class="s1">&#39;positives&#39;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s1">&#39;pct&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span> <span class="n">line_group</span><span class="o">=</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s1">&#39;Percentage of Sampled Propensities &lt;br&gt;&lt;sup&gt;that are within 10</span><span class="si">% o</span><span class="s1">f the Model Propensities&lt;/sup&gt;&#39;</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;pct&#39;</span><span class="p">:</span><span class="s1">&#39;Percentage&#39;</span><span class="p">,</span> <span class="s1">&#39;positives&#39;</span><span class="p">:</span><span class="s1">&#39;Percentage of positive responses in the Adaptive Model&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">:</span><span class="s1">&#39;Propensity&#39;</span><span class="p">})</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="admonition warning">
+<p>Data type cannot be displayed: application/vnd.plotly.v1+json</p>
+</div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">settings1</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;n&quot;</span><span class="p">:</span> <span class="mi">100000</span><span class="p">})</span>
+    <span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+        <span class="n">p</span><span class="o">=</span><span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">],</span> <span class="n">evidence</span><span class="o">=</span><span class="p">[</span><span class="mi">2000</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">100000</span><span class="p">],</span> <span class="n">ypeak</span><span class="o">=</span><span class="p">[</span><span class="mi">200</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">500</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="o">.</span><span class="n">explode</span><span class="p">([</span><span class="s2">&quot;p&quot;</span><span class="p">])</span>
+    <span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="s2">&quot;evidence&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="s2">&quot;ypeak&quot;</span><span class="p">)</span>
+<span class="p">)</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+    <span class="n">sampled_propensity</span><span class="o">=</span><span class="n">betaDistribution</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">struct</span><span class="p">([</span><span class="s2">&quot;n&quot;</span><span class="p">,</span> <span class="s2">&quot;p&quot;</span><span class="p">,</span> <span class="s2">&quot;evidence&quot;</span><span class="p">]))</span>
+<span class="p">)</span><span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="s1">&#39;sampled_propensity&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span><span class="n">positives</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s1">&#39;evidence&#39;</span><span class="p">)</span><span class="o">*</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s1">&#39;p&#39;</span><span class="p">))</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">gaussian_kde</span>
+<span class="n">series</span> <span class="o">=</span> <span class="n">settings1</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s1">&#39;p&#39;</span><span class="p">)</span><span class="o">==</span><span class="mf">0.01</span><span class="p">)[</span><span class="s1">&#39;sampled_propensity&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">results</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">series</span> <span class="ow">in</span> <span class="n">settings1</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;p&#39;</span><span class="p">):</span>
+    <span class="n">results</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">gaussian_kde</span><span class="p">(</span><span class="n">series</span><span class="p">[</span><span class="s1">&#39;sampled_propensity&#39;</span><span class="p">])(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mf">0.01</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">settings1</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;p&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s1">&#39;sampled_propensity&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">gaussian_kde</span><span class="p">(</span><span class="n">x</span><span class="p">)(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mf">0.01</span><span class="p">))))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">ComputeError</span>                              Traceback (most recent call last)
+<span class="ansi-green-intense-fg ansi-bold">/Users/kass1/Documents/Code/pdstools-polars/pega-datascientist-tools/examples/articles/thompsonsampling.ipynb Cell 8</span> in <span class="ansi-cyan-fg">1
+</span><span class="ansi-green-fg">----&gt; &lt;a href=&#39;vscode-notebook-cell:/Users/kass1/Documents/Code/pdstools-polars/pega-datascientist-tools/examples/articles/thompsonsampling.ipynb#X36sZmlsZQ%3D%3D?line=0&#39;&gt;1&lt;/a&gt;</span> settings1.select(pl.col(&#39;sampled_propensity&#39;).map(lambda x: gaussian_kde(x)(np.arange(0,1,0.01)).over(&#39;p&#39;)))
+
+File <span class="ansi-green-fg">/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/polars/internals/dataframe/frame.py:6447</span>, in <span class="ansi-cyan-fg">DataFrame.select</span><span class="ansi-blue-fg">(self, exprs, *more_exprs, **named_exprs)</span>
+<span class="ansi-green-intense-fg ansi-bold">   6337</span> def select(
+<span class="ansi-green-intense-fg ansi-bold">   6338</span>     self,
+<span class="ansi-green-intense-fg ansi-bold">   6339</span>     exprs: IntoExpr | Iterable[IntoExpr] | None = None,
+<span class="ansi-green-intense-fg ansi-bold">   6340</span>     *more_exprs: IntoExpr,
+<span class="ansi-green-intense-fg ansi-bold">   6341</span>     **named_exprs: IntoExpr,
+<span class="ansi-green-intense-fg ansi-bold">   6342</span> ) -&gt; Self:
+<span class="ansi-green-intense-fg ansi-bold">   6343</span>     &#34;&#34;&#34;
+<span class="ansi-green-intense-fg ansi-bold">   6344</span>     Select columns from this DataFrame.
+<span class="ansi-green-intense-fg ansi-bold">   6345</span>
+<span class="ansi-green-fg">   (...)</span>
+<span class="ansi-green-intense-fg ansi-bold">   6442</span>
+<span class="ansi-green-intense-fg ansi-bold">   6443</span>     &#34;&#34;&#34;
+<span class="ansi-green-intense-fg ansi-bold">   6444</span>     return self._from_pydf(
+<span class="ansi-green-intense-fg ansi-bold">   6445</span>         self.lazy()
+<span class="ansi-green-intense-fg ansi-bold">   6446</span>         .select(exprs, *more_exprs, **named_exprs)
+<span class="ansi-green-fg">-&gt; 6447</span>         .collect(no_optimization=True)
+<span class="ansi-green-intense-fg ansi-bold">   6448</span>         ._df
+<span class="ansi-green-intense-fg ansi-bold">   6449</span>     )
+
+File <span class="ansi-green-fg">/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/polars/internals/lazyframe/frame.py:1438</span>, in <span class="ansi-cyan-fg">LazyFrame.collect</span><span class="ansi-blue-fg">(self, type_coercion, predicate_pushdown, projection_pushdown, simplify_expression, no_optimization, slice_pushdown, common_subplan_elimination, streaming)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1427</span>     common_subplan_elimination = False
+<span class="ansi-green-intense-fg ansi-bold">   1429</span> ldf = self._ldf.optimization_toggle(
+<span class="ansi-green-intense-fg ansi-bold">   1430</span>     type_coercion,
+<span class="ansi-green-intense-fg ansi-bold">   1431</span>     predicate_pushdown,
+<span class="ansi-green-fg">   (...)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1436</span>     streaming,
+<span class="ansi-green-intense-fg ansi-bold">   1437</span> )
+<span class="ansi-green-fg">-&gt; 1438</span> return pli.wrap_df(ldf.collect())
+
+<span class="ansi-red-fg">ComputeError</span>: AttributeError: &#39;numpy.ndarray&#39; object has no attribute &#39;over&#39;
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">results</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{0.01: array([1.31418200e+00, 3.96054952e+02, 4.90726614e+00, 9.04439094e-01,
+        1.66552267e-01, 2.50914726e-02, 1.05400074e-02, 4.60435676e-04,
+        3.41421316e-56, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
+        0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
+        0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
+        0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
+        0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
+        0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
+        0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
+        0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
+        0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
+        0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
+        0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
+        0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
+        0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
+        0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
+        0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
+        0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
+        0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
+        0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
+        0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
+        0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
+        0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
+        0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
+        0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00]),
+ 0.1: array([0.00000000e+000, 2.23255970e-157, 1.96876255e-049, 3.36986067e-005,
+        1.65804818e-002, 1.97445197e-001, 9.59601322e-001, 2.56170747e+000,
+        4.82409335e+000, 1.27657214e+001, 1.31858548e+002, 1.15808557e+001,
+        3.87586956e+000, 2.11270815e+000, 1.07648981e+000, 4.89998514e-001,
+        2.05996863e-001, 7.75846979e-002, 2.47200621e-002, 9.99058422e-003,
+        2.66589006e-003, 1.35892814e-003, 8.03330700e-027, 1.24043704e-112,
+        3.81574897e-262, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000]),
+ 0.05: array([4.01850407e-027, 9.14933407e-003, 8.15142768e-001, 4.39719821e+000,
+        1.14237492e+001, 1.80997550e+002, 9.52753951e+000, 3.21158211e+000,
+        1.34162405e+000, 4.86392076e-001, 1.65982471e-001, 4.60383957e-002,
+        1.48846509e-002, 2.80383920e-003, 2.70233957e-004, 2.97622706e-004,
+        7.92610006e-014, 9.84340623e-123, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000])}
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">kernel</span> <span class="o">=</span> <span class="n">gaussian_kde</span><span class="p">(</span><span class="n">series</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">px</span><span class="o">.</span><span class="n">area</span><span class="p">(</span><span class="n">kernel</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mf">0.01</span><span class="p">)))</span>
 </pre></div>
 </div>
 </div>
