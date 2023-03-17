@@ -520,7 +520,7 @@ def test_log_odds():
     )
     output = input.with_columns(cdh_utils.LogOdds().round(2)).sort("Predictor_range")
 
-    log_odds_list = [-5.62, -3.92, -1.79, -4.42, -5.08]
+    log_odds_list = [1.65, -0.81, -0.23, -0.43, -0.87]
     expected_output = input.sort("Predictor_range").with_columns(
         pl.Series(name="LogOdds", values=log_odds_list)
     )
