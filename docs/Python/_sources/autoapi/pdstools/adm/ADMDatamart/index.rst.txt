@@ -290,7 +290,7 @@ Classes
    .. py:method:: discover_modelTypes(df: polars.LazyFrame, by='Configuration')
 
 
-   .. py:method:: get_AGB_models(last: bool = False, by: str = 'Configuration', n_threads: int = 6, query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None, verbose: bool = True, **kwargs) -> Dict
+   .. py:method:: get_AGB_models(last: bool = False, by: str = 'Configuration', n_threads: int = 1, query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None, verbose: bool = True, **kwargs) -> Dict
 
       Method to automatically extract AGB models.
 

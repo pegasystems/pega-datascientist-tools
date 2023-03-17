@@ -283,7 +283,7 @@ Functions
                >>> fromPRPCDateTime("20180316T184127.846", True)
 
 
-.. py:function:: toPRPCDateTime(x: datetime.datetime) -> str
+.. py:function:: toPRPCDateTime(dt: datetime.datetime) -> str
 
    Convert to a Pega date-time string
 
