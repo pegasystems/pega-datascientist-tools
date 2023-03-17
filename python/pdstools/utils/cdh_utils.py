@@ -797,7 +797,16 @@ def LogOdds(
     Positives=pl.col("Positives"),
     Negatives=pl.col("ResponseCount") - pl.col("Positives"),
 ):
-    return ((Positives + 1).log() - ((Negatives) + 1).log()).alias("LogOdds")
+
+    N = Positives.count()
+    return (
+        (
+            ((Positives + 1 / N).log() - (Positives + 1).sum().log())
+            - ((Negatives + 1 / N).log() - (Negatives + 1).sum().log())
+        )
+        .round(2)
+        .alias("LogOdds")
+    )
 
 
 def featureImportance(over=["PredictorName", "ModelID"]):
