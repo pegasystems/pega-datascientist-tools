@@ -9,3 +9,4 @@ Here you can find some written articles.
    :caption: Notebooks included:
 
    articles/pdstoolsv3
+   articles/thompsonsampling
