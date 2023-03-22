@@ -102,9 +102,11 @@ def readDSExport(
         logging.debug("File found in directory")
         file = os.path.join(path, filename)
     # If we can't find the file locally, we can try
-    # if the file's a URL. If it is, we need to wrap
+    # if the file is a URL. If it is, we need to wrap
     # the file in a BytesIO object, and read the file
-    # fully to disk for pyarrow to read it.
+    # fully to disk for pyarrow to read it. Else we search
+    # the path to see if there is a file named as one
+    # of the default names in getMatches function
     elif _is_url(path, filename):
         logging.debug("File found online, importing and parsing to BytesIO")
         try:
@@ -122,11 +124,6 @@ def readDSExport(
     else:
         logging.debug("File not found in directory, scanning for latest file")
         file = get_latest_file(path, filename)
-
-    # If we can't find the file locally, we can try
-    # if the file's a URL. If it is, we need to wrap
-    # the file in a BytesIO object, and read the file
-    # fully to disk for pyarrow to read it.
 
     if "extension" not in vars():
         name, extension = os.path.splitext(file)
