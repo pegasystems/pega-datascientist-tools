@@ -842,20 +842,20 @@ The plot below shows this relation. Horizontally the model performance (the AUC,
 
 A lot of volume on the first bins, where the performance is minimal, means that a lot of immature models are used. This is sub-optimal in terms of targeting. Ideally there is a smooth curve with a peak in the 60-80 range of AUC. Much higher AUC’s are possibly indicative of immature models or even outcome leakers (although that is effectively prevented by the standard delayed learning pattern). AUC’s below 60 are not uncommon but should be investigated - consider different predictors or outcomes.
 ```{python}
-property = "Performance"
+to_plot = "Performance"
 df = (
-    combinedData.with_columns(pl.col(property) * 100)
-    .groupby([property, "Channel", "Direction"])
+    combinedData.with_columns(pl.col(to_plot) * 100)
+    .groupby([to_plot, "Channel", "Direction"])
     .agg(pl.sum("BinResponseCount"))
-    .with_columns(pl.col(property).round(2))
+    .with_columns(pl.col(to_plot).round(2))
     .collect()
 )
 
 cut_off_value = [percentile for percentile in range(50, 100, 3)]
 
-df_pl = df.get_column(property).fill_null(0).fill_nan(0).cut(bins=cut_off_value, category_label="PerformanceBin").lazy()
+df_pl = df.get_column(to_plot).fill_null(0).fill_nan(0).cut(bins=cut_off_value, category_label="PerformanceBin").lazy()
 join = df.lazy().join(
-    df_pl.select([property, "PerformanceBin"]).unique(), on=property, how="left"
+    df_pl.select([to_plot, "PerformanceBin"]).unique(), on=to_plot, how="left"
 )
 grouped = join.groupby(["Channel", "PerformanceBin"]).agg(pl.sum("BinResponseCount"))
 
@@ -925,23 +925,23 @@ Note that the propensity bins are not of equal width. Propensities are typically
 So when one of the graphs shows more volume on the left, that is to be interpreted as relative to the other graphs.
 
 ```{python}
-property = "Propensity"
-if property == "Propensity" and property not in predictorData.columns:
-    property = "BinPropensity"
-    df = combinedData.filter(pl.col("PredictorName")!="Classifier").groupby([property, "Channel", "Direction"]).agg(pl.sum("BinResponseCount")).with_columns(pl.col(property).round(4)).collect()
+to_plot = "Propensity"
+if to_plot == "Propensity" and to_plot not in predictorData.columns:
+    to_plot = "BinPropensity"
+df = combinedData.filter(pl.col("PredictorName")!="Classifier").groupby([to_plot, "Channel", "Direction"]).agg(pl.sum("BinResponseCount")).with_columns(pl.col(to_plot).round(4)).collect()
 color_col = "Channel"
 smallest_bin = 0
 
 for color in df.get_column(color_col).unique().to_list():
     color_df = df.filter(pl.col(color_col) == color)
-    propensity_list = list(set(color_df.select(property).fill_null(0).fill_nan(0).filter(pl.col(property)>0).get_column(property).to_list()))
+    propensity_list = list(set(color_df.select(to_plot).fill_null(0).fill_nan(0).filter(pl.col(to_plot)>0).get_column(to_plot).to_list()))
     if len(propensity_list) > 0:
         if (np.percentile(propensity_list, 10) > smallest_bin):
             smallest_bin = np.percentile(propensity_list, 10)
             cut_off_value = np.percentile(propensity_list, [percentile for percentile in range(0,101,5)])
 
-df_pl = df.get_column(property).fill_null(0).fill_nan(0).cut(bins=cut_off_value, category_label="propensity").lazy()
-join= df.lazy().join(df_pl.select([property, "propensity"]).unique(), on=property, how="left")
+df_pl = df.get_column(to_plot).fill_null(0).fill_nan(0).cut(bins=cut_off_value, category_label="propensity").lazy()
+join= df.lazy().join(df_pl.select([to_plot, "propensity"]).unique(), on=to_plot, how="left")
 grouped = join.groupby(["Channel","propensity"]).agg(pl.sum("BinResponseCount"))
 
 out = grouped.sort(["Channel","propensity"]).select(
