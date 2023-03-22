@@ -29,12 +29,7 @@ def remove_duplicate_expressions(exprs):
 def import_data(params, default=0, **kwargs):
     config_type = st.selectbox(
         "Data import type",
-        options=[
-            "Sample dataset",
-            "Filepath",
-            "File upload",
-            "S3 Bucket",
-        ],
+        options=["Sample dataset", "Filepath", "File upload", "S3 Bucket"],
         index=default,
     )
     if config_type == "File upload":
@@ -48,7 +43,7 @@ def import_data(params, default=0, **kwargs):
             )
             params["kwargs"] = ADMDatamart_options()
             if st.checkbox("Use this data source"):
-                if model_file is not None:
+                if model_file and predictor_file is not None:
                     data = import_datamart(
                         ADMDatamart,
                         model_df=model_file,
@@ -56,7 +51,10 @@ def import_data(params, default=0, **kwargs):
                         **params["kwargs"],
                     )
                 else:
-                    "Please upload your datamart files."
+                    st.warning(
+                        """Please upload both Model Snapshot and 
+                               Predictor Binning Snapshot."""
+                    )
     elif config_type == "Sample dataset":
         data = import_datamart(datasets.CDHSample)
     elif config_type == "Filepath":
@@ -84,8 +82,6 @@ def import_data(params, default=0, **kwargs):
                     "pyName",
                     "pySnapshotTime",
                 ]
-                import sys
-
                 try:
                     from boto3 import client
                 except ModuleNotFoundError:
@@ -123,6 +119,15 @@ def import_data(params, default=0, **kwargs):
         return params, data
     except UnboundLocalError:
         return params, None
+    except pl.ComputeError:
+        st.write(
+            """Unexpected Time format! 
+                 Please use Edit Parameters button above and enter the date format in 
+                 your files. You can check https://strftime.org/ for formatting
+                 options
+                 """
+        )
+        return None, None
 
 
 @st.cache_resource(show_spinner=True)
@@ -138,7 +143,7 @@ def ADMDatamart_options():
     if st.checkbox("Edit Parameters"):
         extract_treatment = st.checkbox("Extract treatments", False)
         if extract_treatment:
-            params["extract_treatment"] = "pyName"
+            params["extract_keys"] = "pyName"
         context_keys = ["Issue", "Group", "Channel", "Direction"]
         if extract_treatment:
             context_keys.append("Treatment")

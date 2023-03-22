@@ -196,7 +196,8 @@ def test_cdh_sample_autodiscovered_locally():
 
 
 def test_file_not_found_in_good_dir():
-    assert cdh_utils.readDSExport(path="data", filename="models") == None
+    with pytest.raises(ValueError):
+        cdh_utils.readDSExport(path="data", filename="models")
 
 
 def test_file_not_found_in_bad_dir():

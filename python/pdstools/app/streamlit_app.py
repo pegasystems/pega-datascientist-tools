@@ -54,13 +54,11 @@ def run(**kwargs):
         """<hr style="height:1px;border:none;color:#333;background-color:#333;" /> """,
         unsafe_allow_html=True,
     )
-    with st.expander("Export options", expanded=False):
-        output_type = st.selectbox("Export format", ["pdf", "html", "docx"], index=1)
+    with st.expander("Cache Location", expanded=False):
         cache_location = file_loc
-        st.write("Cache location")
         st.code(cache_location)
         params["name"] = params["name"].replace(" ", "_")
-        output_filename = f'HealthCheck_{params["name"]}.{output_type}'
+        output_filename = f'HealthCheck_{params["name"]}.html'
         cwd = os.getcwd()
         quarto_file_name = "HealthCheck.qmd"
         param_file = f"{cache_location}/params.yaml"
@@ -94,7 +92,7 @@ def run(**kwargs):
             )
         except shutil.SameFileError:
             pass
-        bashCommand = f"quarto render {f'{cwd}/{quarto_file_name}'} --to {output_type} --output {output_filename} --execute-params {param_file}"
+        bashCommand = f"quarto render {f'{cwd}/{quarto_file_name}'} --to html --output {output_filename} --execute-params {param_file}"
         params["Command"] = {
             "quarto_file_name": quarto_file_name,
             "bashCommand": bashCommand,

@@ -101,26 +101,16 @@ def readDSExport(
     if os.path.isfile(os.path.join(path, filename)):
         logging.debug("File found in directory")
         file = os.path.join(path, filename)
-    else:
-        logging.debug("File not found in directory, scanning for latest file")
-        file = get_latest_file(path, filename)
-
     # If we can't find the file locally, we can try
     # if the file's a URL. If it is, we need to wrap
     # the file in a BytesIO object, and read the file
     # fully to disk for pyarrow to read it.
-    if file == "Target not found" or file is None:
-        logging.debug("Could not find file in directory, checking if URL")
-        import requests
-
+    elif _is_url(path, filename):
+        logging.debug("File found online, importing and parsing to BytesIO")
         try:
-            response = requests.get(f"{path}/{filename}")
-            logging.info(f"Response: {response}")
-            if response.status_code == 200:
-                logging.debug("File found online, importing and parsing to BytesIO")
-                file = f"{path}/{filename}"
-                file = BytesIO(urllib.request.urlopen(file).read())
-                name, extension = os.path.splitext(filename)
+            file = f"{path}/{filename}"
+            file = BytesIO(urllib.request.urlopen(file).read())
+            name, extension = os.path.splitext(filename)
 
         except Exception as e:
             logging.info(e)
@@ -129,12 +119,45 @@ def readDSExport(
             logging.info(f"File not found: {path}/{filename}")
             return None
 
+    else:
+        logging.debug("File not found in directory, scanning for latest file")
+        file = get_latest_file(path, filename)
+
+    # If we can't find the file locally, we can try
+    # if the file's a URL. If it is, we need to wrap
+    # the file in a BytesIO object, and read the file
+    # fully to disk for pyarrow to read it.
+
     if "extension" not in vars():
         name, extension = os.path.splitext(file)
 
     # Now we should either have a full path to a file, or a
     # BytesIO wrapper around the file. Polars can read those both.
     return import_file(file, extension, **reading_opts)
+
+
+def _is_url(path: str, filename: str):
+    """Checks whether the given path/filename is a url
+
+    Parameters
+    ----------
+    path : str
+        The location of the file
+    filename : str
+        The name of the file
+    
+    Returns
+    -------
+    Union[bool, Response]
+    """
+    import requests
+
+    try:
+        response = requests.get(f"{path}/{filename}")
+        logging.info(f"Response: {response}")
+        return response
+    except:
+        return False
 
 
 def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
@@ -273,13 +296,6 @@ def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
         print(files_dir)  # pragma: no cover
     matches = getMatches(files_dir, target)
 
-    if len(matches) == 0:  # pragma: no cover
-        if verbose:
-            print(
-                f"Unable to find data for {target}. Please check if the data is available."
-            )
-        return None
-
     paths = [os.path.join(path, name) for name in matches]
 
     def f(x):
@@ -325,6 +341,16 @@ def getMatches(files_dir, target):
         match = [file for name in names if re.findall(name.casefold(), file.casefold())]
         if len(match) > 0:
             matches.append(match[0])
+    if len(matches) == 0:
+        raise FileNotFoundError(
+            """Couldn't find a compatible file name. Please try feeding model and predictor filenames seperatly.
+        See https://github.com/pegasystems/pega-datascientist-tools/blob/master/python/pdstools/adm/ADMDatamart.py#L87
+        for usage.
+        
+        Or check out https://github.com/pegasystems/pega-datascientist-tools/blob/master/python/pdstools/utils/cdh_utils.py#L299
+        to see default model and predictor file names that pdstools can find.
+        """
+        )
     return matches
 
 
