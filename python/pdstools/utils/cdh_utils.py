@@ -341,11 +341,12 @@ def getMatches(files_dir, target):
     if len(matches) == 0:
         raise FileNotFoundError(
             """Couldn't find a compatible file name. Please try feeding model and predictor filenames seperatly.
-        See https://github.com/pegasystems/pega-datascientist-tools/blob/master/python/pdstools/adm/ADMDatamart.py#L87
+        See https://github.com/pegasystems/pega-datascientist-tools/blob/master/python/pdstools/adm/ADMDatamart docstring
         for usage.
         
-        Or check out https://github.com/pegasystems/pega-datascientist-tools/blob/master/python/pdstools/utils/cdh_utils.py#L299
-        to see default model and predictor file names that pdstools can find.
+        Or check out https://github.com/pegasystems/pega-datascientist-tools/blob/master/python/pdstools/utils/cdh_utils/
+        get_latest function to see default model and predictor file names that pdstools 
+        can find.
         """
         )
     return matches
