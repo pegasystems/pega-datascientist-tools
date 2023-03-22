@@ -601,9 +601,9 @@ class ADMVisualisations:
 
         title = f"Percentage of models vs number of positive responses {kwargs.get('title_text','')}<br><sup>By {by}</sup>"
         fig = px.line(
-            df.filter(pl.col("ModelCount") > 0).to_pandas(
-                use_pyarrow_extension_array=True
-            ),
+            df.filter(pl.col("ModelCount") > 0)
+            .with_columns(pl.col(by).fill_null("NA"))
+            .to_pandas(use_pyarrow_extension_array=True),
             x="PositivesBin",
             y="cumModels",
             color=by,
