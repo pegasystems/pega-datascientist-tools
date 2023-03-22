@@ -1,11 +1,32 @@
 from dataclasses import dataclass
-from typing import Dict
+from typing import Dict, List
 import pandas as pd
 import streamlit as st
-from ..adm import ADMDatamart, datasets
+from pdstools import ADMDatamart
+from pdstools.utils import datasets
+import polars as pl
 
 
-def import_data(params, default=1):
+def multiFilter(df, q):
+    df = df.lazy()
+    with pl.StringCache():
+        for filter in q:
+            df = df.filter(filter)
+    return df
+
+
+def remove_duplicate_expressions(exprs):
+    expr_dict = {}
+    for expr in exprs:
+        try:
+            expr_dict[expr.meta.root_names()[0]] = expr
+        except:
+            pass
+
+    return list(expr_dict.values())
+
+
+def import_data(params, default=0, **kwargs):
     config_type = st.selectbox(
         "Data import type",
         options=[
@@ -19,11 +40,11 @@ def import_data(params, default=1):
     if config_type == "File upload":
         with st.expander("Upload files", expanded=True):
             model_file = st.file_uploader(
-                "Upload Model Snapshot", type=["json", "zip", "parquet", "csv"]
+                "Upload Model Snapshot", type=["json", "zip", "parquet", "csv", "arrow"]
             )
             predictor_file = st.file_uploader(
                 "Upload Predictor Binning snapshot",
-                type=["json", "zip", "parquet", "csv"],
+                type=["json", "zip", "parquet", "csv", "arrow"],
             )
             params["kwargs"] = ADMDatamart_options()
             if st.checkbox("Use this data source"):
@@ -65,9 +86,10 @@ def import_data(params, default=1):
                 ]
                 import sys
 
-                if "boto3" not in sys.modules:
+                try:
+                    from boto3 import client
+                except ModuleNotFoundError:
                     raise ImportError("To use an S3 connection, please install boto3.")
-                from boto3 import client
 
                 @st.cache(show_spinner=True)
                 def get_from_s3(bucket, key, sql_query):
@@ -92,7 +114,9 @@ def import_data(params, default=1):
                 response = get_from_s3(bucket, key, sql_query)
                 data = import_datamart(
                     ADMDatamart(
-                        model_df=pd.read_json(str("".join(response)), lines=True)
+                        model_df=pd.read_json(
+                            str("".join(response)), lines=True, **kwargs
+                        )
                     )
                 )
     try:
@@ -101,166 +125,154 @@ def import_data(params, default=1):
         return params, None
 
 
-@st.cache(show_spinner=True)
-def import_datamart(fun, *args, **kwargs):
-    return fun(*args, **kwargs)
+@st.cache_resource(show_spinner=True)
+def import_datamart(_fun, *args, **kwargs):
+    dm = _fun(*args, **kwargs)
+    dm.modelData = dm.modelData.collect()
+    dm.predictorData = dm.predictorData.collect()
+    return dm
 
 
 def ADMDatamart_options():
     params = dict()
-    extract_treatment = st.checkbox("Extract treatments", False)
-    if extract_treatment:
-        params["extract_treatment"] = "pyName"
-    context_keys = ["Issue", "Group", "Channel", "Direction"]
-    if extract_treatment:
-        context_keys.append("Treatment")
-    params["context_keys"] = st.multiselect(
-        "Select context keys", context_keys, default=context_keys
-    )
-    params["plotting_engine"] = st.selectbox(
-        "Select engine for plots", ("plotly", "mpl")
-    )
+    if st.checkbox("Edit Parameters"):
+        extract_treatment = st.checkbox("Extract treatments", False)
+        if extract_treatment:
+            params["extract_treatment"] = "pyName"
+        context_keys = ["Issue", "Group", "Channel", "Direction"]
+        if extract_treatment:
+            context_keys.append("Treatment")
+        params["context_keys"] = st.multiselect(
+            "Select context keys", context_keys, default=context_keys
+        )
+        params["plotting_engine"] = "plotly"
+        params["timestamp_fmt"] = st.text_input(
+            "Timestamp format", value="%Y%m%dT%H%M%S.%f %Z"
+        )
     return params
 
 
-def generate_modeldata_filters(df, params):
-    filters, query = None, None
+def generate_modeldata_filters(data: ADMDatamart, params: dict) -> List[pl.Expr]:
+    """Generates and applies filters to our dataframe.
+
+    Parameters
+    ----------
+    data : ADMDatamart
+        Our original, unfiltered datamart class
+    params : dict
+        A dictionary of all configurations,
+        Not really used here except for keeping track of what we do
+
+
+    Returns
+    -------
+    dict
+        Our original params file, updated with
+        whatever queries we've added.
+
+    """
+
+    df = data.modelData.with_column(pl.col(pl.Categorical).cast(pl.Utf8))
+    filtereddf = df
+    st.session_state["filters"] = Filters(df=df)
+    filters = []
 
     if st.checkbox("Add filters"):
-        filters = Filters(df=df, params=params)
-        to_filter = st.multiselect(label="Add filters.", options=filters.all_fields)
-        if len(to_filter) > 0:
-            for col in to_filter:
-                filters.add_filter(col)
+        filters = st.multiselect(label="add filters.", options=df.columns)
+        if len(filters) > 0:
+            for col in filters:
+                st.session_state["filters"].add_filter(col)
+
+        if len(st.session_state["filters"].exprs) > 0:
+            filters = remove_duplicate_expressions(st.session_state["filters"].exprs)
 
     with st.expander("Preview", expanded=False):
-        if filters is not None:
-            query = filters.generatePandasFilters()
-            params["pandasquery"] = str(query)
-        if query != "" and query is not None:
-            st.write("Query to filter dataset:")
-            st.write(query)
+        if len(filters) > 0:
             st.write("#### Preview of the filtered dataset:")
-            filtereddf = df.query(query)
-            st.dataframe(filtereddf.sample(10))
+            filtereddf = multiFilter(df, filters)
+            st.dataframe(filtereddf.collect().to_pandas().head(10))
         else:
             st.write("#### Preview of the dataset")
-            st.dataframe(df.sample(10))
-        return params
+            st.dataframe(df.collect().to_pandas().head(10))
+    params["filters"] = filters
+
+    return filtereddf, params
 
 
 @dataclass
 class Filters:
-    params: Dict
-    df: pd.DataFrame = None
-    categoricals = {
-        "Channel",
-        "Issue",
-        "Group",
-        "Direction",
-        "Treatment",
-        "Configuration",
-    }
-    numericals = {"Positives", "ResponseCount"}
-    dateFields = {"SnapshotTime"}
-    pandasquery = ""
+    df: pl.DataFrame
+    exprs = []
 
-    def __post_init__(self):
-        self.categoricals = self.categoricals.intersection(self.df.columns)
-        self.all_fields = set().union(
-            *[self.categoricals, self.numericals, self.dateFields]
-        )
-
-    def add_filter(self, key):
-        if not "filters" in self.params.keys():
-            self.params["filters"] = dict()
-
-        if key in self.categoricals:
-            self.CategoryFilter(key)
-        elif key in self.numericals:
-            self.ValueFilter(key)
-        elif key in self.dateFields:
-            self.DateFilter()
+    def add_filter(self, column):
+        if self.df.schema[column] in [pl.Utf8, pl.Categorical]:
+            self.exprs.append(self.CategoryFilter(self.df, column))
         else:
-            raise ValueError(f"{key} not known.")
-        self.generatePandasFilters()
+            self.exprs.append(self.ValueFilter(df=self.df, column_name=column))
 
-    def CategoryFilter(self, key):
-        with st.expander(key, expanded=True):
+    @staticmethod
+    def CategoryFilter(df, column_name):
+        with st.expander(column_name, expanded=True):
             filter, selectall = st.columns([3, 1])
             with filter:
                 container = st.container()
             with selectall:
-                all = st.checkbox("Select all", key=f"select_all_{key}")
-                df = (
-                    self.df
-                    if self.pandasquery == ""
-                    else self.df.query(self.pandasquery)
+                all = st.checkbox("Select all", key=f"select_all_{column_name}")
+                options = (
+                    df.select(column_name).unique().collect().to_series().to_list()
                 )
-                options = df[key].unique()
-
                 if all:
-                    self.params["filters"][key] = list(
+                    opts = list(
                         container.multiselect(
-                            f"Filter {key}", options, options, key=f"{key}_all"
+                            f"Filter {column_name}",
+                            options,
+                            options,
+                            key=f"{column_name}_all",
                         )
                     )
+
                 else:
-                    self.params["filters"][key] = list(
-                        container.multiselect(f"Filter {key}", options, key=key)
+                    opts = list(
+                        container.multiselect(
+                            f"Filter {column_name}", options, key=column_name
+                        )
                     )
 
             def format(val):
                 return "Include selection" if val else "Exclude selection"
 
             include = st.selectbox(
-                "Filter method", [True, False], key=f"include_{key}", format_func=format
+                "Filter method",
+                [True, False],
+                key=f"include_{column_name}",
+                format_func=format,
             )
+
+            expr = pl.col(column_name).is_in(opts)
             if not include:
-                self.params["filters"][key] = list(
-                    set(options) - set(self.params["filters"][key])
+                expr = expr.is_not()
+        return expr
+
+    @staticmethod
+    def ValueFilter(df, column_name):
+        with st.expander(column_name, expanded=True):
+            st.write("this is a value filter")
+            valrange = (
+                df.select(
+                    pl.col(column_name).min().alias("min"), pl.col(column_name).max()
                 )
-            if len(self.params["filters"][key]) == 0:
-                del self.params["filters"][key]
-
-    def ValueFilter(self, key):
-        df = self.df if self.pandasquery == "" else self.df.query(self.pandasquery)
-        valrange = (int(df[key].min()), int(df[key].max()))
-        self.params["filters"][key] = list(
-            st.slider(
-                f"Filter on {key}",
-                min_value=valrange[0],
-                max_value=valrange[1],
-                value=(valrange),
-                key=key,
+                .collect()
+                .row(0)
             )
-        )
-
-    def DateFilter(self):
-        last = st.checkbox("Last snapshot only", 0)
-        df = self.df if self.pandasquery == "" else self.df.query(self.pandasquery)
-        time_range = list(
-            {time.strftime("%Y-%m-%d %H:%m:%S") for time in df.SnapshotTime.unique()}
-        )
-        if len(time_range) > 1 and not last:
-            self.params["filters"]["SnapshotTime"] = st.select_slider(
-                "Time range", time_range, value=(time_range[0], time_range[-1])
+            min, max = tuple(
+                st.slider(
+                    f"Filter on {column_name}",
+                    min_value=valrange[0],
+                    max_value=valrange[1],
+                    value=(valrange),
+                    key=column_name,
+                )
             )
-
-    def CustomFilter(self):
-        """Custom query
-        You can also supply a custom query.
-        This query should be formatted according to Pandas' `query` functionality."""
-        raise NotImplementedError()
-
-    def generatePandasFilters(self):
-        pandasquery = []
-        if "filters" not in self.params.keys() or len(self.params["filters"]) == 0:
-            return ""
-        for name, filter in self.params["filters"].items():
-            if name in self.categoricals:
-                pandasquery.append(f"{name} in {list(filter)}")
-            if name in self.numericals:
-                pandasquery.append(f"{filter[0]} <= {name} <= {filter[1]}")
-        self.pandasquery = " and ".join(pandasquery)
-        return self.pandasquery
+            st.write(f"key:{column_name}, min:{min}, max:{max}")
+            st.write()
+            return pl.col(column_name).is_between(min, max)

@@ -19,7 +19,7 @@ Functions
 
 
 
-.. py:function:: CDHSample(plotting_engine='plotly', query=None)
+.. py:function:: CDHSample(plotting_engine='plotly', query=None, **kwargs)
 
 
 .. py:function:: SampleTrees()

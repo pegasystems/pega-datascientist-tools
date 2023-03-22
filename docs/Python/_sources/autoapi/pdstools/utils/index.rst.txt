@@ -12,5 +12,9 @@ Submodules
 
    cdh_utils/index.rst
    datasets/index.rst
+   errors/index.rst
+   hds_utils/index.rst
+   pega_template/index.rst
+   types/index.rst
 
 

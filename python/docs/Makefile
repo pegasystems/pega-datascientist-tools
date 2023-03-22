@@ -3,7 +3,7 @@
 
 # You can set these variables from the command line, and also
 # from the environment for the first two.
-SPHINXOPTS    ?=
+SPHINXOPTS    ?= -j auto
 SPHINXBUILD   ?= sphinx-build
 SOURCEDIR     = source
 BUILDDIR      = build
@@ -26,10 +26,11 @@ help:
 
 %: Makefile
 	mkdir -p source/articles
-	cp ../../examples/datamart/Example_ADM_Analysis.ipynb ../../examples/graph_gallery/graph_gallery.ipynb ../../examples/helloworld/hello_cdhtools.ipynb ../../examples/valuefinder/* ../../examples/adm/AGBModelVisualisation.ipynb source/articles
+	cp ../../examples/datamart/Example_ADM_Analysis.ipynb ../../examples/graph_gallery/graph_gallery.ipynb ../../examples/helloworld/hello_cdhtools.ipynb ../../examples/valuefinder/* ../../examples/adm/AGBModelVisualisation.ipynb ../../examples/hds/Example_Data_Anonymization.ipynb ../../examples/articles/*.ipynb source/articles
 	mkdir ../../docs/Python/tmp
 	rm -r ../../docs/Python/*
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	rm -rf source/articles/output
 	rm source/articles/*
 	mv build/html/* ../../docs/Python
 	rm build/html/.buildinfo

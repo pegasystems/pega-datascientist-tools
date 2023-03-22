@@ -1,93 +1,82 @@
-import base64
-import copy
-import json
 import logging
 import os
-import zlib
-from datetime import timedelta
-from typing import Dict, NoReturn, Optional, Tuple, Union
+from datetime import timedelta, datetime
+from typing import Dict, NoReturn, Optional, Tuple, Union, Literal, Any
 from io import BytesIO
-
-import numpy as np
-import pandas as pd
+import polars as pl
 
 from ..utils import cdh_utils
-from .ADMTrees import ADMTrees, ADMTreesModel, MultiTrees
+from ..utils.types import any_frame
+from .ADMTrees import ADMTrees
 from ..plots.plot_base import Plots
-from ..plots.plots_mpl import ADMVisualisations as mpl_plot
 from ..plots.plots_plotly import ADMVisualisations as plotly_plot
+from ..utils.errors import NotEagerError
 
 
 class ADMDatamart(Plots):
-    """Main class for importing, preprocessing and structuring Pega ADM Datamart snapshot data.
+    """Main class for importing, preprocessing and structuring Pega ADM Datamart.
     Gets all available data, properly names and merges into one main dataframe
 
     Parameters
     ----------
     path : str, default = "."
         The path of the data files
-    overwrite_mapping : dict, default = None
-        A dictionary to overwrite default feature names in the input data
-    query : Union[str, dict], default = None
-        The query to supply to _apply_query
-        If a string, uses the default Pandas query function
-        Else, a dict of lists where the key is the column name of the dataframe
-        and the corresponding value is a list of values to keep in the dataframe
-        Can be applied to an individual function, or used here to apply to the whole dataset
-    plotting_engine : str, default = "plotly"
-        Either 'mpl' for matplotlib, or 'plotly' for plotly.
-        Determines what package to use for plotting.
-        Can also be supplied to most plotting functions directly.
-
+    import_strategy: Literal['eager', 'lazy'], default = 'eager'
+        Whether to import the file fully to memory, or scan the file
+        When data fits into memory, 'eager' is typically more efficient
+        However, when data does not fit, the lazy methods typically allow
+        you to still use the data.
 
     Keyword arguments
     -----------------
-    verbose : bool
-        Whether to print out information during importing
-    model_filename : str
+    model_filename : Optional[str]
         The name, or extended filepath, towards the model file
-    predictor_filename : str
+    predictor_filename : Optional[str]
         The name, or extended filepath, towards the predictors file
-    model_df : pd.DataFrame
+    model_df : Union[pl.DataFrame, pl.LazyFrame, pd.DataFrame]
         Optional override to supply a dataframe instead of a file
-    predictor_df : pd.DataFrame
+    predictor_df : Union[pl.DataFrame, pl.LazyFrame, pd.DataFrame]
         Optional override to supply a dataframe instead of a file
+    query : Union[pl.Expr, str, Dict[str, list]], default = None
+        Please refer to :meth:`._apply_query`
+    plotting_engine : str, default = "plotly"
+        Please refer to :meth:`.get_engine`
     subset : bool, default = True
-        Whether to only select the renamed columns,
-        set to False to keep all columns
-    drop_cols = list
-        Supply columns to drop from the dataframe
-    include_cols = list
-        Supply columns to include with the dataframe
-    prequery : str
-        A way to apply a query to the data before any preprocessing
-        Uses the Pandas querying function, and beware that the columns
-        have not been renamed, so use the original naming
-    context_keys : list
+        Whether to only keep a subset of columns for efficiency purposes
+        Refer to :meth:`_available_columns` for the default list of columns.
+    drop_cols  Optional[list]
+        Columns to exclude from reading
+    include_cols : Optional[list]
+        Additionial columns to include when reading
+    context_keys : list, default = ["Channel", "Direction", "Issue", "Group"]
         Which columns to use as context keys
-    extract_treatment : str
-        Treatments are typically hidden within the pyName column,
-        extract_treatment can expand that cell to also show treatments.
-        To extract, give the column name as the 'extract_treatment' argument
-    force_pandas : bool
-        If pyarrow is installed, you can force the import through Pandas
-
-    Notes
-    ----------------------------
-    Depending on the importing function, typically it is possible to
-    supply more arguments. For instance, if the importing is done through
-    Pandas (because pyarrow is not installed or through force_pandas),
-    you can supply the column separator from the pandas function as a keyword argument
+    extract_keys : bool, default = False
+        Extra keys, particularly pyTreatment, are hidden within the pyName column.
+        extract_keys can expand that cell to also show these values.
+        To extract these extra keys, set extract_keys to True.
+    verbose : bool, default = False
+        Whether to print out information during importing
+    **reading_opts
+        Additional parameters used while reading.
+        Refer to :meth:`pdstools.utils.cdh_utils.import_file` for more info.
 
     Attributes
     ----------
-    modelData : pd.DataFrame
+    modelData : pl.LazyFrame
         If available, holds the preprocessed data about the models
-    predictorData : pd.DataFrame
+    predictorData : pl.LazyFrame
         If available, holds the preprocessed data about the predictor binning
-    combinedData : pd.DataFrame
+    combinedData : pl.LazyFrame
         If both modelData and predictorData are available,
         holds the merged data about the models and predictors
+    import_strategy
+        See the `import_strategy` parameter
+    query
+        See the `query` parameter
+    context_keys
+        See the `context_keys` parameter
+    verbose
+        See the `verbose` parameter
 
 
     Examples
@@ -105,59 +94,96 @@ class ADMDatamart(Plots):
     def __init__(
         self,
         path: str = ".",
-        overwrite_mapping: Optional[dict] = None,
-        query: Union[str, Dict[str, list]] = None,
-        plotting_engine="plotly",
-        **kwargs,
+        import_strategy: Literal["eager", "lazy"] = "eager",
+        *,
+        model_filename: Optional[str] = "modelData",
+        predictor_filename: Optional[str] = "predictorData",
+        model_df: Optional[any_frame] = None,
+        predictor_df: Optional[any_frame] = None,
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
+        subset: bool = True,
+        drop_cols: Optional[list] = None,
+        include_cols: Optional[list] = None,
+        context_keys: list = ["Channel", "Direction", "Issue", "Group"],
+        extract_keys: bool = False,
+        plotting_engine: Union[str, Any] = "plotly",
+        verbose: bool = False,
+        **reading_opts,
     ):
+        self.import_strategy = import_strategy
+        self.context_keys = context_keys
+        self.verbose = verbose
+        self.query = query
 
-        self.context_keys = kwargs.pop(
-            "context_keys", ["Channel", "Direction", "Issue", "Group"]
-        )
         self.modelData, self.predictorData = self.import_data(
-            path, overwrite_mapping=overwrite_mapping, query=query, **kwargs
+            path,
+            model_filename=model_filename,
+            predictor_filename=predictor_filename,
+            model_df=model_df,
+            predictor_df=predictor_df,
+            subset=subset,
+            drop_cols=drop_cols,
+            include_cols=include_cols,
+            extract_keys=extract_keys,
+            **reading_opts,
         )
+
         if self.modelData is not None and self.predictorData is not None:
-            self.combinedData = self.get_combined_data()
-        else:
-            if kwargs.get("verbose", True):
-                print(
-                    "Could not be combined. Do you have both model data and predictor data?"
-                )
+            self.combinedData = self._get_combined_data(strategy=self.import_strategy)
+        elif verbose:
+            print(
+                "Could not be combined. Do you have both model data and predictor data?"
+            )
+        self.context_keys = (
+            [key for key in self.context_keys if key in self.modelData.columns]
+            if self.modelData is not None
+            else context_keys
+        )
 
         self.plotting_engine = plotting_engine
         super().__init__()
 
     @staticmethod
     def get_engine(plotting_engine):
+        """Which engine to use for creating the plots.
+
+        By supplying a custom class here, you can re-use the pdstools functions
+        but create visualisations to your own specifications, in any library.
+        """
         if not isinstance(plotting_engine, str):
             return plotting_engine
         elif plotting_engine == "plotly":
             return plotly_plot
-        elif plotting_engine in {"mpl", "matplotlib", "seaborn"}:
-            return mpl_plot
         else:
             msg = (
                 f"Plotting engine {plotting_engine} not known. "
                 "Please supply your own class with function names corresponding to plot_base.py "
-                "or give one of the following strings: {'plotly', 'mpl', 'matplotlib', 'seaborn'}."
+                "or pass 'Plotly' to use the default engine."
             )
             raise ValueError(msg)
 
     def import_data(
         self,
         path: Optional[str] = ".",
-        overwrite_mapping: Optional[dict] = None,
+        *,
+        model_filename: Optional[str] = "modelData",
+        predictor_filename: Optional[str] = "predictorData",
+        model_df: Optional[any_frame] = None,
+        predictor_df: Optional[any_frame] = None,
         subset: bool = True,
-        model_df: Optional[pd.DataFrame] = None,
-        predictor_df: Optional[pd.DataFrame] = None,
-        query: Union[str, Dict[str, list]] = None,
-        **kwargs,
-    ) -> Union[pd.DataFrame, pd.DataFrame]:
-        """Method to automatically import & format the relevant data.
+        drop_cols: Optional[list] = None,
+        include_cols: Optional[list] = None,
+        extract_keys: bool = False,
+        verbose: bool = False,
+        **reading_opts,
+    ) -> Tuple[Optional[pl.LazyFrame], Optional[pl.LazyFrame]]:
+        """Method to import & format the relevant data.
 
         The method first imports the model data, and then the predictor data.
         If model_df or predictor_df is supplied, it will use those instead
+        If any filters are included in the the `query` argument of the ADMDatmart,
+        those will be applied to the modeldata, and the predictordata will be
+        filtered such that it only contains the modelids leftover after filtering.
         After reading, some additional values (such as success rate) are
         automatically computed.
         Lastly, if there are missing columns from both datasets,
@@ -168,9 +194,6 @@ class ADMDatamart(Plots):
         path : str
             The path of the data files
             Default = current path (',')
-        overwrite_mapping : dict
-            A dictionary to overwrite default feature names in the input data
-            Default = None
         subset : bool, default = True
             Whether to only select the renamed columns,
             set to False to keep all columns
@@ -178,75 +201,80 @@ class ADMDatamart(Plots):
             Optional override to supply a dataframe instead of a file
         predictor_df : pd.DataFrame
             Optional override to supply a dataframe instead of a file
-        query : Union[str, dict], default = None
-            The query to supply to _apply_query
-            If a string, uses the default Pandas query function
-            Else, a dict of lists where the key is the column name of the dataframe
-            and the corresponding value is a list of values to keep in the dataframe
 
         Returns
         -------
-        (pd.DataFrame, pd.DataFrame)
+        (pl.DataFrame, pl.DataFrame)
             The model data and predictor binning data as dataframes
         """
-        verbose = kwargs.pop("verbose", True)
-        model_filename = kwargs.pop("model_filename", "modelData")
-        predictor_filename = kwargs.pop("predictor_filename", "predictorData")
 
         if model_df is not None:
             df1, self.renamed_model, self.missing_model = self._import_utils(
-                name=model_df, subset=subset, query=query, verbose=verbose, **kwargs
+                name=model_df,
+                subset=subset,
+                drop_cols=drop_cols,
+                include_cols=include_cols,
+                extract_keys=extract_keys,
+                **reading_opts,
             )
         else:
             df1, self.renamed_model, self.missing_model = self._import_utils(
-                model_filename,
-                path,
-                overwrite_mapping,
-                subset,
-                query=query,
-                verbose=verbose,
-                **kwargs,
+                name=model_filename,
+                path=path,
+                subset=subset,
+                drop_cols=drop_cols,
+                include_cols=include_cols,
+                extract_keys=extract_keys,
+                **reading_opts,
             )
         if df1 is not None:
-            df1["SuccessRate"] = (
-                df1["Positives"] / df1["ResponseCount"] if df1 is not None else None
+            df1 = df1.with_columns(
+                (pl.col("Positives") / pl.col("ResponseCount"))
+                .fill_nan(pl.lit(0))
+                .alias("SuccessRate"),
+                self._last_timestamp("Positives"),
+                self._last_timestamp("ResponseCount"),
             )
-            df1["SuccessRate"] = df1["SuccessRate"].fillna(0)
-
         if predictor_df is not None:
             df2, self.renamed_preds, self.missing_preds = self._import_utils(
                 name=predictor_df,
+                drop_cols=drop_cols,
+                include_cols=include_cols,
                 subset=subset,
-                query=query,
-                verbose=verbose,
-                **kwargs,
+                **reading_opts,
             )
         else:
             df2, self.renamed_preds, self.missing_preds = self._import_utils(
-                predictor_filename,
-                path,
-                overwrite_mapping,
-                subset,
-                query=query,
-                verbose=verbose,
-                **kwargs,
+                name=predictor_filename,
+                path=path,
+                drop_cols=drop_cols,
+                include_cols=include_cols,
+                subset=subset,
+                **reading_opts,
             )
         if df2 is not None:
-            if "BinResponseCount" not in df2.columns:
-                df2["BinResponseCount"] = df2["BinPositives"] + df2["BinNegatives"]
-            df2["BinPropensity"] = (
-                df2["BinPositives"] / df2["BinResponseCount"]
-                if df2 is not None
-                else None
+            if "BinResponseCount" not in df2.columns:  # pragma: no cover
+                df2 = df2.with_columns(
+                    (pl.col("BinPositives") + pl.col("BinNegatigves")).alias(
+                        "BinResponseCount"
+                    )
+                )
+            df2 = df2.with_columns(
+                (pl.col("BinPositives") / pl.col("BinResponseCount")).alias(
+                    "BinPropensity"
+                ),
+                (
+                    (pl.col("BinPositives") + pl.lit(0.5))
+                    / (pl.col("BinResponseCount") + pl.lit(1))
+                ).alias("BinAdjustedPropensity"),
             )
-            df2["BinAdjustedPropensity"] = (0.5 + df2["BinPositives"]) / (
-                1 + df2["BinResponseCount"]
-            )
+
         if df1 is not None and df2 is not None:
-            total_missing = set(self.missing_model) & set(self.missing_preds) - set(
-                df1.columns
-            ) - set(df2.columns)
-            if len(total_missing) > 0 and verbose:
+            total_missing = (
+                set(self.missing_model)
+                & set(self.missing_preds) - set(df1.columns) - set(df2.columns)
+            ) - {"Treatment"}
+            if len(total_missing) > 0 and verbose:  # pragma: no cover
                 print(
                     "Missing expected field values.\n",
                     "Please check if they are available in the data,\n",
@@ -254,54 +282,50 @@ class ADMDatamart(Plots):
                     f"Missing values: {total_missing}",
                 )
 
+            if self.query is not None:
+                df2 = df2.join(df1.select(pl.col("ModelID").unique()), on="ModelID")
+
+        if self.import_strategy == "eager":
+            if df1 is not None:
+                df1 = df1.collect().lazy()
+            if df2 is not None:
+                df2 = df2.collect().lazy()
         return df1, df2
 
     def _import_utils(
         self,
-        name: Union[str, pd.DataFrame],
-        path: str = None,
-        overwrite_mapping: dict = None,
+        name: Union[str, any_frame],
+        path: Optional[str] = None,
+        *,
         subset: bool = True,
-        query: Union[str, Dict[str, list]] = None,
-        verbose: bool = True,
-        **kwargs,
-    ) -> Tuple[pd.DataFrame, dict, dict]:
+        extract_keys: bool = False,
+        drop_cols: Optional[list] = None,
+        include_cols: Optional[list] = None,
+        **reading_opts,
+    ) -> Tuple[pl.LazyFrame, dict, dict]:
         """Handler function to interface to the cdh_utils methods
 
         Parameters
         ----------
-        name : Union[str, pd.DataFrame]
+        name : Union[str, pl.DataFrame]
             One of {modelData, predictorData}
             or a dataframe
         path: str, default = None
             The path of the data file
-        overwrite_mapping : dict, default = None
-            A dictionary to overwrite default feature names in the input data
-        subset : bool, default = True
-            Whether to only select the renamed columns,
-            set to False to keep all columns
-        query : Union[str, dict], default = None
-            The query to supply to _apply_query
-            If a string, uses the default Pandas query function
-            Else, a dict of lists where the key is the column name of the dataframe
-            and the corresponding value is a list of values to keep in the dataframe
-        verbose : bool
-            Whether to print out information during importing
+
 
         Keyword arguments
         -----------------
+        subset : bool, default = True
+            Whether to only select the renamed columns,
+            set to False to keep all columns
         drop_cols : list
             Supply columns to drop from the dataframe
         include_cols : list
             Supply columns to include with the dataframe
-        prequery : str
-            A way to apply a query to the data before any preprocessing
-            Uses the Pandas querying function, and beware that the columns
-            have not been renamed, so use the original naming
-        extract_treatment : str
+        extract_keys : bool
             Treatments are typically hidden within the pyName column,
-            extract_treatment can expand that cell to also show treatments.
-            To extract, give the column name as the 'extract_treatment' argument
+            extract_keys can expand that cell to also show these values.
 
         Additional keyword arguments
         -----------------
@@ -309,194 +333,173 @@ class ADMDatamart(Plots):
 
         Returns
         -------
-        (pd.DataFrame, dict, dict)
+        (pl.LazyFrame, dict, dict)
             The requested dataframe,
             The renamed columns
             The columns missing in both dataframes
         """
 
-        extract_col = kwargs.pop("extract_treatment", None)
-        drop_cols = kwargs.pop("drop_cols", None)
         if isinstance(name, str) or isinstance(name, BytesIO):
             df = cdh_utils.readDSExport(
-                filename=name, path=path, verbose=verbose, **kwargs
+                filename=name, path=path, verbose=self.verbose, **reading_opts
             )
+        elif isinstance(name, pl.DataFrame) or isinstance(name, pl.LazyFrame):
+            df = name.lazy()
         else:
-            df = name
-        if not isinstance(df, pd.DataFrame):
             return None, None, None
-        df = self.fix_pdc(df)
-        self.after_pdf_fix = df
 
-        if not isinstance(overwrite_mapping, dict):
-            overwrite_mapping = {}
         self.model_snapshots = True
 
-        if kwargs.get("prequery", None) is not None:
-            try:
-                df = df.query(kwargs.get("prequery"))
-            except:
-                if verbose:
-                    print("Error with prequery")
-                pass
-
-        if drop_cols is not None:
-            for i in drop_cols:
-                try:
-                    df.drop(i, axis=1, inplace=True)
-                except:
-                    if verbose:
-                        print("Error dropping column", i)
-                    pass
-
-        if extract_col is not None and extract_col in df.columns:
-            df, overwrite_mapping = self.extract_treatments(
-                df.reset_index(drop=True), overwrite_mapping, extract_col
-            )
-
-        df.columns = cdh_utils._capitalize(list(df.columns))
-        df, renamed, missing = self._available_columns(df, overwrite_mapping, **kwargs)
+        df = cdh_utils._polarsCapitalize(df)
+        cols, missing = self._available_columns(
+            df, include_cols=include_cols, drop_cols=drop_cols
+        )
         if subset:
-            df = df[renamed.values()]
+            df = df.select(cols)
+        if extract_keys:
+            df = self.extract_keys(df)
+            df = cdh_utils._polarsCapitalize(df)
 
-        df = self._set_types(df, verbose)
+        df = self._set_types(
+            df,
+            timestamp_fmt=reading_opts.get("timestamp_fmt", "%Y%m%dT%H%M%S.%f %Z"),
+            strict_conversion=reading_opts.get("strict_conversion", True),
+        )
 
-        if query is not None:
+        if self.query is not None:
             try:
-                df = self._apply_query(df, query)
-                if verbose:
+                df = self._apply_query(df, self.query)
+                if self.verbose:
                     print(f"Query succesful for {name}.")
-            except:
-                if verbose:
+            except pl.ColumnNotFoundError:
+                if self.verbose:
                     print(
                         f"""Query unsuccesful for {name}.
                 Maybe the filter you selected only applies to either model data or predictor data
                 and thus can't be succesful for the other one. That should be fine
                 as the other table is likely queried correctly."""
                     )
-        return df, renamed, missing
+        return df, cols, missing
 
     def _available_columns(
-        self, df: pd.DataFrame, overwrite_mapping: Optional[dict] = None, **kwargs
-    ) -> Tuple[pd.DataFrame, dict, list]:
+        self,
+        df: pl.LazyFrame,
+        include_cols: Optional[list] = None,
+        drop_cols: Optional[list] = None,
+    ) -> Tuple[set, set]:
         """Based on the default names for variables, rename available data to proper formatting
 
         Parameters
         ----------
-        df : pd.DataFrame
+        df : pl.LazyFrame
             Input dataframe
-        overwrite_mapping : dict
-            If given, adds 'search terms' to the default names to look for
-            If an extra variable is given which is not in default_names, it will also be included
-
-        Keyword arguments
-        -----------------
         include_cols : list
             Supply columns to include with the dataframe
+        drop_cols : list
+            Supply columns to not import at all
 
         Returns
         -------
-        (pd.DataFrame, dict, list)
+        (pl.LazyFrame, set, set)
             The original dataframe, but renamed for the found columns &
             The original and updated names for all renamed columns &
             The variables that were not found in the table
         """
         default_names = {
-            "ModelID": ["ModelID"],
-            "Issue": ["Issue"],
-            "Group": ["Group"],
-            "Channel": ["Channel"],
-            "Direction": ["Direction"],
-            "ModelName": ["Name", "ModelName"],
-            "Positives": ["Positives"],
-            "Configuration": ["ConfigurationName", "Configuration"],
-            "ResponseCount": ["Response", "Responses", "ResponseCount"],
-            "SnapshotTime": ["ModelSnapshot", "SnapshotTime"],
-            "PredictorName": ["PredictorName"],
-            "Performance": ["Performance"],
-            "EntryType": ["EntryType"],
-            "PredictorName": ["PredictorName"],
-            "BinSymbol": ["BinSymbol"],
-            "BinIndex": ["BinIndex"],
-            "BinType": ["BinType"],
-            "BinPositives": ["BinPositives"],
-            "BinNegatives": ["BinNegatives"],
-            "BinResponseCount": ["BinResponseCount"],
-            "Type": ["Type"],
-            "Contents": ["Contents"],
+            "ModelID",
+            "Issue",
+            "Group",
+            "Channel",
+            "Direction",
+            "Name",
+            "Treatment",
+            "Positives",
+            "Configuration",
+            "ResponseCount",
+            "SnapshotTime",
+            "PredictorName",
+            "Performance",
+            "EntryType",
+            "PredictorName",
+            "BinSymbol",
+            "BinIndex",
+            "BinType",
+            "BinPositives",
+            "BinNegatives",
+            "BinResponseCount",
+            "Type",
+            "Contents",
         }  # NOTE: these default names are already capitalized properly, with py/px/pz removed.
 
-        if len(kwargs.get("include_cols", [])) > 0:
-            for i in kwargs.pop("include_cols", []):
-                overwrite_mapping[i] = i
+        rename = {i: "Name" for i in df.columns if i.lower() == "modelname"}
+        if len(rename) > 0:
+            df = df.rename(rename)
 
-        if overwrite_mapping is not None and len(overwrite_mapping) > 0:
-            old_keys = list(overwrite_mapping.keys())
-            new_keys = cdh_utils._capitalize(list(old_keys))
-            for i, _ in enumerate(new_keys):
-                overwrite_mapping[new_keys[i]] = overwrite_mapping.pop(old_keys[i])
+        include_cols = (
+            set(cdh_utils._capitalize(include_cols)) if include_cols is not None else {}
+        )
+        drop_cols = (
+            set(cdh_utils._capitalize(drop_cols)) if drop_cols is not None else {}
+        )
 
-            for key, name in overwrite_mapping.items():
-                name = cdh_utils._capitalize([name])[0]
-                default_names[key] = [name]
+        include_cols = default_names.union(include_cols).difference(drop_cols)
+        missing = {col for col in include_cols if col not in df.columns}
+        to_import = include_cols.intersection(set(df.columns))
 
-        variables = copy.deepcopy(default_names)
-        for key, values in default_names.items():
-            variables[key] = [name for name in values if name in df.columns]
-        missing = [x for x, y in variables.items() if len(y) == 0]
-        variables = {y[0]: x for x, y in variables.items() if len(y) > 0}
-        df = df.rename(columns=variables)
-
-        return df, variables, missing
+        return to_import, missing
 
     @staticmethod
-    def _set_types(df: pd.DataFrame, verbose=True) -> pd.DataFrame:
+    def _set_types(
+        df: any_frame,
+        *,
+        timestamp_fmt: str = "%Y%m%dT%H%M%S.%f %Z",
+        strict_conversion: bool = True,
+    ) -> any_frame:
         """A method to change columns to their proper type
 
         Parameters
         ----------
-        df : pd.DataFrame
+        df : Union[pl.DataFrame, pl.LazyFrame]
             The input dataframe
-        verbose: bool, default = True
-            Whether to print out issues with casting variable types
 
+        Keyword arguments
+        -----------------
+        timestamp_fmt: str
+            The format of Date type columns
+        strict_conversion: bool
+            Raises an error if timestamp conversion to given/default date format(timestamp_fmt) fails
+            See 'https://strftime.org/' for timestamp formats
         Returns
         -------
-        pd.DataFrame
+        Union[pl.DataFrame, pl.LazyFrame]
             The input dataframe, but the proper typing applied
         """
-        flag = False
-        for col in {"Issue", "Group", "Channel", "Direction", "ModelName"} & set(
-            df.columns
-        ):
-            df[col] = df[col].astype(str)
-
-        for col in {"Positives", "Negatives", "ResponseCount"} & set(df.columns):
-            try:
-                df[col] = df[col].astype(float).astype(int)
-            except:
-                flag = True
-                pass
-        if flag and verbose:
-            print(
-                """Warning: there were some issues casting the Positives/Negatives values to int.
-        Please make sure to check missing values or otherwise incorrect values for those columns.
-        If any issues arise you may use the 'query' argument to filter those out."""
+        retype = {
+            pl.Categorical: ["Issue", "Group", "Channel", "Direction", "Configuration"],
+            # pl.Int64: ["Positives", "Negatives", "ResponseCount"],
+            pl.Float64: ["Performance"],
+        }
+        to_retype = []
+        for type, cols in retype.items():
+            for col in cols:
+                if col in set(df.columns):
+                    to_retype.append(pl.col(col).cast(type))
+        df = df.with_columns(to_retype)
+        if "SnapshotTime" not in df.columns:
+            df = df.with_columns(SnapshotTime=None)
+        elif df.schema["SnapshotTime"] == pl.Utf8:
+            df = df.with_columns(
+                pl.col("SnapshotTime").str.strptime(
+                    pl.Datetime,
+                    timestamp_fmt,
+                    strict=strict_conversion,
+                )
             )
-
-        for col in {"Performance"} & set(df.columns):
-            df[col] = df[col].astype(float)
-        if 'SnapshotTime' not in df.columns:
-            df['SnapshotTime'] = np.nan
-        try:
-            df["SnapshotTime"] = pd.to_datetime(df["SnapshotTime"])
-        except Exception:
-            if verbose:
-                print("Warning: Unable to format timestamps.")
-
         return df
 
-    def last(self, table="modelData") -> pd.DataFrame:
+    def last(
+        self, table="modelData", strategy: Literal["eager", "lazy"] = "eager"
+    ) -> any_frame:
         """Convenience function to get the last values for a table
 
         Parameters
@@ -504,72 +507,81 @@ class ADMDatamart(Plots):
         table : str, default = modelData
             Which table to get the last values for
             One of {modelData, predictorData, combinedData}
+        strategy: Literal['eager', 'lazy'], default = 'eager'
+            Whether to import the file fully to memory, or scan the file
+            When data fits into memory, 'eager' is typically more efficient
+            However, when data does not fit, the lazy methods typically allow
+            you to still use the data.
 
         Returns
         -------
-        pd.DataFrame
+        Union[pl.DataFrame, pl.LazyFrame]
             The last snapshot for each model
         """
 
-        if isinstance(table, pd.DataFrame):
-            return self._last(table)
+        if isinstance(table, pl.LazyFrame):
+            df = self._last(table)
 
-        if isinstance(table, str):
+        elif isinstance(table, str):
             assert table in {"modelData", "predictorData", "combinedData"}
-            return self._last(getattr(self, table))
+            df = self._last(getattr(self, table))
+        else:  # pragma: no cover
+            raise ValueError("This should not happen, please file a GitHub issue :).")
+        return df if not strategy == "eager" else df.collect()
 
     @staticmethod
-    def _last(df: pd.DataFrame) -> pd.DataFrame:
-        """Method to retrieve only the last values for a given dataframe."""
-        # NOTE Maybe we don't need to groupby predictorname
-        df = copy.deepcopy(df)
-        if "PredictorName" in df.columns:
-            lastTimestamp = str(
-                list(df.sort_values("SnapshotTime")["SnapshotTime"][-1:])[0]
-            )
-            return df.query(f"SnapshotTime == '{lastTimestamp}'")
+    def _last(df: any_frame) -> any_frame:
+        """Method to retrieve only the last snapshot."""
+        return df.filter(
+            pl.col("SnapshotTime").fill_null(1)
+            == pl.col("SnapshotTime").fill_null(1).max()
+        )
 
-        elif "PredictorName" not in df.columns:
-            return (
-                df.sort_values("SnapshotTime").groupby(["ModelID"]).last().reset_index()
-            )
+    @staticmethod
+    def _last_timestamp(col: Literal["ResponseCount", "Positives"]) -> pl.Expr:
+        """Add a column to indicate the last timestamp a column has changed.
 
-    def get_combined_data(
-        self,
-        modelData: pd.DataFrame = None,
-        predictorData: pd.DataFrame = None,
-        last=True,
-    ) -> pd.DataFrame:
+        Parameters
+        ----------
+        col : Literal['ResponseCount', 'Positives']
+            The column to calculate the diff for
+        """
+
+        return (
+            pl.col("SnapshotTime")
+            .where(pl.col(col).diff() != 0)
+            .max()
+            .over("ModelID")
+            .alias(f"Last_{col}")
+        )
+
+    def _get_combined_data(
+        self, last=True, strategy: Literal["eager", "lazy"] = "eager"
+    ) -> any_frame:
         """Combines the model data and predictor data into one dataframe.
 
         Parameters
         ----------
-        modelData : pd.DataFrame
-            Optional dataframe to override 'self.modelData' for merging
-        predictorData : pd.DataFrame
-            Optional dataframe to override 'self.predictorData' for merging
+        last:bool, default=True
+            Whether to only use the last snapshot for each table
+        strategy: Literal['eager', 'lazy'], default = 'eager'
+            Whether to import the file fully to memory, or scan the file
+            When data fits into memory, 'eager' is typically more efficient
+            However, when data does not fit, the lazy methods typically allow
+            you to still use the data.
 
         Returns
         -------
-        pd.DataFrame
+        Union[pl.DataFrame, pl.LazyFrame]
             The combined dataframe
         """
-        models = (
-            self.last(self.modelData)
-            if last
-            else self.modelData
-            if modelData is None
-            else modelData
-        )
-        preds = (
-            self.last(self.predictorData)
-            if last
-            else self.predictorData
-            if predictorData is None
-            else predictorData
-        )
-        combined = models.merge(preds, on="ModelID", how="inner", suffixes=("", "Bin"))
-        return combined
+        models = self.last(self.modelData, "lazy") if last else self.modelData
+        preds = self.last(self.predictorData, "lazy") if last else self.predictorData
+        combined = models.join(preds, on="ModelID", how="inner", suffix="Bin")
+        if strategy == "eager":
+            return combined.collect().lazy()
+        else:
+            return combined
 
     def save_data(self, path: str = ".") -> Tuple[os.PathLike, os.PathLike]:
         """Cache modelData and predictorData to files.
@@ -586,7 +598,7 @@ class ADMDatamart(Plots):
         """
         from datetime import datetime
 
-        time = cdh_utils.toPRPCDateTime(datetime.now())
+        time = datetime.now().strftime("%Y%m%dT%H%M%S.%f")[:-3]
         if self.modelData is not None:
             modeldata_cache = cdh_utils.cache_to_file(
                 self.modelData, path, name=f"cached_modelData_{time}"
@@ -597,118 +609,141 @@ class ADMDatamart(Plots):
             )
         return modeldata_cache, predictordata_cache
 
-    @staticmethod
-    def fix_pdc(df: pd.DataFrame) -> pd.DataFrame:
-        if not list(df.columns) == ["pxObjClass", "pxResults"]:
-            return df
-        df = pd.json_normalize(df["pxResults"]).dropna()
-        df.rename(
-            columns={
-                "ModelName": "Configuration",
-                "ResponseCount": "DailyResponseCount",
-                "Positives": "DailyPositives",
-                "TotalPositives": "Positives",
-                "TotalResponses": "ResponseCount",
-            },
-            inplace=True,
-        )
-        return df.reset_index(drop=True)
-
-    @staticmethod
-    def _apply_query(df, query: Union[str, dict] = None) -> pd.DataFrame:
+    def _apply_query(
+        self,
+        df: any_frame,
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
+    ) -> pl.LazyFrame:
         """Given an input pandas dataframe, it filters the dataframe based on input query
 
         Parameters
         ----------
-        query: Union[str or dict]
-            If a string, uses the default Pandas query function
+        df : Union[pl.DataFrame, pl.LazyFrame]
+            The input dataframe
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+            If a Polars Expression, passes the expression into Polars' filter function
+            If a string, uses the default Pandas query function (works only in eager mode)
             Else, a dict of lists where the key is column name in the dataframe
             and the corresponding value is a list of values to keep in the dataframe
         Returns
         -------
-        pd.DataFrame
-            Filtered Pandas DataFrame
+        pl.DataFrame
+            Filtered Polars DataFrame
         """
+        if isinstance(df, pl.DataFrame):
+            df = df.lazy()
         if query is not None:
-            if isinstance(query, str):
-                return df.query(query)
+            if isinstance(query, pl.Expr):
+                col_diff = set(query.meta.root_names()) - set(df.columns)
+                if len(col_diff) == 0:
+                    return df.filter(query)
 
-            df = df.reset_index(drop=True)
+                else:
+                    raise pl.ColumnNotFoundError(col_diff)
+
+            if isinstance(query, str):
+                print(
+                    "Pandas query detected. This will be slow, and only works in eager mode ",
+                    "because we turn the dataframe to pandas, query, and then turn it back ",
+                    "to Polars. For faster performance, please pass a Polars Expression ",
+                    "which can be used in the `filter()` method.",
+                )
+                if not self.import_strategy == "eager":
+                    raise NotEagerError("Applying pandas queries")
+                else:
+                    return pl.LazyFrame(
+                        df.collect()
+                        .to_pandas(use_pyarrow_extension_array=True)
+                        .query(query)
+                    )
+
             if not isinstance(query, dict):
                 raise TypeError("query must be a dict where values are lists")
-            for key, val in query.items():
+            for val in query.values():
                 if not type(val) == list:
                     raise ValueError("query values must be list")
 
             for col, val in query.items():
-                df = df[df[col].isin(val)]
+                df = df.filter(pl.col(col).is_in(val))
         return df
 
-    def extract_treatments(
+    def extract_keys(
         self,
         df,
-        overwrite_mapping,
-        extract_col,
-        verbose=True,
+        col="Name",
     ):
+        if self.import_strategy != "eager":
+            raise NotEagerError("Extracting keys")
+        if self.verbose:
+            print("Extracting keys...")
 
-        if verbose:
-            print("Extracting treatments...")
-        self.extracted = self._extract(df, extract_col)
-        df.columns = [i.lower() for i in df.columns]
-        for column in self.extracted.columns:
-            df.loc[:, column] = self.extracted[column]
-            if column.lower() != "pyname":
-                overwrite_mapping[column] = column
-
-        return df, overwrite_mapping
-
-    def _extract(self, df, extract_col):
-        """Simple function to extract treatments from column"""
-        try:
-            df = pd.json_normalize(df[extract_col].apply(json.loads), max_level=1)
-            df.columns = [col.lower() for col in df.columns]
-            return df
-        except:
-            loaded = df[extract_col].apply(self.load_if_json, extract_col)
-            return pd.json_normalize(loaded)
-
-    @staticmethod
-    def load_if_json(extracted, extract_col="pyname"):
-        """Either extracts the whole column, or just the json strings"""
-        try:
-            ret = json.loads(extracted)
-            return {k.lower(): v for k, v in ret.items()}
-        except:
-            return {extract_col.lower(): extracted}
-
-    class NotApplicableError(ValueError):
-        pass
-
-    @staticmethod
-    def discover_modelTypes(df):
-        modelTypes = dict()
-        for configuration, data in df.query("Modeldata == Modeldata").groupby(
-            "Configuration"
-        ):
-            model = zlib.decompress(
-                base64.b64decode(data.tail(1)["Modeldata"].values[0])
+        def safeName():
+            return (
+                pl.when(~pl.col("Name").cast(pl.Utf8).str.starts_with("{"))
+                .then(
+                    pl.concat_str([pl.lit('{"pyName":"'), pl.col("Name"), pl.lit('"}')])
+                )
+                .otherwise(pl.col("Name"))
+                .alias("tempName")
             )
-            for line in model.decode().split("\n"):
-                if str(line).startswith('  "_serialClass"'):
-                    modelTypes[configuration] = str(line).split('"')[-2]
-                    break
-        return modelTypes
+
+        return (
+            (
+                df.with_columns(
+                    safeName().str.json_extract(),
+                )
+                .drop(col)
+                .unnest("tempName")
+            )
+            .collect()
+            .lazy()
+        )
+
+    def discover_modelTypes(
+        self, df: pl.LazyFrame, by="Configuration"
+    ):  # pragma: no cover
+        if self.import_strategy != "eager":
+            raise NotEagerError("Discovering AGB models")
+        if "Modeldata" not in df.columns:
+            raise ValueError(
+                (
+                    "Modeldata column not in the data. "
+                    "Please make sure to include it by using the 'include_cols' "
+                    "argument with your ADMDatamart call, or setting 'subset' to False."
+                )
+            )
+
+        def _getType(val):
+            import zlib
+            import base64
+
+            return next(
+                line.split('"')[-2].split(".")[-1]
+                for line in zlib.decompress(base64.b64decode(val)).decode().split("\n")
+                if line.startswith('  "_serialClass"')
+            )
+
+        if isinstance(df, pl.DataFrame):
+            df = df.lazy()
+        types = (
+            df.filter(pl.col("Modeldata").is_not_null())
+            .groupby(by)
+            .agg(pl.col("Modeldata").last())
+            .collect()
+            .with_columns(pl.col("Modeldata").apply(lambda v: _getType(v)))
+            .to_dicts()
+        )
+        return {key: value for key, value in [i.values() for i in types]}
 
     def get_AGB_models(
         self,
         last: bool = False,
         by: str = "Configuration",
-        n_threads: int = 6,
-        query: Union[str, dict] = None,
+        n_threads: int = 1,
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
         verbose: bool = True,
         **kwargs,
-    ) -> Dict:
+    ) -> Dict:  # pragma: no cover
         """Method to automatically extract AGB models.
 
         Recommended to subset using the querying functionality
@@ -726,21 +761,13 @@ class ADMDatamart(Plots):
             The number of threads to use for extracting the models.
             Since we use multithreading, setting this to a reasonable value
             helps speed up the import.
-        query: Union[str, dict], default = None
-            The pandas query to apply to the modelData frame
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+            Please refer to :meth:`._apply_query`
         verbose: bool, default = False
             Whether to print out information while importing
 
         """
         df = self.modelData
-        if "Modeldata" not in df.columns:
-            raise ValueError(
-                (
-                    "Modeldata column not in the data. "
-                    "Please make sure to include it by using the 'include_cols' "
-                    "argument with your ADMDatamart call, or setting 'subset' to False."
-                )
-            )
         if query is not None:
             df = self._apply_query(df, query)
 
@@ -749,8 +776,8 @@ class ADMDatamart(Plots):
             model for model, type in modelTypes.items() if type.endswith("GbModel")
         ]
         logging.info(f"Found AGB models: {AGB_models}")
-        df = df.query(f"Configuration in {AGB_models}")
-        if df["ModelID"].nunique() == 0:
+        df = df.filter(pl.col("Configuration").is_in(AGB_models))
+        if df.select(pl.col("ModelID").n_unique()).collect().item() == 0:
             raise ValueError("No models found.")
 
         if last:
@@ -758,152 +785,85 @@ class ADMDatamart(Plots):
                 self.last(df), n_threads=n_threads, verbose=verbose, **kwargs
             )
         else:
-            return ADMTrees(df, n_threads=n_threads, verbose=verbose, **kwargs)
+            return ADMTrees(
+                df.select("Configuration", "SnapshotTime", "Modeldata").collect(),
+                n_threads=n_threads,
+                verbose=verbose,
+                **kwargs,
+            )
 
     @staticmethod
-    def _create_sign_df(df: pd.DataFrame) -> pd.DataFrame:
+    def _create_sign_df(
+        df: pl.LazyFrame,
+        by: str = "Name",
+        *,
+        what: str = "ResponseCount",
+        every: str = "1d",
+        pivot: bool = True,
+        mask: bool = True,
+    ) -> pl.LazyFrame:
         """Generates dataframe to show whether responses decreased/increased from day to day
-        For a given dataframe where columns are dates and rows are model names,
+
+        For a given dataframe where columns are dates and rows are model names(by parameter),
         subtracts each day's value from the previous day's value per model. Then masks the data.
-        If decreased (desired situtation), it will put 1 in the cell, if no change, it will
+        If increased (desired situtation), it will put 1 in the cell, if no change, it will
         put 0, and if decreased it will put -1. This dataframe then could be used in the heatmap
 
         Parameters
         ----------
         df: pd.DataFrame
-            This typically is pivoted ModelData
+            This is typically pivoted ModelData
+        by: str, default = Name
+            Column to calculate the daily change for.
+
+        Keyword arguments
+        -----------------
+        what: str, default = ResponseCount
+            Column that contains response counts
+        every: str, default = 1d
+            Interval of the change window
+        pivot: bool, default = True
+            Returns a pivotted table with signs as value if set to true
+        mask: bool, default = True
+            Drops SnapshotTime and returns direction of change(sign).
+
         Returns
         -------
-        pd.DataFrame
+        pd.LazyFrame
             The dataframe with signs for increase or decrease in day to day
-
         """
-        vals = df.reset_index().values
-        cols = df.columns
-        _df = pd.DataFrame(
-            np.hstack(
-                (
-                    np.array([[vals[i, 0]] for i in range(vals.shape[0])]),
-                    np.array(
-                        [vals[i, 2:] - vals[i, 1:-1] for i in range(vals.shape[0])]
-                    ),
-                )
-            )
-        )
-        _df.columns = cols
-        _df.rename(columns={cols[0]: "ModelID"}, inplace=True)
-        df_sign = _df.set_index("ModelID").mask(_df.set_index("ModelID") > 0, 1)
-        df_sign = df_sign.mask(df_sign < 0, -1)
-        df_sign[cols[0]] = 1
-        return df_sign[cols].fillna(1)
-
-    def _create_heatmap_df(
-        self,
-        df: pd.DataFrame,
-        lookback: int = 5,
-        query: Union[str, dict] = None,
-        fill_null_days: bool = False,
-    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        """Generates dataframes needed to plot calendar heatmap
-        The method generates two dataframes where one is used to annotate the heatmap
-        and the other is used to apply colors based on the sign dataframe.
-        If there are multiple snapshots per day, the latest one will be selected
-
-        Parameters
-        ----------
-        lookback : int
-            Defines how many days to look back at data from the last snapshot
-        query : Union[str, dict]
-            The query to supply to _apply_query
-            If a string, uses the default Pandas query function
-            Else, a dict of lists where the key is column name in the dataframe
-            and the corresponding value is a list of values to keep in the dataframe
-        fill_null_days : bool
-            If True, null values will be generated in the dataframe for
-            days where there is no model snapshot
-
-        Returns
-        -------
-        Tuple[pd.DataFrame, pd.DataFrame]
-            Tuple of annotate and sign dataframes
-        """
-
-        df = self._apply_query(df, query)
-        required_columns = {"ModelID", "SnapshotTime", "ResponseCount"}
-        assert required_columns.issubset(df.columns)
 
         df = (
-            df[["ModelID", "SnapshotTime", "ResponseCount"]]
-            .sort_values("SnapshotTime")
-            .reset_index(drop=True)
+            df.with_columns(pl.col("SnapshotTime").cast(pl.Date))
+            .sort("SnapshotTime")
+            .with_columns(
+                pl.col(what)
+                .cast(pl.Int64)
+                .diff()
+                .alias("Daily_increase")
+                .over("ModelID")
+            )
+            .groupby_dynamic("SnapshotTime", every=every, by=by)
+            .agg(pl.sum("Daily_increase").alias("Increase"))
         )
-        df["Date"] = pd.Series([i.date() for i in df["SnapshotTime"]])
-        df = df[df["Date"] > (df["Date"].max() - timedelta(lookback))]
-        if df.shape[0] < 1:
-            raise ValueError(("No data within lookback range"))
-
-        idx = (
-            df.groupby(["ModelID", "Date"])["SnapshotTime"].transform(max)
-            == df["SnapshotTime"]
-        )
-        df = df[idx]
-        if fill_null_days:
-            idx_date = pd.date_range(df["Date"].min(), df["Date"].max())
+        if pivot:
             df = (
-                df.set_index("Date")
-                .groupby("ModelID")
-                .apply(lambda d: d.reindex(idx_date))
-                # .drop("ModelID", axis=1)
-                # .reset_index("ModelID")
-                .reset_index()
-                .rename(columns={"index": "Date"})
+                df.collect()
+                .pivot(index="SnapshotTime", columns=by, values="Increase")
+                .lazy()
             )
-            df["Date"] = pd.to_datetime(df["Date"]).dt.date
-        df_annot = df.pivot(columns="Date", values="ResponseCount", index="ModelID")
-        df_sign = self._create_sign_df(df_annot)
-        return (df_annot, df_sign)
-
-    @staticmethod
-    def _calculate_impact_influence(
-        df: pd.DataFrame, context_keys: list = None, ModelID: str = None
-    ) -> pd.DataFrame:
-        def _ImpactInfluence(X):
-            d = {}
-            X["BinResponseCountPercentage"] = (
-                X["BinResponseCount"] / X["BinResponseCount"].sum()
-            )
-            X["BinPositivesPercentage"] = X["BinPositives"] / X["BinPositives"].sum()
-            X["BinNegativesPercentage"] = X["BinNegatives"] / X["BinNegatives"].sum()
-            X["absIc"] = np.abs(
-                X["BinPositivesPercentage"] - X["BinNegativesPercentage"]
-            )
-            
-            d["Impact(%)"] = X["absIc"].max()
-            d["Influence(%)"] = (
-                X["BinResponseCountPercentage"] * X["absIc"] / 100
-            ).sum()
-            return pd.Series(d)
-
-        df = df.query("PredictorName != 'Classifier'").reset_index(drop=True)
-        if ModelID is not None:
-            df = df.query("ModelID == @ModelID")
-
-        mergelist = ["ModelID", "ModelName"] + context_keys
-        df = (
-            df.groupby(["ModelID", "PredictorName"])
-            .apply(_ImpactInfluence)
-            .reset_index()
-            .merge(
-                df[mergelist].drop_duplicates(),
-                on="ModelID",
-            )
-        )
-        return df.sort_values(["PredictorName", "Impact(%)"], ascending=[False, False])
+        if mask:
+            df = df.with_columns((pl.all().exclude([by, "SnapshotTime"]).sign()))
+        return df
 
     def model_summary(
-        self, by: str = "ModelID", query: Union[str, dict] = None, **kwargs
-    ):
+        self,
+        by: str = "ModelID",
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
+        **kwargs,
+    ) -> pl.LazyFrame:
         """Convenience method to automatically generate a summary over models
+
         By default, it summarizes ResponseCount, Performance, SuccessRate & Positives by model ID.
         It also adds weighted means for Performance and SuccessRate,
         And adds the count of models without responses and the percentage.
@@ -912,173 +872,248 @@ class ADMDatamart(Plots):
         ----------
         by: str, default = ModelID
             By what column to summarize the models
-        query : Union[str, dict]
-            The query to supply to _apply_query
-            If a string, uses the default Pandas query function
-            Else, a dict of lists where the key is column name in the dataframe
-            and the corresponding value is a list of values to keep in the dataframe
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+            Please refer to :meth:`._apply_query`
 
         Returns
         -------
-        pd.DataFrame:
+        pl.LazyFrame:
             Groupby dataframe over all models
         """
         df = self._apply_query(self.modelData, query)
-        data = self.last(df).reset_index()
+        data = self.last(df, strategy="lazy").lazy()
 
-        required_columns = {
-            by,
-            "ResponseCount",
-            "Performance",
-            "SuccessRate",
-            "Positives",
-        }
+        aggcols = ["ResponseCount", "Performance", "SuccessRate", "Positives"]
+        required_columns = set(aggcols).union({by})
 
         context_keys = kwargs.get("context_keys", self.context_keys)
         assert required_columns.issubset(set(data.columns) | set(context_keys))
 
-        def weighed_average(grp, weights="ResponseCount"):
-            return grp.multiply(grp[weights], axis=0).sum() / grp[weights].sum()
-
-        summary = data.groupby(context_keys).agg(
-            {
-                by: ["count"],
-                "ResponseCount": ["sum", "mean", "max"],
-                "Performance": ["max", "mean"],
-                "SuccessRate": ["max", "mean"],
-                "Positives": ["max", "mean", "sum"],
-            }
+        return (
+            data.groupby(context_keys)
+            .agg(
+                [
+                    pl.count(by).suffix("_count"),
+                    pl.col([aggcols[0], aggcols[3]]).sum().suffix("_sum"),
+                    pl.col(aggcols).max().suffix("_max"),
+                    pl.col(aggcols).mean().suffix("_mean"),
+                    (pl.col("ResponseCount") == 0)
+                    .sum()
+                    .alias("Count_without_responses"),
+                    (
+                        cdh_utils.weighed_performance_polars().alias(
+                            "Performance_weighted"
+                        )
+                    ),
+                    cdh_utils.weighed_average_polars(
+                        "SuccessRate", "ResponseCount"
+                    ).alias("SuccessRate_weighted"),
+                ],
+            )
+            .with_columns(
+                (pl.col("Count_without_responses") / pl.col(f"{by}_count")).alias(
+                    "Percentage_without_responses"
+                )
+            )
         )
 
-        noresponses = (
-            data.query("ResponseCount==0")
-            .groupby(context_keys)[by]
-            .count()
-            .rename("noresponse")
-            .sort_values(ascending=False)
+    def pivot_df(
+        self,
+        df: pl.LazyFrame,
+        by: Union[str, list] = "Name",
+        *,
+        allow_collect: bool = True,
+        top_n: int = 0,
+    ) -> pl.DataFrame:
+        """Simple function to extract pivoted information
+
+        Parameters
+        ----------
+        df : pl.LazyFrame
+            The input DataFrame.
+        by : Union[str, list], default = Name
+            The column(s) to pivot the DataFrame by.
+            If a list is provided, only the first element is used.
+        allow_collect : bool, default = True
+            Whether to allow eager computation.
+            If set to False and the import strategy is "lazy", an error will be raised.
+        top_n : int, optional (default=0)
+            The number of rows to include in the pivoted DataFrame.
+            If set to 0, all rows are included.
+
+        Returns
+        -------
+        pl.DataFrame
+            The pivoted DataFrame.
+        """
+
+        if isinstance(by, list):
+            by = by[0]
+        if self.import_strategy == "lazy" and not allow_collect:
+            raise NotEagerError("Pivot df.")
+        df = df.filter(pl.col("PredictorName") != "Classifier")
+        if by not in ["ModelID", "Name"]:
+            df = (
+                df.with_columns(pl.col("ResponseCount"))
+                .groupby([by, "PredictorName"])
+                .agg(
+                    cdh_utils.weighed_average_polars("PerformanceBin", "ResponseCount")
+                )
+            )
+
+        if top_n > 0:
+            df = (
+                df.with_columns(pl.col("PerformanceBin").fill_nan(0.5))
+                .sort("PerformanceBin", descending=True)
+                .head(top_n)
+            )
+        df = (
+            df.collect()
+            .pivot(index=by, columns="PredictorName", values="PerformanceBin")
+            .fill_null(0.5)
+            .fill_nan(0.5)
         )
-        noresponses = pd.DataFrame(noresponses)
-        noresponses.columns = [[by], ["count_without_responses"]]
-
-        summary = pd.concat([summary, noresponses], axis=1, join="outer")
-        temp = summary.pop((by, "count_without_responses"))
-
-        weighted = data.groupby(context_keys)[
-            ["Performance", "SuccessRate", "ResponseCount"]
-        ].apply(weighed_average)[["Performance", "SuccessRate"]]
-        weighted_perf = weighted["Performance"]
-        weighted_perf.columns = [["Performance"], ["Weighted mean"]]
-        weighted_succ = weighted["SuccessRate"]
-        weighted_succ.columns = [["SuccessRate"], ["Weighted mean"]]
-
-        summary.insert(1, (by, "count_without_responses"), temp)
-        summary.insert(
-            2,
-            (by, "percentage_without_responses"),
-            summary[(by, "count_without_responses")] / summary[(by, "count")],
+        mod_order = (
+            df.select(
+                pl.concat_list(pl.col(pl.Float64))
+                .arr.eval(pl.element().mean())
+                .arr.get(0)
+            )
+            .select(pl.all().arg_sort(descending=True))
+            .to_series()
         )
-        summary.insert(8, ("Performance", "weighted_mean"), weighted_perf)
-        summary.insert(11, ("SuccessRate", "weighted_mean"), weighted_succ)
-
-        summary = summary.fillna(0)
-        summary[("Performance", "weighted_mean")] = summary[
-            ("Performance", "weighted_mean")
-        ].replace(0, 0.5)
-
-        summary = summary.apply(pd.to_numeric, downcast="float")
-        return summary
+        pred_order = [by] + [
+            df.columns[i + 1]
+            for i in 0
+            + df.select(pl.col(pl.Float64).mean())
+            .transpose()
+            .select(pl.all().arg_sort(descending=True))
+            .to_series()
+        ]
+        return df[mod_order].select(pred_order)
 
     @staticmethod
-    def pivot_df(df: pd.DataFrame) -> pd.DataFrame:
-        """Simple function to extract pivoted information"""
-        df1 = df.query('PredictorName != "Classifier"')
-        pivot_df = df1.pivot_table(
-            index="ModelName", columns="PredictorName", values="PerformanceBin"
-        )
-        dedup = df1[["ModelName", "PredictorName", "PerformanceBin"]].drop_duplicates()
-        pred_order = list(
-            dedup.groupby("PredictorName")
-            .agg({"PerformanceBin": "mean"})
-            .fillna(0)
-            .sort_values("PerformanceBin", ascending=False)
-            .index
-        )
-        mod_order = list(
-            dedup.groupby("ModelName")
-            .agg({"PerformanceBin": "mean"})
-            .fillna(0)
-            .sort_values("PerformanceBin", ascending=False)
-            .index
-        )
-        pivot_df = (pivot_df[pred_order]).reindex(mod_order)
-        return pivot_df
-
-    @staticmethod
-    def response_gain_df(df: pd.DataFrame, by: str = "Channel") -> pd.DataFrame:
+    def response_gain_df(df: any_frame, by: str = "Channel") -> any_frame:
         """Simple function to extract the response gain per model"""
-        responseGainData = (
+        if isinstance(by, list):
+            by = by[0]
+        return (
             df.groupby([by, "ModelID"])
-            .agg({"ResponseCount": "max"})
-            .sort_values([by, "ResponseCount"], ascending=False)
+            .agg(pl.max("ResponseCount"))
+            .sort([by, "ResponseCount"], descending=True)
+            .with_columns(
+                [
+                    (pl.cumsum("ResponseCount") / pl.sum("ResponseCount"))
+                    .over(by)
+                    .alias("TotalResponseFraction"),
+                    ((pl.col(by).cumcount() + 1) / pl.count("ResponseCount"))
+                    .over(by)
+                    .alias("TotalModelsFraction"),
+                ]
+            )
         )
-        responseGainData.loc[:, "TotalResponseFraction"] = responseGainData.groupby(by)[
-            "ResponseCount"
-        ].transform(pd.Series.cumsum) / responseGainData.groupby(by)[
-            "ResponseCount"
-        ].transform(
-            pd.Series.sum
-        )
-        responseGainData = responseGainData.fillna(0)
-        responseGainData.loc[:, "TotalModelsFraction"] = (
-            responseGainData.groupby(by).cumcount() + 1
-        ) / responseGainData.groupby(by).count()["ResponseCount"]
-        responseGainData = responseGainData.reset_index()
-        return responseGainData
 
-    @staticmethod
-    def models_by_positives_df(df: pd.DataFrame, by: str = "Channel") -> pd.DataFrame:
-        modelsByPositives = df[[by, "Positives", "ModelID"]].reset_index()
-        modelsByPositives.loc[:, "PositivesBin"] = pd.cut(
-            modelsByPositives["Positives"],
-            bins=[list(range(0, 210, 10)) + [np.inf]][0],
-            right=False,
-        )
-        order = modelsByPositives["PositivesBin"].sort_values()
-        order = order.unique().astype(str)
-        modelsByPositives.loc[:, "PositivesBin"] = (
-            modelsByPositives["PositivesBin"].astype(str).astype("category")
-        )
-        modelsByPositives.loc[:, "PositivesBin"] = modelsByPositives[
-            "PositivesBin"
-        ].cat.set_categories(order)
+    def models_by_positives_df(
+        self, df: pl.LazyFrame, by: str = "Channel", allow_collect=True
+    ) -> pl.LazyFrame:
+        """
+        Compute statistics on the dataframe by grouping it by a given column `by`
+        and computing the count of unique ModelIDs and cumulative percentage of unique
+        models for with regard to the number of positive answers.
 
-        modelsByPositives = (
-            modelsByPositives.groupby([by, "PositivesBin"])
-            .agg(Positives=("Positives", "min"), ModelCount=("ModelID", "nunique"))
-            .fillna(0)
+        Parameters
+        ----------
+        df : pl.LazyFrame
+            The input DataFrame
+        by : str, default = Channel
+            The column name to group the DataFrame by, by default "Channel"
+        allow_collect : bool, default = True
+            Whether to allow eager computation. If set to False and the import strategy is "lazy", an error will be raised.
+
+        Returns
+        -------
+        pl.LazyFrame
+           DataFrame with PositivesBin column and model count statistics
+        """
+        if self.import_strategy == "lazy" and not allow_collect:
+            raise NotEagerError("Models by positive df.")
+
+        def orderedCut(
+            s, label="PositivesBin", bins=list(range(0, 210, 10))
+        ) -> pl.Series:
+            _arg_sort = pl.Series(name="_sort", values=s.arg_sort())
+            result = pl.cut(
+                s, bins=[bins + [float("inf")]][0], category_label="PositivesBin"
+            )
+            return (
+                result.select(
+                    [
+                        pl.col(label),
+                        _arg_sort,
+                    ]
+                )
+                .sort("_sort")
+                .drop("_sort")
+                .to_series()
+            )
+
+        modelsByPositives = df.select([by, "Positives", "ModelID"]).collect()
+        return (
+            modelsByPositives.hstack(
+                [
+                    orderedCut(
+                        modelsByPositives["Positives"],
+                    )
+                ]
+            )
+            .lazy()
+            .groupby([by, "PositivesBin"])
+            .agg([pl.min("Positives"), pl.n_unique("ModelID").alias("ModelCount")])
+            .with_columns(
+                (pl.col("ModelCount") / (pl.sum("ModelCount").over(by))).alias(
+                    "cumModels"
+                )
+            )
+            .sort("PositivesBin")
         )
-        modelsByPositives["cumModels"] = modelsByPositives[
-            "ModelCount"
-        ] / modelsByPositives.groupby(by)["ModelCount"].transform(pd.Series.sum)
-        modelsByPositives = modelsByPositives.reset_index()
-        modelsByPositives = modelsByPositives.sort_values("PositivesBin")
-        return modelsByPositives
 
     def get_model_stats(self, last: bool = True) -> dict:
+        """Returns a dictionary containing various statistics for the model data.
+
+        Parameters
+        ----------
+        last : bool
+            Whether to compute statistics only on the last snapshot. Defaults to True.
+
+        Returns
+        -------
+        Dict
+            A dictionary containing the following keys:
+            'models_n_snapshots': The number of distinct snapshot times in the data.
+            'models_total': The total number of models in the data.
+            'models_empty': The models with no responses.
+            'models_nopositives': The models with responses but no positive responses.
+            'models_isimmature': The models with less than 200 positive responses.
+            'models_noperformance': The models with at least 200 positive responses but a performance of 50.
+            'models_n_nonperforming': The total number of models that are not performing well.
+            'models_missing_{key}': The number of models with missing values for each context key.
+            'models_bottom_left': The models with a performance of 50 and a success rate of 0.
+        """
         if self.modelData is None:
             raise ValueError("No model data to analyze.")
 
         data = self.last(self.modelData) if last else self.modelData
 
         ret = dict()
-
-        ret["models_n_snapshots"] = data.SnapshotTime.nunique()
+        ret["models_n_snapshots"] = data.select(pl.n_unique("SnapshotTime")).item()
         ret["models_total"] = len(data)
-        ret["models_empty"] = data.query("ResponseCount == 0")
-        ret["models_nopositives"] = data.query("ResponseCount > 0 & Positives == 0")
-        ret["models_isimmature"] = data.query("Positives > 0 & Positives < 200")
-        ret["models_noperformance"] = data.query(
-            "Positives >= 200 & Performance == 0.5"
+        ret["models_empty"] = data.filter(pl.col("ResponseCount") == 0)
+        ret["models_nopositives"] = data.filter(
+            (pl.col("ResponseCount") > 0) & (pl.col("Positives") == 0)
+        )
+        ret["models_isimmature"] = data.filter(pl.col("Positives").is_between(0, 200))
+        ret["models_noperformance"] = data.filter(
+            (pl.col("Positives") >= 200) & (pl.col("Performance") == 0.5)
         )
         ret["models_n_nonperforming"] = (
             len(ret["models_empty"])
@@ -1087,23 +1122,10 @@ class ADMDatamart(Plots):
             + len(ret["models_noperformance"])
         )
         for key in self.context_keys:
-            ret[f"models_missing_{key}"] = data.query(f'{key}=="NULL"')
-        ret["models_bottom_left"] = data.query(
-            "Performance == 0.5 & (SuccessRate.isnull() | SuccessRate == 0)"
+            ret[f"models_missing_{key}"] = data.filter(pl.col(key).is_null())
+        ret["models_bottom_left"] = data.filter(
+            (pl.col("Performance") == 0.5) & (pl.col("SuccessRate") == 0)
         )
-        ret["responses_per_model"] = pd.concat(
-            [
-                data.ResponseCount.value_counts().sort_index(),
-                data.ResponseCount.value_counts(normalize=True)
-                .mul(100)
-                .round(1)
-                .astype(str)
-                .sort_index()
-                + "%",
-            ],
-            axis=1,
-        )
-
         self.model_stats = ret
         return ret
 

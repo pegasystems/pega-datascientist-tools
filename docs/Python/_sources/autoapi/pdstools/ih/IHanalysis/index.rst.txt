@@ -1,7 +1,7 @@
-:py:mod:`pdstools.ih.IHanalysis`
+:py:mod:`pdstools.ih.IHAnalysis`
 ================================
 
-.. py:module:: pdstools.ih.IHanalysis
+.. py:module:: pdstools.ih.IHAnalysis
 
 
 Module Contents
@@ -13,78 +13,46 @@ Functions
 
 .. autoapisummary::
 
-   pdstools.ih.IHanalysis.initial_prep
-   pdstools.ih.IHanalysis.detect_outlier
-   pdstools.ih.IHanalysis.get_all_times_inds
-   pdstools.ih.IHanalysis.get_total_outcome
-   pdstools.ih.IHanalysis.get_accept_rate
-   pdstools.ih.IHanalysis.get_accept_rate_time
-   pdstools.ih.IHanalysis.plot_daily_accept_rate
-   pdstools.ih.IHanalysis.plot_weekly_accept_rate
-   pdstools.ih.IHanalysis.plot_daily_cumulative_accept_rate
-   pdstools.ih.IHanalysis.get_daily_graph
-   pdstools.ih.IHanalysis.plot_outcome_count_time
-   pdstools.ih.IHanalysis.get_allDays_df
-   pdstools.ih.IHanalysis.get_total_outcome_share_per_level
-   pdstools.ih.IHanalysis.plot_outcome_share_graph
-   pdstools.ih.IHanalysis.get_outcome_share_time
-   pdstools.ih.IHanalysis.select_date_range_lookback
-   pdstools.ih.IHanalysis.get_delta_df
-   pdstools.ih.IHanalysis.plot_share_delta_graph
+   pdstools.ih.IHAnalysis.SuccessRate
+   pdstools.ih.IHAnalysis.AUC
+   pdstools.ih.IHAnalysis._metricPerPeriod
+   pdstools.ih.IHAnalysis._cumulativeMetricPerPeriod
+   pdstools.ih.IHAnalysis.successRatePerPeriod
+   pdstools.ih.IHAnalysis.volumesPerPeriod
+   pdstools.ih.IHAnalysis._plotPerPeriod
+   pdstools.ih.IHAnalysis.plotSuccessRatePerPeriod
+   pdstools.ih.IHAnalysis.plotVolumesPerPeriod
+   pdstools.ih.IHAnalysis.plotPropensityDistribution
 
 
 
-.. py:function:: initial_prep(df, referenceTime='pxOutcomeTime')
+.. py:function:: SuccessRate(outcome_col='pyOutcome', **kwargs) -> polars.Expr
 
 
-.. py:function:: detect_outlier(df, col)
+.. py:function:: AUC(outcome_col='pyOutcome', propensity_col='pyModelPropensity') -> polars.Expr
 
 
-.. py:function:: get_all_times_inds(df)
+.. py:function:: _metricPerPeriod(df, period, metrics, OutcomeTime_col='pxOutcomeTime', by=None, **kwargs)
 
 
-.. py:function:: get_total_outcome(df, outcome, rollup)
+.. py:function:: _cumulativeMetricPerPeriod(df, period, metrics, OutcomeTime_col='pxOutcomeTime', by=None, **kwargs)
 
 
-.. py:function:: get_accept_rate(df, pos, neg, rollup)
+.. py:function:: successRatePerPeriod(df, period='1d', **kwargs)
 
 
-.. py:function:: get_accept_rate_time(df, pos, neg, level, **kwargs)
+.. py:function:: volumesPerPeriod(df, period='1d', **kwargs)
 
 
-.. py:function:: plot_daily_accept_rate(df, pos, neg, **kwargs)
+.. py:function:: _plotPerPeriod(df: polars.LazyFrame, to_plot, period, color=None, facet_col=None, facet_row=None, **kwargs)
 
 
-.. py:function:: plot_weekly_accept_rate(df, pos, neg, **kwargs)
+.. py:function:: plotSuccessRatePerPeriod(df: polars.LazyFrame, period, cumulative=False, color=None, facet_col=None, facet_row=None, **kwargs)
 
 
-.. py:function:: plot_daily_cumulative_accept_rate(df, pos, neg, **kwargs)
+.. py:function:: plotVolumesPerPeriod(df: polars.LazyFrame, period, cumulative=False, color=None, facet_col=None, facet_row=None, **kwargs)
 
 
-.. py:function:: get_daily_graph(df, x, y, **kwargs)
-
-
-.. py:function:: plot_outcome_count_time(df, outcome, time, **kwargs)
-
-
-.. py:function:: get_allDays_df(_df, inds_df, hue)
-
-
-.. py:function:: get_total_outcome_share_per_level(df, outcome, level)
-
-
-.. py:function:: plot_outcome_share_graph(df, outcome, level, hue=None)
-
-
-.. py:function:: get_outcome_share_time(df, outcome, level, time='daily')
-
-
-.. py:function:: select_date_range_lookback(df, lookback=3)
-
-
-.. py:function:: get_delta_df(df, outcome, level, dates)
-
-
-.. py:function:: plot_share_delta_graph(df, outcome, level, dates)
+.. py:function:: plotPropensityDistribution(df: polars.LazyFrame, channel, direction, issue, group, name, propensityType, **kwargs)
 
 

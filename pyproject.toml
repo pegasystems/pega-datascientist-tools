@@ -8,11 +8,11 @@ include = ['pdstools*']
 exclude = ['/tests/*', '*.dist-info', '/docs/*']
 
 [tool.setuptools.package-data]
-pdstools = ['healthcheck/*.qmd']
+"*" = ['*.qmd']
 
 [project]
 name = "pdstools"
-version = "2.3.0"
+dynamic = ["version"]
 description = "Open source tooling that helps Data Scientists to analyze Pega models and conduct impactful analyses."
 readme = "README.md"
 authors = [ { name = "Stijn Kas", email = "stijn.kas@pega.com" } ] 
@@ -33,23 +33,21 @@ keywords = [
     "tools",
 ]
 dependencies = [
-        "pandas",
         "plotly>=5.5.0",
-        "seaborn",
         "requests",
-        "nbformat",
-        "jupyterlab",
-        "ipywidgets",
         "pydot",
-        "polars",
+        "polars>=0.16.8",
         "pyarrow",
         "tqdm"
     ]
-requires-python = ">=3.7"
+requires-python = ">=3.8"
+
+[tool.setuptools.dynamic]
+version = {attr="pdstools.__version__"}
 
 [project.optional-dependencies]
 docs = ['sphinx','furo','sphinx-autoapi','nbsphinx','sphinx-copybutton','myst-parser']
-app = ['streamlit', 'quarto', 'papermill']
+app = ['streamlit', 'quarto', 'papermill', 'itables']
 
 [project.urls]
 "Homepage" = "https://github.com/pegasystems/pega-datascientist-tools"
@@ -58,4 +56,4 @@ app = ['streamlit', 'quarto', 'papermill']
 "Docs" = "https://pegasystems.github.io/pega-datascientist-tools/"
 
 [project.scripts]
-pdstools = 'pdstools.pds_app:main'
+pdstools = 'pdstools.app.pds_app:main'

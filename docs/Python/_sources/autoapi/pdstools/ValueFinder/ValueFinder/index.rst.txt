@@ -17,7 +17,7 @@ Classes
 
 
 
-.. py:class:: ValueFinder(path: Optional[str] = None, df: Optional[Union[pandas.DataFrame, polars.DataFrame, pyarrow.Table]] = None, verbose: bool = True, **kwargs)
+.. py:class:: ValueFinder(path: Optional[str] = None, df: Optional[Union[pandas.DataFrame, polars.DataFrame]] = None, verbose: bool = True, **kwargs)
 
    Class to analyze Value Finder datasets.
 
@@ -31,7 +31,7 @@ Classes
    :param path: Path to the ValueFinder data files
    :type path: Optional[str]
    :param df: Override to supply a dataframe instead of a file.
-              Supports pandas or polars dataframes or pyarrow tables
+              Supports pandas or polars dataframes
    :type df: Optional[DataFrame]
    :param verbose: Whether to print out information during importing
    :type verbose: bool

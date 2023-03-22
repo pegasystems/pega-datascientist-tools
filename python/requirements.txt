@@ -1,11 +1,7 @@
 pandas
 plotly>=5.5.0
-seaborn
 requests
-nbformat
-jupyterlab
-ipywidgets
 pydot
 tqdm
-polars
+polars>=0.16.8
 pyarrow

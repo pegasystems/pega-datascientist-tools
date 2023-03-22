@@ -1,0 +1,906 @@
+<!doctype html>
+<html class="no-js" lang="en">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Example notebooks" href="../examples.html" /><link rel="prev" title="Hello pdstools" href="hello_cdhtools.html" />
+
+    <link rel="shortcut icon" href="../_static/pegasystems-inc-vector-logo.svg"/><!-- Generated with Sphinx 5.3.0 and Furo 2022.12.07 -->
+        <title>Example data anonymization - pdstools</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+
+</head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">pdstools</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand centered" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../_static/pegasystems-inc-vector-logo.svg" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">pdstools</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Articles</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="graph_gallery.html">Graph Gallery</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../tutorial_notebooks.html">Tutorial notebooks</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="hello_cdhtools.html">Hello pdstools</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Example data anonymization</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../examples.html">Example notebooks</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="Example_ADM_Analysis.html">Example ADM analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AGBModelVisualisation.html">Analyzing ADM Decision Trees</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vf_analysis.html">Value Finder analysis</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../Articles.html">Articles</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="pdstoolsv3.html">pdstools version 3: Polars</a></li>
+<li class="toctree-l2"><a class="reference internal" href="thompsonsampling.html">Thompson Sampling</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools/wiki#getting-started-with-the-python-tools">Installation</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools/wiki#using-the-python-tools">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools/releases">Changelog</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools">GitHub Repository</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://pegasystems.github.io/pega-datascientist-tools/R/index.html">R Documentation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../autoapi/index.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../autoapi/pdstools/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/adm/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/adm/ADMDatamart/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm.ADMDatamart</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/adm/ADMTrees/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm.ADMTrees</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/app/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.app</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/app/datamart_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.app.datamart_utils</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/app/pds_app/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.app.pds_app</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/app/streamlit_app/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.app.streamlit_app</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/ih/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.ih</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/ih/IHAnalysis/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.ih.IHAnalysis</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/ih/legacy_IH/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.ih.legacy_IH</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/plots/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plots</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/plots/plot_base/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plots.plot_base</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/plots/plots_plotly/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plots.plots_plotly</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/cdh_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/datasets/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.datasets</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/errors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.errors</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/hds_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.hds_utils</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/pega_template/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.pega_template</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/types/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.types</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/valuefinder/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.valuefinder</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/valuefinder/ValueFinder/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.valuefinder.ValueFinder</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          
+<style>
+/* CSS for nbsphinx extension */
+
+/* remove conflicting styling from Sphinx themes */
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt *,
+div.nbinput.container div.input_area pre,
+div.nboutput.container div.output_area pre,
+div.nbinput.container div.input_area .highlight,
+div.nboutput.container div.output_area .highlight {
+    border: none;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+}
+
+div.nbinput.container > div[class*=highlight],
+div.nboutput.container > div[class*=highlight] {
+    margin: 0;
+}
+
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt * {
+    background: none;
+}
+
+div.nboutput.container div.output_area .highlight,
+div.nboutput.container div.output_area pre {
+    background: unset;
+}
+
+div.nboutput.container div.output_area div.highlight {
+    color: unset;  /* override Pygments text color */
+}
+
+/* avoid gaps between output lines */
+div.nboutput.container div[class*=highlight] pre {
+    line-height: normal;
+}
+
+/* input/output containers */
+div.nbinput.container,
+div.nboutput.container {
+    display: -webkit-flex;
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+    width: 100%;
+}
+@media (max-width: 540px) {
+    div.nbinput.container,
+    div.nboutput.container {
+        flex-direction: column;
+    }
+}
+
+/* input container */
+div.nbinput.container {
+    padding-top: 5px;
+}
+
+/* last container */
+div.nblast.container {
+    padding-bottom: 5px;
+}
+
+/* input prompt */
+div.nbinput.container div.prompt pre {
+    color: #307FC1;
+}
+
+/* output prompt */
+div.nboutput.container div.prompt pre {
+    color: #BF5B3D;
+}
+
+/* all prompts */
+div.nbinput.container div.prompt,
+div.nboutput.container div.prompt {
+    width: 4.5ex;
+    padding-top: 5px;
+    position: relative;
+    user-select: none;
+}
+
+div.nbinput.container div.prompt > div,
+div.nboutput.container div.prompt > div {
+    position: absolute;
+    right: 0;
+    margin-right: 0.3ex;
+}
+
+@media (max-width: 540px) {
+    div.nbinput.container div.prompt,
+    div.nboutput.container div.prompt {
+        width: unset;
+        text-align: left;
+        padding: 0.4em;
+    }
+    div.nboutput.container div.prompt.empty {
+        padding: 0;
+    }
+
+    div.nbinput.container div.prompt > div,
+    div.nboutput.container div.prompt > div {
+        position: unset;
+    }
+}
+
+/* disable scrollbars and line breaks on prompts */
+div.nbinput.container div.prompt pre,
+div.nboutput.container div.prompt pre {
+    overflow: hidden;
+    white-space: pre;
+}
+
+/* input/output area */
+div.nbinput.container div.input_area,
+div.nboutput.container div.output_area {
+    -webkit-flex: 1;
+    flex: 1;
+    overflow: auto;
+}
+@media (max-width: 540px) {
+    div.nbinput.container div.input_area,
+    div.nboutput.container div.output_area {
+        width: 100%;
+    }
+}
+
+/* input area */
+div.nbinput.container div.input_area {
+    border: 1px solid #e0e0e0;
+    border-radius: 2px;
+    /*background: #f5f5f5;*/
+}
+
+/* override MathJax center alignment in output cells */
+div.nboutput.container div[class*=MathJax] {
+    text-align: left !important;
+}
+
+/* override sphinx.ext.imgmath center alignment in output cells */
+div.nboutput.container div.math p {
+    text-align: left;
+}
+
+/* standard error */
+div.nboutput.container div.output_area.stderr {
+    background: #fdd;
+}
+
+/* ANSI colors */
+.ansi-black-fg { color: #3E424D; }
+.ansi-black-bg { background-color: #3E424D; }
+.ansi-black-intense-fg { color: #282C36; }
+.ansi-black-intense-bg { background-color: #282C36; }
+.ansi-red-fg { color: #E75C58; }
+.ansi-red-bg { background-color: #E75C58; }
+.ansi-red-intense-fg { color: #B22B31; }
+.ansi-red-intense-bg { background-color: #B22B31; }
+.ansi-green-fg { color: #00A250; }
+.ansi-green-bg { background-color: #00A250; }
+.ansi-green-intense-fg { color: #007427; }
+.ansi-green-intense-bg { background-color: #007427; }
+.ansi-yellow-fg { color: #DDB62B; }
+.ansi-yellow-bg { background-color: #DDB62B; }
+.ansi-yellow-intense-fg { color: #B27D12; }
+.ansi-yellow-intense-bg { background-color: #B27D12; }
+.ansi-blue-fg { color: #208FFB; }
+.ansi-blue-bg { background-color: #208FFB; }
+.ansi-blue-intense-fg { color: #0065CA; }
+.ansi-blue-intense-bg { background-color: #0065CA; }
+.ansi-magenta-fg { color: #D160C4; }
+.ansi-magenta-bg { background-color: #D160C4; }
+.ansi-magenta-intense-fg { color: #A03196; }
+.ansi-magenta-intense-bg { background-color: #A03196; }
+.ansi-cyan-fg { color: #60C6C8; }
+.ansi-cyan-bg { background-color: #60C6C8; }
+.ansi-cyan-intense-fg { color: #258F8F; }
+.ansi-cyan-intense-bg { background-color: #258F8F; }
+.ansi-white-fg { color: #C5C1B4; }
+.ansi-white-bg { background-color: #C5C1B4; }
+.ansi-white-intense-fg { color: #A1A6B2; }
+.ansi-white-intense-bg { background-color: #A1A6B2; }
+
+.ansi-default-inverse-fg { color: #FFFFFF; }
+.ansi-default-inverse-bg { background-color: #000000; }
+
+.ansi-bold { font-weight: bold; }
+.ansi-underline { text-decoration: underline; }
+
+
+div.nbinput.container div.input_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight].math,
+div.nboutput.container div.output_area.rendered_html,
+div.nboutput.container div.output_area > div.output_javascript,
+div.nboutput.container div.output_area:not(.rendered_html) > img{
+    padding: 5px;
+    margin: 0;
+}
+
+/* fix copybtn overflow problem in chromium (needed for 'sphinx_copybutton') */
+div.nbinput.container div.input_area > div[class^='highlight'],
+div.nboutput.container div.output_area > div[class^='highlight']{
+    overflow-y: hidden;
+}
+
+/* hide copybtn icon on prompts (needed for 'sphinx_copybutton') */
+.prompt .copybtn {
+    display: none;
+}
+
+/* Some additional styling taken form the Jupyter notebook CSS */
+.jp-RenderedHTMLCommon table,
+div.rendered_html table {
+  border: none;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: black;
+  font-size: 12px;
+  table-layout: fixed;
+}
+.jp-RenderedHTMLCommon thead,
+div.rendered_html thead {
+  border-bottom: 1px solid black;
+  vertical-align: bottom;
+}
+.jp-RenderedHTMLCommon tr,
+.jp-RenderedHTMLCommon th,
+.jp-RenderedHTMLCommon td,
+div.rendered_html tr,
+div.rendered_html th,
+div.rendered_html td {
+  text-align: right;
+  vertical-align: middle;
+  padding: 0.5em 0.5em;
+  line-height: normal;
+  white-space: normal;
+  max-width: none;
+  border: none;
+}
+.jp-RenderedHTMLCommon th,
+div.rendered_html th {
+  font-weight: bold;
+}
+.jp-RenderedHTMLCommon tbody tr:nth-child(odd),
+div.rendered_html tbody tr:nth-child(odd) {
+  background: #f5f5f5;
+}
+.jp-RenderedHTMLCommon tbody tr:hover,
+div.rendered_html tbody tr:hover {
+  background: rgba(66, 165, 245, 0.2);
+}
+</style>
+<section id="Example-data-anonymization">
+<h1>Example data anonymization<a class="headerlink" href="#Example-data-anonymization" title="Permalink to this heading">#</a></h1>
+<p>In Pega CDH 8.5 and up, it’s now possible to record the historical data as seen by the Adaptive Models. See <a class="reference external" href="https://academy.pega.com/challenge/exporting-historical-data/v4">this academy challenge</a> for reference. This historical data can be further used to experiment with offline models, but also to fine-tune the OOTB Gradient Boosting model. However, sharing this information with Pega can be sensitive as it contains raw predictor data.</p>
+<p>To this end, we provide a simple and transparent script to fully anonimize this dataset.</p>
+<p>The DataAnonymization script is now part of pdstools, and you can import it directly as such.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pdstools</span> <span class="kn">import</span> <span class="n">ADMDatamart</span>
+<span class="kn">from</span> <span class="nn">pdstools</span> <span class="kn">import</span> <span class="n">Config</span><span class="p">,</span> <span class="n">DataAnonymization</span>
+<span class="kn">import</span> <span class="nn">polars</span> <span class="k">as</span> <span class="nn">pl</span>
+</pre></div>
+</div>
+</div>
+<section id="Input-data">
+<h2>Input data<a class="headerlink" href="#Input-data" title="Permalink to this heading">#</a></h2>
+<p>To demonstrate this process, we’re going to anonymise this toy example dataframe:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pl</span><span class="o">.</span><span class="n">read_ndjson</span><span class="p">(</span><span class="s1">&#39;../../../../data/SampleHDS.json&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div><style>
+.dataframe > thead > tr > th,
+.dataframe > tbody > tr > td {
+  text-align: right;
+}
+</style>
+<small>shape: (7, 6)</small><table border="1" class="dataframe"><thead><tr><th>Context_Name</th><th>Customer_MaritalStatus</th><th>Customer_CLV</th><th>Customer_City</th><th>IH_Web_Inbound_Accepted_pxLastGroupID</th><th>Decision_Outcome</th></tr><tr><td>str</td><td>str</td><td>i64</td><td>str</td><td>str</td><td>str</td></tr></thead><tbody><tr><td>&quot;FirstMortgage3...</td><td>&quot;Married&quot;</td><td>1460</td><td>&quot;Port Raoul&quot;</td><td>&quot;Account&quot;</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;FirstMortgage3...</td><td>&quot;Unknown&quot;</td><td>669</td><td>&quot;Laurianneshire...</td><td>&quot;AutoLoans&quot;</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;MoneyMarketSav...</td><td>&quot;No Resp+&quot;</td><td>1174</td><td>&quot;Jacobshaven&quot;</td><td>&quot;Account&quot;</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;BasicChecking&quot;</td><td>&quot;Unknown&quot;</td><td>1476</td><td>&quot;Lindton&quot;</td><td>&quot;Account&quot;</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;BasicChecking&quot;</td><td>&quot;Married&quot;</td><td>1211</td><td>&quot;South Jimmiesh...</td><td>&quot;DepositAccount...</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;UPlusFinPerson...</td><td>&quot;No Resp+&quot;</td><td>533</td><td>&quot;Bergeville&quot;</td><td>null</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;BasicChecking&quot;</td><td>&quot;No Resp+&quot;</td><td>555</td><td>&quot;Willyville&quot;</td><td>&quot;DepositAccount...</td><td>&quot;Rejected&quot;</td></tr></tbody></table></div></div>
+</div>
+<p>As you can see, this dataset consists of regular predictors, IH predictors, context keys and the outcome column. Additionally, some columns are numeric, others are strings. Let’s first initialize the DataAnonymization class.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">anon</span> <span class="o">=</span> <span class="n">DataAnonymization</span><span class="p">(</span><span class="n">hds_folder</span><span class="o">=</span><span class="s1">&#39;../../../../data/&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>By default, the class applies a set of anonymisation techniques: - Column names are remapped to a non-descriptive name - Categorical values are hashed with a random seed - Numerical values are normalized between 0 and 1 - Outcomes are mapped to a binary outcome.</p>
+<p>To apply these techniques, simply call <code class="docutils literal notranslate"><span class="pre">.process()</span></code>:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">anon</span><span class="o">.</span><span class="n">process</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div><style>
+.dataframe > thead > tr > th,
+.dataframe > tbody > tr > td {
+  text-align: right;
+}
+</style>
+<small>shape: (7, 6)</small><table border="1" class="dataframe"><thead><tr><th>PREDICTOR_0</th><th>PREDICTOR_1</th><th>PREDICTOR_2</th><th>CK_PREDICTOR_0</th><th>IH_PREDICTOR_0</th><th>OUTCOME</th></tr><tr><td>str</td><td>f64</td><td>str</td><td>str</td><td>str</td><td>bool</td></tr></thead><tbody><tr><td>&quot;23716298007734...</td><td>0.983033</td><td>&quot;10351438876947...</td><td>&quot;17925016031664...</td><td>&quot;54819093375454...</td><td>false</td></tr><tr><td>&quot;58335094937080...</td><td>0.144221</td><td>&quot;87523394113139...</td><td>&quot;17925016031664...</td><td>&quot;56575436797742...</td><td>true</td></tr><tr><td>&quot;82891935285723...</td><td>0.679745</td><td>&quot;11497268930446...</td><td>&quot;17584060957230...</td><td>&quot;54819093375454...</td><td>false</td></tr><tr><td>&quot;76635517368914...</td><td>1.0</td><td>&quot;87523394113139...</td><td>&quot;10616365382318...</td><td>&quot;54819093375454...</td><td>false</td></tr><tr><td>&quot;96034035185335...</td><td>0.718982</td><td>&quot;10351438876947...</td><td>&quot;10616365382318...</td><td>&quot;51444888907670...</td><td>true</td></tr><tr><td>&quot;35479062579420...</td><td>0.0</td><td>&quot;11497268930446...</td><td>&quot;10922250202202...</td><td>null</td><td>false</td></tr><tr><td>&quot;13951124795423...</td><td>0.02333</td><td>&quot;11497268930446...</td><td>&quot;10616365382318...</td><td>&quot;51444888907670...</td><td>false</td></tr></tbody></table></div></div>
+</div>
+<p>To trace back the columns to their original names, the class also contains a mapping, which does not have to be provided.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">anon</span><span class="o">.</span><span class="n">column_mapping</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;Customer_City&#39;: &#39;PREDICTOR_0&#39;,
+ &#39;Customer_CLV&#39;: &#39;PREDICTOR_1&#39;,
+ &#39;Customer_MaritalStatus&#39;: &#39;PREDICTOR_2&#39;,
+ &#39;Context_Name&#39;: &#39;CK_PREDICTOR_0&#39;,
+ &#39;IH_Web_Inbound_Accepted_pxLastGroupID&#39;: &#39;IH_PREDICTOR_0&#39;,
+ &#39;Decision_Outcome&#39;: &#39;OUTCOME&#39;}
+</pre></div></div>
+</div>
+</section>
+<section id="Configs">
+<h2>Configs<a class="headerlink" href="#Configs" title="Permalink to this heading">#</a></h2>
+<p>Each capability can optionally be turned off - see below for the full list of config options, and refer to the API reference for the full description.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">Config</span><span class="o">.</span><span class="fm">__init__</span><span class="o">.</span><span class="vm">__code__</span><span class="o">.</span><span class="n">co_varnames</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">Config</span><span class="o">.</span><span class="fm">__init__</span><span class="o">.</span><span class="vm">__defaults__</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;config_file&#39;: None,
+ &#39;hds_folder&#39;: &#39;.&#39;,
+ &#39;use_datamart&#39;: False,
+ &#39;datamart_folder&#39;: &#39;datamart&#39;,
+ &#39;output_format&#39;: &#39;ndjson&#39;,
+ &#39;output_folder&#39;: &#39;output&#39;,
+ &#39;mapping_file&#39;: &#39;mapping.map&#39;,
+ &#39;mask_predictor_names&#39;: True,
+ &#39;mask_context_key_names&#39;: True,
+ &#39;mask_ih_names&#39;: True,
+ &#39;mask_outcome_name&#39;: True,
+ &#39;mask_predictor_values&#39;: True,
+ &#39;mask_context_key_values&#39;: True,
+ &#39;mask_ih_values&#39;: True,
+ &#39;mask_outcome_values&#39;: True,
+ &#39;context_key_label&#39;: &#39;Context_*&#39;,
+ &#39;ih_label&#39;: &#39;IH_*&#39;,
+ &#39;outcome_column&#39;: &#39;Decision_Outcome&#39;,
+ &#39;positive_outcomes&#39;: [&#39;Accepted&#39;, &#39;Clicked&#39;],
+ &#39;negative_outcomes&#39;: [&#39;Rejected&#39;, &#39;Impression&#39;],
+ &#39;special_predictors&#39;: [&#39;Decision_DecisionTime&#39;, &#39;Decision_OutcomeTime&#39;]}
+</pre></div></div>
+</div>
+<p>It’s easy to change these parameters by just passing the keyword arguments. In the following example, we - Keep the IH predictor names - Keep the outcome values - Keep the context key values - Keep the context key predictor names</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">anon</span> <span class="o">=</span> <span class="n">DataAnonymization</span><span class="p">(</span>
+    <span class="n">hds_folder</span><span class="o">=</span><span class="s1">&#39;../../../../data/&#39;</span><span class="p">,</span>
+    <span class="n">mask_ih_names</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">mask_outcome_values</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">mask_context_key_values</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">mask_context_key_names</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">anon</span><span class="o">.</span><span class="n">process</span><span class="p">()</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div><style>
+.dataframe > thead > tr > th,
+.dataframe > tbody > tr > td {
+  text-align: right;
+}
+</style>
+<small>shape: (7, 6)</small><table border="1" class="dataframe"><thead><tr><th>PREDICTOR_0</th><th>PREDICTOR_1</th><th>PREDICTOR_2</th><th>Context_Name</th><th>IH_Web_Inbound_Accepted_pxLastGroupID</th><th>OUTCOME</th></tr><tr><td>str</td><td>f64</td><td>str</td><td>str</td><td>str</td><td>str</td></tr></thead><tbody><tr><td>&quot;23716298007734...</td><td>0.983033</td><td>&quot;10351438876947...</td><td>&quot;FirstMortgage3...</td><td>&quot;54819093375454...</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;58335094937080...</td><td>0.144221</td><td>&quot;87523394113139...</td><td>&quot;FirstMortgage3...</td><td>&quot;56575436797742...</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;82891935285723...</td><td>0.679745</td><td>&quot;11497268930446...</td><td>&quot;MoneyMarketSav...</td><td>&quot;54819093375454...</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;76635517368914...</td><td>1.0</td><td>&quot;87523394113139...</td><td>&quot;BasicChecking&quot;</td><td>&quot;54819093375454...</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;96034035185335...</td><td>0.718982</td><td>&quot;10351438876947...</td><td>&quot;BasicChecking&quot;</td><td>&quot;51444888907670...</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;35479062579420...</td><td>0.0</td><td>&quot;11497268930446...</td><td>&quot;UPlusFinPerson...</td><td>null</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;13951124795423...</td><td>0.02333</td><td>&quot;11497268930446...</td><td>&quot;BasicChecking&quot;</td><td>&quot;51444888907670...</td><td>&quot;Rejected&quot;</td></tr></tbody></table></div></div>
+</div>
+<p>The configs can also be written and read as such:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">anon</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">save_to_config_file</span><span class="p">(</span><span class="s1">&#39;config.json&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">anon</span> <span class="o">=</span> <span class="n">DataAnonymization</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">Config</span><span class="p">(</span><span class="n">config_file</span><span class="o">=</span><span class="s1">&#39;config.json&#39;</span><span class="p">))</span>
+<span class="n">anon</span><span class="o">.</span><span class="n">process</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div><style>
+.dataframe > thead > tr > th,
+.dataframe > tbody > tr > td {
+  text-align: right;
+}
+</style>
+<small>shape: (7, 6)</small><table border="1" class="dataframe"><thead><tr><th>PREDICTOR_0</th><th>PREDICTOR_1</th><th>PREDICTOR_2</th><th>Context_Name</th><th>IH_Web_Inbound_Accepted_pxLastGroupID</th><th>OUTCOME</th></tr><tr><td>str</td><td>f64</td><td>str</td><td>str</td><td>str</td><td>str</td></tr></thead><tbody><tr><td>&quot;23716298007734...</td><td>0.983033</td><td>&quot;10351438876947...</td><td>&quot;FirstMortgage3...</td><td>&quot;54819093375454...</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;58335094937080...</td><td>0.144221</td><td>&quot;87523394113139...</td><td>&quot;FirstMortgage3...</td><td>&quot;56575436797742...</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;82891935285723...</td><td>0.679745</td><td>&quot;11497268930446...</td><td>&quot;MoneyMarketSav...</td><td>&quot;54819093375454...</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;76635517368914...</td><td>1.0</td><td>&quot;87523394113139...</td><td>&quot;BasicChecking&quot;</td><td>&quot;54819093375454...</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;96034035185335...</td><td>0.718982</td><td>&quot;10351438876947...</td><td>&quot;BasicChecking&quot;</td><td>&quot;51444888907670...</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;35479062579420...</td><td>0.0</td><td>&quot;11497268930446...</td><td>&quot;UPlusFinPerson...</td><td>null</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;13951124795423...</td><td>0.02333</td><td>&quot;11497268930446...</td><td>&quot;BasicChecking&quot;</td><td>&quot;51444888907670...</td><td>&quot;Rejected&quot;</td></tr></tbody></table></div></div>
+</div>
+</section>
+<section id="Exporting">
+<h2>Exporting<a class="headerlink" href="#Exporting" title="Permalink to this heading">#</a></h2>
+<p>Two functions export: - <code class="docutils literal notranslate"><span class="pre">create_mapping_file()</span></code> writes the mapping file of the predictor names - <code class="docutils literal notranslate"><span class="pre">write_to_output()</span></code> writes the processed dataframe to disk</p>
+<p>Write to output accepts the following extensions: <code class="docutils literal notranslate"><span class="pre">[&quot;ndjson&quot;,</span> <span class="pre">&quot;parquet&quot;,</span> <span class="pre">&quot;arrow&quot;,</span> <span class="pre">&quot;csv&quot;]</span></code></p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">anon</span><span class="o">.</span><span class="n">create_mapping_file</span><span class="p">()</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;mapping.map&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Customer_City=PREDICTOR_0
+Customer_CLV=PREDICTOR_1
+Customer_MaritalStatus=PREDICTOR_2
+Context_Name=Context_Name
+IH_Web_Inbound_Accepted_pxLastGroupID=IH_Web_Inbound_Accepted_pxLastGroupID
+Decision_Outcome=OUTCOME
+
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">anon</span><span class="o">.</span><span class="n">write_to_output</span><span class="p">(</span><span class="n">ext</span><span class="o">=</span><span class="s1">&#39;arrow&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pl</span><span class="o">.</span><span class="n">read_ipc</span><span class="p">(</span><span class="s1">&#39;output/hds.arrow&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div><style>
+.dataframe > thead > tr > th,
+.dataframe > tbody > tr > td {
+  text-align: right;
+}
+</style>
+<small>shape: (7, 6)</small><table border="1" class="dataframe"><thead><tr><th>PREDICTOR_0</th><th>PREDICTOR_1</th><th>PREDICTOR_2</th><th>Context_Name</th><th>IH_Web_Inbound_Accepted_pxLastGroupID</th><th>OUTCOME</th></tr><tr><td>str</td><td>f64</td><td>str</td><td>str</td><td>str</td><td>str</td></tr></thead><tbody><tr><td>&quot;23716298007734...</td><td>0.983033</td><td>&quot;10351438876947...</td><td>&quot;FirstMortgage3...</td><td>&quot;54819093375454...</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;58335094937080...</td><td>0.144221</td><td>&quot;87523394113139...</td><td>&quot;FirstMortgage3...</td><td>&quot;56575436797742...</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;82891935285723...</td><td>0.679745</td><td>&quot;11497268930446...</td><td>&quot;MoneyMarketSav...</td><td>&quot;54819093375454...</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;76635517368914...</td><td>1.0</td><td>&quot;87523394113139...</td><td>&quot;BasicChecking&quot;</td><td>&quot;54819093375454...</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;96034035185335...</td><td>0.718982</td><td>&quot;10351438876947...</td><td>&quot;BasicChecking&quot;</td><td>&quot;51444888907670...</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;35479062579420...</td><td>0.0</td><td>&quot;11497268930446...</td><td>&quot;UPlusFinPerson...</td><td>null</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;13951124795423...</td><td>0.02333</td><td>&quot;11497268930446...</td><td>&quot;BasicChecking&quot;</td><td>&quot;51444888907670...</td><td>&quot;Rejected&quot;</td></tr></tbody></table></div></div>
+</div>
+</section>
+<section id="Advanced:-Hash-fuctions">
+<h2>Advanced: Hash fuctions<a class="headerlink" href="#Advanced:-Hash-fuctions" title="Permalink to this heading">#</a></h2>
+<p>By default, we use <a class="reference external" href="https://pola-rs.github.io/polars/py-polars/html/reference/expressions/api/polars.Expr.hash.html#polars.Expr.hash">the same hashing algorithm Polars</a> uses: <a class="reference external" href="https://github.com/Cyan4973/xxHash">xxhash</a>, as implemented <a class="reference external" href="https://github.com/pola-rs/polars/blob/3f287f370b3c388ed2f3f218b2c096382548136f/polars/polars-core/src/vector_hasher.rs#L266">here</a>. xxhash is fast to compute, and you can check its performance in collision, dispersion and randomness
+<a class="reference external" href="https://github.com/Cyan4973/xxHash/tree/dev/tests">here</a>.</p>
+<p>xxhash accepts four distinct seeds, but by default we set the seeds to <code class="docutils literal notranslate"><span class="pre">0</span></code>. It is possible to set the <code class="docutils literal notranslate"><span class="pre">seed</span></code> argument of the <code class="docutils literal notranslate"><span class="pre">process()</span></code> function to <code class="docutils literal notranslate"><span class="pre">'random'</span></code>, which will set all four seeds to a random integer between <code class="docutils literal notranslate"><span class="pre">0</span></code> and <code class="docutils literal notranslate"><span class="pre">1000000000</span></code>. Alternatively, it is possible to supply the four seeds manually with arguments <code class="docutils literal notranslate"><span class="pre">seed</span></code>, <code class="docutils literal notranslate"><span class="pre">seed_1</span></code>, <code class="docutils literal notranslate"><span class="pre">seed_2</span></code> and <code class="docutils literal notranslate"><span class="pre">seed_3</span></code>.</p>
+<p>If the xxhash with (random) seed(s) is not deemed sufficiently secure, it is possible to use your own hashing algorithm.</p>
+<p>Note that since we’re now running python code and not native Polars code anymore, this will be <em>significantly</em> slower. Nonetheless, it is possible.</p>
+<p>Just as an example - this is how one would use sha3_256:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">hashlib</span> <span class="kn">import</span> <span class="n">sha3_256</span>
+
+<span class="n">anon</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">algorithm</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">sha3_256</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div><style>
+.dataframe > thead > tr > th,
+.dataframe > tbody > tr > td {
+  text-align: right;
+}
+</style>
+<small>shape: (7, 6)</small><table border="1" class="dataframe"><thead><tr><th>PREDICTOR_0</th><th>PREDICTOR_1</th><th>PREDICTOR_2</th><th>Context_Name</th><th>IH_Web_Inbound_Accepted_pxLastGroupID</th><th>OUTCOME</th></tr><tr><td>str</td><td>f64</td><td>str</td><td>str</td><td>str</td><td>str</td></tr></thead><tbody><tr><td>&quot;c73023dda51de1...</td><td>0.983033</td><td>&quot;af486bc1815c72...</td><td>&quot;FirstMortgage3...</td><td>&quot;2513d0e24d8d02...</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;5414b197fb87b3...</td><td>0.144221</td><td>&quot;3cdf7b1ae1342e...</td><td>&quot;FirstMortgage3...</td><td>&quot;8b55bf62fc2ecd...</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;892f5d61a9215e...</td><td>0.679745</td><td>&quot;806ef34eb8237f...</td><td>&quot;MoneyMarketSav...</td><td>&quot;2513d0e24d8d02...</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;c3aa807d9e927a...</td><td>1.0</td><td>&quot;3cdf7b1ae1342e...</td><td>&quot;BasicChecking&quot;</td><td>&quot;2513d0e24d8d02...</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;c2d492f9a05073...</td><td>0.718982</td><td>&quot;af486bc1815c72...</td><td>&quot;BasicChecking&quot;</td><td>&quot;1cd082ecbd5dd9...</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;b21059221605c4...</td><td>0.0</td><td>&quot;806ef34eb8237f...</td><td>&quot;UPlusFinPerson...</td><td>null</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;80cbe489dcecd4...</td><td>0.02333</td><td>&quot;806ef34eb8237f...</td><td>&quot;BasicChecking&quot;</td><td>&quot;1cd082ecbd5dd9...</td><td>&quot;Rejected&quot;</td></tr></tbody></table></div></div>
+</div>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="../examples.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Example notebooks</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="hello_cdhtools.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Hello pdstools</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2022, Pegasystems
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/pegasystems/pega-datascientist-tools" aria-label="GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            </a>
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Example data anonymization</a><ul>
+<li><a class="reference internal" href="#Input-data">Input data</a></li>
+<li><a class="reference internal" href="#Configs">Configs</a></li>
+<li><a class="reference internal" href="#Exporting">Exporting</a></li>
+<li><a class="reference internal" href="#Advanced:-Hash-fuctions">Advanced: Hash fuctions</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/scripts/furo.js"></script>
+    <script src="../_static/clipboard.min.js"></script>
+    <script src="../_static/copybutton.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    </body>
+</html>

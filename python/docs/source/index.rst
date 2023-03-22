@@ -13,6 +13,7 @@ Welcome to pdstools's Python documentation!
    articles/graph_gallery
    tutorial_notebooks
    examples
+   Articles
 
 .. toctree::
    :maxdepth: 1

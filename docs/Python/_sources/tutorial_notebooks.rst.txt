@@ -9,3 +9,4 @@ Here you can find some tutorial notebooks.
    :caption: Notebooks included:
 
    articles/hello_cdhtools
+   articles/Example_Data_Anonymization

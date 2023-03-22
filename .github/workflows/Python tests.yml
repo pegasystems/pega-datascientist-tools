@@ -27,14 +27,14 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest, windows-latest, macOS-latest]
-        python-version: [3.7.x, 3.9.x, 3.11.x]
+        python-version: [3.8.x, 3.9.x, 3.11.x]
         exclude:
           - os: windows-latest
-            python-version: 3.7.x
+            python-version: 3.8.x
           - os: windows-latest
             python-version: 3.9.x
           - os: macOS-latest
-            python-version: 3.7.x
+            python-version: 3.8.x
           - os: macOS-latest
             python-version: 3.9.x
 
@@ -55,9 +55,17 @@ jobs:
           pip install -r python/requirements.txt
           pip install pytest-cov
           pip install scipy
+          pip install testbook
+          pip install XlsxWriter
+          pip install ipython 
+          pip install ipykernel
+                  
+      - name: Install jupyter kernel
+        run: |
+          ipython kernel install --name "python3" --user
 
       - name: Run tests
-        run: pytest --cov=./python/pdstools --cov-report=xml
+        run: pytest --cov=./python/pdstools --cov-report=xml --cov-config=./python/tests/.coveragerc
         
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
