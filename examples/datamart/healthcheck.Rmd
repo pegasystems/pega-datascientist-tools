@@ -239,6 +239,12 @@ have very different success rates. Just showing the top `r params$max_propositio
 here and limiting to the propositions that have received at least `r params$min_responses_to_show_propositions` responses (the rates reported by
 the models are unreliable otherwise). 
 
+```{r Max response counts}
+datamart$modeldata[, .(`Max Responses` = max(ResponseCount), `Max Positives` = max(Positives)), by="Channel"] %>%
+  kbl() %>%
+  kable_paper(c("striped", "hover"), full_width = F)
+```
+
 ### Guidance
 
 * Look out for propositions that stand out, having a far higher success rate
@@ -303,12 +309,19 @@ if (!hasMultipleSnapshots(datamart$modeldata))
 {
   cat("Trend plots will only be available when the model data contains multiple snapshots.", fill=T)
 } else {
-  p <- plotSuccessRateOverTime(datamart, 
-                               filter=function(mdls){ mdls[ResponseCount >= 100] }, 
-                               aggregation = c("Channel"),
-                               facets = c("Direction", "ConfigurationName")) + 
-    scale_color_Channel
-  #geom_smooth(aes(fill=Channel), alpha=0.1)
+  if (max(datamart$modeldata$ResponseCount) < 100) {
+    p <- plotSuccessRateOverTime(datamart, 
+                                 aggregation = c("Channel"),
+                                 facets = c("Direction", "ConfigurationName")) + 
+      scale_color_Channel
+  } else {
+    p <- plotSuccessRateOverTime(datamart, 
+                                 filter=function(mdls){ mdls[ResponseCount >= 100] }, 
+                                 aggregation = c("Channel"),
+                                 facets = c("Direction", "ConfigurationName")) + 
+      scale_color_Channel
+    #geom_smooth(aes(fill=Channel), alpha=0.1)
+  }
   p
 }
 ```
@@ -1147,8 +1160,34 @@ The distribution of propensities returned by the models is yet a different angle
 Higher propensities clearly indicate the offers are more attractive - people
 apparenty click/accept/convert more often.
 
+## Success Rate distribution
 
-## Propensity distribution
+```{r Success Rate distribution, fig.height=5}
+
+channelz <- as.character((datamart$modeldata[Performance > 0.5,.N,by=Channel])[N>0]$Channel)
+
+sampledRates <- datamart$modeldata[ResponseCount > 0, .(SuccessRate = sample(SuccessRate, prob=ResponseCount, size=10000, replace=T)), 
+                                   by=c("Direction", "Channel", "ConfigurationName")]
+quantiles <- sampledRates[, .(p5 = quantile(SuccessRate, 0.05)), by=c("Channel", "Direction", "ConfigurationName")]
+
+plt <- ggplot(datamart$modeldata, aes(SuccessRate, color=ConfigurationName)) + 
+  geom_density() + 
+  facet_wrap(.~Channel+Direction) + 
+  ggtitle("Distribution of Success Rates", subtitle = "dashed line is 5th quantile") + 
+  scale_x_continuous(labels=scales::percent) +
+  geom_vline(data=quantiles, aes(xintercept=p5, color=ConfigurationName), linetype="dashed")
+print(plt)    
+    
+plt <- ggplot(sampledRates, aes(SuccessRate, color=ConfigurationName)) + 
+  geom_density() + 
+  facet_wrap(.~Channel+Direction) + 
+  ggtitle("Distribution of Sampled Success Rates", subtitle = "taking number of responses into account") +
+  scale_x_continuous(labels=scales::percent) +
+  geom_vline(data=quantiles, aes(xintercept=p5, color=ConfigurationName), linetype="dashed")
+print(plt)
+```
+
+## Propensity distribution from Binning
 
 In a more emphathetic setup, you would expect that the distribution of the 
 propensities leans towards the right-hand side: more volume to more attractive 
