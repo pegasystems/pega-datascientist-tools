@@ -58,7 +58,7 @@ def test_find_default_predictors():
 
 
 def test_file_not_found():
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises(Exception):
         cdh_utils.get_latest_file(path="data1", target="predictorData")
 
 
@@ -101,10 +101,7 @@ def test_import_produces_bytes():
 def test_read_json(test_data):
     temp_filename = "data.json"
     test_data.collect().write_ndjson(temp_filename)
-    assert cdh_utils.readDSExport(
-        "data.json",
-        ".",
-    ).shape == (20, 23)
+    assert cdh_utils.readDSExport("data.json", ".").shape == (20, 23)
     os.remove(temp_filename)
 
 
@@ -128,10 +125,7 @@ def test_polars_zip_from_url():
         "https://raw.githubusercontent.com/pegasystems/cdh-datascientist-tools/master/data",
     )
 
-    assert isinstance(
-        df,
-        pl.LazyFrame,
-    )
+    assert isinstance(df, pl.LazyFrame)
     assert df.shape == (20, 23)
 
 
@@ -201,7 +195,7 @@ def test_file_not_found_in_good_dir():
 
 
 def test_file_not_found_in_bad_dir():
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises(Exception):
         cdh_utils.readDSExport(path="data1", filename="modelData")
 
 
@@ -403,7 +397,9 @@ def test_toPRPCDateTime():
         == "20180316T134127.847 GMT-0456"
     )
     assert (
-        cdh_utils.toPRPCDateTime(datetime.datetime(2018, 3, 16, 13, 41, 27, 847000))[:-3]
+        cdh_utils.toPRPCDateTime(datetime.datetime(2018, 3, 16, 13, 41, 27, 847000))[
+            :-3
+        ]
         == "20180316T134127.847 GMT+0000"[:-3]
     )
 
@@ -421,7 +417,7 @@ def test_weighted_average_polars():
         .agg(
             cdh_utils.weighed_average_polars("SuccessRate", "ResponseCount").alias(
                 "SuccessRate_weighted"
-            ),
+            )
         )
         .sort("Channel")
     )

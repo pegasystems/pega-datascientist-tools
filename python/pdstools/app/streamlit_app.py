@@ -17,7 +17,20 @@ else:
 def run(**kwargs):
     import os
 
-    st.title("Generate a health check :male-doctor:")
+    st.title("Generate a Health Check :male-doctor:")
+    st.write(
+        """
+             This application generates a Health Check that provides an overview of the Adaptive models and predictors. 
+             
+             You can simply run it by uploading your ADM data (see [pdstools wiki](https://github.com/pegasystems/pega-datascientist-tools/wiki/How-to-export-and-use-the-ADM-Datamart)
+             to learn about ADM tables and how export them) and clicking on **Generate healthcheck** button.
+             
+             If you want to focus only on a subset of models/predictors, you can add filters and preview the filtered data.
+             If you want to change model context keys, use edit parameters button.
+             
+             Before clicking on **Generate healthcheck** button, you can preview the data that will be used for creating the document.
+            """
+    )
     file_loc = os.path.dirname(__file__)
     params = dict()
     params["name"] = st.text_input("Customer name", "Sample")
@@ -29,7 +42,8 @@ def run(**kwargs):
     if data is None:
         return None
     data.modelData = data.modelData.lazy()
-    data.predictorData = data.predictorData.lazy()
+    if data.predictorData is not None:
+        data.predictorData = data.predictorData.lazy()
 
     filtereddf, params = generate_modeldata_filters(data, params)
 
@@ -38,9 +52,7 @@ def run(**kwargs):
     )
     if data.predictorData is not None:
         filteredpreds = data.predictorData.join(
-            filtereddf.select(pl.col("ModelID").unique()),
-            on="ModelID",
-            how="inner",
+            filtereddf.select(pl.col("ModelID").unique()), on="ModelID", how="inner"
         )
         st.write(
             f"Shape of predictor file: {filteredpreds.select(pl.count()).collect().item(), len(filteredpreds.columns)}"
@@ -60,7 +72,11 @@ def run(**kwargs):
         params["name"] = params["name"].replace(" ", "_")
         output_filename = f'HealthCheck_{params["name"]}.html'
         cwd = os.getcwd()
-        quarto_file_name = "HealthCheck.qmd"
+        quarto_file_name = (
+            "HealthCheck.qmd"
+            if data.predictorData is not None
+            else "HealthCheckModel.qmd"
+        )
         param_file = f"{cache_location}/params.yaml"
         persist_cache = st.checkbox("Keep cached files", value=False)
 

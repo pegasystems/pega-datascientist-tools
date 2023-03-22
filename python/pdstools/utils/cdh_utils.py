@@ -98,6 +98,7 @@ def readDSExport(
     # If the filename is simply a string, then we first
     # extract the extension of the file, then look for
     # the file in the user's directory.
+
     if os.path.isfile(os.path.join(path, filename)):
         logging.debug("File found in directory")
         file = os.path.join(path, filename)
@@ -121,7 +122,10 @@ def readDSExport(
             logging.info(f"File not found: {path}/{filename}")
             return None
 
-    else:
+    elif filename is not None:
+        import streamlit as st
+
+        st.write(f"filename: {filename}")
         logging.debug("File not found in directory, scanning for latest file")
         file = get_latest_file(path, filename)
 
@@ -184,21 +188,14 @@ def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
                 try_parse_dates=True,
             ).lazy()
         else:
-            file = pl.scan_csv(
-                file,
-                sep=reading_opts.get("sep", ","),
-            )
+            file = pl.scan_csv(file, sep=reading_opts.get("sep", ","))
 
     elif extension == ".json":
         try:
             if isinstance(file, BytesIO):
                 from pyarrow import json
 
-                file = pl.LazyFrame(
-                    json.read_json(
-                        file,
-                    )
-                )
+                file = pl.LazyFrame(json.read_json(file))
             else:
                 file = pl.scan_ndjson(
                     file,
@@ -286,9 +283,26 @@ def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
         return f"Target not found"
 
     supported = [".json", ".csv", ".zip", ".parquet", ".feather", ".ipc", ".arrow"]
+    try:
+        files_dir = [
+            f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))
+        ]
+        files_dir = [
+            f for f in files_dir if os.path.splitext(f)[-1].lower() in supported
+        ]
+    except FileNotFoundError as e:
+        raise Exception(
+            f"""No such directory in your computer as: {path}. \n
+            Please provide the location that contains ADM tables or use File upload option
+            to upload model and predictor tables seperately"""
+        ) from e
+    except NotADirectoryError as e:
+        raise Exception(
+            f"""{path} is not directory. Please provide the location that
+            contains ADM tables or use File upload option
+            to upload model and predictor files seperately"""
+        ) from e
 
-    files_dir = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
-    files_dir = [f for f in files_dir if os.path.splitext(f)[-1].lower() in supported]
     if verbose:
         print(files_dir)  # pragma: no cover
     matches = getMatches(files_dir, target)
@@ -340,13 +354,10 @@ def getMatches(files_dir, target):
             matches.append(match[0])
     if len(matches) == 0:
         raise FileNotFoundError(
-            """Couldn't find a compatible file name. Please try feeding model and predictor filenames seperatly.
-        See https://github.com/pegasystems/pega-datascientist-tools/blob/master/python/pdstools/adm/ADMDatamart docstring
-        for usage.
+            """Couldn't find a file with default ADM table names. Please try feeding model and predictor files seperately. \n
         
-        Or check out https://github.com/pegasystems/pega-datascientist-tools/blob/master/python/pdstools/utils/cdh_utils/
-        get_latest function to see default model and predictor file names that pdstools 
-        can find.
+        Or check out getMatches function at https://github.com/pegasystems/pega-datascientist-tools/blob/master/python/pdstools/utils/cdh_utils.py
+        to see default model and predictor file names that pdstools can find.
         """
         )
     return matches
@@ -672,14 +683,7 @@ def _capitalize(fields: list) -> list:
 
 
 def _polarsCapitalize(df: pl.LazyFrame):
-    return df.rename(
-        dict(
-            zip(
-                df.columns,
-                _capitalize(df.columns),
-            )
-        )
-    )
+    return df.rename(dict(zip(df.columns, _capitalize(df.columns))))
 
 
 def fromPRPCDateTime(

@@ -43,17 +43,20 @@ def import_data(params, default=0, **kwargs):
             )
             params["kwargs"] = ADMDatamart_options()
             if st.checkbox("Use this data source"):
-                if model_file and predictor_file is not None:
+                if predictor_file is None and model_file is not None:
+                    data = import_datamart(
+                        ADMDatamart,
+                        model_df=model_file,
+                        predictor_df=predictor_file,
+                        predictor_filename=None,
+                        **params["kwargs"],
+                    )
+                elif model_file and predictor_file is not None:
                     data = import_datamart(
                         ADMDatamart,
                         model_df=model_file,
                         predictor_df=predictor_file,
                         **params["kwargs"],
-                    )
-                else:
-                    st.warning(
-                        """Please upload both Model Snapshot and 
-                               Predictor Binning Snapshot."""
                     )
     elif config_type == "Sample dataset":
         data = import_datamart(datasets.CDHSample)
@@ -119,22 +122,14 @@ def import_data(params, default=0, **kwargs):
         return params, data
     except UnboundLocalError:
         return params, None
-    except pl.ComputeError:
-        st.write(
-            """Unexpected Time format! 
-                 Please use Edit Parameters button above and enter the date format in 
-                 your files. You can check https://strftime.org/ for formatting
-                 options
-                 """
-        )
-        return None, None
 
 
 @st.cache_resource(show_spinner=True)
 def import_datamart(_fun, *args, **kwargs):
     dm = _fun(*args, **kwargs)
     dm.modelData = dm.modelData.collect()
-    dm.predictorData = dm.predictorData.collect()
+    if kwargs.get("predictor_df") is not None:
+        dm.predictorData = dm.predictorData.collect()
     return dm
 
 
