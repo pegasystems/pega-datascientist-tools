@@ -123,9 +123,6 @@ def readDSExport(
             return None
 
     elif filename is not None:
-        import streamlit as st
-
-        st.write(f"filename: {filename}")
         logging.debug("File not found in directory, scanning for latest file")
         file = get_latest_file(path, filename)
 
