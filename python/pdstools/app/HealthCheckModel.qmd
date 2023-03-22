@@ -65,7 +65,6 @@ globalQuery = None
 
 # Initialize the class after the parameters have been overwritten.
 
-#datamart = ADMDatamart(**kwargs)
 datamart = ADMDatamart(predictor_filename=None, **kwargs)
 
 modelData = datamart.modelData.with_columns(pl.col(pl.Null).fill_null("NA"))
