@@ -343,7 +343,7 @@ class ADMDatamart(Plots):
             df = cdh_utils.readDSExport(
                 filename=name, path=path, verbose=self.verbose, **reading_opts
             )
-        elif isinstance(name, pl.DataFrame) or isinstance(name, pl.LazyFrame):
+        if isinstance(name, pl.DataFrame) or isinstance(name, pl.LazyFrame):
             df = name.lazy()
         else:
             return None, None, None
