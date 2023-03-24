@@ -1,5 +1,0 @@
-[run]
-omit = 
-    python/pdstools/app/*
-    python/pdstools/ih/*
-    **/__init__.py
