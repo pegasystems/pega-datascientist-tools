@@ -1,9 +1,18 @@
 name: "Generate & Publish Docs"
+
 on:
+ workflow_run:
+    workflows: ["Python tests"]
+    types:
+      - completed
+    branches:
+      - master
  push:
     branches:
       - master
-
+    paths:
+      - docs/**
+ 
 jobs:
   docs:
     runs-on: ubuntu-latest
