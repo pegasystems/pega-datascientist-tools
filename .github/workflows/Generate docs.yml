@@ -42,8 +42,8 @@ jobs:
       run: |
         pip install -r python/requirements.txt
         pip install -r python/docs/docs-requirements.txt
-        apt-get update && apt-get install -y pandoc
-        
+        apt-get install -y pandoc
+
     - name: Build sphinx documentation
       run: |
         (cd python/docs && make html)
