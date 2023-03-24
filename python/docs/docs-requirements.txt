@@ -5,3 +5,4 @@ nbsphinx
 sphinx-copybutton
 myst-parser
 scipy
+papermill
