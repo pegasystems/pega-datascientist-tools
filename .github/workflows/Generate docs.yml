@@ -24,7 +24,7 @@ jobs:
 
     - name: Build sphinx documentation
       run: |
-        make html
+        (cd python/docs && make html)
 
     - name: Commit documentation changes
       run: |
