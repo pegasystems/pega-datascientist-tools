@@ -4,3 +4,4 @@ sphinx-autoapi
 nbsphinx
 sphinx-copybutton
 myst-parser
+scipy
