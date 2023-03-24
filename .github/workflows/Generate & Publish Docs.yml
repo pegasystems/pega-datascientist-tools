@@ -37,7 +37,7 @@ jobs:
       run: |
         pip install -r python/requirements.txt
         pip install -r python/docs/docs-requirements.txt
-        sudo apt-get update && sudo apt-get install -y pandoc
+        sudo apt-get update && sudo apt-get install -y pandoc && sudo apt install -y graphviz
 
     - name: Build sphinx documentation
       run: |
