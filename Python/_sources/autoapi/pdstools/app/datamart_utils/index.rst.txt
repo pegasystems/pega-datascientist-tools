@@ -1,0 +1,86 @@
+:py:mod:`pdstools.app.datamart_utils`
+=====================================
+
+.. py:module:: pdstools.app.datamart_utils
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   pdstools.app.datamart_utils.Filters
+
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   pdstools.app.datamart_utils.multiFilter
+   pdstools.app.datamart_utils.remove_duplicate_expressions
+   pdstools.app.datamart_utils.import_data
+   pdstools.app.datamart_utils.import_datamart
+   pdstools.app.datamart_utils.ADMDatamart_options
+   pdstools.app.datamart_utils.generate_modeldata_filters
+
+
+
+.. py:function:: multiFilter(df, q)
+
+
+.. py:function:: remove_duplicate_expressions(exprs)
+
+
+.. py:function:: import_data(params, default=0, **kwargs)
+
+
+.. py:function:: import_datamart(_fun, *args, **kwargs)
+
+
+.. py:function:: ADMDatamart_options()
+
+
+.. py:function:: generate_modeldata_filters(data: pdstools.ADMDatamart, params: dict) -> List[polars.Expr]
+
+   Generates and applies filters to our dataframe.
+
+   :param data: Our original, unfiltered datamart class
+   :type data: ADMDatamart
+   :param params: A dictionary of all configurations,
+                  Not really used here except for keeping track of what we do
+   :type params: dict
+
+   :returns: Our original params file, updated with
+             whatever queries we've added.
+   :rtype: dict
+
+
+.. py:class:: Filters
+
+   .. py:attribute:: df
+      :type: polars.DataFrame
+
+      
+
+   .. py:attribute:: exprs
+      :value: []
+
+      
+
+   .. py:method:: add_filter(column)
+
+
+   .. py:method:: CategoryFilter(df, column_name)
+      :staticmethod:
+
+
+   .. py:method:: ValueFilter(df, column_name)
+      :staticmethod:
+
+
+

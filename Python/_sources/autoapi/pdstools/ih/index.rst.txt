@@ -1,0 +1,16 @@
+:py:mod:`pdstools.ih`
+=====================
+
+.. py:module:: pdstools.ih
+
+
+Submodules
+----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+
+   IHAnalysis/index.rst
+   legacy_IH/index.rst
+
+

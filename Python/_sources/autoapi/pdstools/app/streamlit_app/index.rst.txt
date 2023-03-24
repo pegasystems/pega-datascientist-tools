@@ -1,0 +1,43 @@
+:py:mod:`pdstools.app.streamlit_app`
+====================================
+
+.. py:module:: pdstools.app.streamlit_app
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   pdstools.app.streamlit_app.run
+   pdstools.app.streamlit_app.add_params
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   pdstools.app.streamlit_app.dir_path
+   pdstools.app.streamlit_app.cwd
+
+
+.. py:data:: dir_path
+
+   
+
+.. py:data:: cwd
+
+   
+
+.. py:function:: run(**kwargs)
+
+
+.. py:function:: add_params(paramfile, params)
+
+

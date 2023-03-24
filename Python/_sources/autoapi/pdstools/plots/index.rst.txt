@@ -1,0 +1,16 @@
+:py:mod:`pdstools.plots`
+========================
+
+.. py:module:: pdstools.plots
+
+
+Submodules
+----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+
+   plot_base/index.rst
+   plots_plotly/index.rst
+
+

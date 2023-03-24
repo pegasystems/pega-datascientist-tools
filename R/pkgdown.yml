@@ -1,0 +1,13 @@
+pandoc: '2.18'
+pkgdown: 1.6.1
+pkgdown_sha: ~
+articles:
+  adhoc-datasetanalysis: adhoc-datasetanalysis.html
+  adm-datamart: adm-datamart.html
+  adm-explained: adm-explained.html
+  historical-dataset: historical-dataset.html
+  ih-reporting: ih-reporting.html
+  snapshots-to-scorecards: snapshots-to-scorecards.html
+  thompson-sampling-explained: thompson-sampling-explained.html
+last_built: 2022-10-16T13:29Z
+
