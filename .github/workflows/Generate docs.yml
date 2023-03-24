@@ -22,9 +22,9 @@ jobs:
         pip install -r python/requirements.txt
         pip install -r python/docs/docs-requirements.txt
 
-    - name: Build sphinx documentation
-      run: |
-        (cd python/docs && make html)
+    - uses: ammaraskar/sphinx-action@master
+      with:
+        docs-folder: "python/docs/"
 
     - name: Commit documentation changes
       run: |
