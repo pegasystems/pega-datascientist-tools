@@ -1,7 +1,0 @@
-{"Context_Name":"FirstMortgage30yr","Customer_MaritalStatus":"Married","Customer_CLV":1460,"Customer_City":"Port Raoul","IH_Web_Inbound_Accepted_pxLastGroupID":"Account","Decision_Outcome":"Rejected"}
-{"Context_Name":"FirstMortgage30yr","Customer_MaritalStatus":"Unknown","Customer_CLV":669,"Customer_City":"Laurianneshire","IH_Web_Inbound_Accepted_pxLastGroupID":"AutoLoans","Decision_Outcome":"Accepted"}
-{"Context_Name":"MoneyMarketSavingsAccount","Customer_MaritalStatus":"No Resp+","Customer_CLV":1174,"Customer_City":"Jacobshaven","IH_Web_Inbound_Accepted_pxLastGroupID":"Account","Decision_Outcome":"Rejected"}
-{"Context_Name":"BasicChecking","Customer_MaritalStatus":"Unknown","Customer_CLV":1476,"Customer_City":"Lindton","IH_Web_Inbound_Accepted_pxLastGroupID":"Account","Decision_Outcome":"Rejected"}
-{"Context_Name":"BasicChecking","Customer_MaritalStatus":"Married","Customer_CLV":1211,"Customer_City":"South Jimmieshire","IH_Web_Inbound_Accepted_pxLastGroupID":"DepositAccounts","Decision_Outcome":"Accepted"}
-{"Context_Name":"UPlusFinPersonal","Customer_MaritalStatus":"No Resp+","Customer_CLV":533,"Customer_City":"Bergeville","IH_Web_Inbound_Accepted_pxLastGroupID":null,"Decision_Outcome":"Rejected"}
-{"Context_Name":"BasicChecking","Customer_MaritalStatus":"No Resp+","Customer_CLV":555,"Customer_City":"Willyville","IH_Web_Inbound_Accepted_pxLastGroupID":"DepositAccounts","Decision_Outcome":"Rejected"}

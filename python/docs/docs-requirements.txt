@@ -1,6 +1,0 @@
-sphinx
-furo
-sphinx-autoapi
-nbsphinx
-sphinx-copybutton
-myst-parser

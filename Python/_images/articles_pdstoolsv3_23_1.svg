@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="78pt" height="61pt" viewBox="0.00 0.00 78.00 61.00">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 57)">
+<title>polars_query</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-57 74,-57 74,4 -4,4"/>
+<!-- [TABLE
+π */15;
+σ &#45;;] -->
+<g id="node1" class="node">
+<title>[TABLE
+π */15;
+σ -;]</title>
+<polygon fill="none" stroke="black" points="70,-53 0,-53 0,0 70,0 70,-53"/>
+<text text-anchor="middle" x="35" y="-37.8" font-family="Times,serif" font-size="14.00">[TABLE</text>
+<text text-anchor="middle" x="35" y="-22.8" font-family="Times,serif" font-size="14.00">π */15;</text>
+<text text-anchor="middle" x="35" y="-7.8" font-family="Times,serif" font-size="14.00">σ -;]</text>
+</g>
+</g>
+</svg>

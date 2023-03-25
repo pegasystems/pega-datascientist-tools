@@ -1,7 +1,0 @@
-pandas
-plotly>=5.5.0
-requests
-pydot
-tqdm
-polars>=0.16.8
-pyarrow

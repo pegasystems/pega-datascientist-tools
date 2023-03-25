@@ -1,0 +1,1729 @@
+<!doctype html>
+<html class="no-js" lang="en">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Thompson Sampling" href="thompsonsampling.html" /><link rel="prev" title="Articles" href="../Articles.html" />
+
+    <link rel="shortcut icon" href="../_static/pegasystems-inc-vector-logo.svg"/><!-- Generated with Sphinx 6.1.3 and Furo 2023.03.23 -->
+        <title>pdstools version 3: Polars - pdstools</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=fad236701ea90a88636c2a8c73b44ae642ed2a53" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+
+</head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">pdstools</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../_static/pegasystems-inc-vector-logo.svg" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">pdstools</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Articles</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="graph_gallery.html">Graph Gallery</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../tutorial_notebooks.html">Tutorial notebooks</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="hello_cdhtools.html">Hello pdstools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Example_Data_Anonymization.html">Example data anonymization</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../examples.html">Example notebooks</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="Example_ADM_Analysis.html">Example ADM analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AGBModelVisualisation.html">Analyzing ADM Decision Trees</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vf_analysis.html">Value Finder analysis</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../Articles.html">Articles</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">pdstools version 3: Polars</a></li>
+<li class="toctree-l2"><a class="reference internal" href="thompsonsampling.html">Thompson Sampling</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools/wiki#getting-started-with-the-python-tools">Installation</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools/wiki#using-the-python-tools">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools/releases">Changelog</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools">GitHub Repository</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://pegasystems.github.io/pega-datascientist-tools/R/index.html">R Documentation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../autoapi/index.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../autoapi/pdstools/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/adm/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/adm/ADMDatamart/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm.ADMDatamart</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/adm/ADMTrees/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm.ADMTrees</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/app/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.app</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/app/datamart_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.app.datamart_utils</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/app/pds_app/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.app.pds_app</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/app/streamlit_app/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.app.streamlit_app</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/ih/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.ih</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/ih/IHAnalysis/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.ih.IHAnalysis</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/ih/legacy_IH/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.ih.legacy_IH</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/plots/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plots</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/plots/plot_base/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plots.plot_base</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/plots/plots_plotly/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plots.plots_plotly</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/cdh_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/datasets/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.datasets</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/errors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.errors</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/hds_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.hds_utils</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/pega_template/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.pega_template</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/types/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.types</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/valuefinder/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.valuefinder</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/valuefinder/ValueFinder/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.valuefinder.ValueFinder</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <section id="pdstools-version-3:-Polars">
+<h1>pdstools version 3: Polars<a class="headerlink" href="#pdstools-version-3:-Polars" title="Permalink to this heading">#</a></h1>
+<p>With the version 3 release of pdstools, the back-end of the libary has shifted to use <a class="reference external" href="https://github.com/pola-rs/polars">Polars</a>. Polars is a blazingly fast DataFrames library implemented in Rust using Apache Arrow Columnar Format as the memory model. This means faster analyses and a more robust API: both externally and internally within our library. However, it is not a minor change, and will change the way you interact with the library. This article goes over some of the most notable
+changes, and most importantly: best practices.</p>
+<p>First off:</p>
+<section id="Lazy-execution-graphs">
+<h2>Lazy execution graphs<a class="headerlink" href="#Lazy-execution-graphs" title="Permalink to this heading">#</a></h2>
+<p>One of the, if not the single most powerful feature of Polars is its <code class="docutils literal notranslate"><span class="pre">lazy</span> <span class="pre">execution</span> <span class="pre">API</span></code>. This allows you to iteratively build up your query, have Polars optimise it for you, and only <code class="docutils literal notranslate"><span class="pre">collect</span></code> the data after your entire query. In practice, this means that all row-wise filters &amp; column-wise selects are shifted right to whenever you read the file, and all computations are optimised further. Let’s look at an example, and one close to home!</p>
+<p>If we simply read in the shipped CDHSample dataset, and pass in the keyword <code class="docutils literal notranslate"><span class="pre">import_strategy='lazy'</span></code>, it will allow us to demonstrate this effect. Note: by default the import strategy is <code class="docutils literal notranslate"><span class="pre">'eager'</span></code>. We’ll get to that later.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pdstools</span> <span class="kn">import</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">ADMDatamart</span>
+<span class="kn">import</span> <span class="nn">polars</span> <span class="k">as</span> <span class="nn">pl</span>
+<span class="n">dm</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">CDHSample</span><span class="p">(</span><span class="n">import_strategy</span><span class="o">=</span><span class="s1">&#39;lazy&#39;</span><span class="p">)</span>
+<span class="n">dm</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;pdstools.adm.ADMDatamart.ADMDatamart at 0x7f0c9950ef50&gt;
+</pre></div></div>
+</div>
+<p>If you’ve used the previous version of pdstools, you’ve probably noticed nothing’s changed. You still get the same <code class="docutils literal notranslate"><span class="pre">ADMDatamart</span></code> object.</p>
+<p>Try accessing the <code class="docutils literal notranslate"><span class="pre">modelData</span></code>, <code class="docutils literal notranslate"><span class="pre">predictorData</span></code> or <code class="docutils literal notranslate"><span class="pre">combinedData</span></code> property however, and things are different.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dm</span><span class="o">.</span><span class="n">modelData</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<h4>NAIVE QUERY PLAN</h4><p>run <b>LazyFrame.show_graph()</b> to see the optimized version</p><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.43.0 (0)
+ -->
+<!-- Title: polars_query Pages: 1 -->
+<svg width="661pt" height="421pt"
+ viewBox="0.00 0.00 661.00 421.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 417)">
+<title>polars_query</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-417 657,-417 657,4 -4,4"/>
+<!-- WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(0, 0)] -->
+<g id="node1" class="node">
+<title>WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(0, 0)]</title>
+<polygon fill="none" stroke="black" points="598.5,-413 54.5,-413 54.5,-377 598.5,-377 598.5,-413"/>
+<text text-anchor="middle" x="326.5" y="-391.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;]</text>
+</g>
+<!-- WITH COLUMNS [&quot;SnapshotTime&quot;] [(0, 1)] -->
+<g id="node2" class="node">
+<title>WITH COLUMNS [&quot;SnapshotTime&quot;] [(0, 1)]</title>
+<polygon fill="none" stroke="black" points="461.5,-341 191.5,-341 191.5,-305 461.5,-305 461.5,-341"/>
+<text text-anchor="middle" x="326.5" y="-319.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;SnapshotTime&quot;]</text>
+</g>
+<!-- WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(0, 0)]&#45;&#45;WITH COLUMNS [&quot;SnapshotTime&quot;] [(0, 1)] -->
+<g id="edge1" class="edge">
+<title>WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(0, 0)]&#45;&#45;WITH COLUMNS [&quot;SnapshotTime&quot;] [(0, 1)]</title>
+<path fill="none" stroke="black" d="M326.5,-376.7C326.5,-365.85 326.5,-351.92 326.5,-341.1"/>
+</g>
+<!-- WITH COLUMNS [&quot;Issue&quot;,&quot;Group&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Configuration&quot;,&quot;Performance&quot;] [(0, 2)] -->
+<g id="node3" class="node">
+<title>WITH COLUMNS [&quot;Issue&quot;,&quot;Group&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Configuration&quot;,&quot;Performance&quot;] [(0, 2)]</title>
+<polygon fill="none" stroke="black" points="653,-269 0,-269 0,-233 653,-233 653,-269"/>
+<text text-anchor="middle" x="326.5" y="-247.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;Issue&quot;,&quot;Group&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Configuration&quot;,&quot;Performance&quot;]</text>
+</g>
+<!-- WITH COLUMNS [&quot;SnapshotTime&quot;] [(0, 1)]&#45;&#45;WITH COLUMNS [&quot;Issue&quot;,&quot;Group&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Configuration&quot;,&quot;Performance&quot;] [(0, 2)] -->
+<g id="edge2" class="edge">
+<title>WITH COLUMNS [&quot;SnapshotTime&quot;] [(0, 1)]&#45;&#45;WITH COLUMNS [&quot;Issue&quot;,&quot;Group&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Configuration&quot;,&quot;Performance&quot;] [(0, 2)]</title>
+<path fill="none" stroke="black" d="M326.5,-304.7C326.5,-293.85 326.5,-279.92 326.5,-269.1"/>
+</g>
+<!-- π 12/27 [(0, 3)] -->
+<g id="node4" class="node">
+<title>π 12/27 [(0, 3)]</title>
+<polygon fill="none" stroke="black" points="362,-197 291,-197 291,-161 362,-161 362,-197"/>
+<text text-anchor="middle" x="326.5" y="-175.3" font-family="Times,serif" font-size="14.00">π 12/27</text>
+</g>
+<!-- WITH COLUMNS [&quot;Issue&quot;,&quot;Group&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Configuration&quot;,&quot;Performance&quot;] [(0, 2)]&#45;&#45;π 12/27 [(0, 3)] -->
+<g id="edge3" class="edge">
+<title>WITH COLUMNS [&quot;Issue&quot;,&quot;Group&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Configuration&quot;,&quot;Performance&quot;] [(0, 2)]&#45;&#45;π 12/27 [(0, 3)]</title>
+<path fill="none" stroke="black" d="M326.5,-232.7C326.5,-221.85 326.5,-207.92 326.5,-197.1"/>
+</g>
+<!-- RENAME [(0, 4)] -->
+<g id="node5" class="node">
+<title>RENAME [(0, 4)]</title>
+<polygon fill="none" stroke="black" points="368.5,-125 284.5,-125 284.5,-89 368.5,-89 368.5,-125"/>
+<text text-anchor="middle" x="326.5" y="-103.3" font-family="Times,serif" font-size="14.00">RENAME</text>
+</g>
+<!-- π 12/27 [(0, 3)]&#45;&#45;RENAME [(0, 4)] -->
+<g id="edge4" class="edge">
+<title>π 12/27 [(0, 3)]&#45;&#45;RENAME [(0, 4)]</title>
+<path fill="none" stroke="black" d="M326.5,-160.7C326.5,-149.85 326.5,-135.92 326.5,-125.1"/>
+</g>
+<!-- TABLE
+π */27;
+σ &#45;; [(0, 5)] -->
+<g id="node6" class="node">
+<title>TABLE
+π */27;
+σ &#45;; [(0, 5)]</title>
+<polygon fill="none" stroke="black" points="359,-53 294,-53 294,0 359,0 359,-53"/>
+<text text-anchor="middle" x="326.5" y="-37.8" font-family="Times,serif" font-size="14.00">TABLE</text>
+<text text-anchor="middle" x="326.5" y="-22.8" font-family="Times,serif" font-size="14.00">π */27;</text>
+<text text-anchor="middle" x="326.5" y="-7.8" font-family="Times,serif" font-size="14.00">σ &#45;;</text>
+</g>
+<!-- RENAME [(0, 4)]&#45;&#45;TABLE
+π */27;
+σ &#45;; [(0, 5)] -->
+<g id="edge5" class="edge">
+<title>RENAME [(0, 4)]&#45;&#45;TABLE
+π */27;
+σ &#45;; [(0, 5)]</title>
+<path fill="none" stroke="black" d="M326.5,-88.97C326.5,-78.51 326.5,-64.9 326.5,-53.16"/>
+</g>
+</g>
+</svg></div>
+</div>
+<p>Not a dataframe - but a <code class="docutils literal notranslate"><span class="pre">NAIVE</span> <span class="pre">QUERY</span> <span class="pre">PLAN</span></code>. It’s relatively intuitive, but you’d read this chart bottom-to-top:</p>
+<ul class="simple">
+<li><p>We read the table, <span class="math notranslate nohighlight">\(\pi\)</span> <code class="docutils literal notranslate"><span class="pre">*/27;</span></code> (reading all columns out of the 27 available) and <span class="math notranslate nohighlight">\(\sigma\)</span> <code class="docutils literal notranslate"><span class="pre">-;</span></code> (no row-wise filters applied).</p></li>
+<li><p>We then rename the columns by a predefined manner</p></li>
+<li><p>Then we only keep 12 out of the 27 available columns</p></li>
+<li><p>Change <code class="docutils literal notranslate"><span class="pre">[&quot;Issue&quot;,&quot;Group&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Configuration&quot;]</span></code> to be categorical, <code class="docutils literal notranslate"><span class="pre">&quot;Performance&quot;</span></code> to numeric.</p></li>
+<li><p>Transform <code class="docutils literal notranslate"><span class="pre">&quot;SnapshotTime&quot;</span></code> to datetime</p></li>
+<li><p>Add <code class="docutils literal notranslate"><span class="pre">[&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;]</span></code> as columns.</p></li>
+</ul>
+<p>A sharp eye might already notice an inefficiency here. If we first read in all columns, then rename and then filter, can’t we already infer which columns we need based on our predefined function, and filter when reading? Well - yes!</p>
+<p>This is the <code class="docutils literal notranslate"><span class="pre">naive</span></code> plan. If we call <code class="docutils literal notranslate"><span class="pre">.show_graph()</span></code>, we get the optimized version:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dm</span><span class="o">.</span><span class="n">modelData</span><span class="o">.</span><span class="n">show_graph</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/articles_pdstoolsv3_6_0.svg" src="../_images/articles_pdstoolsv3_6_0.svg" /></div>
+</div>
+<p>At first glance; not a huge change. However, note at the bottom we import <span class="math notranslate nohighlight">\(\pi\)</span> <code class="docutils literal notranslate"><span class="pre">12/27;</span></code>: we filter right when reading the file, and only read in 12 columns! This can make a big difference, especially because one column (<code class="docutils literal notranslate"><span class="pre">&quot;pyModelData&quot;</span></code>) is very big.</p>
+<p>Thus far, the <span class="math notranslate nohighlight">\(\sigma\)</span> symbol has been <code class="docutils literal notranslate"><span class="pre">-</span></code>. We can also change that: the <span class="math notranslate nohighlight">\(\sigma\)</span> symbol shows you which filters it applies on the rows when it’s reading. For our example purpose, Let’s say we’re only interested in actions containing <code class="docutils literal notranslate"><span class="pre">Visa</span></code>. We can add that filter right to our execution plan!</p>
+<p>To tell Polars we’re trying to filter on a <code class="docutils literal notranslate"><span class="pre">column</span></code>, we simply start our query with <code class="docutils literal notranslate"><span class="pre">pl.col(&quot;Name&quot;)</span></code>. The <code class="docutils literal notranslate"><span class="pre">Name</span></code> column, containing the action names, is a string column. Therefore, to access <code class="docutils literal notranslate"><span class="pre">string</span></code>-based operations, we simply use <code class="docutils literal notranslate"><span class="pre">.str</span></code> to go to the <code class="docutils literal notranslate"><span class="pre">string</span> <span class="pre">namespace</span></code>. We want the string to <code class="docutils literal notranslate"><span class="pre">contain</span></code> <code class="docutils literal notranslate"><span class="pre">Visa</span></code>, therefore: <code class="docutils literal notranslate"><span class="pre">query=pl.col(&quot;Name&quot;).str.contains(&quot;Visa&quot;)</span></code>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dm</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">CDHSample</span><span class="p">(</span>
+    <span class="n">import_strategy</span><span class="o">=</span><span class="s2">&quot;lazy&quot;</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Name&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s2">&quot;Visa&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">dm</span><span class="o">.</span><span class="n">modelData</span><span class="o">.</span><span class="n">show_graph</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/articles_pdstoolsv3_8_0.svg" src="../_images/articles_pdstoolsv3_8_0.svg" /></div>
+</div>
+<p>“Okay, but how do we actually get to the data?” - Simple! Just use <code class="docutils literal notranslate"><span class="pre">.collect()</span></code>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dm</span><span class="o">.</span><span class="n">modelData</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div><style>
+.dataframe > thead > tr > th,
+.dataframe > tbody > tr > td {
+  text-align: right;
+}
+</style>
+<small>shape: (22, 15)</small><table border="1" class="dataframe"><thead><tr><th>Channel</th><th>Name</th><th>Configuration</th><th>SnapshotTime</th><th>ResponseCount</th><th>Positives</th><th>Performance</th><th>Direction</th><th>Group</th><th>ModelID</th><th>Issue</th><th>Treatment</th><th>SuccessRate</th><th>Last_Positives</th><th>Last_ResponseCount</th></tr><tr><td>cat</td><td>str</td><td>cat</td><td>datetime[ns]</td><td>i64</td><td>i64</td><td>f64</td><td>cat</td><td>cat</td><td>str</td><td>cat</td><td>null</td><td>f64</td><td>datetime[ns]</td><td>datetime[ns]</td></tr></thead><tbody><tr><td>&quot;Web&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;OmniAdaptiveMo…</td><td>2021-06-01 08:23:26.000000789</td><td>72</td><td>1</td><td>0.5</td><td>&quot;Inbound&quot;</td><td>&quot;CreditCards&quot;</td><td>&quot;17571d69-f802-…</td><td>&quot;Sales&quot;</td><td>null</td><td>0.013889</td><td>2021-06-01 13:23:26.000000789</td><td>2021-06-01 13:23:26.000000789</td></tr><tr><td>&quot;SMS&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;OmniAdaptiveMo…</td><td>2021-06-01 08:23:26.000000789</td><td>166</td><td>4</td><td>0.5</td><td>&quot;Outbound&quot;</td><td>&quot;CreditCards&quot;</td><td>&quot;1be7cd72-741b-…</td><td>&quot;Sales&quot;</td><td>null</td><td>0.024096</td><td>2021-06-01 13:23:26.000000789</td><td>2021-06-01 13:23:26.000000789</td></tr><tr><td>&quot;Web&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;OmniAdaptiveMo…</td><td>2021-06-01 08:27:55.000000789</td><td>161</td><td>3</td><td>0.5</td><td>&quot;Inbound&quot;</td><td>&quot;CreditCards&quot;</td><td>&quot;17571d69-f802-…</td><td>&quot;Sales&quot;</td><td>null</td><td>0.018634</td><td>2021-06-01 13:23:26.000000789</td><td>2021-06-01 13:23:26.000000789</td></tr><tr><td>&quot;Web&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;OmniAdaptiveMo…</td><td>2021-06-01 09:03:01.000000789</td><td>161</td><td>3</td><td>0.5</td><td>&quot;Inbound&quot;</td><td>&quot;CreditCards&quot;</td><td>&quot;17571d69-f802-…</td><td>&quot;Sales&quot;</td><td>null</td><td>0.018634</td><td>2021-06-01 13:23:26.000000789</td><td>2021-06-01 13:23:26.000000789</td></tr><tr><td>&quot;SMS&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;OmniAdaptiveMo…</td><td>2021-06-01 09:03:01.000000789</td><td>166</td><td>4</td><td>0.5</td><td>&quot;Outbound&quot;</td><td>&quot;CreditCards&quot;</td><td>&quot;1be7cd72-741b-…</td><td>&quot;Sales&quot;</td><td>null</td><td>0.024096</td><td>2021-06-01 13:23:26.000000789</td><td>2021-06-01 13:23:26.000000789</td></tr><tr><td>&quot;SMS&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;OmniAdaptiveMo…</td><td>2021-06-01 09:06:33.000000789</td><td>271</td><td>7</td><td>0.5</td><td>&quot;Outbound&quot;</td><td>&quot;CreditCards&quot;</td><td>&quot;1be7cd72-741b-…</td><td>&quot;Sales&quot;</td><td>null</td><td>0.02583</td><td>2021-06-01 13:23:26.000000789</td><td>2021-06-01 13:23:26.000000789</td></tr><tr><td>&quot;Web&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;OmniAdaptiveMo…</td><td>2021-06-01 09:06:33.000000789</td><td>233</td><td>12</td><td>0.554538</td><td>&quot;Inbound&quot;</td><td>&quot;CreditCards&quot;</td><td>&quot;17571d69-f802-…</td><td>&quot;Sales&quot;</td><td>null</td><td>0.051502</td><td>2021-06-01 13:23:26.000000789</td><td>2021-06-01 13:23:26.000000789</td></tr><tr><td>&quot;Web&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;OmniAdaptiveMo…</td><td>2021-06-01 09:34:34.000000789</td><td>233</td><td>12</td><td>0.554538</td><td>&quot;Inbound&quot;</td><td>&quot;CreditCards&quot;</td><td>&quot;17571d69-f802-…</td><td>&quot;Sales&quot;</td><td>null</td><td>0.051502</td><td>2021-06-01 13:23:26.000000789</td><td>2021-06-01 13:23:26.000000789</td></tr><tr><td>&quot;SMS&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;OmniAdaptiveMo…</td><td>2021-06-01 09:43:16.000000789</td><td>353</td><td>8</td><td>0.5</td><td>&quot;Outbound&quot;</td><td>&quot;CreditCards&quot;</td><td>&quot;1be7cd72-741b-…</td><td>&quot;Sales&quot;</td><td>null</td><td>0.022663</td><td>2021-06-01 13:23:26.000000789</td><td>2021-06-01 13:23:26.000000789</td></tr><tr><td>&quot;Web&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;OmniAdaptiveMo…</td><td>2021-06-01 09:43:16.000000789</td><td>320</td><td>19</td><td>0.541487</td><td>&quot;Inbound&quot;</td><td>&quot;CreditCards&quot;</td><td>&quot;17571d69-f802-…</td><td>&quot;Sales&quot;</td><td>null</td><td>0.059375</td><td>2021-06-01 13:23:26.000000789</td><td>2021-06-01 13:23:26.000000789</td></tr><tr><td>&quot;SMS&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;OmniAdaptiveMo…</td><td>2021-06-01 10:07:35.000000789</td><td>437</td><td>10</td><td>0.5</td><td>&quot;Outbound&quot;</td><td>&quot;CreditCards&quot;</td><td>&quot;1be7cd72-741b-…</td><td>&quot;Sales&quot;</td><td>null</td><td>0.022883</td><td>2021-06-01 13:23:26.000000789</td><td>2021-06-01 13:23:26.000000789</td></tr><tr><td>&quot;Web&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;OmniAdaptiveMo…</td><td>2021-06-01 10:07:35.000000789</td><td>391</td><td>24</td><td>0.557512</td><td>&quot;Inbound&quot;</td><td>&quot;CreditCards&quot;</td><td>&quot;17571d69-f802-…</td><td>&quot;Sales&quot;</td><td>null</td><td>0.061381</td><td>2021-06-01 13:23:26.000000789</td><td>2021-06-01 13:23:26.000000789</td></tr><tr><td>&quot;Web&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;OmniAdaptiveMo…</td><td>2021-06-01 10:58:26.000000789</td><td>470</td><td>28</td><td>0.531173</td><td>&quot;Inbound&quot;</td><td>&quot;CreditCards&quot;</td><td>&quot;17571d69-f802-…</td><td>&quot;Sales&quot;</td><td>null</td><td>0.059574</td><td>2021-06-01 13:23:26.000000789</td><td>2021-06-01 13:23:26.000000789</td></tr><tr><td>&quot;SMS&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;OmniAdaptiveMo…</td><td>2021-06-01 10:58:26.000000789</td><td>507</td><td>17</td><td>0.551713</td><td>&quot;Outbound&quot;</td><td>&quot;CreditCards&quot;</td><td>&quot;1be7cd72-741b-…</td><td>&quot;Sales&quot;</td><td>null</td><td>0.033531</td><td>2021-06-01 13:23:26.000000789</td><td>2021-06-01 13:23:26.000000789</td></tr><tr><td>&quot;SMS&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;OmniAdaptiveMo…</td><td>2021-06-01 11:29:54.000000789</td><td>507</td><td>17</td><td>0.551713</td><td>&quot;Outbound&quot;</td><td>&quot;CreditCards&quot;</td><td>&quot;1be7cd72-741b-…</td><td>&quot;Sales&quot;</td><td>null</td><td>0.033531</td><td>2021-06-01 13:23:26.000000789</td><td>2021-06-01 13:23:26.000000789</td></tr><tr><td>&quot;SMS&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;OmniAdaptiveMo…</td><td>2021-06-01 12:15:05.000000789</td><td>674</td><td>21</td><td>0.524312</td><td>&quot;Outbound&quot;</td><td>&quot;CreditCards&quot;</td><td>&quot;1be7cd72-741b-…</td><td>&quot;Sales&quot;</td><td>null</td><td>0.031157</td><td>2021-06-01 13:23:26.000000789</td><td>2021-06-01 13:23:26.000000789</td></tr><tr><td>&quot;Web&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;OmniAdaptiveMo…</td><td>2021-06-01 12:15:05.000000789</td><td>633</td><td>39</td><td>0.549843</td><td>&quot;Inbound&quot;</td><td>&quot;CreditCards&quot;</td><td>&quot;17571d69-f802-…</td><td>&quot;Sales&quot;</td><td>null</td><td>0.061611</td><td>2021-06-01 13:23:26.000000789</td><td>2021-06-01 13:23:26.000000789</td></tr><tr><td>&quot;SMS&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;OmniAdaptiveMo…</td><td>2021-06-01 12:42:04.000000789</td><td>674</td><td>21</td><td>0.524312</td><td>&quot;Outbound&quot;</td><td>&quot;CreditCards&quot;</td><td>&quot;1be7cd72-741b-…</td><td>&quot;Sales&quot;</td><td>null</td><td>0.031157</td><td>2021-06-01 13:23:26.000000789</td><td>2021-06-01 13:23:26.000000789</td></tr><tr><td>&quot;SMS&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;OmniAdaptiveMo…</td><td>2021-06-01 12:45:20.000000789</td><td>746</td><td>24</td><td>0.535621</td><td>&quot;Outbound&quot;</td><td>&quot;CreditCards&quot;</td><td>&quot;1be7cd72-741b-…</td><td>&quot;Sales&quot;</td><td>null</td><td>0.032172</td><td>2021-06-01 13:23:26.000000789</td><td>2021-06-01 13:23:26.000000789</td></tr><tr><td>&quot;Web&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;OmniAdaptiveMo…</td><td>2021-06-01 13:18:21.000000789</td><td>706</td><td>43</td><td>0.538104</td><td>&quot;Inbound&quot;</td><td>&quot;CreditCards&quot;</td><td>&quot;17571d69-f802-…</td><td>&quot;Sales&quot;</td><td>null</td><td>0.060907</td><td>2021-06-01 13:23:26.000000789</td><td>2021-06-01 13:23:26.000000789</td></tr><tr><td>&quot;SMS&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;OmniAdaptiveMo…</td><td>2021-06-01 13:23:26.000000789</td><td>822</td><td>27</td><td>0.531863</td><td>&quot;Outbound&quot;</td><td>&quot;CreditCards&quot;</td><td>&quot;1be7cd72-741b-…</td><td>&quot;Sales&quot;</td><td>null</td><td>0.032847</td><td>2021-06-01 13:23:26.000000789</td><td>2021-06-01 13:23:26.000000789</td></tr><tr><td>&quot;Web&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;OmniAdaptiveMo…</td><td>2021-06-01 13:23:26.000000789</td><td>778</td><td>46</td><td>0.519586</td><td>&quot;Inbound&quot;</td><td>&quot;CreditCards&quot;</td><td>&quot;17571d69-f802-…</td><td>&quot;Sales&quot;</td><td>null</td><td>0.059126</td><td>2021-06-01 13:23:26.000000789</td><td>2021-06-01 13:23:26.000000789</td></tr></tbody></table></div></div>
+</div>
+<p>This table is very similar to Pandas tables, though there are some slight differences. The types are explicitly mentioned in the header, string values are in quotes, and long string values get cut off more agressively. Other than that, there’s no real change! And if you still want to use pandas, just call <code class="docutils literal notranslate"><span class="pre">.to_pandas()</span></code> :)</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dm</span><span class="o">.</span><span class="n">modelData</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Channel</th>
+      <th>Name</th>
+      <th>Configuration</th>
+      <th>SnapshotTime</th>
+      <th>ResponseCount</th>
+      <th>Positives</th>
+      <th>Performance</th>
+      <th>Direction</th>
+      <th>Group</th>
+      <th>ModelID</th>
+      <th>Issue</th>
+      <th>Treatment</th>
+      <th>SuccessRate</th>
+      <th>Last_Positives</th>
+      <th>Last_ResponseCount</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>Web</td>
+      <td>VisaGold</td>
+      <td>OmniAdaptiveModel</td>
+      <td>2021-06-01 08:23:26.000000789</td>
+      <td>72</td>
+      <td>1</td>
+      <td>0.500000</td>
+      <td>Inbound</td>
+      <td>CreditCards</td>
+      <td>17571d69-f802-5122-9bfe-6f3f4ef9073b</td>
+      <td>Sales</td>
+      <td>None</td>
+      <td>0.013889</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>SMS</td>
+      <td>VisaGold</td>
+      <td>OmniAdaptiveModel</td>
+      <td>2021-06-01 08:23:26.000000789</td>
+      <td>166</td>
+      <td>4</td>
+      <td>0.500000</td>
+      <td>Outbound</td>
+      <td>CreditCards</td>
+      <td>1be7cd72-741b-5d68-b148-c1af0142fd4a</td>
+      <td>Sales</td>
+      <td>None</td>
+      <td>0.024096</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>Web</td>
+      <td>VisaGold</td>
+      <td>OmniAdaptiveModel</td>
+      <td>2021-06-01 08:27:55.000000789</td>
+      <td>161</td>
+      <td>3</td>
+      <td>0.500000</td>
+      <td>Inbound</td>
+      <td>CreditCards</td>
+      <td>17571d69-f802-5122-9bfe-6f3f4ef9073b</td>
+      <td>Sales</td>
+      <td>None</td>
+      <td>0.018634</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>Web</td>
+      <td>VisaGold</td>
+      <td>OmniAdaptiveModel</td>
+      <td>2021-06-01 09:03:01.000000789</td>
+      <td>161</td>
+      <td>3</td>
+      <td>0.500000</td>
+      <td>Inbound</td>
+      <td>CreditCards</td>
+      <td>17571d69-f802-5122-9bfe-6f3f4ef9073b</td>
+      <td>Sales</td>
+      <td>None</td>
+      <td>0.018634</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>SMS</td>
+      <td>VisaGold</td>
+      <td>OmniAdaptiveModel</td>
+      <td>2021-06-01 09:03:01.000000789</td>
+      <td>166</td>
+      <td>4</td>
+      <td>0.500000</td>
+      <td>Outbound</td>
+      <td>CreditCards</td>
+      <td>1be7cd72-741b-5d68-b148-c1af0142fd4a</td>
+      <td>Sales</td>
+      <td>None</td>
+      <td>0.024096</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>SMS</td>
+      <td>VisaGold</td>
+      <td>OmniAdaptiveModel</td>
+      <td>2021-06-01 09:06:33.000000789</td>
+      <td>271</td>
+      <td>7</td>
+      <td>0.500000</td>
+      <td>Outbound</td>
+      <td>CreditCards</td>
+      <td>1be7cd72-741b-5d68-b148-c1af0142fd4a</td>
+      <td>Sales</td>
+      <td>None</td>
+      <td>0.025830</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>Web</td>
+      <td>VisaGold</td>
+      <td>OmniAdaptiveModel</td>
+      <td>2021-06-01 09:06:33.000000789</td>
+      <td>233</td>
+      <td>12</td>
+      <td>0.554538</td>
+      <td>Inbound</td>
+      <td>CreditCards</td>
+      <td>17571d69-f802-5122-9bfe-6f3f4ef9073b</td>
+      <td>Sales</td>
+      <td>None</td>
+      <td>0.051502</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>Web</td>
+      <td>VisaGold</td>
+      <td>OmniAdaptiveModel</td>
+      <td>2021-06-01 09:34:34.000000789</td>
+      <td>233</td>
+      <td>12</td>
+      <td>0.554538</td>
+      <td>Inbound</td>
+      <td>CreditCards</td>
+      <td>17571d69-f802-5122-9bfe-6f3f4ef9073b</td>
+      <td>Sales</td>
+      <td>None</td>
+      <td>0.051502</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>SMS</td>
+      <td>VisaGold</td>
+      <td>OmniAdaptiveModel</td>
+      <td>2021-06-01 09:43:16.000000789</td>
+      <td>353</td>
+      <td>8</td>
+      <td>0.500000</td>
+      <td>Outbound</td>
+      <td>CreditCards</td>
+      <td>1be7cd72-741b-5d68-b148-c1af0142fd4a</td>
+      <td>Sales</td>
+      <td>None</td>
+      <td>0.022663</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>Web</td>
+      <td>VisaGold</td>
+      <td>OmniAdaptiveModel</td>
+      <td>2021-06-01 09:43:16.000000789</td>
+      <td>320</td>
+      <td>19</td>
+      <td>0.541487</td>
+      <td>Inbound</td>
+      <td>CreditCards</td>
+      <td>17571d69-f802-5122-9bfe-6f3f4ef9073b</td>
+      <td>Sales</td>
+      <td>None</td>
+      <td>0.059375</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>SMS</td>
+      <td>VisaGold</td>
+      <td>OmniAdaptiveModel</td>
+      <td>2021-06-01 10:07:35.000000789</td>
+      <td>437</td>
+      <td>10</td>
+      <td>0.500000</td>
+      <td>Outbound</td>
+      <td>CreditCards</td>
+      <td>1be7cd72-741b-5d68-b148-c1af0142fd4a</td>
+      <td>Sales</td>
+      <td>None</td>
+      <td>0.022883</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>Web</td>
+      <td>VisaGold</td>
+      <td>OmniAdaptiveModel</td>
+      <td>2021-06-01 10:07:35.000000789</td>
+      <td>391</td>
+      <td>24</td>
+      <td>0.557512</td>
+      <td>Inbound</td>
+      <td>CreditCards</td>
+      <td>17571d69-f802-5122-9bfe-6f3f4ef9073b</td>
+      <td>Sales</td>
+      <td>None</td>
+      <td>0.061381</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+    </tr>
+    <tr>
+      <th>12</th>
+      <td>Web</td>
+      <td>VisaGold</td>
+      <td>OmniAdaptiveModel</td>
+      <td>2021-06-01 10:58:26.000000789</td>
+      <td>470</td>
+      <td>28</td>
+      <td>0.531173</td>
+      <td>Inbound</td>
+      <td>CreditCards</td>
+      <td>17571d69-f802-5122-9bfe-6f3f4ef9073b</td>
+      <td>Sales</td>
+      <td>None</td>
+      <td>0.059574</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+    </tr>
+    <tr>
+      <th>13</th>
+      <td>SMS</td>
+      <td>VisaGold</td>
+      <td>OmniAdaptiveModel</td>
+      <td>2021-06-01 10:58:26.000000789</td>
+      <td>507</td>
+      <td>17</td>
+      <td>0.551713</td>
+      <td>Outbound</td>
+      <td>CreditCards</td>
+      <td>1be7cd72-741b-5d68-b148-c1af0142fd4a</td>
+      <td>Sales</td>
+      <td>None</td>
+      <td>0.033531</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+    </tr>
+    <tr>
+      <th>14</th>
+      <td>SMS</td>
+      <td>VisaGold</td>
+      <td>OmniAdaptiveModel</td>
+      <td>2021-06-01 11:29:54.000000789</td>
+      <td>507</td>
+      <td>17</td>
+      <td>0.551713</td>
+      <td>Outbound</td>
+      <td>CreditCards</td>
+      <td>1be7cd72-741b-5d68-b148-c1af0142fd4a</td>
+      <td>Sales</td>
+      <td>None</td>
+      <td>0.033531</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+    </tr>
+    <tr>
+      <th>15</th>
+      <td>SMS</td>
+      <td>VisaGold</td>
+      <td>OmniAdaptiveModel</td>
+      <td>2021-06-01 12:15:05.000000789</td>
+      <td>674</td>
+      <td>21</td>
+      <td>0.524312</td>
+      <td>Outbound</td>
+      <td>CreditCards</td>
+      <td>1be7cd72-741b-5d68-b148-c1af0142fd4a</td>
+      <td>Sales</td>
+      <td>None</td>
+      <td>0.031157</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+    </tr>
+    <tr>
+      <th>16</th>
+      <td>Web</td>
+      <td>VisaGold</td>
+      <td>OmniAdaptiveModel</td>
+      <td>2021-06-01 12:15:05.000000789</td>
+      <td>633</td>
+      <td>39</td>
+      <td>0.549843</td>
+      <td>Inbound</td>
+      <td>CreditCards</td>
+      <td>17571d69-f802-5122-9bfe-6f3f4ef9073b</td>
+      <td>Sales</td>
+      <td>None</td>
+      <td>0.061611</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+    </tr>
+    <tr>
+      <th>17</th>
+      <td>SMS</td>
+      <td>VisaGold</td>
+      <td>OmniAdaptiveModel</td>
+      <td>2021-06-01 12:42:04.000000789</td>
+      <td>674</td>
+      <td>21</td>
+      <td>0.524312</td>
+      <td>Outbound</td>
+      <td>CreditCards</td>
+      <td>1be7cd72-741b-5d68-b148-c1af0142fd4a</td>
+      <td>Sales</td>
+      <td>None</td>
+      <td>0.031157</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+    </tr>
+    <tr>
+      <th>18</th>
+      <td>SMS</td>
+      <td>VisaGold</td>
+      <td>OmniAdaptiveModel</td>
+      <td>2021-06-01 12:45:20.000000789</td>
+      <td>746</td>
+      <td>24</td>
+      <td>0.535621</td>
+      <td>Outbound</td>
+      <td>CreditCards</td>
+      <td>1be7cd72-741b-5d68-b148-c1af0142fd4a</td>
+      <td>Sales</td>
+      <td>None</td>
+      <td>0.032172</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+    </tr>
+    <tr>
+      <th>19</th>
+      <td>Web</td>
+      <td>VisaGold</td>
+      <td>OmniAdaptiveModel</td>
+      <td>2021-06-01 13:18:21.000000789</td>
+      <td>706</td>
+      <td>43</td>
+      <td>0.538104</td>
+      <td>Inbound</td>
+      <td>CreditCards</td>
+      <td>17571d69-f802-5122-9bfe-6f3f4ef9073b</td>
+      <td>Sales</td>
+      <td>None</td>
+      <td>0.060907</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+    </tr>
+    <tr>
+      <th>20</th>
+      <td>SMS</td>
+      <td>VisaGold</td>
+      <td>OmniAdaptiveModel</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+      <td>822</td>
+      <td>27</td>
+      <td>0.531863</td>
+      <td>Outbound</td>
+      <td>CreditCards</td>
+      <td>1be7cd72-741b-5d68-b148-c1af0142fd4a</td>
+      <td>Sales</td>
+      <td>None</td>
+      <td>0.032847</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+    </tr>
+    <tr>
+      <th>21</th>
+      <td>Web</td>
+      <td>VisaGold</td>
+      <td>OmniAdaptiveModel</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+      <td>778</td>
+      <td>46</td>
+      <td>0.519586</td>
+      <td>Inbound</td>
+      <td>CreditCards</td>
+      <td>17571d69-f802-5122-9bfe-6f3f4ef9073b</td>
+      <td>Sales</td>
+      <td>None</td>
+      <td>0.059126</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+      <td>2021-06-01 13:23:26.000000789</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<p>Now, we don’t just have modelData, there’s also information about predictors. This is under the <code class="docutils literal notranslate"><span class="pre">predictorData</span></code> attribute, and it works the same way. Thirdly, we add a attribute called <code class="docutils literal notranslate"><span class="pre">combinedData</span></code>. <code class="docutils literal notranslate"><span class="pre">combinedData</span></code> is technically just an inner join between the model data and the predictor data on the model ID. Therefore, the model ID’s we filter out of the models also propagate to the combined data. To give more insight into this join, we can now simply show the execution graph of it:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dm</span><span class="o">.</span><span class="n">combinedData</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<h4>NAIVE QUERY PLAN</h4><p>run <b>LazyFrame.show_graph()</b> to see the optimized version</p><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.43.0 (0)
+ -->
+<!-- Title: polars_query Pages: 1 -->
+<svg width="1541pt" height="832pt"
+ viewBox="0.00 0.00 1541.00 832.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 828)">
+<title>polars_query</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-828 1537,-828 1537,4 -4,4"/>
+<!-- JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(0, 0)] -->
+<g id="node1" class="node">
+<title>JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(0, 0)]</title>
+<polygon fill="none" stroke="black" points="700.5,-824 434.5,-824 434.5,-771 700.5,-771 700.5,-824"/>
+<text text-anchor="middle" x="567.5" y="-808.8" font-family="Times,serif" font-size="14.00">JOIN INNER</text>
+<text text-anchor="middle" x="567.5" y="-793.8" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left [col(&quot;ModelID&quot;)];</text>
+<text text-anchor="middle" x="567.5" y="-778.8" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)]</text>
+</g>
+<!-- FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(100, 1)] -->
+<g id="node2" class="node">
+<title>FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(100, 1)]</title>
+<polygon fill="none" stroke="black" points="559,-735 274,-735 274,-699 559,-699 559,-735"/>
+<text text-anchor="middle" x="416.5" y="-713.3" font-family="Times,serif" font-size="14.00">FILTER BY (col(&quot;SnapshotTime&quot;).fill...</text>
+</g>
+<!-- JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(0, 0)]&#45;&#45;FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(100, 1)] -->
+<g id="edge1" class="edge">
+<title>JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(0, 0)]&#45;&#45;FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(100, 1)]</title>
+<path fill="none" stroke="black" d="M518.06,-770.8C495.52,-759.08 469.46,-745.53 449.38,-735.09"/>
+</g>
+<!-- FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(200, 1)] -->
+<g id="node10" class="node">
+<title>FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(200, 1)]</title>
+<polygon fill="none" stroke="black" points="892,-735 607,-735 607,-699 892,-699 892,-735"/>
+<text text-anchor="middle" x="749.5" y="-713.3" font-family="Times,serif" font-size="14.00">FILTER BY (col(&quot;SnapshotTime&quot;).fill...</text>
+</g>
+<!-- JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(0, 0)]&#45;&#45;FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(200, 1)] -->
+<g id="edge9" class="edge">
+<title>JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(0, 0)]&#45;&#45;FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(200, 1)]</title>
+<path fill="none" stroke="black" d="M626.84,-770.9C654.12,-759.14 685.74,-745.5 710.04,-735.02"/>
+</g>
+<!-- WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(100, 2)] -->
+<g id="node3" class="node">
+<title>WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(100, 2)]</title>
+<polygon fill="none" stroke="black" points="628.5,-654.5 84.5,-654.5 84.5,-618.5 628.5,-618.5 628.5,-654.5"/>
+<text text-anchor="middle" x="356.5" y="-632.8" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;]</text>
+</g>
+<!-- FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(100, 1)]&#45;&#45;WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(100, 2)] -->
+<g id="edge2" class="edge">
+<title>FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(100, 1)]&#45;&#45;WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(100, 2)]</title>
+<path fill="none" stroke="black" d="M403.48,-698.97C393.42,-685.8 379.55,-667.66 369.49,-654.5"/>
+</g>
+<!-- FILTER BY col(&quot;Name&quot;).str.contains(... [(100, 3)] -->
+<g id="node4" class="node">
+<title>FILTER BY col(&quot;Name&quot;).str.contains(... [(100, 3)]</title>
+<polygon fill="none" stroke="black" points="498.5,-574 208.5,-574 208.5,-538 498.5,-538 498.5,-574"/>
+<text text-anchor="middle" x="353.5" y="-552.3" font-family="Times,serif" font-size="14.00">FILTER BY col(&quot;Name&quot;).str.contains(...</text>
+</g>
+<!-- WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(100, 2)]&#45;&#45;FILTER BY col(&quot;Name&quot;).str.contains(... [(100, 3)] -->
+<g id="edge3" class="edge">
+<title>WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(100, 2)]&#45;&#45;FILTER BY col(&quot;Name&quot;).str.contains(... [(100, 3)]</title>
+<path fill="none" stroke="black" d="M355.85,-618.47C355.35,-605.3 354.65,-587.16 354.15,-574"/>
+</g>
+<!-- WITH COLUMNS [&quot;SnapshotTime&quot;] [(100, 4)] -->
+<g id="node5" class="node">
+<title>WITH COLUMNS [&quot;SnapshotTime&quot;] [(100, 4)]</title>
+<polygon fill="none" stroke="black" points="482.5,-502 212.5,-502 212.5,-466 482.5,-466 482.5,-502"/>
+<text text-anchor="middle" x="347.5" y="-480.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;SnapshotTime&quot;]</text>
+</g>
+<!-- FILTER BY col(&quot;Name&quot;).str.contains(... [(100, 3)]&#45;&#45;WITH COLUMNS [&quot;SnapshotTime&quot;] [(100, 4)] -->
+<g id="edge4" class="edge">
+<title>FILTER BY col(&quot;Name&quot;).str.contains(... [(100, 3)]&#45;&#45;WITH COLUMNS [&quot;SnapshotTime&quot;] [(100, 4)]</title>
+<path fill="none" stroke="black" d="M352.02,-537.7C351.09,-526.85 349.89,-512.92 348.97,-502.1"/>
+</g>
+<!-- WITH COLUMNS [&quot;Issue&quot;,&quot;Group&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Configuration&quot;,&quot;Performance&quot;] [(100, 5)] -->
+<g id="node6" class="node">
+<title>WITH COLUMNS [&quot;Issue&quot;,&quot;Group&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Configuration&quot;,&quot;Performance&quot;] [(100, 5)]</title>
+<polygon fill="none" stroke="black" points="653,-430 0,-430 0,-394 653,-394 653,-430"/>
+<text text-anchor="middle" x="326.5" y="-408.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;Issue&quot;,&quot;Group&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Configuration&quot;,&quot;Performance&quot;]</text>
+</g>
+<!-- WITH COLUMNS [&quot;SnapshotTime&quot;] [(100, 4)]&#45;&#45;WITH COLUMNS [&quot;Issue&quot;,&quot;Group&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Configuration&quot;,&quot;Performance&quot;] [(100, 5)] -->
+<g id="edge5" class="edge">
+<title>WITH COLUMNS [&quot;SnapshotTime&quot;] [(100, 4)]&#45;&#45;WITH COLUMNS [&quot;Issue&quot;,&quot;Group&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Configuration&quot;,&quot;Performance&quot;] [(100, 5)]</title>
+<path fill="none" stroke="black" d="M342.31,-465.7C339.05,-454.85 334.88,-440.92 331.63,-430.1"/>
+</g>
+<!-- π 12/27 [(100, 6)] -->
+<g id="node7" class="node">
+<title>π 12/27 [(100, 6)]</title>
+<polygon fill="none" stroke="black" points="362,-358 291,-358 291,-322 362,-322 362,-358"/>
+<text text-anchor="middle" x="326.5" y="-336.3" font-family="Times,serif" font-size="14.00">π 12/27</text>
+</g>
+<!-- WITH COLUMNS [&quot;Issue&quot;,&quot;Group&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Configuration&quot;,&quot;Performance&quot;] [(100, 5)]&#45;&#45;π 12/27 [(100, 6)] -->
+<g id="edge6" class="edge">
+<title>WITH COLUMNS [&quot;Issue&quot;,&quot;Group&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Configuration&quot;,&quot;Performance&quot;] [(100, 5)]&#45;&#45;π 12/27 [(100, 6)]</title>
+<path fill="none" stroke="black" d="M326.5,-393.7C326.5,-382.85 326.5,-368.92 326.5,-358.1"/>
+</g>
+<!-- RENAME [(100, 7)] -->
+<g id="node8" class="node">
+<title>RENAME [(100, 7)]</title>
+<polygon fill="none" stroke="black" points="368.5,-286 284.5,-286 284.5,-250 368.5,-250 368.5,-286"/>
+<text text-anchor="middle" x="326.5" y="-264.3" font-family="Times,serif" font-size="14.00">RENAME</text>
+</g>
+<!-- π 12/27 [(100, 6)]&#45;&#45;RENAME [(100, 7)] -->
+<g id="edge7" class="edge">
+<title>π 12/27 [(100, 6)]&#45;&#45;RENAME [(100, 7)]</title>
+<path fill="none" stroke="black" d="M326.5,-321.7C326.5,-310.85 326.5,-296.92 326.5,-286.1"/>
+</g>
+<!-- TABLE
+π */27;
+σ &#45;; [(100, 8)] -->
+<g id="node9" class="node">
+<title>TABLE
+π */27;
+σ &#45;; [(100, 8)]</title>
+<polygon fill="none" stroke="black" points="359,-214 294,-214 294,-161 359,-161 359,-214"/>
+<text text-anchor="middle" x="326.5" y="-198.8" font-family="Times,serif" font-size="14.00">TABLE</text>
+<text text-anchor="middle" x="326.5" y="-183.8" font-family="Times,serif" font-size="14.00">π */27;</text>
+<text text-anchor="middle" x="326.5" y="-168.8" font-family="Times,serif" font-size="14.00">σ &#45;;</text>
+</g>
+<!-- RENAME [(100, 7)]&#45;&#45;TABLE
+π */27;
+σ &#45;; [(100, 8)] -->
+<g id="edge8" class="edge">
+<title>RENAME [(100, 7)]&#45;&#45;TABLE
+π */27;
+σ &#45;; [(100, 8)]</title>
+<path fill="none" stroke="black" d="M326.5,-249.97C326.5,-239.51 326.5,-225.9 326.5,-214.16"/>
+</g>
+<!-- JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(200, 2)] -->
+<g id="node11" class="node">
+<title>JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(200, 2)]</title>
+<polygon fill="none" stroke="black" points="914.5,-663 648.5,-663 648.5,-610 914.5,-610 914.5,-663"/>
+<text text-anchor="middle" x="781.5" y="-647.8" font-family="Times,serif" font-size="14.00">JOIN INNER</text>
+<text text-anchor="middle" x="781.5" y="-632.8" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left [col(&quot;ModelID&quot;)];</text>
+<text text-anchor="middle" x="781.5" y="-617.8" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)]</text>
+</g>
+<!-- FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(200, 1)]&#45;&#45;JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(200, 2)] -->
+<g id="edge10" class="edge">
+<title>FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(200, 1)]&#45;&#45;JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(200, 2)]</title>
+<path fill="none" stroke="black" d="M756.44,-698.97C760.71,-688.51 766.25,-674.9 771.04,-663.16"/>
+</g>
+<!-- WITH COLUMNS [&quot;BinPropensity&quot;,&quot;BinAdjustedPropensity&quot;] [(300, 3)] -->
+<g id="node12" class="node">
+<title>WITH COLUMNS [&quot;BinPropensity&quot;,&quot;BinAdjustedPropensity&quot;] [(300, 3)]</title>
+<polygon fill="none" stroke="black" points="1007.5,-574 555.5,-574 555.5,-538 1007.5,-538 1007.5,-574"/>
+<text text-anchor="middle" x="781.5" y="-552.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;BinPropensity&quot;,&quot;BinAdjustedPropensity&quot;]</text>
+</g>
+<!-- JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(200, 2)]&#45;&#45;WITH COLUMNS [&quot;BinPropensity&quot;,&quot;BinAdjustedPropensity&quot;] [(300, 3)] -->
+<g id="edge11" class="edge">
+<title>JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(200, 2)]&#45;&#45;WITH COLUMNS [&quot;BinPropensity&quot;,&quot;BinAdjustedPropensity&quot;] [(300, 3)]</title>
+<path fill="none" stroke="black" d="M781.5,-609.8C781.5,-598.17 781.5,-584.74 781.5,-574.33"/>
+</g>
+<!-- π 1/15 [(400, 3)] -->
+<g id="node18" class="node">
+<title>π 1/15 [(400, 3)]</title>
+<polygon fill="none" stroke="black" points="1162.5,-574 1100.5,-574 1100.5,-538 1162.5,-538 1162.5,-574"/>
+<text text-anchor="middle" x="1131.5" y="-552.3" font-family="Times,serif" font-size="14.00">π 1/15</text>
+</g>
+<!-- JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(200, 2)]&#45;&#45;π 1/15 [(400, 3)] -->
+<g id="edge17" class="edge">
+<title>JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(200, 2)]&#45;&#45;π 1/15 [(400, 3)]</title>
+<path fill="none" stroke="black" d="M895.62,-609.9C967.43,-593.8 1054.87,-574.19 1100.46,-563.96"/>
+</g>
+<!-- WITH COLUMNS [&quot;SnapshotTime&quot;] [(300, 4)] -->
+<g id="node13" class="node">
+<title>WITH COLUMNS [&quot;SnapshotTime&quot;] [(300, 4)]</title>
+<polygon fill="none" stroke="black" points="916.5,-502 646.5,-502 646.5,-466 916.5,-466 916.5,-502"/>
+<text text-anchor="middle" x="781.5" y="-480.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;SnapshotTime&quot;]</text>
+</g>
+<!-- WITH COLUMNS [&quot;BinPropensity&quot;,&quot;BinAdjustedPropensity&quot;] [(300, 3)]&#45;&#45;WITH COLUMNS [&quot;SnapshotTime&quot;] [(300, 4)] -->
+<g id="edge12" class="edge">
+<title>WITH COLUMNS [&quot;BinPropensity&quot;,&quot;BinAdjustedPropensity&quot;] [(300, 3)]&#45;&#45;WITH COLUMNS [&quot;SnapshotTime&quot;] [(300, 4)]</title>
+<path fill="none" stroke="black" d="M781.5,-537.7C781.5,-526.85 781.5,-512.92 781.5,-502.1"/>
+</g>
+<!-- WITH COLUMNS [&quot;Performance&quot;] [(300, 5)] -->
+<g id="node14" class="node">
+<title>WITH COLUMNS [&quot;Performance&quot;] [(300, 5)]</title>
+<polygon fill="none" stroke="black" points="930,-430 671,-430 671,-394 930,-394 930,-430"/>
+<text text-anchor="middle" x="800.5" y="-408.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;Performance&quot;]</text>
+</g>
+<!-- WITH COLUMNS [&quot;SnapshotTime&quot;] [(300, 4)]&#45;&#45;WITH COLUMNS [&quot;Performance&quot;] [(300, 5)] -->
+<g id="edge13" class="edge">
+<title>WITH COLUMNS [&quot;SnapshotTime&quot;] [(300, 4)]&#45;&#45;WITH COLUMNS [&quot;Performance&quot;] [(300, 5)]</title>
+<path fill="none" stroke="black" d="M786.2,-465.7C789.14,-454.85 792.92,-440.92 795.86,-430.1"/>
+</g>
+<!-- π 15/36 [(300, 6)] -->
+<g id="node15" class="node">
+<title>π 15/36 [(300, 6)]</title>
+<polygon fill="none" stroke="black" points="836,-358 765,-358 765,-322 836,-322 836,-358"/>
+<text text-anchor="middle" x="800.5" y="-336.3" font-family="Times,serif" font-size="14.00">π 15/36</text>
+</g>
+<!-- WITH COLUMNS [&quot;Performance&quot;] [(300, 5)]&#45;&#45;π 15/36 [(300, 6)] -->
+<g id="edge14" class="edge">
+<title>WITH COLUMNS [&quot;Performance&quot;] [(300, 5)]&#45;&#45;π 15/36 [(300, 6)]</title>
+<path fill="none" stroke="black" d="M800.5,-393.7C800.5,-382.85 800.5,-368.92 800.5,-358.1"/>
+</g>
+<!-- RENAME [(300, 7)] -->
+<g id="node16" class="node">
+<title>RENAME [(300, 7)]</title>
+<polygon fill="none" stroke="black" points="842.5,-286 758.5,-286 758.5,-250 842.5,-250 842.5,-286"/>
+<text text-anchor="middle" x="800.5" y="-264.3" font-family="Times,serif" font-size="14.00">RENAME</text>
+</g>
+<!-- π 15/36 [(300, 6)]&#45;&#45;RENAME [(300, 7)] -->
+<g id="edge15" class="edge">
+<title>π 15/36 [(300, 6)]&#45;&#45;RENAME [(300, 7)]</title>
+<path fill="none" stroke="black" d="M800.5,-321.7C800.5,-310.85 800.5,-296.92 800.5,-286.1"/>
+</g>
+<!-- TABLE
+π */36;
+σ &#45;; [(300, 8)] -->
+<g id="node17" class="node">
+<title>TABLE
+π */36;
+σ &#45;; [(300, 8)]</title>
+<polygon fill="none" stroke="black" points="833,-214 768,-214 768,-161 833,-161 833,-214"/>
+<text text-anchor="middle" x="800.5" y="-198.8" font-family="Times,serif" font-size="14.00">TABLE</text>
+<text text-anchor="middle" x="800.5" y="-183.8" font-family="Times,serif" font-size="14.00">π */36;</text>
+<text text-anchor="middle" x="800.5" y="-168.8" font-family="Times,serif" font-size="14.00">σ &#45;;</text>
+</g>
+<!-- RENAME [(300, 7)]&#45;&#45;TABLE
+π */36;
+σ &#45;; [(300, 8)] -->
+<g id="edge16" class="edge">
+<title>RENAME [(300, 7)]&#45;&#45;TABLE
+π */36;
+σ &#45;; [(300, 8)]</title>
+<path fill="none" stroke="black" d="M800.5,-249.97C800.5,-239.51 800.5,-225.9 800.5,-214.16"/>
+</g>
+<!-- WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(400, 4)] -->
+<g id="node19" class="node">
+<title>WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(400, 4)]</title>
+<polygon fill="none" stroke="black" points="1478.5,-502 934.5,-502 934.5,-466 1478.5,-466 1478.5,-502"/>
+<text text-anchor="middle" x="1206.5" y="-480.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;]</text>
+</g>
+<!-- π 1/15 [(400, 3)]&#45;&#45;WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(400, 4)] -->
+<g id="edge18" class="edge">
+<title>π 1/15 [(400, 3)]&#45;&#45;WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(400, 4)]</title>
+<path fill="none" stroke="black" d="M1150.04,-537.7C1161.66,-526.85 1176.59,-512.92 1188.17,-502.1"/>
+</g>
+<!-- FILTER BY col(&quot;Name&quot;).str.contains(... [(400, 5)] -->
+<g id="node20" class="node">
+<title>FILTER BY col(&quot;Name&quot;).str.contains(... [(400, 5)]</title>
+<polygon fill="none" stroke="black" points="1351.5,-430 1061.5,-430 1061.5,-394 1351.5,-394 1351.5,-430"/>
+<text text-anchor="middle" x="1206.5" y="-408.3" font-family="Times,serif" font-size="14.00">FILTER BY col(&quot;Name&quot;).str.contains(...</text>
+</g>
+<!-- WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(400, 4)]&#45;&#45;FILTER BY col(&quot;Name&quot;).str.contains(... [(400, 5)] -->
+<g id="edge19" class="edge">
+<title>WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(400, 4)]&#45;&#45;FILTER BY col(&quot;Name&quot;).str.contains(... [(400, 5)]</title>
+<path fill="none" stroke="black" d="M1206.5,-465.7C1206.5,-454.85 1206.5,-440.92 1206.5,-430.1"/>
+</g>
+<!-- WITH COLUMNS [&quot;SnapshotTime&quot;] [(400, 6)] -->
+<g id="node21" class="node">
+<title>WITH COLUMNS [&quot;SnapshotTime&quot;] [(400, 6)]</title>
+<polygon fill="none" stroke="black" points="1341.5,-358 1071.5,-358 1071.5,-322 1341.5,-322 1341.5,-358"/>
+<text text-anchor="middle" x="1206.5" y="-336.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;SnapshotTime&quot;]</text>
+</g>
+<!-- FILTER BY col(&quot;Name&quot;).str.contains(... [(400, 5)]&#45;&#45;WITH COLUMNS [&quot;SnapshotTime&quot;] [(400, 6)] -->
+<g id="edge20" class="edge">
+<title>FILTER BY col(&quot;Name&quot;).str.contains(... [(400, 5)]&#45;&#45;WITH COLUMNS [&quot;SnapshotTime&quot;] [(400, 6)]</title>
+<path fill="none" stroke="black" d="M1206.5,-393.7C1206.5,-382.85 1206.5,-368.92 1206.5,-358.1"/>
+</g>
+<!-- WITH COLUMNS [&quot;Issue&quot;,&quot;Group&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Configuration&quot;,&quot;Performance&quot;] [(400, 7)] -->
+<g id="node22" class="node">
+<title>WITH COLUMNS [&quot;Issue&quot;,&quot;Group&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Configuration&quot;,&quot;Performance&quot;] [(400, 7)]</title>
+<polygon fill="none" stroke="black" points="1533,-286 880,-286 880,-250 1533,-250 1533,-286"/>
+<text text-anchor="middle" x="1206.5" y="-264.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;Issue&quot;,&quot;Group&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Configuration&quot;,&quot;Performance&quot;]</text>
+</g>
+<!-- WITH COLUMNS [&quot;SnapshotTime&quot;] [(400, 6)]&#45;&#45;WITH COLUMNS [&quot;Issue&quot;,&quot;Group&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Configuration&quot;,&quot;Performance&quot;] [(400, 7)] -->
+<g id="edge21" class="edge">
+<title>WITH COLUMNS [&quot;SnapshotTime&quot;] [(400, 6)]&#45;&#45;WITH COLUMNS [&quot;Issue&quot;,&quot;Group&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Configuration&quot;,&quot;Performance&quot;] [(400, 7)]</title>
+<path fill="none" stroke="black" d="M1206.5,-321.7C1206.5,-310.85 1206.5,-296.92 1206.5,-286.1"/>
+</g>
+<!-- π 12/27 [(400, 8)] -->
+<g id="node23" class="node">
+<title>π 12/27 [(400, 8)]</title>
+<polygon fill="none" stroke="black" points="1242,-205.5 1171,-205.5 1171,-169.5 1242,-169.5 1242,-205.5"/>
+<text text-anchor="middle" x="1206.5" y="-183.8" font-family="Times,serif" font-size="14.00">π 12/27</text>
+</g>
+<!-- WITH COLUMNS [&quot;Issue&quot;,&quot;Group&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Configuration&quot;,&quot;Performance&quot;] [(400, 7)]&#45;&#45;π 12/27 [(400, 8)] -->
+<g id="edge22" class="edge">
+<title>WITH COLUMNS [&quot;Issue&quot;,&quot;Group&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Configuration&quot;,&quot;Performance&quot;] [(400, 7)]&#45;&#45;π 12/27 [(400, 8)]</title>
+<path fill="none" stroke="black" d="M1206.5,-249.97C1206.5,-236.8 1206.5,-218.66 1206.5,-205.5"/>
+</g>
+<!-- RENAME [(400, 9)] -->
+<g id="node24" class="node">
+<title>RENAME [(400, 9)]</title>
+<polygon fill="none" stroke="black" points="1248.5,-125 1164.5,-125 1164.5,-89 1248.5,-89 1248.5,-125"/>
+<text text-anchor="middle" x="1206.5" y="-103.3" font-family="Times,serif" font-size="14.00">RENAME</text>
+</g>
+<!-- π 12/27 [(400, 8)]&#45;&#45;RENAME [(400, 9)] -->
+<g id="edge23" class="edge">
+<title>π 12/27 [(400, 8)]&#45;&#45;RENAME [(400, 9)]</title>
+<path fill="none" stroke="black" d="M1206.5,-169.47C1206.5,-156.3 1206.5,-138.16 1206.5,-125"/>
+</g>
+<!-- TABLE
+π */27;
+σ &#45;; [(400, 10)] -->
+<g id="node25" class="node">
+<title>TABLE
+π */27;
+σ &#45;; [(400, 10)]</title>
+<polygon fill="none" stroke="black" points="1239,-53 1174,-53 1174,0 1239,0 1239,-53"/>
+<text text-anchor="middle" x="1206.5" y="-37.8" font-family="Times,serif" font-size="14.00">TABLE</text>
+<text text-anchor="middle" x="1206.5" y="-22.8" font-family="Times,serif" font-size="14.00">π */27;</text>
+<text text-anchor="middle" x="1206.5" y="-7.8" font-family="Times,serif" font-size="14.00">σ &#45;;</text>
+</g>
+<!-- RENAME [(400, 9)]&#45;&#45;TABLE
+π */27;
+σ &#45;; [(400, 10)] -->
+<g id="edge24" class="edge">
+<title>RENAME [(400, 9)]&#45;&#45;TABLE
+π */27;
+σ &#45;; [(400, 10)]</title>
+<path fill="none" stroke="black" d="M1206.5,-88.97C1206.5,-78.51 1206.5,-64.9 1206.5,-53.16"/>
+</g>
+</g>
+</svg></div>
+</div>
+<p>While a beautiful graph, it is quite a lot to digest. The left side of the chart should look very familiar, as should the right side. The ‘middle’ part is new: this is the execution part for the predictor data. Here we only parse <code class="docutils literal notranslate"><span class="pre">Performance</span></code> to be a float, parse the timezones, and add [“BinPropensity”,”BinAdjustedPropensity”]. For both the model data and the predictor data we take the last snapshot only when combining them, which you can see right before the topmost inner join.</p>
+<p>Again, a sharp eye will notice quite some inefficiencies here. The newest issue is that we’re now importing <code class="docutils literal notranslate"><span class="pre">modelData</span></code> twice, once to filter out model IDs not being in the filter criteria, and another time to join with the table. But remember, we’re not in the optimized graph:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dm</span><span class="o">.</span><span class="n">combinedData</span><span class="o">.</span><span class="n">show_graph</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/articles_pdstoolsv3_16_0.svg" src="../_images/articles_pdstoolsv3_16_0.svg" /></div>
+</div>
+<p>Pretty neat. Not only do we not import modelData twice, we cache it at a certain point in the execution graph so we can <em>use</em> it twice. And we get all of this for free with Polars’ optimization engine! Also remember, at this point, we’ve not even read in any data yet! We can even do profiling on this execution graph, but that’s a challenge to figure out on your own :). We can easily show the gains in time using this method using our new <code class="docutils literal notranslate"><span class="pre">save_data</span></code> method though: this will save our data to
+disk in an efficient format, and gives us a fast way to benchmark.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">files_without_subset</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">CDHSample</span><span class="p">(</span>
+    <span class="n">import_strategy</span><span class="o">=</span><span class="s2">&quot;lazy&quot;</span><span class="p">,</span> <span class="n">subset</span><span class="o">=</span><span class="kc">False</span>
+<span class="p">)</span><span class="o">.</span><span class="n">save_data</span><span class="p">()</span>
+<span class="n">files_with_subset</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">CDHSample</span><span class="p">(</span>
+    <span class="n">import_strategy</span><span class="o">=</span><span class="s2">&quot;lazy&quot;</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Name&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s2">&quot;Visa&quot;</span><span class="p">)</span>
+<span class="p">)</span><span class="o">.</span><span class="n">save_data</span><span class="p">()</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="k">timeit</span> ADMDatamart(model_filename=files_without_subset[0], predictor_filename=files_without_subset[1], import_strategy=&#39;lazy&#39;).combinedData.collect()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+8.7 ms ± 27.3 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="k">timeit</span> ADMDatamart(model_filename=files_with_subset[0], predictor_filename=files_with_subset[1], import_strategy=&#39;lazy&#39;).combinedData.collect()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+4.33 ms ± 5.31 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">os</span> <span class="kn">import</span> <span class="n">remove</span>
+<span class="p">[</span><span class="n">remove</span><span class="p">(</span><span class="n">file</span><span class="p">)</span> <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="p">[</span><span class="o">*</span><span class="n">files_with_subset</span><span class="p">,</span> <span class="o">*</span><span class="n">files_without_subset</span><span class="p">]]</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[None, None, None, None]
+</pre></div></div>
+</div>
+<p>This +- 2x increase in speed will be even more significant as we increase the size of the data.</p>
+</section>
+<section id="Lazy-vs-Eager">
+<h2>Lazy vs Eager<a class="headerlink" href="#Lazy-vs-Eager" title="Permalink to this heading">#</a></h2>
+<p>As mentioned before, however, the default mode of reading is <code class="docutils literal notranslate"><span class="pre">&quot;eager&quot;</span></code>. This still allows us to use the previously mentioned execution graph, but the difference is in what we do after we do all of this preprocessing, right before returning the ADMDatamart class: <code class="docutils literal notranslate"><span class="pre">.collect().lazy()</span></code>. Opening up <code class="docutils literal notranslate"><span class="pre">modelData</span></code> in <code class="docutils literal notranslate"><span class="pre">eager</span></code> mode shows that we don’t have a graph anymore:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">modd</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">CDHSample</span><span class="p">()</span><span class="o">.</span><span class="n">modelData</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">modd</span><span class="p">))</span>
+<span class="n">modd</span><span class="o">.</span><span class="n">show_graph</span><span class="p">()</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;class &#39;polars.lazyframe.frame.LazyFrame&#39;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/articles_pdstoolsv3_23_1.svg" src="../_images/articles_pdstoolsv3_23_1.svg" /></div>
+</div>
+<p>The type of <code class="docutils literal notranslate"><span class="pre">modelData</span></code> is a <code class="docutils literal notranslate"><span class="pre">LazyFrame</span></code> (the representation of this being a query plan). <code class="docutils literal notranslate"><span class="pre">DataFrame</span></code> and <code class="docutils literal notranslate"><span class="pre">LazyFrame</span></code>s are not so different - <code class="docutils literal notranslate"><span class="pre">LazyFrame</span></code>s build up a query and want you to execute once it’s done, <code class="docutils literal notranslate"><span class="pre">DataFrame</span></code>s execute each command as you’re calling it. However, in <code class="docutils literal notranslate"><span class="pre">eager</span></code> mode, that execution graph is empty.</p>
+<p>That leads to the fundamental difference between the <code class="docutils literal notranslate"><span class="pre">import_strategy</span></code> keyword argument: - In <code class="docutils literal notranslate"><span class="pre">lazy</span></code> mode - we only build the execution graph, but we rather than <em>reading</em> the data, we only <em>scan</em> it - In <code class="docutils literal notranslate"><span class="pre">eager</span></code> mode - we build the execution graph and execute it, <em>reading</em> all data into memory. This means we don’t have to execute that graph everytime we call it.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">eager</span></code> mode stil maintains <code class="docutils literal notranslate"><span class="pre">LazyFrame</span></code>s for both <code class="docutils literal notranslate"><span class="pre">modelData</span></code> and <code class="docutils literal notranslate"><span class="pre">predictorData</span></code>, but those tables are now not stored on disk anymore, but kept in memory. Any subsequent operations will build up a new execution graph, only executed when calling <code class="docutils literal notranslate"><span class="pre">.collect()</span></code>.</p>
+<section id="When-to-use-which?">
+<h3>When to use which?<a class="headerlink" href="#When-to-use-which?" title="Permalink to this heading">#</a></h3>
+<p>By default, we use <code class="docutils literal notranslate"><span class="pre">eager</span></code> mode. We recommend using that, unless:</p>
+<ul class="simple">
+<li><p>Your data is too big to fit into memory</p></li>
+<li><p>You’re using just one plot</p></li>
+</ul>
+<p>In all other cases, it’s probably fine to just use eager mode, <em>unless</em>.</p>
+</section>
+</section>
+<section id="File-Types">
+<h2>File Types<a class="headerlink" href="#File-Types" title="Permalink to this heading">#</a></h2>
+<p>Pega’s default export format is to return a zip file, in which is a <code class="docutils literal notranslate"><span class="pre">data.json</span></code> file, which is in newline-delimited json format. While this is a decent storage format, it doesn’t allow for any scanning operations because we need to open the entire zip into memory before being able to read anything. Therefore, if you’re using the default export format, we set the import strategy to eager. If you’re working with very large files and you need faster processing, it may be worth it to unzip the
+files, or even transform them to Arrow/IPC (fastest) or Parquet (most efficient). Then, you can use lazy mode, and can process files larger than memory as an added benefit.</p>
+</section>
+<section id="Further-Polars-examples">
+<h2>Further Polars examples<a class="headerlink" href="#Further-Polars-examples" title="Permalink to this heading">#</a></h2>
+<p>To help you get adjusted to this new syntax, let’s go over a few more examples.</p>
+<p>The regular facets syntax still works, and can be combined with the new querying syntax.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dm</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">CDHSample</span><span class="p">()</span>
+
+<span class="n">dm</span><span class="o">.</span><span class="n">plotPerformanceSuccessRateBubbleChart</span><span class="p">(</span>
+    <span class="n">query</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Issue&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;Sales&quot;</span><span class="p">,</span> <span class="n">facets</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Channel&quot;</span><span class="p">]</span>
+<span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<script type="text/javascript">
+window.PlotlyConfig = {MathJaxConfig: 'local'};
+if (window.MathJax && window.MathJax.Hub && window.MathJax.Hub.Config) {window.MathJax.Hub.Config({SVG: {font: "STIX-Web"}});}
+if (typeof require !== 'undefined') {
+require.undef("plotly");
+requirejs.config({
+    paths: {
+        'plotly': ['https://cdn.plot.ly/plotly-2.18.2.min']
+    }
+});
+require(['plotly'], function(Plotly) {
+    window._Plotly = Plotly;
+});
+}
+</script></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>                            <div id="02f9f5c2-8e1c-47eb-a55c-3aa7bacc57bc" class="plotly-graph-div" style="height:525px; width:100%;"></div>            <script type="text/javascript">                require(["plotly"], function(Plotly) {                    window.PLOTLYENV=window.PLOTLYENV || {};                                    if (document.getElementById("02f9f5c2-8e1c-47eb-a55c-3aa7bacc57bc")) {                    Plotly.newPlot(                        "02f9f5c2-8e1c-47eb-a55c-3aa7bacc57bc",                        [{"customdata":[["f3afaa9b-d0d5-5be9-a3b9-9fdfc4847411","Email","Outbound","Sales","AutoLoans"],["3c892256-f415-5408-905d-3158345b10bf","Email","Outbound","Sales","Bundles"],["cc9b9b1b-c2f9-5e8c-a54a-f13e0559ebd6","Email","Outbound","Sales","CreditCards"],["84107ad6-c998-5377-b0d0-e02be2a8d768","Email","Outbound","Sales","AutoLoans"],["b5338016-1fee-5745-80ee-7bd6d51f2920","Email","Outbound","Sales","CreditCards"],["24f11deb-a6fa-59bf-b5f7-c61abffc9482","Email","Outbound","Sales","AutoLoans"],["cb67c091-5a81-56f4-9845-71afa9c8076e","Email","Outbound","Sales","HomeLoans"],["470485f7-3b20-58f7-a3aa-1f12c2bb99b7","Email","Outbound","Sales","HomeLoans"],["79e3f70f-dc6a-5bea-8006-02a6e91ad256","Email","Outbound","Sales","DepositAccounts"],["c4cd4c00-87bf-562e-9ab8-20af64a81757","Email","Outbound","Sales","DepositAccounts"],["cffb1b5d-219e-5137-9036-4e2136be6a8f","Email","Outbound","Sales","DepositAccounts"],["0b363d7f-68f8-5e9e-a843-40ca8849e05b","Email","Outbound","Sales","HomeLoans"],["ab4592bc-df16-5372-86e7-0caea36ac877","Email","Outbound","Sales","CreditCards"],["320c4d01-43a5-510e-8fa8-1fc1bb4216da","Email","Outbound","Sales","Bundles"],["bd70a915-697a-5d43-ab2c-53b0557c85a0","Email","Outbound","Sales","AutoLoans"],["a63f2f06-1e31-5691-a6df-48916a066c23","Email","Outbound","Sales","DepositAccounts"],["2c8e753a-9e85-5060-ac5b-073e79e755c0","Email","Outbound","Sales","CreditCards"],["4954d7a5-b75e-5c71-89d6-e8340feb5022","Email","Outbound","Sales","DepositAccounts"],["bb02128b-d6df-52f3-9983-316f9fce47c7","Email","Outbound","Sales","CreditCards"],["85d9dd89-93e5-55a0-b05f-e68bba9c97d1","Email","Outbound","Sales","CreditCards"],["ebb6d905-7c43-5422-a813-f770feba7114","Email","Outbound","Sales","AutoLoans"]],"hovertemplate":"<b>%{hovertext}</b><br><br>Channel=%{customdata[1]}<br>Performance=%{marker.color}<br>SuccessRate=%{y}<br>ResponseCount=%{marker.size}<br>ModelID=%{customdata[0]}<br>Direction=%{customdata[2]}<br>Issue=%{customdata[3]}<br>Group=%{customdata[4]}<extra></extra>","hovertext":["AutoNew84Months","StudentChoice","IdentityTheftProtection","AutoUsed60Months","PaymentProtection","AutoUsed84Months","FirstMortgageFHA","FirstMortgageFloat","MoneyMarketSavingsAccount","RegularSaving","PremierChecking","FirstMortgageFiveOneARM","UPlusFinPersonal","PremiumBanking","AutoNew36Months","BasicChecking","UPlusFinGold","SeniorChecking","PlatinumRewardsCard","MasterCardGold","AutoNew48Months"],"legendgroup":"","marker":{"color":[64.2461,60.1887,50.0,65.3775,52.5041,50.0,67.6805,50.0,50.0,61.4512,52.1103,53.0007,61.9665,62.467,52.3734,51.0276,53.496,54.9252,50.0,50.0,58.0125],"coloraxis":"coloraxis","size":[1184,5203,808,1378,537,1243,362,444,1096,1069,3355,404,3508,5430,5817,3868,3545,2883,989,875,5198],"sizemode":"area","sizeref":14.5425,"symbol":"circle","line":{"color":"black"}},"mode":"markers","name":"","orientation":"v","showlegend":false,"x":[64.2461,60.1887,50.0,65.3775,52.5041,50.0,67.6805,50.0,50.0,61.4512,52.1103,53.0007,61.9665,62.467,52.3734,51.0276,53.496,54.9252,50.0,50.0,58.0125],"xaxis":"x","y":[5.65878,1.69133,0.24752,3.91872,5.40037,1.04586,3.59116,0.45045,1.73358,1.40318,8.70343,2.47525,1.53934,0.44199,0.20629,7.29059,1.07193,5.06417,0.20222,0.57143,2.75106],"yaxis":"y","type":"scatter"},{"customdata":[["e4ea7a89-c394-5014-ac26-34b8eee475bd","SMS","Outbound","Sales","CreditCards"],["1289c4af-1d3f-5265-9fe5-173e1ddaadc3","SMS","Outbound","Sales","HomeLoans"],["b27d8eb5-7ff6-5706-ae90-6d61ce695f78","SMS","Outbound","Sales","Bundles"],["5ca51e1e-49f0-58d2-8ab7-4a0ccbb326fd","SMS","Outbound","Sales","DepositAccounts"],["b216413c-8c2e-5e1b-860b-07dfc69efa69","SMS","Outbound","Sales","AutoLoans"],["f9fc995f-3f02-5e9e-8e22-b72909054f3a","SMS","Outbound","Sales","AutoLoans"],["7ffc8c26-8473-5c8e-bcc3-48e5b162da7a","SMS","Outbound","Sales","CreditCards"],["26dda9e0-34a2-5e0a-8ee2-fd0c39de729e","SMS","Outbound","Sales","CreditCards"],["c3f445b2-6037-5560-9f16-71a7259d2c2c","SMS","Outbound","Sales","HomeLoans"],["69a8e56f-6327-5a66-a9a3-9b0c106641ec","SMS","Outbound","Sales","AutoLoans"],["4efdb97d-288d-518f-a3e0-8314bbd7f2a3","SMS","Outbound","Sales","CreditCards"],["98aeb30c-d896-51bd-b421-a650f0522335","SMS","Outbound","Sales","CreditCards"],["708be173-0f46-55ee-add6-6fdca447a70a","SMS","Outbound","Sales","HomeLoans"],["277a2c48-8888-5b71-911e-443d52c9b50f","SMS","Outbound","Sales","Bundles"],["a75db3a2-fecc-5cc8-b75f-0a44447f9cca","SMS","Outbound","Sales","AutoLoans"],["602303a4-5243-523d-8964-473f3ea1200b","SMS","Outbound","Sales","CreditCards"],["0469930e-8d83-5c81-ba28-a8ec488f8e4d","SMS","Outbound","Sales","DepositAccounts"],["d6e132b6-ad92-5ece-8db5-b42d9d151f73","SMS","Outbound","Sales","Bundles"],["d5e2f4b1-249a-58c0-8a2f-2d314eada5fe","SMS","Outbound","Sales","AutoLoans"],["1be7cd72-741b-5d68-b148-c1af0142fd4a","SMS","Outbound","Sales","CreditCards"],["f38b5b50-b01b-5fd9-8120-7470320d6664","SMS","Outbound","Sales","DepositAccounts"],["081d0acf-bfc3-5c0a-abc4-29106252efb8","SMS","Outbound","Sales","CreditCards"],["a7bb008a-0514-5d41-b014-3e0b1b308382","SMS","Outbound","Sales","DepositAccounts"]],"hovertemplate":"<b>%{hovertext}</b><br><br>Channel=%{customdata[1]}<br>Performance=%{marker.color}<br>SuccessRate=%{y}<br>ResponseCount=%{marker.size}<br>ModelID=%{customdata[0]}<br>Direction=%{customdata[2]}<br>Issue=%{customdata[3]}<br>Group=%{customdata[4]}<extra></extra>","hovertext":["PaymentProtection","FirstMortgageFHA","PremiumBanking","RegularSaving","AutoUsed36Months","AutoNew36Months","MasterCardWorld","ChannelAction_Template","FirstMortgage","AutoNew48Months","MasterCardGold","IdentityTheftProtection","FirstMortgageFiveOneARM","HomeOwners","AutoUsed48Months","UPlusFinPersonal","SeniorChecking","SuperSaver","AutoUsed84Months","VisaGold","MoneyMarketSavingsAccount","UPlusFinGold","PremierChecking"],"legendgroup":"","marker":{"color":[51.4945,52.7779,61.6472,51.1978,54.2851,60.5845,55.1591,69.7884,64.851,61.8246,50.0,53.0707,65.202,77.3211,69.3922,62.9893,56.5227,61.812,62.2813,53.1863,51.3569,66.541,51.6802],"coloraxis":"coloraxis","size":[722,477,5052,1221,1622,5602,634,828,3946,5743,1080,855,482,4976,1447,3588,3424,1106,1347,822,1185,3854,4658],"sizemode":"area","sizeref":14.5425,"symbol":"circle","line":{"color":"black"}},"mode":"markers","name":"","orientation":"v","showlegend":false,"x":[51.4945,52.7779,61.6472,51.1978,54.2851,60.5845,55.1591,69.7884,64.851,61.8246,50.0,53.0707,65.202,77.3211,69.3922,62.9893,56.5227,61.812,62.2813,53.1863,51.3569,66.541,51.6802],"xaxis":"x2","y":[22.43767,10.06289,2.0388,6.38821,8.75462,0.64263,5.67823,6.28019,16.85251,7.19136,0.27778,1.16959,10.37344,10.7717,3.52453,5.18395,15.82944,12.02532,3.71195,3.28467,9.95781,4.28127,23.65822],"yaxis":"y2","type":"scatter"},{"customdata":[["a87d51fb-cfdc-598d-b84a-dcdd64e1e750","Web","Inbound","Sales","HomeLoans"],["9e9e8c2e-6d19-538c-8e7b-a73070717ecf","Web","Inbound","Sales","CreditCards"],["ea0a225a-7d09-5d90-88f6-d0e8380d67cc","Web","Inbound","Sales","DepositAccounts"],["59f06605-5b39-57dd-945b-637a72fa9085","Web","Inbound","Sales","CreditCards"],["692f453a-f825-5a90-ab40-f83cbb34b058","Web","Inbound","Sales","HomeLoans"],["95ae0f10-297a-5c01-94d8-914bb89df969","Web","Inbound","Sales","DepositAccounts"],["a8cde9d1-c720-537c-8fb8-8c59506bddfe","Web","Inbound","Sales","CreditCards"],["8e40882a-aacf-5f03-9be8-f833c7932da2","Web","Inbound","Sales","Bundles"],["08ca1302-9fc0-57bf-9031-d4179d400493","Web","Inbound","Sales","Bundles"],["68e1d164-81e3-5da0-816c-0bbc3c20ac6c","Web","Inbound","Sales","AutoLoans"],["c29ffcfa-5210-5998-a826-f3a8db57c610","Web","Inbound","Sales","CreditCards"],["a8cd5e12-5d10-5b62-95f6-c5bb6344a83a","Web","Inbound","Sales","DepositAccounts"],["0ad9da35-f171-5ab9-973f-1cc4b89b4e8f","Web","Inbound","Sales","Bundles"],["708f20ef-7ca1-58f4-9dfa-b7efb5342fcf","Web","Inbound","Sales","HomeLoans"],["5cb8d642-390e-5c3e-8868-d34768f9535c","Web","Inbound","Sales","AutoLoans"],["17571d69-f802-5122-9bfe-6f3f4ef9073b","Web","Inbound","Sales","CreditCards"],["7d2046d5-be79-5f5a-a858-dcd9c65fd086","Web","Inbound","Sales","AutoLoans"]],"hovertemplate":"<b>%{hovertext}</b><br><br>Channel=%{customdata[1]}<br>Performance=%{marker.color}<br>SuccessRate=%{y}<br>ResponseCount=%{marker.size}<br>ModelID=%{customdata[0]}<br>Direction=%{customdata[2]}<br>Issue=%{customdata[3]}<br>Group=%{customdata[4]}<extra></extra>","hovertext":["FirstMortgage","MasterCardGold","PremierChecking","PlatinumRewardsCard","FirstMortgageFloat","MoneyMarketSavingsAccount","UPlusFinGold","PremiumBanking","HomeOwners","AutoNew84Months","PaymentProtection","SeniorChecking","SuperSaver","FirstMortgageFiveOneARM","AutoUsed36Months","VisaGold","AutoNew36Months"],"legendgroup":"","marker":{"color":[64.7708,57.1711,52.4186,57.9772,64.6733,50.0,68.6745,65.264,75.6002,77.4901,58.1586,54.9147,75.7296,52.7198,57.8638,51.9586,56.5041],"coloraxis":"coloraxis","size":[4076,835,4404,907,518,1206,3760,5176,4605,1636,686,3024,1267,449,1688,778,5499],"sizemode":"area","sizeref":14.5425,"symbol":"circle","line":{"color":"black"}},"mode":"markers","name":"","orientation":"v","showlegend":false,"x":[64.7708,57.1711,52.4186,57.9772,64.6733,50.0,68.6745,65.264,75.6002,77.4901,58.1586,54.9147,75.7296,52.7198,57.8638,51.9586,56.5041],"xaxis":"x3","y":[22.15407,2.15569,27.77021,1.54355,2.50965,9.12106,5.93085,1.95131,13.22476,12.59169,25.07289,19.01455,8.83978,17.37194,10.24882,5.9126,2.49136],"yaxis":"y3","type":"scatter"}],                        {"template":{"layout":{"colorway":["#001F5F","#10A5AC","#F76923","#661D34","#86CAC6","#005154","#86CAC6","#5F67B9","#FFC836","#E63690","#AC1361","#63666F","#A7A9B4","#D0D1DB"],"hovermode":"closest"}},"xaxis":{"anchor":"y","domain":[0.0,0.31999999999999995],"title":{"text":"Performance"}},"yaxis":{"anchor":"x","domain":[0.0,1.0],"title":{"text":"SuccessRate"}},"xaxis2":{"anchor":"y2","domain":[0.33999999999999997,0.6599999999999999],"matches":"x","title":{"text":"Performance"}},"yaxis2":{"anchor":"x2","domain":[0.0,1.0],"matches":"y","showticklabels":false},"xaxis3":{"anchor":"y3","domain":[0.6799999999999999,0.9999999999999999],"matches":"x","title":{"text":"Performance"}},"yaxis3":{"anchor":"x3","domain":[0.0,1.0],"matches":"y","showticklabels":false},"annotations":[{"font":{},"showarrow":false,"text":"Channel=Email<br><sup>21 models: 0 (0.0%) at (50,0)</sup>","x":0.15999999999999998,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{},"showarrow":false,"text":"Channel=SMS<br><sup>23 models: 0 (0.0%) at (50,0)</sup>","x":0.49999999999999994,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{},"showarrow":false,"text":"Channel=Web<br><sup>17 models: 0 (0.0%) at (50,0)</sup>","x":0.8399999999999999,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"}],"coloraxis":{"colorbar":{"title":{"text":"Performance"}},"colorscale":[[0.0,"#440154"],[0.1111111111111111,"#482878"],[0.2222222222222222,"#3e4989"],[0.3333333333333333,"#31688e"],[0.4444444444444444,"#26828e"],[0.5555555555555556,"#1f9e89"],[0.6666666666666666,"#35b779"],[0.7777777777777778,"#6ece58"],[0.8888888888888888,"#b5de2b"],[1.0,"#fde725"]]},"legend":{"tracegroupgap":0,"itemsizing":"constant"},"title":{"text":"Bubble Chart per Channel <br><sup>Query: [(col(\"Issue\")) == (Utf8(Sales))]</sup>"}},                        {"responsive": true}                    ).then(function(){
+
+var gd = document.getElementById('02f9f5c2-8e1c-47eb-a55c-3aa7bacc57bc');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };                });            </script>        </div></div>
+</div>
+<p>However, if you want to <em>combine</em> queries, let’s say just looking at Sales/Web, the best way to do that is like this (also note the extra brackets between expressions):</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dm</span><span class="o">.</span><span class="n">plotPerformanceSuccessRateBubbleChart</span><span class="p">(</span>
+    <span class="n">query</span><span class="o">=</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Issue&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;Sales&quot;</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Channel&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;Web&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>                            <div id="994f1b7b-4b95-40bb-8ed7-a9e9fcda0cea" class="plotly-graph-div" style="height:525px; width:100%;"></div>            <script type="text/javascript">                require(["plotly"], function(Plotly) {                    window.PLOTLYENV=window.PLOTLYENV || {};                                    if (document.getElementById("994f1b7b-4b95-40bb-8ed7-a9e9fcda0cea")) {                    Plotly.newPlot(                        "994f1b7b-4b95-40bb-8ed7-a9e9fcda0cea",                        [{"customdata":[["a87d51fb-cfdc-598d-b84a-dcdd64e1e750","Web","Inbound","Sales","HomeLoans"],["9e9e8c2e-6d19-538c-8e7b-a73070717ecf","Web","Inbound","Sales","CreditCards"],["ea0a225a-7d09-5d90-88f6-d0e8380d67cc","Web","Inbound","Sales","DepositAccounts"],["59f06605-5b39-57dd-945b-637a72fa9085","Web","Inbound","Sales","CreditCards"],["692f453a-f825-5a90-ab40-f83cbb34b058","Web","Inbound","Sales","HomeLoans"],["95ae0f10-297a-5c01-94d8-914bb89df969","Web","Inbound","Sales","DepositAccounts"],["a8cde9d1-c720-537c-8fb8-8c59506bddfe","Web","Inbound","Sales","CreditCards"],["8e40882a-aacf-5f03-9be8-f833c7932da2","Web","Inbound","Sales","Bundles"],["08ca1302-9fc0-57bf-9031-d4179d400493","Web","Inbound","Sales","Bundles"],["68e1d164-81e3-5da0-816c-0bbc3c20ac6c","Web","Inbound","Sales","AutoLoans"],["c29ffcfa-5210-5998-a826-f3a8db57c610","Web","Inbound","Sales","CreditCards"],["a8cd5e12-5d10-5b62-95f6-c5bb6344a83a","Web","Inbound","Sales","DepositAccounts"],["0ad9da35-f171-5ab9-973f-1cc4b89b4e8f","Web","Inbound","Sales","Bundles"],["708f20ef-7ca1-58f4-9dfa-b7efb5342fcf","Web","Inbound","Sales","HomeLoans"],["5cb8d642-390e-5c3e-8868-d34768f9535c","Web","Inbound","Sales","AutoLoans"],["17571d69-f802-5122-9bfe-6f3f4ef9073b","Web","Inbound","Sales","CreditCards"],["7d2046d5-be79-5f5a-a858-dcd9c65fd086","Web","Inbound","Sales","AutoLoans"]],"hovertemplate":"<b>%{hovertext}</b><br><br>Performance=%{marker.color}<br>SuccessRate=%{y}<br>ResponseCount=%{marker.size}<br>ModelID=%{customdata[0]}<br>Channel=%{customdata[1]}<br>Direction=%{customdata[2]}<br>Issue=%{customdata[3]}<br>Group=%{customdata[4]}<extra></extra>","hovertext":["FirstMortgage","MasterCardGold","PremierChecking","PlatinumRewardsCard","FirstMortgageFloat","MoneyMarketSavingsAccount","UPlusFinGold","PremiumBanking","HomeOwners","AutoNew84Months","PaymentProtection","SeniorChecking","SuperSaver","FirstMortgageFiveOneARM","AutoUsed36Months","VisaGold","AutoNew36Months"],"legendgroup":"","marker":{"color":[64.7708,57.1711,52.4186,57.9772,64.6733,50.0,68.6745,65.264,75.6002,77.4901,58.1586,54.9147,75.7296,52.7198,57.8638,51.9586,56.5041],"coloraxis":"coloraxis","size":[4076,835,4404,907,518,1206,3760,5176,4605,1636,686,3024,1267,449,1688,778,5499],"sizemode":"area","sizeref":13.7475,"symbol":"circle","line":{"color":"black"}},"mode":"markers","name":"","orientation":"v","showlegend":false,"x":[64.7708,57.1711,52.4186,57.9772,64.6733,50.0,68.6745,65.264,75.6002,77.4901,58.1586,54.9147,75.7296,52.7198,57.8638,51.9586,56.5041],"xaxis":"x","y":[22.15407,2.15569,27.77021,1.54355,2.50965,9.12106,5.93085,1.95131,13.22476,12.59169,25.07289,19.01455,8.83978,17.37194,10.24882,5.9126,2.49136],"yaxis":"y","type":"scatter"}],                        {"template":{"layout":{"colorway":["#001F5F","#10A5AC","#F76923","#661D34","#86CAC6","#005154","#86CAC6","#5F67B9","#FFC836","#E63690","#AC1361","#63666F","#A7A9B4","#D0D1DB"],"hovermode":"closest"}},"xaxis":{"anchor":"y","domain":[0.0,1.0],"title":{"text":"Performance"}},"yaxis":{"anchor":"x","domain":[0.0,1.0],"title":{"text":"SuccessRate"}},"coloraxis":{"colorbar":{"title":{"text":"Performance"}},"colorscale":[[0.0,"#440154"],[0.1111111111111111,"#482878"],[0.2222222222222222,"#3e4989"],[0.3333333333333333,"#31688e"],[0.4444444444444444,"#26828e"],[0.5555555555555556,"#1f9e89"],[0.6666666666666666,"#35b779"],[0.7777777777777778,"#6ece58"],[0.8888888888888888,"#b5de2b"],[1.0,"#fde725"]]},"legend":{"tracegroupgap":0,"itemsizing":"constant"},"title":{"text":"Bubble Chart over all models <br><sup>17 models: 0 (0.0%) at (50,0)</sup><br><sup>Query: [([(col(\"Issue\")) == (Utf8(Sales))]) & ([(col(\"Channel\")) == (Utf8(Web))])]</sup>"}},                        {"responsive": true}                    ).then(function(){
+
+var gd = document.getElementById('994f1b7b-4b95-40bb-8ed7-a9e9fcda0cea');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };                });            </script>        </div></div>
+</div>
+<p>We can make use of string operations (hover to verify for yourself!):</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dm</span><span class="o">.</span><span class="n">plotPerformanceSuccessRateBubbleChart</span><span class="p">(</span>
+    <span class="n">query</span><span class="o">=</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Name&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">starts_with</span><span class="p">(</span><span class="s2">&quot;Premier&quot;</span><span class="p">))</span>
+    <span class="o">|</span> <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Name&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">ends_with</span><span class="p">(</span><span class="s2">&quot;Gold&quot;</span><span class="p">))</span>
+<span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>                            <div id="366b5122-d768-4604-b523-a71687ca3cfb" class="plotly-graph-div" style="height:525px; width:100%;"></div>            <script type="text/javascript">                require(["plotly"], function(Plotly) {                    window.PLOTLYENV=window.PLOTLYENV || {};                                    if (document.getElementById("366b5122-d768-4604-b523-a71687ca3cfb")) {                    Plotly.newPlot(                        "366b5122-d768-4604-b523-a71687ca3cfb",                        [{"customdata":[["9e9e8c2e-6d19-538c-8e7b-a73070717ecf","Web","Inbound","Sales","CreditCards"],["ea0a225a-7d09-5d90-88f6-d0e8380d67cc","Web","Inbound","Sales","DepositAccounts"],["a8cde9d1-c720-537c-8fb8-8c59506bddfe","Web","Inbound","Sales","CreditCards"],["4efdb97d-288d-518f-a3e0-8314bbd7f2a3","SMS","Outbound","Sales","CreditCards"],["cffb1b5d-219e-5137-9036-4e2136be6a8f","Email","Outbound","Sales","DepositAccounts"],["1be7cd72-741b-5d68-b148-c1af0142fd4a","SMS","Outbound","Sales","CreditCards"],["17571d69-f802-5122-9bfe-6f3f4ef9073b","Web","Inbound","Sales","CreditCards"],["2c8e753a-9e85-5060-ac5b-073e79e755c0","Email","Outbound","Sales","CreditCards"],["081d0acf-bfc3-5c0a-abc4-29106252efb8","SMS","Outbound","Sales","CreditCards"],["a7bb008a-0514-5d41-b014-3e0b1b308382","SMS","Outbound","Sales","DepositAccounts"],["85d9dd89-93e5-55a0-b05f-e68bba9c97d1","Email","Outbound","Sales","CreditCards"]],"hovertemplate":"<b>%{hovertext}</b><br><br>Performance=%{marker.color}<br>SuccessRate=%{y}<br>ResponseCount=%{marker.size}<br>ModelID=%{customdata[0]}<br>Channel=%{customdata[1]}<br>Direction=%{customdata[2]}<br>Issue=%{customdata[3]}<br>Group=%{customdata[4]}<extra></extra>","hovertext":["MasterCardGold","PremierChecking","UPlusFinGold","MasterCardGold","PremierChecking","VisaGold","VisaGold","UPlusFinGold","UPlusFinGold","PremierChecking","MasterCardGold"],"legendgroup":"","marker":{"color":[57.1711,52.4186,68.6745,50.0,52.1103,53.1863,51.9586,53.496,66.541,51.6802,50.0],"coloraxis":"coloraxis","size":[835,4404,3760,1080,3355,822,778,3545,3854,4658,875],"sizemode":"area","sizeref":11.645,"symbol":"circle","line":{"color":"black"}},"mode":"markers","name":"","orientation":"v","showlegend":false,"x":[57.1711,52.4186,68.6745,50.0,52.1103,53.1863,51.9586,53.496,66.541,51.6802,50.0],"xaxis":"x","y":[2.15569,27.77021,5.93085,0.27778,8.70343,3.28467,5.9126,1.07193,4.28127,23.65822,0.57143],"yaxis":"y","type":"scatter"}],                        {"template":{"layout":{"colorway":["#001F5F","#10A5AC","#F76923","#661D34","#86CAC6","#005154","#86CAC6","#5F67B9","#FFC836","#E63690","#AC1361","#63666F","#A7A9B4","#D0D1DB"],"hovermode":"closest"}},"xaxis":{"anchor":"y","domain":[0.0,1.0],"title":{"text":"Performance"}},"yaxis":{"anchor":"x","domain":[0.0,1.0],"title":{"text":"SuccessRate"}},"coloraxis":{"colorbar":{"title":{"text":"Performance"}},"colorscale":[[0.0,"#440154"],[0.1111111111111111,"#482878"],[0.2222222222222222,"#3e4989"],[0.3333333333333333,"#31688e"],[0.4444444444444444,"#26828e"],[0.5555555555555556,"#1f9e89"],[0.6666666666666666,"#35b779"],[0.7777777777777778,"#6ece58"],[0.8888888888888888,"#b5de2b"],[1.0,"#fde725"]]},"legend":{"tracegroupgap":0,"itemsizing":"constant"},"title":{"text":"Bubble Chart over all models <br><sup>11 models: 0 (0.0%) at (50,0)</sup><br><sup>Query: [(col(\"Name\").str.starts_with([Utf8(Premier)])) | (col(\"Name\").str.ends_with([Utf8(Gold)]))]</sup>"}},                        {"responsive": true}                    ).then(function(){
+
+var gd = document.getElementById('366b5122-d768-4604-b523-a71687ca3cfb');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };                });            </script>        </div></div>
+</div>
+<p>Since we have full access to Polar’s expressions, we can use a <a class="reference external" href="https://pola-rs.github.io/polars/py-polars/html/reference/expressions/index.html">very wide range of functions</a>, including windowing, folds, and slices.</p>
+<p>For something more advanced: let’s look at the highest performance model per group.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dm</span><span class="o">.</span><span class="n">plotPerformanceSuccessRateBubbleChart</span><span class="p">(</span>
+    <span class="n">query</span><span class="o">=</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Performance&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">pl</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="s2">&quot;Performance&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">over</span><span class="p">(</span><span class="s2">&quot;Group&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>                            <div id="4b205b21-7835-4a72-bed2-49e427df94f4" class="plotly-graph-div" style="height:525px; width:100%;"></div>            <script type="text/javascript">                require(["plotly"], function(Plotly) {                    window.PLOTLYENV=window.PLOTLYENV || {};                                    if (document.getElementById("4b205b21-7835-4a72-bed2-49e427df94f4")) {                    Plotly.newPlot(                        "4b205b21-7835-4a72-bed2-49e427df94f4",                        [{"customdata":[["26dda9e0-34a2-5e0a-8ee2-fd0c39de729e","SMS","Outbound","Sales","CreditCards"],["68e1d164-81e3-5da0-816c-0bbc3c20ac6c","Web","Inbound","Sales","AutoLoans"],["277a2c48-8888-5b71-911e-443d52c9b50f","SMS","Outbound","Sales","Bundles"],["838ca9ec-74ea-5a54-8c57-f45295116921","SMS","Outbound","Services","Account"]],"hovertemplate":"<b>%{hovertext}</b><br><br>Performance=%{marker.color}<br>SuccessRate=%{y}<br>ResponseCount=%{marker.size}<br>ModelID=%{customdata[0]}<br>Channel=%{customdata[1]}<br>Direction=%{customdata[2]}<br>Issue=%{customdata[3]}<br>Group=%{customdata[4]}<extra></extra>","hovertext":["ChannelAction_Template","AutoNew84Months","HomeOwners","GoPaperless"],"legendgroup":"","marker":{"color":[69.7884,77.4901,77.3211,71.2165],"coloraxis":"coloraxis","size":[828,1636,4976,8174],"sizemode":"area","sizeref":20.435,"symbol":"circle","line":{"color":"black"}},"mode":"markers","name":"","orientation":"v","showlegend":false,"x":[69.7884,77.4901,77.3211,71.2165],"xaxis":"x","y":[6.28019,12.59169,10.7717,11.05946],"yaxis":"y","type":"scatter"}],                        {"template":{"layout":{"colorway":["#001F5F","#10A5AC","#F76923","#661D34","#86CAC6","#005154","#86CAC6","#5F67B9","#FFC836","#E63690","#AC1361","#63666F","#A7A9B4","#D0D1DB"],"hovermode":"closest"}},"xaxis":{"anchor":"y","domain":[0.0,1.0],"title":{"text":"Performance"}},"yaxis":{"anchor":"x","domain":[0.0,1.0],"title":{"text":"SuccessRate"}},"coloraxis":{"colorbar":{"title":{"text":"Performance"}},"colorscale":[[0.0,"#440154"],[0.1111111111111111,"#482878"],[0.2222222222222222,"#3e4989"],[0.3333333333333333,"#31688e"],[0.4444444444444444,"#26828e"],[0.5555555555555556,"#1f9e89"],[0.6666666666666666,"#35b779"],[0.7777777777777778,"#6ece58"],[0.8888888888888888,"#b5de2b"],[1.0,"#fde725"]]},"legend":{"tracegroupgap":0,"itemsizing":"constant"},"title":{"text":"Bubble Chart over all models <br><sup>4 models: 0 (0.0%) at (50,0)</sup><br><sup>Query: [(col(\"Performance\")) == (col(\"Performance\").max())].over([col(\"Group\")])</sup>"}},                        {"responsive": true}                    ).then(function(){
+
+var gd = document.getElementById('4b205b21-7835-4a72-bed2-49e427df94f4');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };                });            </script>        </div></div>
+</div>
+<p>Or we can look at temporal filters, like only looking at the first snapshot:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dm</span><span class="o">.</span><span class="n">plotPerformanceSuccessRateBubbleChart</span><span class="p">(</span><span class="n">query</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s1">&#39;SnapshotTime&#39;</span><span class="p">)</span><span class="o">==</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s1">&#39;SnapshotTime&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>                            <div id="efdd72ce-7ead-42d7-9a50-69ac64099341" class="plotly-graph-div" style="height:525px; width:100%;"></div>            <script type="text/javascript">                require(["plotly"], function(Plotly) {                    window.PLOTLYENV=window.PLOTLYENV || {};                                    if (document.getElementById("efdd72ce-7ead-42d7-9a50-69ac64099341")) {                    Plotly.newPlot(                        "efdd72ce-7ead-42d7-9a50-69ac64099341",                        [{"customdata":[["5ca51e1e-49f0-58d2-8ab7-4a0ccbb326fd","SMS","Outbound","Sales","DepositAccounts"],["b216413c-8c2e-5e1b-860b-07dfc69efa69","SMS","Outbound","Sales","AutoLoans"],["cb67c091-5a81-56f4-9845-71afa9c8076e","Email","Outbound","Sales","HomeLoans"],["ea0a225a-7d09-5d90-88f6-d0e8380d67cc","Web","Inbound","Sales","DepositAccounts"],["a8cde9d1-c720-537c-8fb8-8c59506bddfe","Web","Inbound","Sales","CreditCards"],["cc9b9b1b-c2f9-5e8c-a54a-f13e0559ebd6","Email","Outbound","Sales","CreditCards"],["692f453a-f825-5a90-ab40-f83cbb34b058","Web","Inbound","Sales","HomeLoans"],["26dda9e0-34a2-5e0a-8ee2-fd0c39de729e","SMS","Outbound","Sales","CreditCards"],["f9fc995f-3f02-5e9e-8e22-b72909054f3a","SMS","Outbound","Sales","AutoLoans"],["95ae0f10-297a-5c01-94d8-914bb89df969","Web","Inbound","Sales","DepositAccounts"],["7ffc8c26-8473-5c8e-bcc3-48e5b162da7a","SMS","Outbound","Sales","CreditCards"],["24f11deb-a6fa-59bf-b5f7-c61abffc9482","Email","Outbound","Sales","AutoLoans"],["84107ad6-c998-5377-b0d0-e02be2a8d768","Email","Outbound","Sales","AutoLoans"],["b5338016-1fee-5745-80ee-7bd6d51f2920","Email","Outbound","Sales","CreditCards"],["9e9e8c2e-6d19-538c-8e7b-a73070717ecf","Web","Inbound","Sales","CreditCards"],["c3f445b2-6037-5560-9f16-71a7259d2c2c","SMS","Outbound","Sales","HomeLoans"],["59f06605-5b39-57dd-945b-637a72fa9085","Web","Inbound","Sales","CreditCards"],["b27d8eb5-7ff6-5706-ae90-6d61ce695f78","SMS","Outbound","Sales","Bundles"],["c8a529fb-9d2c-5069-a50f-42ee1ea9341a","Web","Inbound","Services","Account"],["602303a4-5243-523d-8964-473f3ea1200b","SMS","Outbound","Sales","CreditCards"],["4efdb97d-288d-518f-a3e0-8314bbd7f2a3","SMS","Outbound","Sales","CreditCards"],["ab4592bc-df16-5372-86e7-0caea36ac877","Email","Outbound","Sales","CreditCards"],["8e40882a-aacf-5f03-9be8-f833c7932da2","Web","Inbound","Sales","Bundles"],["a8cd5e12-5d10-5b62-95f6-c5bb6344a83a","Web","Inbound","Sales","DepositAccounts"],["68e1d164-81e3-5da0-816c-0bbc3c20ac6c","Web","Inbound","Sales","AutoLoans"],["30cc2c18-5852-581a-abaa-555bf46a3b9c","Email","Outbound","Services","Account"],["a75db3a2-fecc-5cc8-b75f-0a44447f9cca","SMS","Outbound","Sales","AutoLoans"],["98aeb30c-d896-51bd-b421-a650f0522335","SMS","Outbound","Sales","CreditCards"],["34f7d1b9-92f7-57dc-ab62-0de35dda0221","SMS","Outbound","Services","Account"],["d5e2f4b1-249a-58c0-8a2f-2d314eada5fe","SMS","Outbound","Sales","AutoLoans"],["e4ea7a89-c394-5014-ac26-34b8eee475bd","SMS","Outbound","Sales","CreditCards"],["d6e132b6-ad92-5ece-8db5-b42d9d151f73","SMS","Outbound","Sales","Bundles"],["08ca1302-9fc0-57bf-9031-d4179d400493","Web","Inbound","Sales","Bundles"],["f3afaa9b-d0d5-5be9-a3b9-9fdfc4847411","Email","Outbound","Sales","AutoLoans"],["277a2c48-8888-5b71-911e-443d52c9b50f","SMS","Outbound","Sales","Bundles"],["0ad9da35-f171-5ab9-973f-1cc4b89b4e8f","Web","Inbound","Sales","Bundles"],["cffb1b5d-219e-5137-9036-4e2136be6a8f","Email","Outbound","Sales","DepositAccounts"],["708f20ef-7ca1-58f4-9dfa-b7efb5342fcf","Web","Inbound","Sales","HomeLoans"],["bd70a915-697a-5d43-ab2c-53b0557c85a0","Email","Outbound","Sales","AutoLoans"],["69a8e56f-6327-5a66-a9a3-9b0c106641ec","SMS","Outbound","Sales","AutoLoans"],["708be173-0f46-55ee-add6-6fdca447a70a","SMS","Outbound","Sales","HomeLoans"],["79e3f70f-dc6a-5bea-8006-02a6e91ad256","Email","Outbound","Sales","DepositAccounts"],["320c4d01-43a5-510e-8fa8-1fc1bb4216da","Email","Outbound","Sales","Bundles"],["c4cd4c00-87bf-562e-9ab8-20af64a81757","Email","Outbound","Sales","DepositAccounts"],["470485f7-3b20-58f7-a3aa-1f12c2bb99b7","Email","Outbound","Sales","HomeLoans"],["c29ffcfa-5210-5998-a826-f3a8db57c610","Web","Inbound","Sales","CreditCards"],["0469930e-8d83-5c81-ba28-a8ec488f8e4d","SMS","Outbound","Sales","DepositAccounts"],["0b363d7f-68f8-5e9e-a843-40ca8849e05b","Email","Outbound","Sales","HomeLoans"],["dd502275-e98b-51f7-8935-c30c84641871","Web","Inbound","Services","Account"],["2c8e753a-9e85-5060-ac5b-073e79e755c0","Email","Outbound","Sales","CreditCards"],["7d2046d5-be79-5f5a-a858-dcd9c65fd086","Web","Inbound","Sales","AutoLoans"],["f38b5b50-b01b-5fd9-8120-7470320d6664","SMS","Outbound","Sales","DepositAccounts"],["081d0acf-bfc3-5c0a-abc4-29106252efb8","SMS","Outbound","Sales","CreditCards"],["a63f2f06-1e31-5691-a6df-48916a066c23","Email","Outbound","Sales","DepositAccounts"],["c4c1cff8-2879-51b8-8d08-cb961df94889","Email","Outbound","Sales","HomeLoans"],["aaf75ad6-c71a-5fd8-b2eb-782cdbd30337","SMS","Outbound","Services","Account"],["baae77a0-099a-5104-b7a9-b9b1a23290fc","SMS","Outbound","Services","Customer"],["17571d69-f802-5122-9bfe-6f3f4ef9073b","Web","Inbound","Sales","CreditCards"],["7efc168f-9d8c-53ce-934f-c59d0c4bf314","Email","Outbound","Sales","HomeLoans"],["1be7cd72-741b-5d68-b148-c1af0142fd4a","SMS","Outbound","Sales","CreditCards"],["838ca9ec-74ea-5a54-8c57-f45295116921","SMS","Outbound","Services","Account"]],"hovertemplate":"<b>%{hovertext}</b><br><br>Performance=%{marker.color}<br>SuccessRate=%{y}<br>ResponseCount=%{marker.size}<br>ModelID=%{customdata[0]}<br>Channel=%{customdata[1]}<br>Direction=%{customdata[2]}<br>Issue=%{customdata[3]}<br>Group=%{customdata[4]}<extra></extra>","hovertext":["RegularSaving","AutoUsed36Months","FirstMortgageFHA","PremierChecking","UPlusFinGold","IdentityTheftProtection","FirstMortgageFloat","ChannelAction_Template","AutoNew36Months","MoneyMarketSavingsAccount","MasterCardWorld","AutoUsed84Months","AutoUsed60Months","PaymentProtection","MasterCardGold","FirstMortgage","PlatinumRewardsCard","PremiumBanking","IncreaseYourCreditLine","UPlusFinPersonal","MasterCardGold","UPlusFinPersonal","PremiumBanking","SeniorChecking","AutoNew84Months","Services_ChannelAction_Template","AutoUsed48Months","IdentityTheftProtection","Services_ChannelAction_Template","AutoUsed84Months","PaymentProtection","SuperSaver","HomeOwners","AutoNew84Months","HomeOwners","SuperSaver","PremierChecking","FirstMortgageFiveOneARM","AutoNew36Months","AutoNew48Months","FirstMortgageFiveOneARM","MoneyMarketSavingsAccount","PremiumBanking","RegularSaving","FirstMortgageFloat","PaymentProtection","SeniorChecking","FirstMortgageFiveOneARM","Services_ChannelAction_Template","UPlusFinGold","AutoNew36Months","MoneyMarketSavingsAccount","UPlusFinGold","BasicChecking","FirstMortgageThreeOneARM","IncreaseYourCreditLine","MissingContactInformation","VisaGold","FirstMortgageSevenOneARM","VisaGold","GoPaperless"],"legendgroup":"","marker":{"color":[57.2321,55.3309,50.0,53.5957,65.6629,50.0,50.0,50.0,52.3082,50.0,50.0,50.0,50.0,50.0,50.0,51.9991,50.0,50.0,57.1789,50.0,50.0,60.0,58.0757,51.3685,61.0878,50.0,50.0,50.0,58.5198,50.0,50.0,50.0,55.1329,63.5593,56.6096,55.4778,50.0,50.0,50.0,51.1151,50.0,50.0,50.0,50.0,50.0,52.9851,51.6699,50.0,57.022,50.0,56.916,50.0,68.1911,56.7464,50.0,50.0,57.9957,50.0,50.0,50.0,60.4083],"coloraxis":"coloraxis","size":[232,172,51,494,362,87,51,97,616,107,62,121,139,63,90,389,113,489,743,330,108,352,518,299,163,736,142,90,1449,139,70,102,518,126,498,250,383,49,566,569,31,101,527,109,94,91,365,43,712,683,1108,214,392,380,44,741,692,72,32,166,1619],"sizemode":"area","sizeref":4.0475,"symbol":"circle","line":{"color":"black"}},"mode":"markers","name":"","orientation":"v","showlegend":false,"x":[57.2321,55.3309,50.0,53.5957,65.6629,50.0,50.0,50.0,52.3082,50.0,50.0,50.0,50.0,50.0,50.0,51.9991,50.0,50.0,57.1789,50.0,50.0,60.0,58.0757,51.3685,61.0878,50.0,50.0,50.0,58.5198,50.0,50.0,50.0,55.1329,63.5593,56.6096,55.4778,50.0,50.0,50.0,51.1151,50.0,50.0,50.0,50.0,50.0,52.9851,51.6699,50.0,57.022,50.0,56.916,50.0,68.1911,56.7464,50.0,50.0,57.9957,50.0,50.0,50.0,60.4083],"xaxis":"x","y":[6.89655,11.04651,0.0,27.73279,5.24862,0.0,0.0,8.24742,0.64935,16.82243,6.45161,0.82645,2.8777,6.34921,6.66667,19.53728,0.88496,2.45399,3.63392,4.54545,0.0,1.70455,2.3166,21.40468,13.49693,0.81522,5.6338,2.22222,3.93375,3.59712,22.85714,18.62745,11.58301,3.96825,11.64659,8.4,9.13838,20.40816,0.17668,8.08436,9.67742,2.9703,0.56926,0.0,0.0,24.17582,14.79452,2.32558,5.61798,0.73206,3.70036,7.94393,4.33673,8.42105,0.0,2.69906,18.78613,1.38889,3.125,2.40964,11.05621],"yaxis":"y","type":"scatter"}],                        {"template":{"layout":{"colorway":["#001F5F","#10A5AC","#F76923","#661D34","#86CAC6","#005154","#86CAC6","#5F67B9","#FFC836","#E63690","#AC1361","#63666F","#A7A9B4","#D0D1DB"],"hovermode":"closest"}},"xaxis":{"anchor":"y","domain":[0.0,1.0],"title":{"text":"Performance"}},"yaxis":{"anchor":"x","domain":[0.0,1.0],"title":{"text":"SuccessRate"}},"coloraxis":{"colorbar":{"title":{"text":"Performance"}},"colorscale":[[0.0,"#440154"],[0.1111111111111111,"#482878"],[0.2222222222222222,"#3e4989"],[0.3333333333333333,"#31688e"],[0.4444444444444444,"#26828e"],[0.5555555555555556,"#1f9e89"],[0.6666666666666666,"#35b779"],[0.7777777777777778,"#6ece58"],[0.8888888888888888,"#b5de2b"],[1.0,"#fde725"]]},"legend":{"tracegroupgap":0,"itemsizing":"constant"},"title":{"text":"Bubble Chart over all models <br><sup>61 models: 7 (11.48%) at (50,0)</sup><br><sup>Query: [(col(\"SnapshotTime\")) == (col(\"SnapshotTime\").min())]</sup>"}},                        {"responsive": true}                    ).then(function(){
+
+var gd = document.getElementById('efdd72ce-7ead-42d7-9a50-69ac64099341');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };                });            </script>        </div></div>
+</div>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="thompsonsampling.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Thompson Sampling</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="../Articles.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Articles</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2022, Pegasystems
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/pegasystems/pega-datascientist-tools" aria-label="GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            </a>
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">pdstools version 3: Polars</a><ul>
+<li><a class="reference internal" href="#Lazy-execution-graphs">Lazy execution graphs</a></li>
+<li><a class="reference internal" href="#Lazy-vs-Eager">Lazy vs Eager</a><ul>
+<li><a class="reference internal" href="#When-to-use-which?">When to use which?</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#File-Types">File Types</a></li>
+<li><a class="reference internal" href="#Further-Polars-examples">Further Polars examples</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/scripts/furo.js"></script>
+    <script src="../_static/clipboard.min.js"></script>
+    <script src="../_static/copybutton.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    </body>
+</html>
