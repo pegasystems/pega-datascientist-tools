@@ -1,0 +1,980 @@
+<!doctype html>
+<html class="no-js" lang="en">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="prev" title="Thompson Sampling" href="thompsonsampling.html" />
+
+    <link rel="shortcut icon" href="../_static/pegasystems-inc-vector-logo.svg"/><!-- Generated with Sphinx 6.1.3 and Furo 2023.03.23 -->
+        <title>ADM Explained - pdstools</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=fad236701ea90a88636c2a8c73b44ae642ed2a53" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+
+</head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">pdstools</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../_static/pegasystems-inc-vector-logo.svg" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">pdstools</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Articles</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="graph_gallery.html">Graph Gallery</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../tutorial_notebooks.html">Tutorial notebooks</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="hello_cdhtools.html">Hello pdstools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Example_Data_Anonymization.html">Example data anonymization</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../examples.html">Example notebooks</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="Example_ADM_Analysis.html">Example ADM analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AGBModelVisualisation.html">Analyzing ADM Decision Trees</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vf_analysis.html">Value Finder analysis</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../Articles.html">Articles</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="pdstoolsv3.html">pdstools version 3: Polars</a></li>
+<li class="toctree-l2"><a class="reference internal" href="thompsonsampling.html">Thompson Sampling</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">ADM Explained</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools/wiki#getting-started-with-the-python-tools">Installation</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools/wiki#using-the-python-tools">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools/releases">Changelog</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools">GitHub Repository</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://pegasystems.github.io/pega-datascientist-tools/R/index.html">R Documentation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../autoapi/index.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../autoapi/pdstools/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/adm/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/adm/ADMDatamart/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm.ADMDatamart</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/adm/ADMTrees/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm.ADMTrees</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/app/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.app</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/app/datamart_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.app.datamart_utils</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/app/pds_app/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.app.pds_app</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/app/streamlit_app/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.app.streamlit_app</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/ih/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.ih</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/ih/IHAnalysis/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.ih.IHAnalysis</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/ih/legacy_IH/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.ih.legacy_IH</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/plots/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plots</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/plots/plot_base/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plots.plot_base</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/plots/plots_plotly/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plots.plots_plotly</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/cdh_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/datasets/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.datasets</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/errors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.errors</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/hds_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.hds_utils</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/pega_template/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.pega_template</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/types/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.types</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/valuefinder/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.valuefinder</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/valuefinder/ValueFinder/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.valuefinder.ValueFinder</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <section id="ADM-Explained">
+<h1>ADM Explained<a class="headerlink" href="#ADM-Explained" title="Permalink to this heading">#</a></h1>
+<p><strong>Pega</strong></p>
+<p><strong>2023-03-15</strong></p>
+<p>This notebook shows exactly how all the values in an ADM model report are calculated. It also shows how the propensity is calculated for a particular customer.</p>
+<p>We use one of the shipped datamart exports for the example. This is a model very similar to one used in some of the ADM PowerPoint/Excel deep dive examples. To load your own data, see the vignette on ADM reporting for examples.</p>
+<p>For the example we use one particular model: AutoNew36Months over SMS. You can use your own data and select a different model.</p>
+<p>To explain the ADM model report, we use one of the IH predictors as an example. Swap for any other predictor when using different data.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">polars</span> <span class="k">as</span> <span class="nn">pl</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">plotly.subplots</span> <span class="kn">import</span> <span class="n">make_subplots</span>
+<span class="kn">import</span> <span class="nn">plotly.graph_objects</span> <span class="k">as</span> <span class="nn">go</span>
+<span class="kn">import</span> <span class="nn">plotly.express</span> <span class="k">as</span> <span class="nn">px</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+
+<span class="kn">from</span> <span class="nn">pdstools</span> <span class="kn">import</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">cdh_utils</span>
+
+<span class="n">pl</span><span class="o">.</span><span class="n">Config</span><span class="o">.</span><span class="n">set_fmt_str_lengths</span><span class="p">(</span><span class="mi">100</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dm</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">CDHSample</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">dm</span><span class="o">.</span><span class="n">combinedData</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+    <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Name&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;AutoNew36Months&quot;</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Channel&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;SMS&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+
+<span class="n">modelpredictors</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">dm</span><span class="o">.</span><span class="n">combinedData</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;ModelID&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">unique</span><span class="p">()),</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;ModelID&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span>
+    <span class="p">)</span>
+    <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;EntryType&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;Inactive&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">with_columns</span><span class="p">(</span><span class="n">Action</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">concat_str</span><span class="p">([</span><span class="s2">&quot;Issue&quot;</span><span class="p">,</span> <span class="s2">&quot;Group&quot;</span><span class="p">],</span> <span class="n">separator</span><span class="o">=</span><span class="s2">&quot;/&quot;</span><span class="p">))</span>
+    <span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+<span class="p">)</span>
+
+<span class="n">predictorbinning</span> <span class="o">=</span> <span class="n">modelpredictors</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+    <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;PredictorName&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount&quot;</span>
+<span class="p">)</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="s2">&quot;BinIndex&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<section id="Model-Overview">
+<h2>Model Overview<a class="headerlink" href="#Model-Overview" title="Permalink to this heading">#</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">modelpredictors</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+    <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Action&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">unique</span><span class="p">(),</span>
+    <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Channel&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">unique</span><span class="p">(),</span>
+    <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Name&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">unique</span><span class="p">(),</span>
+    <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;PredictorName&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span><span class="o">.</span><span class="n">list</span><span class="p">()</span>
+    <span class="o">.</span><span class="n">arr</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Active Predictors&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Performance&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Model Performance (AUC)&quot;</span><span class="p">),</span>
+<span class="p">)</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">set_axis</span><span class="p">([</span><span class="s2">&quot;Values&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Values</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Action</th>
+      <td>Sales/AutoLoans</td>
+    </tr>
+    <tr>
+      <th>Channel</th>
+      <td>SMS</td>
+    </tr>
+    <tr>
+      <th>Name</th>
+      <td>AutoNew36Months</td>
+    </tr>
+    <tr>
+      <th>Active Predictors</th>
+      <td>Classifier, Customer.Age, Customer.AnnualIncome, Customer.BusinessSegment, Customer.CLV_VALUE, Customer.CreditScore, Customer.Gender, Customer.MaritalStatus, Customer.NetWealth, Customer.OrganizationLabel, Customer.Prefix, Customer.WinScore, IH.Email.Outbound.Accepted.pxLastGroupID, IH.Email.Outbound.Accepted.pyHistoricalOutcomeCount, IH.Email.Outbound.Rejected.pxLastGroupID, IH.Email.Outbound.Rejected.pyHistoricalOutcomeCount, IH.SMS.Outbound.Accepted.pxLastGroupID, IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount, IH.SMS.Outbound.Churned.pxLastGroupID, IH.SMS.Outbound.Loyal.pyHistoricalOutcomeCount, IH.SMS.Outbound.Rejected.pxLastGroupID, IH.Web.Inbound.Accepted.pyHistoricalOutcomeCount, IH.Web.Inbound.Churned.pxLastGroupID, IH.Web.Inbound.Churned.pxLastOutcomeTime.DaysSince, IH.Web.Inbound.Rejected.pxLastGroupID</td>
+    </tr>
+    <tr>
+      <th>Model Performance (AUC)</th>
+      <td>60.5845</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+</section>
+<section id="Predictor-binning-for-IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount">
+<h2>Predictor binning for IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount<a class="headerlink" href="#Predictor-binning-for-IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount" title="Permalink to this heading">#</a></h2>
+<p>The ADM model report will show predictor binning similar to this, with all displayed data coming from fields in the ADM data mart. In subsequent sections we’ll show how all the data is derived from the number of positives and negatives in each of the bins.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">predictorbinning</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;PredictorName&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+    <span class="n">pl</span><span class="o">.</span><span class="n">first</span><span class="p">(</span><span class="s2">&quot;ResponseCount&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;# Responses&quot;</span><span class="p">),</span>
+    <span class="n">pl</span><span class="o">.</span><span class="n">n_unique</span><span class="p">(</span><span class="s2">&quot;BinIndex&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;# Bins&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">first</span><span class="p">(</span><span class="s2">&quot;PerformanceBin&quot;</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Predictor Performance(AUC)&quot;</span><span class="p">),</span>
+<span class="p">)</span><span class="o">.</span><span class="n">rename</span><span class="p">({</span><span class="s2">&quot;PredictorName&quot;</span><span class="p">:</span> <span class="s2">&quot;Predictor Name&quot;</span><span class="p">})</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">include_header</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span>
+    <span class="p">{</span><span class="s2">&quot;column&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;column_0&quot;</span><span class="p">:</span> <span class="s2">&quot;Value&quot;</span><span class="p">}</span>
+<span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div><style>
+.dataframe > thead > tr > th,
+.dataframe > tbody > tr > td {
+  text-align: right;
+}
+</style>
+<small>shape: (4, 2)</small><table border="1" class="dataframe"><thead><tr><th></th><th>Value</th></tr><tr><td>str</td><td>str</td></tr></thead><tbody><tr><td>&quot;Predictor Name&quot;</td><td>&quot;IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount&quot;</td></tr><tr><td>&quot;# Responses&quot;</td><td>&quot;5602&quot;</td></tr><tr><td>&quot;# Bins&quot;</td><td>&quot;5&quot;</td></tr><tr><td>&quot;Predictor Performance(AUC)&quot;</td><td>&quot;65.4153&quot;</td></tr></tbody></table></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">BinPositives</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;BinPositives&quot;</span><span class="p">)</span>
+<span class="n">BinNegatives</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;BinNegatives&quot;</span><span class="p">)</span>
+<span class="n">sumPositives</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="s2">&quot;BinPositives&quot;</span><span class="p">)</span>
+<span class="n">sumNegatives</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="s2">&quot;BinNegatives&quot;</span><span class="p">)</span>
+
+<span class="n">predictorbinning</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+    <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;BinSymbol&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Range/Symbol&quot;</span><span class="p">),</span>
+    <span class="p">((</span><span class="n">BinPositives</span> <span class="o">+</span> <span class="n">BinNegatives</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">sumPositives</span> <span class="o">+</span> <span class="n">sumNegatives</span><span class="p">))</span>
+    <span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Responses (%)&quot;</span><span class="p">),</span>
+    <span class="n">BinPositives</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Positives&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">BinPositives</span> <span class="o">/</span> <span class="n">sumPositives</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Positives (%)&quot;</span><span class="p">),</span>
+    <span class="n">BinNegatives</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Negatives&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">BinNegatives</span> <span class="o">/</span> <span class="n">sumNegatives</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Negatives (%)&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">BinPositives</span> <span class="o">/</span> <span class="p">(</span><span class="n">BinPositives</span> <span class="o">+</span> <span class="n">BinNegatives</span><span class="p">))</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Propensity (%)&quot;</span><span class="p">),</span>
+    <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;ZRatio&quot;</span><span class="p">),</span>
+    <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Lift&quot;</span><span class="p">),</span>
+<span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div><style>
+.dataframe > thead > tr > th,
+.dataframe > tbody > tr > td {
+  text-align: right;
+}
+</style>
+<small>shape: (5, 9)</small><table border="1" class="dataframe"><thead><tr><th>Range/Symbol</th><th>Responses (%)</th><th>Positives</th><th>Positives (%)</th><th>Negatives</th><th>Negatives (%)</th><th>Propensity (%)</th><th>ZRatio</th><th>Lift</th></tr><tr><td>str</td><td>f64</td><td>i64</td><td>f64</td><td>i64</td><td>f64</td><td>f64</td><td>f64</td><td>f64</td></tr></thead><tbody><tr><td>&quot;MISSING&quot;</td><td>0.0</td><td>0</td><td>0.0</td><td>5</td><td>0.0</td><td>0.0</td><td>-2.237073</td><td>0.0</td></tr><tr><td>&quot;&lt;7.08&quot;</td><td>0.4</td><td>7</td><td>0.19</td><td>2208</td><td>0.4</td><td>0.0032</td><td>-3.051114</td><td>0.491773</td></tr><tr><td>&quot;[7.08, 12.04&gt;&quot;</td><td>0.34</td><td>11</td><td>0.31</td><td>1919</td><td>0.34</td><td>0.0057</td><td>-0.509054</td><td>0.886903</td></tr><tr><td>&quot;[12.04, 18.04&gt;&quot;</td><td>0.2</td><td>12</td><td>0.33</td><td>1082</td><td>0.19</td><td>0.011</td><td>1.764386</td><td>1.706886</td></tr><tr><td>&quot;&gt;=18.04&quot;</td><td>0.06</td><td>6</td><td>0.17</td><td>352</td><td>0.06</td><td>0.0168</td><td>1.662827</td><td>2.608007</td></tr></tbody></table></div></div>
+</div>
+</section>
+<section id="Bin-Statistics">
+<h2>Bin Statistics<a class="headerlink" href="#Bin-Statistics" title="Permalink to this heading">#</a></h2>
+<section id="Positive-and-Negative-ratios">
+<h3>Positive and Negative ratios<a class="headerlink" href="#Positive-and-Negative-ratios" title="Permalink to this heading">#</a></h3>
+<p>Internally, ADM only keeps track of the total counts of positive and negative responses in each bin. Everything else is derived from those numbers. The percentages and totals are trivially derived, and the propensity is just the number of positives divided by the total. The numbers calculated here match the numbers from the datamart table exactly.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">binningDerived</span> <span class="o">=</span> <span class="n">predictorbinning</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+    <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;BinSymbol&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Range/Symbol&quot;</span><span class="p">),</span>
+    <span class="n">BinPositives</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Positives&quot;</span><span class="p">),</span>
+    <span class="n">BinNegatives</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Negatives&quot;</span><span class="p">),</span>
+    <span class="p">(((</span><span class="n">BinPositives</span> <span class="o">+</span> <span class="n">BinNegatives</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">sumPositives</span> <span class="o">+</span> <span class="n">sumNegatives</span><span class="p">))</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Responses %&quot;</span><span class="p">),</span>
+    <span class="p">((</span><span class="n">BinPositives</span> <span class="o">/</span> <span class="n">sumPositives</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Positives %&quot;</span><span class="p">),</span>
+    <span class="p">((</span><span class="n">BinNegatives</span><span class="o">/</span><span class="n">sumNegatives</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Negatives %&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">BinPositives</span> <span class="o">/</span> <span class="p">(</span><span class="n">BinPositives</span> <span class="o">+</span> <span class="n">BinNegatives</span><span class="p">))</span>
+    <span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Propensity&quot;</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">binningDerived</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div><style>
+.dataframe > thead > tr > th,
+.dataframe > tbody > tr > td {
+  text-align: right;
+}
+</style>
+<small>shape: (5, 7)</small><table border="1" class="dataframe"><thead><tr><th>Range/Symbol</th><th>Positives</th><th>Negatives</th><th>Responses %</th><th>Positives %</th><th>Negatives %</th><th>Propensity</th></tr><tr><td>str</td><td>i64</td><td>i64</td><td>f64</td><td>f64</td><td>f64</td><td>f64</td></tr></thead><tbody><tr><td>&quot;MISSING&quot;</td><td>0</td><td>5</td><td>0.09</td><td>0.0</td><td>0.09</td><td>0.0</td></tr><tr><td>&quot;&lt;7.08&quot;</td><td>7</td><td>2208</td><td>39.54</td><td>19.44</td><td>39.67</td><td>0.0032</td></tr><tr><td>&quot;[7.08, 12.04&gt;&quot;</td><td>11</td><td>1919</td><td>34.45</td><td>30.56</td><td>34.48</td><td>0.0057</td></tr><tr><td>&quot;[12.04, 18.04&gt;&quot;</td><td>12</td><td>1082</td><td>19.53</td><td>33.33</td><td>19.44</td><td>0.011</td></tr><tr><td>&quot;&gt;=18.04&quot;</td><td>6</td><td>352</td><td>6.39</td><td>16.67</td><td>6.32</td><td>0.0168</td></tr></tbody></table></div></div>
+</div>
+</section>
+<section id="Lift">
+<h3>Lift<a class="headerlink" href="#Lift" title="Permalink to this heading">#</a></h3>
+<p>Lift is the ratio of the propensity in a particular bin over the average propensity. So a value of 1 is the average, larger than 1 means higher propensity, smaller means lower propensity:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">Positives</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s1">&#39;Positives&#39;</span><span class="p">)</span>
+<span class="n">Negatives</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s1">&#39;Negatives&#39;</span><span class="p">)</span>
+<span class="n">sumPositives</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="s2">&quot;Positives&quot;</span><span class="p">)</span>
+<span class="n">sumNegatives</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="s2">&quot;Negatives&quot;</span><span class="p">)</span>
+<span class="n">binningDerived</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+    <span class="s2">&quot;Range/Symbol&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Positives&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Negatives&quot;</span><span class="p">,</span>
+    <span class="p">(</span>
+        <span class="p">(</span><span class="n">Positives</span> <span class="o">/</span> <span class="p">(</span><span class="n">Positives</span> <span class="o">+</span> <span class="n">Negatives</span><span class="p">))</span>
+        <span class="o">/</span> <span class="p">(</span><span class="n">sumPositives</span> <span class="o">/</span> <span class="p">(</span><span class="n">Positives</span> <span class="o">+</span> <span class="n">Negatives</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Lift&quot;</span><span class="p">),</span>
+<span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div><style>
+.dataframe > thead > tr > th,
+.dataframe > tbody > tr > td {
+  text-align: right;
+}
+</style>
+<small>shape: (5, 4)</small><table border="1" class="dataframe"><thead><tr><th>Range/Symbol</th><th>Positives</th><th>Negatives</th><th>Lift</th></tr><tr><td>str</td><td>i64</td><td>i64</td><td>f64</td></tr></thead><tbody><tr><td>&quot;MISSING&quot;</td><td>0</td><td>5</td><td>0.0</td></tr><tr><td>&quot;&lt;7.08&quot;</td><td>7</td><td>2208</td><td>0.491773</td></tr><tr><td>&quot;[7.08, 12.04&gt;&quot;</td><td>11</td><td>1919</td><td>0.886903</td></tr><tr><td>&quot;[12.04, 18.04&gt;&quot;</td><td>12</td><td>1082</td><td>1.706886</td></tr><tr><td>&quot;&gt;=18.04&quot;</td><td>6</td><td>352</td><td>2.608007</td></tr></tbody></table></div></div>
+</div>
+</section>
+<section id="Z-Ratio">
+<h3>Z-Ratio<a class="headerlink" href="#Z-Ratio" title="Permalink to this heading">#</a></h3>
+<p>The Z-Ratio is also a measure of the how the propensity in a bin differs from the average, but takes into account the size of the bin and thus is statistically more relevant. It represents the number of standard deviations from the average, so centers around 0. The wider the spread, the better the predictor is.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{posFraction-negFraction}{\sqrt(\frac{posFraction*(1-posFraction)}{\sum positives}+\frac{negFraction*(1-negFraction)}{\sum negatives})}\]</div>
+</div>
+<p>See the calculation here, which is also included in <code class="docutils literal notranslate"><span class="pre">`cdh_utils</span></code>’ <code class="docutils literal notranslate"><span class="pre">zRatio()</span></code> &lt;<a class="reference external" href="https://pegasystems.github.io/pega-datascientist-tools/Python/autoapi/pdstools/utils/cdh_utils/index.html#pdstools.utils.cdh_utils.zRatio">https://pegasystems.github.io/pega-datascientist-tools/Python/autoapi/pdstools/utils/cdh_utils/index.html#pdstools.utils.cdh_utils.zRatio</a>&gt;`__ function.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">zRatio</span><span class="p">(</span>
+    <span class="n">posCol</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">Expr</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;BinPositives&quot;</span><span class="p">),</span> <span class="n">negCol</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">Expr</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;BinNegatives&quot;</span><span class="p">)</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pl</span><span class="o">.</span><span class="n">Expr</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">getFracs</span><span class="p">(</span><span class="n">posCol</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;BinPositives&quot;</span><span class="p">),</span> <span class="n">negCol</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;BinNegatives&quot;</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="n">posCol</span> <span class="o">/</span> <span class="n">posCol</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span> <span class="n">negCol</span> <span class="o">/</span> <span class="n">negCol</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">zRatioimpl</span><span class="p">(</span>
+        <span class="n">posFractionCol</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;posFraction&quot;</span><span class="p">),</span>
+        <span class="n">negFractionCol</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;negFraction&quot;</span><span class="p">),</span>
+        <span class="n">PositivesCol</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="s2">&quot;BinPositives&quot;</span><span class="p">),</span>
+        <span class="n">NegativesCol</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="s2">&quot;BinNegatives&quot;</span><span class="p">),</span>
+    <span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="p">(</span><span class="n">posFractionCol</span> <span class="o">-</span> <span class="n">negFractionCol</span><span class="p">)</span>
+            <span class="o">/</span> <span class="p">(</span>
+                <span class="p">(</span><span class="n">posFractionCol</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">posFractionCol</span><span class="p">)</span> <span class="o">/</span> <span class="n">PositivesCol</span><span class="p">)</span>
+                <span class="o">+</span> <span class="p">(</span><span class="n">negFractionCol</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">negFractionCol</span><span class="p">)</span> <span class="o">/</span> <span class="n">NegativesCol</span><span class="p">)</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;ZRatio&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">zRatioimpl</span><span class="p">(</span><span class="o">*</span><span class="n">getFracs</span><span class="p">(</span><span class="n">posCol</span><span class="p">,</span> <span class="n">negCol</span><span class="p">),</span> <span class="n">posCol</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span> <span class="n">negCol</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+
+
+<span class="n">binningDerived</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+    <span class="s2">&quot;Range/Symbol&quot;</span><span class="p">,</span> <span class="s2">&quot;Positives&quot;</span><span class="p">,</span> <span class="s2">&quot;Negatives&quot;</span><span class="p">,</span> <span class="s2">&quot;Positives %&quot;</span><span class="p">,</span> <span class="s2">&quot;Negatives %&quot;</span>
+<span class="p">)</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span><span class="n">zRatio</span><span class="p">(</span><span class="n">Positives</span><span class="p">,</span> <span class="n">Negatives</span><span class="p">))</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div><style>
+.dataframe > thead > tr > th,
+.dataframe > tbody > tr > td {
+  text-align: right;
+}
+</style>
+<small>shape: (5, 6)</small><table border="1" class="dataframe"><thead><tr><th>Range/Symbol</th><th>Positives</th><th>Negatives</th><th>Positives %</th><th>Negatives %</th><th>ZRatio</th></tr><tr><td>str</td><td>i64</td><td>i64</td><td>f64</td><td>f64</td><td>f64</td></tr></thead><tbody><tr><td>&quot;MISSING&quot;</td><td>0</td><td>5</td><td>0.0</td><td>0.09</td><td>-2.237073</td></tr><tr><td>&quot;&lt;7.08&quot;</td><td>7</td><td>2208</td><td>19.44</td><td>39.67</td><td>-3.051114</td></tr><tr><td>&quot;[7.08, 12.04&gt;&quot;</td><td>11</td><td>1919</td><td>30.56</td><td>34.48</td><td>-0.509054</td></tr><tr><td>&quot;[12.04, 18.04&gt;&quot;</td><td>12</td><td>1082</td><td>33.33</td><td>19.44</td><td>1.764386</td></tr><tr><td>&quot;&gt;=18.04&quot;</td><td>6</td><td>352</td><td>16.67</td><td>6.32</td><td>1.662827</td></tr></tbody></table></div></div>
+</div>
+</section>
+</section>
+<section id="Predictor-AUC">
+<h2>Predictor AUC<a class="headerlink" href="#Predictor-AUC" title="Permalink to this heading">#</a></h2>
+<p>The predictor AUC is the univariate performance of this predictor against the outcome. This too can be derived from the positives and negatives and there is a convenient function in pdstools to calculate it directly from the positives and negatives.</p>
+<p>Again, this function is implemented in cdh_utils: <code class="docutils literal notranslate"><span class="pre">`cdh_utils.auc_from_bincounts()</span></code> &lt;<a class="reference external" href="https://pegasystems.github.io/pega-datascientist-tools/Python/autoapi/pdstools/utils/cdh_utils/index.html#pdstools.utils.cdh_utils.auc_from_bincounts">https://pegasystems.github.io/pega-datascientist-tools/Python/autoapi/pdstools/utils/cdh_utils/index.html#pdstools.utils.cdh_utils.auc_from_bincounts</a>&gt;`__</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pos</span><span class="o">=</span><span class="n">binningDerived</span><span class="o">.</span><span class="n">get_column</span><span class="p">(</span><span class="s2">&quot;Positives&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+<span class="n">neg</span><span class="o">=</span><span class="n">binningDerived</span><span class="o">.</span><span class="n">get_column</span><span class="p">(</span><span class="s2">&quot;Negatives&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+
+<span class="n">o</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">((</span><span class="n">pos</span> <span class="o">/</span> <span class="p">(</span><span class="n">pos</span> <span class="o">+</span> <span class="n">neg</span><span class="p">)))</span>
+
+<span class="n">TNR</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">neg</span><span class="p">[</span><span class="n">o</span><span class="p">])</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">neg</span><span class="p">)</span>
+<span class="n">FPR</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">neg</span><span class="p">[</span><span class="n">o</span><span class="p">])</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">neg</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">TPR</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">pos</span><span class="p">[</span><span class="n">o</span><span class="p">])</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pos</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">Area</span> <span class="o">=</span> <span class="p">(</span><span class="n">FPR</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">FPR</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="mi">0</span><span class="p">))</span> <span class="o">*</span> <span class="p">(</span><span class="n">TPR</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TPR</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="mi">0</span><span class="p">))</span> <span class="o">/</span> <span class="mi">2</span>
+<span class="n">auc</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="mf">0.5</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Area</span><span class="p">))</span>
+
+<span class="n">fig</span> <span class="o">=</span> <span class="n">px</span><span class="o">.</span><span class="n">line</span><span class="p">(</span>
+    <span class="n">x</span><span class="o">=</span><span class="n">TPR</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">TNR</span><span class="p">,</span>
+    <span class="n">labels</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s1">&#39;Specificity&#39;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s1">&#39;Sensitivity&#39;</span><span class="p">),</span>
+    <span class="n">title</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;AUC = </span><span class="si">{</span><span class="n">auc</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="n">width</span><span class="o">=</span><span class="mi">700</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">700</span><span class="p">,</span>
+    <span class="n">range_x</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
+    <span class="n">template</span><span class="o">=</span><span class="s1">&#39;none&#39;</span>
+<span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">add_shape</span><span class="p">(</span>
+    <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;line&#39;</span><span class="p">,</span> <span class="n">line</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">dash</span><span class="o">=</span><span class="s1">&#39;dash&#39;</span><span class="p">),</span>
+    <span class="n">x0</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">x1</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">y0</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">y1</span><span class="o">=</span><span class="mi">1</span>
+<span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<script type="text/javascript">
+window.PlotlyConfig = {MathJaxConfig: 'local'};
+if (window.MathJax && window.MathJax.Hub && window.MathJax.Hub.Config) {window.MathJax.Hub.Config({SVG: {font: "STIX-Web"}});}
+if (typeof require !== 'undefined') {
+require.undef("plotly");
+requirejs.config({
+    paths: {
+        'plotly': ['https://cdn.plot.ly/plotly-2.18.2.min']
+    }
+});
+require(['plotly'], function(Plotly) {
+    window._Plotly = Plotly;
+});
+}
+</script></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>                            <div id="1a1563dc-f77c-458f-a30f-a3bd3b894c83" class="plotly-graph-div" style="height:700px; width:700px;"></div>            <script type="text/javascript">                require(["plotly"], function(Plotly) {                    window.PLOTLYENV=window.PLOTLYENV || {};                                    if (document.getElementById("1a1563dc-f77c-458f-a30f-a3bd3b894c83")) {                    Plotly.newPlot(                        "1a1563dc-f77c-458f-a30f-a3bd3b894c83",                        [{"hovertemplate":"Specificity=%{x}<br>Sensitivity=%{y}<extra></extra>","legendgroup":"","line":{"color":"#1F77B4","dash":"solid"},"marker":{"symbol":"circle"},"mode":"lines","name":"","orientation":"v","showlegend":false,"x":[1.0,0.8333333333333334,0.5,0.19444444444444445,0.0],"xaxis":"x","y":[0.0008983111749910168,0.3975925260510241,0.7423643550125764,0.9367588932806324,1.0],"yaxis":"y","type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"anchor":"y","domain":[0.0,1.0],"title":{"text":"Specificity"},"range":[1,0]},"yaxis":{"anchor":"x","domain":[0.0,1.0],"title":{"text":"Sensitivity"}},"legend":{"tracegroupgap":0},"title":{"text":"AUC = 0.654"},"height":700,"width":700,"shapes":[{"line":{"dash":"dash"},"type":"line","x0":1,"x1":0,"y0":0,"y1":1}]},                        {"responsive": true}                    ).then(function(){
+
+var gd = document.getElementById('1a1563dc-f77c-458f-a30f-a3bd3b894c83');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };                });            </script>        </div></div>
+</div>
+</section>
+<section id="Predictor-score-and-log-odds">
+<h2>Predictor score and log odds<a class="headerlink" href="#Predictor-score-and-log-odds" title="Permalink to this heading">#</a></h2>
+<p>The score is calculated from the log odds which are simply the ratio of the probabilities of positives and negatives. For the actual calculation in ADM this is modified slightly to avoid division-by-zero problems and is written differently to avoid numeric instability as shown below.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">N</span> <span class="o">=</span> <span class="n">binningDerived</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">binningDerived</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+    <span class="n">LogOdds</span><span class="o">=</span> <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Positives %&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Negatives %&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">log</span><span class="p">(),</span>
+    <span class="n">ModifiedLogOdds</span><span class="o">=</span><span class="p">(</span>
+        <span class="p">((</span><span class="n">Positives</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">N</span><span class="p">)</span><span class="o">.</span><span class="n">log</span><span class="p">()</span> <span class="o">-</span> <span class="p">(</span><span class="n">Positives</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">log</span><span class="p">())</span>
+        <span class="o">-</span> <span class="p">((</span><span class="n">Negatives</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">N</span><span class="p">)</span><span class="o">.</span><span class="n">log</span><span class="p">()</span> <span class="o">-</span> <span class="p">(</span><span class="n">Negatives</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">log</span><span class="p">())</span>
+    <span class="p">)</span>
+<span class="p">)</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;Responses %&quot;</span><span class="p">,</span> <span class="s2">&quot;Propensity&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div><style>
+.dataframe > thead > tr > th,
+.dataframe > tbody > tr > td {
+  text-align: right;
+}
+</style>
+<small>shape: (5, 7)</small><table border="1" class="dataframe"><thead><tr><th>Range/Symbol</th><th>Positives</th><th>Negatives</th><th>Positives %</th><th>Negatives %</th><th>LogOdds</th><th>ModifiedLogOdds</th></tr><tr><td>str</td><td>i64</td><td>i64</td><td>f64</td><td>f64</td><td>f64</td><td>f64</td></tr></thead><tbody><tr><td>&quot;MISSING&quot;</td><td>0</td><td>5</td><td>0.0</td><td>0.09</td><td>-inf</td><td>1.653661</td></tr><tr><td>&quot;&lt;7.08&quot;</td><td>7</td><td>2208</td><td>19.44</td><td>39.67</td><td>-0.713262</td><td>-0.814094</td></tr><tr><td>&quot;[7.08, 12.04&gt;&quot;</td><td>11</td><td>1919</td><td>30.56</td><td>34.48</td><td>-0.120687</td><td>-0.231992</td></tr><tr><td>&quot;[12.04, 18.04&gt;&quot;</td><td>12</td><td>1082</td><td>33.33</td><td>19.44</td><td>0.539125</td><td>0.426442</td></tr><tr><td>&quot;&gt;=18.04&quot;</td><td>6</td><td>352</td><td>16.67</td><td>6.32</td><td>0.969891</td><td>0.872108</td></tr></tbody></table></div></div>
+</div>
+</section>
+<section id="Propensity-mapping">
+<h2>Propensity mapping<a class="headerlink" href="#Propensity-mapping" title="Permalink to this heading">#</a></h2>
+<section id="Log-odds-contribution-for-all-the-predictors">
+<h3>Log odds contribution for all the predictors<a class="headerlink" href="#Log-odds-contribution-for-all-the-predictors" title="Permalink to this heading">#</a></h3>
+<p>To get to a propensity, the log odds of the relevant bins of the active predictors are added up and divided by the number of active predictors +1, then used to index in the classifier.</p>
+<p>Below an example. From all the active predictors of the model for we pick a value (in the middle for numerics, first symbol for symbolics) and show the (modified) log odds. These log odds values are averaged (added up and divided by number of active predictors + 1), and this is the “score” that is mapped to a propensity value by the classifier (which is constructed using the PAV(A) algorithm).</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">middleBin</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;BinIndex&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="s2">&quot;BinIndex&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">floor</span><span class="p">()</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">UInt32</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">RowWiseLogOdds</span><span class="p">(</span><span class="n">Bin</span><span class="p">,</span> <span class="n">Positives</span><span class="p">,</span> <span class="n">Negatives</span><span class="p">):</span>
+    <span class="n">Bin</span><span class="p">,</span> <span class="n">N</span> <span class="o">=</span> <span class="n">Bin</span><span class="o">.</span><span class="n">arr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">Positives</span><span class="o">.</span><span class="n">arr</span><span class="o">.</span><span class="n">lengths</span><span class="p">()</span>
+    <span class="n">Pos</span><span class="p">,</span> <span class="n">Neg</span> <span class="o">=</span> <span class="n">Positives</span><span class="o">.</span><span class="n">arr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">Bin</span><span class="p">),</span> <span class="n">Negatives</span><span class="o">.</span><span class="n">arr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">Bin</span><span class="p">)</span>
+    <span class="n">PosSum</span><span class="p">,</span> <span class="n">NegSum</span> <span class="o">=</span> <span class="n">Positives</span><span class="o">.</span><span class="n">arr</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span> <span class="n">Negatives</span><span class="o">.</span><span class="n">arr</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="p">(((</span><span class="n">Pos</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">N</span><span class="p">))</span><span class="o">.</span><span class="n">log</span><span class="p">()</span> <span class="o">-</span> <span class="p">(</span><span class="n">PosSum</span> <span class="o">+</span> <span class="n">N</span><span class="p">)</span><span class="o">.</span><span class="n">log</span><span class="p">()))</span>
+        <span class="o">-</span> <span class="p">(((</span><span class="n">Neg</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">N</span><span class="p">))</span><span class="o">.</span><span class="n">log</span><span class="p">())</span> <span class="o">-</span> <span class="p">(</span><span class="n">NegSum</span> <span class="o">+</span> <span class="n">N</span><span class="p">)</span><span class="o">.</span><span class="n">log</span><span class="p">())</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Modified Log odds&quot;</span><span class="p">)</span>
+
+
+<span class="n">df</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">modelpredictors</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;PredictorName&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;Classifier&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;PredictorName&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+        <span class="n">Value</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">when</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Type&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;numeric&quot;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">then</span><span class="p">(</span>
+            <span class="p">((</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;BinLowerBound&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;BinUpperBound&quot;</span><span class="p">))</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">middleBin</span><span class="p">())</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;BinSymbol&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">arr</span><span class="o">.</span><span class="n">first</span><span class="p">()</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">middleBin</span><span class="p">())),</span>
+        <span class="n">Bin</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;BinIndex&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">middleBin</span><span class="p">()),</span>
+        <span class="n">Positives</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;BinPositives&quot;</span><span class="p">),</span>
+        <span class="n">Negatives</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;BinNegatives&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+        <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">([</span><span class="s2">&quot;Positives&quot;</span><span class="p">,</span> <span class="s2">&quot;Negatives&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">arr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Bin&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">arr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Bin&quot;</span><span class="p">,</span> <span class="s2">&quot;Value&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">arr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+        <span class="n">LogOdds</span><span class="o">=</span><span class="n">RowWiseLogOdds</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Bin&quot;</span><span class="p">),</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Positives&quot;</span><span class="p">),</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Negatives&quot;</span><span class="p">)),</span>
+    <span class="p">)</span>
+    <span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="s2">&quot;PredictorName&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">df</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span>
+    <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span>
+                <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span>
+                <span class="p">[</span><span class="s2">&quot;Average log odds&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">+</span> <span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;LogOdds&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)],</span>
+                <span class="p">)),</span>
+    <span class="n">schema</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div><style>
+.dataframe > thead > tr > th,
+.dataframe > tbody > tr > td {
+  text-align: right;
+}
+</style>
+<small>shape: (25, 6)</small><table border="1" class="dataframe"><thead><tr><th>PredictorName</th><th>Value</th><th>Bin</th><th>Positives</th><th>Negatives</th><th>LogOdds</th></tr><tr><td>str</td><td>str</td><td>i64</td><td>i64</td><td>i64</td><td>f64</td></tr></thead><tbody><tr><td>&quot;Customer.Age&quot;</td><td>&quot;37.16&quot;</td><td>2</td><td>7</td><td>3042</td><td>-1.10308</td></tr><tr><td>&quot;Customer.AnnualIncome&quot;</td><td>&quot;2827.7097520000007&quot;</td><td>1</td><td>7</td><td>3401</td><td>-1.178083</td></tr><tr><td>&quot;Customer.BusinessSegment&quot;</td><td>&quot;middleSegmentPlus&quot;</td><td>1</td><td>10</td><td>3369</td><td>-0.825686</td></tr><tr><td>&quot;Customer.CLV_VALUE&quot;</td><td>&quot;352.52&quot;</td><td>1</td><td>7</td><td>1379</td><td>-0.275516</td></tr><tr><td>&quot;Customer.CreditScore&quot;</td><td>&quot;432.2&quot;</td><td>1</td><td>14</td><td>426</td><td>1.568775</td></tr><tr><td>&quot;Customer.Gender&quot;</td><td>&quot;M&quot;</td><td>1</td><td>7</td><td>1735</td><td>-0.505115</td></tr><tr><td>&quot;Customer.MaritalStatus&quot;</td><td>&quot;Single&quot;</td><td>1</td><td>6</td><td>1454</td><td>-0.475067</td></tr><tr><td>&quot;Customer.NetWealth&quot;</td><td>&quot;5458.64&quot;</td><td>1</td><td>7</td><td>2679</td><td>-0.939484</td></tr><tr><td>&quot;Customer.OrganizationLabel&quot;</td><td>&quot;NON-MISSING&quot;</td><td>1</td><td>31</td><td>3646</td><td>0.23567</td></tr><tr><td>&quot;Customer.Prefix&quot;</td><td>&quot;Miss&quot;</td><td>2</td><td>8</td><td>1174</td><td>-0.021901</td></tr><tr><td>&quot;Customer.WinScore&quot;</td><td>&quot;66.6&quot;</td><td>2</td><td>9</td><td>462</td><td>1.024789</td></tr><tr><td>&quot;IH.Email.Outbound.Accepted.pxLastGroupID&quot;</td><td>&quot;CreditCards&quot;</td><td>2</td><td>10</td><td>2887</td><td>-0.733897</td></tr><tr><td>&quot;IH.Email.Outbound.Accepted.pyHistoricalOutcomeCount&quot;</td><td>&quot;1.01&quot;</td><td>2</td><td>10</td><td>1244</td><td>0.13726</td></tr><tr><td>&quot;IH.Email.Outbound.Rejected.pxLastGroupID&quot;</td><td>&quot;DepositAccounts&quot;</td><td>2</td><td>7</td><td>975</td><td>0.034578</td></tr><tr><td>&quot;IH.Email.Outbound.Rejected.pyHistoricalOutcomeCount&quot;</td><td>&quot;68.12&quot;</td><td>2</td><td>6</td><td>1251</td><td>-0.395551</td></tr><tr><td>&quot;IH.SMS.Outbound.Accepted.pxLastGroupID&quot;</td><td>&quot;Customer&quot;</td><td>2</td><td>9</td><td>2090</td><td>-0.514054</td></tr><tr><td>&quot;IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount&quot;</td><td>&quot;1.04&quot;</td><td>2</td><td>7</td><td>2208</td><td>-0.814094</td></tr><tr><td>&quot;IH.SMS.Outbound.Churned.pxLastGroupID&quot;</td><td>&quot;MISSING&quot;</td><td>1</td><td>28</td><td>4935</td><td>-0.14403</td></tr><tr><td>&quot;IH.SMS.Outbound.Loyal.pyHistoricalOutcomeCount&quot;</td><td>null</td><td>1</td><td>24</td><td>4563</td><td>-0.216176</td></tr><tr><td>&quot;IH.SMS.Outbound.Rejected.pxLastGroupID&quot;</td><td>&quot;Account&quot;</td><td>2</td><td>10</td><td>1484</td><td>-0.039116</td></tr><tr><td>&quot;IH.Web.Inbound.Accepted.pyHistoricalOutcomeCount&quot;</td><td>null</td><td>1</td><td>0</td><td>4</td><td>2.39646</td></tr><tr><td>&quot;IH.Web.Inbound.Churned.pxLastGroupID&quot;</td><td>&quot;MISSING&quot;</td><td>1</td><td>23</td><td>2891</td><td>0.14128</td></tr><tr><td>&quot;IH.Web.Inbound.Churned.pxLastOutcomeTime.DaysSince&quot;</td><td>null</td><td>1</td><td>23</td><td>2891</td><td>0.174136</td></tr><tr><td>&quot;IH.Web.Inbound.Rejected.pxLastGroupID&quot;</td><td>&quot;Account&quot;</td><td>1</td><td>18</td><td>3425</td><td>-0.268824</td></tr><tr><td>&quot;Average log odds&quot;</td><td>null</td><td>null</td><td>null</td><td>null</td><td>-0.11403</td></tr></tbody></table></div></div>
+</div>
+</section>
+</section>
+<section id="Classifier">
+<h2>Classifier<a class="headerlink" href="#Classifier" title="Permalink to this heading">#</a></h2>
+<p>The success rate is defined as <span class="math notranslate nohighlight">\(\frac{positives}{positives+negatives}\)</span> per bin.</p>
+<p>The adjusted propensity that is returned is a small modification (Laplace smoothing) to this and calculated as <span class="math notranslate nohighlight">\(\frac{0.5+positives}{1+positives+negatives}\)</span> so empty models return a propensity of 0.5.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">classifier</span> <span class="o">=</span> <span class="n">modelpredictors</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;EntryType&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;Classifier&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+    <span class="n">Propensity</span><span class="o">=</span><span class="p">(</span><span class="n">Positives</span> <span class="o">/</span> <span class="p">(</span><span class="n">Positives</span> <span class="o">/</span> <span class="n">Negatives</span><span class="p">)),</span>
+    <span class="n">AdjustedPropensity</span><span class="o">=</span><span class="p">((</span><span class="mf">0.5</span> <span class="o">+</span> <span class="n">Positives</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">Positives</span> <span class="o">+</span> <span class="n">Negatives</span><span class="p">)),</span>
+<span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;BinIndex&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Index&quot;</span><span class="p">),</span>
+        <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;BinSymbol&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Bin&quot;</span><span class="p">),</span>
+        <span class="n">Positives</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Positives&quot;</span><span class="p">),</span>
+        <span class="n">Negatives</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Negatives&quot;</span><span class="p">),</span>
+        <span class="p">((</span><span class="n">pl</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="s2">&quot;BinResponseCount&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="n">pl</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="s2">&quot;BinResponseCount&quot;</span><span class="p">))</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span>
+            <span class="s2">&quot;Cum. Total (%)&quot;</span>
+        <span class="p">),</span>
+        <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;BinPropensity&quot;</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Propensity (%)&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;AdjustedPropensity&quot;</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Adjusted Propensity (%)&quot;</span><span class="p">),</span>
+        <span class="p">((</span><span class="n">pl</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="s2">&quot;BinPositives&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="n">pl</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="s2">&quot;BinPositives&quot;</span><span class="p">))</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span>
+            <span class="s2">&quot;Cum Positives (%)&quot;</span>
+        <span class="p">),</span>
+        <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;ZRatio&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Lift&quot;</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Lift(%)&quot;</span><span class="p">),</span>
+        <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;BinResponseCount&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Responses&quot;</span><span class="p">),</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+<span class="n">classifier</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;Responses&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div><style>
+.dataframe > thead > tr > th,
+.dataframe > tbody > tr > td {
+  text-align: right;
+}
+</style>
+<small>shape: (8, 10)</small><table border="1" class="dataframe"><thead><tr><th>Index</th><th>Bin</th><th>Positives</th><th>Negatives</th><th>Cum. Total (%)</th><th>Propensity (%)</th><th>Adjusted Propensity (%)</th><th>Cum Positives (%)</th><th>ZRatio</th><th>Lift(%)</th></tr><tr><td>i64</td><td>str</td><td>i64</td><td>i64</td><td>f64</td><td>f64</td><td>f64</td><td>f64</td><td>f64</td><td>f64</td></tr></thead><tbody><tr><td>1</td><td>&quot;&lt;-1.95&quot;</td><td>36</td><td>5566</td><td>0.624777</td><td>0.0</td><td>0.651437</td><td>0.0</td><td>-5.934769</td><td>0.0</td></tr><tr><td>2</td><td>&quot;[-1.95, -0.63&gt;&quot;</td><td>36</td><td>5566</td><td>35.362371</td><td>0.359712</td><td>0.651437</td><td>19.444444</td><td>-2.322612</td><td>55.9752</td></tr><tr><td>3</td><td>&quot;[-0.63, -0.5&gt;&quot;</td><td>36</td><td>5566</td><td>59.246698</td><td>0.523169</td><td>0.651437</td><td>38.888889</td><td>-0.674919</td><td>81.4109</td></tr><tr><td>4</td><td>&quot;[-0.5, -0.36&gt;&quot;</td><td>36</td><td>5566</td><td>79.471617</td><td>0.70609</td><td>0.651437</td><td>61.111111</td><td>0.289246</td><td>109.8755</td></tr><tr><td>5</td><td>&quot;[-0.36, -0.29&gt;&quot;</td><td>36</td><td>5566</td><td>87.504463</td><td>0.888889</td><td>0.651437</td><td>72.222222</td><td>0.590078</td><td>138.321</td></tr><tr><td>6</td><td>&quot;[-0.29, -0.22&gt;&quot;</td><td>36</td><td>5566</td><td>93.25241</td><td>0.931677</td><td>0.651437</td><td>80.555556</td><td>0.563599</td><td>144.9793</td></tr><tr><td>7</td><td>&quot;[-0.22, 0.99&gt;&quot;</td><td>36</td><td>5566</td><td>95.858622</td><td>1.369863</td><td>0.651437</td><td>86.111111</td><td>0.776338</td><td>213.1659</td></tr><tr><td>8</td><td>&quot;&gt;=0.99&quot;</td><td>36</td><td>5566</td><td>100.0</td><td>2.155172</td><td>0.651437</td><td>100.0</td><td>1.700289</td><td>335.3688</td></tr></tbody></table></div></div>
+</div>
+</section>
+<section id="Final-Propensity">
+<h2>Final Propensity<a class="headerlink" href="#Final-Propensity" title="Permalink to this heading">#</a></h2>
+<p>Below the classifier mapping. On the x-axis the binned scores (log odds values), on the y-axis the Propensity. Note the returned propensities are following a slightly adjusted formula, see the table above. The bin that contains the calculated score is highlighted.</p>
+<p>The score -0.11403 falls in bin 7 of the classifier, so for this set of inputs, the model returns a propensity of 1.70%.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pdstools.plots.plots_plotly</span> <span class="kn">import</span> <span class="n">ADMVisualisations</span>
+
+<span class="n">fig</span> <span class="o">=</span> <span class="n">ADMVisualisations</span><span class="o">.</span><span class="n">distribution_graph</span><span class="p">(</span>
+    <span class="n">modelpredictors</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;EntryType&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;Classifier&quot;</span><span class="p">),</span>
+    <span class="s2">&quot;Propensity distribution&quot;</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">add_annotation</span><span class="p">(</span>
+    <span class="n">x</span><span class="o">=</span><span class="s2">&quot;[-0.22, 0.99&gt;&quot;</span><span class="p">,</span>
+    <span class="n">y</span><span class="o">=</span><span class="mi">1400</span><span class="p">,</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">&quot;Returned propensity: 1.7%&quot;</span><span class="p">,</span>
+    <span class="n">bgcolor</span><span class="o">=</span><span class="s2">&quot;#FFFFFF&quot;</span><span class="p">,</span>
+    <span class="n">bordercolor</span><span class="o">=</span><span class="s2">&quot;#000000&quot;</span><span class="p">,</span>
+    <span class="n">showarrow</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;marker_color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;grey&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">6</span> <span class="o">+</span> <span class="p">[</span><span class="s2">&quot;#1f77b4&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="s2">&quot;grey&quot;</span><span class="p">]</span>
+<span class="n">fig</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>                            <div id="2f41a9b0-848d-422d-a5ac-008a73c59834" class="plotly-graph-div" style="height:525px; width:100%;"></div>            <script type="text/javascript">                require(["plotly"], function(Plotly) {                    window.PLOTLYENV=window.PLOTLYENV || {};                                    if (document.getElementById("2f41a9b0-848d-422d-a5ac-008a73c59834")) {                    Plotly.newPlot(                        "2f41a9b0-848d-422d-a5ac-008a73c59834",                        [{"name":"Responses","x":["<-1.95","[-1.95, -0.63>","[-0.63, -0.5>","[-0.5, -0.36>","[-0.36, -0.29>","[-0.29, -0.22>","[-0.22, 0.99>",">=0.99"],"y":[35,1946,1338,1133,450,322,146,232],"type":"bar","marker":{"color":["grey","grey","grey","grey","grey","grey","#1f77b4","grey"]}},{"mode":"lines+markers","name":"Propensity","x":["<-1.95","[-1.95, -0.63>","[-0.63, -0.5>","[-0.5, -0.36>","[-0.36, -0.29>","[-0.29, -0.22>","[-0.22, 0.99>",">=0.99"],"y":[0.0,0.0035971223021582736,0.00523168908819133,0.00706090026478376,0.008888888888888889,0.009316770186335404,0.0136986301369863,0.021551724137931036],"yaxis":"y2","type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"anchor":"y","domain":[0.0,0.94],"title":{"text":"Range"}},"yaxis":{"anchor":"x","domain":[0.0,1.0],"title":{"text":"Responses"},"showgrid":false},"yaxis2":{"anchor":"x","overlaying":"y","side":"right","title":{"text":"Propensity"},"tickformat":",.0%","zeroline":false,"showgrid":false},"title":{"text":"Propensity distribution"},"annotations":[{"bgcolor":"#FFFFFF","bordercolor":"#000000","showarrow":false,"text":"Returned propensity: 1.7%","x":"[-0.22, 0.99>","y":1400}]},                        {"responsive": true}                    ).then(function(){
+
+var gd = document.getElementById('2f41a9b0-848d-422d-a5ac-008a73c59834');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };                });            </script>        </div></div>
+</div>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          <a class="prev-page" href="thompsonsampling.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Thompson Sampling</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2022, Pegasystems
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/pegasystems/pega-datascientist-tools" aria-label="GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            </a>
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADM Explained</a><ul>
+<li><a class="reference internal" href="#Model-Overview">Model Overview</a></li>
+<li><a class="reference internal" href="#Predictor-binning-for-IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount">Predictor binning for IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount</a></li>
+<li><a class="reference internal" href="#Bin-Statistics">Bin Statistics</a><ul>
+<li><a class="reference internal" href="#Positive-and-Negative-ratios">Positive and Negative ratios</a></li>
+<li><a class="reference internal" href="#Lift">Lift</a></li>
+<li><a class="reference internal" href="#Z-Ratio">Z-Ratio</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#Predictor-AUC">Predictor AUC</a></li>
+<li><a class="reference internal" href="#Predictor-score-and-log-odds">Predictor score and log odds</a></li>
+<li><a class="reference internal" href="#Propensity-mapping">Propensity mapping</a><ul>
+<li><a class="reference internal" href="#Log-odds-contribution-for-all-the-predictors">Log odds contribution for all the predictors</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#Classifier">Classifier</a></li>
+<li><a class="reference internal" href="#Final-Propensity">Final Propensity</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/scripts/furo.js"></script>
+    <script src="../_static/clipboard.min.js"></script>
+    <script src="../_static/copybutton.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    </body>
+</html>

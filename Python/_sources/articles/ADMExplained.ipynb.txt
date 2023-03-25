@@ -1,0 +1,563 @@
+{
+    "cells": [
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "# ADM Explained\n",
+                "\n",
+                "__Pega__\n",
+                "\n",
+                "__2023-03-15__\n",
+                "\n",
+                "This notebook shows exactly how all the values in an ADM model report are calculated. It also shows how the propensity is calculated for a particular customer.\n",
+                "\n",
+                "We use one of the shipped datamart exports for the example. This is a model very similar to one used in some of the ADM PowerPoint/Excel deep dive examples. To load your own data, see the vignette on ADM reporting for examples.\n",
+                "\n",
+                "For the example we use one particular model: AutoNew36Months over SMS. You can use your own data and select a different model.\n",
+                "\n",
+                "To explain the ADM model report, we use one of the IH predictors as an example. Swap for any other predictor when using different data.\n",
+                "\n"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {
+                "nbsphinx": "hidden"
+            },
+            "outputs": [],
+            "source": [
+                "# These lines are only for rendering in the docs, and are hidden through Jupyter tags\n",
+                "# Do not run if you're running the notebook seperately\n",
+                "\n",
+                "import plotly.io as pio\n",
+                "\n",
+                "pio.renderers.default = \"notebook_connected\"\n",
+                "\n",
+                "import sys\n",
+                "\n",
+                "sys.path.append(\"../../../\")\n",
+                "import pandas as pd\n",
+                "pd.set_option('display.max_colwidth', 0)\n"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "import polars as pl\n",
+                "import numpy as np\n",
+                "from plotly.subplots import make_subplots\n",
+                "import plotly.graph_objects as go\n",
+                "import plotly.express as px\n",
+                "from typing import List\n",
+                "\n",
+                "from pdstools import datasets, cdh_utils\n",
+                "\n",
+                "pl.Config.set_fmt_str_lengths(100);"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "dm = datasets.CDHSample(subset=False)\n",
+                "\n",
+                "model = dm.combinedData.filter(\n",
+                "    (pl.col(\"Name\") == \"AutoNew36Months\") & (pl.col(\"Channel\") == \"SMS\")\n",
+                ")\n",
+                "\n",
+                "modelpredictors = (\n",
+                "    dm.combinedData.join(\n",
+                "        model.select(pl.col(\"ModelID\").unique()), on=\"ModelID\", how=\"inner\"\n",
+                "    )\n",
+                "    .filter(pl.col(\"EntryType\") != \"Inactive\")\n",
+                "    .with_columns(Action=pl.concat_str([\"Issue\", \"Group\"], separator=\"/\"))\n",
+                "    .collect()\n",
+                ")\n",
+                "\n",
+                "predictorbinning = modelpredictors.filter(\n",
+                "    pl.col(\"PredictorName\") == \"IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount\"\n",
+                ").sort(\"BinIndex\")"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## Model Overview"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "modelpredictors.select(\n",
+                "    pl.col(\"Action\").unique(),\n",
+                "    pl.col(\"Channel\").unique(),\n",
+                "    pl.col(\"Name\").unique(),\n",
+                "    pl.col(\"PredictorName\").unique().sort().list()\n",
+                "    .arr.join(\", \").alias(\"Active Predictors\"),\n",
+                "    (pl.col(\"Performance\").unique() * 100).alias(\"Model Performance (AUC)\"),\n",
+                ").to_pandas().T.set_axis([\"Values\"], axis=1)\n"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## Predictor binning for IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount\n"
+            ]
+        },
+        {
+            "attachments": {},
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "The ADM model report will show predictor binning similar to this, with all displayed data coming from fields in the ADM data mart. In subsequent sections we’ll show how all the data is derived from the number of positives and negatives in each of the bins.\n",
+                "\n"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "predictorbinning.groupby(\"PredictorName\").agg(\n",
+                "    pl.first(\"ResponseCount\").alias(\"# Responses\"),\n",
+                "    pl.n_unique(\"BinIndex\").alias(\"# Bins\"),\n",
+                "    (pl.first(\"PerformanceBin\") * 100).alias(\"Predictor Performance(AUC)\"),\n",
+                ").rename({\"PredictorName\": \"Predictor Name\"}).transpose(include_header=True).rename(\n",
+                "    {\"column\": \"\", \"column_0\": \"Value\"}\n",
+                ")\n"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "BinPositives = pl.col(\"BinPositives\")\n",
+                "BinNegatives = pl.col(\"BinNegatives\")\n",
+                "sumPositives = pl.sum(\"BinPositives\")\n",
+                "sumNegatives = pl.sum(\"BinNegatives\")\n",
+                "\n",
+                "predictorbinning.select(\n",
+                "    pl.col(\"BinSymbol\").alias(\"Range/Symbol\"),\n",
+                "    ((BinPositives + BinNegatives) / (sumPositives + sumNegatives))\n",
+                "    .round(2)\n",
+                "    .alias(\"Responses (%)\"),\n",
+                "    BinPositives.alias(\"Positives\"),\n",
+                "    (BinPositives / sumPositives).round(2).alias(\"Positives (%)\"),\n",
+                "    BinNegatives.alias(\"Negatives\"),\n",
+                "    (BinNegatives / sumNegatives).round(2).alias(\"Negatives (%)\"),\n",
+                "    (BinPositives / (BinPositives + BinNegatives)).round(4).alias(\"Propensity (%)\"),\n",
+                "    pl.col(\"ZRatio\"),\n",
+                "    pl.col(\"Lift\"),\n",
+                ")\n"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## Bin Statistics"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "### Positive and Negative ratios"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "Internally, ADM only keeps track of the total counts of positive and negative responses in each bin. Everything else is derived from those numbers. The percentages and totals are trivially derived, and the propensity is just the number of positives divided by the total. The numbers calculated here match the numbers from the datamart table exactly."
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "binningDerived = predictorbinning.select(\n",
+                "    pl.col(\"BinSymbol\").alias(\"Range/Symbol\"),\n",
+                "    BinPositives.alias(\"Positives\"),\n",
+                "    BinNegatives.alias(\"Negatives\"),\n",
+                "    (((BinPositives + BinNegatives) / (sumPositives + sumNegatives)) * 100)\n",
+                "    .round(2)\n",
+                "    .alias(\"Responses %\"),\n",
+                "    ((BinPositives / sumPositives) * 100).round(2).alias(\"Positives %\"),\n",
+                "    ((BinNegatives/sumNegatives) * 100).round(2).alias(\"Negatives %\"),\n",
+                "    (BinPositives / (BinPositives + BinNegatives))\n",
+                "    .round(4)\n",
+                "    .alias(\"Propensity\"),\n",
+                ")\n",
+                "binningDerived"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "### Lift"
+            ]
+        },
+        {
+            "attachments": {},
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "Lift is the ratio of the propensity in a particular bin over the average propensity. So a value of 1 is the average, larger than 1 means higher propensity, smaller means lower propensity:"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "Positives = pl.col('Positives')\n",
+                "Negatives = pl.col('Negatives')\n",
+                "sumPositives = pl.sum(\"Positives\")\n",
+                "sumNegatives = pl.sum(\"Negatives\")\n",
+                "binningDerived.select(\n",
+                "    \"Range/Symbol\",\n",
+                "    \"Positives\",\n",
+                "    \"Negatives\",\n",
+                "    (\n",
+                "        (Positives / (Positives + Negatives))\n",
+                "        / (sumPositives / (Positives + Negatives).sum())\n",
+                "    ).alias(\"Lift\"),\n",
+                ")\n"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "### Z-Ratio"
+            ]
+        },
+        {
+            "attachments": {},
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "The Z-Ratio is also a measure of the how the propensity in a bin differs from the average, but takes into account the size of the bin and thus is statistically more relevant. It represents the number of standard deviations from the average, so centers around 0. The wider the spread, the better the predictor is.\n",
+                "$$\\frac{posFraction-negFraction}{\\sqrt(\\frac{posFraction*(1-posFraction)}{\\sum positives}+\\frac{negFraction*(1-negFraction)}{\\sum negatives})}$$ \n",
+                "\n",
+                "See the calculation here, which is also included in [`cdh_utils`' `zRatio()`](https://pegasystems.github.io/pega-datascientist-tools/Python/autoapi/pdstools/utils/cdh_utils/index.html#pdstools.utils.cdh_utils.zRatio) function."
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "def zRatio(\n",
+                "    posCol: pl.Expr = pl.col(\"BinPositives\"), negCol: pl.Expr = pl.col(\"BinNegatives\")\n",
+                ") -> pl.Expr:\n",
+                "    def getFracs(posCol=pl.col(\"BinPositives\"), negCol=pl.col(\"BinNegatives\")):\n",
+                "        return posCol / posCol.sum(), negCol / negCol.sum()\n",
+                "\n",
+                "    def zRatioimpl(\n",
+                "        posFractionCol=pl.col(\"posFraction\"),\n",
+                "        negFractionCol=pl.col(\"negFraction\"),\n",
+                "        PositivesCol=pl.sum(\"BinPositives\"),\n",
+                "        NegativesCol=pl.sum(\"BinNegatives\"),\n",
+                "    ):\n",
+                "        return (\n",
+                "            (posFractionCol - negFractionCol)\n",
+                "            / (\n",
+                "                (posFractionCol * (1 - posFractionCol) / PositivesCol)\n",
+                "                + (negFractionCol * (1 - negFractionCol) / NegativesCol)\n",
+                "            ).sqrt()\n",
+                "        ).alias(\"ZRatio\")\n",
+                "\n",
+                "    return zRatioimpl(*getFracs(posCol, negCol), posCol.sum(), negCol.sum())\n",
+                "\n",
+                "\n",
+                "binningDerived.select(\n",
+                "    \"Range/Symbol\", \"Positives\", \"Negatives\", \"Positives %\", \"Negatives %\"\n",
+                ").with_columns(zRatio(Positives, Negatives))\n"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## Predictor AUC\n"
+            ]
+        },
+        {
+            "attachments": {},
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "The predictor AUC is the univariate performance of this predictor against the outcome. This too can be derived from the positives and negatives and\n",
+                "there is  a convenient function in pdstools to calculate it directly from the positives and negatives.\n",
+                "\n",
+                "Again, this function is implemented in cdh_utils: [`cdh_utils.auc_from_bincounts()`](https://pegasystems.github.io/pega-datascientist-tools/Python/autoapi/pdstools/utils/cdh_utils/index.html#pdstools.utils.cdh_utils.auc_from_bincounts)"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "pos=binningDerived.get_column(\"Positives\").to_numpy()\n",
+                "neg=binningDerived.get_column(\"Negatives\").to_numpy()\n",
+                "\n",
+                "o = np.argsort((pos / (pos + neg)))\n",
+                "\n",
+                "TNR = np.cumsum(neg[o]) / np.sum(neg)\n",
+                "FPR = np.flip(np.cumsum(neg[o]) / np.sum(neg), axis=0)\n",
+                "TPR = np.flip(np.cumsum(pos[o]) / np.sum(pos), axis=0)\n",
+                "Area = (FPR - np.append(FPR[1:], 0)) * (TPR + np.append(TPR[1:], 0)) / 2\n",
+                "auc = 0.5 + np.abs(0.5-np.sum(Area))\n",
+                "\n",
+                "fig = px.line(\n",
+                "    x=TPR, y=TNR,\n",
+                "    labels=dict(x='Specificity', y='Sensitivity'),\n",
+                "    title = f\"AUC = {auc.round(3)}\",\n",
+                "    width=700, height=700,\n",
+                "    range_x=[1,0],\n",
+                "    template='none'\n",
+                ")\n",
+                "fig.add_shape(\n",
+                "    type='line', line=dict(dash='dash'),\n",
+                "    x0=1, x1=0, y0=0, y1=1\n",
+                ")\n",
+                "fig.show()"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## Predictor score and log odds"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "The score is calculated from the log odds which are simply the ratio of the probabilities of positives and negatives. For the actual calculation in ADM this is modified slightly to avoid division-by-zero problems and is written differently to avoid numeric instability as shown below."
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "N = binningDerived.shape[0]\n",
+                "binningDerived.with_columns(\n",
+                "    LogOdds= (pl.col(\"Positives %\") / pl.col(\"Negatives %\")).log(),\n",
+                "    ModifiedLogOdds=(\n",
+                "        ((Positives + 1 / N).log() - (Positives + 1).sum().log())\n",
+                "        - ((Negatives + 1 / N).log() - (Negatives + 1).sum().log())\n",
+                "    )\n",
+                ").drop(\"Responses %\", \"Propensity\")"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## Propensity mapping"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "### Log odds contribution for all the predictors"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "To get to a propensity, the log odds of the relevant bins of the active predictors are added up and divided by the number of active predictors +1, then used to index in the classifier.\n",
+                "\n",
+                "Below an example. From all the active predictors of the model for we pick a value (in the middle for numerics, first symbol for symbolics) and show the (modified) log odds. These log odds values are averaged (added up and divided by number of active predictors + 1), and this is the “score” that is mapped to a propensity value by the classifier (which is constructed using the PAV(A) algorithm)."
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "def middleBin():\n",
+                "    return pl.col(\"BinIndex\") == (pl.max(\"BinIndex\") / 2).floor().cast(pl.UInt32)\n",
+                "\n",
+                "\n",
+                "def RowWiseLogOdds(Bin, Positives, Negatives):\n",
+                "    Bin, N = Bin.arr.get(0) - 1, Positives.arr.lengths()\n",
+                "    Pos, Neg = Positives.arr.get(Bin), Negatives.arr.get(Bin)\n",
+                "    PosSum, NegSum = Positives.arr.sum(), Negatives.arr.sum()\n",
+                "    return (\n",
+                "        (((Pos + (1 / N)).log() - (PosSum + N).log()))\n",
+                "        - (((Neg + (1 / N)).log()) - (NegSum + N).log())\n",
+                "    ).alias(\"Modified Log odds\")\n",
+                "\n",
+                "\n",
+                "df = (\n",
+                "    modelpredictors.filter(pl.col(\"PredictorName\") != \"Classifier\")\n",
+                "    .groupby(\"PredictorName\")\n",
+                "    .agg(\n",
+                "        Value=pl.when(pl.col(\"Type\").first() == \"numeric\")\n",
+                "        .then(\n",
+                "            ((pl.col(\"BinLowerBound\") + pl.col(\"BinUpperBound\")) / 2).where(middleBin())\n",
+                "        )\n",
+                "        .otherwise(pl.col(\"BinSymbol\").str.split(\",\").arr.first().where(middleBin())),\n",
+                "        Bin=pl.col(\"BinIndex\").where(middleBin()),\n",
+                "        Positives=pl.col(\"BinPositives\"),\n",
+                "        Negatives=pl.col(\"BinNegatives\"),\n",
+                "    )\n",
+                "    .with_columns(\n",
+                "        pl.col([\"Positives\", \"Negatives\"]).arr.get(pl.col(\"Bin\").arr.get(0) - 1),\n",
+                "        pl.col(\"Bin\", \"Value\").arr.get(0),\n",
+                "        LogOdds=RowWiseLogOdds(pl.col(\"Bin\"), pl.col(\"Positives\"), pl.col(\"Negatives\")),\n",
+                "    )\n",
+                "    .sort(\"PredictorName\")\n",
+                ")\n",
+                "df.vstack(\n",
+                "    pl.DataFrame(dict(zip(\n",
+                "                df.columns,\n",
+                "                [\"Average log odds\"] + [None] * 4 + [df[\"LogOdds\"].sum() / len(df)],\n",
+                "                )),\n",
+                "    schema=df.schema,\n",
+                "    )\n",
+                ")\n"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## Classifier"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "The success rate is defined as $\\frac{positives}{positives+negatives}$ per bin. \n",
+                "\n",
+                "The adjusted propensity that is returned is a small modification (Laplace smoothing) to this and calculated as $\\frac{0.5+positives}{1+positives+negatives}$ so empty models return a propensity of 0.5.\n"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "classifier = modelpredictors.filter(pl.col(\"EntryType\") == \"Classifier\").with_columns(\n",
+                "    Propensity=(Positives / (Positives / Negatives)),\n",
+                "    AdjustedPropensity=((0.5 + Positives) / (1 + Positives + Negatives)),\n",
+                ").select(\n",
+                "    [\n",
+                "        pl.col(\"BinIndex\").alias(\"Index\"),\n",
+                "        pl.col(\"BinSymbol\").alias(\"Bin\"),\n",
+                "        Positives.alias(\"Positives\"),\n",
+                "        Negatives.alias(\"Negatives\"),\n",
+                "        ((pl.cumsum(\"BinResponseCount\") / pl.sum(\"BinResponseCount\")) * 100).alias(\n",
+                "            \"Cum. Total (%)\"\n",
+                "        ),\n",
+                "        (pl.col(\"BinPropensity\") * 100).alias(\"Propensity (%)\"),\n",
+                "        (pl.col(\"AdjustedPropensity\") * 100).alias(\"Adjusted Propensity (%)\"),\n",
+                "        ((pl.cumsum(\"BinPositives\") / pl.sum(\"BinPositives\")) * 100).alias(\n",
+                "            \"Cum Positives (%)\"\n",
+                "        ),\n",
+                "        pl.col(\"ZRatio\"),\n",
+                "        (pl.col(\"Lift\") * 100).alias(\"Lift(%)\"),\n",
+                "        pl.col(\"BinResponseCount\").alias(\"Responses\"),\n",
+                "    ]\n",
+                ")\n",
+                "classifier.drop(\"Responses\")"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## Final Propensity"
+            ]
+        },
+        {
+            "attachments": {},
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "Below the classifier mapping. On the x-axis the binned scores (log odds values), on the y-axis the Propensity. Note the returned propensities are following a slightly adjusted formula, see the table above. The bin that contains the calculated score is highlighted.\n",
+                "\n",
+                "The score -0.11403 falls in bin 7 of the classifier, so for this set of inputs, the model returns a propensity of 1.70%."
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "from pdstools.plots.plots_plotly import ADMVisualisations\n",
+                "\n",
+                "fig = ADMVisualisations.distribution_graph(\n",
+                "    modelpredictors.filter(pl.col(\"EntryType\") == \"Classifier\"),\n",
+                "    \"Propensity distribution\",\n",
+                ").add_annotation(\n",
+                "    x=\"[-0.22, 0.99>\",\n",
+                "    y=1400,\n",
+                "    text=\"Returned propensity: 1.7%\",\n",
+                "    bgcolor=\"#FFFFFF\",\n",
+                "    bordercolor=\"#000000\",\n",
+                "    showarrow=False,\n",
+                ")\n",
+                "fig.data[0][\"marker_color\"] = [\"grey\"] * 6 + [\"#1f77b4\"] + [\"grey\"]\n",
+                "fig\n"
+            ]
+        }
+    ],
+    "metadata": {
+        "kernelspec": {
+            "display_name": "playground",
+            "language": "python",
+            "name": "python3"
+        },
+        "language_info": {
+            "codemirror_mode": {
+                "name": "ipython",
+                "version": 3
+            },
+            "file_extension": ".py",
+            "mimetype": "text/x-python",
+            "name": "python",
+            "nbconvert_exporter": "python",
+            "pygments_lexer": "ipython3",
+            "version": "3.11.0"
+        },
+        "orig_nbformat": 4
+    },
+    "nbformat": 4,
+    "nbformat_minor": 2
+}
