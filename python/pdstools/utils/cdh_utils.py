@@ -98,29 +98,22 @@ def readDSExport(
     # If the filename is simply a string, then we first
     # extract the extension of the file, then look for
     # the file in the user's directory.
+
     if os.path.isfile(os.path.join(path, filename)):
         logging.debug("File found in directory")
         file = os.path.join(path, filename)
-    else:
-        logging.debug("File not found in directory, scanning for latest file")
-        file = get_latest_file(path, filename)
-
     # If we can't find the file locally, we can try
-    # if the file's a URL. If it is, we need to wrap
+    # if the file is a URL. If it is, we need to wrap
     # the file in a BytesIO object, and read the file
-    # fully to disk for pyarrow to read it.
-    if file == "Target not found" or file is None:
-        logging.debug("Could not find file in directory, checking if URL")
-        import requests
-
+    # fully to disk for pyarrow to read it. Else we search
+    # the path to see if there is a file named as one
+    # of the default names in getMatches function
+    elif _is_url(path, filename):
+        logging.debug("File found online, importing and parsing to BytesIO")
         try:
-            response = requests.get(f"{path}/{filename}")
-            logging.info(f"Response: {response}")
-            if response.status_code == 200:
-                logging.debug("File found online, importing and parsing to BytesIO")
-                file = f"{path}/{filename}"
-                file = BytesIO(urllib.request.urlopen(file).read())
-                name, extension = os.path.splitext(filename)
+            file = f"{path}/{filename}"
+            file = BytesIO(urllib.request.urlopen(file).read())
+            name, extension = os.path.splitext(filename)
 
         except Exception as e:
             logging.info(e)
@@ -129,12 +122,40 @@ def readDSExport(
             logging.info(f"File not found: {path}/{filename}")
             return None
 
+    elif filename is not None:
+        logging.debug("File not found in directory, scanning for latest file")
+        file = get_latest_file(path, filename)
+
     if "extension" not in vars():
         name, extension = os.path.splitext(file)
 
     # Now we should either have a full path to a file, or a
     # BytesIO wrapper around the file. Polars can read those both.
     return import_file(file, extension, **reading_opts)
+
+
+def _is_url(path: str, filename: str):
+    """Checks whether the given path/filename is a url
+
+    Parameters
+    ----------
+    path : str
+        The location of the file
+    filename : str
+        The name of the file
+    
+    Returns
+    -------
+    Union[bool, Response]
+    """
+    import requests
+
+    try:
+        response = requests.get(f"{path}/{filename}")
+        logging.info(f"Response: {response}")
+        return response
+    except:
+        return False
 
 
 def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
@@ -164,21 +185,14 @@ def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
                 try_parse_dates=True,
             ).lazy()
         else:
-            file = pl.scan_csv(
-                file,
-                sep=reading_opts.get("sep", ","),
-            )
+            file = pl.scan_csv(file, sep=reading_opts.get("sep", ","))
 
     elif extension == ".json":
         try:
             if isinstance(file, BytesIO):
                 from pyarrow import json
 
-                file = pl.LazyFrame(
-                    json.read_json(
-                        file,
-                    )
-                )
+                file = pl.LazyFrame(json.read_json(file))
             else:
                 file = pl.scan_ndjson(
                     file,
@@ -266,19 +280,29 @@ def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
         return f"Target not found"
 
     supported = [".json", ".csv", ".zip", ".parquet", ".feather", ".ipc", ".arrow"]
+    try:
+        files_dir = [
+            f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))
+        ]
+        files_dir = [
+            f for f in files_dir if os.path.splitext(f)[-1].lower() in supported
+        ]
+    except FileNotFoundError as e:
+        raise Exception(
+            f"""No such directory in your computer as: {path}. \n
+            Please provide the location that contains ADM tables or use File upload option
+            to upload model and predictor tables seperately"""
+        ) from e
+    except NotADirectoryError as e:
+        raise Exception(
+            f"""{path} is not directory. Please provide the location that
+            contains ADM tables or use File upload option
+            to upload model and predictor files seperately"""
+        ) from e
 
-    files_dir = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
-    files_dir = [f for f in files_dir if os.path.splitext(f)[-1].lower() in supported]
     if verbose:
         print(files_dir)  # pragma: no cover
     matches = getMatches(files_dir, target)
-
-    if len(matches) == 0:  # pragma: no cover
-        if verbose:
-            print(
-                f"Unable to find data for {target}. Please check if the data is available."
-            )
-        return None
 
     paths = [os.path.join(path, name) for name in matches]
 
@@ -325,6 +349,14 @@ def getMatches(files_dir, target):
         match = [file for name in names if re.findall(name.casefold(), file.casefold())]
         if len(match) > 0:
             matches.append(match[0])
+    if len(matches) == 0:
+        raise FileNotFoundError(
+            """Couldn't find a file with default ADM table names. Please try feeding model and predictor files seperately. \n
+        
+        Or check out getMatches function at https://github.com/pegasystems/pega-datascientist-tools/blob/master/python/pdstools/utils/cdh_utils.py
+        to see default model and predictor file names that pdstools can find.
+        """
+        )
     return matches
 
 
@@ -666,14 +698,7 @@ def _capitalize(fields: list) -> list:
 
 
 def _polarsCapitalize(df: pl.LazyFrame):
-    return df.rename(
-        dict(
-            zip(
-                df.columns,
-                _capitalize(df.columns),
-            )
-        )
-    )
+    return df.rename(dict(zip(df.columns, _capitalize(df.columns))))
 
 
 def fromPRPCDateTime(

@@ -29,12 +29,7 @@ def remove_duplicate_expressions(exprs):
 def import_data(params, default=0, **kwargs):
     config_type = st.selectbox(
         "Data import type",
-        options=[
-            "Sample dataset",
-            "Filepath",
-            "File upload",
-            "S3 Bucket",
-        ],
+        options=["Sample dataset", "Filepath", "File upload", "S3 Bucket"],
         index=default,
     )
     if config_type == "File upload":
@@ -48,15 +43,21 @@ def import_data(params, default=0, **kwargs):
             )
             params["kwargs"] = ADMDatamart_options()
             if st.checkbox("Use this data source"):
-                if model_file is not None:
+                if predictor_file is None and model_file is not None:
+                    data = import_datamart(
+                        ADMDatamart,
+                        model_df=model_file,
+                        predictor_df=predictor_file,
+                        predictor_filename=None,
+                        **params["kwargs"],
+                    )
+                elif model_file and predictor_file is not None:
                     data = import_datamart(
                         ADMDatamart,
                         model_df=model_file,
                         predictor_df=predictor_file,
                         **params["kwargs"],
                     )
-                else:
-                    "Please upload your datamart files."
     elif config_type == "Sample dataset":
         data = import_datamart(datasets.CDHSample)
     elif config_type == "Filepath":
@@ -84,8 +85,6 @@ def import_data(params, default=0, **kwargs):
                     "pyName",
                     "pySnapshotTime",
                 ]
-                import sys
-
                 try:
                     from boto3 import client
                 except ModuleNotFoundError:
@@ -129,7 +128,8 @@ def import_data(params, default=0, **kwargs):
 def import_datamart(_fun, *args, **kwargs):
     dm = _fun(*args, **kwargs)
     dm.modelData = dm.modelData.collect()
-    dm.predictorData = dm.predictorData.collect()
+    if kwargs.get("predictor_df") is not None:
+        dm.predictorData = dm.predictorData.collect()
     return dm
 
 
@@ -138,7 +138,7 @@ def ADMDatamart_options():
     if st.checkbox("Edit Parameters"):
         extract_treatment = st.checkbox("Extract treatments", False)
         if extract_treatment:
-            params["extract_treatment"] = "pyName"
+            params["extract_keys"] = "pyName"
         context_keys = ["Issue", "Group", "Channel", "Direction"]
         if extract_treatment:
             context_keys.append("Treatment")

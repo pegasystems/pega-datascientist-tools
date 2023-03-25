@@ -290,10 +290,20 @@ class ADMDatamart(Plots):
                 df2 = df2.join(df1.select(pl.col("ModelID").unique()), on="ModelID")
 
         if self.import_strategy == "eager":
-            if df1 is not None:
-                df1 = df1.collect().lazy()
-            if df2 is not None:
-                df2 = df2.collect().lazy()
+            try:
+                if df1 is not None:
+                    df1 = df1.collect().lazy()
+                if df2 is not None:
+                    df2 = df2.collect().lazy()
+            except pl.ComputeError as e:
+                raise Exception(
+                    """Unexpected Time format! 
+                        Please refer to :meth:`._set_types` to change datetime format \n
+                        If you are using HealthCheck app, use `Edit Parameters` button above
+                        and enter the date format in your files. \n
+                        You can check https://strftime.org/ for formatting options
+                        """
+                ) from e
         return df1, df2
 
     def _import_utils(
