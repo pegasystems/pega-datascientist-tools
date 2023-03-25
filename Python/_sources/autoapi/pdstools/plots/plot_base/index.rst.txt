@@ -333,10 +333,6 @@ Classes
       :param facets: Please refer to :meth:`._generateFacets`
       :type facets: Union[str, list], deafult = None
 
-      :keyword categorization: Optional argument to supply your own predictor categorization method
-                               Useful if you want to be more specific in the legend of the plot
-                               Function should return a string from a string
-      :kwtype categorization: method
       :keyword plotting_engine: 'plotly' or a custom plot class
       :kwtype plotting_engine: str
       :keyword return_df: If set to True, returns the dataframe instead of the plot
@@ -351,7 +347,7 @@ Classes
       :rtype: go.FigureWidget
 
 
-   .. py:method:: plotPredictorCategoryPerformance(active_only: bool = False, to_plot='Performance', query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None, facets: Union[str, list] = None, categorization=defaultPredictorCategorization, **kwargs) -> plotly.graph_objs.FigureWidget
+   .. py:method:: plotPredictorCategoryPerformance(active_only: bool = False, to_plot='Performance', query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None, facets: Union[str, list] = None, **kwargs) -> plotly.graph_objs.FigureWidget
 
       Plots a bar chart of the performance of the predictor categories
 
@@ -366,10 +362,6 @@ Classes
       :type query: Optional[Union[pl.Expr, str, Dict[str, list]]]
       :param facets: Please refer to :meth:`._generateFacets`
       :type facets: Union[str, list], deafult = None
-      :param categorization: Function that categorizes predictors into groups. Function should return
-                             a string from a string.
-                             Ex.  categorization("IH.LastLogin") --> IH
-      :type categorization: defaultPredictorCategorization
 
       :keyword plotting_engine: 'plotly' or a custom plot class
       :kwtype plotting_engine: str

@@ -160,6 +160,21 @@ Functions
 
 .. py:function:: defaultPredictorCategorization(x: Union[str, polars.Expr] = pl.col('PredictorName')) -> polars.Expr
 
+   Function to determine the 'category' of a predictor.
+
+   It is possible to supply a custom function.
+   This function can accept an optional column as input
+   And as output should be a Polars expression.
+   The most straight-forward way to implement this is with
+   pl.when().then().otherwise(), which you can chain.
+
+   By default, this function returns "Primary" whenever
+   there is no '.' anywhere in the name string,
+   otherwise returns the first string before the first period
+
+   :param x: The column to parse
+   :type x: Union[str, pl.Expr], default = pl.col('PredictorName')
+
 
 .. py:function:: safe_range_auc(auc: float) -> float
 

@@ -298,7 +298,7 @@ of data analysis, reporting and monitoring.</p>
 <td><p>Very simple convenience function to cache data.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.defaultPredictorCategorization" title="pdstools.utils.cdh_utils.defaultPredictorCategorization"><code class="xref py py-obj docutils literal notranslate"><span class="pre">defaultPredictorCategorization</span></code></a>() → polars.Expr)</p></td>
-<td><p></p></td>
+<td><p>Function to determine the 'category' of a predictor.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.safe_range_auc" title="pdstools.utils.cdh_utils.safe_range_auc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">safe_range_auc</span></code></a>(→ float)</p></td>
 <td><p>Internal helper to keep auc a safe number between 0.5 and 1.0 always.</p></td>
@@ -508,9 +508,18 @@ Default is IPC, also supports parquet</p></li>
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.utils.cdh_utils.defaultPredictorCategorization">
 <span class="sig-name descname"><span class="pre">defaultPredictorCategorization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.Expr</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">pl.col('PredictorName')</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.defaultPredictorCategorization" title="Permalink to this definition">#</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Function to determine the ‘category’ of a predictor.</p>
+<p>It is possible to supply a custom function.
+This function can accept an optional column as input
+And as output should be a Polars expression.
+The most straight-forward way to implement this is with
+pl.when().then().otherwise(), which you can chain.</p>
+<p>By default, this function returns “Primary” whenever
+there is no ‘.’ anywhere in the name string,
+otherwise returns the first string before the first period</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>x</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>polars.Expr</em><em>]</em>) – </p>
+<dd class="field-odd"><p><strong>x</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>pl.Expr</em><em>]</em><em>, </em><em>default = pl.col</em><em>(</em><em>'PredictorName'</em><em>)</em>) – The column to parse</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>polars.Expr</p>
