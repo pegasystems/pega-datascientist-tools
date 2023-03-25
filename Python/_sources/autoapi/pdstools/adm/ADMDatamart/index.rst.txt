@@ -56,9 +56,10 @@ Classes
                           extract_keys can expand that cell to also show these values.
                           To extract these extra keys, set extract_keys to True.
    :kwtype extract_keys: bool, default = False
-   :keyword predictorCategory: A Polars expression to determine the 'category' of a predictor.
-                               See: :meth:`pdstools.utils.cdh_utils.defaultPredictorCategorization`
-   :kwtype predictorCategory: pl.Expr, default = :meth:`cdh_utils.defaultPredictorCategorization`
+   :keyword predictorCategorization: A Polars expression to determine the 'category' of a predictor.
+                                     If None, uses PredictorCategory that is already there.
+                                     See: :meth:`pdstools.utils.cdh_utils.defaultPredictorCategorization`
+   :kwtype predictorCategorization: pl.Expr, default = :meth:`cdh_utils.defaultPredictorCategorization`
    :keyword verbose: Whether to print out information during importing
    :kwtype verbose: bool, default = False
    :keyword \*\*reading_opts: Additional parameters used while reading.
@@ -427,6 +428,43 @@ Classes
    .. py:method:: describe_models(**kwargs) -> NoReturn
 
       Convenience method to quickly summarize the models
+
+
+   .. py:method:: generateHealthCheck(name: Optional[str] = None, output_location='.', working_dir='.', delete_temp_files=True, output_type='html', allow_collect=True)
+
+      Manually generates a Health Check
+
+      The recommended way to run the Health Check is through the Streamlit app,
+      which you get to by running `pdstools run` in your terminal/command line.
+      However, it's also possible to directly run the Health Check from the
+      ADMDatamart class, providing a little bit more flexibility.
+
+      Internally, this method uses :meth:`.save_data` to save the model and
+      predictor files to disk, which Quarto then picks up to generate.
+
+      By running this method directly, you have control over the exact
+      filters you want to use. Simply use the top-level :attr:`.query`
+      argument to filter the ADMDatamart class to the desired level.
+
+      :param name: The name of the Health Check file
+      :type name: Optional[str]
+      :param output_location: The output location of the generated file
+      :type output_location: str, default = '.'
+      :param working_dir: The directory in which to create the health check
+      :type working_dir: str, default = '.'
+      :param delete_temp_files: Whether to delete the temporary files used  while generating the file
+                                If false, these files stay in working_dir
+      :type delete_temp_files: bool, default = True
+      :param output_type: Which type of export to create. Currently, html is best supported.
+      :type output_type: : str, default = 'html'
+      :param allow_collect: An override for the `lazy` memory_strategy. If set to True, still allows
+                            for collecting of data. Naturally, we need to collect the data in order
+                            to cache it to disk for the health check, so if set to False
+                            with a `lazy` memory_strategy, you won't be able to generate.
+      :type allow_collect: bool, default = True
+
+      :returns: The full path to the generated Health Check file.
+      :rtype: str
 
 
 

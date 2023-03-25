@@ -289,4 +289,7 @@ Classes
    .. py:method:: PredictorCount(df, facet, **kwargs)
 
 
+   .. py:method:: PredictorContribution(df, by, **kwargs)
+
+
 

@@ -165,6 +165,7 @@
   <p class="caption" role="heading"><span class="caption-text">Articles</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/graph_gallery.html">Graph Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/graph_gallery.html#Predictor-Contribution">Predictor Contribution</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../tutorial_notebooks.html">Tutorial notebooks</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../../articles/hello_cdhtools.html">Hello pdstools</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../articles/Example_Data_Anonymization.html">Example data anonymization</a></li>
@@ -327,7 +328,8 @@ Refer to <a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatama
 <li><p><strong>extract_keys</strong> (<em>bool</em><em>, </em><em>default = False</em>) – Extra keys, particularly pyTreatment, are hidden within the pyName column.
 extract_keys can expand that cell to also show these values.
 To extract these extra keys, set extract_keys to True.</p></li>
-<li><p><strong>predictorCategory</strong> (pl.Expr, default = <code class="xref py py-meth docutils literal notranslate"><span class="pre">cdh_utils.defaultPredictorCategorization()</span></code>) – A Polars expression to determine the ‘category’ of a predictor.
+<li><p><strong>predictorCategorization</strong> (pl.Expr, default = <code class="xref py py-meth docutils literal notranslate"><span class="pre">cdh_utils.defaultPredictorCategorization()</span></code>) – A Polars expression to determine the ‘category’ of a predictor.
+If None, uses PredictorCategory that is already there.
 See: <a class="reference internal" href="../../utils/cdh_utils/index.html#pdstools.utils.cdh_utils.defaultPredictorCategorization" title="pdstools.utils.cdh_utils.defaultPredictorCategorization"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils.defaultPredictorCategorization()</span></code></a></p></li>
 <li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>default = False</em>) – Whether to print out information during importing</p></li>
 <li><p><strong>**reading_opts</strong> – Additional parameters used while reading.
@@ -858,6 +860,43 @@ models for with regard to the number of positive answers.</p>
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.ADMDatamart.ADMDatamart.generateHealthCheck">
+<span class="sig-name descname"><span class="pre">generateHealthCheck</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_location</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'.'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'.'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delete_temp_files</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'html'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_collect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.adm.ADMDatamart.ADMDatamart.generateHealthCheck" title="Permalink to this definition">#</a></dt>
+<dd><p>Manually generates a Health Check</p>
+<p>The recommended way to run the Health Check is through the Streamlit app,
+which you get to by running <cite>pdstools run</cite> in your terminal/command line.
+However, it’s also possible to directly run the Health Check from the
+ADMDatamart class, providing a little bit more flexibility.</p>
+<p>Internally, this method uses <a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart.save_data" title="pdstools.adm.ADMDatamart.ADMDatamart.save_data"><code class="xref py py-meth docutils literal notranslate"><span class="pre">save_data()</span></code></a> to save the model and
+predictor files to disk, which Quarto then picks up to generate.</p>
+<p>By running this method directly, you have control over the exact
+filters you want to use. Simply use the top-level <a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart.query" title="pdstools.adm.ADMDatamart.ADMDatamart.query"><code class="xref py py-attr docutils literal notranslate"><span class="pre">query</span></code></a>
+argument to filter the ADMDatamart class to the desired level.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – The name of the Health Check file</p></li>
+<li><p><strong>output_location</strong> (<em>str</em><em>, </em><em>default = '.'</em>) – The output location of the generated file</p></li>
+<li><p><strong>working_dir</strong> (<em>str</em><em>, </em><em>default = '.'</em>) – The directory in which to create the health check</p></li>
+<li><p><strong>delete_temp_files</strong> (<em>bool</em><em>, </em><em>default = True</em>) – Whether to delete the temporary files used  while generating the file
+If false, these files stay in working_dir</p></li>
+<li><p><strong>output_type</strong> (<em>: str</em><em>, </em><em>default = 'html'</em>) – Which type of export to create. Currently, html is best supported.</p></li>
+<li><p><strong>allow_collect</strong> (<em>bool</em><em>, </em><em>default = True</em>) – An override for the <cite>lazy</cite> memory_strategy. If set to True, still allows
+for collecting of data. Naturally, we need to collect the data in order
+to cache it to disk for the health check, so if set to False
+with a <cite>lazy</cite> memory_strategy, you won’t be able to generate.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The full path to the generated Health Check file.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 </section>
@@ -940,6 +979,7 @@ models for with regard to the number of positive answers.</p>
 <li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart.models_by_positives_df"><code class="docutils literal notranslate"><span class="pre">models_by_positives_df()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart.get_model_stats"><code class="docutils literal notranslate"><span class="pre">get_model_stats()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart.describe_models"><code class="docutils literal notranslate"><span class="pre">describe_models()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart.generateHealthCheck"><code class="docutils literal notranslate"><span class="pre">generateHealthCheck()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart">ADMDatamart</a><ul>
@@ -971,6 +1011,7 @@ models for with regard to the number of positive answers.</p>
 <li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart.models_by_positives_df">models_by_positives_df</a></li>
 <li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart.get_model_stats">get_model_stats</a></li>
 <li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart.describe_models">describe_models</a></li>
+<li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart.generateHealthCheck">generateHealthCheck</a></li>
 </ul>
 </li>
 </ul>

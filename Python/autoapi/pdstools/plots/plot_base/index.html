@@ -165,6 +165,7 @@
   <p class="caption" role="heading"><span class="caption-text">Articles</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/graph_gallery.html">Graph Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/graph_gallery.html#Predictor-Contribution">Predictor Contribution</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../tutorial_notebooks.html">Tutorial notebooks</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../../articles/hello_cdhtools.html">Hello pdstools</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../articles/Example_Data_Anonymization.html">Example data anonymization</a></li>
@@ -795,6 +796,45 @@ to see further parameters for this plot.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="pdstools.plots.plot_base.Plots.plotPredictorContribution">
+<span class="sig-name descname"><span class="pre">plotPredictorContribution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Configuration'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">plotly.graph_objs.FigureWidget</span></span></span><a class="headerlink" href="#pdstools.plots.plot_base.Plots.plotPredictorContribution" title="Permalink to this definition">#</a></dt>
+<dd><p>Plots the contribution of each predictor across a group</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>by</strong> (<em>str</em><em>, </em><em>default = Configuration</em>) – The column to group the bars with</p></li>
+<li><p><strong>query</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>pl.Expr</em><em>, </em><em>str</em><em>, </em><em>Dict</em><em>[</em><em>str</em><em>, </em><em>list</em><em>]</em><em>]</em><em>]</em>) – Please refer to <code class="xref py py-meth docutils literal notranslate"><span class="pre">pdstools.adm.ADMDatamart._apply_query()</span></code></p></li>
+</ul>
+</dd>
+<dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>plotting_engine</strong> (<em>str</em>) – This chart is only supported in plotly</p></li>
+<li><p><strong>return_df</strong> (<em>bool</em>) – If set to True, returns the dataframe instead of the plot
+Can be useful for debugging or replicating the plots</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>plotly.graph_objs.FigureWidget</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>See the docs for the plotly plots (plots_plotly.py).
+Plotly has an additional post_plot function defining some more actions,
+such as writing to html automatically or displaying figures while facetting.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>go.FigureWidget</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>by</strong> (<em>str</em>) – </p></li>
+<li><p><strong>query</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>polars.Expr</em><em>, </em><em>str</em><em>, </em><em>Dict</em><em>[</em><em>str</em><em>, </em><em>list</em><em>]</em><em>]</em><em>]</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="pdstools.plots.plot_base.Plots.plotPredictorPerformanceHeatmap">
 <span class="sig-name descname"><span class="pre">plotPredictorPerformanceHeatmap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">top_n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Name'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">active_only</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">plotly.graph_objs.FigureWidget</span></span></span><a class="headerlink" href="#pdstools.plots.plot_base.Plots.plotPredictorPerformanceHeatmap" title="Permalink to this definition">#</a></dt>
 <dd><p>Plots heatmap of the performance of the predictors</p>
@@ -1065,6 +1105,7 @@ such as writing to html automatically or displaying figures while facetting.</p>
 <li><a class="reference internal" href="#pdstools.plots.plot_base.Plots.plotPredictorBinning"><code class="docutils literal notranslate"><span class="pre">plotPredictorBinning()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.plots.plot_base.Plots.plotPredictorPerformance"><code class="docutils literal notranslate"><span class="pre">plotPredictorPerformance()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.plots.plot_base.Plots.plotPredictorCategoryPerformance"><code class="docutils literal notranslate"><span class="pre">plotPredictorCategoryPerformance()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.plots.plot_base.Plots.plotPredictorContribution"><code class="docutils literal notranslate"><span class="pre">plotPredictorContribution()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.plots.plot_base.Plots.plotPredictorPerformanceHeatmap"><code class="docutils literal notranslate"><span class="pre">plotPredictorPerformanceHeatmap()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.plots.plot_base.Plots.plotResponseGain"><code class="docutils literal notranslate"><span class="pre">plotResponseGain()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.plots.plot_base.Plots.plotModelsByPositives"><code class="docutils literal notranslate"><span class="pre">plotModelsByPositives()</span></code></a></li>
@@ -1092,6 +1133,7 @@ such as writing to html automatically or displaying figures while facetting.</p>
 <li><a class="reference internal" href="#pdstools.plots.plot_base.Plots.plotPredictorBinning">plotPredictorBinning</a></li>
 <li><a class="reference internal" href="#pdstools.plots.plot_base.Plots.plotPredictorPerformance">plotPredictorPerformance</a></li>
 <li><a class="reference internal" href="#pdstools.plots.plot_base.Plots.plotPredictorCategoryPerformance">plotPredictorCategoryPerformance</a></li>
+<li><a class="reference internal" href="#pdstools.plots.plot_base.Plots.plotPredictorContribution">plotPredictorContribution</a></li>
 <li><a class="reference internal" href="#pdstools.plots.plot_base.Plots.plotPredictorPerformanceHeatmap">plotPredictorPerformanceHeatmap</a></li>
 <li><a class="reference internal" href="#pdstools.plots.plot_base.Plots.plotResponseGain">plotResponseGain</a></li>
 <li><a class="reference internal" href="#pdstools.plots.plot_base.Plots.plotModelsByPositives">plotModelsByPositives</a></li>

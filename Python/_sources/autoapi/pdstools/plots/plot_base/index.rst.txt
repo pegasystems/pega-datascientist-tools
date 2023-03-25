@@ -380,6 +380,30 @@ Classes
       :rtype: go.FigureWidget
 
 
+   .. py:method:: plotPredictorContribution(by: str = 'Configuration', query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None, **kwargs) -> plotly.graph_objs.FigureWidget
+
+      Plots the contribution of each predictor across a group
+
+      :param by: The column to group the bars with
+      :type by: str, default = Configuration
+      :param query: Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
+      :type query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+
+      :keyword plotting_engine: This chart is only supported in plotly
+      :kwtype plotting_engine: str
+      :keyword return_df: If set to True, returns the dataframe instead of the plot
+                          Can be useful for debugging or replicating the plots
+      :kwtype return_df: bool
+
+      .. rubric:: Notes
+
+      See the docs for the plotly plots (plots_plotly.py).
+      Plotly has an additional post_plot function defining some more actions,
+      such as writing to html automatically or displaying figures while facetting.
+
+      :rtype: go.FigureWidget
+
+
    .. py:method:: plotPredictorPerformanceHeatmap(top_n: int = 0, by='Name', active_only: bool = False, query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None, facets: list = None, **kwargs) -> plotly.graph_objs.FigureWidget
 
       Plots heatmap of the performance of the predictors
