@@ -32,5 +32,5 @@ help:
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 	rm -rf source/articles/output
 	rm source/articles/*
-	mv build/html/* ../../docs/Python
 	rm build/html/.buildinfo
+# mv build/html/* ../../docs/Python
