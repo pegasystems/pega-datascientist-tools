@@ -18,7 +18,7 @@ on:
       - python/**
 
 jobs:
-  Python_tests:
+  Tests:
     runs-on: ${{matrix.os}}
 
     name: pdstools (Python ${{ matrix.python-version }}) on ${{ matrix.os }} 
@@ -49,6 +49,22 @@ jobs:
         with:
           python-version: ${{matrix.python-version}}
 
+      - name: Upgrade pip
+        run: |
+          python3 -m pip install --upgrade pip
+
+      - name: Get pip cache dir
+        id: pip-cache
+        run: echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.pip-cache.outputs.dir }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/*requirements.txt') }}-{{matrix.python-version}}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -71,3 +87,59 @@ jobs:
         uses: codecov/codecov-action@v3
         with:
           fail_ci_if_error: true
+
+  Documentation:
+    runs-on: ubuntu-latest
+    if: ${{github.event_name == "push"}}
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v3
+      with:
+        python-version: 3.11.x
+
+    - name: Upgrade pip
+      run: |
+        python3 -m pip install --upgrade pip
+
+    - name: Get pip cache dir
+      id: pip-cache
+      run: echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
+
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ${{ steps.pip-cache.outputs.dir }}
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/*requirements.txt') }}-{{3.11.x}}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        pip install -r python/requirements.txt
+        pip install -r python/docs/docs-requirements.txt
+        sudo apt-get update && sudo apt-get install -y pandoc && sudo apt install -y graphviz
+
+    - name: Build sphinx documentation
+      run: |
+        (cd python/docs && make html)
+
+    - name: Commit documentation changes
+      run: |
+        git clone https://github.com/StijnKas/pega-datascientist-tools.git --branch gh-pages --single-branch gh-pages
+        cp -r docs/* gh-pages/
+        cd gh-pages
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add .
+        git commit -m "Update documentation" -a || true
+        # The above command will fail if no changes were present, so we ignore
+        # the return code.
+
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        branch: gh-pages
+        directory: gh-pages
+        github_token: ${{ secrets.GITHUB_TOKEN }}
