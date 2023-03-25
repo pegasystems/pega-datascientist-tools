@@ -11,3 +11,6 @@ from .valuefinder.ValueFinder import ValueFinder
 from .utils import cdh_utils, datasets, hds_utils, errors
 from .utils.hds_utils import Config, DataAnonymization
 from .utils.datasets import CDHSample, SampleTrees, SampleValueFinder
+
+from pathlib import Path
+__healthcheck_file__ = Path(__file__).parent/'app/HealthCheck.qmd'

@@ -54,8 +54,9 @@ class ADMDatamart(Plots):
         Extra keys, particularly pyTreatment, are hidden within the pyName column.
         extract_keys can expand that cell to also show these values.
         To extract these extra keys, set extract_keys to True.
-    predictorCategory : pl.Expr, default = :meth:`cdh_utils.defaultPredictorCategorization`
+    predictorCategorization : pl.Expr, default = :meth:`cdh_utils.defaultPredictorCategorization`
         A Polars expression to determine the 'category' of a predictor.
+        If None, uses PredictorCategory that is already there.
         See: :meth:`pdstools.utils.cdh_utils.defaultPredictorCategorization`
     verbose : bool, default = False
         Whether to print out information during importing
@@ -270,8 +271,9 @@ class ADMDatamart(Plots):
                     (pl.col("BinPositives") + pl.lit(0.5))
                     / (pl.col("BinResponseCount") + pl.lit(1))
                 ),
-                PredictorCategory=self.predictorCategorization(),
             )
+            if self.predictorCategorization is not None:
+                df2 = df2.with_columns(PredictorCategory=self.predictorCategorization())
 
         if df1 is not None and df2 is not None:
             total_missing = (
@@ -1155,3 +1157,98 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                     ret += f"{len(self.model_stats[key])} ({round(len(self.model_stats[key])/nmodels*100,2)}%) {' '.join(key.split('_'))} attribute.\n"
 
         return ret
+
+    def generateHealthCheck(
+        self,
+        name: Optional[str] = None,
+        output_location=".",
+        working_dir=".",
+        delete_temp_files=True,
+        output_type="html",
+        allow_collect=True,
+    ):
+        """Manually generates a Health Check
+
+        The recommended way to run the Health Check is through the Streamlit app,
+        which you get to by running `pdstools run` in your terminal/command line.
+        However, it's also possible to directly run the Health Check from the
+        ADMDatamart class, providing a little bit more flexibility.
+
+        Internally, this method uses :meth:`.save_data` to save the model and
+        predictor files to disk, which Quarto then picks up to generate.
+
+        By running this method directly, you have control over the exact
+        filters you want to use. Simply use the top-level :attr:`.query`
+        argument to filter the ADMDatamart class to the desired level.
+
+        Parameters
+        ----------
+        name : Optional[str]
+            The name of the Health Check file
+        output_location : str, default = '.'
+            The output location of the generated file
+        working_dir : str, default = '.'
+            The directory in which to create the health check
+        delete_temp_files : bool, default = True
+            Whether to delete the temporary files used  while generating the file
+            If false, these files stay in working_dir
+        output_type: : str, default = 'html'
+            Which type of export to create. Currently, html is best supported.
+        allow_collect : bool, default = True
+            An override for the `lazy` memory_strategy. If set to True, still allows
+            for collecting of data. Naturally, we need to collect the data in order
+            to cache it to disk for the health check, so if set to False
+            with a `lazy` memory_strategy, you won't be able to generate.
+
+        Returns
+        -------
+        str:
+            The full path to the generated Health Check file.
+        """
+
+        import shutil
+        import subprocess
+        from pdstools import __healthcheck_file__
+        import yaml
+
+        if self.modelData is None or self.predictorData is None:
+            raise AssertionError("Needs both model and predictor data.")
+        if self.import_strategy == "lazy" and not allow_collect:
+            raise NotEagerError("Generating healthcheck")
+        if not os.path.exists(working_dir):
+            os.mkdir(working_dir)
+
+        shutil.copy(__healthcheck_file__, working_dir)
+        if name is not None:
+            output_filename = f"HealthCheck_{name.replace(' ', '_')}.{output_type}"
+        else:
+            output_filename = f"ADM_HealthCheck.{output_type}"
+
+        files = self.save_data(working_dir)
+
+        params = {"kwargs": {"subset": False, "predictorCategorization": None}}
+
+        with open(f"{working_dir}/params.yaml", "w") as f:
+            yaml.dump(params, f)
+
+        bashCommand = f"quarto render HealthCheck.qmd --to {output_type} --output {output_filename} --execute-params params.yaml"
+        if not self.verbose:
+            stdout, stderr = subprocess.DEVNULL, subprocess.STDOUT
+        else:
+            print("Set verbose=False to hide output.")
+            print("Running:", bashCommand)
+            stdout, stderr = subprocess.PIPE, None
+        process = subprocess.Popen(
+            bashCommand.split(), stdout=stdout, stderr=stderr, cwd=working_dir
+        )
+        process.communicate()
+
+        if output_location != working_dir:
+            shutil.move(f"{working_dir}/{output_filename}", output_location)
+
+        if delete_temp_files:
+            for f in ["params.yaml", "HealthCheck.qmd"]:
+                os.remove(f"{working_dir}/{f}")
+            for f in files:
+                os.remove(f)
+        return f"{output_location}/{output_filename}"
