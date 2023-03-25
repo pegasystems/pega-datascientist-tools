@@ -7,6 +7,7 @@ on:
     paths:
       - python/**
       - .github/workflows/**
+      - examples/**
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
