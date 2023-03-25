@@ -5,7 +5,7 @@
 
 .. autoapi-nested-parse::
 
-   Python pdstools.
+   Python pdstools
 
 
 
