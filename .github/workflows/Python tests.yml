@@ -91,7 +91,8 @@ jobs:
 
   Documentation:
     runs-on: ubuntu-latest
-    if: ${{github.event_name == "push"}}
+    # if: ${{ github.event_name == "push" }}
+    needs: Tests
     steps:
     - uses: actions/checkout@v3
 
