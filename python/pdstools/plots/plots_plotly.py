@@ -752,4 +752,17 @@ class ADMVisualisations:
             facet_col_wrap=2,
         )
 
-        return self.post_plot(fig, name="TreeMap", **kwargs)
+        return self.post_plot(fig, name="PredictorCount", **kwargs)
+
+    def PredictorContribution(self, df, by, **kwargs):
+        color = "PredictorCategory"
+        fig = px.bar(
+            df.sort(color).to_pandas(),
+            x="Contribution",
+            y=by,
+            color=color,
+            orientation="h",
+            template="pega",
+            title="Contribution of different sources",
+        )
+        return self.post_plot(fig, name="PredictorContribution", **kwargs)

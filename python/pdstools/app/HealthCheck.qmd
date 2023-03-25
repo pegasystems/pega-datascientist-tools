@@ -431,44 +431,9 @@ Although the same could be achieved using the standard **plotPredictorImportance
 ```{python}
 ''' By dividing a predictor category's weighted performance to the sum of all predictor categories weighted performance in a configuration, creates a plot that displays relative importance of categories in a configuration.
 Changes the Predictor performance range from 50-100 to 0-100 in order to increase visibilty of performance differences among categories.'''
-df = combinedData.with_columns(cdh_utils.defaultPredictorCategorization().alias("PredictorCategory"))
-predictor_perf = (
-    df.with_columns((pl.col("PerformanceBin") - 0.5)*2)
-    .groupby(["Configuration", "PredictorCategory"])
-    .agg(
-        (
-            cdh_utils.weighed_average_polars(
-                "PerformanceBin", "BinResponseCount"
-            ).alias("Performance")
-        )
-    )
-)
-conf_total = predictor_perf.groupby("Configuration").agg(
-    pl.sum("Performance").alias("conf_total")
-)
 
-df = (
-    predictor_perf.join(conf_total, on="Configuration", how="left")
-    .with_columns(
-        ((pl.col("Performance") / pl.col("conf_total")) * 100).alias(
-            "Contribution"
-        )
-    )
-    .collect()
-    .to_pandas(use_pyarrow_extension_array=True)
-)
-
-color = "PredictorCategory"
-fig = px.bar(
-    df.sort_values(color),
-    x="Contribution",
-    y="Configuration",
-    color=color,
-    orientation="h",
-    template="pega",
-    title="Contribution of different sources",
-)
-height = 200 + (math.ceil(len(df["Configuration"].unique().tolist()) / 2) * 50)
+fig = datamart.plotPredictorContribution()
+height = 200 + (math.ceil(len(datamart.modelData.select(pl.col("Configuration").unique()).collect()['Configuration'].to_list()) / 2) * 50)
 fig.update_layout(height=height)
 fig.update_yaxes(
     automargin=True,

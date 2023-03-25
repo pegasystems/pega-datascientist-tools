@@ -815,7 +815,7 @@ class Plots:
             "ResponseCountBin",
             to_plot,
             "Type",
-            "PredictorCategory"
+            "PredictorCategory",
         }
 
         df, facets = self._subset_data(
@@ -990,6 +990,87 @@ class Plots:
             y="Predictor Category",
             query=query,
             to_plot=to_plot,
+            **kwargs,
+        )
+
+    def plotPredictorContribution(
+        self,
+        by: str = "Configuration",
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
+        **kwargs,
+    ) -> go.FigureWidget:
+        """Plots the contribution of each predictor across a group
+
+        Parameters
+        ----------
+        by: str, default = Configuration
+            The column to group the bars with
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+            Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
+
+        Keyword arguments
+        -----------------
+        plotting_engine: str
+            This chart is only supported in plotly
+        return_df : bool
+            If set to True, returns the dataframe instead of the plot
+            Can be useful for debugging or replicating the plots
+
+        Notes
+        -----
+        See the docs for the plotly plots (plots_plotly.py).
+        Plotly has an additional post_plot function defining some more actions,
+        such as writing to html automatically or displaying figures while facetting.
+
+        Returns
+        -------
+        go.FigureWidget
+        """
+
+        plotting_engine = self.get_engine(
+            kwargs.get("plotting_engine", self.plotting_engine)
+        )()
+
+        table = "combinedData"
+        last = True
+        required_columns = {
+            "PredictorName",
+            "PerformanceBin",
+            "BinResponseCount",
+            "PredictorCategory",
+            by,
+        }
+
+        df, facets = self._subset_data(
+            table,
+            required_columns,
+            query,
+            last=last,
+            facets=None,
+        )
+
+        df = (
+            df.filter(pl.col("PredictorName") != "Classifier")
+            .with_columns((pl.col("PerformanceBin") - 0.5) * 2)
+            .groupby(by, "PredictorCategory")
+            .agg(
+                Performance=weighed_average_polars("PerformanceBin", "BinResponseCount")
+            )
+            .with_columns(
+                Contribution=(
+                    (pl.col("Performance") / (pl.sum("Performance").over(by))) * 100
+                )
+            )
+            .collect()
+        )
+        if kwargs.pop("return_df", False):
+            return df
+
+        return self.facettedPlot(
+            facets,
+            plotting_engine.PredictorContribution,
+            df=df,
+            by=by,
             **kwargs,
         )
 
