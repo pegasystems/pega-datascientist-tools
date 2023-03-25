@@ -1,48 +1,26 @@
-name: Build & Deploy docs
+name: Deploy R docs
 
 on:
  push:
     branches:
       - master
     paths:
-      - python/**
+      - R/docs/**
       - .github/workflows/**
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
-  build-docs:
+  deploy-docs:
     runs-on: ubuntu-latest
-    name: Build & Deploy docs
+    name: Deploy R docs
     steps:
       - uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-          cache: pip
-
-      - name: Install dependencies
-        working-directory: python
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -r docs/docs-requirements.txt
-          sudo apt-get update
-          sudo apt-get install -y pandoc
-          sudo apt install -y graphviz
-
-
-      - name: Build Python documentation
-        working-directory: python/docs
-        run: make html
 
       - name: Commit documentation changes
         run: |
           git clone https://github.com/StijnKas/pega-datascientist-tools.git --branch gh-pages --single-branch gh-pages
-          cp -r python/docs/build/html/* gh-pages/Python/
           cp -r r/docs/* gh-pages/R/
           cd gh-pages
           git config --local user.email "action@github.com"
