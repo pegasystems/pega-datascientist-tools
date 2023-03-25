@@ -1,4 +1,6 @@
 .Rproj.user
+.Rhistory
+
 *.pmml
 extra/**/*.html
 java/.gradle/
