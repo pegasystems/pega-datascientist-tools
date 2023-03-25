@@ -3,7 +3,6 @@ import pandas as pd
 import polars as pl
 from .plots_plotly import ADMVisualisations as plotly
 from ..utils.cdh_utils import (
-    defaultPredictorCategorization,
     weighed_performance_polars,
     weighed_average_polars,
 )
@@ -785,10 +784,6 @@ class Plots:
             Please refer to :meth:`._generateFacets`
         Keyword arguments
         -----------------
-        categorization: method
-            Optional argument to supply your own predictor categorization method
-            Useful if you want to be more specific in the legend of the plot
-            Function should return a string from a string
         plotting_engine: str
             'plotly' or a custom plot class
         return_df : bool
@@ -820,6 +815,7 @@ class Plots:
             "ResponseCountBin",
             to_plot,
             "Type",
+            "PredictorCategory"
         }
 
         df, facets = self._subset_data(
@@ -831,13 +827,13 @@ class Plots:
             active_only=active_only,
         )
 
-        categorization = kwargs.pop("categorization", defaultPredictorCategorization)
-
         df = (
             df.filter(pl.col("PredictorName") != "Classifier")
             .groupby("ModelID", "PredictorName")
             .agg(pl.all().first())
-            .with_columns(pl.col("PredictorName"), categorization().alias("Legend"))
+            .with_columns(
+                pl.col("PredictorName"), pl.col("PredictorCategory").alias("Legend")
+            )
         )
 
         separate = kwargs.pop("separate", False)
@@ -890,7 +886,6 @@ class Plots:
         to_plot="Performance",
         query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
         facets: Union[str, list] = None,
-        categorization=defaultPredictorCategorization,
         **kwargs,
     ) -> go.FigureWidget:
         """Plots a bar chart of the performance of the predictor categories
@@ -908,10 +903,7 @@ class Plots:
             Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
         facets : Union[str, list], deafult = None
             Please refer to :meth:`._generateFacets`
-        categorization: defaultPredictorCategorization
-            Function that categorizes predictors into groups. Function should return
-            a string from a string.
-            Ex.  categorization("IH.LastLogin") --> IH
+
         Keyword arguments
         -----------------
         plotting_engine: str
@@ -949,6 +941,7 @@ class Plots:
             "BinResponseCount",
             to_plot,
             "Type",
+            "PredictorCategory"
         }
 
         df, facets = self._subset_data(
@@ -962,7 +955,8 @@ class Plots:
         df = df.filter(pl.col("PredictorName").cast(pl.Utf8) != "Classifier")
 
         df = df.collect().with_columns(
-            pl.col("PredictorName"), categorization().alias("Predictor Category")
+            pl.col("PredictorName"),
+            pl.col("PredictorCategory").alias("Predictor Category"),
         )
 
         df = (
@@ -1277,9 +1271,8 @@ class Plots:
             .rename(mapping)
             .sort(levels)
             .fill_null("Missing")
-            .with_columns(
-                pl.col("Performance weighted mean") * 100).fill_nan(pl.lit(50)
-            )
+            .with_columns(pl.col("Performance weighted mean") * 100)
+            .fill_nan(pl.lit(50))
             .fill_nan(0)
             .collect()
         )

@@ -54,6 +54,9 @@ class ADMDatamart(Plots):
         Extra keys, particularly pyTreatment, are hidden within the pyName column.
         extract_keys can expand that cell to also show these values.
         To extract these extra keys, set extract_keys to True.
+    predictorCategory : pl.Expr, default = :meth:`cdh_utils.defaultPredictorCategorization`
+        A Polars expression to determine the 'category' of a predictor.
+        See: :meth:`pdstools.utils.cdh_utils.defaultPredictorCategorization`
     verbose : bool, default = False
         Whether to print out information during importing
     **reading_opts
@@ -106,6 +109,7 @@ class ADMDatamart(Plots):
         include_cols: Optional[list] = None,
         context_keys: list = ["Channel", "Direction", "Issue", "Group"],
         extract_keys: bool = False,
+        predictorCategorization: pl.Expr = cdh_utils.defaultPredictorCategorization,
         plotting_engine: Union[str, Any] = "plotly",
         verbose: bool = False,
         **reading_opts,
@@ -114,6 +118,7 @@ class ADMDatamart(Plots):
         self.context_keys = context_keys
         self.verbose = verbose
         self.query = query
+        self.predictorCategorization = predictorCategorization
 
         self.modelData, self.predictorData = self.import_data(
             path,
@@ -260,13 +265,12 @@ class ADMDatamart(Plots):
                     )
                 )
             df2 = df2.with_columns(
-                (pl.col("BinPositives") / pl.col("BinResponseCount")).alias(
-                    "BinPropensity"
-                ),
-                (
+                BinPropensity=pl.col("BinPositives") / pl.col("BinResponseCount"),
+                BinAdjustedPropensity=(
                     (pl.col("BinPositives") + pl.lit(0.5))
                     / (pl.col("BinResponseCount") + pl.lit(1))
-                ).alias("BinAdjustedPropensity"),
+                ),
+                PredictorCategory=self.predictorCategorization(),
             )
 
         if df1 is not None and df2 is not None:

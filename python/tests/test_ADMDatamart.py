@@ -298,7 +298,7 @@ def test_import_models_only(cdhsample_models):
 def test_init_preds_only(cdhsample_predictors):
     output = ADMDatamart(model_filename=None, predictor_df=cdhsample_predictors)
     assert output.predictorData is not None
-    assert output.predictorData.shape == (1755, 17)
+    assert output.predictorData.shape == (1755, 18)
     assert not hasattr(output, "combinedData")
     assert output.context_keys == ["Channel", "Direction", "Issue", "Group"]
     with pytest.raises(ValueError):
@@ -310,8 +310,8 @@ def test_init_both(cdhsample_models, cdhsample_predictors):
     assert output.modelData is not None
     assert output.modelData.shape == (20, 13)
     assert output.predictorData is not None
-    assert output.predictorData.shape == (1755, 17)
-    assert output.combinedData.shape == (1648, 29)
+    assert output.predictorData.shape == (1755, 18)
+    assert output.combinedData.shape == (1648, 30)
     assert output.context_keys == ["Channel", "Issue", "Group"]
 
 
@@ -323,7 +323,7 @@ def test_filter_also_filters_predictorData():
         context_keys=["Issue", "Group", "Channel", "Direction"],
         verbose=True,
         query=pl.col("Channel") == "Email",
-    ).predictorData.shape == (18742, 17)
+    ).predictorData.shape == (18742, 18)
 
 
 def test_lazy_strategy():

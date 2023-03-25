@@ -374,6 +374,24 @@ def cache_to_file(
 def defaultPredictorCategorization(
     x: Union[str, pl.Expr] = pl.col("PredictorName")
 ) -> pl.Expr:
+    """Function to determine the 'category' of a predictor.
+    
+    It is possible to supply a custom function. 
+    This function can accept an optional column as input
+    And as output should be a Polars expression.
+    The most straight-forward way to implement this is with
+    pl.when().then().otherwise(), which you can chain.
+
+    By default, this function returns "Primary" whenever
+    there is no '.' anywhere in the name string,
+    otherwise returns the first string before the first period
+    
+    Parameters
+    ----------
+    x: Union[str, pl.Expr], default = pl.col('PredictorName')
+        The column to parse
+
+    """
     if isinstance(x, str):
         x = pl.col(x)
     x = x.cast(pl.Utf8) if not isinstance(x, pl.Utf8) else x
