@@ -41,7 +41,7 @@ jobs:
 
       - name: Commit documentation changes
         run: |
-          git clone https://github.com/StijnKas/pega-datascientist-tools.git --branch gh-pages --single-branch gh-pages
+          git clone https://github.com/pegasystems/pega-datascientist-tools.git --branch gh-pages --single-branch gh-pages
           cp -r python/docs/build/html/* gh-pages/Python/
           cp -r r/docs/* gh-pages/R/
           cd gh-pages
