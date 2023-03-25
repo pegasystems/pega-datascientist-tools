@@ -45,7 +45,7 @@ class ValueFinder:
     def __init__(
         self,
         path: Optional[str] = None,
-        df: Optional[Union[pd.DataFrame, pl.DataFrame]] = None,
+        df: Optional[Union[pd.DataFrame, pl.DataFrame, pl.LazyFrame]] = None,
         verbose: bool = True,
         **kwargs,
     ):
@@ -76,7 +76,7 @@ class ValueFinder:
             )
             if verbose:
                 print(f"Data import took {round(time.time() - start,2)} seconds")
-        
+
         if verbose:
             print("Transforming to polars...", end=" ")
         start = time.time()
