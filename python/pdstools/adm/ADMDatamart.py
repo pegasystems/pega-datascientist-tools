@@ -345,12 +345,16 @@ class ADMDatamart(Plots):
             The columns missing in both dataframes
         """
 
+        if isinstance(name, BytesIO):
+            self.import_strategy = "eager"
+
         if isinstance(name, str) or isinstance(name, BytesIO):
             df = cdh_utils.readDSExport(
                 filename=name, path=path, verbose=self.verbose, **reading_opts
             )
-        elif isinstance(name, pl.DataFrame) or isinstance(name, pl.LazyFrame):
+        elif isinstance(name, pl.DataFrame):
             df = name.lazy()
+            self.import_strategy = "eager"
         else:
             return None, None, None
 
