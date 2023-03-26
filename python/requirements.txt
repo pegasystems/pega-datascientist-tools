@@ -5,4 +5,4 @@ pydot
 tqdm
 polars>=0.16.8
 pyarrow
-yaml
+pyyaml

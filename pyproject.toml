@@ -39,7 +39,7 @@ dependencies = [
         "polars>=0.16.8",
         "pyarrow",
         "tqdm"
-        "yaml"
+        "pyyaml"
     ]
 requires-python = ">=3.8"
 
