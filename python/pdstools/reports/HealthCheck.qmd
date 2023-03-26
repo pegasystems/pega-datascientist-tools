@@ -254,17 +254,7 @@ fig.show()
 The standard configuration is to have one model per treatment.
 
 ```{python}
-model_overview = last_data.groupby(["Configuration", "Channel", "Direction"]).agg(
-    [
-        pl.col("Name").unique().count().alias("Number of Actions"),
-        pl.col("ModelID").unique().count().alias("Number of Models"),
-    ]
-).with_columns(
-    [
-    pl.col("Configuration").is_in(standardNBADNames).alias("Standard in NBAD Framework"),
-    (pl.col("Number of Models") / pl.col("Number of Actions")).round(2).alias("Average number of Treatments per Action")
-    ]
-).sort("Configuration").to_pandas(use_pyarrow_extension_array=True)
+dm.Tables.model_overview.to_pandas(use_pyarrow_extension_array=True)
 show(model_overview)
 print(f"There are a total of {len(last_data.select('ModelID').unique())} unique models in the latest snapshot. \n " )
 ```
