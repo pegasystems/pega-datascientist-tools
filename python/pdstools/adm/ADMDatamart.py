@@ -1,7 +1,7 @@
 import logging
 import os
 from datetime import timedelta, datetime
-from typing import Dict, NoReturn, Optional, Tuple, Union, Literal, Any
+from typing import Dict, NoReturn, Optional, Tuple, Union, Literal, Any, List
 from io import BytesIO
 import polars as pl
 
@@ -104,7 +104,7 @@ class ADMDatamart(Plots):
         predictor_filename: Optional[str] = "predictorData",
         model_df: Optional[any_frame] = None,
         predictor_df: Optional[any_frame] = None,
-        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
+        query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]] = None,
         subset: bool = True,
         drop_cols: Optional[list] = None,
         include_cols: Optional[list] = None,
@@ -622,17 +622,19 @@ class ADMDatamart(Plots):
     def _apply_query(
         self,
         df: any_frame,
-        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
+        query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]] = None,
     ) -> pl.LazyFrame:
-        """Given an input pandas dataframe, it filters the dataframe based on input query
+        """Given an input Polars dataframe, it filters the dataframe based on input query
 
         Parameters
         ----------
         df : Union[pl.DataFrame, pl.LazyFrame]
             The input dataframe
-        query: Optional[Union[pl.Expr, str, Dict[str, list]]]
-            If a Polars Expression, passes the expression into Polars' filter function
-            If a string, uses the default Pandas query function (works only in eager mode)
+        query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]]
+            If a Polars Expression, passes the expression into Polars' filter function.
+            If a list of Polars Expressions, applies each of the expressions as filters.
+            If a string, uses the Pandas query function (works only in eager mode,
+            not recommended).
             Else, a dict of lists where the key is column name in the dataframe
             and the corresponding value is a list of values to keep in the dataframe
         Returns
@@ -650,6 +652,18 @@ class ADMDatamart(Plots):
 
                 else:
                     raise pl.ColumnNotFoundError(col_diff)
+
+            if isinstance(query, list):
+                for item in query:
+                    if isinstance(item, pl.Expr):
+                        col_diff = set(item.meta.root_names()) - set(df.columns)
+                        if len(col_diff) == 0:
+                            return df.filter(item)
+                        else:
+                            raise pl.ColumnNotFoundError(col_diff)
+                    else:
+                        raise ValueError(item)
+                return df
 
             if isinstance(query, str):
                 print(
@@ -750,7 +764,7 @@ class ADMDatamart(Plots):
         last: bool = False,
         by: str = "Configuration",
         n_threads: int = 1,
-        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
+        query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]] = None,
         verbose: bool = True,
         **kwargs,
     ) -> Dict:  # pragma: no cover
@@ -771,7 +785,7 @@ class ADMDatamart(Plots):
             The number of threads to use for extracting the models.
             Since we use multithreading, setting this to a reasonable value
             helps speed up the import.
-        query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+        query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]]
             Please refer to :meth:`._apply_query`
         verbose: bool, default = False
             Whether to print out information while importing
@@ -869,7 +883,7 @@ class ADMDatamart(Plots):
     def model_summary(
         self,
         by: str = "ModelID",
-        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
+        query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]] = None,
         **kwargs,
     ) -> pl.LazyFrame:
         """Convenience method to automatically generate a summary over models
@@ -882,7 +896,7 @@ class ADMDatamart(Plots):
         ----------
         by: str, default = ModelID
             By what column to summarize the models
-        query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+        query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]]
             Please refer to :meth:`._apply_query`
 
         Returns
@@ -1162,7 +1176,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
 
         return ret
 
-    def applyGlobalQuery(self, query: pl.Expr):
+    def applyGlobalQuery(self, query: Union[pl.Expr, str, Dict[str, list]]):
         """Convenience method to further query the datamart
 
         It's possible to give this query to the initial `ADMDatamart` class
@@ -1174,14 +1188,18 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
 
         Paramters
         ---------
-        query: pl.Expr
-            The query to apply
+        query: Union[pl.Expr, str, Dict[str, list]]
+            The query to apply, see :meth:`._apply_query`
         """
         self.modelData = self._apply_query(self.modelData, query)
+        if self.import_strategy == "eager":
+            self.modelData = self.modelData.collect().lazy()
         if self.predictorData is not None:
             self.predictorData = self.predictorData.join(
                 self.modelData.select(pl.col("ModelID").unique()), on="ModelID"
             )
+            if self.import_strategy == "eager":
+                self.predictorData = self.predictorData.collect().lazy()
             self.combinedData = self._get_combined_data(strategy=self.import_strategy)
 
     def generateHealthCheck(
