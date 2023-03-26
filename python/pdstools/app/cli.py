@@ -14,11 +14,11 @@ def main():
 def run(*args):
     from streamlit.web import cli as stcli
     import sys
-    from . import streamlit_app
+    from . import Home
 
     print("Running app.")
     print(args)
-    filename = streamlit_app.__file__
+    filename = Home.__file__
     sys.argv = ["streamlit", "run", filename]
     if len(args) > 1:
         sys.argv.extend(args[1:])
