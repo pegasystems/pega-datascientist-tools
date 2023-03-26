@@ -62,7 +62,7 @@ Attributes
 
 
 .. py:data:: __version__
-   :value: '3.0.0'
+   :value: '3.0.1'
 
    
 
