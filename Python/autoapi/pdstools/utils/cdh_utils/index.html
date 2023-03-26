@@ -358,6 +358,9 @@ of data analysis, reporting and monitoring.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.legend_color_order" title="pdstools.utils.cdh_utils.legend_color_order"><code class="xref py py-obj docutils literal notranslate"><span class="pre">legend_color_order</span></code></a>(fig)</p></td>
 <td><p>Orders legend colors alphabetically in order to provide pega color</p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.sync_reports" title="pdstools.utils.cdh_utils.sync_reports"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sync_reports</span></code></a>([checkOnly, autoUpdate])</p></td>
+<td><p>Compares the report files in your local directory to the repo</p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -836,6 +839,22 @@ See <cite>examples</cite>.</p>
 consistency among different categories</p>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.sync_reports">
+<span class="sig-name descname"><span class="pre">sync_reports</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">checkOnly</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">autoUpdate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.cdh_utils.sync_reports" title="Permalink to this definition">#</a></dt>
+<dd><p>Compares the report files in your local directory to the repo</p>
+<p>If any of the files are different from the ones in GitHub,
+will prompt you to update them.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>checkOnly</strong> (<em>bool</em><em>, </em><em>default = False</em>) – If True, only checks, does not prompt to update</p></li>
+<li><p><strong>autoUpdate</strong> (<em>bool</em><em>, </em><em>default = False</em>) – If True, doensn’t prompt for update and goes ahead</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 </section>
 </section>
@@ -912,6 +931,7 @@ consistency among different categories</p>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.readClientCredentialFile"><code class="docutils literal notranslate"><span class="pre">readClientCredentialFile()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.getToken"><code class="docutils literal notranslate"><span class="pre">getToken()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.legend_color_order"><code class="docutils literal notranslate"><span class="pre">legend_color_order()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.sync_reports"><code class="docutils literal notranslate"><span class="pre">sync_reports()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.readDSExport">readDSExport</a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.import_file">import_file</a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.readZippedFile">readZippedFile</a></li>
@@ -937,6 +957,7 @@ consistency among different categories</p>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.readClientCredentialFile">readClientCredentialFile</a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.getToken">getToken</a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.legend_color_order">legend_color_order</a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.sync_reports">sync_reports</a></li>
 </ul>
 </li>
 </ul>

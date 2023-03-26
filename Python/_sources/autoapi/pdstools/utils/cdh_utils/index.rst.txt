@@ -46,6 +46,7 @@ Functions
    pdstools.utils.cdh_utils.readClientCredentialFile
    pdstools.utils.cdh_utils.getToken
    pdstools.utils.cdh_utils.legend_color_order
+   pdstools.utils.cdh_utils.sync_reports
 
 
 
@@ -355,5 +356,18 @@ Functions
 
    Orders legend colors alphabetically in order to provide pega color
    consistency among different categories
+
+
+.. py:function:: sync_reports(checkOnly: bool = False, autoUpdate: bool = False)
+
+   Compares the report files in your local directory to the repo
+
+   If any of the files are different from the ones in GitHub,
+   will prompt you to update them.
+
+   :param checkOnly: If True, only checks, does not prompt to update
+   :type checkOnly: bool, default = False
+   :param autoUpdate: If True, doensn't prompt for update and goes ahead
+   :type autoUpdate: bool, default = False
 
 
