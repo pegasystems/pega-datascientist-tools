@@ -941,7 +941,7 @@ class Plots:
             "BinResponseCount",
             to_plot,
             "Type",
-            "PredictorCategory"
+            "PredictorCategory",
         }
 
         df, facets = self._subset_data(
@@ -1010,6 +1010,8 @@ class Plots:
 
         Keyword arguments
         -----------------
+        predictorCategorization : pl.Expr
+            An optional override for the predictor categorization function
         plotting_engine: str
             This chart is only supported in plotly
         return_df : bool
@@ -1048,6 +1050,11 @@ class Plots:
             last=last,
             facets=None,
         )
+
+        if "predictorCategorization" in kwargs:
+            df = df.with_columns(
+                PredictorCategory=kwargs.get("predictorCategorization")
+            )
 
         df = (
             df.filter(pl.col("PredictorName") != "Classifier")

@@ -1166,6 +1166,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         delete_temp_files=True,
         output_type="html",
         allow_collect=True,
+        **kwargs,
     ):
         """Manually generates a Health Check
 
@@ -1211,6 +1212,8 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         from pdstools import __healthcheck_file__
         import yaml
 
+        verbose = kwargs.get('verbose', self.verbose)
+
         if self.modelData is None or self.predictorData is None:
             raise AssertionError("Needs both model and predictor data.")
         if self.import_strategy == "lazy" and not allow_collect:
@@ -1232,7 +1235,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             yaml.dump(params, f)
 
         bashCommand = f"quarto render HealthCheck.qmd --to {output_type} --output {output_filename} --execute-params params.yaml"
-        if not self.verbose:
+        if not verbose:
             stdout, stderr = subprocess.DEVNULL, subprocess.STDOUT
         else:
             print("Set verbose=False to hide output.")
