@@ -1,16 +1,19 @@
 import logging
 import os
-from datetime import timedelta, datetime
-from typing import Dict, NoReturn, Optional, Tuple, Union, Literal, Any, List
+from datetime import datetime, timedelta
 from io import BytesIO
+from pathlib import Path
+from typing import Any, Dict, List, Literal, NoReturn, Optional, Tuple, Union
+
 import polars as pl
 
-from ..utils import cdh_utils
-from ..utils.types import any_frame
-from .ADMTrees import ADMTrees
 from ..plots.plot_base import Plots
 from ..plots.plots_plotly import ADMVisualisations as plotly_plot
+from ..utils import cdh_utils
 from ..utils.errors import NotEagerError
+from ..utils.types import any_frame
+from .ADMTrees import ADMTrees
+from .Tables import Tables
 
 
 class ADMDatamart(Plots):
@@ -97,7 +100,7 @@ class ADMDatamart(Plots):
 
     def __init__(
         self,
-        path: str = ".",
+        path: Path = Path("."),
         import_strategy: Literal["eager", "lazy"] = "eager",
         *,
         model_filename: Optional[str] = "modelData",
@@ -170,7 +173,7 @@ class ADMDatamart(Plots):
 
     def import_data(
         self,
-        path: Optional[str] = ".",
+        path: Optional[Path] = Path("."),
         *,
         model_filename: Optional[str] = "modelData",
         predictor_filename: Optional[str] = "predictorData",
@@ -197,9 +200,9 @@ class ADMDatamart(Plots):
 
         Parameters
         ----------
-        path : str
+        path : Path
             The path of the data files
-            Default = current path (',')
+            Default = current path ('.')
         subset : bool, default = True
             Whether to only select the renamed columns,
             set to False to keep all columns
@@ -738,8 +741,8 @@ class ADMDatamart(Plots):
             )
 
         def _getType(val):
-            import zlib
             import base64
+            import zlib
 
             return next(
                 line.split('"')[-2].split(".")[-1]
@@ -1205,8 +1208,8 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
     def generateHealthCheck(
         self,
         name: Optional[str] = None,
-        output_location=".",
-        working_dir=".",
+        output_location:Path=Path("."),
+        working_dir:Path=Path("."),
         delete_temp_files=True,
         output_type="html",
         allow_collect=True,
@@ -1251,10 +1254,13 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             The full path to the generated Health Check file.
         """
 
+        import os
         import shutil
         import subprocess
-        from pdstools import __healthcheck_file__
+
         import yaml
+
+        from pdstools import __reports__
 
         verbose = kwargs.get("verbose", self.verbose)
 
@@ -1265,7 +1271,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         if not os.path.exists(working_dir):
             os.mkdir(working_dir)
 
-        shutil.copy(__healthcheck_file__, working_dir)
+        shutil.copy(__reports__ / "HealthCheck.qmd", working_dir)
         if name is not None:
             output_filename = f"HealthCheck_{name.replace(' ', '_')}.{output_type}"
         else:
@@ -1285,17 +1291,43 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             print("Set verbose=False to hide output.")
             print("Running:", bashCommand)
             stdout, stderr = subprocess.PIPE, None
-        process = subprocess.Popen(
-            bashCommand.split(), stdout=stdout, stderr=stderr, cwd=working_dir
-        )
-        process.communicate()
+        if kwargs.get("output_to_file", False):
+            with open(f"{working_dir}/log.txt", "w") as outfile:
+                process = subprocess.Popen(
+                    bashCommand.split(), stdout=outfile, stderr=stderr, cwd=working_dir
+                )
+                process.communicate()
+
+        else:
+            process = subprocess.Popen(
+                bashCommand.split(), stdout=stdout, stderr=stderr, cwd=working_dir
+            )
+            process.communicate()
+        if not os.path.exists(working_dir/output_filename):
+            msg = 'Error when generating healthcheck.'
+            if not verbose and not kwargs.get('output_to_file', False):
+                msg += "Set 'verbose' to True to see the full output"
+            raise ValueError(msg)
+
+        filename = f"{output_location}/{output_filename}"
 
         if output_location != working_dir:
-            shutil.move(f"{working_dir}/{output_filename}", output_location)
+            if os.path.isfile(filename):
+                counter = 1
+                filename, ext = output_filename.rsplit(".", 1)
+                while os.path.isfile(f"{filename} ({counter}).{ext}"):
+                    counter += 1
+                filename = f"{filename} ({counter}).{ext}"
+            shutil.move(f"{working_dir}/{output_filename}", filename)
 
         if delete_temp_files:
-            for f in ["params.yaml", "HealthCheck.qmd"]:
-                os.remove(f"{working_dir}/{f}")
+            for f in ["params.yaml", "HealthCheck.qmd", "HealthCheck.ipynb", 'log.txt']:
+                try:
+                    os.remove(f"{working_dir}/{f}")
+                except:
+                    pass
             for f in files:
                 os.remove(f)
-        return f"{output_location}/{output_filename}"
+
+        return filename
+
