@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 import streamlit as st
-import streamlit_utils
+from pdstools.utils import streamlit_utils
 
 intro, imports, filters, report = st.tabs(
     [
