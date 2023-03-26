@@ -49,7 +49,7 @@ class ADMDatamart(Plots, Tables):
         Please refer to :meth:`.get_engine`
     subset : bool, default = True
         Whether to only keep a subset of columns for efficiency purposes
-        Refer to :meth:`_available_columns` for the default list of columns.
+        Refer to :meth:`._available_columns` for the default list of columns.
     drop_cols  Optional[list]
         Columns to exclude from reading
     include_cols : Optional[list]
@@ -1211,10 +1211,11 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
     def generateHealthCheck(
         self,
         name: Optional[str] = None,
-        output_location:Path=Path("."),
-        working_dir:Path=Path("."),
+        output_location: Path = Path("."),
+        working_dir: Path = Path("."),
         delete_temp_files=True,
         output_type="html",
+        include_tables=True,
         allow_collect=True,
         **kwargs,
     ):
@@ -1245,6 +1246,10 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             If false, these files stay in working_dir
         output_type: : str, default = 'html'
             Which type of export to create. Currently, html is best supported.
+        include_tables : bool, default = True
+            Whether to include the embedded tables directly in the file
+            If false, you can always get the tables directly by calling
+            :meth:`.exportTables`
         allow_collect : bool, default = True
             An override for the `lazy` memory_strategy. If set to True, still allows
             for collecting of data. Naturally, we need to collect the data in order
@@ -1256,8 +1261,9 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         str:
             The full path to the generated Health Check file.
         """
+
         def delete_temp_files(working_dir, files):
-            for f in ["params.yaml", "HealthCheck.qmd", "HealthCheck.ipynb", 'log.txt']:
+            for f in ["params.yaml", "HealthCheck.qmd", "HealthCheck.ipynb", "log.txt"]:
                 try:
                     os.remove(f"{working_dir}/{f}")
                 except:
@@ -1284,7 +1290,10 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
 
         files = self.save_data(working_dir)
 
-        params = {"kwargs": {"subset": False, "predictorCategorization": None}}
+        params = {
+            "kwargs": {"subset": False, "predictorCategorization": None},
+            "include_tables": include_tables,
+        }
 
         with open(f"{working_dir}/params.yaml", "w") as f:
             yaml.dump(params, f)
@@ -1308,9 +1317,9 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 bashCommand.split(), stdout=stdout, stderr=stderr, cwd=working_dir
             )
             process.communicate()
-        if not os.path.exists(working_dir/output_filename):
-            msg = 'Error when generating healthcheck.'
-            if not verbose and not kwargs.get('output_to_file', False):
+        if not os.path.exists(working_dir / output_filename):
+            msg = "Error when generating healthcheck."
+            if not verbose and not kwargs.get("output_to_file", False):
                 msg += "Set 'verbose' to True to see the full output"
             if delete_temp_files:
                 delete_temp_files(working_dir, files)
@@ -1332,4 +1341,18 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
 
         return filename
 
+    def exportTables(self, file: Path = "Tables.xlsx"):
+        from xlsxwriter import Workbook
 
+        tabs = {
+            tab: getattr(self, tab) for tab in dir(Tables) if not tab.startswith("_")
+        }
+        with Workbook(file) as wb:
+            for tab, data in tabs.items():
+                data = data.with_columns(
+                    pl.col(pl.List(pl.Categorical), pl.List(pl.Utf8))
+                    .arr.eval(pl.element().cast(pl.Utf8))
+                    .arr.join(", ")
+                )
+                data.write_excel(workbook=wb, worksheet=tab)
+        return file

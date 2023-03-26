@@ -38,7 +38,6 @@ import pandas as pd
 import numpy as np
 from pdstools.utils import pega_template 
 import math
-df_dict = {}
 
 
 ```
@@ -54,6 +53,7 @@ df_dict = {}
 name = 'CDH Sample'
 filters = dict()
 kwargs = dict()
+include_tables=True
 globalQuery = None
 
 ```
@@ -147,7 +147,6 @@ for label, column in context_keys.items():
         datalist, n = '', 0
     counts[f'Number of {label}'] = [n, datalist]
 overview_of_adaptive_models = pd.DataFrame(counts, index=['Counts', 'Values']).T
-df_dict["overview_of_adaptive_models"] = overview_of_adaptive_models
 show(overview_of_adaptive_models, columnDefs=[{"className": "dt-left", "targets": "_all"}])
 ```
 
@@ -254,9 +253,12 @@ fig.show()
 The standard configuration is to have one model per treatment.
 
 ```{python}
-model_overview = datamart.model_overview.to_pandas(use_pyarrow_extension_array=True)
-show(model_overview)
-print(f"There are a total of {len(last_data.select('ModelID').unique())} unique models in the latest snapshot. \n " )
+if include_tables:
+    model_overview = datamart.model_overview.to_pandas(use_pyarrow_extension_array=True)
+    show(model_overview)
+    print(f"There are a total of {len(last_data.select('ModelID').unique())} unique models in the latest snapshot. \n " )
+else:
+    print('Please refer to the `model_overview` tab in the included Excel file.')
 ```
 ## Model Performance 
  Recommended best practice is to have multiple treatments for an action. Too few gives less opportunity for personalization of the interactions.
@@ -354,8 +356,11 @@ The predictors are categorized (by color) by the “source”. By default this t
 ## Number of Predictors per model configuration 
 
 ```{python}
-predictors_per_configuration = datamart.predictors_per_configuration.to_pandas(use_pyarrow_extension_array=True)
-show(predictors_per_configuration)
+if include_tables:
+    predictors_per_configuration = datamart.predictors_per_configuration.to_pandas(use_pyarrow_extension_array=True)
+    show(predictors_per_configuration)
+else:
+    print('Please refer to the `predictors_per_configuration` tab in the included Excel file.')
 ```
 
 
@@ -438,9 +443,12 @@ See if there are predictors that are just always perform poorly.
 
 ```{python}
 # weighted performance
-bad_predictors = datamart.bad_predictors.to_pandas(use_pyarrow_extension_array=True)
+if include_tables:
+    bad_predictors = datamart.bad_predictors.to_pandas(use_pyarrow_extension_array=True)
 
-show(bad_predictors, scrollX=True)
+    show(bad_predictors, scrollX=True)
+else:
+    print('Please refer to the `bad_predictors` tab in the included Excel file.')
 ```
 
 ## Number of Active and Inactive Predictors
@@ -551,27 +559,33 @@ These models have no responses at all: no positives but also no negatives. The m
 
 Often these represent actions that never made it into production and were only used to test out logic. But it could also be that the response mechanism is broken. It could for example be caused by outcome labels that are returned by the channel application not matching the configuration of the adaptive models.
 ```{python}
-zero_response = datamart.zero_response.to_pandas(use_pyarrow_extension_array=True)
+if include_tables:
+    zero_response = datamart.zero_response.to_pandas(use_pyarrow_extension_array=True)
 
-if zero_response.shape[0] >0:
-    Text('''These models have no responses at all: no positives but also no negatives.
-    The models for these actions/treatments exist, so they must have been created in the evaluation of the actions/treatments, but they were never selected to show to the customer, so never received any responses.
+    if zero_response.shape[0] >0:
+        Text('''These models have no responses at all: no positives but also no negatives.
+        The models for these actions/treatments exist, so they must have been created in the evaluation of the actions/treatments, but they were never selected to show to the customer, so never received any responses.
 
-    Often these represent actions that never made it into production and were only used to test out logic. But it could also be that the response mechanism is broken. It could for example be caused by outcome labels that are returned by the channel application not matching the configuration of the adaptive models.''')
-    print(f"There are {zero_response.shape[0]} models with zero response")
-    show(zero_response, scrollX = True)
+        Often these represent actions that never made it into production and were only used to test out logic. But it could also be that the response mechanism is broken. It could for example be caused by outcome labels that are returned by the channel application not matching the configuration of the adaptive models.''')
+        print(f"There are {zero_response.shape[0]} models with zero response")
+        show(zero_response, scrollX = True)
+    else:
+        print("All models have received at least 1 response.")
 else:
-    print("All models have received at least 1 response.")
+    print('Please refer to the `zero_response` tab in the included Excel file.')
 ```
 
 ```{python}
 #| output: asis
-zero_positives = datamart.zero_positives.to_pandas(use_pyarrow_extension_array=True)
-if zero_positives.shape[0] >0:
-    print("### Models that have have been used but never received a positive response")
-    show(zero_positives, scrollX = True)
+if include_tables:
+    zero_positives = datamart.zero_positives.to_pandas(use_pyarrow_extension_array=True)
+    if zero_positives.shape[0] >0:
+        print("### Models that have have been used but never received a positive response")
+        show(zero_positives, scrollX = True)
+    else:
+        print("All models have received at least 1 positive Response.")
 else:
-    print("All models have received atleast 1 positive Response.")
+    print('Please refer to the `zero_positives` tab in the included Excel file.')
 ```
 
 ### Models that are still in an immature phase of learning
@@ -582,25 +596,31 @@ We show the “reach” of these actions as the percentage of the population tha
 
 
 ```{python}
-reach = datamart.reach.to_pandas()
-reach.style.format({
-    'Reach': '{:,.2%}'.format})
-show(reach, scrollX=True)
+if include_tables:
+    reach = datamart.reach.to_pandas()
+    reach.style.format({
+        'Reach': '{:,.2%}'.format})
+    show(reach, scrollX=True)
+else:
+    print('Please refer to the `reach` tab in the included Excel file.')
 
 ```
 
 
 ```{python}
 #| output: asis
-min_perf_df = datamart.minimum_performance.to_pandas(use_pyarrow_extension_array=True)
-if min_perf_df.shape[0] >0:
-    print('''### Models that have received sufficient responses but are still at their minimum performance \n
-    These models also have received over 200 positives but still show the minimum model performance. \n
-    This could be an indication of data problems, or not having the right predictors but may also be caused by technical aspects like the order of the responses to the model. \n
-    ''')
-    show(min_perf_df, scrollX = True)
+if include_tables:
+    min_perf_df = datamart.minimum_performance.to_pandas(use_pyarrow_extension_array=True)
+    if min_perf_df.shape[0] >0:
+        print('''### Models that have received sufficient responses but are still at their minimum performance \n
+        These models also have received over 200 positives but still show the minimum model performance. \n
+        This could be an indication of data problems, or not having the right predictors but may also be caused by technical aspects like the order of the responses to the model. \n
+        ''')
+        show(min_perf_df, scrollX = True)
+    else:
+        print("All models with over 200 positive responses are above minimum performance")
 else:
-    print("All models with over 200 positive responses are above minimum performance")
+    print('Please refer to the `minimum_performance` tab in the included Excel file.')
 ```
 
 ## Number of Empty/Immature Models over time 
@@ -879,7 +899,10 @@ A list of all the models is written to a file so a script can iterate over all m
 
 Generally you will want to apply some filtering, or do this for specific models only. This can be accomplished in either this script here, or by editing the generated file.
 ```{python}
-appendix = datamart.appendix.to_pandas(use_pyarrow_extension_array=True)
-show(appendix)
+if include_tables:
+    appendix = datamart.appendix.to_pandas(use_pyarrow_extension_array=True)
+    show(appendix)
+else:
+    print('Please refer to the `appendix` tab in the included Excel file.')
 
 ```

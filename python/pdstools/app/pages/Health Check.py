@@ -17,13 +17,13 @@ with intro:
     """# Introduction"""
     """This app allows you to easily generate the ADM Health Check."""
 
-    """The healthcheck gives a generic and global overview 
+    """The Health Check gives a generic and global overview 
     of the Adaptive models and predictors using Pega Machine Learning.
     It is mostly written mostly towards a standard Next-Best-Action Designer
     setup within Pega Customer Decision Hub, but also works for non-standard
     setups and custom use-cases, though perhaps not as well."""
 
-    """The healthcheck is based on two files: the ADM Model Snapshot
+    """The Health Check is based on two files: the ADM Model Snapshot
     dataset and the ADM Predictor Binning dataset. These two datasets, 
     part of the so-called "datamart", give a snapshot of the internals of the
     adaptive model. For instructions on where and how to download these files,
@@ -45,7 +45,7 @@ with imports:
     "# Importing the data"
     st.write(
         """We currently support three ways to upload your own data,
-    and one convenient way to test out the healthcheck using a CDH Samle dataset. 
+    and one convenient way to test out the Health Check using a CDH Sample dataset. 
     Select an option below to get started, or first configure some advanded options
     in the expanding section below."""
     )
@@ -76,10 +76,10 @@ with imports:
 with filters:
     """# Add custom filters"""
 
-    """You can easily add custom filters to specify the healthcheck to your needs.
+    """You can easily add custom filters to specify the Health Check to your needs.
     In the selectbox below, simply select the columns you wish to filter.
     For each column, a new configuration screen will be added in which you can specify
-    what values you want to keep in the healthcheck.
+    what values you want to keep in the Health Check.
     """
 
     if "dm" in st.session_state:
@@ -98,11 +98,18 @@ with report:
         output_type = st.selectbox("Select output type", ["html"], index=0)
         working_dir = Path(st.text_input("Change working directory", "healthCheckDir"))
         delete_temp_files = st.checkbox("Remove temporary files", True)
+        include_tables = st.checkbox(
+            "Include tables in document",
+            True,
+            help="""
+            Whether to include the overview tables embedded in the document itself
+            or to separately recieve these in a tabbed Excel file.""",
+        )
     outfile = ""
-    if st.button("Generate healthcheck"):
+    if st.button("Generate Health Check"):
         if "file" in st.session_state:
             del st.session_state["file"]
-        with st.spinner("Generating healthcheck..."):
+        with st.spinner("Generating Health Check..."):
             try:
                 outfile = st.session_state["dm"].generateHealthCheck(
                     name=name,
@@ -110,6 +117,7 @@ with report:
                     working_dir=working_dir,
                     output_location=working_dir,
                     delete_temp_files=delete_temp_files,
+                    include_tables=include_tables,
                     output_to_file=True,
                 )
                 if os.path.isfile(outfile):
@@ -122,9 +130,24 @@ with report:
                         data=f,
                         file_name="errorlog.txt",
                     )
-    if "file" in st.session_state:
-        btn = st.download_button(
-            label="Download file",
-            data=st.session_state["file"],
-            file_name=Path(outfile).name,
-        )
+
+            if not include_tables:
+                tablename = Path(outfile).name.rsplit(".", 1)[0] + "_Tables.xlsx"
+                tables = st.session_state["dm"].exportTables(tablename)
+                st.session_state["tables"] = open(tables, "rb")
+
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        if "file" in st.session_state:
+            btn = st.download_button(
+                label="Download Health Check",
+                data=st.session_state["file"],
+                file_name=Path(outfile).name,
+            )
+            if "tables" in st.session_state:
+                with col2:
+                    btn = st.download_button(
+                        label="Download additional tables",
+                        data=st.session_state["tables"],
+                        file_name=tablename,
+                    )
