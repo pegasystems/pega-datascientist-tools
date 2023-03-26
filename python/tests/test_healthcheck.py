@@ -1,3 +1,5 @@
+import sys
+sys.path.append("python")
 from pdstools import datasets
 import pytest
 
