@@ -389,6 +389,8 @@ Classes
       :param query: Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
       :type query: Optional[Union[pl.Expr, str, Dict[str, list]]]
 
+      :keyword predictorCategorization: An optional override for the predictor categorization function
+      :kwtype predictorCategorization: pl.Expr
       :keyword plotting_engine: This chart is only supported in plotly
       :kwtype plotting_engine: str
       :keyword return_df: If set to True, returns the dataframe instead of the plot

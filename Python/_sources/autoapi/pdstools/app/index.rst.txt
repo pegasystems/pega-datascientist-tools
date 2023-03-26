@@ -10,8 +10,7 @@ Submodules
    :titlesonly:
    :maxdepth: 1
 
-   datamart_utils/index.rst
-   pds_app/index.rst
-   streamlit_app/index.rst
+   Home/index.rst
+   cli/index.rst
 
 

@@ -1,0 +1,68 @@
+:py:mod:`pdstools.adm.Tables`
+=============================
+
+.. py:module:: pdstools.adm.Tables
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   pdstools.adm.Tables.Tables
+
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   pdstools.adm.Tables.standardNBADNames
+
+
+.. py:data:: standardNBADNames
+   :value: ['Assisted_Click_Through_Rate', 'CallCenter_Click_Through_Rate', 'CallCenterAcceptRateOutbound',...
+
+   
+
+.. py:class:: Tables
+
+   .. py:property:: _zero_response
+
+
+   .. py:method:: _by()
+
+
+   .. py:method:: model_overview()
+
+
+   .. py:method:: predictors_per_configuration()
+
+
+   .. py:method:: bad_predictors()
+
+
+   .. py:method:: zero_response()
+
+
+   .. py:method:: zero_positives()
+
+
+   .. py:method:: _last_counts()
+
+
+   .. py:method:: reach()
+
+
+   .. py:method:: minimum_performance()
+
+
+   .. py:method:: appendix()
+
+
+

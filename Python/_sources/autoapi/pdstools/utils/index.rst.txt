@@ -15,6 +15,7 @@ Submodules
    errors/index.rst
    hds_utils/index.rst
    pega_template/index.rst
+   streamlit_utils/index.rst
    types/index.rst
 
 

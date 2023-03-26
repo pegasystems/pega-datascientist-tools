@@ -1,0 +1,46 @@
+:py:mod:`pdstools.utils.streamlit_utils`
+========================================
+
+.. py:module:: pdstools.utils.streamlit_utils
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   pdstools.utils.streamlit_utils.import_datamart
+   pdstools.utils.streamlit_utils.fromUploadedFile
+   pdstools.utils.streamlit_utils.fromFilePath
+   pdstools.utils.streamlit_utils.filter_dataframe
+   pdstools.utils.streamlit_utils.configure_predictor_categorization
+
+
+
+.. py:function:: import_datamart(**opts)
+
+
+.. py:function:: fromUploadedFile(**opts)
+
+
+.. py:function:: fromFilePath(**opts)
+
+
+.. py:function:: filter_dataframe(df: polars.LazyFrame, schema: Optional[dict] = None) -> polars.LazyFrame
+
+   Adds a UI on top of a dataframe to let viewers filter columns
+
+   :param df: Original dataframe
+   :type df: pl.DataFrame
+
+   :returns: The filtered LazyFrame
+   :rtype: pl.LazyFrame
+
+
+.. py:function:: configure_predictor_categorization()
+
+

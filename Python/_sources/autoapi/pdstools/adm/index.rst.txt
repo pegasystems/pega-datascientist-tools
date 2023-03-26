@@ -12,5 +12,6 @@ Submodules
 
    ADMDatamart/index.rst
    ADMTrees/index.rst
+   Tables/index.rst
 
 

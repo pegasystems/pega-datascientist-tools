@@ -17,9 +17,9 @@ Classes
 
 
 
-.. py:class:: ADMDatamart(path: str = '.', import_strategy: Literal[eager, lazy] = 'eager', *, model_filename: Optional[str] = 'modelData', predictor_filename: Optional[str] = 'predictorData', model_df: Optional[pdstools.utils.types.any_frame] = None, predictor_df: Optional[pdstools.utils.types.any_frame] = None, query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None, subset: bool = True, drop_cols: Optional[list] = None, include_cols: Optional[list] = None, context_keys: list = ['Channel', 'Direction', 'Issue', 'Group'], extract_keys: bool = False, predictorCategorization: polars.Expr = cdh_utils.defaultPredictorCategorization, plotting_engine: Union[str, Any] = 'plotly', verbose: bool = False, **reading_opts)
+.. py:class:: ADMDatamart(path: pathlib.Path = Path('.'), import_strategy: Literal[eager, lazy] = 'eager', *, model_filename: Optional[str] = 'modelData', predictor_filename: Optional[str] = 'predictorData', model_df: Optional[pdstools.utils.types.any_frame] = None, predictor_df: Optional[pdstools.utils.types.any_frame] = None, query: Optional[Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]] = None, subset: bool = True, drop_cols: Optional[list] = None, include_cols: Optional[list] = None, context_keys: list = ['Channel', 'Direction', 'Issue', 'Group'], extract_keys: bool = False, predictorCategorization: polars.Expr = cdh_utils.defaultPredictorCategorization, plotting_engine: Union[str, Any] = 'plotly', verbose: bool = False, **reading_opts)
 
-   Bases: :py:obj:`pdstools.plots.plot_base.Plots`
+   Bases: :py:obj:`pdstools.plots.plot_base.Plots`, :py:obj:`pdstools.adm.Tables.Tables`
 
    Main class for importing, preprocessing and structuring Pega ADM Datamart.
    Gets all available data, properly names and merges into one main dataframe
@@ -45,7 +45,7 @@ Classes
    :keyword plotting_engine: Please refer to :meth:`.get_engine`
    :kwtype plotting_engine: str, default = "plotly"
    :keyword subset: Whether to only keep a subset of columns for efficiency purposes
-                    Refer to :meth:`_available_columns` for the default list of columns.
+                    Refer to :meth:`._available_columns` for the default list of columns.
    :kwtype subset: bool, default = True
    :keyword drop_cols  Optional[list]: Columns to exclude from reading
    :keyword include_cols: Additionial columns to include when reading
@@ -119,7 +119,7 @@ Classes
       but create visualisations to your own specifications, in any library.
 
 
-   .. py:method:: import_data(path: Optional[str] = '.', *, model_filename: Optional[str] = 'modelData', predictor_filename: Optional[str] = 'predictorData', model_df: Optional[pdstools.utils.types.any_frame] = None, predictor_df: Optional[pdstools.utils.types.any_frame] = None, subset: bool = True, drop_cols: Optional[list] = None, include_cols: Optional[list] = None, extract_keys: bool = False, verbose: bool = False, **reading_opts) -> Tuple[Optional[polars.LazyFrame], Optional[polars.LazyFrame]]
+   .. py:method:: import_data(path: Optional[pathlib.Path] = Path('.'), *, model_filename: Optional[str] = 'modelData', predictor_filename: Optional[str] = 'predictorData', model_df: Optional[pdstools.utils.types.any_frame] = None, predictor_df: Optional[pdstools.utils.types.any_frame] = None, subset: bool = True, drop_cols: Optional[list] = None, include_cols: Optional[list] = None, extract_keys: bool = False, verbose: bool = False, **reading_opts) -> Tuple[Optional[polars.LazyFrame], Optional[polars.LazyFrame]]
 
       Method to import & format the relevant data.
 
@@ -134,8 +134,8 @@ Classes
       this will be printed to the user if verbose is True.
 
       :param path: The path of the data files
-                   Default = current path (',')
-      :type path: str
+                   Default = current path ('.')
+      :type path: Path
       :param subset: Whether to only select the renamed columns,
                      set to False to keep all columns
       :type subset: bool, default = True
@@ -272,17 +272,19 @@ Classes
       :rtype: (os.PathLike, os.PathLike)
 
 
-   .. py:method:: _apply_query(df: pdstools.utils.types.any_frame, query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None) -> polars.LazyFrame
+   .. py:method:: _apply_query(df: pdstools.utils.types.any_frame, query: Optional[Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]] = None) -> polars.LazyFrame
 
-      Given an input pandas dataframe, it filters the dataframe based on input query
+      Given an input Polars dataframe, it filters the dataframe based on input query
 
       :param df: The input dataframe
       :type df: Union[pl.DataFrame, pl.LazyFrame]
-      :param query: If a Polars Expression, passes the expression into Polars' filter function
-                    If a string, uses the default Pandas query function (works only in eager mode)
+      :param query: If a Polars Expression, passes the expression into Polars' filter function.
+                    If a list of Polars Expressions, applies each of the expressions as filters.
+                    If a string, uses the Pandas query function (works only in eager mode,
+                    not recommended).
                     Else, a dict of lists where the key is column name in the dataframe
                     and the corresponding value is a list of values to keep in the dataframe
-      :type query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+      :type query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]]
 
       :returns: Filtered Polars DataFrame
       :rtype: pl.DataFrame
@@ -294,7 +296,7 @@ Classes
    .. py:method:: discover_modelTypes(df: polars.LazyFrame, by='Configuration')
 
 
-   .. py:method:: get_AGB_models(last: bool = False, by: str = 'Configuration', n_threads: int = 1, query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None, verbose: bool = True, **kwargs) -> Dict
+   .. py:method:: get_AGB_models(last: bool = False, by: str = 'Configuration', n_threads: int = 1, query: Optional[Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]] = None, verbose: bool = True, **kwargs) -> Dict
 
       Method to automatically extract AGB models.
 
@@ -312,7 +314,7 @@ Classes
                         helps speed up the import.
       :type n_threads: int, default = 6
       :param query: Please refer to :meth:`._apply_query`
-      :type query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+      :type query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]]
       :param verbose: Whether to print out information while importing
       :type verbose: bool, default = False
 
@@ -345,7 +347,7 @@ Classes
       :rtype: pd.LazyFrame
 
 
-   .. py:method:: model_summary(by: str = 'ModelID', query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None, **kwargs) -> polars.LazyFrame
+   .. py:method:: model_summary(by: str = 'ModelID', query: Optional[Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]] = None, **kwargs) -> polars.LazyFrame
 
       Convenience method to automatically generate a summary over models
 
@@ -356,7 +358,7 @@ Classes
       :param by: By what column to summarize the models
       :type by: str, default = ModelID
       :param query: Please refer to :meth:`._apply_query`
-      :type query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+      :type query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]]
 
       :returns: Groupby dataframe over all models
       :rtype: pl.LazyFrame
@@ -430,7 +432,24 @@ Classes
       Convenience method to quickly summarize the models
 
 
-   .. py:method:: generateHealthCheck(name: Optional[str] = None, output_location='.', working_dir='.', delete_temp_files=True, output_type='html', allow_collect=True)
+   .. py:method:: applyGlobalQuery(query: Union[polars.Expr, str, Dict[str, list]])
+
+      Convenience method to further query the datamart
+
+      It's possible to give this query to the initial `ADMDatamart` class
+      directly, but this method is more explicit. Filters on the model data
+      (query is put in a :meth:`polars.filter()` method), filters the predictorData
+      on the ModelIDs remaining after the query, and recomputes combinedData.
+
+      Only works with Polars expressions.
+
+      Paramters
+      ---------
+      query: Union[pl.Expr, str, Dict[str, list]]
+          The query to apply, see :meth:`._apply_query`
+
+
+   .. py:method:: generateHealthCheck(name: Optional[str] = None, output_location: pathlib.Path = Path('.'), working_dir: pathlib.Path = Path('.'), delete_temp_files=True, output_type='html', include_tables=True, allow_collect=True, **kwargs)
 
       Manually generates a Health Check
 
@@ -457,6 +476,10 @@ Classes
       :type delete_temp_files: bool, default = True
       :param output_type: Which type of export to create. Currently, html is best supported.
       :type output_type: : str, default = 'html'
+      :param include_tables: Whether to include the embedded tables directly in the file
+                             If false, you can always get the tables directly by calling
+                             :meth:`.exportTables`
+      :type include_tables: bool, default = True
       :param allow_collect: An override for the `lazy` memory_strategy. If set to True, still allows
                             for collecting of data. Naturally, we need to collect the data in order
                             to cache it to disk for the health check, so if set to False
@@ -465,6 +488,9 @@ Classes
 
       :returns: The full path to the generated Health Check file.
       :rtype: str
+
+
+   .. py:method:: exportTables(file: pathlib.Path = 'Tables.xlsx')
 
 
 
