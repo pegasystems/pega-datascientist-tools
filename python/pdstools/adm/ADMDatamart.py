@@ -103,7 +103,7 @@ class ADMDatamart(Plots, Tables):
 
     def __init__(
         self,
-        path: Path = Path("."),
+        path: Union[str, Path] = Path("."),
         import_strategy: Literal["eager", "lazy"] = "eager",
         *,
         model_filename: Optional[str] = "modelData",
@@ -176,7 +176,7 @@ class ADMDatamart(Plots, Tables):
 
     def import_data(
         self,
-        path: Optional[Path] = Path("."),
+        path: Optional[Union[str, Path]] = Path("."),
         *,
         model_filename: Optional[str] = "modelData",
         predictor_filename: Optional[str] = "predictorData",
@@ -361,6 +361,10 @@ class ADMDatamart(Plots, Tables):
         elif isinstance(name, pl.DataFrame):
             df = name.lazy()
             self.import_strategy = "eager"
+
+        elif isinstance(name, pl.LazyFrame):
+            df = name.lazy()
+
         else:
             return None, None, None
 

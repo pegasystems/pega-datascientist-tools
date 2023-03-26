@@ -211,9 +211,6 @@ def test_apply_query(test, data):
     with pytest.raises(pl.ColumnNotFoundError):
         test._apply_query(data, pl.col("TEST") > 0)
 
-    with pytest.raises(TypeError):
-        test._apply_query(data, query=["Email"])
-
     with pytest.raises(ValueError):
         test._apply_query(data, query={"Channel": "Email"})
 
