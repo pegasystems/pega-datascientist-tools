@@ -36,7 +36,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: "Install quarto"
         run: |
-                #  curl -OL https://github.com/quarto-dev/quarto-cli/releases/download/v0.1.258/quarto-0.1-amd64.deb
+          #  curl -OL https://github.com/quarto-dev/quarto-cli/releases/download/v0.1.258/quarto-0.1-amd64.deb
           curl -s https://api.github.com/repos/quarto-dev/quarto-cli/releases/latest | 
           grep "browser_download_url.*deb" | 
           cut -d '"' -f 4 |
