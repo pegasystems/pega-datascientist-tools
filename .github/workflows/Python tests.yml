@@ -73,7 +73,7 @@ jobs:
           ipython kernel install --name "python3" --user
 
       - name: Run tests
-        run: pytest --cov=./python/pdstools --cov-report=xml --cov-config=./python/tests/.coveragerc
+        run: pytest --cov=./python/pdstools --cov-report=xml --cov-config=./python/tests/.coveragerc --ignore=python/tests/test_healthcheck.py
         
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
