@@ -13,4 +13,4 @@ from .utils.hds_utils import Config, DataAnonymization
 from .utils.datasets import CDHSample, SampleTrees, SampleValueFinder
 
 from pathlib import Path
-__healthcheck_file__ = Path(__file__).parent/'app/HealthCheck.qmd'
+__reports__ = Path(__file__).parents[0] / "reports"
