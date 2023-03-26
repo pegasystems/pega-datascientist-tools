@@ -115,6 +115,7 @@ class ADMVisualisations:
             hover_data=["ModelID"] + context_keys,
             title=f'Bubble Chart {title} {kwargs.get("title_text","")}',
             template="pega",
+            facet_row_spacing=0.01,
         )
         fig.update_traces(marker=dict(line=dict(color="black")))
 
