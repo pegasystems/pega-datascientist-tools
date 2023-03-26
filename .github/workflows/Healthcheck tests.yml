@@ -32,6 +32,7 @@ jobs:
           pip install -r requirements.txt
           sudo apt-get install -y pandoc
 
+      - uses: actions/checkout@v2
       - name: "Install quarto"
         run: |
           #        curl -OL https://github.com/quarto-dev/quarto-cli/releases/download/v0.1.258/quarto-0.1-amd64.deb
