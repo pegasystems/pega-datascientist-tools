@@ -5,6 +5,9 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict, List, Literal, NoReturn, Optional, Tuple, Union
 
+import shutil
+import subprocess
+import yaml
 import polars as pl
 
 from ..plots.plot_base import Plots
@@ -16,7 +19,7 @@ from .ADMTrees import ADMTrees
 from .Tables import Tables
 
 
-class ADMDatamart(Plots):
+class ADMDatamart(Plots, Tables):
     """Main class for importing, preprocessing and structuring Pega ADM Datamart.
     Gets all available data, properly names and merges into one main dataframe
 
@@ -1253,12 +1256,14 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         str:
             The full path to the generated Health Check file.
         """
-
-        import os
-        import shutil
-        import subprocess
-
-        import yaml
+        def delete_temp_files(working_dir, files):
+            for f in ["params.yaml", "HealthCheck.qmd", "HealthCheck.ipynb", 'log.txt']:
+                try:
+                    os.remove(f"{working_dir}/{f}")
+                except:
+                    pass
+            for f in files:
+                os.remove(f)
 
         from pdstools import __reports__
 
@@ -1307,6 +1312,8 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             msg = 'Error when generating healthcheck.'
             if not verbose and not kwargs.get('output_to_file', False):
                 msg += "Set 'verbose' to True to see the full output"
+            if delete_temp_files:
+                delete_temp_files(working_dir, files)
             raise ValueError(msg)
 
         filename = f"{output_location}/{output_filename}"
@@ -1321,13 +1328,8 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             shutil.move(f"{working_dir}/{output_filename}", filename)
 
         if delete_temp_files:
-            for f in ["params.yaml", "HealthCheck.qmd", "HealthCheck.ipynb", 'log.txt']:
-                try:
-                    os.remove(f"{working_dir}/{f}")
-                except:
-                    pass
-            for f in files:
-                os.remove(f)
+            delete_temp_files(working_dir, files)
 
         return filename
+
 

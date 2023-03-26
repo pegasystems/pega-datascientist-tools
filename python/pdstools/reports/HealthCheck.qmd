@@ -27,7 +27,7 @@ def Text(d):
 import sys
 sys.path.append('..')
 from pdstools import datasets, ADMDatamart
-from pdstools.utils import cdh_utils
+from pdstools import cdh_utils
 from pdstools.utils.cdh_utils import defaultPredictorCategorization
 from plotly.offline import iplot
 from itables import show
@@ -254,7 +254,7 @@ fig.show()
 The standard configuration is to have one model per treatment.
 
 ```{python}
-dm.Tables.model_overview.to_pandas(use_pyarrow_extension_array=True)
+model_overview = datamart.model_overview.to_pandas(use_pyarrow_extension_array=True)
 show(model_overview)
 print(f"There are a total of {len(last_data.select('ModelID').unique())} unique models in the latest snapshot. \n " )
 ```
@@ -354,12 +354,7 @@ The predictors are categorized (by color) by the “source”. By default this t
 ## Number of Predictors per model configuration 
 
 ```{python}
-predictors_per_configuration = combinedData.groupby("Configuration").agg([
-                            pl.col("PredictorName").unique().count().alias("Predictor Count"),
-                            pl.col("Channel").unique().alias("Used in (Channels)"),
-                            pl.col("Issue").unique().alias("Used for (Issues)")
-                        ]).collect().to_pandas()
-df_dict["predictors_per_configuration"] = predictors_per_configuration
+predictors_per_configuration = datamart.predictors_per_configuration.to_pandas(use_pyarrow_extension_array=True)
 show(predictors_per_configuration)
 ```
 
@@ -443,23 +438,8 @@ See if there are predictors that are just always perform poorly.
 
 ```{python}
 # weighted performance
-bad_predictors = (
-    predictorData
-    .filter(pl.col("PredictorName") != "Classifier")
-    .groupby("PredictorName")
-    .agg(
-        [
-            pl.sum("ResponseCount").alias("Response Count"),
-            (pl.min("Performance") * 100).alias("Min"),
-            (pl.mean("Performance") * 100).alias("Mean"),
-            (pl.median("Performance") * 100).alias("Median"),
-            (pl.max("Performance") * 100).alias("max"),
-        ]
-    )
-    .sort("Mean", descending=False)
-).collect().to_pandas(use_pyarrow_extension_array=True)
+bad_predictors = datamart.bad_predictors.to_pandas(use_pyarrow_extension_array=True)
 
-df_dict["bad_predictors"] = bad_predictors
 show(bad_predictors, scrollX=True)
 ```
 
@@ -467,7 +447,8 @@ show(bad_predictors, scrollX=True)
 Showing the number of active and inactive predictors per model.
 
 ### Guidance
-- We expect a few dozen active predictors for every model instance
+- We expect a fewModels that have never been used
+ dozen active predictors for every model instance
 ```{python}
 facets= ["Configuration"]
 fig = datamart.plotPredictorCount(facets = facets)
@@ -570,16 +551,7 @@ These models have no responses at all: no positives but also no negatives. The m
 
 Often these represent actions that never made it into production and were only used to test out logic. But it could also be that the response mechanism is broken. It could for example be caused by outcome labels that are returned by the channel application not matching the configuration of the adaptive models.
 ```{python}
-columns = ["Configuration", "Issue", "Group", "Name", "Channel", "Direction", "Treatment"]
-columns =  [col for col in columns if col in datamart_all_columns]
-counts = modelData.groupby(columns).agg(
-    [
-        pl.sum("ResponseCount"),
-        pl.sum("Positives"),
-        pl.mean("Performance")
-    ]
-)
-zero_response = counts.filter(pl.col("ResponseCount") == 0).collect().to_pandas(use_pyarrow_extension_array=True)
+zero_response = datamart.zero_response.to_pandas(use_pyarrow_extension_array=True)
 
 if zero_response.shape[0] >0:
     Text('''These models have no responses at all: no positives but also no negatives.
@@ -587,18 +559,16 @@ if zero_response.shape[0] >0:
 
     Often these represent actions that never made it into production and were only used to test out logic. But it could also be that the response mechanism is broken. It could for example be caused by outcome labels that are returned by the channel application not matching the configuration of the adaptive models.''')
     print(f"There are {zero_response.shape[0]} models with zero response")
-    df_dict["zero_response"] = zero_response
     show(zero_response, scrollX = True)
 else:
-    print("All models have received atleast 1 response.")
+    print("All models have received at least 1 response.")
 ```
 
 ```{python}
 #| output: asis
-zero_positives = counts.filter(pl.col("Positives") == 0).collect().to_pandas(use_pyarrow_extension_array=True)
+zero_positives = datamart.zero_positives.to_pandas(use_pyarrow_extension_array=True)
 if zero_positives.shape[0] >0:
     print("### Models that have have been used but never received a positive response")
-    df_dict["zero_positives"] = zero_positives
     show(zero_positives, scrollX = True)
 else:
     print("All models have received atleast 1 positive Response.")
@@ -612,25 +582,9 @@ We show the “reach” of these actions as the percentage of the population tha
 
 
 ```{python}
-def calc_reach(num_positives):
-    reach = 100 * (0.02 + 0.98 * (min(200, num_positives) / 200))
-    reach = "{:.2f}".format(reach)
-    reach_percentage = f"%{reach}"
-    return reach_percentage
-
-last_counts = last_data.groupby(columns).agg(
-    [
-        pl.sum("ResponseCount"),
-        pl.sum("Positives"),
-        pl.mean("Performance")
-    ]
-)
-reach = (
-    last_counts.with_columns((pl.col("Positives").apply(calc_reach)).alias("Reach"))
-    .filter((pl.col("Positives") < 200) & (pl.col("Positives") > 0))
-    .to_pandas(use_pyarrow_extension_array=True)
-)
-df_dict["reach_df"] = reach
+reach = datamart.reach.to_pandas()
+reach.style.format({
+    'Reach': '{:,.2%}'.format})
 show(reach, scrollX=True)
 
 ```
@@ -638,13 +592,12 @@ show(reach, scrollX=True)
 
 ```{python}
 #| output: asis
-min_perf_df = last_counts.filter((pl.col("Positives") >= 200) & (pl.col("Performance") == 0.5)).to_pandas(use_pyarrow_extension_array=True)
+min_perf_df = datamart.minimum_performance.to_pandas(use_pyarrow_extension_array=True)
 if min_perf_df.shape[0] >0:
     print('''### Models that have received sufficient responses but are still at their minimum performance \n
     These models also have received over 200 positives but still show the minimum model performance. \n
     This could be an indication of data problems, or not having the right predictors but may also be caused by technical aspects like the order of the responses to the model. \n
     ''')
-    df_dict["min_perf_df"] = min_perf_df
     show(min_perf_df, scrollX = True)
 else:
     print("All models with over 200 positive responses are above minimum performance")
@@ -926,16 +879,7 @@ A list of all the models is written to a file so a script can iterate over all m
 
 Generally you will want to apply some filtering, or do this for specific models only. This can be accomplished in either this script here, or by editing the generated file.
 ```{python}
-available_context_keys=  ["Configuration", "Issue","Group","Name","Channel","Direction","Treatment"]
-available_context_keys =  [col for col in available_context_keys if col in datamart_all_columns]
-appendix = modelData.groupby(available_context_keys + ["ModelID"]).agg(
-    [
-        pl.max("ResponseCount").alias("Responses"),
-        pl.count("SnapshotTime").alias("Snapshots")
-    ]
-).collect().to_pandas(use_pyarrow_extension_array=True)
-
-df_dict["Appendix"] = appendix
+appendix = datamart.appendix.to_pandas(use_pyarrow_extension_array=True)
 show(appendix)
 
 ```
