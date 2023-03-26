@@ -7,7 +7,7 @@ on:
     paths:
       - python/**
       - reports/*.qmd
-      - .github/workflows/HealthCheck*
+      - .github/workflows/**
   pull_request: 
     paths:
       - python/**
