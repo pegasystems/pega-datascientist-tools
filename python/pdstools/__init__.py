@@ -1,6 +1,7 @@
 """Python pdstools"""
 
 __version__ = "3.0.1"
+
 from polars.polars import toggle_string_cache
 
 toggle_string_cache(True)
