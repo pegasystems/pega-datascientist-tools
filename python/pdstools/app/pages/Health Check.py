@@ -126,5 +126,5 @@ with report:
         btn = st.download_button(
             label="Download file",
             data=st.session_state["file"],
-            file_name=outfile,
+            file_name=Path(outfile).name,
         )
