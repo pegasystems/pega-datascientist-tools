@@ -166,7 +166,7 @@ def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
         else:
             file = pl.scan_csv(
                 file,
-                sep=reading_opts.get("sep", ","),
+                separator=reading_opts.get("sep", ","),
             )
 
     elif extension == ".json":
