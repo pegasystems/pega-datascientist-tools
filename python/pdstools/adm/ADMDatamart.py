@@ -1158,6 +1158,28 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
 
         return ret
 
+    def applyGlobalQuery(self, query: pl.Expr):
+        """Convenience method to further query the datamart
+
+        It's possible to give this query to the initial `ADMDatamart` class
+        directly, but this method is more explicit. Filters on the model data
+        (query is put in a :meth:`polars.filter()` method), filters the predictorData
+        on the ModelIDs remaining after the query, and recomputes combinedData.
+
+        Only works with Polars expressions.
+
+        Paramters
+        ---------
+        query: pl.Expr
+            The query to apply
+        """
+        self.modelData = self._apply_query(self.modelData, query)
+        if self.predictorData is not None:
+            self.predictorData = self.predictorData.join(
+                self.modelData.select(pl.col("ModelID").unique()), on="ModelID"
+            )
+            self.combinedData = self._get_combined_data(strategy=self.import_strategy)
+
     def generateHealthCheck(
         self,
         name: Optional[str] = None,
@@ -1212,7 +1234,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         from pdstools import __healthcheck_file__
         import yaml
 
-        verbose = kwargs.get('verbose', self.verbose)
+        verbose = kwargs.get("verbose", self.verbose)
 
         if self.modelData is None or self.predictorData is None:
             raise AssertionError("Needs both model and predictor data.")
