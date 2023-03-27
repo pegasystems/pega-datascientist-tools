@@ -31,10 +31,18 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
+          pip install pytest
           pip install papermill
+          pip install XlsxWriter
+          pip install ipython 
+          pip install ipykernel
+          pip install itables
+          pip install jinja2
+          ipython kernel install --name "python3" --user
           sudo apt-get install -y pandoc
+      - name: Install pdstools
+        run: pip install .
 
-      - uses: actions/checkout@v2
       - name: "Install quarto"
         run: |
           #  curl -OL https://github.com/quarto-dev/quarto-cli/releases/download/v0.1.258/quarto-0.1-amd64.deb
@@ -43,18 +51,6 @@ jobs:
           cut -d '"' -f 4 |
           wget -i -
           sudo dpkg -i quarto-1.2.475-linux-amd64.deb
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r python/requirements.txt
-          pip install pytest-cov
-          pip install scipy
-          pip install testbook
-          pip install XlsxWriter
-          pip install ipython 
-          pip install ipykernel
-          ipython kernel install --name "python3" --user
-
-      - name: Run tests
+          
+      - name: Run Health Check
         run: pytest python/tests/test_healthcheck.py
