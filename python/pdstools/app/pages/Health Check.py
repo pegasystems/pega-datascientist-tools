@@ -111,8 +111,6 @@ with report:
         st.session_state["runID"] = 0
         st.session_state["run"] = {0: {}}
 
-    print(st.session_state["run"])
-
     if st.button("Generate Health Check"):
         st.session_state["runID"] = max(list(st.session_state["run"].keys())) + 1
 
@@ -157,6 +155,8 @@ with report:
                 st.session_state["run"][st.session_state["runID"]]["tablefile"] = open(
                     tables, "rb"
                 )
+
+    print(st.session_state["run"])
 
     if len(st.session_state["run"][st.session_state["runID"]]) == 0:
         st.stop()

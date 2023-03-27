@@ -118,7 +118,7 @@ def fromFilePath(**opts):
                 import_strategy="lazy",
                 **opts,
             )
-            st.write(st.session_state["params"])
+            # st.write(st.session_state["params"])
 
 
 def filter_dataframe(df: pl.LazyFrame, schema: Optional[dict] = None) -> pl.LazyFrame:
