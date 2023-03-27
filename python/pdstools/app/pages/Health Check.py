@@ -111,14 +111,18 @@ with report:
             del st.session_state["file"]
         with st.spinner("Generating Health Check..."):
             try:
-                outfile = st.session_state["dm"].generateHealthCheck(
-                    name=name,
-                    output_type=output_type,
-                    working_dir=working_dir,
-                    output_location=working_dir,
-                    delete_temp_files=delete_temp_files,
-                    include_tables=include_tables,
-                    output_to_file=True,
+                outfile = (
+                    st.session_state["dm"]
+                    .applyGlobalQuery(st.session_state["filters"])
+                    .generateHealthCheck(
+                        name=name,
+                        output_type=output_type,
+                        working_dir=working_dir,
+                        output_location=working_dir,
+                        delete_temp_files=delete_temp_files,
+                        include_tables=include_tables,
+                        output_to_file=True,
+                    )
                 )
                 if os.path.isfile(outfile):
                     st.session_state["file"] = open(outfile, "rb")
