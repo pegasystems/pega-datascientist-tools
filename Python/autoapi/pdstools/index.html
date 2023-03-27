@@ -359,6 +359,9 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.SampleValueFinder" title="pdstools.SampleValueFinder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SampleValueFinder</span></code></a>([verbose])</p></td>
 <td><p></p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.defaultPredictorCategorization" title="pdstools.defaultPredictorCategorization"><code class="xref py py-obj docutils literal notranslate"><span class="pre">defaultPredictorCategorization</span></code></a>() → polars.Expr)</p></td>
+<td><p>Function to determine the 'category' of a predictor.</p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -1298,6 +1301,28 @@ This function extracts that information to infer types for the HDS.</p>
 
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.defaultPredictorCategorization">
+<span class="sig-name descname"><span class="pre">defaultPredictorCategorization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.Expr</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">pl.col('PredictorName')</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.defaultPredictorCategorization" title="Permalink to this definition">#</a></dt>
+<dd><p>Function to determine the ‘category’ of a predictor.</p>
+<p>It is possible to supply a custom function.
+This function can accept an optional column as input
+And as output should be a Polars expression.
+The most straight-forward way to implement this is with
+pl.when().then().otherwise(), which you can chain.</p>
+<p>By default, this function returns “Primary” whenever
+there is no ‘.’ anywhere in the name string,
+otherwise returns the first string before the first period</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>pl.Expr</em><em>]</em><em>, </em><em>default = pl.col</em><em>(</em><em>'PredictorName'</em><em>)</em>) – The column to parse</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>polars.Expr</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="pdstools.ValueFinder">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ValueFinder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.DataFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.LazyFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ValueFinder" title="Permalink to this definition">#</a></dt>
@@ -1629,6 +1654,7 @@ One of: {‘Quantile’, ‘Propensity’}</p>
 <li><a class="reference internal" href="#pdstools.DataAnonymization.process"><code class="docutils literal notranslate"><span class="pre">process()</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#pdstools.defaultPredictorCategorization"><code class="docutils literal notranslate"><span class="pre">defaultPredictorCategorization()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ValueFinder"><code class="docutils literal notranslate"><span class="pre">ValueFinder</span></code></a><ul>
 <li><a class="reference internal" href="#pdstools.ValueFinder.save_data"><code class="docutils literal notranslate"><span class="pre">save_data()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ValueFinder.getCustomerSummary"><code class="docutils literal notranslate"><span class="pre">getCustomerSummary()</span></code></a></li>
@@ -1716,6 +1742,7 @@ One of: {‘Quantile’, ‘Propensity’}</p>
 <li><a class="reference internal" href="#pdstools.DataAnonymization.process">process</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#pdstools.defaultPredictorCategorization">defaultPredictorCategorization</a></li>
 <li><a class="reference internal" href="#pdstools.ValueFinder">ValueFinder</a><ul>
 <li><a class="reference internal" href="#pdstools.ValueFinder.save_data">save_data</a></li>
 <li><a class="reference internal" href="#pdstools.ValueFinder.getCustomerSummary">getCustomerSummary</a></li>
