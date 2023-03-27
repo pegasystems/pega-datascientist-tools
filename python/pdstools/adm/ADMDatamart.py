@@ -3,7 +3,7 @@ import os
 from datetime import datetime, timedelta
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Dict, List, Literal, NoReturn, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, NoReturn, Optional, Tuple, Union, Self
 
 import shutil
 import subprocess
@@ -1186,7 +1186,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
 
         return ret
 
-    def applyGlobalQuery(self, query: Union[pl.Expr, str, Dict[str, list]]):
+    def applyGlobalQuery(self, query: Union[pl.Expr, str, Dict[str, list]])->Self:
         """Convenience method to further query the datamart
 
         It's possible to give this query to the initial `ADMDatamart` class
@@ -1211,6 +1211,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             if self.import_strategy == "eager":
                 self.predictorData = self.predictorData.collect().lazy()
             self.combinedData = self._get_combined_data(strategy=self.import_strategy)
+        return self
 
     def generateHealthCheck(
         self,
