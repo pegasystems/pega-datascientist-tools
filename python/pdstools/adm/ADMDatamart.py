@@ -1,14 +1,16 @@
+from __future__ import annotations
+
 import logging
 import os
+import shutil
+import subprocess
 from datetime import datetime, timedelta
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Dict, List, Literal, NoReturn, Optional, Tuple, Union, Self
+from typing import Any, Dict, List, Literal, NoReturn, Optional, Tuple, Union
 
-import shutil
-import subprocess
-import yaml
 import polars as pl
+import yaml
 
 from ..plots.plot_base import Plots
 from ..plots.plots_plotly import ADMVisualisations as plotly_plot
@@ -1186,7 +1188,9 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
 
         return ret
 
-    def applyGlobalQuery(self, query: Union[pl.Expr, str, Dict[str, list]])->Self:
+    def applyGlobalQuery(
+        self, query: Union[pl.Expr, str, Dict[str, list]]
+    ) -> ADMDatamart:
         """Convenience method to further query the datamart
 
         It's possible to give this query to the initial `ADMDatamart` class
