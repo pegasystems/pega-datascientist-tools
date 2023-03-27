@@ -13,10 +13,12 @@ from .adm.ADMTrees import ADMTrees, MultiTrees
 from .utils import cdh_utils, datasets, errors, hds_utils
 from .utils.datasets import CDHSample, SampleTrees, SampleValueFinder
 from .utils.hds_utils import Config, DataAnonymization
+from .utils.cdh_utils import defaultPredictorCategorization
 from .valuefinder.ValueFinder import ValueFinder
 
 import sys
-if 'streamlit' in sys.modules:
+
+if "streamlit" in sys.modules:
     from .utils import streamlit_utils
 
 __reports__ = Path(__file__).parents[0] / "reports"

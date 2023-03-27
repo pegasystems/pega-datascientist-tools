@@ -4,9 +4,20 @@ import polars as pl
 import sys
 from pathlib import Path
 from . import cdh_utils
-from ..adm import ADMDatamart
+from ..adm.ADMDatamart import ADMDatamart
 from ..utils import cdh_utils, datasets
 import plotly.express as px
+
+
+@st.cache_resource
+def cachedSample():
+    return datasets.CDHSample()
+
+
+@st.cache_resource
+def cachedDatamart(*args, **kwargs):
+    print("Importing datamart.")
+    return ADMDatamart(*args, **kwargs)
 
 
 def import_datamart(**opts):
@@ -23,7 +34,7 @@ def import_datamart(**opts):
         ],
     )
     if source == "CDH Sample":
-        st.session_state["dm"] = datasets.CDHSample()
+        st.session_state["dm"] = cachedSample()
     elif source == "Download from S3":
         raise NotImplementedError("Want to do this soon.")
     elif source == "Direct file upload":
@@ -42,7 +53,7 @@ def fromUploadedFile(**opts):
     )
     if model_file is not None and predictor_file is not None:
         try:
-            st.session_state["dm"] = ADMDatamart(
+            st.session_state["dm"] = cachedDatamart(
                 model_df=model_file, predictor_df=predictor_file, **opts
             )
         except Exception as e:
@@ -100,14 +111,14 @@ def fromFilePath(**opts):
     try uploading the files manually using a different data source."""
             )
         else:
-            st.session_state["dm"] = ADMDatamart(
+            st.session_state["dm"] = cachedDatamart(
                 path=dir,
                 model_filename=Path(model_matches).name,
                 predictor_filename=Path(predictor_matches).name,
                 import_strategy="lazy",
                 **opts,
             )
-            st.write(st.session_state["params"])
+            # st.write(st.session_state["params"])
 
 
 def filter_dataframe(df: pl.LazyFrame, schema: Optional[dict] = None) -> pl.LazyFrame:

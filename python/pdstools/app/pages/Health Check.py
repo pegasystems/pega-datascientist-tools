@@ -106,22 +106,31 @@ with report:
             or to separately recieve these in a tabbed Excel file.""",
         )
     outfile = ""
+
+    if "run" not in st.session_state:
+        st.session_state["runID"] = 0
+        st.session_state["run"] = {0: {}}
+
     if st.button("Generate Health Check"):
-        if "file" in st.session_state:
-            del st.session_state["file"]
+        st.session_state["runID"] = max(list(st.session_state["run"].keys())) + 1
+
         with st.spinner("Generating Health Check..."):
             try:
-                outfile = st.session_state["dm"].generateHealthCheck(
-                    name=name,
-                    output_type=output_type,
-                    working_dir=working_dir,
-                    output_location=working_dir,
-                    delete_temp_files=delete_temp_files,
-                    include_tables=include_tables,
-                    output_to_file=True,
+                outfile = (
+                    st.session_state["dm"]
+                    .applyGlobalQuery(st.session_state["filters"])
+                    .generateHealthCheck(
+                        name=name,
+                        output_type=output_type,
+                        working_dir=working_dir,
+                        output_location=working_dir,
+                        delete_temp_files=delete_temp_files,
+                        include_tables=include_tables,
+                        output_to_file=True,
+                    )
                 )
                 if os.path.isfile(outfile):
-                    st.session_state["file"] = open(outfile, "rb")
+                    file = open(outfile, "rb")
             except Exception as e:
                 st.error(f"""Error occured when generating healthcheck: {e}""")
                 with open(working_dir / "log.txt", "rb") as f:
@@ -130,24 +139,46 @@ with report:
                         data=f,
                         file_name="errorlog.txt",
                     )
+            st.session_state["run"][st.session_state["runID"]] = {
+                "name": outfile,
+                "file": file,
+            }
 
             if not include_tables:
                 tablename = Path(outfile).name.rsplit(".", 1)[0] + "_Tables.xlsx"
-                tables = st.session_state["dm"].exportTables(tablename)
-                st.session_state["tables"] = open(tables, "rb")
+                tables = (
+                    st.session_state["dm"]
+                    .applyGlobalQuery(st.session_state["filters"])
+                    .exportTables(tablename)
+                )
+                st.session_state["run"][st.session_state["runID"]]["tables"] = tablename
+                st.session_state["run"][st.session_state["runID"]]["tablefile"] = open(
+                    tables, "rb"
+                )
+
+    print(st.session_state["run"])
+
+    if len(st.session_state["run"][st.session_state["runID"]]) == 0:
+        st.stop()
 
     col1, col2 = st.columns([1, 1])
     with col1:
-        if "file" in st.session_state:
+        if "file" in st.session_state["run"][st.session_state["runID"]]:
             btn = st.download_button(
                 label="Download Health Check",
-                data=st.session_state["file"],
-                file_name=Path(outfile).name,
+                data=st.session_state["run"][st.session_state["runID"]]["file"],
+                file_name=Path(
+                    st.session_state["run"][st.session_state["runID"]]["name"]
+                ).name,
             )
-            if "tables" in st.session_state:
+            if "tables" in st.session_state["run"][st.session_state["runID"]]:
                 with col2:
                     btn = st.download_button(
                         label="Download additional tables",
-                        data=st.session_state["tables"],
-                        file_name=tablename,
+                        data=st.session_state["run"][st.session_state["runID"]][
+                            "tablefile"
+                        ],
+                        file_name=st.session_state["run"][st.session_state["runID"]][
+                            "tables"
+                        ],
                     )

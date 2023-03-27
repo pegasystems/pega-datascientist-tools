@@ -28,7 +28,7 @@ import sys
 sys.path.append('..')
 from pdstools import datasets, ADMDatamart
 from pdstools import cdh_utils
-from pdstools.utils.cdh_utils import defaultPredictorCategorization
+from pdstools import defaultPredictorCategorization
 from plotly.offline import iplot
 from itables import show
 import plotly.express as px
