@@ -13,12 +13,20 @@ Functions
 
 .. autoapisummary::
 
+   pdstools.utils.streamlit_utils.cachedSample
+   pdstools.utils.streamlit_utils.cachedDatamart
    pdstools.utils.streamlit_utils.import_datamart
    pdstools.utils.streamlit_utils.fromUploadedFile
    pdstools.utils.streamlit_utils.fromFilePath
    pdstools.utils.streamlit_utils.filter_dataframe
    pdstools.utils.streamlit_utils.configure_predictor_categorization
 
+
+
+.. py:function:: cachedSample()
+
+
+.. py:function:: cachedDatamart(*args, **kwargs)
 
 
 .. py:function:: import_datamart(**opts)

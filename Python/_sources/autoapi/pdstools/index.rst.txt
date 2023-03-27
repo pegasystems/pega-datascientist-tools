@@ -481,7 +481,7 @@ Attributes
       Convenience method to quickly summarize the models
 
 
-   .. py:method:: applyGlobalQuery(query: Union[polars.Expr, str, Dict[str, list]])
+   .. py:method:: applyGlobalQuery(query: Union[polars.Expr, str, Dict[str, list]]) -> Self
 
       Convenience method to further query the datamart
 
