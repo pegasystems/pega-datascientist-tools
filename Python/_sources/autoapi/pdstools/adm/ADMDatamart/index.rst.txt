@@ -432,7 +432,7 @@ Classes
       Convenience method to quickly summarize the models
 
 
-   .. py:method:: applyGlobalQuery(query: Union[polars.Expr, str, Dict[str, list]]) -> Self
+   .. py:method:: applyGlobalQuery(query: Union[polars.Expr, str, Dict[str, list]]) -> ADMDatamart
 
       Convenience method to further query the datamart
 
