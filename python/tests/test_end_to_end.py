@@ -44,7 +44,7 @@ def test_end_to_end():
     }
     assert set(datamart.modelData.columns) == modelcols
 
-    assert datamart.predictorData.shape == (70735, 17)
+    assert datamart.predictorData.shape == (70735, 18)
     predcols = {
         "ModelID",
         "Positives",
@@ -63,16 +63,17 @@ def test_end_to_end():
         "BinPropensity",
         "BinAdjustedPropensity",
         "Contents",
+        "PredictorCategory"
     }
     assert set(datamart.predictorData.columns) == predcols
 
-    assert datamart.combinedData.shape == (4576, 31)
+    assert datamart.combinedData.shape == (4576, 32)
     assert set(datamart.combinedData.columns) == modelcols.union(predcols).union(
         {"PerformanceBin", "PositivesBin", "ResponseCountBin", "SnapshotTimeBin"}
     )
 
     assert datamart.last().shape == (68, 15)
-    assert datamart.last("predictorData").shape == (4576, 17)
+    assert datamart.last("predictorData").shape == (4576, 18)
     assert datamart.modelData.schema["SnapshotTime"] == pl.Datetime
 
     assert datamart.context_keys == ["Channel", "Direction", "Issue", "Group"]

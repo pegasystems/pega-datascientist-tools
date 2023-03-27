@@ -1,19 +1,25 @@
 import logging
 import os
-from datetime import timedelta, datetime
-from typing import Dict, NoReturn, Optional, Tuple, Union, Literal, Any
+from datetime import datetime, timedelta
 from io import BytesIO
+from pathlib import Path
+from typing import Any, Dict, List, Literal, NoReturn, Optional, Tuple, Union
+
+import shutil
+import subprocess
+import yaml
 import polars as pl
 
-from ..utils import cdh_utils
-from ..utils.types import any_frame
-from .ADMTrees import ADMTrees
 from ..plots.plot_base import Plots
 from ..plots.plots_plotly import ADMVisualisations as plotly_plot
+from ..utils import cdh_utils
 from ..utils.errors import NotEagerError
+from ..utils.types import any_frame
+from .ADMTrees import ADMTrees
+from .Tables import Tables
 
 
-class ADMDatamart(Plots):
+class ADMDatamart(Plots, Tables):
     """Main class for importing, preprocessing and structuring Pega ADM Datamart.
     Gets all available data, properly names and merges into one main dataframe
 
@@ -43,7 +49,7 @@ class ADMDatamart(Plots):
         Please refer to :meth:`.get_engine`
     subset : bool, default = True
         Whether to only keep a subset of columns for efficiency purposes
-        Refer to :meth:`_available_columns` for the default list of columns.
+        Refer to :meth:`._available_columns` for the default list of columns.
     drop_cols  Optional[list]
         Columns to exclude from reading
     include_cols : Optional[list]
@@ -54,6 +60,10 @@ class ADMDatamart(Plots):
         Extra keys, particularly pyTreatment, are hidden within the pyName column.
         extract_keys can expand that cell to also show these values.
         To extract these extra keys, set extract_keys to True.
+    predictorCategorization : pl.Expr, default = :meth:`cdh_utils.defaultPredictorCategorization`
+        A Polars expression to determine the 'category' of a predictor.
+        If None, uses PredictorCategory that is already there.
+        See: :meth:`pdstools.utils.cdh_utils.defaultPredictorCategorization`
     verbose : bool, default = False
         Whether to print out information during importing
     **reading_opts
@@ -93,19 +103,20 @@ class ADMDatamart(Plots):
 
     def __init__(
         self,
-        path: str = ".",
+        path: Union[str, Path] = Path("."),
         import_strategy: Literal["eager", "lazy"] = "eager",
         *,
         model_filename: Optional[str] = "modelData",
         predictor_filename: Optional[str] = "predictorData",
         model_df: Optional[any_frame] = None,
         predictor_df: Optional[any_frame] = None,
-        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
+        query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]] = None,
         subset: bool = True,
         drop_cols: Optional[list] = None,
         include_cols: Optional[list] = None,
         context_keys: list = ["Channel", "Direction", "Issue", "Group"],
         extract_keys: bool = False,
+        predictorCategorization: pl.Expr = cdh_utils.defaultPredictorCategorization,
         plotting_engine: Union[str, Any] = "plotly",
         verbose: bool = False,
         **reading_opts,
@@ -114,6 +125,7 @@ class ADMDatamart(Plots):
         self.context_keys = context_keys
         self.verbose = verbose
         self.query = query
+        self.predictorCategorization = predictorCategorization
 
         self.modelData, self.predictorData = self.import_data(
             path,
@@ -164,7 +176,7 @@ class ADMDatamart(Plots):
 
     def import_data(
         self,
-        path: Optional[str] = ".",
+        path: Optional[Union[str, Path]] = Path("."),
         *,
         model_filename: Optional[str] = "modelData",
         predictor_filename: Optional[str] = "predictorData",
@@ -191,9 +203,9 @@ class ADMDatamart(Plots):
 
         Parameters
         ----------
-        path : str
+        path : Path
             The path of the data files
-            Default = current path (',')
+            Default = current path ('.')
         subset : bool, default = True
             Whether to only select the renamed columns,
             set to False to keep all columns
@@ -260,14 +272,14 @@ class ADMDatamart(Plots):
                     )
                 )
             df2 = df2.with_columns(
-                (pl.col("BinPositives") / pl.col("BinResponseCount")).alias(
-                    "BinPropensity"
-                ),
-                (
+                BinPropensity=pl.col("BinPositives") / pl.col("BinResponseCount"),
+                BinAdjustedPropensity=(
                     (pl.col("BinPositives") + pl.lit(0.5))
                     / (pl.col("BinResponseCount") + pl.lit(1))
-                ).alias("BinAdjustedPropensity"),
+                ),
             )
+            if self.predictorCategorization is not None:
+                df2 = df2.with_columns(PredictorCategory=self.predictorCategorization())
 
         if df1 is not None and df2 is not None:
             total_missing = (
@@ -339,12 +351,20 @@ class ADMDatamart(Plots):
             The columns missing in both dataframes
         """
 
+        if isinstance(name, BytesIO):
+            self.import_strategy = "eager"
+
         if isinstance(name, str) or isinstance(name, BytesIO):
             df = cdh_utils.readDSExport(
                 filename=name, path=path, verbose=self.verbose, **reading_opts
             )
-        elif isinstance(name, pl.DataFrame) or isinstance(name, pl.LazyFrame):
+        elif isinstance(name, pl.DataFrame):
             df = name.lazy()
+            self.import_strategy = "eager"
+
+        elif isinstance(name, pl.LazyFrame):
+            df = name.lazy()
+
         else:
             return None, None, None
 
@@ -612,17 +632,19 @@ class ADMDatamart(Plots):
     def _apply_query(
         self,
         df: any_frame,
-        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
+        query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]] = None,
     ) -> pl.LazyFrame:
-        """Given an input pandas dataframe, it filters the dataframe based on input query
+        """Given an input Polars dataframe, it filters the dataframe based on input query
 
         Parameters
         ----------
         df : Union[pl.DataFrame, pl.LazyFrame]
             The input dataframe
-        query: Optional[Union[pl.Expr, str, Dict[str, list]]]
-            If a Polars Expression, passes the expression into Polars' filter function
-            If a string, uses the default Pandas query function (works only in eager mode)
+        query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]]
+            If a Polars Expression, passes the expression into Polars' filter function.
+            If a list of Polars Expressions, applies each of the expressions as filters.
+            If a string, uses the Pandas query function (works only in eager mode,
+            not recommended).
             Else, a dict of lists where the key is column name in the dataframe
             and the corresponding value is a list of values to keep in the dataframe
         Returns
@@ -640,6 +662,18 @@ class ADMDatamart(Plots):
 
                 else:
                     raise pl.ColumnNotFoundError(col_diff)
+
+            if isinstance(query, list):
+                for item in query:
+                    if isinstance(item, pl.Expr):
+                        col_diff = set(item.meta.root_names()) - set(df.columns)
+                        if len(col_diff) == 0:
+                            return df.filter(item)
+                        else:
+                            raise pl.ColumnNotFoundError(col_diff)
+                    else:
+                        raise ValueError(item)
+                return df
 
             if isinstance(query, str):
                 print(
@@ -714,8 +748,8 @@ class ADMDatamart(Plots):
             )
 
         def _getType(val):
-            import zlib
             import base64
+            import zlib
 
             return next(
                 line.split('"')[-2].split(".")[-1]
@@ -740,7 +774,7 @@ class ADMDatamart(Plots):
         last: bool = False,
         by: str = "Configuration",
         n_threads: int = 1,
-        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
+        query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]] = None,
         verbose: bool = True,
         **kwargs,
     ) -> Dict:  # pragma: no cover
@@ -761,7 +795,7 @@ class ADMDatamart(Plots):
             The number of threads to use for extracting the models.
             Since we use multithreading, setting this to a reasonable value
             helps speed up the import.
-        query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+        query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]]
             Please refer to :meth:`._apply_query`
         verbose: bool, default = False
             Whether to print out information while importing
@@ -859,7 +893,7 @@ class ADMDatamart(Plots):
     def model_summary(
         self,
         by: str = "ModelID",
-        query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
+        query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]] = None,
         **kwargs,
     ) -> pl.LazyFrame:
         """Convenience method to automatically generate a summary over models
@@ -872,7 +906,7 @@ class ADMDatamart(Plots):
         ----------
         by: str, default = ModelID
             By what column to summarize the models
-        query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+        query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]]
             Please refer to :meth:`._apply_query`
 
         Returns
@@ -1151,3 +1185,178 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                     ret += f"{len(self.model_stats[key])} ({round(len(self.model_stats[key])/nmodels*100,2)}%) {' '.join(key.split('_'))} attribute.\n"
 
         return ret
+
+    def applyGlobalQuery(self, query: Union[pl.Expr, str, Dict[str, list]]):
+        """Convenience method to further query the datamart
+
+        It's possible to give this query to the initial `ADMDatamart` class
+        directly, but this method is more explicit. Filters on the model data
+        (query is put in a :meth:`polars.filter()` method), filters the predictorData
+        on the ModelIDs remaining after the query, and recomputes combinedData.
+
+        Only works with Polars expressions.
+
+        Paramters
+        ---------
+        query: Union[pl.Expr, str, Dict[str, list]]
+            The query to apply, see :meth:`._apply_query`
+        """
+        self.modelData = self._apply_query(self.modelData, query)
+        if self.import_strategy == "eager":
+            self.modelData = self.modelData.collect().lazy()
+        if self.predictorData is not None:
+            self.predictorData = self.predictorData.join(
+                self.modelData.select(pl.col("ModelID").unique()), on="ModelID"
+            )
+            if self.import_strategy == "eager":
+                self.predictorData = self.predictorData.collect().lazy()
+            self.combinedData = self._get_combined_data(strategy=self.import_strategy)
+
+    def generateHealthCheck(
+        self,
+        name: Optional[str] = None,
+        output_location: Path = Path("."),
+        working_dir: Path = Path("."),
+        delete_temp_files=True,
+        output_type="html",
+        include_tables=True,
+        allow_collect=True,
+        **kwargs,
+    ):
+        """Manually generates a Health Check
+
+        The recommended way to run the Health Check is through the Streamlit app,
+        which you get to by running `pdstools run` in your terminal/command line.
+        However, it's also possible to directly run the Health Check from the
+        ADMDatamart class, providing a little bit more flexibility.
+
+        Internally, this method uses :meth:`.save_data` to save the model and
+        predictor files to disk, which Quarto then picks up to generate.
+
+        By running this method directly, you have control over the exact
+        filters you want to use. Simply use the top-level :attr:`.query`
+        argument to filter the ADMDatamart class to the desired level.
+
+        Parameters
+        ----------
+        name : Optional[str]
+            The name of the Health Check file
+        output_location : str, default = '.'
+            The output location of the generated file
+        working_dir : str, default = '.'
+            The directory in which to create the health check
+        delete_temp_files : bool, default = True
+            Whether to delete the temporary files used  while generating the file
+            If false, these files stay in working_dir
+        output_type: : str, default = 'html'
+            Which type of export to create. Currently, html is best supported.
+        include_tables : bool, default = True
+            Whether to include the embedded tables directly in the file
+            If false, you can always get the tables directly by calling
+            :meth:`.exportTables`
+        allow_collect : bool, default = True
+            An override for the `lazy` memory_strategy. If set to True, still allows
+            for collecting of data. Naturally, we need to collect the data in order
+            to cache it to disk for the health check, so if set to False
+            with a `lazy` memory_strategy, you won't be able to generate.
+
+        Returns
+        -------
+        str:
+            The full path to the generated Health Check file.
+        """
+
+        def delete_temp_files(working_dir, files):
+            for f in ["params.yaml", "HealthCheck.qmd", "HealthCheck.ipynb", "log.txt"]:
+                try:
+                    os.remove(f"{working_dir}/{f}")
+                except:
+                    pass
+            for f in files:
+                os.remove(f)
+
+        from pdstools import __reports__
+
+        verbose = kwargs.get("verbose", self.verbose)
+
+        if self.modelData is None or self.predictorData is None:
+            raise AssertionError("Needs both model and predictor data.")
+        if self.import_strategy == "lazy" and not allow_collect:
+            raise NotEagerError("Generating healthcheck")
+        if not os.path.exists(working_dir):
+            os.mkdir(working_dir)
+
+        shutil.copy(__reports__ / "HealthCheck.qmd", working_dir)
+        if name is not None:
+            output_filename = f"HealthCheck_{name.replace(' ', '_')}.{output_type}"
+        else:
+            output_filename = f"ADM_HealthCheck.{output_type}"
+
+        files = self.save_data(working_dir)
+
+        params = {
+            "kwargs": {"subset": False, "predictorCategorization": None},
+            "include_tables": include_tables,
+        }
+
+        with open(f"{working_dir}/params.yaml", "w") as f:
+            yaml.dump(params, f)
+
+        bashCommand = f"quarto render HealthCheck.qmd --to {output_type} --output {output_filename} --execute-params params.yaml"
+        if not verbose:
+            stdout, stderr = subprocess.DEVNULL, subprocess.STDOUT
+        else:
+            print("Set verbose=False to hide output.")
+            print("Running:", bashCommand)
+            stdout, stderr = subprocess.PIPE, None
+        if kwargs.get("output_to_file", False):
+            with open(f"{working_dir}/log.txt", "w") as outfile:
+                process = subprocess.Popen(
+                    bashCommand.split(), stdout=outfile, stderr=stderr, cwd=working_dir
+                )
+                process.communicate()
+
+        else:
+            process = subprocess.Popen(
+                bashCommand.split(), stdout=stdout, stderr=stderr, cwd=working_dir
+            )
+            process.communicate()
+        if not os.path.exists(working_dir / output_filename):
+            msg = "Error when generating healthcheck."
+            if not verbose and not kwargs.get("output_to_file", False):
+                msg += "Set 'verbose' to True to see the full output"
+            if delete_temp_files:
+                delete_temp_files(working_dir, files)
+            raise ValueError(msg)
+
+        filename = f"{output_location}/{output_filename}"
+
+        if output_location != working_dir:
+            if os.path.isfile(filename):
+                counter = 1
+                filename, ext = output_filename.rsplit(".", 1)
+                while os.path.isfile(f"{filename} ({counter}).{ext}"):
+                    counter += 1
+                filename = f"{filename} ({counter}).{ext}"
+            shutil.move(f"{working_dir}/{output_filename}", filename)
+
+        if delete_temp_files:
+            delete_temp_files(working_dir, files)
+
+        return filename
+
+    def exportTables(self, file: Path = "Tables.xlsx"):
+        from xlsxwriter import Workbook
+
+        tabs = {
+            tab: getattr(self, tab) for tab in dir(Tables) if not tab.startswith("_")
+        }
+        with Workbook(file) as wb:
+            for tab, data in tabs.items():
+                data = data.with_columns(
+                    pl.col(pl.List(pl.Categorical), pl.List(pl.Utf8))
+                    .arr.eval(pl.element().cast(pl.Utf8))
+                    .arr.join(", ")
+                )
+                data.write_excel(workbook=wb, worksheet=tab)
+        return file

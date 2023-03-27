@@ -42,6 +42,8 @@ intersphinx_mapping = {
     "polars":("https://pola-rs.github.io/polars/py-polars/html", None)
 }
 
+add_module_names = False
+toc_object_entries_show_parents = 'hide'
 
 # -- Autoapi settings --------------------------------------------------------
 autoapi_type = "python"

@@ -1,13 +1,22 @@
-"""Python pdstools."""
+"""Python pdstools"""
 
-__version__ = "3.0.0"
+__version__ = "3.0.1"
+
 from polars.polars import toggle_string_cache
 
 toggle_string_cache(True)
 
+from pathlib import Path
+
 from .adm.ADMDatamart import ADMDatamart
 from .adm.ADMTrees import ADMTrees, MultiTrees
-from .valuefinder.ValueFinder import ValueFinder
-from .utils import cdh_utils, datasets, hds_utils, errors
-from .utils.hds_utils import Config, DataAnonymization
+from .utils import cdh_utils, datasets, errors, hds_utils
 from .utils.datasets import CDHSample, SampleTrees, SampleValueFinder
+from .utils.hds_utils import Config, DataAnonymization
+from .valuefinder.ValueFinder import ValueFinder
+
+import sys
+if 'streamlit' in sys.modules:
+    from .utils import streamlit_utils
+
+__reports__ = Path(__file__).parents[0] / "reports"

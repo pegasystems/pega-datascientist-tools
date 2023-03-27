@@ -3,3 +3,4 @@ omit =
     python/pdstools/app/*
     python/pdstools/ih/*
     **/__init__.py
+    python/tests/test_healthcheck.py

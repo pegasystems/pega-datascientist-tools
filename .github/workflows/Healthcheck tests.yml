@@ -1,0 +1,56 @@
+name: Health Check tests
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - python/**
+      - reports/*.qmd
+      - .github/workflows/**
+  pull_request: 
+    paths:
+      - python/**
+      - reports/*.qmd
+
+jobs:
+  HealthCheck-Test:
+    runs-on: ubuntu-latest
+    name: Test Health Check
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        working-directory: python
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+          pip install papermill
+          pip install XlsxWriter
+          pip install ipython 
+          pip install ipykernel
+          pip install itables
+          pip install jinja2
+          ipython kernel install --name "python3" --user
+          sudo apt-get install -y pandoc
+      - name: Install pdstools
+        run: pip install .
+
+      - name: "Install quarto"
+        run: |
+          #  curl -OL https://github.com/quarto-dev/quarto-cli/releases/download/v0.1.258/quarto-0.1-amd64.deb
+          curl -s https://api.github.com/repos/quarto-dev/quarto-cli/releases/latest | 
+          grep "browser_download_url.*deb" | 
+          cut -d '"' -f 4 |
+          wget -i -
+          sudo dpkg -i quarto-1.2.475-linux-amd64.deb
+          
+      - name: Run Health Check
+        run: pytest python/tests/test_healthcheck.py

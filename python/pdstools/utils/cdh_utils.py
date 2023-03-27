@@ -166,7 +166,7 @@ def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
         else:
             file = pl.scan_csv(
                 file,
-                sep=reading_opts.get("sep", ","),
+                separator=reading_opts.get("sep", ","),
             )
 
     elif extension == ".json":
@@ -374,6 +374,24 @@ def cache_to_file(
 def defaultPredictorCategorization(
     x: Union[str, pl.Expr] = pl.col("PredictorName")
 ) -> pl.Expr:
+    """Function to determine the 'category' of a predictor.
+
+    It is possible to supply a custom function.
+    This function can accept an optional column as input
+    And as output should be a Polars expression.
+    The most straight-forward way to implement this is with
+    pl.when().then().otherwise(), which you can chain.
+
+    By default, this function returns "Primary" whenever
+    there is no '.' anywhere in the name string,
+    otherwise returns the first string before the first period
+
+    Parameters
+    ----------
+    x: Union[str, pl.Expr], default = pl.col('PredictorName')
+        The column to parse
+
+    """
     if isinstance(x, str):
         x = pl.col(x)
     x = x.cast(pl.Utf8) if not isinstance(x, pl.Utf8) else x
@@ -797,7 +815,6 @@ def LogOdds(
     Positives=pl.col("Positives"),
     Negatives=pl.col("ResponseCount") - pl.col("Positives"),
 ):
-
     N = Positives.count()
     return (
         (
@@ -876,3 +893,48 @@ def legend_color_order(fig):
             pass
 
     return fig
+
+
+def sync_reports(checkOnly: bool = False, autoUpdate: bool = False):
+    """Compares the report files in your local directory to the repo
+
+    If any of the files are different from the ones in GitHub,
+    will prompt you to update them.
+
+    Parameters
+    ----------
+    checkOnly : bool, default = False
+        If True, only checks, does not prompt to update
+    autoUpdate : bool, default = False
+        If True, doensn't prompt for update and goes ahead
+    """
+    from pdstools import __reports__
+    import glob
+    import urllib
+
+    files = [f for f in glob.glob(str(__reports__ / "*.qmd"))]
+    latest = {}
+    replacement = {}
+    for file in files:
+        name = file.rsplit("/")[-1]
+        path = f"http://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/python/pdstools/reports/{name}"
+        fileFromUrl = urllib.request.urlopen(path).read()
+        latest[file] = (
+            int.from_bytes(fileFromUrl) ^ int.from_bytes(open(file).read().encode())
+            == 0
+        )
+        if not latest[file]:
+            replacement[file] = fileFromUrl
+    if False in latest.values():
+        if not checkOnly and (
+            autoUpdate
+            or input("One or more files out of sync. Enter 'y' to update them:")
+        ):
+            for filename, file in replacement.items():
+                with open(filename, "w") as f:
+                    f.write(file.decode())
+            return True
+        else:
+            return False
+    else:
+        return True

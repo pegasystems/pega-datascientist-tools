@@ -115,6 +115,7 @@ class ADMVisualisations:
             hover_data=["ModelID"] + context_keys,
             title=f'Bubble Chart {title} {kwargs.get("title_text","")}',
             template="pega",
+            facet_row_spacing=0.01,
         )
         fig.update_traces(marker=dict(line=dict(color="black")))
 
@@ -752,4 +753,17 @@ class ADMVisualisations:
             facet_col_wrap=2,
         )
 
-        return self.post_plot(fig, name="TreeMap", **kwargs)
+        return self.post_plot(fig, name="PredictorCount", **kwargs)
+
+    def PredictorContribution(self, df, by, **kwargs):
+        color = "PredictorCategory"
+        fig = px.bar(
+            df.sort(color).to_pandas(),
+            x="Contribution",
+            y=by,
+            color=color,
+            orientation="h",
+            template="pega",
+            title="Contribution of different sources",
+        )
+        return self.post_plot(fig, name="PredictorContribution", **kwargs)
