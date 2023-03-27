@@ -220,11 +220,23 @@ def readZippedFile(file: str, verbose: bool = False) -> BytesIO:
     os.BytesIO
         The raw bytes object to pass through to Polars
     """
-    with zipfile.ZipFile(file, mode="r") as z:
-        logging.debug("Opened zip file.")
-        files = z.namelist()
+
+    def getValidFiles(files): 
         logging.debug(f"Files found: {files}")
         if "data.json" in files:
+            return "data.json"
+        else: #pragma: no cover
+            file = [file for file in files if file.endswith("/data.json")]
+            if 0 < len(file) > 1:
+                return None
+            else:
+                return file[0]
+
+    with zipfile.ZipFile(file, mode="r") as z:
+        logging.debug("Opened zip file.")
+        file = getValidFiles(z.namelist())
+        logging.debug(f"Opening file {file}")
+        if file is not None:
             logging.debug("data.json found.")
             if verbose:
                 print(
@@ -234,7 +246,7 @@ def readZippedFile(file: str, verbose: bool = False) -> BytesIO:
                         "See example in docs #TODO",
                     )
                 )
-            with z.open("data.json") as zippedfile:
+            with z.open(file) as zippedfile:
                 return (BytesIO(zippedfile.read()), ".json")
         else:  # pragma: no cover
             raise FileNotFoundError("Cannot find a 'data.json' file in the zip folder.")
