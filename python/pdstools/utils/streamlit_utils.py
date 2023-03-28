@@ -1,12 +1,12 @@
 import streamlit as st
 from typing import Optional
 import polars as pl
-import sys
 from pathlib import Path
 from . import cdh_utils
 from ..adm.ADMDatamart import ADMDatamart
 from ..utils import cdh_utils, datasets
 import plotly.express as px
+from .. import pega_io
 
 
 @st.cache_resource
@@ -74,7 +74,7 @@ def fromFilePath(**opts):
     )
     if dir != "":
         try:
-            model_matches = cdh_utils.get_latest_file(dir, target="modelData")
+            model_matches = pega_io.get_latest_file(dir, target="modelData")
         except FileNotFoundError:
             st.error(f"**Directory not found:** {dir}")
             st.stop()
@@ -94,7 +94,7 @@ def fromFilePath(**opts):
             box.write("## X")
             data.write("Could not find a model snapshot in the given folder.   ")
 
-        predictor_matches = cdh_utils.get_latest_file(dir, target="predictorData")
+        predictor_matches = pega_io.get_latest_file(dir, target="predictorData")
         box, data = st.columns([1, 15])
         if predictor_matches is not None:
             box.write("## √")
@@ -215,7 +215,6 @@ def configure_predictor_categorization():
     if len(st.session_state["filters"]) > 0:
         for filter in st.session_state["filters"]:
             df = df.filter(filter)
-    #newPredictorCategorizationFunc()
     df = (
         df.filter(pl.col("PredictorName") != "Classifier")
         .with_columns((pl.col("PerformanceBin") - 0.5) * 2)
