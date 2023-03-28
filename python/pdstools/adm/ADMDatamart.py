@@ -26,7 +26,7 @@ class ADMDatamart(Plots, Tables):
     """Main class for importing, preprocessing and structuring Pega ADM Datamart.
     Gets all available data, properly names and merges into one main dataframe.
 
-    It's also possible to import directly from S3. Please refer to 
+    It's also possible to import directly from S3. Please refer to
     :meth:`pdstools.pega_io.S3.S3Data.get_ADMDatamart`.
 
     Parameters
