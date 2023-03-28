@@ -1,0 +1,625 @@
+<!doctype html>
+<html class="no-js" lang="en">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+<link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
+
+    <link rel="shortcut icon" href="../../../_static/pegasystems-inc-vector-logo.svg"/><!-- Generated with Sphinx 6.1.3 and Furo 2023.03.27 -->
+        <title>pdstools.pega_io - pdstools</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?digest=fad236701ea90a88636c2a8c73b44ae642ed2a53" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+
+</head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../index.html"><div class="brand">pdstools</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../_static/pegasystems-inc-vector-logo.svg" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">pdstools</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Articles</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../articles/graph_gallery.html">Graph Gallery</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../tutorial_notebooks.html">Tutorial notebooks</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../articles/hello_cdhtools.html">Hello pdstools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../articles/Example_Data_Anonymization.html">Example data anonymization</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../examples.html">Example notebooks</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../articles/Example_ADM_Analysis.html">Example ADM analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../articles/AGBModelVisualisation.html">Analyzing ADM Decision Trees</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../articles/vf_analysis.html">Value Finder analysis</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../Articles.html">Articles</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../articles/pdstoolsv3.html">pdstools version 3: Polars</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../articles/thompsonsampling.html">Thompson Sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../articles/ADMExplained.html">ADM Explained</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools/wiki#getting-started-with-the-python-tools">Installation</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools/wiki#using-the-python-tools">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools/releases">Changelog</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools">GitHub Repository</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://pegasystems.github.io/pega-datascientist-tools/R/index.html">R Documentation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2 current has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l3 has-children"><a class="reference internal" href="../adm/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../adm/ADMDatamart/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm.ADMDatamart</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../adm/ADMTrees/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm.ADMTrees</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../adm/Tables/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm.Tables</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../app/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.app</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../app/Home/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.app.Home</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../app/cli/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.app.cli</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../ih/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.ih</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../ih/IHAnalysis/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.ih.IHAnalysis</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../ih/legacy_IH/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.ih.legacy_IH</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 current has-children current-page"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.pega_io</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="API/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.pega_io.API</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="File/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.pega_io.File</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../plots/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plots</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../plots/plot_base/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plots.plot_base</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../plots/plots_plotly/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plots.plots_plotly</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../reports/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.reports</span></code></a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../utils/cdh_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../utils/datasets/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.datasets</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../utils/errors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.errors</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../utils/hds_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.hds_utils</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../utils/pega_template/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.pega_template</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../utils/streamlit_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.streamlit_utils</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../utils/types/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.types</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../valuefinder/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.valuefinder</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../valuefinder/ValueFinder/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.valuefinder.ValueFinder</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../Health-Check/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">Health</span> <span class="pre">Check</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <section id="module-pdstools.pega_io">
+<span id="pdstools-pega-io"></span><h1><a class="reference internal" href="#module-pdstools.pega_io" title="pdstools.pega_io"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.pega_io</span></code></a><a class="headerlink" href="#module-pdstools.pega_io" title="Permalink to this heading">#</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading">#</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="API/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.pega_io.API</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="File/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.pega_io.File</span></code></a></li>
+</ul>
+</div>
+</section>
+<section id="package-contents">
+<h2>Package Contents<a class="headerlink" href="#package-contents" title="Permalink to this heading">#</a></h2>
+<section id="functions">
+<h3>Functions<a class="headerlink" href="#functions" title="Permalink to this heading">#</a></h3>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.pega_io.readClientCredentialFile" title="pdstools.pega_io.readClientCredentialFile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readClientCredentialFile</span></code></a>(credentialFile)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.pega_io.getToken" title="pdstools.pega_io.getToken"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getToken</span></code></a>(credentialFile[, verify])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.pega_io.fromPRPCDateTime" title="pdstools.pega_io.fromPRPCDateTime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fromPRPCDateTime</span></code></a>(→ Union[datetime.datetime, str])</p></td>
+<td><p>Convert from a Pega date-time string.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.pega_io.readDSExport" title="pdstools.pega_io.readDSExport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readDSExport</span></code></a>(→ polars.LazyFrame)</p></td>
+<td><p>Read a Pega dataset export file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.pega_io.import_file" title="pdstools.pega_io.import_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">import_file</span></code></a>(→ polars.LazyFrame)</p></td>
+<td><p>Imports a file using Polars</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.pega_io.readZippedFile" title="pdstools.pega_io.readZippedFile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readZippedFile</span></code></a>(→ io.BytesIO)</p></td>
+<td><p>Read a zipped NDJSON file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.pega_io.readMultiZip" title="pdstools.pega_io.readMultiZip"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readMultiZip</span></code></a>(files[, zip_type, verbose])</p></td>
+<td><p>Reads multiple zipped ndjson files, and concats them to one Polars dataframe.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.pega_io.get_latest_file" title="pdstools.pega_io.get_latest_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_latest_file</span></code></a>(→ str)</p></td>
+<td><p>Convenience method to find the latest model snapshot.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.pega_io.getMatches" title="pdstools.pega_io.getMatches"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getMatches</span></code></a>(files_dir, target)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.pega_io.cache_to_file" title="pdstools.pega_io.cache_to_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cache_to_file</span></code></a>(→ str)</p></td>
+<td><p>Very simple convenience function to cache data.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.pega_io.readClientCredentialFile">
+<span class="sig-name descname"><span class="pre">readClientCredentialFile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">credentialFile</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.pega_io.readClientCredentialFile" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.pega_io.getToken">
+<span class="sig-name descname"><span class="pre">getToken</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">credentialFile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verify</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.pega_io.getToken" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.pega_io.fromPRPCDateTime">
+<span class="sig-name descname"><span class="pre">fromPRPCDateTime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">datetime.datetime</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span></span><a class="headerlink" href="#pdstools.pega_io.fromPRPCDateTime" title="Permalink to this definition">#</a></dt>
+<dd><p>Convert from a Pega date-time string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>str</em>) – String of Pega date-time</p></li>
+<li><p><strong>return_string</strong> (<em>bool</em><em>, </em><em>default=False</em>) – If True it will return the date in string format. If
+False it will return in datetime type</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>Union[datetime.datetime, str]</em> – The converted date in datetime format or string.</p></li>
+<li><p><em>Examples</em> – &gt;&gt;&gt; fromPRPCDateTime(“20180316T134127.847 GMT”)
+&gt;&gt;&gt; fromPRPCDateTime(“20180316T134127.847 GMT”, True)
+&gt;&gt;&gt; fromPRPCDateTime(“20180316T184127.846”)
+&gt;&gt;&gt; fromPRPCDateTime(“20180316T184127.846”, True)</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Union[datetime.datetime, str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.pega_io.readDSExport">
+<span class="sig-name descname"><span class="pre">readDSExport</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.DataFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'.'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">reading_opts</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.pega_io.readDSExport" title="Permalink to this definition">#</a></dt>
+<dd><p>Read a Pega dataset export file.
+Can accept either a Pandas DataFrame or one of the following formats:
+- .csv
+- .json
+- .zip (zipped json or CSV)
+- .feather
+- .ipc
+- .parquet</p>
+<p>It automatically infers the default file names for both model data as well as predictor data.
+If you supply either ‘modelData’ or ‘predictorData’ as the ‘file’ argument, it will search for them.
+If you supply the full name of the file in the ‘path’ directory, it will import that instead.
+Since pdstools V3.x, returns a Polars LazyFrame. Simply call <cite>.collect()</cite> to get an eager frame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<em>[</em><em>pd.DataFrame</em><em>, </em><em>pl.DataFrame</em><em>, </em><em>str</em><em>]</em>) – Either a Pandas/Polars DataFrame with the source data (for compatibility),
+or a string, in which case it can either be:
+- The name of the file (if a custom name) or
+- Whether we want to look for ‘modelData’ or ‘predictorData’ in the path folder.</p></li>
+<li><p><strong>path</strong> (<em>str</em><em>, </em><em>default = '.'</em>) – The location of the file</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>default = True</em>) – Whether to print out which file will be imported</p></li>
+</ul>
+</dd>
+<dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>Any</strong> – Any arguments to plug into the scan_* function from Polars.</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul>
+<li><p><em>pl.LazyFrame</em> – The (lazy) dataframe</p></li>
+<li><p><em>Examples</em> – &gt;&gt;&gt; df = readDSExport(filename = ‘modelData’, path = ‘./datamart’)
+&gt;&gt;&gt; df = readDSExport(filename = ‘ModelSnapshot.json’, path = ‘data/ADMData’)</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">&#39;file.csv&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">readDSExport</span><span class="p">(</span><span class="n">filename</span> <span class="o">=</span> <span class="n">df</span><span class="p">)</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>polars.LazyFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.pega_io.import_file">
+<span class="sig-name descname"><span class="pre">import_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extension</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">reading_opts</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.pega_io.import_file" title="Permalink to this definition">#</a></dt>
+<dd><p>Imports a file using Polars</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>File</strong> (<em>str</em>) – The path to the file, passed directly to the read functions</p></li>
+<li><p><strong>extension</strong> (<em>str</em>) – The extension of the file, used to determine which function to use</p></li>
+<li><p><strong>file</strong> (<em>str</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The (imported) lazy dataframe</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pl.LazyFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.pega_io.readZippedFile">
+<span class="sig-name descname"><span class="pre">readZippedFile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">io.BytesIO</span></span></span><a class="headerlink" href="#pdstools.pega_io.readZippedFile" title="Permalink to this definition">#</a></dt>
+<dd><p>Read a zipped NDJSON file.
+Reads a dataset export file as exported and downloaded from Pega. The export
+file is formatted as a zipped multi-line JSON file. It reads the file,
+and then returns the file as a BytesIO object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file</strong> (<em>str</em>) – The full path to the file</p></li>
+<li><p><strong>verbose</strong> (<em>str</em><em>, </em><em>default=False</em>) – Whether to print the names of the files within the unzipped file for debugging purposes</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The raw bytes object to pass through to Polars</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>os.BytesIO</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.pega_io.readMultiZip">
+<span class="sig-name descname"><span class="pre">readMultiZip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zip_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="pre">gzip</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'gzip'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.pega_io.readMultiZip" title="Permalink to this definition">#</a></dt>
+<dd><p>Reads multiple zipped ndjson files, and concats them to one Polars dataframe.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>files</strong> (<em>list</em>) – The list of files to concat</p></li>
+<li><p><strong>zip_type</strong> (<em>Literal</em><em>[</em><em>'gzip'</em><em>]</em>) – At this point, only ‘gzip’ is supported</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>default = True</em>) – Whether to print out the progress of the import</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.pega_io.get_latest_file">
+<span class="sig-name descname"><span class="pre">get_latest_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#pdstools.pega_io.get_latest_file" title="Permalink to this definition">#</a></dt>
+<dd><p>Convenience method to find the latest model snapshot.
+It has a set of default names to search for and finds all files who match it.
+Once it finds all matching files in the directory, it chooses the most recent one.
+Supports [“.json”, “.csv”, “.zip”, “.parquet”, “.feather”, “.ipc”].
+Needs a path to the directory and a target of either ‘modelData’ or ‘predictorData’.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<em>str</em>) – The filepath where the data is stored</p></li>
+<li><p><strong>target</strong> (<em>str in</em><em> [</em><em>'modelData'</em><em>, </em><em>'predictorData'</em><em>]</em>) – Whether to look for data about the predictive models (‘modelData’)
+or the predictor bins (‘predictorData’)</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>default = False</em>) – Whether to print all found files before comparing name criteria for debugging purposes</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The most recent file given the file name criteria.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.pega_io.getMatches">
+<span class="sig-name descname"><span class="pre">getMatches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.pega_io.getMatches" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.pega_io.cache_to_file">
+<span class="sig-name descname"><span class="pre">cache_to_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.DataFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.LazyFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">os.PathLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="pre">ipc</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">parquet</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'ipc'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compression</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'uncompressed'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#pdstools.pega_io.cache_to_file" title="Permalink to this definition">#</a></dt>
+<dd><p>Very simple convenience function to cache data.
+Caches in arrow format for very fast reading.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>pl.DataFrame</em>) – The dataframe to cache</p></li>
+<li><p><strong>path</strong> (<em>os.PathLike</em>) – The location to cache the data</p></li>
+<li><p><strong>name</strong> (<em>str</em>) – The name to give to the file</p></li>
+<li><p><strong>cache_type</strong> (<em>str</em>) – The type of file to export.
+Default is IPC, also supports parquet</p></li>
+<li><p><strong>compression</strong> (<em>str</em>) – The compression to apply, default is uncompressed</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The filepath to the cached file</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>os.PathLike</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2022, Pegasystems
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/pegasystems/pega-datascientist-tools" aria-label="GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            </a>
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.pega_io</span></code></a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#package-contents">Package Contents</a><ul>
+<li><a class="reference internal" href="#functions">Functions</a><ul>
+<li><a class="reference internal" href="#pdstools.pega_io.readClientCredentialFile"><code class="docutils literal notranslate"><span class="pre">readClientCredentialFile()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.getToken"><code class="docutils literal notranslate"><span class="pre">getToken()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.fromPRPCDateTime"><code class="docutils literal notranslate"><span class="pre">fromPRPCDateTime()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.readDSExport"><code class="docutils literal notranslate"><span class="pre">readDSExport()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.import_file"><code class="docutils literal notranslate"><span class="pre">import_file()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.readZippedFile"><code class="docutils literal notranslate"><span class="pre">readZippedFile()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.readMultiZip"><code class="docutils literal notranslate"><span class="pre">readMultiZip()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.get_latest_file"><code class="docutils literal notranslate"><span class="pre">get_latest_file()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.getMatches"><code class="docutils literal notranslate"><span class="pre">getMatches()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.cache_to_file"><code class="docutils literal notranslate"><span class="pre">cache_to_file()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.readClientCredentialFile">readClientCredentialFile</a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.getToken">getToken</a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.fromPRPCDateTime">fromPRPCDateTime</a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.readDSExport">readDSExport</a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.import_file">import_file</a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.readZippedFile">readZippedFile</a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.readMultiZip">readMultiZip</a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.get_latest_file">get_latest_file</a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.getMatches">getMatches</a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.cache_to_file">cache_to_file</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../_static/scripts/furo.js"></script>
+    <script src="../../../_static/clipboard.min.js"></script>
+    <script src="../../../_static/copybutton.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    </body>
+</html>

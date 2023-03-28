@@ -1,0 +1,26 @@
+:py:mod:`pdstools.pega_io.API`
+==============================
+
+.. py:module:: pdstools.pega_io.API
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   pdstools.pega_io.API.readClientCredentialFile
+   pdstools.pega_io.API.getToken
+
+
+
+.. py:function:: readClientCredentialFile(credentialFile)
+
+
+.. py:function:: getToken(credentialFile, verify=True, **kwargs)
+
+

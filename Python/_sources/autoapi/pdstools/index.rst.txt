@@ -18,6 +18,7 @@ Subpackages
    adm/index.rst
    app/index.rst
    ih/index.rst
+   pega_io/index.rst
    plots/index.rst
    reports/index.rst
    utils/index.rst
@@ -46,10 +47,13 @@ Functions
 
 .. autoapisummary::
 
+   pdstools.getToken
+   pdstools.readClientCredentialFile
+   pdstools.readDSExport
+   pdstools.defaultPredictorCategorization
    pdstools.CDHSample
    pdstools.SampleTrees
    pdstools.SampleValueFinder
-   pdstools.defaultPredictorCategorization
 
 
 
@@ -113,7 +117,7 @@ Attributes
    :keyword verbose: Whether to print out information during importing
    :kwtype verbose: bool, default = False
    :keyword \*\*reading_opts: Additional parameters used while reading.
-                              Refer to :meth:`pdstools.utils.cdh_utils.import_file` for more info.
+                              Refer to :meth:`pdstools.pega_io.File.import_file` for more info.
 
    .. attribute:: modelData
 
@@ -220,7 +224,7 @@ Attributes
       :kwtype extract_keys: bool
       :keyword Additional keyword arguments:
       :keyword -----------------:
-      :keyword See readDSExport in cdh_utils:
+      :keyword See :meth:`pdstools.pega_io.File.readDSExport`:
 
       :returns: The requested dataframe,
                 The renamed columns
@@ -245,7 +249,7 @@ Attributes
       :rtype: (pl.LazyFrame, set, set)
 
 
-   .. py:method:: _set_types(df: pdstools.utils.types.any_frame, *, timestamp_fmt: str = '%Y%m%dT%H%M%S.%f %Z', strict_conversion: bool = True) -> pdstools.utils.types.any_frame
+   .. py:method:: _set_types(df: pdstools.utils.types.any_frame, *, timestamp_fmt: str = None, strict_conversion: bool = True) -> pdstools.utils.types.any_frame
       :staticmethod:
 
       A method to change columns to their proper type
@@ -595,6 +599,66 @@ Attributes
 
 
 
+.. py:function:: getToken(credentialFile, verify=True, **kwargs)
+
+
+.. py:function:: readClientCredentialFile(credentialFile)
+
+
+.. py:function:: readDSExport(filename: Union[pandas.DataFrame, polars.DataFrame, str], path: str = '.', verbose: bool = True, **reading_opts) -> polars.LazyFrame
+
+   Read a Pega dataset export file.
+   Can accept either a Pandas DataFrame or one of the following formats:
+   - .csv
+   - .json
+   - .zip (zipped json or CSV)
+   - .feather
+   - .ipc
+   - .parquet
+
+   It automatically infers the default file names for both model data as well as predictor data.
+   If you supply either 'modelData' or 'predictorData' as the 'file' argument, it will search for them.
+   If you supply the full name of the file in the 'path' directory, it will import that instead.
+   Since pdstools V3.x, returns a Polars LazyFrame. Simply call `.collect()` to get an eager frame.
+
+   :param filename: Either a Pandas/Polars DataFrame with the source data (for compatibility),
+                    or a string, in which case it can either be:
+                    - The name of the file (if a custom name) or
+                    - Whether we want to look for 'modelData' or 'predictorData' in the path folder.
+   :type filename: [pd.DataFrame, pl.DataFrame, str]
+   :param path: The location of the file
+   :type path: str, default = '.'
+   :param verbose: Whether to print out which file will be imported
+   :type verbose: bool, default = True
+
+   :keyword Any: Any arguments to plug into the scan_* function from Polars.
+
+   :returns: * *pl.LazyFrame* -- The (lazy) dataframe
+             * *Examples* -- >>> df = readDSExport(filename = 'modelData', path = './datamart')
+               >>> df = readDSExport(filename = 'ModelSnapshot.json', path = 'data/ADMData')
+
+               >>> df = pd.read_csv('file.csv')
+               >>> df = readDSExport(filename = df)
+
+
+.. py:function:: defaultPredictorCategorization(x: Union[str, polars.Expr] = pl.col('PredictorName')) -> polars.Expr
+
+   Function to determine the 'category' of a predictor.
+
+   It is possible to supply a custom function.
+   This function can accept an optional column as input
+   And as output should be a Polars expression.
+   The most straight-forward way to implement this is with
+   pl.when().then().otherwise(), which you can chain.
+
+   By default, this function returns "Primary" whenever
+   there is no '.' anywhere in the name string,
+   otherwise returns the first string before the first period
+
+   :param x: The column to parse
+   :type x: Union[str, pl.Expr], default = pl.col('PredictorName')
+
+
 .. py:function:: CDHSample(plotting_engine='plotly', query=None, **kwargs)
 
 
@@ -754,24 +818,6 @@ Attributes
 
       Anonymize the dataset.
 
-
-
-.. py:function:: defaultPredictorCategorization(x: Union[str, polars.Expr] = pl.col('PredictorName')) -> polars.Expr
-
-   Function to determine the 'category' of a predictor.
-
-   It is possible to supply a custom function.
-   This function can accept an optional column as input
-   And as output should be a Polars expression.
-   The most straight-forward way to implement this is with
-   pl.when().then().otherwise(), which you can chain.
-
-   By default, this function returns "Primary" whenever
-   there is no '.' anywhere in the name string,
-   otherwise returns the first string before the first period
-
-   :param x: The column to parse
-   :type x: Union[str, pl.Expr], default = pl.col('PredictorName')
 
 
 .. py:class:: ValueFinder(path: Optional[str] = None, df: Optional[Union[pandas.DataFrame, polars.DataFrame, polars.LazyFrame]] = None, verbose: bool = True, **kwargs)

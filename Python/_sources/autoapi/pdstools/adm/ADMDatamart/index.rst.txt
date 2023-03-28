@@ -63,7 +63,7 @@ Classes
    :keyword verbose: Whether to print out information during importing
    :kwtype verbose: bool, default = False
    :keyword \*\*reading_opts: Additional parameters used while reading.
-                              Refer to :meth:`pdstools.utils.cdh_utils.import_file` for more info.
+                              Refer to :meth:`pdstools.pega_io.File.import_file` for more info.
 
    .. attribute:: modelData
 
@@ -170,7 +170,7 @@ Classes
       :kwtype extract_keys: bool
       :keyword Additional keyword arguments:
       :keyword -----------------:
-      :keyword See readDSExport in cdh_utils:
+      :keyword See :meth:`pdstools.pega_io.File.readDSExport`:
 
       :returns: The requested dataframe,
                 The renamed columns
@@ -195,7 +195,7 @@ Classes
       :rtype: (pl.LazyFrame, set, set)
 
 
-   .. py:method:: _set_types(df: pdstools.utils.types.any_frame, *, timestamp_fmt: str = '%Y%m%dT%H%M%S.%f %Z', strict_conversion: bool = True) -> pdstools.utils.types.any_frame
+   .. py:method:: _set_types(df: pdstools.utils.types.any_frame, *, timestamp_fmt: str = None, strict_conversion: bool = True) -> pdstools.utils.types.any_frame
       :staticmethod:
 
       A method to change columns to their proper type

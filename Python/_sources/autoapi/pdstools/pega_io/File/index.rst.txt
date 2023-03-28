@@ -1,0 +1,146 @@
+:py:mod:`pdstools.pega_io.File`
+===============================
+
+.. py:module:: pdstools.pega_io.File
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   pdstools.pega_io.File.readDSExport
+   pdstools.pega_io.File.import_file
+   pdstools.pega_io.File.readZippedFile
+   pdstools.pega_io.File.readMultiZip
+   pdstools.pega_io.File.get_latest_file
+   pdstools.pega_io.File.getMatches
+   pdstools.pega_io.File.cache_to_file
+
+
+
+.. py:function:: readDSExport(filename: Union[pandas.DataFrame, polars.DataFrame, str], path: str = '.', verbose: bool = True, **reading_opts) -> polars.LazyFrame
+
+   Read a Pega dataset export file.
+   Can accept either a Pandas DataFrame or one of the following formats:
+   - .csv
+   - .json
+   - .zip (zipped json or CSV)
+   - .feather
+   - .ipc
+   - .parquet
+
+   It automatically infers the default file names for both model data as well as predictor data.
+   If you supply either 'modelData' or 'predictorData' as the 'file' argument, it will search for them.
+   If you supply the full name of the file in the 'path' directory, it will import that instead.
+   Since pdstools V3.x, returns a Polars LazyFrame. Simply call `.collect()` to get an eager frame.
+
+   :param filename: Either a Pandas/Polars DataFrame with the source data (for compatibility),
+                    or a string, in which case it can either be:
+                    - The name of the file (if a custom name) or
+                    - Whether we want to look for 'modelData' or 'predictorData' in the path folder.
+   :type filename: [pd.DataFrame, pl.DataFrame, str]
+   :param path: The location of the file
+   :type path: str, default = '.'
+   :param verbose: Whether to print out which file will be imported
+   :type verbose: bool, default = True
+
+   :keyword Any: Any arguments to plug into the scan_* function from Polars.
+
+   :returns: * *pl.LazyFrame* -- The (lazy) dataframe
+             * *Examples* -- >>> df = readDSExport(filename = 'modelData', path = './datamart')
+               >>> df = readDSExport(filename = 'ModelSnapshot.json', path = 'data/ADMData')
+
+               >>> df = pd.read_csv('file.csv')
+               >>> df = readDSExport(filename = df)
+
+
+.. py:function:: import_file(file: str, extension: str, **reading_opts) -> polars.LazyFrame
+
+   Imports a file using Polars
+
+   :param File: The path to the file, passed directly to the read functions
+   :type File: str
+   :param extension: The extension of the file, used to determine which function to use
+   :type extension: str
+
+   :returns: The (imported) lazy dataframe
+   :rtype: pl.LazyFrame
+
+
+.. py:function:: readZippedFile(file: str, verbose: bool = False) -> io.BytesIO
+
+   Read a zipped NDJSON file.
+   Reads a dataset export file as exported and downloaded from Pega. The export
+   file is formatted as a zipped multi-line JSON file. It reads the file,
+   and then returns the file as a BytesIO object.
+
+   :param file: The full path to the file
+   :type file: str
+   :param verbose: Whether to print the names of the files within the unzipped file for debugging purposes
+   :type verbose: str, default=False
+
+   :returns: The raw bytes object to pass through to Polars
+   :rtype: os.BytesIO
+
+
+.. py:function:: readMultiZip(files: list, zip_type: Literal[gzip] = 'gzip', verbose: bool = True)
+
+   Reads multiple zipped ndjson files, and concats them to one Polars dataframe.
+
+   :param files: The list of files to concat
+   :type files: list
+   :param zip_type: At this point, only 'gzip' is supported
+   :type zip_type: Literal['gzip']
+   :param verbose: Whether to print out the progress of the import
+   :type verbose: bool, default = True
+
+
+.. py:function:: get_latest_file(path: str, target: str, verbose: bool = False) -> str
+
+   Convenience method to find the latest model snapshot.
+   It has a set of default names to search for and finds all files who match it.
+   Once it finds all matching files in the directory, it chooses the most recent one.
+   Supports [".json", ".csv", ".zip", ".parquet", ".feather", ".ipc"].
+   Needs a path to the directory and a target of either 'modelData' or 'predictorData'.
+
+   :param path: The filepath where the data is stored
+   :type path: str
+   :param target: Whether to look for data about the predictive models ('modelData')
+                  or the predictor bins ('predictorData')
+   :type target: str in ['modelData', 'predictorData']
+   :param verbose: Whether to print all found files before comparing name criteria for debugging purposes
+   :type verbose: bool, default = False
+
+   :returns: The most recent file given the file name criteria.
+   :rtype: str
+
+
+.. py:function:: getMatches(files_dir, target)
+
+
+.. py:function:: cache_to_file(df: Union[polars.DataFrame, polars.LazyFrame], path: os.PathLike, name: str, cache_type: Literal[ipc, parquet] = 'ipc', compression: str = 'uncompressed') -> str
+
+   Very simple convenience function to cache data.
+   Caches in arrow format for very fast reading.
+
+   :param df: The dataframe to cache
+   :type df: pl.DataFrame
+   :param path: The location to cache the data
+   :type path: os.PathLike
+   :param name: The name to give to the file
+   :type name: str
+   :param cache_type: The type of file to export.
+                      Default is IPC, also supports parquet
+   :type cache_type: str
+   :param compression: The compression to apply, default is uncompressed
+   :type compression: str
+
+   :returns: The filepath to the cached file
+   :rtype: os.PathLike
+
+
