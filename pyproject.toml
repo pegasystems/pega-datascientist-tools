@@ -40,6 +40,7 @@ dependencies = [
         "pyarrow",
         "tqdm",
         "pyyaml"
+        "aioboto3>=11.0"
     ]
 requires-python = ">=3.8"
 

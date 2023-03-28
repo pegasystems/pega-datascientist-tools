@@ -6,3 +6,4 @@ tqdm
 polars>=0.16.8
 pyarrow
 pyyaml
+aioboto3>=11.0
