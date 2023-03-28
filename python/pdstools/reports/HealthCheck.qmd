@@ -556,7 +556,6 @@ All below lists are guidance. There should be just a small percentage of immatur
 These models have no responses at all: no positives but also no negatives. The models for these actions/treatments exist, so they must have been created in the evaluation of the actions/treatments, but they were never selected to show to the customer, so never received any responses.
 
 Often these represent actions that never made it into production and were only used to test out logic. But it could also be that the response mechanism is broken. It could for example be caused by outcome labels that are returned by the channel application not matching the configuration of the adaptive models.
-
 ```{python}
 if include_tables:
     zero_response = datamart.zero_response.to_pandas(use_pyarrow_extension_array=True)
