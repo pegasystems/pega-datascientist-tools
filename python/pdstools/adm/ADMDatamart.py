@@ -1367,7 +1367,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 bashCommand.split(), stdout=stdout, stderr=stderr, cwd=working_dir
             )
             process.communicate()
-        if not os.path.exists(working_dir / output_filename):
+        if not os.path.exists(f"{working_dir}/{output_filename}"):
             msg = "Error when generating healthcheck."
             if not verbose and not kwargs.get("output_to_file", False):
                 msg += "Set 'verbose' to True to see the full output"
