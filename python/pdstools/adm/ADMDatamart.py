@@ -1217,6 +1217,42 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             self.combinedData = self._get_combined_data(strategy=self.import_strategy)
         return self
 
+    def fillMissing(self) -> ADMDatamart:
+        """Convenience method to fill missing values
+
+        Fills categorical, string and null type columns with "NA"
+        Fills SuccessRate, Performance and ResponseCount columns with 0
+        Finally when context keys have empty string values, replaces them 
+        with "NA" string
+        """
+        self.modelData = self.modelData.with_columns(
+            pl.col(pl.Categorical).fill_null("NA"),
+            pl.col(pl.Utf8).fill_null("NA"),
+            pl.col(pl.Null).fill_null("NA"),
+            pl.col("SuccessRate").fill_nan(0).fill_null(0),
+            pl.col("Performance").fill_nan(0).fill_null(0),
+            pl.col("ResponseCount").fill_null(0),
+        ).with_columns(
+            [
+                pl.when((pl.col(key) == "") | (pl.col(key) == " "))
+                .then(pl.lit("NA"))
+                .otherwise(pl.col(key))
+                .alias(key)
+                for key in self.context_keys
+            ]
+        )
+
+        if self.import_strategy == "eager":
+            self.modelData = self.modelData.collect().lazy()
+        if self.predictorData is not None:
+            self.predictorData = self.predictorData.join(
+                self.modelData.select(pl.col("ModelID").unique()), on="ModelID"
+            )
+            if self.import_strategy == "eager":
+                self.predictorData = self.predictorData.collect().lazy()
+            self.combinedData = self._get_combined_data(strategy=self.import_strategy)
+        return self
+
     def generateHealthCheck(
         self,
         name: Optional[str] = None,
@@ -1326,7 +1362,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 bashCommand.split(), stdout=stdout, stderr=stderr, cwd=working_dir
             )
             process.communicate()
-        if not os.path.exists(working_dir / output_filename):
+        if not os.path.exists(f"{working_dir}/{output_filename}"):
             msg = "Error when generating healthcheck."
             if not verbose and not kwargs.get("output_to_file", False):
                 msg += "Set 'verbose' to True to see the full output"

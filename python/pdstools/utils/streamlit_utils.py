@@ -215,7 +215,7 @@ def configure_predictor_categorization():
     if len(st.session_state["filters"]) > 0:
         for filter in st.session_state["filters"]:
             df = df.filter(filter)
-    newPredictorCategorizationFunc()
+    #newPredictorCategorizationFunc()
     df = (
         df.filter(pl.col("PredictorName") != "Classifier")
         .with_columns((pl.col("PerformanceBin") - 0.5) * 2)
