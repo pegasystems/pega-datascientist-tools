@@ -9,6 +9,7 @@ import plotly.figure_factory as ff
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from typing import Optional, Union
+from .. import pega_io
 from ..utils import cdh_utils
 from os import PathLike
 
@@ -71,9 +72,7 @@ class ValueFinder:
         if self.df is None:
             start = time.time()
             filename = kwargs.pop("filename", "ValueFinder")
-            self.df = cdh_utils.readDSExport(
-                filename, path, return_pl=True, verbose=verbose
-            )
+            self.df = pega_io.readDSExport(filename, path, return_pl=True, verbose=verbose)
             if verbose:
                 print(f"Data import took {round(time.time() - start,2)} seconds")
 
@@ -118,7 +117,7 @@ class ValueFinder:
         from datetime import datetime
 
         time = cdh_utils.toPRPCDateTime(datetime.now())
-        out = cdh_utils.cache_to_file(self.df, path, name=f"cached_ValueFinder_{time}")
+        out = pega_io.cache_to_file(self.df, path, name=f"cached_ValueFinder_{time}")
         return out
 
     def getCustomerSummary(

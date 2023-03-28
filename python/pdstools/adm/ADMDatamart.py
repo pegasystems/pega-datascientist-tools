@@ -17,6 +17,7 @@ from ..plots.plots_plotly import ADMVisualisations as plotly_plot
 from ..utils import cdh_utils
 from ..utils.errors import NotEagerError
 from ..utils.types import any_frame
+from .. import pega_io
 from .ADMTrees import ADMTrees
 from .Tables import Tables
 
@@ -70,7 +71,7 @@ class ADMDatamart(Plots, Tables):
         Whether to print out information during importing
     **reading_opts
         Additional parameters used while reading.
-        Refer to :meth:`pdstools.utils.cdh_utils.import_file` for more info.
+        Refer to :meth:`pdstools.pega_io.File.import_file` for more info.
 
     Attributes
     ----------
@@ -343,7 +344,7 @@ class ADMDatamart(Plots, Tables):
 
         Additional keyword arguments
         -----------------
-        See readDSExport in cdh_utils
+        See :meth:`pdstools.pega_io.File.readDSExport`
 
         Returns
         -------
@@ -357,7 +358,7 @@ class ADMDatamart(Plots, Tables):
             self.import_strategy = "eager"
 
         if isinstance(name, str) or isinstance(name, BytesIO):
-            df = cdh_utils.readDSExport(
+            df = pega_io.readDSExport(
                 filename=name, path=path, verbose=self.verbose, **reading_opts
             )
         elif isinstance(name, pl.DataFrame):
@@ -474,7 +475,7 @@ class ADMDatamart(Plots, Tables):
     def _set_types(
         df: any_frame,
         *,
-        timestamp_fmt: str = "%Y%m%dT%H%M%S.%f %Z",
+        timestamp_fmt: str = None,
         strict_conversion: bool = True,
     ) -> any_frame:
         """A method to change columns to their proper type
@@ -517,6 +518,7 @@ class ADMDatamart(Plots, Tables):
                     strict=strict_conversion,
                 )
             )
+
         return df
 
     def last(
@@ -622,11 +624,11 @@ class ADMDatamart(Plots, Tables):
 
         time = datetime.now().strftime("%Y%m%dT%H%M%S.%f")[:-3]
         if self.modelData is not None:
-            modeldata_cache = cdh_utils.cache_to_file(
+            modeldata_cache = pega_io.cache_to_file(
                 self.modelData, path, name=f"cached_modelData_{time}"
             )
         if self.predictorData is not None:
-            predictordata_cache = cdh_utils.cache_to_file(
+            predictordata_cache = pega_io.cache_to_file(
                 self.predictorData, path, name=f"cached_predictorData_{time}"
             )
         return modeldata_cache, predictordata_cache
