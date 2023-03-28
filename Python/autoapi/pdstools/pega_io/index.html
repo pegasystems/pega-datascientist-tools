@@ -214,6 +214,7 @@
 <li class="toctree-l3 current has-children current-page"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.pega_io</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="API/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.pega_io.API</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="File/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.pega_io.File</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="S3/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.pega_io.S3</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../plots/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plots</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -283,11 +284,24 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="API/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.pega_io.API</span></code></a></li>
 <li class="toctree-l1"><a class="reference internal" href="File/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.pega_io.File</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="S3/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.pega_io.S3</span></code></a></li>
 </ul>
 </div>
 </section>
 <section id="package-contents">
 <h2>Package Contents<a class="headerlink" href="#package-contents" title="Permalink to this heading">#</a></h2>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading">#</a></h3>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.pega_io.S3Data" title="pdstools.pega_io.S3Data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">S3Data</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
 <section id="functions">
 <h3>Functions<a class="headerlink" href="#functions" title="Permalink to this heading">#</a></h3>
 <div class="table-wrapper autosummary longtable docutils container">
@@ -527,6 +541,89 @@ Default is IPC, also supports parquet</p></li>
 </dl>
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="pdstools.pega_io.S3Data">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">S3Data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bucketName</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temp_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./s3_download'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.pega_io.S3Data" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>bucketName</strong> (<em>str</em>) – </p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.pega_io.S3Data.getS3Files">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">getS3Files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.pega_io.S3Data.getS3Files" title="Permalink to this definition">#</a></dt>
+<dd><p>OOTB file exports can be written in many very small files.</p>
+<p>This method asyncronously retrieves these files, and puts them in
+a temporary directory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>prefix</strong> (<em>str</em>) – The prefix, pointing to the s3 files. See boto3 docs for filter.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.pega_io.S3Data.getDatamartData">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">getDatamartData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">datamart_folder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'datamart'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.pega_io.S3Data.getDatamartData" title="Permalink to this definition">#</a></dt>
+<dd><p>Wrapper method to import one of the tables in the datamart.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>table</strong> (<em>str</em>) – One of the datamart tables. See notes for the full list.</p></li>
+<li><p><strong>datamart_folder</strong> (<em>str</em><em>, </em><em>default='datamart'</em>) – The path to the ‘datamart’ folder within the s3 bucket.
+Typically, this is the top-level folder in the bucket.</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>default = True</em>) – Whether to print out the progress of the import</p></li>
+</ul>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Supports the following tables:
+{</p>
+<blockquote>
+<div><p>“modelSnapshot”: “Data-Decision-ADM-ModelSnapshot_pzModelSnapshots”,
+“predictorSnapshot”: “Data-Decision-ADM-PredictorBinningSnapshot_pzADMPredictorSnapshots”,
+“binaryDistribution”: “Data-DM-BinaryDistribution”,
+“contingencyTable”: “Data-DM-ContingencyTable”,
+“histogram”: “Data-DM-Histogram”,
+“snapshot”: “Data-DM-Snapshot”,
+“notification”: “Data-DM-Notification”,</p>
+</div></blockquote>
+<p>}</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.pega_io.S3Data.get_ADMDatamart">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_ADMDatamart</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">datamart_folder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'datamart'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.pega_io.S3Data.get_ADMDatamart" title="Permalink to this definition">#</a></dt>
+<dd><p>Get the ADMDatamart class directly from files in S3</p>
+<p>In the Prediction Studio settings, you can configure an automatic
+export of the monitoring tables to a chosen repository. This method
+interacts with that repository to retrieve files.</p>
+<p>Because this is an async function, you need to await it.
+See <cite>Examples</cite> for an example on how to use this (in a jupyter notebook).</p>
+<p>It checks for files that are already on your local device, but it always
+concatenates the raw zipped files together when calling the function, which can
+potentially make it slow. If you don’t always need the latest data, just use
+<cite>:meth:pdstools.adm.ADMDatamart.save_data()</cite> to save the data to more easily
+digestible files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>verbose</strong> (<em>bool</em>) – Whether to print out the progress of the imports</p></li>
+<li><p><strong>datamart_folder</strong> (<em>str</em><em>, </em><em>default='datamart'</em>) – The path to the ‘datamart’ folder within the s3 bucket.
+Typically, this is the top-level folder in the bucket.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dm</span> <span class="o">=</span> <span class="k">await</span> <span class="n">S3Datamart</span><span class="p">(</span><span class="n">bucketName</span><span class="o">=</span><span class="s1">&#39;testbucket&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">get_ADMDatamart</span><span class="p">()</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 </section>
 </section>
@@ -578,6 +675,7 @@ Default is IPC, also supports parquet</p></li>
 <li><a class="reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.pega_io</span></code></a><ul>
 <li><a class="reference internal" href="#submodules">Submodules</a></li>
 <li><a class="reference internal" href="#package-contents">Package Contents</a><ul>
+<li><a class="reference internal" href="#classes">Classes</a></li>
 <li><a class="reference internal" href="#functions">Functions</a><ul>
 <li><a class="reference internal" href="#pdstools.pega_io.readClientCredentialFile"><code class="docutils literal notranslate"><span class="pre">readClientCredentialFile()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.pega_io.getToken"><code class="docutils literal notranslate"><span class="pre">getToken()</span></code></a></li>
@@ -589,6 +687,12 @@ Default is IPC, also supports parquet</p></li>
 <li><a class="reference internal" href="#pdstools.pega_io.get_latest_file"><code class="docutils literal notranslate"><span class="pre">get_latest_file()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.pega_io.getMatches"><code class="docutils literal notranslate"><span class="pre">getMatches()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.pega_io.cache_to_file"><code class="docutils literal notranslate"><span class="pre">cache_to_file()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.S3Data"><code class="docutils literal notranslate"><span class="pre">S3Data</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.pega_io.S3Data.getS3Files"><code class="docutils literal notranslate"><span class="pre">getS3Files()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.S3Data.getDatamartData"><code class="docutils literal notranslate"><span class="pre">getDatamartData()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.S3Data.get_ADMDatamart"><code class="docutils literal notranslate"><span class="pre">get_ADMDatamart()</span></code></a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#pdstools.pega_io.readClientCredentialFile">readClientCredentialFile</a></li>
 <li><a class="reference internal" href="#pdstools.pega_io.getToken">getToken</a></li>
 <li><a class="reference internal" href="#pdstools.pega_io.fromPRPCDateTime">fromPRPCDateTime</a></li>
@@ -599,6 +703,12 @@ Default is IPC, also supports parquet</p></li>
 <li><a class="reference internal" href="#pdstools.pega_io.get_latest_file">get_latest_file</a></li>
 <li><a class="reference internal" href="#pdstools.pega_io.getMatches">getMatches</a></li>
 <li><a class="reference internal" href="#pdstools.pega_io.cache_to_file">cache_to_file</a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.S3Data">S3Data</a><ul>
+<li><a class="reference internal" href="#pdstools.pega_io.S3Data.getS3Files">getS3Files</a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.S3Data.getDatamartData">getDatamartData</a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.S3Data.get_ADMDatamart">get_ADMDatamart</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>

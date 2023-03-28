@@ -1,0 +1,89 @@
+:py:mod:`pdstools.pega_io.S3`
+=============================
+
+.. py:module:: pdstools.pega_io.S3
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   pdstools.pega_io.S3.S3Data
+
+
+
+
+.. py:class:: S3Data(bucketName: str, temp_dir='./s3_download')
+
+   .. py:method:: getS3Files(prefix, verbose=True)
+      :async:
+
+      OOTB file exports can be written in many very small files.
+
+      This method asyncronously retrieves these files, and puts them in
+      a temporary directory.
+
+      :param prefix: The prefix, pointing to the s3 files. See boto3 docs for filter.
+      :type prefix: str
+
+
+   .. py:method:: getDatamartData(table, datamart_folder: str = 'datamart', verbose: bool = True)
+      :async:
+
+      Wrapper method to import one of the tables in the datamart.
+
+      :param table: One of the datamart tables. See notes for the full list.
+      :type table: str
+      :param datamart_folder: The path to the 'datamart' folder within the s3 bucket.
+                              Typically, this is the top-level folder in the bucket.
+      :type datamart_folder: str, default='datamart'
+      :param verbose: Whether to print out the progress of the import
+      :type verbose: bool, default = True
+
+      .. note::
+
+         Supports the following tables:
+         {
+             "modelSnapshot": "Data-Decision-ADM-ModelSnapshot_pzModelSnapshots",
+             "predictorSnapshot": "Data-Decision-ADM-PredictorBinningSnapshot_pzADMPredictorSnapshots",
+             "binaryDistribution": "Data-DM-BinaryDistribution",
+             "contingencyTable": "Data-DM-ContingencyTable",
+             "histogram": "Data-DM-Histogram",
+             "snapshot": "Data-DM-Snapshot",
+             "notification": "Data-DM-Notification",
+         }
+
+
+   .. py:method:: get_ADMDatamart(datamart_folder: str = 'datamart', verbose: bool = True)
+      :async:
+
+      Get the ADMDatamart class directly from files in S3
+
+      In the Prediction Studio settings, you can configure an automatic
+      export of the monitoring tables to a chosen repository. This method
+      interacts with that repository to retrieve files.
+
+      Because this is an async function, you need to await it.
+      See `Examples` for an example on how to use this (in a jupyter notebook).
+
+      It checks for files that are already on your local device, but it always
+      concatenates the raw zipped files together when calling the function, which can
+      potentially make it slow. If you don't always need the latest data, just use
+      `:meth:pdstools.adm.ADMDatamart.save_data()` to save the data to more easily
+      digestible files.
+
+      :param verbose: Whether to print out the progress of the imports
+      :param datamart_folder: The path to the 'datamart' folder within the s3 bucket.
+                              Typically, this is the top-level folder in the bucket.
+      :type datamart_folder: str, default='datamart'
+
+      .. rubric:: Examples
+
+      >>> dm = await S3Datamart(bucketName='testbucket').get_ADMDatamart()
+
+
+

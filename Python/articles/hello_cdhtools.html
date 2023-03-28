@@ -215,6 +215,7 @@
 <li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/pega_io/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.pega_io</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/pega_io/API/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.pega_io.API</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/pega_io/File/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.pega_io.File</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/pega_io/S3/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.pega_io.S3</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/plots/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plots</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -317,7 +318,13 @@ File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascient
 <span class="ansi-green-intense-fg ansi-bold">      2</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span> <span class="ansi-bold" style="color: rgb(0,0,255)">.</span><span class="ansi-bold" style="color: rgb(0,0,255)">File</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> <span style="color: rgb(98,98,98)">*</span>
 <span class="ansi-green-fg">----&gt; 3</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span> <span class="ansi-bold" style="color: rgb(0,0,255)">.</span><span class="ansi-bold" style="color: rgb(0,0,255)">S3</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> <span style="color: rgb(98,98,98)">*</span>
 
-<span class="ansi-red-fg">ModuleNotFoundError</span>: No module named &#39;pdstools.pega_io.S3&#39;
+File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/pega_io/S3.py:2</span>
+<span class="ansi-green-intense-fg ansi-bold">      1</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> <span class="ansi-bold" style="color: rgb(0,0,255)">asyncio</span>
+<span class="ansi-green-fg">----&gt; 2</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> <span class="ansi-bold" style="color: rgb(0,0,255)">aioboto3</span>
+<span class="ansi-green-intense-fg ansi-bold">      3</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span> <span class="ansi-bold" style="color: rgb(0,0,255)">tqdm</span><span class="ansi-bold" style="color: rgb(0,0,255)">.</span><span class="ansi-bold" style="color: rgb(0,0,255)">asyncio</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> tqdm
+<span class="ansi-green-intense-fg ansi-bold">      4</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span> <span class="ansi-bold" style="color: rgb(0,0,255)">.</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> File
+
+<span class="ansi-red-fg">ModuleNotFoundError</span>: No module named &#39;aioboto3&#39;
 </pre></div></div>
 </div>
 <p>Then to run this example, use a sample dataset included or export your own from Pega. These steps are detailed on the <a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools/wiki/How-to-export-and-use-the-ADM-Datamart">Wiki</a>.</p>
