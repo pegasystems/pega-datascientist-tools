@@ -512,9 +512,7 @@ class ADMDatamart(Plots, Tables):
         elif df.schema["SnapshotTime"] == pl.Utf8:
             df = df.with_columns(
                 pl.col("SnapshotTime").str.strptime(
-                    pl.Datetime,
-                    timestamp_fmt,
-                    strict=strict_conversion,
+                    pl.Datetime, timestamp_fmt, strict=strict_conversion
                 )
             )
         return df
@@ -703,11 +701,7 @@ class ADMDatamart(Plots, Tables):
                 df = df.filter(pl.col(col).is_in(val))
         return df
 
-    def extract_keys(
-        self,
-        df,
-        col="Name",
-    ):
+    def extract_keys(self, df, col="Name"):
         if self.import_strategy != "eager":
             raise NotEagerError("Extracting keys")
         if self.verbose:
@@ -725,9 +719,7 @@ class ADMDatamart(Plots, Tables):
 
         return (
             (
-                df.with_columns(
-                    safeName().str.json_extract(),
-                )
+                df.with_columns(safeName().str.json_extract())
                 .drop(col)
                 .unnest("tempName")
             )
@@ -944,7 +936,7 @@ class ADMDatamart(Plots, Tables):
                     cdh_utils.weighed_average_polars(
                         "SuccessRate", "ResponseCount"
                     ).alias("SuccessRate_weighted"),
-                ],
+                ]
             )
             .with_columns(
                 (pl.col("Count_without_responses") / pl.col(f"{by}_count")).alias(
@@ -1082,12 +1074,7 @@ class ADMDatamart(Plots, Tables):
                 s, bins=[bins + [float("inf")]][0], category_label="PositivesBin"
             )
             return (
-                result.select(
-                    [
-                        pl.col(label),
-                        _arg_sort,
-                    ]
-                )
+                result.select([pl.col(label), _arg_sort])
                 .sort("_sort")
                 .drop("_sort")
                 .to_series()
@@ -1095,13 +1082,7 @@ class ADMDatamart(Plots, Tables):
 
         modelsByPositives = df.select([by, "Positives", "ModelID"]).collect()
         return (
-            modelsByPositives.hstack(
-                [
-                    orderedCut(
-                        modelsByPositives["Positives"],
-                    )
-                ]
-            )
+            modelsByPositives.hstack([orderedCut(modelsByPositives["Positives"])])
             .lazy()
             .groupby([by, "PositivesBin"])
             .agg([pl.min("Positives"), pl.n_unique("ModelID").alias("ModelCount")])
@@ -1362,7 +1343,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 bashCommand.split(), stdout=stdout, stderr=stderr, cwd=working_dir
             )
             process.communicate()
-        if not os.path.exists(f"{working_dir}/{output_filename}"):
+        if not os.path.exists(working_dir / output_filename):
             msg = "Error when generating healthcheck."
             if not verbose and not kwargs.get("output_to_file", False):
                 msg += "Set 'verbose' to True to see the full output"
