@@ -388,7 +388,7 @@ class ADMDatamart(Plots, Tables):
 
         df = self._set_types(
             df,
-            timestamp_fmt=reading_opts.get("timestamp_fmt", "%Y%m%dT%H%M%S.%f %Z"),
+            timestamp_fmt=reading_opts.get("timestamp_fmt", None),
             strict_conversion=reading_opts.get("strict_conversion", True),
         )
 
@@ -511,16 +511,43 @@ class ADMDatamart(Plots, Tables):
                 if col in set(df.columns):
                     to_retype.append(pl.col(col).cast(type))
         df = df.with_columns(to_retype)
-        if "SnapshotTime" not in df.columns:
+
+        timestampCol = "SnapshotTime"
+        if timestampCol not in df.columns:
             df = df.with_columns(SnapshotTime=None)
-        elif df.schema["SnapshotTime"] == pl.Utf8:
-            df = df.with_columns(
-                pl.col("SnapshotTime").str.strptime(
-                    pl.Datetime,
-                    timestamp_fmt,
-                    strict=strict_conversion,
+
+        elif df.schema[timestampCol] == pl.Utf8:
+            if timestamp_fmt is not None:
+                df = df.with_columns(
+                    pl.col(timestampCol).str.strptime(
+                        pl.Datetime,
+                        timestamp_fmt,
+                        strict=strict_conversion,
+                    )
                 )
-            )
+            else:
+                df = df.with_columns(
+                    (
+                        pl.when((pl.col(timestampCol).str.slice(4, 1) == pl.lit("-")))
+                        .then(
+                            pl.col(timestampCol)
+                            .str.strptime(
+                                pl.Datetime, "%Y-%m-%d %H:%M:%S", strict=False
+                            )
+                            .dt.cast_time_unit("ns")
+                            .dt.round("1s")
+                        )
+                        .otherwise(
+                            pl.col(timestampCol)
+                            .str.strptime(
+                                pl.Datetime, "%Y%m%dT%H%M%S.%f %Z", strict=False
+                            )
+                            .dt.replace_time_zone(None)
+                            .dt.round("1s")
+                            .dt.cast_time_unit("ns")
+                        )
+                    ).alias(timestampCol)
+                )
 
         return df
 

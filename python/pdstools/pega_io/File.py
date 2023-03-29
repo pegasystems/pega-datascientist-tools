@@ -12,7 +12,7 @@ import pandas as pd
 import polars as pl
 import pytz
 import requests
-import tqdm
+from tqdm import tqdm
 
 from ..utils.cdh_utils import fromPRPCDateTime
 

@@ -30,7 +30,7 @@ class S3Data:
         """OOTB file exports can be written in many very small files.
 
         This method asyncronously retrieves these files, and puts them in
-        a temporary directory. 
+        a temporary directory.
 
         parameters
         ----------
@@ -123,9 +123,7 @@ class S3Data:
         }
         prefix = f"{datamart_folder}/{tables[table]}"
         importedFiles = await self.getS3Files(prefix=prefix, verbose=verbose)
-        if len(importedFiles) == 0:
-            raise ValueError(f"No {table} files found.")
-        return File.readMultiZip(importedFiles, verbose=verbose)
+        return importedFiles
 
     async def get_ADMDatamart(
         self, datamart_folder: str = "datamart", verbose: bool = True
@@ -142,7 +140,7 @@ class S3Data:
         It checks for files that are already on your local device, but it always
         concatenates the raw zipped files together when calling the function, which can
         potentially make it slow. If you don't always need the latest data, just use
-        `:meth:pdstools.adm.ADMDatamart.save_data()` to save the data to more easily
+        :meth:`pdstools.adm.ADMDatamart.save_data()` to save the data to more easily
         digestible files.
 
         Parameters
@@ -164,4 +162,7 @@ class S3Data:
         predictorData = await self.getDatamartData(
             "predictorSnapshot", datamart_folder, verbose
         )
-        return ADMDatamart(model_df=modelData, predictor_df=predictorData)
+        return ADMDatamart(
+            model_df=File.readMultiZip(modelData, verbose=verbose),
+            predictor_df=File.readMultiZip(predictorData, verbose=verbose),
+        )
