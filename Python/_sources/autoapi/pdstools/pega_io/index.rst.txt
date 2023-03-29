@@ -245,7 +245,7 @@ Functions
       It checks for files that are already on your local device, but it always
       concatenates the raw zipped files together when calling the function, which can
       potentially make it slow. If you don't always need the latest data, just use
-      `:meth:pdstools.adm.ADMDatamart.save_data()` to save the data to more easily
+      :meth:`pdstools.adm.ADMDatamart.save_data()` to save the data to more easily
       digestible files.
 
       :param verbose: Whether to print out the progress of the imports
