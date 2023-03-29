@@ -515,39 +515,12 @@ class ADMDatamart(Plots, Tables):
         timestampCol = "SnapshotTime"
         if timestampCol not in df.columns:
             df = df.with_columns(SnapshotTime=None)
-
-        elif df.schema[timestampCol] == pl.Utf8:
-            if timestamp_fmt is not None:
-                df = df.with_columns(
-                    pl.col(timestampCol).str.strptime(
-                        pl.Datetime,
-                        timestamp_fmt,
-                        strict=strict_conversion,
-                    )
+        elif df.schema[timestampCol] not in pl.DATETIME_DTYPES:
+            df = df.with_columns(
+                cdh_utils.parsePegaDateTimeFormats(
+                    timestampCol, timestamp_fmt, strict_conversion
                 )
-            else:
-                df = df.with_columns(
-                    (
-                        pl.when((pl.col(timestampCol).str.slice(4, 1) == pl.lit("-")))
-                        .then(
-                            pl.col(timestampCol)
-                            .str.strptime(
-                                pl.Datetime, "%Y-%m-%d %H:%M:%S", strict=False
-                            )
-                            .dt.cast_time_unit("ns")
-                            .dt.round("1s")
-                        )
-                        .otherwise(
-                            pl.col(timestampCol)
-                            .str.strptime(
-                                pl.Datetime, "%Y%m%dT%H%M%S.%f %Z", strict=False
-                            )
-                            .dt.replace_time_zone(None)
-                            .dt.round("1s")
-                            .dt.cast_time_unit("ns")
-                        )
-                    ).alias(timestampCol)
-                )
+            )
 
         return df
 

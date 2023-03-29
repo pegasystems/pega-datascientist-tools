@@ -232,7 +232,9 @@ def test_set_types(test):
         }
     )
     with pytest.raises(pl.ComputeError):
-        test._set_types(df, timestamp_fmt="%Y-%m-%d %H:%M:%S", strict_conversion=True)
+        test._set_types(
+            df, timestamp_fmt="%Y%m%dT%H%M%S", strict_conversion=True
+        )
 
     df2 = test._set_types(
         df, timestamp_fmt="%Y-%m-%d %H:%M:%S", strict_conversion=False

@@ -46,6 +46,56 @@ def defaultPredictorCategorization(
     ).alias("PredictorCategory")
 
 
+def parsePegaDateTimeFormats(
+    timestampCol="SnapshotTime",
+    timestamp_fmt: str = None,
+    strict_conversion: bool = True,
+):
+    """Parses Pega DateTime formats.
+
+    Supports the two most commonly used formats:
+
+    - "%Y-%m-%d %H:%M:%S"
+    - "%Y%m%dT%H%M%S.%f %Z"
+
+    If you want to parse a different timezone, then
+
+    Removes timezones, and rounds to seconds, with a 'ns' time unit.
+
+    Parameters
+    ----------
+    timestampCol: str, default = 'SnapshotTime'
+        The column to parse
+    timestamp_fmt: str, default = None
+        An optional format to use rather than the default formats
+    strict_conversion: bool, default = True
+        Whether to error on incorrect parses or just return Null values
+    """
+    if timestamp_fmt is not None:
+        return pl.col(timestampCol).str.strptime(
+            pl.Datetime,
+            timestamp_fmt,
+            strict=strict_conversion,
+        )
+    else:
+        return (
+            pl.when((pl.col(timestampCol).str.slice(4, 1) == pl.lit("-")))
+            .then(
+                pl.col(timestampCol)
+                .str.strptime(pl.Datetime, "%Y-%m-%d %H:%M:%S", strict=False)
+                .dt.cast_time_unit("ns")
+                .dt.round("1s")
+            )
+            .otherwise(
+                pl.col(timestampCol)
+                .str.strptime(pl.Datetime, "%Y%m%dT%H%M%S.%f %Z", strict=False)
+                .dt.replace_time_zone(None)
+                .dt.round("1s")
+                .dt.cast_time_unit("ns")
+            )
+        ).alias(timestampCol)
+
+
 def safe_range_auc(auc: float) -> float:
     """Internal helper to keep auc a safe number between 0.5 and 1.0 always.
 
@@ -480,6 +530,7 @@ def featureImportance(over=["PredictorName", "ModelID"]):
     if over is not None:
         varImp = varImp.over(over)
     return varImp
+
 
 def legend_color_order(fig):
     """Orders legend colors alphabetically in order to provide pega color
