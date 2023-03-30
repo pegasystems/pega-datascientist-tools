@@ -214,11 +214,21 @@ class ADMDatamart(Plots, Tables):
             Optional override to supply a dataframe instead of a file
         predictor_df : pd.DataFrame
             Optional override to supply a dataframe instead of a file
+        drop_cols : Optional[list]
+            Columns to exclude from reading
+        include_cols : Optional[list]
+            Additionial columns to include when reading
+        extract_keys : bool, default = False
+            Extra keys, particularly pyTreatment, are hidden within the pyName column.
+            extract_keys can expand that cell to also show these values.
+            To extract these extra keys, set extract_keys to True.
+        verbose : bool, default = False
+            Whether to print out information during importing
 
         Returns
         -------
-        (pl.DataFrame, pl.DataFrame)
-            The model data and predictor binning data as dataframes
+        (polars.LazyFrame, polars.LazyFrame)
+            The model data and predictor binning data as LazyFrames
         """
 
         if model_df is not None:
@@ -333,15 +343,15 @@ class ADMDatamart(Plots, Tables):
             extract_keys can expand that cell to also show these values.
 
         Additional keyword arguments
-        -----------------
+        ----------------------------
         See :meth:`pdstools.pega_io.File.readDSExport`
 
         Returns
         -------
         (pl.LazyFrame, dict, dict)
-            The requested dataframe,
-            The renamed columns
-            The columns missing in both dataframes
+            - The requested dataframe,
+            - The renamed columns
+            - The columns missing in both dataframes)
         """
 
         if isinstance(name, BytesIO):
@@ -370,7 +380,7 @@ class ADMDatamart(Plots, Tables):
         if subset:
             df = df.select(cols)
         if extract_keys:
-            df = self.extract_keys(df)
+            df = self._extract_keys(df)
             df = cdh_utils._polarsCapitalize(df)
 
         df = self._set_types(
@@ -413,7 +423,7 @@ class ADMDatamart(Plots, Tables):
 
         Returns
         -------
-        (pl.LazyFrame, set, set)
+        Tuple[set, set]
             The original dataframe, but renamed for the found columns &
             The original and updated names for all renamed columns &
             The variables that were not found in the table
@@ -598,7 +608,8 @@ class ADMDatamart(Plots, Tables):
             return combined
 
     def processTables(
-        self, query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None
+        self,
+        query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]] = None,
     ) -> ADMDatamart:
         """Processes modelData, predictorData and combinedData tables.
 
@@ -612,7 +623,7 @@ class ADMDatamart(Plots, Tables):
 
         Parameters
         ----------
-        query: Optional[Union[pl.Expr, str, Dict[str, list]]], default = None
+        query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]], default = None
             An optional query to apply to the modelData table.
             See: :meth:`._apply_query`
 
@@ -738,11 +749,26 @@ class ADMDatamart(Plots, Tables):
                 df = df.filter(pl.col(col).is_in(val))
         return df
 
-    def extract_keys(
+    def _extract_keys(
         self,
-        df,
-        col="Name",
-    ):
+        df: any_frame,
+    ) -> any_frame:
+        """Extracts keys out of the pyName column
+
+        This is not a lazy operation as we don't know the possible keys
+        in advance. For that reason, we select only the pyName column,
+        extract the keys from that, and then collect the resulting dataframe.
+        This dataframe is then joined back to the original dataframe.
+
+        This is relatively efficient, but we still do need the whole
+        pyName column in memory to do this, so it won't work completely
+        lazily from e.g. s3. That's why it only works with eager mode.
+
+        Parameters
+        ----------
+        df: Union[pl.DataFrame, pl.LazyFrame]
+            The dataframe to extract the keys from
+        """
         if self.import_strategy != "eager":
             raise NotEagerError("Extracting keys")
         if self.verbose:
@@ -758,21 +784,33 @@ class ADMDatamart(Plots, Tables):
                 .alias("tempName")
             )
 
-        return (
-            (
-                df.with_columns(
+        return df.with_columns(
+            cdh_utils._polarsCapitalize(
+                df.select(
                     safeName().str.json_extract(),
                 )
-                .drop(col)
                 .unnest("tempName")
+                .lazy()
+                .collect()
             )
-            .collect()
-            .lazy()
         )
 
     def discover_modelTypes(
-        self, df: pl.LazyFrame, by="Configuration"
-    ):  # pragma: no cover
+        self, df: pl.LazyFrame, by:str="Configuration"
+    ) -> Dict:  # pragma: no cover
+        """Discovers the type of model embedded in the pyModelData column.
+        
+        By default, we do a groupby Configuration, because a model rule can only
+        contain one type of model. Then, for each configuration, we look into the
+        pyModelData blob and find the _serialClass, returning it in a dict.
+
+        Parameters
+        ----------
+        df: pl.LazyFrame
+            The dataframe to search for model types
+        by: str
+            The column to look for types in. Configuration is recommended.
+        """
         if self.import_strategy != "eager":
             raise NotEagerError("Discovering AGB models")
         if "Modeldata" not in df.columns:
@@ -1224,7 +1262,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         return ret
 
     def applyGlobalQuery(
-        self, query: Union[pl.Expr, str, Dict[str, list]]
+        self, query: Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]
     ) -> ADMDatamart:
         """Convenience method to further query the datamart
 
@@ -1237,7 +1275,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
 
         Paramters
         ---------
-        query: Union[pl.Expr, str, Dict[str, list]]
+        query: Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]
             The query to apply, see :meth:`._apply_query`
         """
         return self.processTables(query)
@@ -1245,9 +1283,9 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
     def fillMissing(self) -> ADMDatamart:
         """Convenience method to fill missing values
 
-        Fills categorical, string and null type columns with "NA"
-        Fills SuccessRate, Performance and ResponseCount columns with 0
-        When context keys have empty string values, replaces them
+        - Fills categorical, string and null type columns with "NA"
+        - Fills SuccessRate, Performance and ResponseCount columns with 0
+        - When context keys have empty string values, replaces them
         with "NA" string
         """
         self.modelData = self.modelData.with_columns(
@@ -1292,6 +1330,11 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         By running this method directly, you have control over the exact
         filters you want to use. Simply use the top-level :attr:`.query`
         argument to filter the ADMDatamart class to the desired level.
+
+        This method also propagates the predictorCategorization used by the ADMDatamart
+        class into the Health Check. Simply set the `predictorCategorization` to a 
+        supported function and this will be reflected in the Health Check:
+        see :meth:`pdstools.utils.cdh_utils.defaultPredictorCategorization`.
 
         Parameters
         ----------
@@ -1402,6 +1445,14 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         return filename
 
     def exportTables(self, file: Path = "Tables.xlsx"):
+        """Exports all tables from `pdstools.adm.Tables` into one Excel file.
+        
+        Parameters
+        ----------
+        file: Path, default = 'Tables.xlsx'
+            The file name of the exported Excel file
+
+        """
         from xlsxwriter import Workbook
 
         tabs = {
