@@ -447,7 +447,7 @@ you to still use the data.</p></li>
 <li><p><strong>plotting_engine</strong> (<em>str</em><em>, </em><em>default = &quot;plotly&quot;</em>) – Please refer to <a class="reference internal" href="#pdstools.ADMDatamart.get_engine" title="pdstools.ADMDatamart.get_engine"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_engine()</span></code></a></p></li>
 <li><p><strong>subset</strong> (<em>bool</em><em>, </em><em>default = True</em>) – Whether to only keep a subset of columns for efficiency purposes
 Refer to <a class="reference internal" href="#pdstools.ADMDatamart._available_columns" title="pdstools.ADMDatamart._available_columns"><code class="xref py py-meth docutils literal notranslate"><span class="pre">_available_columns()</span></code></a> for the default list of columns.</p></li>
-<li><p><strong>Optional</strong><strong>[</strong><strong>list</strong><strong>]</strong> (<em>drop_cols</em>) – Columns to exclude from reading</p></li>
+<li><p><strong>drop_cols</strong> (<em>Optional</em><em>[</em><em>list</em><em>]</em>) – Columns to exclude from reading</p></li>
 <li><p><strong>include_cols</strong> (<em>Optional</em><em>[</em><em>list</em><em>]</em>) – Additionial columns to include when reading</p></li>
 <li><p><strong>context_keys</strong> (<em>list</em><em>, </em><em>default =</em><em> [</em><em>&quot;Channel&quot;</em><em>, </em><em>&quot;Direction&quot;</em><em>, </em><em>&quot;Issue&quot;</em><em>, </em><em>&quot;Group&quot;</em><em>]</em>) – Which columns to use as context keys</p></li>
 <li><p><strong>extract_keys</strong> (<em>bool</em><em>, </em><em>default = False</em>) – Extra keys, particularly pyTreatment, are hidden within the pyName column.
@@ -521,11 +521,11 @@ holds the merged data about the models and predictors</p>
 </dd></dl>
 
 <p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Data</span> <span class="o">=</span>  <span class="n">ADMDatamart</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;/CDHSample&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">Data</span> <span class="o">=</span>  <span class="n">ADMDatamart</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Data/Adaptive Models &amp; Predictors Export&quot;</span><span class="p">,</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Data</span> <span class="o">=</span>  <span class="n">ADMDatamart</span><span class="p">(</span><span class="s2">&quot;/CDHSample&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Data</span> <span class="o">=</span>  <span class="n">ADMDatamart</span><span class="p">(</span><span class="s2">&quot;Data/Adaptive Models &amp; Predictors Export&quot;</span><span class="p">,</span>
 <span class="go">            model_filename = &quot;Data-Decision-ADM-ModelSnapshot_AdaptiveModelSnapshotRepo20201110T085543_GMT/data.json&quot;,</span>
 <span class="go">            predictor_filename = &quot;Data-Decision-ADM-PredictorBinningSnapshot_PredictorBinningSnapshotRepo20201110T084825_GMT/data.json&quot;)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">Data</span> <span class="o">=</span>  <span class="n">ADMDatamart</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Data/files&quot;</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Data</span> <span class="o">=</span>  <span class="n">ADMDatamart</span><span class="p">(</span><span class="s2">&quot;Data/files&quot;</span><span class="p">,</span>
 <span class="go">            model_filename = &quot;ModelData.csv&quot;,</span>
 <span class="go">            predictor_filename = &quot;PredictorData.csv&quot;)</span>
 </pre></div>
@@ -560,19 +560,21 @@ Default = current path (‘.’)</p></li>
 set to False to keep all columns</p></li>
 <li><p><strong>model_df</strong> (<em>pd.DataFrame</em>) – Optional override to supply a dataframe instead of a file</p></li>
 <li><p><strong>predictor_df</strong> (<em>pd.DataFrame</em>) – Optional override to supply a dataframe instead of a file</p></li>
+<li><p><strong>drop_cols</strong> (<em>Optional</em><em>[</em><em>list</em><em>]</em>) – Columns to exclude from reading</p></li>
+<li><p><strong>include_cols</strong> (<em>Optional</em><em>[</em><em>list</em><em>]</em>) – Additionial columns to include when reading</p></li>
+<li><p><strong>extract_keys</strong> (<em>bool</em><em>, </em><em>default = False</em>) – Extra keys, particularly pyTreatment, are hidden within the pyName column.
+extract_keys can expand that cell to also show these values.
+To extract these extra keys, set extract_keys to True.</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>default = False</em>) – Whether to print out information during importing</p></li>
 <li><p><strong>model_filename</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – </p></li>
 <li><p><strong>predictor_filename</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – </p></li>
-<li><p><strong>drop_cols</strong> (<em>Optional</em><em>[</em><em>list</em><em>]</em>) – </p></li>
-<li><p><strong>include_cols</strong> (<em>Optional</em><em>[</em><em>list</em><em>]</em>) – </p></li>
-<li><p><strong>extract_keys</strong> (<em>bool</em>) – </p></li>
-<li><p><strong>verbose</strong> (<em>bool</em>) – </p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The model data and predictor binning data as dataframes</p>
+<dd class="field-even"><p>The model data and predictor binning data as LazyFrames</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>(pl.DataFrame, pl.DataFrame)</p>
+<dd class="field-odd"><p>(polars.LazyFrame, polars.LazyFrame)</p>
 </dd>
 </dl>
 </dd></dl>
@@ -602,7 +604,7 @@ set to False to keep all columns</p></li>
 <li><p><strong>extract_keys</strong> (<em>bool</em>) – Treatments are typically hidden within the pyName column,
 extract_keys can expand that cell to also show these values.</p></li>
 <li><p><strong>arguments</strong> (<em>Additional keyword</em>) – </p></li>
-<li><p><strong>-----------------</strong> – </p></li>
+<li><p><strong>----------------------------</strong> – </p></li>
 </ul>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -612,9 +614,12 @@ extract_keys can expand that cell to also show these values.</p></li>
 <p>:keyword See <a class="reference internal" href="pega_io/File/index.html#pdstools.pega_io.File.readDSExport" title="pdstools.pega_io.File.readDSExport"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pdstools.pega_io.File.readDSExport()</span></code></a>:</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>The requested dataframe,
-The renamed columns
-The columns missing in both dataframes</p>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>The requested dataframe,</p></li>
+<li><p>The renamed columns</p></li>
+<li><p>The columns missing in both dataframes)</p></li>
+</ul>
+</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>(pl.LazyFrame, dict, dict)</p>
@@ -650,7 +655,7 @@ The original and updated names for all renamed columns &amp;
 The variables that were not found in the table</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>(pl.LazyFrame, set, set)</p>
+<dd class="field-odd"><p>Tuple[set, set]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -760,7 +765,7 @@ you to still use the data.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMDatamart.processTables">
-<span class="sig-name descname"><span class="pre">processTables</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pdstools.ADMDatamart" title="pdstools.ADMDatamart"><span class="pre">ADMDatamart</span></a></span></span><a class="headerlink" href="#pdstools.ADMDatamart.processTables" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">processTables</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">polars.Expr</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pdstools.ADMDatamart" title="pdstools.ADMDatamart"><span class="pre">ADMDatamart</span></a></span></span><a class="headerlink" href="#pdstools.ADMDatamart.processTables" title="Permalink to this definition">#</a></dt>
 <dd><p>Processes modelData, predictorData and combinedData tables.</p>
 <p>Can take in a query, which it will apply to modelData
 If a query is given, it joins predictorData to only retain the modelIDs
@@ -770,7 +775,7 @@ are present, it joins them together into combinedData.</p>
 collects the tables and then sets them back to lazy.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>query</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>pl.Expr</em><em>, </em><em>str</em><em>, </em><em>Dict</em><em>[</em><em>str</em><em>, </em><em>list</em><em>]</em><em>]</em><em>]</em><em>, </em><em>default = None</em>) – An optional query to apply to the modelData table.
+<dd class="field-odd"><p><strong>query</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>pl.Expr</em><em>, </em><em>List</em><em>[</em><em>pl.Expr</em><em>]</em><em>, </em><em>str</em><em>, </em><em>Dict</em><em>[</em><em>str</em><em>, </em><em>list</em><em>]</em><em>]</em><em>]</em><em>, </em><em>default = None</em>) – An optional query to apply to the modelData table.
 See: <a class="reference internal" href="#pdstools.ADMDatamart._apply_query" title="pdstools.ADMDatamart._apply_query"><code class="xref py py-meth docutils literal notranslate"><span class="pre">_apply_query()</span></code></a></p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -822,16 +827,42 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pdstools.ADMDatamart.extract_keys">
-<span class="sig-name descname"><span class="pre">extract_keys</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Name'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMDatamart.extract_keys" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dt class="sig sig-object py" id="pdstools.ADMDatamart._extract_keys">
+<span class="sig-name descname"><span class="pre">_extract_keys</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pdstools.utils.types.any_frame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pdstools.utils.types.any_frame</span></span></span><a class="headerlink" href="#pdstools.ADMDatamart._extract_keys" title="Permalink to this definition">#</a></dt>
+<dd><p>Extracts keys out of the pyName column</p>
+<p>This is not a lazy operation as we don’t know the possible keys
+in advance. For that reason, we select only the pyName column,
+extract the keys from that, and then collect the resulting dataframe.
+This dataframe is then joined back to the original dataframe.</p>
+<p>This is relatively efficient, but we still do need the whole
+pyName column in memory to do this, so it won’t work completely
+lazily from e.g. s3. That’s why it only works with eager mode.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>Union</em><em>[</em><em>pl.DataFrame</em><em>, </em><em>pl.LazyFrame</em><em>]</em>) – The dataframe to extract the keys from</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>pdstools.utils.types.any_frame</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMDatamart.discover_modelTypes">
-<span class="sig-name descname"><span class="pre">discover_modelTypes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Configuration'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMDatamart.discover_modelTypes" title="Permalink to this definition">#</a></dt>
-<dd><dl class="field-list simple">
+<span class="sig-name descname"><span class="pre">discover_modelTypes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Configuration'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#pdstools.ADMDatamart.discover_modelTypes" title="Permalink to this definition">#</a></dt>
+<dd><p>Discovers the type of model embedded in the pyModelData column.</p>
+<p>By default, we do a groupby Configuration, because a model rule can only
+contain one type of model. Then, for each configuration, we look into the
+pyModelData blob and find the _serialClass, returning it in a dict.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>df</strong> (<em>polars.LazyFrame</em>) – </p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>pl.LazyFrame</em>) – The dataframe to search for model types</p></li>
+<li><p><strong>by</strong> (<em>str</em>) – The column to look for types in. Configuration is recommended.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dict</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1025,7 +1056,7 @@ models for with regard to the number of positive answers.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMDatamart.applyGlobalQuery">
-<span class="sig-name descname"><span class="pre">applyGlobalQuery</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pdstools.ADMDatamart" title="pdstools.ADMDatamart"><span class="pre">ADMDatamart</span></a></span></span><a class="headerlink" href="#pdstools.ADMDatamart.applyGlobalQuery" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">applyGlobalQuery</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">polars.Expr</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pdstools.ADMDatamart" title="pdstools.ADMDatamart"><span class="pre">ADMDatamart</span></a></span></span><a class="headerlink" href="#pdstools.ADMDatamart.applyGlobalQuery" title="Permalink to this definition">#</a></dt>
 <dd><p>Convenience method to further query the datamart</p>
 <p>It’s possible to give this query to the initial <cite>ADMDatamart</cite> class
 directly, but this method is more explicit. Filters on the model data
@@ -1035,13 +1066,13 @@ on the ModelIDs remaining after the query, and recomputes combinedData.</p>
 <section id="paramters">
 <h4>Paramters<a class="headerlink" href="#paramters" title="Permalink to this heading">#</a></h4>
 <dl class="simple">
-<dt>query: Union[pl.Expr, str, Dict[str, list]]</dt><dd><p>The query to apply, see <a class="reference internal" href="#pdstools.ADMDatamart._apply_query" title="pdstools.ADMDatamart._apply_query"><code class="xref py py-meth docutils literal notranslate"><span class="pre">_apply_query()</span></code></a></p>
+<dt>query: Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]</dt><dd><p>The query to apply, see <a class="reference internal" href="#pdstools.ADMDatamart._apply_query" title="pdstools.ADMDatamart._apply_query"><code class="xref py py-meth docutils literal notranslate"><span class="pre">_apply_query()</span></code></a></p>
 </dd>
 </dl>
 </section>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>query</strong> (<em>Union</em><em>[</em><em>polars.Expr</em><em>, </em><em>str</em><em>, </em><em>Dict</em><em>[</em><em>str</em><em>, </em><em>list</em><em>]</em><em>]</em>) – </p>
+<dd class="field-odd"><p><strong>query</strong> (<em>Union</em><em>[</em><em>polars.Expr</em><em>, </em><em>List</em><em>[</em><em>polars.Expr</em><em>]</em><em>, </em><em>str</em><em>, </em><em>Dict</em><em>[</em><em>str</em><em>, </em><em>list</em><em>]</em><em>]</em>) – </p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference internal" href="#pdstools.ADMDatamart" title="pdstools.ADMDatamart">ADMDatamart</a></p>
@@ -1053,10 +1084,12 @@ on the ModelIDs remaining after the query, and recomputes combinedData.</p>
 <dt class="sig sig-object py" id="pdstools.ADMDatamart.fillMissing">
 <span class="sig-name descname"><span class="pre">fillMissing</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pdstools.ADMDatamart" title="pdstools.ADMDatamart"><span class="pre">ADMDatamart</span></a></span></span><a class="headerlink" href="#pdstools.ADMDatamart.fillMissing" title="Permalink to this definition">#</a></dt>
 <dd><p>Convenience method to fill missing values</p>
-<p>Fills categorical, string and null type columns with “NA”
-Fills SuccessRate, Performance and ResponseCount columns with 0
-When context keys have empty string values, replaces them
-with “NA” string</p>
+<ul class="simple">
+<li><p>Fills categorical, string and null type columns with “NA”</p></li>
+<li><p>Fills SuccessRate, Performance and ResponseCount columns with 0</p></li>
+<li><p>When context keys have empty string values, replaces them</p></li>
+</ul>
+<p>with “NA” string</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference internal" href="#pdstools.ADMDatamart" title="pdstools.ADMDatamart">ADMDatamart</a></p>
@@ -1077,6 +1110,10 @@ predictor files to disk, which Quarto then picks up to generate.</p>
 <p>By running this method directly, you have control over the exact
 filters you want to use. Simply use the top-level <a class="reference internal" href="#pdstools.ADMDatamart.query" title="pdstools.ADMDatamart.query"><code class="xref py py-attr docutils literal notranslate"><span class="pre">query</span></code></a>
 argument to filter the ADMDatamart class to the desired level.</p>
+<p>This method also propagates the predictorCategorization used by the ADMDatamart
+class into the Health Check. Simply set the <cite>predictorCategorization</cite> to a
+supported function and this will be reflected in the Health Check:
+see <a class="reference internal" href="utils/cdh_utils/index.html#pdstools.utils.cdh_utils.defaultPredictorCategorization" title="pdstools.utils.cdh_utils.defaultPredictorCategorization"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils.defaultPredictorCategorization()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1107,9 +1144,10 @@ with a <cite>lazy</cite> memory_strategy, you won’t be able to generate.</p></
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMDatamart.exportTables">
 <span class="sig-name descname"><span class="pre">exportTables</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pathlib.Path</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Tables.xlsx'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMDatamart.exportTables" title="Permalink to this definition">#</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Exports all tables from <cite>pdstools.adm.Tables</cite> into one Excel file.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>file</strong> (<em>pathlib.Path</em>) – </p>
+<dd class="field-odd"><p><strong>file</strong> (<em>Path</em><em>, </em><em>default = 'Tables.xlsx'</em>) – The file name of the exported Excel file</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1733,7 +1771,7 @@ One of: {‘Quantile’, ‘Propensity’}</p>
 <li><a class="reference internal" href="#pdstools.ADMDatamart.processTables"><code class="docutils literal notranslate"><span class="pre">processTables()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart.save_data"><code class="docutils literal notranslate"><span class="pre">save_data()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart._apply_query"><code class="docutils literal notranslate"><span class="pre">_apply_query()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.ADMDatamart.extract_keys"><code class="docutils literal notranslate"><span class="pre">extract_keys()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMDatamart._extract_keys"><code class="docutils literal notranslate"><span class="pre">_extract_keys()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart.discover_modelTypes"><code class="docutils literal notranslate"><span class="pre">discover_modelTypes()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart.get_AGB_models"><code class="docutils literal notranslate"><span class="pre">get_AGB_models()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart._create_sign_df"><code class="docutils literal notranslate"><span class="pre">_create_sign_df()</span></code></a></li>

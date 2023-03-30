@@ -104,7 +104,8 @@ Attributes
    :keyword subset: Whether to only keep a subset of columns for efficiency purposes
                     Refer to :meth:`._available_columns` for the default list of columns.
    :kwtype subset: bool, default = True
-   :keyword drop_cols  Optional[list]: Columns to exclude from reading
+   :keyword drop_cols: Columns to exclude from reading
+   :kwtype drop_cols: Optional[list]
    :keyword include_cols: Additionial columns to include when reading
    :kwtype include_cols: Optional[list]
    :keyword context_keys: Which columns to use as context keys
@@ -159,11 +160,11 @@ Attributes
 
    .. rubric:: Examples
 
-   >>> Data =  ADMDatamart(f"/CDHSample")
-   >>> Data =  ADMDatamart(f"Data/Adaptive Models & Predictors Export",
+   >>> Data =  ADMDatamart("/CDHSample")
+   >>> Data =  ADMDatamart("Data/Adaptive Models & Predictors Export",
                model_filename = "Data-Decision-ADM-ModelSnapshot_AdaptiveModelSnapshotRepo20201110T085543_GMT/data.json",
                predictor_filename = "Data-Decision-ADM-PredictorBinningSnapshot_PredictorBinningSnapshotRepo20201110T084825_GMT/data.json")
-   >>> Data =  ADMDatamart(f"Data/files",
+   >>> Data =  ADMDatamart("Data/files",
                model_filename = "ModelData.csv",
                predictor_filename = "PredictorData.csv")
 
@@ -200,9 +201,19 @@ Attributes
       :type model_df: pd.DataFrame
       :param predictor_df: Optional override to supply a dataframe instead of a file
       :type predictor_df: pd.DataFrame
+      :param drop_cols: Columns to exclude from reading
+      :type drop_cols: Optional[list]
+      :param include_cols: Additionial columns to include when reading
+      :type include_cols: Optional[list]
+      :param extract_keys: Extra keys, particularly pyTreatment, are hidden within the pyName column.
+                           extract_keys can expand that cell to also show these values.
+                           To extract these extra keys, set extract_keys to True.
+      :type extract_keys: bool, default = False
+      :param verbose: Whether to print out information during importing
+      :type verbose: bool, default = False
 
-      :returns: The model data and predictor binning data as dataframes
-      :rtype: (pl.DataFrame, pl.DataFrame)
+      :returns: The model data and predictor binning data as LazyFrames
+      :rtype: (polars.LazyFrame, polars.LazyFrame)
 
 
    .. py:method:: _import_utils(name: Union[str, pdstools.utils.types.any_frame], path: Optional[str] = None, *, subset: bool = True, extract_keys: bool = False, drop_cols: Optional[list] = None, include_cols: Optional[list] = None, **reading_opts) -> Tuple[polars.LazyFrame, dict, dict]
@@ -226,12 +237,14 @@ Attributes
                              extract_keys can expand that cell to also show these values.
       :kwtype extract_keys: bool
       :keyword Additional keyword arguments:
-      :keyword -----------------:
+      :keyword ----------------------------:
       :keyword See :meth:`pdstools.pega_io.File.readDSExport`:
 
-      :returns: The requested dataframe,
-                The renamed columns
-                The columns missing in both dataframes
+      :returns:
+
+                - The requested dataframe,
+                - The renamed columns
+                - The columns missing in both dataframes)
       :rtype: (pl.LazyFrame, dict, dict)
 
 
@@ -249,7 +262,7 @@ Attributes
       :returns: The original dataframe, but renamed for the found columns &
                 The original and updated names for all renamed columns &
                 The variables that were not found in the table
-      :rtype: (pl.LazyFrame, set, set)
+      :rtype: Tuple[set, set]
 
 
    .. py:method:: _set_types(df: pdstools.utils.types.any_frame, *, timestamp_fmt: str = None, strict_conversion: bool = True) -> pdstools.utils.types.any_frame
@@ -318,7 +331,7 @@ Attributes
       :rtype: Union[pl.DataFrame, pl.LazyFrame]
 
 
-   .. py:method:: processTables(query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None) -> ADMDatamart
+   .. py:method:: processTables(query: Optional[Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]] = None) -> ADMDatamart
 
       Processes modelData, predictorData and combinedData tables.
 
@@ -332,7 +345,7 @@ Attributes
 
       :param query: An optional query to apply to the modelData table.
                     See: :meth:`._apply_query`
-      :type query: Optional[Union[pl.Expr, str, Dict[str, list]]], default = None
+      :type query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]], default = None
 
 
    .. py:method:: save_data(path: str = '.') -> Tuple[os.PathLike, os.PathLike]
@@ -364,10 +377,35 @@ Attributes
       :rtype: pl.DataFrame
 
 
-   .. py:method:: extract_keys(df, col='Name')
+   .. py:method:: _extract_keys(df: pdstools.utils.types.any_frame) -> pdstools.utils.types.any_frame
+
+      Extracts keys out of the pyName column
+
+      This is not a lazy operation as we don't know the possible keys
+      in advance. For that reason, we select only the pyName column,
+      extract the keys from that, and then collect the resulting dataframe.
+      This dataframe is then joined back to the original dataframe.
+
+      This is relatively efficient, but we still do need the whole
+      pyName column in memory to do this, so it won't work completely
+      lazily from e.g. s3. That's why it only works with eager mode.
+
+      :param df: The dataframe to extract the keys from
+      :type df: Union[pl.DataFrame, pl.LazyFrame]
 
 
-   .. py:method:: discover_modelTypes(df: polars.LazyFrame, by='Configuration')
+   .. py:method:: discover_modelTypes(df: polars.LazyFrame, by: str = 'Configuration') -> Dict
+
+      Discovers the type of model embedded in the pyModelData column.
+
+      By default, we do a groupby Configuration, because a model rule can only
+      contain one type of model. Then, for each configuration, we look into the
+      pyModelData blob and find the _serialClass, returning it in a dict.
+
+      :param df: The dataframe to search for model types
+      :type df: pl.LazyFrame
+      :param by: The column to look for types in. Configuration is recommended.
+      :type by: str
 
 
    .. py:method:: get_AGB_models(last: bool = False, by: str = 'Configuration', n_threads: int = 1, query: Optional[Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]] = None, verbose: bool = True, **kwargs) -> Dict
@@ -506,7 +544,7 @@ Attributes
       Convenience method to quickly summarize the models
 
 
-   .. py:method:: applyGlobalQuery(query: Union[polars.Expr, str, Dict[str, list]]) -> ADMDatamart
+   .. py:method:: applyGlobalQuery(query: Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]) -> ADMDatamart
 
       Convenience method to further query the datamart
 
@@ -519,7 +557,7 @@ Attributes
 
       Paramters
       ---------
-      query: Union[pl.Expr, str, Dict[str, list]]
+      query: Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]
           The query to apply, see :meth:`._apply_query`
 
 
@@ -527,9 +565,9 @@ Attributes
 
       Convenience method to fill missing values
 
-      Fills categorical, string and null type columns with "NA"
-      Fills SuccessRate, Performance and ResponseCount columns with 0
-      When context keys have empty string values, replaces them
+      - Fills categorical, string and null type columns with "NA"
+      - Fills SuccessRate, Performance and ResponseCount columns with 0
+      - When context keys have empty string values, replaces them
       with "NA" string
 
 
@@ -548,6 +586,11 @@ Attributes
       By running this method directly, you have control over the exact
       filters you want to use. Simply use the top-level :attr:`.query`
       argument to filter the ADMDatamart class to the desired level.
+
+      This method also propagates the predictorCategorization used by the ADMDatamart
+      class into the Health Check. Simply set the `predictorCategorization` to a
+      supported function and this will be reflected in the Health Check:
+      see :meth:`pdstools.utils.cdh_utils.defaultPredictorCategorization`.
 
       :param name: The name of the Health Check file
       :type name: Optional[str]
@@ -575,6 +618,11 @@ Attributes
 
 
    .. py:method:: exportTables(file: pathlib.Path = 'Tables.xlsx')
+
+      Exports all tables from `pdstools.adm.Tables` into one Excel file.
+
+      :param file: The file name of the exported Excel file
+      :type file: Path, default = 'Tables.xlsx'
 
 
 
