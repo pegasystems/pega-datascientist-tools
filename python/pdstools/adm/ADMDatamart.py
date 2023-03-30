@@ -56,7 +56,7 @@ class ADMDatamart(Plots, Tables):
     subset : bool, default = True
         Whether to only keep a subset of columns for efficiency purposes
         Refer to :meth:`._available_columns` for the default list of columns.
-    drop_cols  Optional[list]
+    drop_cols : Optional[list]
         Columns to exclude from reading
     include_cols : Optional[list]
         Additionial columns to include when reading
