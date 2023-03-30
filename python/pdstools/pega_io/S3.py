@@ -103,13 +103,13 @@ class S3Data:
         ----
         Supports the following tables:
         {
-            "modelSnapshot": "Data-Decision-ADM-ModelSnapshot_pzModelSnapshots",
-            "predictorSnapshot": "Data-Decision-ADM-PredictorBinningSnapshot_pzADMPredictorSnapshots",
-            "binaryDistribution": "Data-DM-BinaryDistribution",
-            "contingencyTable": "Data-DM-ContingencyTable",
-            "histogram": "Data-DM-Histogram",
-            "snapshot": "Data-DM-Snapshot",
-            "notification": "Data-DM-Notification",
+            - "modelSnapshot": "Data-Decision-ADM-ModelSnapshot_pzModelSnapshots",
+            - "predictorSnapshot": "Data-Decision-ADM-PredictorBinningSnapshot_pzADMPredictorSnapshots",
+            - "binaryDistribution": "Data-DM-BinaryDistribution",
+            - "contingencyTable": "Data-DM-ContingencyTable",
+            - "histogram": "Data-DM-Histogram",
+            - "snapshot": "Data-DM-Snapshot",
+            - "notification": "Data-DM-Notification",
         }
         """
         tables = {
