@@ -56,7 +56,7 @@ class ADMDatamart(Plots, Tables):
     subset : bool, default = True
         Whether to only keep a subset of columns for efficiency purposes
         Refer to :meth:`._available_columns` for the default list of columns.
-    drop_cols  Optional[list]
+    drop_cols : Optional[list]
         Columns to exclude from reading
     include_cols : Optional[list]
         Additionial columns to include when reading
@@ -97,11 +97,11 @@ class ADMDatamart(Plots, Tables):
 
     Examples
     --------
-    >>> Data =  ADMDatamart(f"/CDHSample")
-    >>> Data =  ADMDatamart(f"Data/Adaptive Models & Predictors Export",
+    >>> Data =  ADMDatamart("/CDHSample")
+    >>> Data =  ADMDatamart("Data/Adaptive Models & Predictors Export",
                 model_filename = "Data-Decision-ADM-ModelSnapshot_AdaptiveModelSnapshotRepo20201110T085543_GMT/data.json",
                 predictor_filename = "Data-Decision-ADM-PredictorBinningSnapshot_PredictorBinningSnapshotRepo20201110T084825_GMT/data.json")
-    >>> Data =  ADMDatamart(f"Data/files",
+    >>> Data =  ADMDatamart("Data/files",
                 model_filename = "ModelData.csv",
                 predictor_filename = "PredictorData.csv")
 
@@ -146,20 +146,15 @@ class ADMDatamart(Plots, Tables):
             **reading_opts,
         )
 
-        if self.modelData is not None and self.predictorData is not None:
-            self.combinedData = self._get_combined_data(strategy=self.import_strategy)
-        elif verbose:
-            print(
-                "Could not be combined. Do you have both model data and predictor data?"
-            )
         self.context_keys = (
             [key for key in self.context_keys if key in self.modelData.columns]
             if self.modelData is not None
             else context_keys
         )
-
         self.plotting_engine = plotting_engine
         super().__init__()
+
+        self.processTables(self.query)
 
     @staticmethod
     def get_engine(plotting_engine):
@@ -219,11 +214,21 @@ class ADMDatamart(Plots, Tables):
             Optional override to supply a dataframe instead of a file
         predictor_df : pd.DataFrame
             Optional override to supply a dataframe instead of a file
+        drop_cols : Optional[list]
+            Columns to exclude from reading
+        include_cols : Optional[list]
+            Additionial columns to include when reading
+        extract_keys : bool, default = False
+            Extra keys, particularly pyTreatment, are hidden within the pyName column.
+            extract_keys can expand that cell to also show these values.
+            To extract these extra keys, set extract_keys to True.
+        verbose : bool, default = False
+            Whether to print out information during importing
 
         Returns
         -------
-        (pl.DataFrame, pl.DataFrame)
-            The model data and predictor binning data as dataframes
+        (polars.LazyFrame, polars.LazyFrame)
+            The model data and predictor binning data as LazyFrames
         """
 
         if model_df is not None:
@@ -300,14 +305,6 @@ class ADMDatamart(Plots, Tables):
                     f"Missing values: {total_missing}",
                 )
 
-            if self.query is not None:
-                df2 = df2.join(df1.select(pl.col("ModelID").unique()), on="ModelID")
-
-        if self.import_strategy == "eager":
-            if df1 is not None:
-                df1 = df1.collect().lazy()
-            if df2 is not None:
-                df2 = df2.collect().lazy()
         return df1, df2
 
     def _import_utils(
@@ -346,15 +343,15 @@ class ADMDatamart(Plots, Tables):
             extract_keys can expand that cell to also show these values.
 
         Additional keyword arguments
-        -----------------
+        ----------------------------
         See :meth:`pdstools.pega_io.File.readDSExport`
 
         Returns
         -------
         (pl.LazyFrame, dict, dict)
-            The requested dataframe,
-            The renamed columns
-            The columns missing in both dataframes
+            - The requested dataframe,
+            - The renamed columns
+            - The columns missing in both dataframes)
         """
 
         if isinstance(name, BytesIO):
@@ -383,7 +380,7 @@ class ADMDatamart(Plots, Tables):
         if subset:
             df = df.select(cols)
         if extract_keys:
-            df = self.extract_keys(df)
+            df = self._extract_keys(df)
             df = cdh_utils._polarsCapitalize(df)
 
         df = self._set_types(
@@ -426,7 +423,7 @@ class ADMDatamart(Plots, Tables):
 
         Returns
         -------
-        (pl.LazyFrame, set, set)
+        Tuple[set, set]
             The original dataframe, but renamed for the found columns &
             The original and updated names for all renamed columns &
             The variables that were not found in the table
@@ -515,39 +512,12 @@ class ADMDatamart(Plots, Tables):
         timestampCol = "SnapshotTime"
         if timestampCol not in df.columns:
             df = df.with_columns(SnapshotTime=None)
-
-        elif df.schema[timestampCol] == pl.Utf8:
-            if timestamp_fmt is not None:
-                df = df.with_columns(
-                    pl.col(timestampCol).str.strptime(
-                        pl.Datetime,
-                        timestamp_fmt,
-                        strict=strict_conversion,
-                    )
+        elif df.schema[timestampCol] not in pl.DATETIME_DTYPES:
+            df = df.with_columns(
+                cdh_utils.parsePegaDateTimeFormats(
+                    timestampCol, timestamp_fmt, strict_conversion
                 )
-            else:
-                df = df.with_columns(
-                    (
-                        pl.when((pl.col(timestampCol).str.slice(4, 1) == pl.lit("-")))
-                        .then(
-                            pl.col(timestampCol)
-                            .str.strptime(
-                                pl.Datetime, "%Y-%m-%d %H:%M:%S", strict=False
-                            )
-                            .dt.cast_time_unit("ns")
-                            .dt.round("1s")
-                        )
-                        .otherwise(
-                            pl.col(timestampCol)
-                            .str.strptime(
-                                pl.Datetime, "%Y%m%dT%H%M%S.%f %Z", strict=False
-                            )
-                            .dt.replace_time_zone(None)
-                            .dt.round("1s")
-                            .dt.cast_time_unit("ns")
-                        )
-                    ).alias(timestampCol)
-                )
+            )
 
         return df
 
@@ -636,6 +606,50 @@ class ADMDatamart(Plots, Tables):
             return combined.collect().lazy()
         else:
             return combined
+
+    def processTables(
+        self,
+        query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]] = None,
+    ) -> ADMDatamart:
+        """Processes modelData, predictorData and combinedData tables.
+
+        Can take in a query, which it will apply to modelData
+        If a query is given, it joins predictorData to only retain the modelIDs
+        the modelData was filtered on. If both modelData and predictorData
+        are present, it joins them together into combinedData.
+
+        If memory_strategy is eager, which is the default, this method also
+        collects the tables and then sets them back to lazy.
+
+        Parameters
+        ----------
+        query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]], default = None
+            An optional query to apply to the modelData table.
+            See: :meth:`._apply_query`
+
+        """
+        if self.modelData is not None:
+            if query is not None:
+                self.modelData = self._apply_query(self.modelData, query)
+            if self.import_strategy == "eager":
+                self.modelData = self.modelData.collect().lazy()
+
+        if self.predictorData is not None:
+            if query is not None:
+                self.predictorData = self.predictorData.join(
+                    self.modelData.select(pl.col("ModelID").unique()), on="ModelID"
+                )
+            if self.import_strategy == "eager":
+                self.predictorData = self.predictorData.collect().lazy()
+
+        if self.predictorData is not None and self.modelData is not None:
+            self.combinedData = self._get_combined_data(strategy=self.import_strategy)
+        elif self.verbose:
+            print(
+                "Could not be combined. Do you have both model data and predictor data?"
+            )
+
+        return self
 
     def save_data(self, path: str = ".") -> Tuple[os.PathLike, os.PathLike]:
         """Cache modelData and predictorData to files.
@@ -737,11 +751,26 @@ class ADMDatamart(Plots, Tables):
                 df = df.filter(pl.col(col).is_in(val))
         return df
 
-    def extract_keys(
+    def _extract_keys(
         self,
-        df,
-        col="Name",
-    ):
+        df: any_frame,
+    ) -> any_frame:
+        """Extracts keys out of the pyName column
+
+        This is not a lazy operation as we don't know the possible keys
+        in advance. For that reason, we select only the pyName column,
+        extract the keys from that, and then collect the resulting dataframe.
+        This dataframe is then joined back to the original dataframe.
+
+        This is relatively efficient, but we still do need the whole
+        pyName column in memory to do this, so it won't work completely
+        lazily from e.g. s3. That's why it only works with eager mode.
+
+        Parameters
+        ----------
+        df: Union[pl.DataFrame, pl.LazyFrame]
+            The dataframe to extract the keys from
+        """
         if self.import_strategy != "eager":
             raise NotEagerError("Extracting keys")
         if self.verbose:
@@ -757,21 +786,33 @@ class ADMDatamart(Plots, Tables):
                 .alias("tempName")
             )
 
-        return (
-            (
-                df.with_columns(
+        return df.with_columns(
+            cdh_utils._polarsCapitalize(
+                df.select(
                     safeName().str.json_extract(),
                 )
-                .drop(col)
                 .unnest("tempName")
+                .lazy()
+                .collect()
             )
-            .collect()
-            .lazy()
         )
 
     def discover_modelTypes(
-        self, df: pl.LazyFrame, by="Configuration"
-    ):  # pragma: no cover
+        self, df: pl.LazyFrame, by:str="Configuration"
+    ) -> Dict:  # pragma: no cover
+        """Discovers the type of model embedded in the pyModelData column.
+        
+        By default, we do a groupby Configuration, because a model rule can only
+        contain one type of model. Then, for each configuration, we look into the
+        pyModelData blob and find the _serialClass, returning it in a dict.
+
+        Parameters
+        ----------
+        df: pl.LazyFrame
+            The dataframe to search for model types
+        by: str
+            The column to look for types in. Configuration is recommended.
+        """
         if self.import_strategy != "eager":
             raise NotEagerError("Discovering AGB models")
         if "Modeldata" not in df.columns:
@@ -1223,7 +1264,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         return ret
 
     def applyGlobalQuery(
-        self, query: Union[pl.Expr, str, Dict[str, list]]
+        self, query: Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]
     ) -> ADMDatamart:
         """Convenience method to further query the datamart
 
@@ -1236,20 +1277,36 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
 
         Paramters
         ---------
-        query: Union[pl.Expr, str, Dict[str, list]]
+        query: Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]
             The query to apply, see :meth:`._apply_query`
         """
-        self.modelData = self._apply_query(self.modelData, query)
-        if self.import_strategy == "eager":
-            self.modelData = self.modelData.collect().lazy()
-        if self.predictorData is not None:
-            self.predictorData = self.predictorData.join(
-                self.modelData.select(pl.col("ModelID").unique()), on="ModelID"
-            )
-            if self.import_strategy == "eager":
-                self.predictorData = self.predictorData.collect().lazy()
-            self.combinedData = self._get_combined_data(strategy=self.import_strategy)
-        return self
+        return self.processTables(query)
+
+    def fillMissing(self) -> ADMDatamart:
+        """Convenience method to fill missing values
+
+        - Fills categorical, string and null type columns with "NA"
+        - Fills SuccessRate, Performance and ResponseCount columns with 0
+        - When context keys have empty string values, replaces them
+        with "NA" string
+        """
+        self.modelData = self.modelData.with_columns(
+            pl.col(pl.Categorical).fill_null("NA"),
+            pl.col(pl.Utf8).fill_null("NA"),
+            pl.col(pl.Null).fill_null("NA"),
+            pl.col("SuccessRate").fill_nan(0).fill_null(0),
+            pl.col("Performance").fill_nan(0).fill_null(0),
+            pl.col("ResponseCount").fill_null(0),
+        ).with_columns(
+            [
+                pl.when((pl.col(key) == "") | (pl.col(key) == " "))
+                .then(pl.lit("NA"))
+                .otherwise(pl.col(key))
+                .alias(key)
+                for key in self.context_keys
+            ]
+        )
+        return self.processTables()
 
     def fillMissing(self) -> ADMDatamart:
         """Convenience method to fill missing values
@@ -1311,6 +1368,11 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         By running this method directly, you have control over the exact
         filters you want to use. Simply use the top-level :attr:`.query`
         argument to filter the ADMDatamart class to the desired level.
+
+        This method also propagates the predictorCategorization used by the ADMDatamart
+        class into the Health Check. Simply set the `predictorCategorization` to a 
+        supported function and this will be reflected in the Health Check:
+        see :meth:`pdstools.utils.cdh_utils.defaultPredictorCategorization`.
 
         Parameters
         ----------
@@ -1431,6 +1493,14 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         return filename
 
     def exportTables(self, file: Path = "Tables.xlsx"):
+        """Exports all tables from `pdstools.adm.Tables` into one Excel file.
+        
+        Parameters
+        ----------
+        file: Path, default = 'Tables.xlsx'
+            The file name of the exported Excel file
+
+        """
         from xlsxwriter import Workbook
 
         tabs = {
