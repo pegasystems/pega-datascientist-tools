@@ -1349,7 +1349,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         name: Optional[str] = None,
         output_location: Path = Path("."),
         working_dir: Path = Path("."),
-        delete_temp_files=False,
+        delete_temp_files=True,
         output_type="html",
         include_tables=True,
         allow_collect=True,
