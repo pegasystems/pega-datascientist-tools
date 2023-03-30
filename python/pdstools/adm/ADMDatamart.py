@@ -614,6 +614,7 @@ class ADMDatamart(Plots, Tables):
         ----------
         query: Optional[Union[pl.Expr, str, Dict[str, list]]], default = None
             An optional query to apply to the modelData table.
+            See: :meth:`._apply_query`
 
         """
         if self.modelData is not None:
