@@ -165,10 +165,10 @@ def test_import_no_subset(test, data):
 
 def test_extract_treatment(test, data):
     mapping = {"pyname": "Name"}
-    output = test.extract_keys(data.rename(mapping).lazy()).collect()
+    output = test._extract_keys(data.rename(mapping).lazy()).collect()
     assert output.shape == (3, 6)
-    assert list(output["pyTreatment"]) == ["XYZ", "xyz", None]
-    assert list(output["pyName"]) == ["ABC", "abc", "NormalName"]
+    assert list(output["Treatment"]) == ["XYZ", "xyz", None]
+    assert list(output["Name"]) == ["ABC", "abc", "NormalName"]
     jsonnames = pl.LazyFrame(
         {
             "Name": [
@@ -178,9 +178,9 @@ def test_extract_treatment(test, data):
             ]
         }
     )
-    out = test.extract_keys(jsonnames).collect()
-    assert list(out["pyName"]) == ["ABC", "abc", "ABCD"]
-    assert list(out["pyTreatment"]) == ["XYZ", "xyz", "XYZ1"]
+    out = test._extract_keys(jsonnames).collect()
+    assert list(out["Name"]) == ["ABC", "abc", "ABCD"]
+    assert list(out["Treatment"]) == ["XYZ", "xyz", "XYZ1"]
     # Just checking that this'll work without raising errors
     ADMDatamart(
         path="data",
@@ -232,7 +232,9 @@ def test_set_types(test):
         }
     )
     with pytest.raises(pl.ComputeError):
-        test._set_types(df, timestamp_fmt="%Y-%m-%d %H:%M:%S", strict_conversion=True)
+        test._set_types(
+            df, timestamp_fmt="%Y%m%dT%H%M%S", strict_conversion=True
+        )
 
     df2 = test._set_types(
         df, timestamp_fmt="%Y-%m-%d %H:%M:%S", strict_conversion=False

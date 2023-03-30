@@ -4,7 +4,7 @@ import polars as pl
 from pathlib import Path
 from . import cdh_utils
 from ..adm.ADMDatamart import ADMDatamart
-from ..utils import cdh_utils, datasets
+from ..utils import datasets
 import plotly.express as px
 from .. import pega_io
 
@@ -61,8 +61,6 @@ def fromUploadedFile(**opts):
 
 
 def fromFilePath(**opts):
-    from pdstools import cdh_utils
-
     st.write(
         """If you've followed the instructions on how to get the ADMDatamart data,
     you can import the data simply by pointing the app to the directory
