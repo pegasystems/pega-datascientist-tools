@@ -15,3 +15,5 @@ def testHealthCheckRunsWithoutTables(sample):
 
 def testAdditionalTables(sample):
     sample.exportTables()
+    import os
+    os.remove('Tables.xlsx')
