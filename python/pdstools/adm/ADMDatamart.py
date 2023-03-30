@@ -146,20 +146,15 @@ class ADMDatamart(Plots, Tables):
             **reading_opts,
         )
 
-        if self.modelData is not None and self.predictorData is not None:
-            self.combinedData = self._get_combined_data(strategy=self.import_strategy)
-        elif verbose:
-            print(
-                "Could not be combined. Do you have both model data and predictor data?"
-            )
         self.context_keys = (
             [key for key in self.context_keys if key in self.modelData.columns]
             if self.modelData is not None
             else context_keys
         )
-
         self.plotting_engine = plotting_engine
         super().__init__()
+
+        self.processTables(self.query)
 
     @staticmethod
     def get_engine(plotting_engine):
@@ -300,14 +295,6 @@ class ADMDatamart(Plots, Tables):
                     f"Missing values: {total_missing}",
                 )
 
-            if self.query is not None:
-                df2 = df2.join(df1.select(pl.col("ModelID").unique()), on="ModelID")
-
-        if self.import_strategy == "eager":
-            if df1 is not None:
-                df1 = df1.collect().lazy()
-            if df2 is not None:
-                df2 = df2.collect().lazy()
         return df1, df2
 
     def _import_utils(
@@ -609,6 +596,49 @@ class ADMDatamart(Plots, Tables):
             return combined.collect().lazy()
         else:
             return combined
+
+    def processTables(
+        self, query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None
+    ) -> ADMDatamart:
+        """Processes modelData, predictorData and combinedData tables.
+
+        Can take in a query, which it will apply to modelData
+        If a query is given, it joins predictorData to only retain the modelIDs
+        the modelData was filtered on. If both modelData and predictorData
+        are present, it joins them together into combinedData.
+
+        If memory_strategy is eager, which is the default, this method also
+        collects the tables and then sets them back to lazy.
+
+        Parameters
+        ----------
+        query: Optional[Union[pl.Expr, str, Dict[str, list]]], default = None
+            An optional query to apply to the modelData table.
+            See: :meth:`._apply_query`
+
+        """
+        if self.modelData is not None:
+            if query is not None:
+                self.modelData = self._apply_query(self.modelData, query)
+            if self.import_strategy == "eager":
+                self.modelData = self.modelData.collect().lazy()
+
+        if self.predictorData is not None:
+            if query is not None:
+                self.predictorData = self.predictorData.join(
+                    self.modelData.select(pl.col("ModelID").unique()), on="ModelID"
+                )
+            if self.import_strategy == "eager":
+                self.predictorData = self.predictorData.collect().lazy()
+
+        if self.predictorData is not None and self.modelData is not None:
+            self.combinedData = self._get_combined_data(strategy=self.import_strategy)
+        elif self.verbose:
+            print(
+                "Could not be combined. Do you have both model data and predictor data?"
+            )
+
+        return self
 
     def save_data(self, path: str = ".") -> Tuple[os.PathLike, os.PathLike]:
         """Cache modelData and predictorData to files.
@@ -1210,17 +1240,33 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         query: Union[pl.Expr, str, Dict[str, list]]
             The query to apply, see :meth:`._apply_query`
         """
-        self.modelData = self._apply_query(self.modelData, query)
-        if self.import_strategy == "eager":
-            self.modelData = self.modelData.collect().lazy()
-        if self.predictorData is not None:
-            self.predictorData = self.predictorData.join(
-                self.modelData.select(pl.col("ModelID").unique()), on="ModelID"
-            )
-            if self.import_strategy == "eager":
-                self.predictorData = self.predictorData.collect().lazy()
-            self.combinedData = self._get_combined_data(strategy=self.import_strategy)
-        return self
+        return self.processTables(query)
+
+    def fillMissing(self) -> ADMDatamart:
+        """Convenience method to fill missing values
+
+        Fills categorical, string and null type columns with "NA"
+        Fills SuccessRate, Performance and ResponseCount columns with 0
+        When context keys have empty string values, replaces them
+        with "NA" string
+        """
+        self.modelData = self.modelData.with_columns(
+            pl.col(pl.Categorical).fill_null("NA"),
+            pl.col(pl.Utf8).fill_null("NA"),
+            pl.col(pl.Null).fill_null("NA"),
+            pl.col("SuccessRate").fill_nan(0).fill_null(0),
+            pl.col("Performance").fill_nan(0).fill_null(0),
+            pl.col("ResponseCount").fill_null(0),
+        ).with_columns(
+            [
+                pl.when((pl.col(key) == "") | (pl.col(key) == " "))
+                .then(pl.lit("NA"))
+                .otherwise(pl.col(key))
+                .alias(key)
+                for key in self.context_keys
+            ]
+        )
+        return self.processTables()
 
     def generateHealthCheck(
         self,
