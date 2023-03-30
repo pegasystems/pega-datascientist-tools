@@ -1317,6 +1317,8 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         output_type="html",
         include_tables=True,
         allow_collect=True,
+        *,
+        model_healthcheck: bool = False,
         **kwargs,
     ):
         """Manually generates a Health Check
@@ -1360,6 +1362,11 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             for collecting of data. Naturally, we need to collect the data in order
             to cache it to disk for the health check, so if set to False
             with a `lazy` memory_strategy, you won't be able to generate.
+        Keyword arguments
+        -----------------
+        model_healthcheck: bool, default = False
+            If set to True, calls model-based Health Check files. Can be used if 
+            predictor binning data is missing
 
         Returns
         -------
@@ -1368,15 +1375,17 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         """
 
         def delete_temp_files(working_dir, files):
-            for f in ["params.yaml", "HealthCheck.qmd", "HealthCheck.ipynb",
-                      "HealthCheckModel.qmd", "HealthCheckModel.ipynb","log.txt"]:
+            temp_files = files + (
+                "params.yaml",
+                "HealthCheck.qmd",
+                "HealthCheck.ipynb",
+                "HealthCheckModel.qmd",
+                "HealthCheckModel.ipynb",
+                "log.txt",
+            )
+            for f in temp_files:
                 try:
                     os.remove(f"{working_dir}/{f}")
-                except:
-                    pass
-            for f in files:
-                try:
-                    os.remove(f)
                 except:
                     pass
 
@@ -1385,19 +1394,20 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         from pdstools import __reports__
 
         verbose = kwargs.get("verbose", self.verbose)
-
-        if self.modelData is None:
-            raise AssertionError("Needs model data.")
-        if self.predictorData is None:
-            quarto = "HealthCheckModel.qmd"
+        if model_healthcheck:
+            healthcheck_file = "HealthCheckModel.qmd"
+            if self.modelData is None:
+                raise AssertionError("Needs model data.")
         else:
-            quarto = "HealthCheck.qmd"
+            healthcheck_file = "HealthCheck.qmd"
+            if self.modelData is None or self.predictorData is None:
+                raise AssertionError("Needs both model and predictor data.")
         if self.import_strategy == "lazy" and not allow_collect:
             raise NotEagerError("Generating healthcheck")
         if not os.path.exists(working_dir):
             os.mkdir(working_dir)
 
-        shutil.copy(__reports__ / quarto, working_dir)
+        shutil.copy(__reports__ / healthcheck_file, working_dir)
         if name is not None:
             output_filename = f"HealthCheck_{name.replace(' ', '_')}.{output_type}"
         else:
@@ -1413,7 +1423,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         with open(f"{working_dir}/params.yaml", "w") as f:
             yaml.dump(params, f)
 
-        bashCommand = f"quarto render {quarto} --to {output_type} --output {output_filename} --execute-params params.yaml"
+        bashCommand = f"quarto render {healthcheck_file} --to {output_type} --output {output_filename} --execute-params params.yaml"
         if not verbose:
             stdout, stderr = subprocess.DEVNULL, subprocess.STDOUT
         else:
