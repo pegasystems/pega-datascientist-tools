@@ -373,8 +373,8 @@ class ADMDatamart(Plots, Tables):
 
         else:
             return None, None, None
-
-        self.model_snapshots = True
+        if df is None:
+            return None, None, None
 
         df = cdh_utils._polarsCapitalize(df)
         cols, missing = self._available_columns(
@@ -661,6 +661,8 @@ class ADMDatamart(Plots, Tables):
             predictordata_cache = pega_io.cache_to_file(
                 self.predictorData, path, name=f"cached_predictorData_{time}"
             )
+        else:
+            predictordata_cache = None
         return modeldata_cache, predictordata_cache
 
     def _apply_query(
@@ -1290,7 +1292,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         name: Optional[str] = None,
         output_location: Path = Path("."),
         working_dir: Path = Path("."),
-        delete_temp_files=True,
+        delete_temp_files=False,
         output_type="html",
         include_tables=True,
         allow_collect=True,
@@ -1340,26 +1342,36 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         """
 
         def delete_temp_files(working_dir, files):
-            for f in ["params.yaml", "HealthCheck.qmd", "HealthCheck.ipynb", "log.txt"]:
+            for f in ["params.yaml", "HealthCheck.qmd", "HealthCheck.ipynb",
+                      "HealthCheckModel.qmd", "HealthCheckModel.ipynb","log.txt"]:
                 try:
                     os.remove(f"{working_dir}/{f}")
                 except:
                     pass
             for f in files:
-                os.remove(f)
+                try:
+                    os.remove(f)
+                except:
+                    pass
+
+        working_dir, output_location = Path(working_dir), Path(output_location)
 
         from pdstools import __reports__
 
         verbose = kwargs.get("verbose", self.verbose)
 
-        if self.modelData is None or self.predictorData is None:
-            raise AssertionError("Needs both model and predictor data.")
+        if self.modelData is None:
+            raise AssertionError("Needs model data.")
+        if self.predictorData is None:
+            quarto = "HealthCheckModel.qmd"
+        else:
+            quarto = "HealthCheck.qmd"
         if self.import_strategy == "lazy" and not allow_collect:
             raise NotEagerError("Generating healthcheck")
         if not os.path.exists(working_dir):
             os.mkdir(working_dir)
 
-        shutil.copy(__reports__ / "HealthCheck.qmd", working_dir)
+        shutil.copy(__reports__ / quarto, working_dir)
         if name is not None:
             output_filename = f"HealthCheck_{name.replace(' ', '_')}.{output_type}"
         else:
@@ -1375,7 +1387,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         with open(f"{working_dir}/params.yaml", "w") as f:
             yaml.dump(params, f)
 
-        bashCommand = f"quarto render HealthCheck.qmd --to {output_type} --output {output_filename} --execute-params params.yaml"
+        bashCommand = f"quarto render {quarto} --to {output_type} --output {output_filename} --execute-params params.yaml"
         if not verbose:
             stdout, stderr = subprocess.DEVNULL, subprocess.STDOUT
         else:

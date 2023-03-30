@@ -51,13 +51,27 @@ def fromUploadedFile(**opts):
         "Upload Predictor Binning snapshot",
         type=["json", "zip", "parquet", "csv", "arrow"],
     )
-    if model_file is not None and predictor_file is not None:
+    if model_file and predictor_file:
         try:
             st.session_state["dm"] = cachedDatamart(
                 model_df=model_file, predictor_df=predictor_file, **opts
             )
         except Exception as e:
             st.write("Oh oh.", e)
+    elif model_file is not None and predictor_file is None:
+        st.warning("""Please also upload the Predictor Binning file. 
+                If you don't have access to a predictor binning file
+                and want to run the Health Check only on the model snapshot, check the
+                checkbox below.
+                """)
+        model_analysis = st.checkbox("Only run model-based Health Check")
+        if model_analysis:
+            try:
+                st.session_state["dm"] = cachedDatamart(
+                    model_df=model_file, predictor_filename=None, **opts
+                )
+            except Exception as e:
+                st.write("Oh oh.", e)
 
 
 def fromFilePath(**opts):
@@ -105,11 +119,32 @@ def fromFilePath(**opts):
                 "Could not find the predicting binning snapshot in the given folder."
             )
 
-        if model_matches is None and predictor_matches is None:
+        if model_matches is None:
             st.write(
                 """If you can't get the files to automatically be detected, 
     try uploading the files manually using a different data source."""
             )
+
+        elif predictor_matches is None:
+            st.warning(
+                """No predictor binning file found, please also upload the Predictor
+                Binning file. If you have a predictor binning snapshot but we can't
+                detect it, use the **Direct file upload** option in the dropdown above.
+                If you don't have access to a predictor binning file
+                and want to run the Health Check only on the model snapshot, check the
+                checkbox below.
+                """
+            )
+            model_analysis = st.checkbox("Only run model-based Health Check")
+            if model_analysis:
+                st.session_state["dm"] = cachedDatamart(
+                    path=dir,
+                    model_filename=Path(model_matches).name,
+                    predictor_filename=None,
+                    import_strategy="lazy",
+                    **opts,
+                )
+
         else:
             st.session_state["dm"] = cachedDatamart(
                 path=dir,
@@ -118,7 +153,6 @@ def fromFilePath(**opts):
                 import_strategy="lazy",
                 **opts,
             )
-            # st.write(st.session_state["params"])
 
 
 def filter_dataframe(df: pl.LazyFrame, schema: Optional[dict] = None) -> pl.LazyFrame:

@@ -86,10 +86,16 @@ with filters:
         st.session_state["filters"] = streamlit_utils.filter_dataframe(
             st.session_state["dm"].modelData
         )
+    else:
+        st.warning("Please configure your files in the `data import` tab.")
 
 
 with report:
     "# Generating the Health Check"
+    if "dm" not in st.session_state:
+        st.warning("Please configure your files in the `data import` tab.")
+        st.stop()
+
     """Time to start the Health Check. """
     with st.expander("Health Check options"):
         name = st.text_input("Customer name")
