@@ -97,11 +97,11 @@ class ADMDatamart(Plots, Tables):
 
     Examples
     --------
-    >>> Data =  ADMDatamart(f"/CDHSample")
-    >>> Data =  ADMDatamart(f"Data/Adaptive Models & Predictors Export",
+    >>> Data =  ADMDatamart("/CDHSample")
+    >>> Data =  ADMDatamart("Data/Adaptive Models & Predictors Export",
                 model_filename = "Data-Decision-ADM-ModelSnapshot_AdaptiveModelSnapshotRepo20201110T085543_GMT/data.json",
                 predictor_filename = "Data-Decision-ADM-PredictorBinningSnapshot_PredictorBinningSnapshotRepo20201110T084825_GMT/data.json")
-    >>> Data =  ADMDatamart(f"Data/files",
+    >>> Data =  ADMDatamart("Data/files",
                 model_filename = "ModelData.csv",
                 predictor_filename = "PredictorData.csv")
 
