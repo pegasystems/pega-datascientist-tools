@@ -759,6 +759,27 @@ you to still use the data.</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="pdstools.ADMDatamart.processTables">
+<span class="sig-name descname"><span class="pre">processTables</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pdstools.ADMDatamart" title="pdstools.ADMDatamart"><span class="pre">ADMDatamart</span></a></span></span><a class="headerlink" href="#pdstools.ADMDatamart.processTables" title="Permalink to this definition">#</a></dt>
+<dd><p>Processes modelData, predictorData and combinedData tables.</p>
+<p>Can take in a query, which it will apply to modelData
+If a query is given, it joins predictorData to only retain the modelIDs
+the modelData was filtered on. If both modelData and predictorData
+are present, it joins them together into combinedData.</p>
+<p>If memory_strategy is eager, which is the default, this method also
+collects the tables and then sets them back to lazy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>query</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>pl.Expr</em><em>, </em><em>str</em><em>, </em><em>Dict</em><em>[</em><em>str</em><em>, </em><em>list</em><em>]</em><em>]</em><em>]</em><em>, </em><em>default = None</em>) – An optional query to apply to the modelData table.
+See: <a class="reference internal" href="#pdstools.ADMDatamart._apply_query" title="pdstools.ADMDatamart._apply_query"><code class="xref py py-meth docutils literal notranslate"><span class="pre">_apply_query()</span></code></a></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#pdstools.ADMDatamart" title="pdstools.ADMDatamart">ADMDatamart</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMDatamart.save_data">
 <span class="sig-name descname"><span class="pre">save_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'.'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">os.PathLike</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">os.PathLike</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.ADMDatamart.save_data" title="Permalink to this definition">#</a></dt>
 <dd><p>Cache modelData and predictorData to files.</p>
@@ -1024,6 +1045,21 @@ on the ModelIDs remaining after the query, and recomputes combinedData.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference internal" href="#pdstools.ADMDatamart" title="pdstools.ADMDatamart">ADMDatamart</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.ADMDatamart.fillMissing">
+<span class="sig-name descname"><span class="pre">fillMissing</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pdstools.ADMDatamart" title="pdstools.ADMDatamart"><span class="pre">ADMDatamart</span></a></span></span><a class="headerlink" href="#pdstools.ADMDatamart.fillMissing" title="Permalink to this definition">#</a></dt>
+<dd><p>Convenience method to fill missing values</p>
+<p>Fills categorical, string and null type columns with “NA”
+Fills SuccessRate, Performance and ResponseCount columns with 0
+When context keys have empty string values, replaces them
+with “NA” string</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#pdstools.ADMDatamart" title="pdstools.ADMDatamart">ADMDatamart</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1694,6 +1730,7 @@ One of: {‘Quantile’, ‘Propensity’}</p>
 <li><a class="reference internal" href="#pdstools.ADMDatamart._last"><code class="docutils literal notranslate"><span class="pre">_last()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart._last_timestamp"><code class="docutils literal notranslate"><span class="pre">_last_timestamp()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart._get_combined_data"><code class="docutils literal notranslate"><span class="pre">_get_combined_data()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMDatamart.processTables"><code class="docutils literal notranslate"><span class="pre">processTables()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart.save_data"><code class="docutils literal notranslate"><span class="pre">save_data()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart._apply_query"><code class="docutils literal notranslate"><span class="pre">_apply_query()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart.extract_keys"><code class="docutils literal notranslate"><span class="pre">extract_keys()</span></code></a></li>
@@ -1707,6 +1744,7 @@ One of: {‘Quantile’, ‘Propensity’}</p>
 <li><a class="reference internal" href="#pdstools.ADMDatamart.get_model_stats"><code class="docutils literal notranslate"><span class="pre">get_model_stats()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart.describe_models"><code class="docutils literal notranslate"><span class="pre">describe_models()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart.applyGlobalQuery"><code class="docutils literal notranslate"><span class="pre">applyGlobalQuery()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ADMDatamart.fillMissing"><code class="docutils literal notranslate"><span class="pre">fillMissing()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart.generateHealthCheck"><code class="docutils literal notranslate"><span class="pre">generateHealthCheck()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart.exportTables"><code class="docutils literal notranslate"><span class="pre">exportTables()</span></code></a></li>
 </ul>

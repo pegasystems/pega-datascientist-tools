@@ -264,6 +264,23 @@ Classes
       :rtype: Union[pl.DataFrame, pl.LazyFrame]
 
 
+   .. py:method:: processTables(query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None) -> ADMDatamart
+
+      Processes modelData, predictorData and combinedData tables.
+
+      Can take in a query, which it will apply to modelData
+      If a query is given, it joins predictorData to only retain the modelIDs
+      the modelData was filtered on. If both modelData and predictorData
+      are present, it joins them together into combinedData.
+
+      If memory_strategy is eager, which is the default, this method also
+      collects the tables and then sets them back to lazy.
+
+      :param query: An optional query to apply to the modelData table.
+                    See: :meth:`._apply_query`
+      :type query: Optional[Union[pl.Expr, str, Dict[str, list]]], default = None
+
+
    .. py:method:: save_data(path: str = '.') -> Tuple[os.PathLike, os.PathLike]
 
       Cache modelData and predictorData to files.
@@ -450,6 +467,16 @@ Classes
       ---------
       query: Union[pl.Expr, str, Dict[str, list]]
           The query to apply, see :meth:`._apply_query`
+
+
+   .. py:method:: fillMissing() -> ADMDatamart
+
+      Convenience method to fill missing values
+
+      Fills categorical, string and null type columns with "NA"
+      Fills SuccessRate, Performance and ResponseCount columns with 0
+      When context keys have empty string values, replaces them
+      with "NA" string
 
 
    .. py:method:: generateHealthCheck(name: Optional[str] = None, output_location: pathlib.Path = Path('.'), working_dir: pathlib.Path = Path('.'), delete_temp_files=True, output_type='html', include_tables=True, allow_collect=True, **kwargs)

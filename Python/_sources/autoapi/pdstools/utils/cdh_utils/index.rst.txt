@@ -22,6 +22,7 @@ Functions
 .. autoapisummary::
 
    pdstools.utils.cdh_utils.defaultPredictorCategorization
+   pdstools.utils.cdh_utils.parsePegaDateTimeFormats
    pdstools.utils.cdh_utils.safe_range_auc
    pdstools.utils.cdh_utils.auc_from_probs
    pdstools.utils.cdh_utils.auc_from_bincounts
@@ -58,6 +59,27 @@ Functions
 
    :param x: The column to parse
    :type x: Union[str, pl.Expr], default = pl.col('PredictorName')
+
+
+.. py:function:: parsePegaDateTimeFormats(timestampCol='SnapshotTime', timestamp_fmt: str = None, strict_conversion: bool = True)
+
+   Parses Pega DateTime formats.
+
+   Supports the two most commonly used formats:
+
+   - "%Y-%m-%d %H:%M:%S"
+   - "%Y%m%dT%H%M%S.%f %Z"
+
+   If you want to parse a different timezone, then
+
+   Removes timezones, and rounds to seconds, with a 'ns' time unit.
+
+   :param timestampCol: The column to parse
+   :type timestampCol: str, default = 'SnapshotTime'
+   :param timestamp_fmt: An optional format to use rather than the default formats
+   :type timestamp_fmt: str, default = None
+   :param strict_conversion: Whether to error on incorrect parses or just return Null values
+   :type strict_conversion: bool, default = True
 
 
 .. py:function:: safe_range_auc(auc: float) -> float

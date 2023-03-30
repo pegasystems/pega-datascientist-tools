@@ -291,55 +291,58 @@ of data analysis, reporting and monitoring.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.defaultPredictorCategorization" title="pdstools.utils.cdh_utils.defaultPredictorCategorization"><code class="xref py py-obj docutils literal notranslate"><span class="pre">defaultPredictorCategorization</span></code></a>() → polars.Expr)</p></td>
 <td><p>Function to determine the 'category' of a predictor.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.safe_range_auc" title="pdstools.utils.cdh_utils.safe_range_auc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">safe_range_auc</span></code></a>(→ float)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.parsePegaDateTimeFormats" title="pdstools.utils.cdh_utils.parsePegaDateTimeFormats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">parsePegaDateTimeFormats</span></code></a>([timestampCol, ...])</p></td>
+<td><p>Parses Pega DateTime formats.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.safe_range_auc" title="pdstools.utils.cdh_utils.safe_range_auc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">safe_range_auc</span></code></a>(→ float)</p></td>
 <td><p>Internal helper to keep auc a safe number between 0.5 and 1.0 always.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.auc_from_probs" title="pdstools.utils.cdh_utils.auc_from_probs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auc_from_probs</span></code></a>(→ List[float])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.auc_from_probs" title="pdstools.utils.cdh_utils.auc_from_probs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auc_from_probs</span></code></a>(→ List[float])</p></td>
 <td><p>Calculates AUC from an array of truth values and predictions.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.auc_from_bincounts" title="pdstools.utils.cdh_utils.auc_from_bincounts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auc_from_bincounts</span></code></a>(→ float)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.auc_from_bincounts" title="pdstools.utils.cdh_utils.auc_from_bincounts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auc_from_bincounts</span></code></a>(→ float)</p></td>
 <td><p>Calculates AUC from counts of positives and negatives directly</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.aucpr_from_probs" title="pdstools.utils.cdh_utils.aucpr_from_probs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">aucpr_from_probs</span></code></a>(→ List[float])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.aucpr_from_probs" title="pdstools.utils.cdh_utils.aucpr_from_probs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">aucpr_from_probs</span></code></a>(→ List[float])</p></td>
 <td><p>Calculates PR AUC (precision-recall) from an array of truth values and predictions.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.aucpr_from_bincounts" title="pdstools.utils.cdh_utils.aucpr_from_bincounts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">aucpr_from_bincounts</span></code></a>(→ float)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.aucpr_from_bincounts" title="pdstools.utils.cdh_utils.aucpr_from_bincounts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">aucpr_from_bincounts</span></code></a>(→ float)</p></td>
 <td><p>Calculates PR AUC (precision-recall) from counts of positives and negatives directly.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.auc2GINI" title="pdstools.utils.cdh_utils.auc2GINI"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auc2GINI</span></code></a>(→ float)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.auc2GINI" title="pdstools.utils.cdh_utils.auc2GINI"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auc2GINI</span></code></a>(→ float)</p></td>
 <td><p>Convert AUC performance metric to GINI</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils._capitalize" title="pdstools.utils.cdh_utils._capitalize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_capitalize</span></code></a>(→ list)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils._capitalize" title="pdstools.utils.cdh_utils._capitalize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_capitalize</span></code></a>(→ list)</p></td>
 <td><p>Applies automatic capitalization, aligned with the R couterpart.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils._polarsCapitalize" title="pdstools.utils.cdh_utils._polarsCapitalize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_polarsCapitalize</span></code></a>(df)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils._polarsCapitalize" title="pdstools.utils.cdh_utils._polarsCapitalize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_polarsCapitalize</span></code></a>(df)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.fromPRPCDateTime" title="pdstools.utils.cdh_utils.fromPRPCDateTime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fromPRPCDateTime</span></code></a>(→ Union[datetime.datetime, str])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.fromPRPCDateTime" title="pdstools.utils.cdh_utils.fromPRPCDateTime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fromPRPCDateTime</span></code></a>(→ Union[datetime.datetime, str])</p></td>
 <td><p>Convert from a Pega date-time string.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.toPRPCDateTime" title="pdstools.utils.cdh_utils.toPRPCDateTime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">toPRPCDateTime</span></code></a>(→ str)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.toPRPCDateTime" title="pdstools.utils.cdh_utils.toPRPCDateTime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">toPRPCDateTime</span></code></a>(→ str)</p></td>
 <td><p>Convert to a Pega date-time string</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.weighed_average_polars" title="pdstools.utils.cdh_utils.weighed_average_polars"><code class="xref py py-obj docutils literal notranslate"><span class="pre">weighed_average_polars</span></code></a>(→ polars.Expr)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.weighed_average_polars" title="pdstools.utils.cdh_utils.weighed_average_polars"><code class="xref py py-obj docutils literal notranslate"><span class="pre">weighed_average_polars</span></code></a>(→ polars.Expr)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.weighed_performance_polars" title="pdstools.utils.cdh_utils.weighed_performance_polars"><code class="xref py py-obj docutils literal notranslate"><span class="pre">weighed_performance_polars</span></code></a>(→ polars.Expr)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.weighed_performance_polars" title="pdstools.utils.cdh_utils.weighed_performance_polars"><code class="xref py py-obj docutils literal notranslate"><span class="pre">weighed_performance_polars</span></code></a>(→ polars.Expr)</p></td>
 <td><p>Polars function to return a weighted performance</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.zRatio" title="pdstools.utils.cdh_utils.zRatio"><code class="xref py py-obj docutils literal notranslate"><span class="pre">zRatio</span></code></a>(, negCol)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.zRatio" title="pdstools.utils.cdh_utils.zRatio"><code class="xref py py-obj docutils literal notranslate"><span class="pre">zRatio</span></code></a>(, negCol)</p></td>
 <td><p>Calculates the Z-Ratio for predictor bins.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.LogOdds" title="pdstools.utils.cdh_utils.LogOdds"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LogOdds</span></code></a>([Positives, Negatives])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.LogOdds" title="pdstools.utils.cdh_utils.LogOdds"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LogOdds</span></code></a>([Positives, Negatives])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.featureImportance" title="pdstools.utils.cdh_utils.featureImportance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">featureImportance</span></code></a>([over])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.featureImportance" title="pdstools.utils.cdh_utils.featureImportance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">featureImportance</span></code></a>([over])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.legend_color_order" title="pdstools.utils.cdh_utils.legend_color_order"><code class="xref py py-obj docutils literal notranslate"><span class="pre">legend_color_order</span></code></a>(fig)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.legend_color_order" title="pdstools.utils.cdh_utils.legend_color_order"><code class="xref py py-obj docutils literal notranslate"><span class="pre">legend_color_order</span></code></a>(fig)</p></td>
 <td><p>Orders legend colors alphabetically in order to provide pega color</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.sync_reports" title="pdstools.utils.cdh_utils.sync_reports"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sync_reports</span></code></a>([checkOnly, autoUpdate])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.sync_reports" title="pdstools.utils.cdh_utils.sync_reports"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sync_reports</span></code></a>([checkOnly, autoUpdate])</p></td>
 <td><p>Compares the report files in your local directory to the repo</p></td>
 </tr>
 </tbody>
@@ -363,6 +366,28 @@ otherwise returns the first string before the first period</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>polars.Expr</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.parsePegaDateTimeFormats">
+<span class="sig-name descname"><span class="pre">parsePegaDateTimeFormats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestampCol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'SnapshotTime'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamp_fmt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict_conversion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.cdh_utils.parsePegaDateTimeFormats" title="Permalink to this definition">#</a></dt>
+<dd><p>Parses Pega DateTime formats.</p>
+<p>Supports the two most commonly used formats:</p>
+<ul class="simple">
+<li><p>“%Y-%m-%d %H:%M:%S”</p></li>
+<li><p>“%Y%m%dT%H%M%S.%f %Z”</p></li>
+</ul>
+<p>If you want to parse a different timezone, then</p>
+<p>Removes timezones, and rounds to seconds, with a ‘ns’ time unit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>timestampCol</strong> (<em>str</em><em>, </em><em>default = 'SnapshotTime'</em>) – The column to parse</p></li>
+<li><p><strong>timestamp_fmt</strong> (<em>str</em><em>, </em><em>default = None</em>) – An optional format to use rather than the default formats</p></li>
+<li><p><strong>strict_conversion</strong> (<em>bool</em><em>, </em><em>default = True</em>) – Whether to error on incorrect parses or just return Null values</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -730,6 +755,7 @@ will prompt you to update them.</p>
 <li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
 <li><a class="reference internal" href="#functions">Functions</a><ul>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.defaultPredictorCategorization"><code class="docutils literal notranslate"><span class="pre">defaultPredictorCategorization()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.parsePegaDateTimeFormats"><code class="docutils literal notranslate"><span class="pre">parsePegaDateTimeFormats()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.safe_range_auc"><code class="docutils literal notranslate"><span class="pre">safe_range_auc()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.auc_from_probs"><code class="docutils literal notranslate"><span class="pre">auc_from_probs()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.auc_from_bincounts"><code class="docutils literal notranslate"><span class="pre">auc_from_bincounts()</span></code></a></li>
