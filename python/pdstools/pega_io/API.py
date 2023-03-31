@@ -1,5 +1,4 @@
-import urllib
-
+import requests
 
 def readClientCredentialFile(credentialFile):  # pragma: no cover
     outputdict = {}
@@ -14,7 +13,7 @@ def readClientCredentialFile(credentialFile):  # pragma: no cover
 
 def getToken(credentialFile, verify=True, **kwargs):  # pragma: no cover
     creds = readClientCredentialFile(credentialFile)
-    return urllib.requests.post(
+    return requests.post(
         url=kwargs.get("URL", creds["Access token endpoint"]),
         data={"grant_type": "client_credentials"},
         auth=(creds["Client ID"], creds["Client Secret"]),
