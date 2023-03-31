@@ -1,6 +1,8 @@
 import sys
+import os
+
 sys.path.append("python")
-from pdstools import datasets
+from pdstools import ADMDatamart, datasets
 import pytest
 
 @pytest.fixture
@@ -15,5 +17,23 @@ def testHealthCheckRunsWithoutTables(sample):
 
 def testAdditionalTables(sample):
     sample.exportTables()
-    import os
-    os.remove('Tables.xlsx')
+    os.remove("Tables.xlsx")
+    
+@pytest.fixture
+def sample_without_predictorbinning():
+    return ADMDatamart(
+        path="data",
+        model_filename="Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip",
+        predictor_filename=None,
+    )
+
+def testHealthCheckModelRunsWithoutErrors(sample_without_predictorbinning):
+    sample_without_predictorbinning.generateHealthCheck(verbose=True, modelData_only=True)
+
+
+def testAdditionalTablesModel(sample_without_predictorbinning):
+    sample_without_predictorbinning.exportTables(file="ModelTables.xlsx")
+    os.remove("ModelTables.xlsx")
+    
+def remove_healthCheck():
+    os.remove("ADM_HealthCheck.html")

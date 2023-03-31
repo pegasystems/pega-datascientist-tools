@@ -1,0 +1,346 @@
+---
+title: "ADM Health Check"
+author: "Pega pdstools"
+format:
+  html:
+    code-fold: true
+    embed-resources: true
+    standalone: true
+    code-tools: true
+    toc: true
+    toc-title: Contents
+    theme:
+        light: flatly
+        dark: darkly
+jupyter: python3
+---
+```{python}
+#| label: Imports
+#| code-fold: true
+#| code-summary: Python imports
+#| output: false
+import logging, sys
+logging.disable()
+from IPython.display import display, Markdown
+def Text(d):
+   return display(Markdown(d))
+import sys
+sys.path.append('..')
+from pdstools import datasets, ADMDatamart
+from pdstools import cdh_utils
+from pdstools import defaultPredictorCategorization
+from plotly.offline import iplot
+from itables import show
+import plotly.express as px
+import plotly.graph_objs as go
+import polars as pl
+import pandas as pd
+import numpy as np
+from pdstools.utils import pega_template 
+import math
+
+
+```
+
+
+```{python}
+#| tags: [parameters]
+#| echo: false
+
+# These parameters are overwritten when called by the app function.
+# Though if running this healthcheck separately, you can populate this cell.
+
+name = 'CDH Sample'
+filters = dict()
+kwargs = dict()
+include_tables=True
+globalQuery = None
+
+```
+
+```{python}
+#| tags: [initialization]
+#| code-fold: true
+#| code-summary: Initialization of the datamart class.
+
+# Initialize the class after the parameters have been overwritten.
+ 
+if len(kwargs)>0: #override with keyword arguments
+    datamart = ADMDatamart(**kwargs).fillMissing()
+else: #fall back to 'default'
+    datamart = datasets.CDHSample()
+
+last_data = (
+    datamart.last(strategy='lazy')
+    .with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
+    .with_columns(
+        [
+            pl.col(pl.Utf8).fill_null("NA"),
+            pl.col(pl.Null).fill_null("NA"),
+            pl.col("SuccessRate").fill_nan(0).fill_null(0),
+            pl.col("Performance").fill_nan(0).fill_null(0),
+            pl.col("ResponseCount").fill_null(0),
+            (pl.concat_str("Channel/Direction".split("/"), separator="/")).alias("Channel/Direction"),
+        ]
+    )
+).collect()
+datamart_all_columns = datamart.modelData.columns
+standardNBADNames = [
+    "Assisted_Click_Through_Rate",
+    "CallCenter_Click_Through_Rate",
+    "CallCenterAcceptRateOutbound",
+    "Default_Inbound_Model",
+    "Default_Outbound_Model",
+    "Email_Click_Through_Rate",
+    "Mobile_Click_Through_Rate",
+    "OmniAdaptiveModel",
+    "Other_Inbound_Click_Through_Rate",
+    "Push_Click_Through_Rate",
+    "Retail_Click_Through_Rate",
+    "Retail_Click_Through_Rate_Outbound",
+    "SMS_Click_Through_Rate",
+    "Web_Click_Through_Rate",
+]
+```
+
+This document gives a generic and global overview of the Adaptive models 
+and predictors. It is generated from a Python markdown file in the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools). That repository
+of tools and scripts also contains a notebook to generate stand-alone
+model reports for individual models, please refer 
+to the [Wiki](https://github.com/pegasystems/pega-datascientist-tools/wiki).
+
+This document provides a first-level scan of the models after which a 
+deeper and more customer specific deeper dive can be done.
+
+For best viewing results, open the 
+HTML document in a browser. Viewing it from platforms like e.g. Sharepoint or 
+Github will loose the interactive charts.
+
+Note that the notebook by default generates a single-page HTML, however you
+can also export to PDF as well as other formats supported by Pandoc (e.g. Word) 
+but you would loose interactivity.
+
+In the cell below, all data preprocessing is executed, such as importing the data and applying global filters. By default, the values are populated by environment variables supplied when running the file, but for customization purposes, you can edit this cell.
+
+# Overview of the Actions
+In a standard setup, the offers/conversations are presented as treatments for actions in a hierarchical structure setup in NBA Designer. The recommendation is to have multiple treatments for an action. Treatments are often channel specific and you would typically expect more unique treatments than there are actions.
+
+Adaptive Models are created per treatment (at least in the default setup) and the recommendation is to stick the default context keys of the models.
+```{python}
+datamart.context_keys
+context_keys= {'Channels':'Channel/Direction', 'Issues':'Issue', 'Groups':'Group','Actions':'Name', 'Treatments':'Treatment'}
+value_keys = ['Actions', 'Treatments','Issues', 'Groups', 'Channels']
+counts, values = dict(), dict()
+
+for label, column in context_keys.items():
+    if column in last_data.columns:
+        if label in value_keys:
+            datalist = ', '.join(filter(None, (last_data.select(context_keys[label]).to_series().unique().sort().to_list())[:5]))
+        else:
+            datalist = ''
+        n = last_data.select(column).to_series().n_unique()
+    else:
+        datalist, n = '', 0
+    counts[f'Number of {label}'] = [n, datalist]
+overview_of_adaptive_models = pd.DataFrame(counts, index=['Counts', 'Values']).T
+show(overview_of_adaptive_models, columnDefs=[{"className": "dt-left", "targets": "_all"}])
+```
+
+## Success Rates per Channel
+Showing the current success rate of the treatments. Different channels usually have very different success rates. Just showing the top 20 here and limiting to the propositions that have received at least 100 responses (the rates reported by the models are unreliable otherwise).
+
+### Guidance
+- Look out for propositions that stand out, having a far higher success rate than the rest. Check with business if that is expected.
+
+- Variation in the set of offered propositions across customers is also an important metric but not one that can be derived from the Adaptive Model data - this requires analysis of the actual interactions.
+```{python}
+facet = "Channel/Direction"
+hover_columns = ["Issue", "Group", "Name"]
+df = last_data.lazy().with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet)).with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
+df = (
+    df
+    .filter(pl.col("ResponseCount") > 100)
+    .groupby(hover_columns + ["ModelID","Channel/Direction"])
+    .agg(
+        cdh_utils.weighed_average_polars("SuccessRate", "ResponseCount").alias(
+            "SuccessRate"
+        )
+    )
+    .with_columns(pl.col("SuccessRate").round(4))
+    .sort(["Channel/Direction", "SuccessRate"], descending=True)
+    .groupby(["Channel/Direction"])
+    .head(20)
+    .collect()
+).to_pandas(use_pyarrow_extension_array=True)
+
+hover_data = {
+    "SuccessRate": ":.2%",
+    "Issue": ":.d",
+    "Group": ":.d",
+    "Name": ":.d",
+}
+
+
+facet= "Channel/Direction"
+facet_col_wrap = 3
+fig = px.bar(
+    df.sort_values(["Channel/Direction", "SuccessRate"]),
+    x="SuccessRate",
+    y="ModelID",
+    color="SuccessRate",
+    facet_col=facet,
+    facet_col_wrap=facet_col_wrap,
+    template="pega",
+    text="Name",
+    title="Proposition success rates <br><sup>Issue/Group/Name/Treatment</sup>",
+    hover_data=hover_data,
+)
+fig.update_xaxes(tickformat=",.0%")
+fig.update_yaxes(matches=None, showticklabels=False, visible=False).update_xaxes(
+    matches=None,
+).update_traces(textposition="inside")
+fig.for_each_annotation(
+    lambda a: a.update(text=a.text.replace("Channel/Direction=", ""))
+)
+fig.update(layout_coloraxis_showscale=False)
+
+unique_count = datamart.last(strategy='lazy').with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet)).select(facet).collect().to_series().n_unique()
+
+height = 200 + (math.ceil( unique_count / facet_col_wrap) * 250)
+
+fig.update_layout(autosize=True, height=height)
+
+display(fig)
+```
+
+## All Success Rates
+Interactive chart with all success rates.
+
+```{python}
+fig = datamart.plotTreeMap(color_var="SuccessRate",
+                     groupby_col= None,
+                     levels=['Channel', 'Direction', 'Issue', 'Group', "Name"], 
+                     colorscale=pega_template.success)
+fig
+```
+
+## Success Rates over Time
+Showing how the overall channel success rates evolved over the time that the data export covers. Split by Channel and model configuration. Usually there are separate model configurations for different channels but sometimes there are also additional model configurations for different outcomes (e.g. conversion) or different customers (e.g. anonymous).
+
+### Guidance
+- There shouldn’t be too sudden changes over time
+```{python}
+by = "Channel/Direction"
+facet = "Configuration"
+fig = datamart.plotOverTime('SuccessRate', by=by, facets=facet, facet_col_wrap=2, query=pl.col("ResponseCount") > 100)
+fig.update_yaxes(matches=None)
+fig.for_each_yaxis(lambda yaxis: yaxis.update(showticklabels=True, rangemode="tozero"))
+unique_count = datamart.modelData.with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet)).select(facet).collect().unique().shape[0]
+height = 200 + (math.ceil( unique_count / 2) * 250)
+fig.update_layout(autosize=True, height=height)
+fig.for_each_annotation(
+    lambda a: a.update(text=a.text.replace(f"{facet}=", ""))
+)
+fig.for_each_xaxis(lambda xaxis: xaxis.update(showticklabels=True))
+fig.show()
+```
+
+# Overview of Adaptive Models
+The standard configuration is to have one model per treatment.
+
+```{python}
+if include_tables:
+    model_overview = datamart.model_overview.to_pandas(use_pyarrow_extension_array=True)
+    show(model_overview)
+    print(f"There are a total of {len(last_data.select('ModelID').unique())} unique models in the latest snapshot. \n " )
+else:
+    print('Please refer to the `model_overview` tab in the included Excel file.')
+```
+## Model Performance 
+ Recommended best practice is to have multiple treatments for an action. Too few gives less opportunity for personalization of the interactions.
+
+### Model Performance vs Action Success Rates (the Bubble Chart)
+This “Bubble Chart” - similar to the standard plot in the ADM reports in Pega - shows the relation between model performance and proposition success rates. In addition, the size of the bubbles indicates the number of responses.
+
+#### Guidance
+- If all the bubbles clutter too much on the left-hand side of the charts, this means the models are not predictive. These models may be still be ramping up, or they may not have predictive enough features to work with: consider if new/better predictors can be added.
+
+- Bubbles at the bottom of the charts represent propositions with very low success rates - they may not be compelling enough.
+
+- In an ideal scenario you will see the larger bubbles more on the top-right, so more volume for propositions with higher success rates and better models.
+
+- There should be a positive correlation between success rate and performance - per channel.
+
+- There should be a positive correlation between responses and performance - also per channel.
+
+- There should be variation in response counts (not all dots of equal size)
+
+- For small volumes of good models, see if the engagement rules in the Decision Strategy are overly restrictive or reconsider the arbitration of the propositions so they get more (or less) exposure.
+```{python}
+facet_col_wrap=2
+facet = 'Configuration/Channel/Direction'
+fig = datamart.plotPerformanceSuccessRateBubbleChart(facets=facet,facet_col_wrap=facet_col_wrap)
+fig.layout.coloraxis.colorscale = pega_template.success
+fig.for_each_xaxis(lambda xaxis: xaxis.update(showticklabels=True, visible=True))
+fig.for_each_xaxis(lambda xaxis: xaxis.update(dict(
+        tickmode = 'array',
+        tickvals = [50, 60, 70, 80, 90,100],
+    )))
+height = 250 + (math.ceil( len(fig.layout.annotations) / facet_col_wrap) * 270)
+fig.update_layout(autosize=True, height=height, title=None)
+
+fig.for_each_annotation(
+    lambda a: a.update(text=a.text.replace(f"{facet}=", ""))
+)
+fig.update_layout(font=dict(size=10))
+
+fig.for_each_annotation(lambda a: a.update(text="<br> ".join(a.text.split("/", 1))))
+fig.update_coloraxes(colorbar_len= 1 / math.ceil( len(fig.layout.annotations) / facet_col_wrap))
+
+fig.show()
+```
+
+### Model Performance over Time
+Showing how the model performance evolves over time. Note that ADM is by default configured to track performance over all time. You can configure a window for monitoring but this is not commonly done.
+
+Aggregating up to Channel and splitting by model configuration.
+
+#### Guidance
+- No abrupt changes but gradual upward trend is good
+```{python}
+facet = "Configuration"
+modelperformance = datamart.plotOverTime('weighted_performance', by="Channel/Direction", facets=facet, facet_col_wrap=2)
+
+unique_count = datamart.modelData.with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet)).select(facet).collect().unique().shape[0]
+height = 200 + (math.ceil( unique_count / 2) * 250)
+modelperformance.update_layout(autosize=True, height=height)
+modelperformance.for_each_annotation(
+    lambda a: a.update(text=a.text.replace(f"{facet}=", ""))
+)
+
+modelperformance.for_each_xaxis(lambda xaxis: xaxis.update(showticklabels=True))
+
+modelperformance.show()
+```
+
+### Model performance of all the actions (interactive Treemap)
+Using an interactive treemap to visualize the performance. Lighter is better, darker is low performance.
+
+It can be interesting to see which issues, groups or channels can be better predicted than others. Identifying categories of items for which the predictions are poor can help to drive the search for better predictors, for example.
+
+```{python}
+fig = datamart.plotTreeMap(color_var="performance_weighted", groupby_col= None, levels=['Channel', 'Direction', 'Issue', 'Group', "Name"])
+
+fig.show()
+```
+
+### Response counts for all the actions
+Using an interactive treemap to visualize the response counts.
+Different channels will have very different numbers but within one channel the relative differences in response counts give an indication how skewed the distribution is.
+
+Warning : Currently treemap calculates mean response count moving upwards in the hierarchy. 
+```{python}
+fig = datamart.plotTreeMap(color_var="responsecount", levels=['Channel', 'Direction', 'Issue', 'Group', "Name"], colorscale=pega_template.negative_positive)
+fig
+
+```

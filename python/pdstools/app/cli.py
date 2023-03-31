@@ -22,6 +22,8 @@ def run(*args):
     sys.argv = ["streamlit", "run", filename]
     if len(args) > 1:
         sys.argv.extend(args[1:])
+    if "--server.maxUploadSize" not in sys.argv:
+        sys.argv.extend(["--server.maxUploadSize", "2000"])
     sys.exit(stcli.main())
 
 
