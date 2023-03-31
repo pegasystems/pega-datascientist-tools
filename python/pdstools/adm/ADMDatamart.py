@@ -1318,7 +1318,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         include_tables=True,
         allow_collect=True,
         *,
-        model_data: bool = False,
+        modelData_only: bool = False,
         **kwargs,
     ):
         """Manually generates a Health Check
@@ -1364,7 +1364,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             with a `lazy` memory_strategy, you won't be able to generate.
         Keyword arguments
         -----------------
-        model_data: bool, default = False
+        modelData_only: bool, default = False
             If set to True, calls model-based Health Check files. Can be used if 
             predictor binning data is missing
 
@@ -1394,7 +1394,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         from pdstools import __reports__
 
         verbose = kwargs.get("verbose", self.verbose)
-        if model_data:
+        if modelData_only:
             healthcheck_file = "HealthCheckModel.qmd"
             if self.modelData is None:
                 raise AssertionError("Needs model data.")
