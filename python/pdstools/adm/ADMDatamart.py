@@ -1318,7 +1318,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         include_tables=True,
         allow_collect=True,
         *,
-        model_healthcheck: bool = False,
+        model_data: bool = False,
         **kwargs,
     ):
         """Manually generates a Health Check
@@ -1364,7 +1364,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             with a `lazy` memory_strategy, you won't be able to generate.
         Keyword arguments
         -----------------
-        model_healthcheck: bool, default = False
+        model_data: bool, default = False
             If set to True, calls model-based Health Check files. Can be used if 
             predictor binning data is missing
 
@@ -1394,7 +1394,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         from pdstools import __reports__
 
         verbose = kwargs.get("verbose", self.verbose)
-        if model_healthcheck:
+        if model_data:
             healthcheck_file = "HealthCheckModel.qmd"
             if self.modelData is None:
                 raise AssertionError("Needs model data.")
@@ -1477,9 +1477,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         """
         from xlsxwriter import Workbook
 
-        tabs = {
-            tab: getattr(self, tab) for tab in dir(Tables) if not tab.startswith("_")
-        }
+        tabs = {tab: getattr(self, tab) for tab in self.ApplicableTables}
         with Workbook(file) as wb:
             for tab, data in tabs.items():
                 data = data.with_columns(

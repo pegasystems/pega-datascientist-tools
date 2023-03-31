@@ -133,7 +133,7 @@ with report:
                         delete_temp_files=delete_temp_files,
                         include_tables=include_tables,
                         output_to_file=True,
-                        model_healthcheck=st.session_state["modelhc"],
+                        model_data=st.session_state["modelhc"],
                     )
                 )
                 if os.path.isfile(outfile):

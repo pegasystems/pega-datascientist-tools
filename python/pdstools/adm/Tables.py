@@ -36,9 +36,35 @@ class Tables:
         return [
             col
             for col in columns
-            if col in self.combinedData.columns
+            if col in self.modelData.columns
             and self.modelData.schema[col] != pl.Null
         ]
+    @property
+    def AvailableTables(self):
+        df = pl.DataFrame(
+            {
+                "model_overview": [1, 0],
+                "predictors_per_configuration": [1, 1],
+                "bad_predictors": [1, 1],
+                "zero_response": [1, 0],
+                "zero_positives": [1, 0],
+                "reach": [1, 0],
+                "minimum_performance": [1, 1],
+                "appendix": [1, 0],
+            }
+        )
+        df = df.transpose().with_columns(pl.Series(df.columns))
+        df.columns = ["modelData", "predictorData", "Tables"]
+        return df.select(["Tables", "modelData", "predictorData"])
+    
+    @property
+    def ApplicableTables(self):
+        df = self.AvailableTables
+        if not self.hasModels:
+            df = df.filter(pl.col("modelData") == 0)
+        if not self.hasPredictorBinning:
+            df = df.filter(pl.col("predictorData") == 0)
+        return df.get_column("Tables").to_list()
 
     @cached_property
     def model_overview(self):
