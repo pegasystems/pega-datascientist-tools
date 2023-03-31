@@ -517,7 +517,7 @@ Classes
       with "NA" string
 
 
-   .. py:method:: generateHealthCheck(name: Optional[str] = None, output_location: pathlib.Path = Path('.'), working_dir: pathlib.Path = Path('.'), delete_temp_files=True, output_type='html', include_tables=True, allow_collect=True, **kwargs)
+   .. py:method:: generateHealthCheck(name: Optional[str] = None, output_location: pathlib.Path = Path('.'), working_dir: pathlib.Path = Path('.'), delete_temp_files=True, output_type='html', include_tables=True, allow_collect=True, *, modelData_only: bool = False, **kwargs)
 
       Manually generates a Health Check
 
@@ -558,6 +558,10 @@ Classes
                             to cache it to disk for the health check, so if set to False
                             with a `lazy` memory_strategy, you won't be able to generate.
       :type allow_collect: bool, default = True
+
+      :keyword modelData_only: If set to True, calls model-based Health Check files. Can be used if
+                               predictor binning data is missing
+      :kwtype modelData_only: bool, default = False
 
       :returns: The full path to the generated Health Check file.
       :rtype: str

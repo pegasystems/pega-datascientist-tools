@@ -32,6 +32,12 @@ Attributes
 
 .. py:class:: Tables
 
+   .. py:property:: AvailableTables
+
+
+   .. py:property:: ApplicableTables
+
+
    .. py:property:: _zero_response
 
 
