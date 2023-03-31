@@ -84,13 +84,11 @@ def parsePegaDateTimeFormats(
                 pl.col(timestampCol)
                 .str.strptime(pl.Datetime, "%Y-%m-%d %H:%M:%S", strict=False)
                 .dt.cast_time_unit("ns")
-                .dt.round("1s")
             )
             .otherwise(
                 pl.col(timestampCol)
                 .str.strptime(pl.Datetime, "%Y%m%dT%H%M%S.%f %Z", strict=False)
                 .dt.replace_time_zone(None)
-                .dt.round("1s")
                 .dt.cast_time_unit("ns")
             )
         ).alias(timestampCol)

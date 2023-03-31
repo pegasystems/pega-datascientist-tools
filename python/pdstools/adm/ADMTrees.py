@@ -75,10 +75,13 @@ class ADMTrees:
                     list(f(ADMTrees, tqdm(df2["Modeldata"]))),
                 )
             )
-        out2 = dict.fromkeys([key[0] for key in out.keys()], {})
-        for key, value in out.items():
-            out2[key[0]][key[1]] = value
-        return {key: MultiTrees(value, model_name=key) for key, value in out2.items()}
+        dictPerConfig = {key[0]: {} for key in out.keys()}
+        for (configuration, timestamp), value in out.items():
+            dictPerConfig[configuration][timestamp] = value
+        return {
+            key: MultiTrees(value, model_name=key)
+            for key, value in dictPerConfig.items()
+        }
 
 
 class ADMTreesModel:

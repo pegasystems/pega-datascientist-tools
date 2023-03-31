@@ -27,7 +27,6 @@ def sample_without_predictorbinning():
         predictor_filename=None,
     )
 
-
 def testHealthCheckModelRunsWithoutErrors(sample_without_predictorbinning):
     sample_without_predictorbinning.generateHealthCheck(verbose=True, modelData_only=True)
 
