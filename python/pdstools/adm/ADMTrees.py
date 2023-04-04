@@ -287,9 +287,12 @@ class ADMTreesModel:
                     self.model = self.trees["model"]["model"]["boosters"][0]["trees"]
                 except Exception as e2:
                     try:
-                        self.model = self.trees["model"]["model"]["booster"]["trees"]
+                        self.model = self.trees["model"]["booster"]["trees"]
                     except Exception as e3:
-                        raise (e1, e2, e3)
+                        try:
+                            self.model = self.trees["model"]["model"]["booster"]["trees"]
+                        except Exception as e4:
+                            raise (e1, e2, e3, e4)
 
         if decode:
             logging.info("Decoding the tree splits.")
