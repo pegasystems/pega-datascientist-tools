@@ -22,7 +22,7 @@ def test_all_notebooks():
     from testbook import testbook
 
     files = [
-        f"{basePath}/{f}"
+        str(basePath / f)
         for f in [
             "examples/datamart/Example_ADM_Analysis.ipynb",
             "examples/graph_gallery/graph_gallery.ipynb",
@@ -36,7 +36,7 @@ def test_all_notebooks():
             tb.inject(
                 f"""
             import sys
-            sys.path.append(f"{basePath}/python")"""
+            sys.path.append(f"{str(basePath/'python')}")"""
             )
             tb.execute()
         return True
