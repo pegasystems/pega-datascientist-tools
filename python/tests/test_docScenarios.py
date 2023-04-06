@@ -37,7 +37,7 @@ def test_all_notebooks():
             tb.inject(
                 f"""
             import sys
-            sys.path.append({pythonPath})"""
+            sys.path.append("{pythonPath}")"""
             )
             tb.execute()
         return True
