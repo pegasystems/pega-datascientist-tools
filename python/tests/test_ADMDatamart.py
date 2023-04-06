@@ -11,8 +11,8 @@ import itertools
 from pandas.errors import UndefinedVariableError
 import pathlib
 
-
-sys.path.append(str(pathlib.Path(__file__).parent.parent))
+basePath = pathlib.Path(__file__).parent.parent.parent
+sys.path.append(f"{str(basePath)}/python")
 from pdstools import ADMDatamart
 from pdstools import errors
 
@@ -54,7 +54,7 @@ class Equals:
 def test():
     """Fixture to serve as class to call functions from."""
     return ADMDatamart(
-        path="data",
+        path=f"{basePath}/data",
         model_filename="Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip",
         predictor_filename="Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip",
         context_keys=["Issue", "Group", "Channel"],
@@ -86,7 +86,7 @@ def test_basic_available_columns(test):
 
 def test_import_utils_with_importing(test):
     output, renamed, missing = test._import_utils(
-        path="data",
+        path=f"{basePath}/data",
         name="Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
     )
     assert isinstance(output, pl.LazyFrame)
@@ -260,7 +260,7 @@ def test_set_types(test):
 @pytest.fixture
 def cdhsample_models():
     with zipfile.ZipFile(
-        "data/Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
+        f"{basePath}/data/Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
         mode="r",
     ) as zip:
         with zip.open("data.json") as zippedfile:
@@ -272,7 +272,7 @@ def cdhsample_models():
 @pytest.fixture
 def cdhsample_predictors():
     with zipfile.ZipFile(
-        "data/Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210101T010000_GMT.zip"
+        f"{basePath}/data/Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210101T010000_GMT.zip"
     ) as zip:
         with zip.open("data.json") as zippedfile:
             from io import BytesIO
@@ -314,7 +314,7 @@ def test_init_both(cdhsample_models, cdhsample_predictors):
 
 def test_filter_also_filters_predictorData():
     assert ADMDatamart(
-        path="data",
+        path=f"{basePath}/data",
         model_filename="Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip",
         predictor_filename="Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip",
         context_keys=["Issue", "Group", "Channel", "Direction"],
@@ -330,7 +330,7 @@ def test_lazy_strategy():
 def test_eagerFunctionalityFailsInLazy(test):
     with pytest.raises(errors.NotEagerError):
         ADMDatamart(
-            path="data",
+            path=f"{basePath}/data",
             model_filename="Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip",
             predictor_filename="Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip",
             import_strategy="lazy",
@@ -338,14 +338,14 @@ def test_eagerFunctionalityFailsInLazy(test):
         )
     with pytest.raises(errors.NotEagerError):
         ADMDatamart(
-            path="data",
+            path=f"{basePath}/data",
             model_filename="Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip",
             predictor_filename="Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip",
             import_strategy="lazy",
             query="Channel=='Web'",
         )
     lazyADM = ADMDatamart(
-        path="data",
+        path=f"{basePath}/data",
         model_filename="Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip",
         predictor_filename="Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip",
         import_strategy="lazy",
@@ -389,7 +389,7 @@ def test_save_data(test):
 @pytest.fixture
 def sample_with_agb():
     return ADMDatamart(
-        model_df=pl.scan_ipc("data/sample_datamart_with_AGB.arrow"),
+        model_df=pl.scan_ipc(f"{basePath}/data/sample_datamart_with_AGB.arrow"),
         predictor_filename=None,
         include_cols="Modeldata",
     )

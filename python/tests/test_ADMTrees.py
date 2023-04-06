@@ -6,14 +6,15 @@ import pytest
 import sys
 
 import pathlib
-sys.path.append(str(pathlib.Path(__file__).parent.parent))
+basePath = pathlib.Path(__file__).parent.parent.parent
+sys.path.append(f"{str(basePath)}/python")
 from pdstools import ADMTrees
 
 
 @pytest.fixture
 def treeSample():
     """Fixture to serve as class to call functions from."""
-    return ADMTrees("data/agb/_974a7f9c-66a6-4f00-bf3e-3acf5f188b1d.txt")
+    return ADMTrees(f"{basePath}/data/agb/_974a7f9c-66a6-4f00-bf3e-3acf5f188b1d.txt")
 
 
 def test_has_models(treeSample):

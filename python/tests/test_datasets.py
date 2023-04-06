@@ -4,7 +4,9 @@ Testing the functionality of the built-in datasets
 
 import sys
 import pathlib
-sys.path.append(str(pathlib.Path(__file__).parent.parent))
+basePath = pathlib.Path(__file__).parent.parent.parent
+sys.path.append(f"{str(basePath)}/python")
+from pdstools import datasets
 import polars as pl
 
 @pl.api.register_lazyframe_namespace("shape")
