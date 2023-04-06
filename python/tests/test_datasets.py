@@ -3,7 +3,9 @@ Testing the functionality of the built-in datasets
 """
 
 import sys
-sys.path.append("python")
+import pathlib
+basePath = pathlib.Path(__file__).parent.parent.parent
+sys.path.append(f"{str(basePath)}/python")
 from pdstools import datasets
 import polars as pl
 

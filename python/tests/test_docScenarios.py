@@ -6,7 +6,10 @@ Testing that none of the docs examples produce errors.
 import pytest
 import sys
 
-sys.path.append("python")
+import pathlib
+
+basePath = pathlib.Path(__file__).parent.parent.parent
+sys.path.append(f"{str(basePath)}/python")
 from pdstools import datasets
 
 
@@ -17,12 +20,9 @@ def data():
 
 def test_all_notebooks():
     from testbook import testbook
-    import glob
-
-    root_dir = "./"
 
     files = [
-        root_dir + f
+        str(basePath / f)
         for f in [
             "examples/datamart/Example_ADM_Analysis.ipynb",
             "examples/graph_gallery/graph_gallery.ipynb",
@@ -31,14 +31,12 @@ def test_all_notebooks():
         ]
     ]
 
-    # files += glob.glob("examples/valuefinder/*.ipynb", root_dir=root_dir)
-
     def test_get_details(file):
         with testbook(file) as tb:
             tb.inject(
-                """
+                f"""
             import sys
-            sys.path.append('./python')"""
+            sys.path.append(f"{str(basePath/'python')}")"""
             )
             tb.execute()
         return True

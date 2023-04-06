@@ -2,7 +2,9 @@ import pytest
 import sys
 import polars as pl
 
-sys.path.append("python")
+import pathlib
+basePath = pathlib.Path(__file__).parent.parent.parent
+sys.path.append(f"{str(basePath)}/python")
 from pdstools.utils.hds_utils import Config, DataAnonymization
 
 

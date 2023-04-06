@@ -1,4 +1,3 @@
-
 """
 Testing the functionality of the io functions
 """
@@ -8,7 +7,10 @@ import sys
 
 import polars as pl
 
-sys.path.append("python")
+import pathlib
+
+basePath = pathlib.Path(__file__).parent.parent.parent
+sys.path.append(f"{str(basePath)}/python")
 import pathlib
 import zipfile
 from io import BytesIO
@@ -34,19 +36,23 @@ class Shape:
 def test_data():
     return pega_io.readDSExport(
         "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
-        "data",
+        f"{basePath}/data",
     )
 
 
 # Tests for get_latest_file function
 def test_find_default_model():
-    file = pega_io.get_latest_file(path="data", target="modelData")
-    assert os.path.join(file) == os.path.join("data", "pr_data_dm_admmart_mdl_fact.csv")
+    file = pega_io.get_latest_file(path=f"{basePath}/data", target="modelData")
+    assert os.path.join(file) == os.path.join(
+        f"{basePath}/data", "pr_data_dm_admmart_mdl_fact.csv"
+    )
 
 
 def test_find_default_predictors():
-    file = pega_io.get_latest_file(path="data", target="predictorData")
-    assert os.path.join(file) == os.path.join("data", "pr_data_dm_admmart_pred.csv")
+    file = pega_io.get_latest_file(path=f"{basePath}/data", target="predictorData")
+    assert os.path.join(file) == os.path.join(
+        f"{basePath}/data", "pr_data_dm_admmart_pred.csv"
+    )
 
 
 def test_file_not_found():
@@ -55,7 +61,7 @@ def test_file_not_found():
 
 
 def test_wrong_filename():
-    file = pega_io.get_latest_file(path="data", target="combinedData")
+    file = pega_io.get_latest_file(path=f"{basePath}/data", target="combinedData")
     assert file == "Target not found"
 
 
@@ -63,7 +69,7 @@ def test_wrong_filename():
 def test_only_imports_zips():
     with pytest.raises(zipfile.BadZipFile):
         pega_io.readZippedFile(
-            os.path.join("data", "pr_data_dm_admmart_mdl_fact.csv")
+            os.path.join(f"{basePath}/data", "pr_data_dm_admmart_mdl_fact.csv")
         )
 
 
@@ -71,7 +77,7 @@ def test_import_produces_polars():
     assert isinstance(
         pega_io.readDSExport(
             "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
-            "data",
+            f"{basePath}/data",
         ),
         pl.LazyFrame,
     )
@@ -80,7 +86,7 @@ def test_import_produces_polars():
 def test_import_produces_bytes():
     ret = pega_io.readZippedFile(
         os.path.join(
-            "data",
+            f"{basePath}/data",
             "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
         ),
         verbose=True,
@@ -103,14 +109,14 @@ def test_read_json(test_data):
 def test_read_modelData():
     assert pega_io.readDSExport(
         "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
-        "data",
+        f"{basePath}/data",
     ).shape == (20, 23)
 
 
 def test_read_predictorData():
     assert pega_io.readDSExport(
         "Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210101T010000_GMT.zip",
-        "data",
+        f"{basePath}/data",
     ).shape == (1755, 35)
 
 
@@ -140,9 +146,7 @@ def test_lazyframe_returns_itself(test_data):
 
 def test_dataframe_returns_itself(test_data):
     input = test_data
-    assert (
-        pega_io.readDSExport(input.collect()).collect().frame_equal(input.collect())
-    )
+    assert pega_io.readDSExport(input.collect()).collect().frame_equal(input.collect())
 
 
 def test_pandasdataframe_returns_lazyframe(test_data):
@@ -159,7 +163,7 @@ def test_import_parquet(test_data):
 
 
 def test_import_csv():
-    path = "data"
+    path = f"{basePath}/data"
     models = "pr_data_dm_admmart_mdl_fact.csv"
     assert polars_checks(pega_io.readDSExport(path=path, filename=models))
 
@@ -177,18 +181,18 @@ def test_cdh_sample_models_from_url():
 
 
 def test_cdh_sample_models_locally():
-    path = "data"
+    path = f"{basePath}/data"
     models = "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip"
     assert polars_checks(pega_io.readDSExport(path=path, filename=models))
 
 
 def test_cdh_sample_autodiscovered_locally():
-    path = "data"
+    path = f"{basePath}/data"
     assert polars_checks(pega_io.readDSExport(path=path, filename="modelData"))
 
 
 def test_file_not_found_in_good_dir():
-    assert pega_io.readDSExport(path="data", filename="models") == None
+    assert pega_io.readDSExport(path=f"{basePath}/data", filename="models") == None
 
 
 def test_file_not_found_in_bad_dir():
@@ -197,13 +201,13 @@ def test_file_not_found_in_bad_dir():
 
 
 def test_import_csv_pandas():
-    path = "data"
+    path = f"{basePath}/data"
     models = "pr_data_dm_admmart_mdl_fact.csv"
     assert polars_checks(pega_io.readDSExport(path=path, filename=models))
 
 
 def test_import_zipped_json_pandas():
-    path = "data"
+    path = f"{basePath}/data"
     models = "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip"
     assert polars_checks(pega_io.readDSExport(path=path, filename=models))
 
@@ -226,7 +230,7 @@ def test_import_file_verbose(test_data):
 
 
 def test_getMatches():
-    files_dir = "data"
+    files_dir = f"{basePath}/data"
     target = "ValueFinder"
     expected_outcome = "Data-Insights_pyValueFinder_20210824T112615_GMT.zip"
     outcome = pathlib.Path(pega_io.get_latest_file(files_dir, target)).name
@@ -275,4 +279,3 @@ def test_cache_to_file():
     )
     for file in [cached_path_parquet, cached_path_arrow]:
         os.remove(file)
-
