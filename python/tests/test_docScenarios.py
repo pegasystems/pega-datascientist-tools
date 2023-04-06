@@ -32,7 +32,7 @@ def test_all_notebooks():
     ]
 
     def test_get_details(file):
-        pythonPath = f"{str(basePath)}/python"
+        pythonPath = str(basePath / "python")
         with testbook(file) as tb:
             tb.inject(
                 f"""
