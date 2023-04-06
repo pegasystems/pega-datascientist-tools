@@ -1,7 +1,8 @@
 import sys
 import os
 
-sys.path.append("python")
+import pathlib
+sys.path.append(str(pathlib.Path(__file__).parent.parent))
 from pdstools import ADMDatamart, datasets
 import pytest
 

@@ -11,9 +11,7 @@ import polars as pl
 import pytest
 from pytz import timezone
 
-pathlib.Path(__file__).parent.parent
-
-sys.path.append("python")
+sys.path.append(str(pathlib.Path(__file__).parent.parent))
 from pdstools import cdh_utils, datasets
 
 

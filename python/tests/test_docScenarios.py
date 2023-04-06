@@ -6,7 +6,8 @@ Testing that none of the docs examples produce errors.
 import pytest
 import sys
 
-sys.path.append("python")
+import pathlib
+sys.path.append(str(pathlib.Path(__file__).parent.parent))
 from pdstools import datasets
 
 

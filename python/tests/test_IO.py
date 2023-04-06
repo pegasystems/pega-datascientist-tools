@@ -8,7 +8,8 @@ import sys
 
 import polars as pl
 
-sys.path.append("python")
+import pathlib
+sys.path.append(str(pathlib.Path(__file__).parent.parent))
 import pathlib
 import zipfile
 from io import BytesIO

@@ -5,7 +5,8 @@ Testing the functionality of the ADMDatamart functions
 import pytest
 import sys
 
-sys.path.append("python")
+import pathlib
+sys.path.append(str(pathlib.Path(__file__).parent.parent))
 from pdstools import ADMTrees
 
 

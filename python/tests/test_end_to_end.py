@@ -2,8 +2,8 @@
 Testing the functionality of some end-to-end scenarios
 """
 import sys
-
-sys.path.append("python")
+import pathlib
+sys.path.append(str(pathlib.Path(__file__).parent.parent))
 import polars as pl
 from pdstools import ADMDatamart
 from plotly.graph_objs._figure import Figure

@@ -11,8 +11,8 @@ import itertools
 from pandas.errors import UndefinedVariableError
 import pathlib
 
-pathlib.Path(__file__).parent.parent
-sys.path.append("python")
+
+sys.path.append(str(pathlib.Path(__file__).parent.parent))
 from pdstools import ADMDatamart
 from pdstools import errors
 
@@ -232,9 +232,7 @@ def test_set_types(test):
         }
     )
     with pytest.raises(pl.ComputeError):
-        test._set_types(
-            df, timestamp_fmt="%Y%m%dT%H%M%S", strict_conversion=True
-        )
+        test._set_types(df, timestamp_fmt="%Y%m%dT%H%M%S", strict_conversion=True)
 
     df2 = test._set_types(
         df, timestamp_fmt="%Y-%m-%d %H:%M:%S", strict_conversion=False

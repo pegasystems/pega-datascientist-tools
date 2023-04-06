@@ -3,8 +3,8 @@ Testing the functionality of the built-in datasets
 """
 
 import sys
-sys.path.append("python")
-from pdstools import datasets
+import pathlib
+sys.path.append(str(pathlib.Path(__file__).parent.parent))
 import polars as pl
 
 @pl.api.register_lazyframe_namespace("shape")
