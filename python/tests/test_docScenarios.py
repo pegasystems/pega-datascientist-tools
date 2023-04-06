@@ -36,7 +36,7 @@ def test_all_notebooks():
             tb.inject(
                 f"""
             import sys
-            sys.path.append(f"{str(basePath/'python')}")"""
+            sys.path.append("{f"{str(basePath)}/python"}")"""
             )
             tb.execute()
         return True
