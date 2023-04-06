@@ -32,11 +32,12 @@ def test_all_notebooks():
     ]
 
     def test_get_details(file):
+        pythonPath = f"{str(basePath)}/python"
         with testbook(file) as tb:
             tb.inject(
                 f"""
             import sys
-            sys.path.append("{f"{str(basePath)}/python"}")"""
+            sys.path.append("{pythonPath}")"""
             )
             tb.execute()
         return True
