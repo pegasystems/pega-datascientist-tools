@@ -1,7 +1,7 @@
 import functools
 import operator
 from os import PathLike
-from typing import Literal, NoReturn, Optional, Union
+from typing import Literal, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -10,7 +10,6 @@ import plotly.figure_factory as ff
 import plotly.graph_objects as go
 import polars as pl
 from plotly.subplots import make_subplots
-from tqdm.auto import tqdm
 
 from .. import pega_io
 from ..utils import cdh_utils
@@ -444,6 +443,7 @@ class ValueFinder:
         *,
         method: Literal["threshold", "quantile"] = "threshold",
         rounding: int = 3,
+        th: Optional[float] = None,
     ) -> go.FigureWidget:
         """Plots pie charts showing the distribution of customers
 
@@ -471,8 +471,10 @@ class ValueFinder:
             or based on the quantile of the propensity
         rounding : int
             The number of digits to round the values by
+        th : Optional[float]
+            Choose a specific propensity threshold to plot
         """
-        default = self.th.pdstools.item()
+        default = th or self.th.pdstools.item()
         if None in (start, stop, step):
             if start is not None:
                 start, stop = start, start + 1
@@ -552,7 +554,8 @@ class ValueFinder:
             )
         ]
         fig.update_layout(
-            sliders=sliders, title_text="Distribution of customers per stage"
+            sliders=sliders,
+            title_text=f"Distribution of customers per stage at propensity threshold {round(float(default), rounding):.1%}",
         )
         fig.update_traces(marker=dict(colors=["#219e3f", "#fca52e", "#cd001f"]))
 
@@ -663,9 +666,9 @@ class ValueFinder:
             pl.LazyFrame({"pyStage": self.NBADStages})
             .join(
                 df.groupby("pyStage")
-                .agg(pl.col("pyName").value_counts().sort())
-                .explode("pyName")
-                .unnest("pyName"),
+                .agg(pl.col(level).value_counts().sort())
+                .explode(level)
+                .unnest(level),
                 on="pyStage",
             )
             .rename({level: "Name", "counts": "Count", "pyStage": "Stage"})
