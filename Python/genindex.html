@@ -227,6 +227,7 @@
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/utils/errors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.errors</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/utils/hds_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.hds_utils</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/utils/pega_template/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.pega_template</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/utils/polars_ext/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.polars_ext</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/utils/streamlit_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.streamlit_utils</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/utils/types/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.types</span></code></a></li>
 </ul>
@@ -354,7 +355,7 @@
   <h2>A</h2>
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="autoapi/pdstools/index.html#pdstools.ValueFinder.addCountsPerThresholdRange">addCountsPerThresholdRange() (ValueFinder method)</a>, <a href="autoapi/pdstools/valuefinder/ValueFinder/index.html#pdstools.valuefinder.ValueFinder.ValueFinder.addCountsPerThresholdRange">[1]</a>
+        <li><a href="autoapi/pdstools/index.html#pdstools.ValueFinder.addCountsForThresholdRange">addCountsForThresholdRange() (ValueFinder method)</a>, <a href="autoapi/pdstools/valuefinder/ValueFinder/index.html#pdstools.valuefinder.ValueFinder.ValueFinder.addCountsForThresholdRange">[1]</a>
 </li>
         <li><a href="autoapi/pdstools/index.html#pdstools.ADMDatamart">ADMDatamart (class in pdstools)</a>
 
@@ -592,13 +593,15 @@
 </li>
         <li><a href="autoapi/pdstools/ih/legacy_IH/index.html#pdstools.ih.legacy_IH.get_total_outcome_share_per_level">get_total_outcome_share_per_level() (in module pdstools.ih.legacy_IH)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/pdstools/adm/ADMTrees/index.html#pdstools.adm.ADMTrees.ADMTreesModel.getAllValuesPerSplit">getAllValuesPerSplit() (ADMTreesModel method)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/pdstools/adm/ADMTrees/index.html#pdstools.adm.ADMTrees.ADMTreesModel.getAllVisitedNodes">getAllVisitedNodes() (ADMTreesModel method)</a>
 </li>
         <li><a href="autoapi/pdstools/index.html#pdstools.ValueFinder.getCountsPerStage">getCountsPerStage() (ValueFinder method)</a>, <a href="autoapi/pdstools/valuefinder/ValueFinder/index.html#pdstools.valuefinder.ValueFinder.ValueFinder.getCountsPerStage">[1]</a>
+</li>
+        <li><a href="autoapi/pdstools/index.html#pdstools.ValueFinder.getCountsPerThreshold">getCountsPerThreshold() (ValueFinder method)</a>, <a href="autoapi/pdstools/valuefinder/ValueFinder/index.html#pdstools.valuefinder.ValueFinder.ValueFinder.getCountsPerThreshold">[1]</a>
 </li>
         <li><a href="autoapi/pdstools/index.html#pdstools.ValueFinder.getCustomerSummary">getCustomerSummary() (ValueFinder method)</a>, <a href="autoapi/pdstools/valuefinder/ValueFinder/index.html#pdstools.valuefinder.ValueFinder.ValueFinder.getCustomerSummary">[1]</a>
 </li>
@@ -625,6 +628,8 @@
         <li><a href="autoapi/pdstools/pega_io/S3/index.html#pdstools.pega_io.S3.S3Data.getS3Files">getS3Files() (S3Data method)</a>, <a href="autoapi/pdstools/pega_io/index.html#pdstools.pega_io.S3Data.getS3Files">[1]</a>
 </li>
         <li><a href="autoapi/pdstools/adm/ADMTrees/index.html#pdstools.adm.ADMTrees.ADMTreesModel.getSplitsRecursively">getSplitsRecursively() (ADMTreesModel method)</a>
+</li>
+        <li><a href="autoapi/pdstools/index.html#pdstools.ValueFinder.getThFromQuantile">getThFromQuantile() (ValueFinder method)</a>, <a href="autoapi/pdstools/valuefinder/ValueFinder/index.html#pdstools.valuefinder.ValueFinder.ValueFinder.getThFromQuantile">[1]</a>
 </li>
         <li><a href="autoapi/pdstools/index.html#pdstools.getToken">getToken() (in module pdstools)</a>
 
@@ -660,6 +665,8 @@
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/pdstools/plots/plot_base/index.html#pdstools.plots.plot_base.Plots.hasPredictorBinning">hasPredictorBinning (Plots attribute)</a>
 </li>
+        <li><a href="autoapi/pdstools/index.html#pdstools.Sample.height">height() (Sample method)</a>, <a href="autoapi/pdstools/utils/polars_ext/index.html#pdstools.utils.polars_ext.Sample.height">[1]</a>
+</li>
         <li><a href="autoapi/pdstools/app/cli/index.html#pdstools.app.cli.help">help() (in module pdstools.app.cli)</a>
 </li>
     </ul></td>
@@ -689,6 +696,8 @@
 </li>
         </ul></li>
         <li><a href="autoapi/pdstools/ih/legacy_IH/index.html#pdstools.ih.legacy_IH.initial_prep">initial_prep() (in module pdstools.ih.legacy_IH)</a>
+</li>
+        <li><a href="autoapi/pdstools/index.html#pdstools.Sample.item">item() (Sample method)</a>, <a href="autoapi/pdstools/utils/polars_ext/index.html#pdstools.utils.polars_ext.Sample.item">[1]</a>
 </li>
     </ul></td>
   </tr></table>
@@ -793,6 +802,8 @@
           <li><a href="autoapi/pdstools/utils/hds_utils/index.html#module-pdstools.utils.hds_utils">pdstools.utils.hds_utils</a>
 </li>
           <li><a href="autoapi/pdstools/utils/pega_template/index.html#module-pdstools.utils.pega_template">pdstools.utils.pega_template</a>
+</li>
+          <li><a href="autoapi/pdstools/utils/polars_ext/index.html#module-pdstools.utils.polars_ext">pdstools.utils.polars_ext</a>
 </li>
           <li><a href="autoapi/pdstools/utils/streamlit_utils/index.html#module-pdstools.utils.streamlit_utils">pdstools.utils.streamlit_utils</a>
 </li>
@@ -1035,6 +1046,13 @@
 </li>
         </ul></li>
         <li>
+    pdstools.utils.polars_ext
+
+        <ul>
+          <li><a href="autoapi/pdstools/utils/polars_ext/index.html#module-pdstools.utils.polars_ext">module</a>
+</li>
+        </ul></li>
+        <li>
     pdstools.utils.streamlit_utils
 
         <ul>
@@ -1250,6 +1268,14 @@
         </ul></li>
         <li><a href="autoapi/pdstools/utils/cdh_utils/index.html#pdstools.utils.cdh_utils.safe_range_auc">safe_range_auc() (in module pdstools.utils.cdh_utils)</a>
 </li>
+        <li><a href="autoapi/pdstools/index.html#pdstools.Sample">Sample (class in pdstools)</a>
+
+        <ul>
+          <li><a href="autoapi/pdstools/utils/polars_ext/index.html#pdstools.utils.polars_ext.Sample">(class in pdstools.utils.polars_ext)</a>
+</li>
+        </ul></li>
+        <li><a href="autoapi/pdstools/index.html#pdstools.Sample.sample">sample() (Sample method)</a>, <a href="autoapi/pdstools/utils/polars_ext/index.html#pdstools.utils.polars_ext.Sample.sample">[1]</a>
+</li>
         <li><a href="autoapi/pdstools/index.html#pdstools.SampleTrees">SampleTrees() (in module pdstools)</a>
 
         <ul>
@@ -1268,15 +1294,17 @@
           <li><a href="autoapi/pdstools/index.html#pdstools.ValueFinder.save_data">(ValueFinder method)</a>, <a href="autoapi/pdstools/valuefinder/ValueFinder/index.html#pdstools.valuefinder.ValueFinder.ValueFinder.save_data">[1]</a>
 </li>
         </ul></li>
-        <li><a href="autoapi/pdstools/index.html#pdstools.Config.save_to_config_file">save_to_config_file() (Config method)</a>, <a href="autoapi/pdstools/utils/hds_utils/index.html#pdstools.utils.hds_utils.Config.save_to_config_file">[1]</a>
-</li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="autoapi/pdstools/index.html#pdstools.Config.save_to_config_file">save_to_config_file() (Config method)</a>, <a href="autoapi/pdstools/utils/hds_utils/index.html#pdstools.utils.hds_utils.Config.save_to_config_file">[1]</a>
+</li>
         <li><a href="autoapi/pdstools/adm/ADMTrees/index.html#pdstools.adm.ADMTrees.ADMTreesModel.score">score() (ADMTreesModel method)</a>
 </li>
         <li><a href="autoapi/pdstools/plots/plots_plotly/index.html#pdstools.plots.plots_plotly.ADMVisualisations.ScoreDistribution">ScoreDistribution() (ADMVisualisations method)</a>
 </li>
         <li><a href="autoapi/pdstools/ih/legacy_IH/index.html#pdstools.ih.legacy_IH.select_date_range_lookback">select_date_range_lookback() (in module pdstools.ih.legacy_IH)</a>
+</li>
+        <li><a href="autoapi/pdstools/index.html#pdstools.Sample.shape">shape() (Sample method)</a>, <a href="autoapi/pdstools/utils/polars_ext/index.html#pdstools.utils.polars_ext.Sample.shape">[1]</a>
 </li>
         <li><a href="autoapi/pdstools/adm/ADMTrees/index.html#pdstools.adm.ADMTrees.ADMTreesModel.splitsPerTree">splitsPerTree (ADMTreesModel attribute)</a>
 </li>
@@ -1426,6 +1454,5 @@
     <script src="_static/clipboard.min.js"></script>
     <script src="_static/copybutton.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
     </body>
 </html>
