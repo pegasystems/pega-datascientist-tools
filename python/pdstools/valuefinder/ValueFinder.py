@@ -1,14 +1,12 @@
 from tqdm.auto import tqdm
-import time
 import numpy as np
 import pandas as pd
 import polars as pl
-import math
 import plotly.express as px
 import plotly.figure_factory as ff
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from typing import Optional, Union
+from typing import Optional, Union, Literal
 from .. import pega_io
 from ..utils import cdh_utils
 from os import PathLike
@@ -31,11 +29,18 @@ class ValueFinder:
     df : Optional[DataFrame]
         Override to supply a dataframe instead of a file.
         Supports pandas or polars dataframes
+    import_strategy: Literal['eager', 'lazy'], default = 'eager'
+        Whether to import the file fully to memory, or scan the file
+        When data fits into memory, 'eager' is typically more efficient
+        However, when data does not fit, the lazy methods typically allow
+        you to still use the data.
     verbose : bool
         Whether to print out information during importing
 
     Keyword arguments
     -----------------
+    th: float
+        An optional keyword argument to override the propensity threshold
     filename : Optional[str]
         The name, or extended filepath, towards the file
     subset : bool
@@ -48,6 +53,7 @@ class ValueFinder:
         path: Optional[str] = None,
         df: Optional[Union[pd.DataFrame, pl.DataFrame, pl.LazyFrame]] = None,
         verbose: bool = True,
+        import_strategy: Literal["eager", "lazy"] = "eager",
         **kwargs,
     ):
         if path is None and df is None:
@@ -68,38 +74,44 @@ class ValueFinder:
             "pyPropensity",
             "FinalPropensity",
         ]
-        self.df = kwargs.pop("df", df)
-        if self.df is None:
-            start = time.time()
-            filename = kwargs.pop("filename", "ValueFinder")
-            self.df = pega_io.readDSExport(filename, path, return_pl=True, verbose=verbose)
-            if verbose:
-                print(f"Data import took {round(time.time() - start,2)} seconds")
 
-        if verbose:
-            print("Transforming to polars...", end=" ")
-        start = time.time()
-        if isinstance(self.df, pl.LazyFrame):
-            self.df = self.df.collect()
-        elif not isinstance(self.df, pl.DataFrame):
-            self.df = pl.DataFrame(self.df)
+        if df is not None:
+            self.df = pega_io.readDSExport(df, verbose=verbose)
+        else:
+            filename = kwargs.pop("filename", "ValueFinder")
+            self.df = pega_io.readDSExport(filename, path, verbose=verbose)
+
         if kwargs.get("subset", True):
             self.df = self.df.select(keep_cols)
-        if verbose:
-            print(f"Took: {round(time.time() - start,2)} seconds")
 
-        self.th = self.df.filter(pl.col("pyStage") == "Eligibility")[
-            "pyModelPropensity"
-        ].quantile(0.05)
+        if "th" not in kwargs:
+            self.th = self.df.filter(pl.col("pyStage") == "Eligibility").select(
+                pl.quantile("pyModelPropensity", 0.05).alias("th")
+            )
+        else:
+            self.th = pl.LazyFrame({"th": kwargs.pop("th")})
 
-        self.ncust = 10 ** math.ceil(math.log10(pl.n_unique(self.df["CustomerID"])))
-        self.customersummary = self.getCustomerSummary(self.th, verbose)
-        self.countsPerStage = self.getCountsPerStage(self.customersummary, verbose)
-        self.countsPerThreshold = dict()
+        self.ncust = self.df.select(
+            (pl.lit(10) ** pl.col("CustomerID").n_unique().log10().ceil())
+            .cast(pl.UInt32)
+            .alias("ncust")
+        )
         self.NBADStages = ["Eligibility", "Applicability", "Suitability", "Arbitration"]
         self.maxPropPerCustomer = self.df.groupby(["CustomerID", "pyStage"]).agg(
             pl.max("pyModelPropensity").alias("MaxModelPropensity")
         )
+        if import_strategy == "eager":
+            self.df = self.df.collect().lazy()
+            self.th = self.th.collect().lazy()
+            self.ncust = self.ncust.collect().lazy()
+            self.maxPropPerCustomer = self.maxPropPerCustomer.collect().lazy()
+
+        self.customersummary = self.getCustomerSummary(self.th, import_strategy)
+        self.countsPerStage = self.getCountsPerStage(
+            self.customersummary, import_strategy
+        )
+
+        self.countsPerThreshold = dict()
 
     def save_data(self, path: str = ".") -> PathLike:
         """Cache the ValueFinder dataset to a file
@@ -121,7 +133,9 @@ class ValueFinder:
         return out
 
     def getCustomerSummary(
-        self, th: Optional[float] = None, verbose: bool = True
+        self,
+        th: Optional[float] = None,
+        import_strategy: Literal["eager", "lazy"] = "eager",
     ) -> pl.DataFrame:
         """Computes the summary of propensities for all customers
 
@@ -135,13 +149,14 @@ class ValueFinder:
         verbose: bool, default = True
             Whether to print out the execution times
         """
-        th = th or self.th
-        if verbose:
-            print("Generating: Customer Summary...", end=" ")
-        start = time.time()
+        if th is None:
+            th = self.th
+        if isinstance(th, float):
+            th = pl.LazyFrame({"th": th})
 
         df = (
-            self.df.groupby(["CustomerID", "pyStage"])
+            self.df.with_context(th)
+            .groupby(["CustomerID", "pyStage"])
             .agg(
                 [
                     pl.max("pyPropensity").alias("MaxPropensity"),
@@ -152,18 +167,25 @@ class ValueFinder:
             )
             .with_columns(
                 [
-                    (pl.col("MaxModelPropensity") >= th).alias("relevantActions"),
-                    (pl.col("MaxModelPropensity") < th).alias("irrelevantActions"),
+                    (pl.col("MaxModelPropensity") >= pl.col("th")).alias(
+                        "relevantActions"
+                    ),
+                    (pl.col("MaxModelPropensity") < pl.col("th")).alias(
+                        "irrelevantActions"
+                    ),
                 ]
             )
         )
-        if verbose:
-            print(f"Took: {round(time.time() - start,2)} seconds")
 
-        return df
+        if import_strategy == "eager":
+            return df.collect().lazy()
+        else:
+            return df
 
     def getCountsPerStage(
-        self, customersummary: Optional[pl.DataFrame] = None, verbose: bool = True
+        self,
+        customersummary: Optional[pl.DataFrame] = None,
+        import_strategy: Literal["eager", "lazy"] = "eager",
     ) -> pl.DataFrame:
         """Generates an aggregated view per stage.
 
@@ -172,14 +194,14 @@ class ValueFinder:
         customersummary : Optional[pl.DataFrame]
             Optional override of the customer summary,
             which can be generated by getCustomerSummary().
-        verbose : bool, default = True
-            Whether to print execution times.
+        import_strategy: Literal['eager', 'lazy'], default = 'eager'
+            Whether to import the file fully to memory, or scan the file
+            When data fits into memory, 'eager' is typically more efficient
+            However, when data does not fit, the lazy methods typically allow
+            you to still use the data.
         """
         if customersummary is None:
             customersummary = self.customersummary
-        if verbose:
-            print("Generating: Counts per stage...", end=" ")
-        start = time.time()
 
         df = (
             customersummary.groupby("pyStage")
@@ -190,11 +212,13 @@ class ValueFinder:
                     pl.count("relevantActions").alias("NoActions"),
                 ]
             )
-            .with_column((self.ncust - pl.col("NoActions")).alias("NoActions"))
+            .with_context(self.ncust)
+            .with_columns((pl.col("ncust") - pl.col("NoActions")).alias("NoActions"))
         )
-        if verbose:
-            print(f"Took: {round(time.time() - start,2)} seconds")
-        return df
+        if import_strategy == "eager":
+            return df.collect().lazy()
+        else:
+            return df
 
     def addCountsPerThresholdRange(
         self, start: float, stop: float, step: float, verbose: bool = True
@@ -258,7 +282,7 @@ class ValueFinder:
                                 pl.count("relevantActions").alias("NoActions"),
                             ]
                         )
-                        .with_column(
+                        .with_columns(
                             (self.ncust - pl.col("NoActions")).alias("NoActions")
                         ),
                     )
@@ -285,8 +309,7 @@ class ValueFinder:
         )
         for stage in self.NBADStages:
             data = self.df.filter(pl.col("pyStage") == stage)
-            if len(data) > sampledN:
-                data = data.sample(sampledN)
+            data = data.pdstools.sample(sampledN).collect()
             temp = ff.create_distplot(
                 [data["pyModelPropensity"].to_list()],
                 ["pyModelPropensity"],
@@ -334,9 +357,13 @@ class ValueFinder:
         i = 0
         figs = make_subplots(rows=len(propensities), cols=1, shared_xaxes=True)
         yrange = [0, 15]
-        data = self.df.filter(pl.col("pyStage") == stage).select(propensities)
-        if len(data) > sampledN:
-            data = data.sample(sampledN)
+        th = self.th.pdstools.item()
+        data = (
+            self.df.filter(pl.col("pyStage") == stage)
+            .select(propensities)
+            .pdstools.sample(sampledN)
+            .collect()
+        )
         for ptype in propensities:
             plotdf = data[ptype].to_list()
             temp = ff.create_distplot(
@@ -370,8 +397,8 @@ class ValueFinder:
             figs.update_yaxes(range=yrange, col=1, row=i + 1)
             figs.add_shape(
                 type="line",
-                x0=self.th,
-                x1=self.th,
+                x0=th,
+                x1=th,
                 y0=yrange[0],
                 y1=yrange[1],
                 line=dict(dash="dot"),
@@ -534,7 +561,7 @@ class ValueFinder:
         df = list()
         for quantile, data in self.countsPerThreshold.items():
             target2 = data[0] if target.casefold() == "propensity" else quantile
-            df.append(data[1].with_column(pl.lit(target2).alias(target)))
+            df.append(data[1].with_columns(pl.lit(target2).alias(target)))
         df = pl.concat(df).to_pandas().set_index(target)
         fig = px.area(
             df.rename(
@@ -554,7 +581,7 @@ class ValueFinder:
         fig.update_layout(legend_title_text="Status")
         return fig
 
-    def plotFunnelChart(self, level: str = "Action", query=None):
+    def plotFunnelChart(self, level: str = "Action", query=None, return_df=False):
         """Plots the funnel of actions or issues per stage.
 
         Parameters
@@ -564,32 +591,31 @@ class ValueFinder:
             - If 'Actions', plots the distribution of actions.
             - If 'Issues', plots the distribution of issues
         """
-        funneldf = pd.DataFrame()
         if level.casefold() in {"action", "name", "pyname"}:
             level, cat = "pyName", "Actions"
         elif level.casefold() in {"issue", "pyissue"}:
             level, cat = "pyIssue", "Issues"
         elif level.casefold() in {"group", "pygroup"}:
             level, cat = "pyGroup", "Groups"
-        ncat = "all"
-        for stage in self.NBADStages:
-            temp = self.df if query is None else self.df.filter(query)
-            temp = (
-                temp.filter(pl.col("pyStage") == stage)[level]
-                .value_counts()
-                .rename({level: "Name", "counts": "Count"})
-                .to_pandas()
-            )
-            temp["Stage"] = stage
 
-            if ncat != "all":
-                funneldf = pd.concat([funneldf, temp[0:ncat]], axis=0).sort_values(
-                    ["Name"]
-                )
-            else:
-                funneldf = pd.concat([funneldf, temp], axis=0).sort_values(["Name"])
+        df = self.df if query is None else self.df.filter(query)
+        df = (
+            pl.LazyFrame({"pyStage": self.NBADStages})
+            .join(
+                df.groupby("pyStage")
+                .agg(pl.col("pyName").value_counts().sort())
+                .explode("pyName")
+                .unnest("pyName"),
+                on="pyStage",
+            )
+            .rename({level: "Name", "counts": "Count", "pyStage": "Stage"})
+            .collect()
+        )
+        if return_df:
+            return df
+
         fig = px.funnel(
-            funneldf,
+            df.to_pandas(),
             y="Count",
             x="Stage",
             color="Name",
