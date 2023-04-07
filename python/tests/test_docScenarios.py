@@ -32,12 +32,17 @@ def test_all_notebooks():
     ]
 
     def test_get_details(file):
-        pythonPath = str(basePath / "python")
+        import platform
+
+        if platform.system() == "Windows":
+            pythonPath = "python"
+        else:
+            pythonPath = str(basePath / "python")
         with testbook(file) as tb:
             tb.inject(
                 f"""
             import sys
-            sys.path.append("{pythonPath}")"""
+            sys.path.append('{pythonPath}')"""
             )
             tb.execute()
         return True
