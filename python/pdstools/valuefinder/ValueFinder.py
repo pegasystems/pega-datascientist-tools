@@ -1,15 +1,19 @@
-from tqdm.auto import tqdm
+import functools
+import operator
+from os import PathLike
+from typing import Literal, NoReturn, Optional, Union
+
 import numpy as np
 import pandas as pd
-import polars as pl
 import plotly.express as px
 import plotly.figure_factory as ff
 import plotly.graph_objects as go
+import polars as pl
 from plotly.subplots import make_subplots
-from typing import Optional, Union, Literal, NoReturn
+from tqdm.auto import tqdm
+
 from .. import pega_io
 from ..utils import cdh_utils
-from os import PathLike
 
 
 class ValueFinder:
@@ -113,7 +117,7 @@ class ValueFinder:
         self.customersummary = self.getCustomerSummary(self.th)
         self.countsPerStage = self.getCountsPerStage(self.customersummary)
 
-        self.thMap = dict()
+        self._thMap = dict()
         self.countsPerThreshold = dict()
 
     def save_data(self, path: str = ".") -> PathLike:
@@ -217,7 +221,7 @@ class ValueFinder:
     def getThFromQuantile(self, quantile: float) -> float:
         """Return the propensity threshold corresponding to a given quantile
 
-        If the threshold is already in `self.thMap`, simply gets it from there
+        If the threshold is already in `self._thMap`, simply gets it from there
         Otherwise, computes the threshold and then adds it to the map.
 
         Parameters
@@ -229,18 +233,18 @@ class ValueFinder:
         import functools
         import operator
 
-        if quantile not in functools.reduce(operator.iconcat, self.thMap.values(), []):
+        if quantile not in functools.reduce(operator.iconcat, self._thMap.values(), []):
             th = (
                 self.df.filter(pl.col("pyStage") == "Eligibility")
                 .select(pl.col("pyModelPropensity").quantile(quantile))
                 .collect()
                 .item()
             )
-            if th in self.thMap.keys():
-                self.thMap[th].append(quantile)
+            if th in self._thMap.keys():
+                self._thMap[th].append(quantile)
             else:
-                self.thMap[th] = [quantile]
-        return [th for th, quantiles in self.thMap.items() if quantile in quantiles][0]
+                self._thMap[th] = [quantile]
+        return [th for th, quantiles in self._thMap.items() if quantile in quantiles][0]
 
     def getCountsPerThreshold(self, th, return_df=False) -> Optional[pl.LazyFrame]:
         if th not in self.countsPerThreshold.keys():
@@ -279,7 +283,7 @@ class ValueFinder:
 
     def addCountsForThresholdRange(
         self, start, stop, step, method=Literal["threshold, quantile"]
-    ) -> NoReturn:
+    ) -> None:
         """Adds the counts per stage for a range of quantiles or thresholds.
 
         Once computed, the values are added to `.countsPerThreshold` so we
@@ -433,7 +437,13 @@ class ValueFinder:
         return figs
 
     def plotPieCharts(
-        self, start=None, stop=None, step=None, *, method="threshold", rounding=3
+        self,
+        start: float = None,
+        stop: float = None,
+        step: float = None,
+        *,
+        method: Literal["threshold", "quantile"] = "threshold",
+        rounding: int = 3,
     ) -> go.FigureWidget:
         """Plots pie charts showing the distribution of customers
 
@@ -555,7 +565,15 @@ class ValueFinder:
             ].label = f"{float(fig.layout.sliders[0].steps[i].label):.1%}"
         return fig
 
-    def plotDistributionPerThreshold(self, target: str = "Quantile", **kwargs):
+    def plotDistributionPerThreshold(
+        self,
+        start: float = None,
+        stop: float = None,
+        step: float = None,
+        *,
+        method: Literal["threshold", "quantile"] = "threshold",
+        rounding=3,
+    ) -> go.FigureWidget:
         """Plots the distribution of customers per threshold, per stage.
 
         Based on the precomputed data in self.countsPerThreshold,
@@ -563,39 +581,46 @@ class ValueFinder:
 
         To add more data points between a given range,
         simply pass all three arguments to this function:
-        start, stop and step. Alternatively, you may
-        call the self.addCountsPerThresholdRange() function,
-        with the start, stop and step arguments outside of this call.
+        start, stop and step.
 
         Parameters
         ----------
-        target : str, default = Quantile
-            Determines which threshold to plot:
-            based on the quantiles or the raw propensities.
-            One of: {'Quantile', 'Propensity'}
+        start : float
+            The starting of the range
+        stop : float
+            The end of the range
+        step : float
+            The steps to compute between start and stop
 
         Keyword arguments
         -----------------
-        start : float
-            The starting quantile
-        stop : float
-            The ending quantile
-        step : float
-            The steps to compute between start and stop
-        verbose : bool, default = True
-            Whether to print out the progress of computation
+        method : Literal['threshold', 'quantile'], default='threshold'
+            Whether the range is computed based on the threshold directly
+            or based on the quantile of the propensity
+        rounding : int
+            The number of digits to round the values by
         """
-        if {"start", "stop", "step"}.issubset(kwargs):
-            self.addCountsPerThresholdRange(
-                kwargs.get("start"), kwargs.get("stop"), kwargs.get("step")
-            )
-        self.addCountsPerThresholdRange(0.01, 1, 0.1)
 
-        df = list()
-        for quantile, data in self.countsPerThreshold.items():
-            target2 = data[0] if target.casefold() == "propensity" else quantile
-            df.append(data[1].with_columns(pl.lit(target2).alias(target)))
-        df = pl.concat(df).to_pandas().set_index(target)
+        if None not in (start, stop, step):
+            self.addCountsForThresholdRange(start, stop, step, method)
+        self.addCountsForThresholdRange(0.01, 1, 0.1, "quantile")
+        if method == "threshold":
+            df = [
+                df.with_columns(threshold=pl.lit(th).round(rounding))
+                for th, df in self.countsPerThreshold.items()
+            ]
+        else:
+            df = []
+            for quantile in functools.reduce(
+                operator.iconcat, self._thMap.values(), []
+            ):
+                th = self.getThFromQuantile(quantile)
+                df.append(
+                    self.getCountsPerThreshold(th, True).with_columns(
+                        quantile=pl.lit(quantile).round(rounding)
+                    )
+                )
+        df = pl.concat(df).collect().to_pandas().set_index(method)
         fig = px.area(
             df.rename(
                 columns={
@@ -606,12 +631,14 @@ class ValueFinder:
             ),
             color_discrete_sequence=["#219e3f", "#fca52e", "#cd001f"],
             facet_col="pyStage",
-            title=f"Distribution of offers per stage",
-            labels={"value": "Number of people"},
+            title="Distribution of offers per stage",
+            labels={"value": "Number of people", method: method.title()},
             category_orders={"pyStage": self.NBADStages},
             template="none",
         )
         fig.update_layout(legend_title_text="Status")
+        if method == "threshold":
+            fig.update_xaxes(tickformat=",.1%")
         return fig
 
     def plotFunnelChart(self, level: str = "Action", query=None, return_df=False):
