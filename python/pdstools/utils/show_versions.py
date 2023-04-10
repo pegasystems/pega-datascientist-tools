@@ -10,17 +10,16 @@ import importlib.metadata
 
 def show_versions() -> None:
     """
-    Print out version of Polars and dependencies to stdout.
+    Print out version of pdstools and dependencies to stdout.
 
     Examples
     --------
     >>> from pdstools import show_versions
     >>> show_versions()
     ---Version info---
-    pdstools: 3.0.2
+    pdstools: 3.1.0
     Platform: macOS-12.6.4-x86_64-i386-64bit
     Python: 3.11.0 (v3.11.0:deaf509e8f, Oct 24 2022, 14:43:23) [Clang 13.0.0 (clang-1300.0.29.30)]
-
     ---Dependencies---
     plotly: 5.13.1
     requests: 2.28.1
@@ -30,7 +29,6 @@ def show_versions() -> None:
     tqdm: 4.64.1
     pyyaml: <not installed>
     aioboto3: 11.0.1
-
     ---Streamlit app dependencies---
     streamlit: 1.20.0
     quarto: 0.1.0
