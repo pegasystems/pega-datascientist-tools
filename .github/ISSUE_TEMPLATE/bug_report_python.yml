@@ -35,8 +35,10 @@ body:
         from pdstools import ADMDatamart
 
         ---------------------------------------------------------------------------
+        
         ImportError                               Traceback (most recent call last)
         /Users/user/Documents/Code/pdstools/issue_example.ipynb Cell 1 in 1
+
         ----> 1 from pdstools import ADMDatamart
 
         ImportError: cannot import name 'ADMDatamart' from 'pdstools' (unknown location)
