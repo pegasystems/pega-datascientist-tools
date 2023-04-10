@@ -288,7 +288,7 @@
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.show_versions.show_versions" title="pdstools.utils.show_versions.show_versions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">show_versions</span></code></a>(→ None)</p></td>
-<td><p>Print out version of Polars and dependencies to stdout.</p></td>
+<td><p>Print out version of pdstools and dependencies to stdout.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.show_versions._get_dependency_info" title="pdstools.utils.show_versions._get_dependency_info"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_get_dependency_info</span></code></a>(→ dict[str, str])</p></td>
 <td><p></p></td>
@@ -305,32 +305,32 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.utils.show_versions.show_versions">
 <span class="sig-name descname"><span class="pre">show_versions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pdstools.utils.show_versions.show_versions" title="Permalink to this definition">#</a></dt>
-<dd><p>Print out version of Polars and dependencies to stdout.</p>
+<dd><p>Print out version of pdstools and dependencies to stdout.</p>
 <p class="rubric">Examples</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">pdstools</span> <span class="kn">import</span> <span class="n">show_versions</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">show_versions</span><span class="p">()</span>
 <span class="go">---Version info---</span>
-<span class="go">pdstools: 3.0.2</span>
+<span class="go">pdstools: 3.1.0</span>
 <span class="go">Platform: macOS-12.6.4-x86_64-i386-64bit</span>
 <span class="go">Python: 3.11.0 (v3.11.0:deaf509e8f, Oct 24 2022, 14:43:23) [Clang 13.0.0 (clang-1300.0.29.30)]</span>
+<span class="go">---Dependencies---</span>
+<span class="go">plotly: 5.13.1</span>
+<span class="go">requests: 2.28.1</span>
+<span class="go">pydot: 1.4.2</span>
+<span class="go">polars: 0.17.0</span>
+<span class="go">pyarrow: 11.0.0.dev52</span>
+<span class="go">tqdm: 4.64.1</span>
+<span class="go">pyyaml: &lt;not installed&gt;</span>
+<span class="go">aioboto3: 11.0.1</span>
+<span class="go">---Streamlit app dependencies---</span>
+<span class="go">streamlit: 1.20.0</span>
+<span class="go">quarto: 0.1.0</span>
+<span class="go">papermill: 2.4.0</span>
+<span class="go">itables: 1.5.1</span>
+<span class="go">pandas: 1.5.3</span>
+<span class="go">jinja2: 3.1.2</span>
 </pre></div>
 </div>
-<p>—Dependencies—
-plotly: 5.13.1
-requests: 2.28.1
-pydot: 1.4.2
-polars: 0.17.0
-pyarrow: 11.0.0.dev52
-tqdm: 4.64.1
-pyyaml: &lt;not installed&gt;
-aioboto3: 11.0.1</p>
-<p>—Streamlit app dependencies—
-streamlit: 1.20.0
-quarto: 0.1.0
-papermill: 2.4.0
-itables: 1.5.1
-pandas: 1.5.3
-jinja2: 3.1.2</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
