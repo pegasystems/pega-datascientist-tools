@@ -2,9 +2,8 @@
 
 __version__ = "3.0.1"
 
-from polars.polars import toggle_string_cache
-
-toggle_string_cache(True)
+from polars import enable_string_cache
+enable_string_cache(True)
 
 import sys
 from pathlib import Path
