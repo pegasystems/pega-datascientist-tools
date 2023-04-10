@@ -1,0 +1,51 @@
+name: '🐞 Bug report - R'
+description: An issue with pdstools
+labels: [bug, R]
+
+body:
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: pdstools version checks
+      options:
+        - label: >
+            I have checked that this issue has not already been reported.
+          required: true
+        - label: >
+            I have confirmed this bug exists on the latest version of pdstools.
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Issue description
+      description: >
+        Please provide a high-level description of the issue.
+    validations:
+      required: true
+
+  - type: textarea
+    id: example
+    attributes:
+      label: Reproducible example
+      description: >
+        Please follow [this guide](https://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports) on how to
+        provide a minimal, copy-pastable example. Include the (wrong) output if applicable.
+      placeholder: >
+        > library(pdstools)
+        
+        Error in library(pdstools) : there is no package called pdstools
+
+        ...
+      render: R
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: >
+        Please describe or show a code example of the expected behavior.
+    validations:
+      required: true

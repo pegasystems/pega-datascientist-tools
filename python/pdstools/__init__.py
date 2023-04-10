@@ -3,6 +3,7 @@
 __version__ = "3.0.2"
 
 from polars import enable_string_cache
+
 enable_string_cache(True)
 
 import sys
@@ -14,6 +15,7 @@ from .pega_io import getToken, readClientCredentialFile, readDSExport
 from .pega_io import File, API, S3
 from .utils import cdh_utils, datasets, errors, hds_utils
 from .utils.cdh_utils import defaultPredictorCategorization
+from .utils.show_versions import show_versions
 from .utils.datasets import CDHSample, SampleTrees, SampleValueFinder
 from .utils.hds_utils import Config, DataAnonymization
 from .valuefinder.ValueFinder import ValueFinder
