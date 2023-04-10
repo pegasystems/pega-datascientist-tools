@@ -16,6 +16,7 @@ Submodules
    hds_utils/index.rst
    pega_template/index.rst
    polars_ext/index.rst
+   show_versions/index.rst
    streamlit_utils/index.rst
    types/index.rst
 
