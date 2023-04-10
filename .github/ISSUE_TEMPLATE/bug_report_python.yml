@@ -34,8 +34,9 @@ body:
       placeholder: >
         from pdstools import ADMDatamart
 
+
         ---------------------------------------------------------------------------
-        
+
         ImportError                               Traceback (most recent call last)
         /Users/user/Documents/Code/pdstools/issue_example.ipynb Cell 1 in 1
 
