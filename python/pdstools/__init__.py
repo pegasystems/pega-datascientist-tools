@@ -2,9 +2,8 @@
 
 __version__ = "3.0.1"
 
-from polars.polars import toggle_string_cache
-
-toggle_string_cache(True)
+from polars import enable_string_cache
+enable_string_cache(True)
 
 import sys
 from pathlib import Path
@@ -18,6 +17,7 @@ from .utils.cdh_utils import defaultPredictorCategorization
 from .utils.datasets import CDHSample, SampleTrees, SampleValueFinder
 from .utils.hds_utils import Config, DataAnonymization
 from .valuefinder.ValueFinder import ValueFinder
+from .utils.polars_ext import *
 
 if "streamlit" in sys.modules:
     from .utils import streamlit_utils
