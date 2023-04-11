@@ -1,0 +1,78 @@
+name: '🐞 Bug report - Python'
+description: An issue with pdstools
+labels: [bug, Python]
+
+body:
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: pdstools version checks
+      options:
+        - label: >
+            I have checked that this issue has not already been reported.
+          required: true
+        - label: >
+            I have confirmed this bug exists on the
+            [latest version](https://pypi.org/project/pdstools/) of pdstools.
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Issue description
+      description: >
+        Please provide a high-level description of the issue.
+    validations:
+      required: true
+
+  - type: textarea
+    id: example
+    attributes:
+      label: Reproducible example
+      description: >
+        Please follow [this guide](https://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports) on how to
+        provide a minimal, copy-pastable example. Include the (wrong) output if applicable.
+      placeholder: >
+        from pdstools import ADMDatamart
+
+
+        ---------------------------------------------------------------------------
+
+        ImportError                               Traceback (most recent call last)
+        /Users/user/Documents/Code/pdstools/issue_example.ipynb Cell 1 in 1
+
+        ----> 1 from pdstools import ADMDatamart
+
+        ImportError: cannot import name 'ADMDatamart' from 'pdstools' (unknown location)
+
+        ...
+      render: Python
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: >
+        Please describe or show a code example of the expected behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: version
+    attributes:
+      label: Installed versions
+      description: >
+        Please paste the output of ``pdstools.show_versions()``, 
+        see [here](https://pegasystems.github.io/pega-datascientist-tools/Python/autoapi/pdstools/utils/show_versions/index.html#pdstools.utils.show_versions.show_versions) for an example.
+      value: |
+        <details>
+
+        ```
+        Replace this line with the output of pdstools.show_versions(), leave the backticks in place
+        ```
+        
+        </details>
+    validations:
+      required: true
