@@ -497,6 +497,8 @@ class ADMDatamart(Plots, Tables):
         Union[pl.DataFrame, pl.LazyFrame]
             The input dataframe, but the proper typing applied
         """
+        from polars.datatypes import Datetime, Date
+
         retype = {
             pl.Categorical: ["Issue", "Group", "Channel", "Direction", "Configuration"],
             # pl.Int64: ["Positives", "Negatives", "ResponseCount"],
@@ -512,7 +514,8 @@ class ADMDatamart(Plots, Tables):
         timestampCol = "SnapshotTime"
         if timestampCol not in df.columns:
             df = df.with_columns(SnapshotTime=None)
-        elif df.schema[timestampCol] not in pl.DATETIME_DTYPES:
+        elif df.schema[timestampCol].base_type() not in {Datetime, Date}:
+            print(df.schema[timestampCol])
             df = df.with_columns(
                 cdh_utils.parsePegaDateTimeFormats(
                     timestampCol, timestamp_fmt, strict_conversion
@@ -798,10 +801,10 @@ class ADMDatamart(Plots, Tables):
         )
 
     def discover_modelTypes(
-        self, df: pl.LazyFrame, by:str="Configuration"
+        self, df: pl.LazyFrame, by: str = "Configuration"
     ) -> Dict:  # pragma: no cover
         """Discovers the type of model embedded in the pyModelData column.
-        
+
         By default, we do a groupby Configuration, because a model rule can only
         contain one type of model. Then, for each configuration, we look into the
         pyModelData blob and find the _serialClass, returning it in a dict.
@@ -1336,7 +1339,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         argument to filter the ADMDatamart class to the desired level.
 
         This method also propagates the predictorCategorization used by the ADMDatamart
-        class into the Health Check. Simply set the `predictorCategorization` to a 
+        class into the Health Check. Simply set the `predictorCategorization` to a
         supported function and this will be reflected in the Health Check:
         see :meth:`pdstools.utils.cdh_utils.defaultPredictorCategorization`.
 
@@ -1365,7 +1368,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         Keyword arguments
         -----------------
         modelData_only: bool, default = False
-            If set to True, calls model-based Health Check files. Can be used if 
+            If set to True, calls model-based Health Check files. Can be used if
             predictor binning data is missing
 
         Returns
@@ -1468,7 +1471,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
 
     def exportTables(self, file: Path = "Tables.xlsx"):
         """Exports all tables from `pdstools.adm.Tables` into one Excel file.
-        
+
         Parameters
         ----------
         file: Path, default = 'Tables.xlsx'
