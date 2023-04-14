@@ -515,7 +515,6 @@ class ADMDatamart(Plots, Tables):
         if timestampCol not in df.columns:
             df = df.with_columns(SnapshotTime=None)
         elif df.schema[timestampCol].base_type() not in {Datetime, Date}:
-            print(df.schema[timestampCol])
             df = df.with_columns(
                 cdh_utils.parsePegaDateTimeFormats(
                     timestampCol, timestamp_fmt, strict_conversion
