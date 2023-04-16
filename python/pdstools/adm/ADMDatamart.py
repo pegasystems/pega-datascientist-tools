@@ -290,7 +290,9 @@ class ADMDatamart(Plots, Tables):
                 ),
             )
             if self.predictorCategorization is not None:
-                df2 = df2.with_columns(PredictorCategory=self.predictorCategorization())
+                if not isinstance(self.predictorCategorization, pl.Expr):
+                    self.predictorCategorization = self.predictorCategorization()
+                df2 = df2.with_columns(PredictorCategory=self.predictorCategorization)
 
         if df1 is not None and df2 is not None:
             total_missing = (
@@ -380,7 +382,7 @@ class ADMDatamart(Plots, Tables):
         if subset:
             df = df.select(cols)
         if extract_keys:
-            df = self._extract_keys(df)
+            df = cdh_utils._extract_keys(df, self.import_strategy)
             df = cdh_utils._polarsCapitalize(df)
 
         df = self._set_types(
@@ -752,52 +754,6 @@ class ADMDatamart(Plots, Tables):
             for col, val in query.items():
                 df = df.filter(pl.col(col).is_in(val))
         return df
-
-    def _extract_keys(
-        self,
-        df: any_frame,
-    ) -> any_frame:
-        """Extracts keys out of the pyName column
-
-        This is not a lazy operation as we don't know the possible keys
-        in advance. For that reason, we select only the pyName column,
-        extract the keys from that, and then collect the resulting dataframe.
-        This dataframe is then joined back to the original dataframe.
-
-        This is relatively efficient, but we still do need the whole
-        pyName column in memory to do this, so it won't work completely
-        lazily from e.g. s3. That's why it only works with eager mode.
-
-        Parameters
-        ----------
-        df: Union[pl.DataFrame, pl.LazyFrame]
-            The dataframe to extract the keys from
-        """
-        if self.import_strategy != "eager":
-            raise NotEagerError("Extracting keys")
-        if self.verbose:
-            print("Extracting keys...")
-
-        def safeName():
-            return (
-                pl.when(~pl.col("Name").cast(pl.Utf8).str.starts_with("{"))
-                .then(
-                    pl.concat_str([pl.lit('{"pyName":"'), pl.col("Name"), pl.lit('"}')])
-                )
-                .otherwise(pl.col("Name"))
-                .alias("tempName")
-            )
-
-        return df.with_columns(
-            cdh_utils._polarsCapitalize(
-                df.select(
-                    safeName().str.json_extract(),
-                )
-                .unnest("tempName")
-                .lazy()
-                .collect()
-            )
-        )
 
     def discover_modelTypes(
         self, df: pl.LazyFrame, by: str = "Configuration"

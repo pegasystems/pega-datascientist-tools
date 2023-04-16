@@ -11,6 +11,9 @@ import polars as pl
 import re
 import numpy as np
 import datetime
+from .types import any_frame
+from .errors import NotEagerError
+
 
 import pytz
 
@@ -44,6 +47,52 @@ def defaultPredictorCategorization(
         .then(x.str.split(".").arr.get(0))
         .otherwise(pl.lit("Primary"))
     ).alias("PredictorCategory")
+
+
+def _extract_keys(
+    df: any_frame,
+    col="Name",
+    capitalize=True,
+    import_strategy="eager",
+) -> any_frame:
+    """Extracts keys out of the pyName column
+
+    This is not a lazy operation as we don't know the possible keys
+    in advance. For that reason, we select only the pyName column,
+    extract the keys from that, and then collect the resulting dataframe.
+    This dataframe is then joined back to the original dataframe.
+
+    This is relatively efficient, but we still do need the whole
+    pyName column in memory to do this, so it won't work completely
+    lazily from e.g. s3. That's why it only works with eager mode.
+
+    Parameters
+    ----------
+    df: Union[pl.DataFrame, pl.LazyFrame]
+        The dataframe to extract the keys from
+    """
+    if import_strategy != "eager":
+        raise NotEagerError("Extracting keys")
+
+    def safeName():
+        return (
+            pl.when(~pl.col(col).cast(pl.Utf8).str.starts_with("{"))
+            .then(pl.concat_str([pl.lit('{"pyName":"'), pl.col(col), pl.lit('"}')]))
+            .otherwise(pl.col(col))
+            .alias("tempName")
+        )
+
+    series = (
+        df.select(
+            safeName().str.json_extract(),
+        )
+        .unnest("tempName")
+        .lazy()
+        .collect()
+    )
+    if not capitalize:
+        return df.with_columns(series)
+    return df.with_columns(_polarsCapitalize(series))
 
 
 def parsePegaDateTimeFormats(
