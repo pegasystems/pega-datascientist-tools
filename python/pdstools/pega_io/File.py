@@ -150,6 +150,11 @@ def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
     if extension == ".zip":
         logging.debug("Zip file found, extracting data.json to BytesIO.")
         file, extension = readZippedFile(file)
+    elif extension == ".gz":
+        import gzip
+
+        extension = os.path.splitext(os.path.splitext(file)[0])[1]
+        file = BytesIO(gzip.GzipFile(file).read())
 
     if extension == ".csv":
         if isinstance(file, BytesIO):
@@ -247,7 +252,6 @@ def readZippedFile(file: str, verbose: bool = False) -> BytesIO:
             raise FileNotFoundError("Cannot find a 'data.json' file in the zip folder.")
 
 
-
 def readMultiZip(files: list, zip_type: Literal["gzip"] = "gzip", verbose: bool = True):
     """Reads multiple zipped ndjson files, and concats them to one Polars dataframe.
 
@@ -271,7 +275,6 @@ def readMultiZip(files: list, zip_type: Literal["gzip"] = "gzip", verbose: bool 
     if verbose:
         print("Combining completed")
     return df
-
 
 
 def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
