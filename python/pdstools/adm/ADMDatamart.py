@@ -918,7 +918,12 @@ class ADMDatamart(Plots, Tables):
         if pivot:
             df = (
                 df.collect()
-                .pivot(index="SnapshotTime", columns=by, values="Increase")
+                .pivot(
+                    index="SnapshotTime",
+                    columns=by,
+                    values="Increase",
+                    aggregate_function="first",
+                )
                 .lazy()
             )
         if mask:
@@ -1038,7 +1043,12 @@ class ADMDatamart(Plots, Tables):
             )
         df = (
             df.collect()
-            .pivot(index=by, columns="PredictorName", values="PerformanceBin")
+            .pivot(
+                index=by,
+                columns="PredictorName",
+                values="PerformanceBin",
+                aggregate_function="first",
+            )
             .fill_null(0.5)
             .fill_nan(0.5)
         )
