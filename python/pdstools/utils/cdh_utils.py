@@ -136,7 +136,7 @@ def parsePegaDateTimeFormats(
             )
             .otherwise(
                 pl.col(timestampCol)
-                .str.strptime(pl.Datetime, "%Y%m%dT%H%M%S.%f %Z", strict=False)
+                .str.strptime(pl.Datetime, "%Y%m%dT%H%M%S.%3f %Z", strict=False)
                 .dt.replace_time_zone(None)
                 .dt.cast_time_unit("ns")
             )
