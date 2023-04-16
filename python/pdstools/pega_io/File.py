@@ -167,6 +167,9 @@ def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
             file = pl.scan_csv(
                 file,
                 separator=reading_opts.get("sep", ","),
+                infer_schema_length=10000,
+                null_values=["", "NA", "N/A"],
+                dtypes={"PYMODELID": pl.Utf8},
             )
 
     elif extension == ".json":
@@ -189,6 +192,7 @@ def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
                 file = pl.read_json(file).lazy()
             except:
                 import json
+
                 with open(file) as f:
                     file = pl.from_dicts(json.loads(f.read())["pxResults"]).lazy()
 
