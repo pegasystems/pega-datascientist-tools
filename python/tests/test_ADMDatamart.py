@@ -13,7 +13,7 @@ import pathlib
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(f"{str(basePath)}/python")
-from pdstools import ADMDatamart
+from pdstools import ADMDatamart, cdh_utils
 from pdstools import errors
 
 
@@ -165,7 +165,7 @@ def test_import_no_subset(test, data):
 
 def test_extract_treatment(test, data):
     mapping = {"pyname": "Name"}
-    output = test._extract_keys(data.rename(mapping).lazy()).collect()
+    output = cdh_utils._extract_keys(data.rename(mapping).lazy()).collect()
     assert output.shape == (3, 6)
     assert list(output["Treatment"]) == ["XYZ", "xyz", None]
     assert list(output["Name"]) == ["ABC", "abc", "NormalName"]
@@ -178,7 +178,7 @@ def test_extract_treatment(test, data):
             ]
         }
     )
-    out = test._extract_keys(jsonnames).collect()
+    out = cdh_utils._extract_keys(jsonnames).collect()
     assert list(out["Name"]) == ["ABC", "abc", "ABCD"]
     assert list(out["Treatment"]) == ["XYZ", "xyz", "XYZ1"]
     # Just checking that this'll work without raising errors
