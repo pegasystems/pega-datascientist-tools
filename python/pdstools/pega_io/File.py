@@ -185,7 +185,12 @@ def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
                     infer_schema_length=reading_opts.pop("infer_schema_length", 10000),
                 )
         except:  # pragma: no cover
-            file = pl.read_json(file).lazy()
+            try:
+                file = pl.read_json(file).lazy()
+            except:
+                import json
+                with open(file) as f:
+                    file = pl.from_dicts(json.loads(f.read())["pxResults"]).lazy()
 
     elif extension == ".parquet":
         file = pl.scan_parquet(file)
@@ -340,6 +345,7 @@ def getMatches(files_dir, target):
         "MD_FACT",
         "ADMMART_MDL_FACT_Data",
         "cached_modelData",
+        "Models_data",
     ]
     default_predictor_names = [
         "Data-Decision-ADM-PredictorBinningSnapshot",
