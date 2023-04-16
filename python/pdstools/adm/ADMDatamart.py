@@ -382,7 +382,7 @@ class ADMDatamart(Plots, Tables):
         if subset:
             df = df.select(cols)
         if extract_keys:
-            df = cdh_utils._extract_keys(df, self.import_strategy)
+            df = cdh_utils._extract_keys(df,import_strategy=self.import_strategy)
             df = cdh_utils._polarsCapitalize(df)
 
         df = self._set_types(
