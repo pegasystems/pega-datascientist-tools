@@ -163,7 +163,7 @@ def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
             null_values=["", "NA", "N/A", "NULL"],
             dtypes={"PYMODELID": pl.Utf8},
             try_parse_dates=True,
-            **reading_opts,
+            ignore_errors=reading_opts.get("ignore_errors", False),
         )
         if isinstance(file, BytesIO):
             file = pl.read_csv(

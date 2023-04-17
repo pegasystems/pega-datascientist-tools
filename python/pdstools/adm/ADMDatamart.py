@@ -382,13 +382,14 @@ class ADMDatamart(Plots, Tables):
         if subset:
             df = df.select(cols)
         if extract_keys:
-            df = cdh_utils._extract_keys(df,import_strategy=self.import_strategy)
+            df = cdh_utils._extract_keys(df, import_strategy=self.import_strategy)
             df = cdh_utils._polarsCapitalize(df)
 
         df = self._set_types(
             df,
             timestamp_fmt=reading_opts.get("timestamp_fmt", None),
             strict_conversion=reading_opts.get("strict_conversion", True),
+            table=reading_opts.get("typesetting_table", "infer"),
         )
 
         if self.query is not None:
@@ -476,6 +477,7 @@ class ADMDatamart(Plots, Tables):
     @staticmethod
     def _set_types(
         df: any_frame,
+        table: str = "infer",
         *,
         timestamp_fmt: str = None,
         strict_conversion: bool = True,
@@ -486,6 +488,9 @@ class ADMDatamart(Plots, Tables):
         ----------
         df : Union[pl.DataFrame, pl.LazyFrame]
             The input dataframe
+        table: str
+            The table to set types for. Default is infer, in which case
+            it infers the table type from the columns in it.
 
         Keyword arguments
         -----------------
@@ -499,30 +504,12 @@ class ADMDatamart(Plots, Tables):
         Union[pl.DataFrame, pl.LazyFrame]
             The input dataframe, but the proper typing applied
         """
-        from polars.datatypes import Datetime, Date
 
-        retype = {
-            pl.Categorical: ["Issue", "Group", "Channel", "Direction", "Configuration"],
-            # pl.Int64: ["Positives", "Negatives", "ResponseCount"],
-            pl.Float64: ["Performance"],
-        }
-        to_retype = []
-        for type, cols in retype.items():
-            for col in cols:
-                if col in set(df.columns):
-                    to_retype.append(pl.col(col).cast(type))
-        df = df.with_columns(to_retype)
-
-        timestampCol = "SnapshotTime"
-        if timestampCol not in df.columns:
+        df = cdh_utils.set_types(
+            df, table, timestamp_fmt=timestamp_fmt, strict_conversion=strict_conversion
+        )
+        if "SnapshotTime" not in df.columns:
             df = df.with_columns(SnapshotTime=None)
-        elif df.schema[timestampCol].base_type() not in {Datetime, Date}:
-            df = df.with_columns(
-                cdh_utils.parsePegaDateTimeFormats(
-                    timestampCol, timestamp_fmt, strict_conversion
-                )
-            )
-
         return df
 
     def last(

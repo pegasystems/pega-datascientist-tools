@@ -13,7 +13,7 @@ import numpy as np
 import datetime
 from .types import any_frame
 from .errors import NotEagerError
-
+from .table_definitions import PegaDefaultTables
 
 import pytz
 
@@ -79,8 +79,7 @@ def _extract_keys(
             pl.when(~pl.col(col).cast(pl.Utf8).str.starts_with("{"))
             .then(pl.concat_str([pl.lit('{"pyName":"'), pl.col(col), pl.lit('"}')]))
             .otherwise(pl.col(col))
-            .alias("tempName")
-        )
+        ).alias("tempName")
 
     series = (
         df.select(
@@ -141,6 +140,69 @@ def parsePegaDateTimeFormats(
                 .dt.cast_time_unit("ns")
             )
         ).alias(timestampCol)
+
+
+def getTypeMapping(df, definition, **timestamp_opts):
+    def getMapping(columns, reverse=False):
+        if not reverse:
+            return dict(zip(columns, _capitalize(columns)))
+        else:
+            return dict(zip(_capitalize(columns), columns))
+
+    named = getMapping(df.columns)
+    typed = getMapping(
+        [col for col in dir(definition) if not col.startswith("__")], reverse=True
+    )
+    types = []
+    for col, renamedCol in named.items():
+        try:
+            new_type = getattr(definition, typed[renamedCol])
+            if df.schema[col].base_type() != new_type:
+                if new_type == pl.Datetime and df.schema[col] != pl.Date:
+                    types.append(parsePegaDateTimeFormats(col, **timestamp_opts))
+                else:
+                    types.append(pl.col(col).cast(new_type))
+        except:
+            print("Unknown column:", col)
+    return types
+
+
+def set_types(df, table="infer", **timestamp_opts):
+    if table == "infer":
+        table = inferTableDefinition(df)
+
+    if table == "pyValueFinder":
+        definition = PegaDefaultTables.pyValueFinder()
+    elif table == "ADMModelSnapshot":
+        definition = PegaDefaultTables.ADMModelSnapshot()
+    elif table == "ADMPredictorBinningSnapshot":
+        definition = PegaDefaultTables.ADMPredictorBinningSnapshot()
+
+    else:
+        raise ValueError(table)
+
+    mapping = getTypeMapping(df, definition, **timestamp_opts)
+
+    if len(mapping) > 0:
+        return df.with_columns(mapping)
+    else:
+        return df
+
+
+def inferTableDefinition(df):
+    cols = _capitalize(df.columns)
+    vf = ["Propensity", "Stage"]
+    predictors = ["PredictorName", "ModelID", "BinSymbol"]
+    models = ["ModelID", "Performance"]
+    if all(value in cols for value in vf):
+        return "pyValueFinder"
+    elif all(value in cols for value in predictors):
+        return "ADMPredictorBinningSnapshot"
+    elif all(value in cols for value in models):
+        return "ADMModelSnapshot"
+    else:
+        print("Could not find table definition.")
+        return cols
 
 
 def safe_range_auc(auc: float) -> float:

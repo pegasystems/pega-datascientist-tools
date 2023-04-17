@@ -74,7 +74,6 @@ class ValueFinder:
             "pyDirection",
             "CustomerID",
             "pyName",
-            "pyWorkID",
             "pyModelPropensity",
             "pyPropensity",
             "FinalPropensity",
@@ -85,9 +84,9 @@ class ValueFinder:
         else:
             filename = kwargs.pop("filename", "ValueFinder")
             self.df = pega_io.readDSExport(filename, path, verbose=verbose)
-
         if kwargs.get("subset", True):
             self.df = self.df.select(keep_cols)
+        self.df = cdh_utils.set_types(self.df, "pyValueFinder")
 
         if "th" not in kwargs:
             self.th = self.df.filter(pl.col("pyStage") == "Eligibility").select(
@@ -663,7 +662,9 @@ class ValueFinder:
 
         df = self.df if query is None else self.df.filter(query)
         df = (
-            pl.LazyFrame({"pyStage": self.NBADStages})
+            pl.LazyFrame(
+                {"pyStage": self.NBADStages}, schema={"pyStage": pl.Categorical}
+            )
             .join(
                 df.groupby("pyStage")
                 .agg(pl.col(level).value_counts().sort())
@@ -678,7 +679,7 @@ class ValueFinder:
             return df
 
         fig = px.funnel(
-            df.to_pandas(),
+            df.with_columns(pl.col(pl.Categorical).cast(pl.Utf8)).to_pandas(),
             y="Count",
             x="Stage",
             color="Name",
