@@ -232,6 +232,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../utils/polars_ext/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.polars_ext</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../utils/show_versions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.show_versions</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../utils/streamlit_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.streamlit_utils</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/table_definitions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.table_definitions</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../utils/types/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.types</span></code></a></li>
 </ul>
 </li>
@@ -549,12 +550,14 @@ The variables that were not found in the table</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.adm.ADMDatamart.ADMDatamart._set_types">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_set_types</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pdstools.utils.types.any_frame</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamp_fmt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict_conversion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pdstools.utils.types.any_frame</span></span></span><a class="headerlink" href="#pdstools.adm.ADMDatamart.ADMDatamart._set_types" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_set_types</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pdstools.utils.types.any_frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'infer'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamp_fmt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict_conversion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pdstools.utils.types.any_frame</span></span></span><a class="headerlink" href="#pdstools.adm.ADMDatamart.ADMDatamart._set_types" title="Permalink to this definition">#</a></dt>
 <dd><p>A method to change columns to their proper type</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>df</strong> (<em>Union</em><em>[</em><em>pl.DataFrame</em><em>, </em><em>pl.LazyFrame</em><em>]</em>) – The input dataframe</p></li>
+<li><p><strong>table</strong> (<em>str</em>) – The table to set types for. Default is infer, in which case
+it infers the table type from the columns in it.</p></li>
 <li><p><strong>timestamp_fmt</strong> (<em>str</em>) – </p></li>
 <li><p><strong>strict_conversion</strong> (<em>bool</em>) – </p></li>
 </ul>
@@ -709,27 +712,6 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>pl.DataFrame</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.adm.ADMDatamart.ADMDatamart._extract_keys">
-<span class="sig-name descname"><span class="pre">_extract_keys</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pdstools.utils.types.any_frame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pdstools.utils.types.any_frame</span></span></span><a class="headerlink" href="#pdstools.adm.ADMDatamart.ADMDatamart._extract_keys" title="Permalink to this definition">#</a></dt>
-<dd><p>Extracts keys out of the pyName column</p>
-<p>This is not a lazy operation as we don’t know the possible keys
-in advance. For that reason, we select only the pyName column,
-extract the keys from that, and then collect the resulting dataframe.
-This dataframe is then joined back to the original dataframe.</p>
-<p>This is relatively efficient, but we still do need the whole
-pyName column in memory to do this, so it won’t work completely
-lazily from e.g. s3. That’s why it only works with eager mode.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>df</strong> (<em>Union</em><em>[</em><em>pl.DataFrame</em><em>, </em><em>pl.LazyFrame</em><em>]</em>) – The dataframe to extract the keys from</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>pdstools.utils.types.any_frame</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1117,7 +1099,6 @@ predictor binning data is missing</p>
 <li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart.processTables"><code class="docutils literal notranslate"><span class="pre">processTables()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart.save_data"><code class="docutils literal notranslate"><span class="pre">save_data()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart._apply_query"><code class="docutils literal notranslate"><span class="pre">_apply_query()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart._extract_keys"><code class="docutils literal notranslate"><span class="pre">_extract_keys()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart.discover_modelTypes"><code class="docutils literal notranslate"><span class="pre">discover_modelTypes()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart.get_AGB_models"><code class="docutils literal notranslate"><span class="pre">get_AGB_models()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.adm.ADMDatamart.ADMDatamart._create_sign_df"><code class="docutils literal notranslate"><span class="pre">_create_sign_df()</span></code></a></li>

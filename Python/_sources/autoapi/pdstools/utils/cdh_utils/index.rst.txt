@@ -22,7 +22,11 @@ Functions
 .. autoapisummary::
 
    pdstools.utils.cdh_utils.defaultPredictorCategorization
+   pdstools.utils.cdh_utils._extract_keys
    pdstools.utils.cdh_utils.parsePegaDateTimeFormats
+   pdstools.utils.cdh_utils.getTypeMapping
+   pdstools.utils.cdh_utils.set_types
+   pdstools.utils.cdh_utils.inferTableDefinition
    pdstools.utils.cdh_utils.safe_range_auc
    pdstools.utils.cdh_utils.auc_from_probs
    pdstools.utils.cdh_utils.auc_from_bincounts
@@ -61,6 +65,23 @@ Functions
    :type x: Union[str, pl.Expr], default = pl.col('PredictorName')
 
 
+.. py:function:: _extract_keys(df: pdstools.utils.types.any_frame, col='Name', capitalize=True, import_strategy='eager') -> pdstools.utils.types.any_frame
+
+   Extracts keys out of the pyName column
+
+   This is not a lazy operation as we don't know the possible keys
+   in advance. For that reason, we select only the pyName column,
+   extract the keys from that, and then collect the resulting dataframe.
+   This dataframe is then joined back to the original dataframe.
+
+   This is relatively efficient, but we still do need the whole
+   pyName column in memory to do this, so it won't work completely
+   lazily from e.g. s3. That's why it only works with eager mode.
+
+   :param df: The dataframe to extract the keys from
+   :type df: Union[pl.DataFrame, pl.LazyFrame]
+
+
 .. py:function:: parsePegaDateTimeFormats(timestampCol='SnapshotTime', timestamp_fmt: str = None, strict_conversion: bool = True)
 
    Parses Pega DateTime formats.
@@ -80,6 +101,15 @@ Functions
    :type timestamp_fmt: str, default = None
    :param strict_conversion: Whether to error on incorrect parses or just return Null values
    :type strict_conversion: bool, default = True
+
+
+.. py:function:: getTypeMapping(df, definition, **timestamp_opts)
+
+
+.. py:function:: set_types(df, table='infer', **timestamp_opts)
+
+
+.. py:function:: inferTableDefinition(df)
 
 
 .. py:function:: safe_range_auc(auc: float) -> float

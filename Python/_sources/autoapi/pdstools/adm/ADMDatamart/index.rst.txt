@@ -211,13 +211,16 @@ Classes
       :rtype: Tuple[set, set]
 
 
-   .. py:method:: _set_types(df: pdstools.utils.types.any_frame, *, timestamp_fmt: str = None, strict_conversion: bool = True) -> pdstools.utils.types.any_frame
+   .. py:method:: _set_types(df: pdstools.utils.types.any_frame, table: str = 'infer', *, timestamp_fmt: str = None, strict_conversion: bool = True) -> pdstools.utils.types.any_frame
       :staticmethod:
 
       A method to change columns to their proper type
 
       :param df: The input dataframe
       :type df: Union[pl.DataFrame, pl.LazyFrame]
+      :param table: The table to set types for. Default is infer, in which case
+                    it infers the table type from the columns in it.
+      :type table: str
 
       :keyword timestamp_fmt: The format of Date type columns
       :kwtype timestamp_fmt: str
@@ -321,23 +324,6 @@ Classes
 
       :returns: Filtered Polars DataFrame
       :rtype: pl.DataFrame
-
-
-   .. py:method:: _extract_keys(df: pdstools.utils.types.any_frame) -> pdstools.utils.types.any_frame
-
-      Extracts keys out of the pyName column
-
-      This is not a lazy operation as we don't know the possible keys
-      in advance. For that reason, we select only the pyName column,
-      extract the keys from that, and then collect the resulting dataframe.
-      This dataframe is then joined back to the original dataframe.
-
-      This is relatively efficient, but we still do need the whole
-      pyName column in memory to do this, so it won't work completely
-      lazily from e.g. s3. That's why it only works with eager mode.
-
-      :param df: The dataframe to extract the keys from
-      :type df: Union[pl.DataFrame, pl.LazyFrame]
 
 
    .. py:method:: discover_modelTypes(df: polars.LazyFrame, by: str = 'Configuration') -> Dict

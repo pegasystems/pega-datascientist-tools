@@ -1,0 +1,391 @@
+:py:mod:`pdstools.utils.table_definitions`
+==========================================
+
+.. py:module:: pdstools.utils.table_definitions
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   pdstools.utils.table_definitions.PegaDefaultTables
+
+
+
+
+.. py:class:: PegaDefaultTables
+
+   .. py:class:: ADMModelSnapshot
+
+      .. py:attribute:: pxApplication
+
+         
+
+      .. py:attribute:: pyAppliesToClass
+
+         
+
+      .. py:attribute:: pyModelID
+
+         
+
+      .. py:attribute:: pyConfigurationName
+
+         
+
+      .. py:attribute:: pySnapshotTime
+
+         
+
+      .. py:attribute:: pyIssue
+
+         
+
+      .. py:attribute:: pyGroup
+
+         
+
+      .. py:attribute:: pyName
+
+         
+
+      .. py:attribute:: pyChannel
+
+         
+
+      .. py:attribute:: pyDirection
+
+         
+
+      .. py:attribute:: pyTreatment
+
+         
+
+      .. py:attribute:: pyPerformance
+
+         
+
+      .. py:attribute:: pySuccessRate
+
+         
+
+      .. py:attribute:: pyResponseCount
+
+         
+
+      .. py:attribute:: pxObjClass
+
+         
+
+      .. py:attribute:: pzInsKey
+
+         
+
+      .. py:attribute:: pxInsName
+
+         
+
+      .. py:attribute:: pxSaveDateTime
+
+         
+
+      .. py:attribute:: pxCommitDateTime
+
+         
+
+      .. py:attribute:: pyExtension
+
+         
+
+      .. py:attribute:: pyActivePredictors
+
+         
+
+      .. py:attribute:: pyTotalPredictors
+
+         
+
+      .. py:attribute:: pyNegatives
+
+         
+
+      .. py:attribute:: pyPositives
+
+         
+
+      .. py:attribute:: pyRelativeNegatives
+
+         
+
+      .. py:attribute:: pyRelativePositives
+
+         
+
+      .. py:attribute:: pyRelativeResponseCount
+
+         
+
+      .. py:attribute:: pyMemory
+
+         
+
+      .. py:attribute:: pyPerformanceThreshold
+
+         
+
+      .. py:attribute:: pyCorrelationThreshold
+
+         
+
+      .. py:attribute:: pyPerformanceError
+
+         
+
+      .. py:attribute:: pyModelData
+
+         
+
+      .. py:attribute:: pyModelVersion
+
+         
+
+      .. py:attribute:: pyFactoryUpdatetime
+
+         
+
+
+   .. py:class:: ADMPredictorBinningSnapshot
+
+      .. py:attribute:: pxCommitDateTime
+
+         
+
+      .. py:attribute:: pxSaveDateTime
+
+         
+
+      .. py:attribute:: pyModelID
+
+         
+
+      .. py:attribute:: pxObjClass
+
+         
+
+      .. py:attribute:: pzInsKey
+
+         
+
+      .. py:attribute:: pxInsName
+
+         
+
+      .. py:attribute:: pyPredictorName
+
+         
+
+      .. py:attribute:: pyContents
+
+         
+
+      .. py:attribute:: pyPerformance
+
+         
+
+      .. py:attribute:: pyPositives
+
+         
+
+      .. py:attribute:: pyNegatives
+
+         
+
+      .. py:attribute:: pyType
+
+         
+
+      .. py:attribute:: pyTotalBins
+
+         
+
+      .. py:attribute:: pyResponseCount
+
+         
+
+      .. py:attribute:: pyRelativePositives
+
+         
+
+      .. py:attribute:: pyRelativeNegatives
+
+         
+
+      .. py:attribute:: pyRelativeResponseCount
+
+         
+
+      .. py:attribute:: pyBinNegatives
+
+         
+
+      .. py:attribute:: pyBinPositives
+
+         
+
+      .. py:attribute:: pyBinType
+
+         
+
+      .. py:attribute:: pyBinNegativesPercentage
+
+         
+
+      .. py:attribute:: pyBinPositivesPercentage
+
+         
+
+      .. py:attribute:: pyBinSymbol
+
+         
+
+      .. py:attribute:: pyBinLowerBound
+
+         
+
+      .. py:attribute:: pyBinUpperBound
+
+         
+
+      .. py:attribute:: pyRelativeBinPositives
+
+         
+
+      .. py:attribute:: pyRelativeBinNegatives
+
+         
+
+      .. py:attribute:: pyBinResponseCount
+
+         
+
+      .. py:attribute:: pyRelativeBinResponseCount
+
+         
+
+      .. py:attribute:: pyBinResponseCountPercentage
+
+         
+
+      .. py:attribute:: pySnapshotTime
+
+         
+
+      .. py:attribute:: pyBinIndex
+
+         
+
+      .. py:attribute:: pyLift
+
+         
+
+      .. py:attribute:: pyZRatio
+
+         
+
+      .. py:attribute:: pyEntryType
+
+         
+
+      .. py:attribute:: pyExtension
+
+         
+
+      .. py:attribute:: pyGroupIndex
+
+         
+
+      .. py:attribute:: pyCorrelationPredictor
+
+         
+
+
+   .. py:class:: pyValueFinder
+
+      .. py:attribute:: pyDirection
+
+         
+
+      .. py:attribute:: pySubjectType
+
+         
+
+      .. py:attribute:: ModelPositives
+
+         
+
+      .. py:attribute:: pyGroup
+
+         
+
+      .. py:attribute:: pyPropensity
+
+         
+
+      .. py:attribute:: FinalPropensity
+
+         
+
+      .. py:attribute:: pyStage
+
+         
+
+      .. py:attribute:: pxRank
+
+         
+
+      .. py:attribute:: pxPriority
+
+         
+
+      .. py:attribute:: pyModelPropensity
+
+         
+
+      .. py:attribute:: pyChannel
+
+         
+
+      .. py:attribute:: Value
+
+         
+
+      .. py:attribute:: pyName
+
+         
+
+      .. py:attribute:: StartingEvidence
+
+         
+
+      .. py:attribute:: pySubjectID
+
+         
+
+      .. py:attribute:: DecisionTime
+
+         
+
+      .. py:attribute:: pyTreatment
+
+         
+
+      .. py:attribute:: pyIssue
+
+         
+
+
+

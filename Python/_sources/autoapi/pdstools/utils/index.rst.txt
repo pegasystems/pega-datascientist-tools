@@ -18,6 +18,7 @@ Submodules
    polars_ext/index.rst
    show_versions/index.rst
    streamlit_utils/index.rst
+   table_definitions/index.rst
    types/index.rst
 
 

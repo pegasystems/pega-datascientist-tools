@@ -232,6 +232,7 @@
 <li class="toctree-l4"><a class="reference internal" href="utils/polars_ext/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.polars_ext</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="utils/show_versions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.show_versions</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="utils/streamlit_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.streamlit_utils</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="utils/table_definitions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.table_definitions</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="utils/types/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.types</span></code></a></li>
 </ul>
 </li>
@@ -322,6 +323,7 @@
 <li class="toctree-l2"><a class="reference internal" href="utils/polars_ext/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.polars_ext</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils/show_versions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.show_versions</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils/streamlit_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.streamlit_utils</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils/table_definitions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.table_definitions</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils/types/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.types</span></code></a></li>
 </ul>
 </li>
@@ -354,10 +356,13 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.DataAnonymization" title="pdstools.DataAnonymization"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DataAnonymization</span></code></a></p></td>
 <td><p>Anonymize a historical dataset.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.ValueFinder" title="pdstools.ValueFinder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueFinder</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.PegaDefaultTables" title="pdstools.PegaDefaultTables"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PegaDefaultTables</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.ValueFinder" title="pdstools.ValueFinder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueFinder</span></code></a></p></td>
 <td><p>Class to analyze Value Finder datasets.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.Sample" title="pdstools.Sample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sample</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.Sample" title="pdstools.Sample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sample</span></code></a></p></td>
 <td><p></p></td>
 </tr>
 </tbody>
@@ -413,7 +418,7 @@
 </div>
 <dl class="py data">
 <dt class="sig sig-object py" id="pdstools.__version__">
-<span class="sig-name descname"><span class="pre">__version__</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'3.1.2'</span></em><a class="headerlink" href="#pdstools.__version__" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">__version__</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'3.1.3'</span></em><a class="headerlink" href="#pdstools.__version__" title="Permalink to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py class">
@@ -672,12 +677,14 @@ The variables that were not found in the table</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMDatamart._set_types">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_set_types</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pdstools.utils.types.any_frame</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamp_fmt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict_conversion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pdstools.utils.types.any_frame</span></span></span><a class="headerlink" href="#pdstools.ADMDatamart._set_types" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_set_types</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pdstools.utils.types.any_frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'infer'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamp_fmt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict_conversion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pdstools.utils.types.any_frame</span></span></span><a class="headerlink" href="#pdstools.ADMDatamart._set_types" title="Permalink to this definition">#</a></dt>
 <dd><p>A method to change columns to their proper type</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>df</strong> (<em>Union</em><em>[</em><em>pl.DataFrame</em><em>, </em><em>pl.LazyFrame</em><em>]</em>) – The input dataframe</p></li>
+<li><p><strong>table</strong> (<em>str</em>) – The table to set types for. Default is infer, in which case
+it infers the table type from the columns in it.</p></li>
 <li><p><strong>timestamp_fmt</strong> (<em>str</em>) – </p></li>
 <li><p><strong>strict_conversion</strong> (<em>bool</em>) – </p></li>
 </ul>
@@ -832,27 +839,6 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>pl.DataFrame</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.ADMDatamart._extract_keys">
-<span class="sig-name descname"><span class="pre">_extract_keys</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pdstools.utils.types.any_frame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pdstools.utils.types.any_frame</span></span></span><a class="headerlink" href="#pdstools.ADMDatamart._extract_keys" title="Permalink to this definition">#</a></dt>
-<dd><p>Extracts keys out of the pyName column</p>
-<p>This is not a lazy operation as we don’t know the possible keys
-in advance. For that reason, we select only the pyName column,
-extract the keys from that, and then collect the resulting dataframe.
-This dataframe is then joined back to the original dataframe.</p>
-<p>This is relatively efficient, but we still do need the whole
-pyName column in memory to do this, so it won’t work completely
-lazily from e.g. s3. That’s why it only works with eager mode.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>df</strong> (<em>Union</em><em>[</em><em>pl.DataFrame</em><em>, </em><em>pl.LazyFrame</em><em>]</em>) – The dataframe to extract the keys from</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>pdstools.utils.types.any_frame</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1545,6 +1531,476 @@ This function extracts that information to infer types for the HDS.</p>
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">PegaDefaultTables</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables" title="Permalink to this definition">#</a></dt>
+<dd><dl class="py class">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ADMModelSnapshot</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot" title="Permalink to this definition">#</a></dt>
+<dd><dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pxApplication">
+<span class="sig-name descname"><span class="pre">pxApplication</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pxApplication" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pyAppliesToClass">
+<span class="sig-name descname"><span class="pre">pyAppliesToClass</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyAppliesToClass" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pyModelID">
+<span class="sig-name descname"><span class="pre">pyModelID</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyModelID" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pyConfigurationName">
+<span class="sig-name descname"><span class="pre">pyConfigurationName</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyConfigurationName" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pySnapshotTime">
+<span class="sig-name descname"><span class="pre">pySnapshotTime</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pySnapshotTime" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pyIssue">
+<span class="sig-name descname"><span class="pre">pyIssue</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyIssue" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pyGroup">
+<span class="sig-name descname"><span class="pre">pyGroup</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyGroup" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pyName">
+<span class="sig-name descname"><span class="pre">pyName</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyName" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pyChannel">
+<span class="sig-name descname"><span class="pre">pyChannel</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyChannel" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pyDirection">
+<span class="sig-name descname"><span class="pre">pyDirection</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyDirection" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pyTreatment">
+<span class="sig-name descname"><span class="pre">pyTreatment</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyTreatment" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pyPerformance">
+<span class="sig-name descname"><span class="pre">pyPerformance</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyPerformance" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pySuccessRate">
+<span class="sig-name descname"><span class="pre">pySuccessRate</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pySuccessRate" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pyResponseCount">
+<span class="sig-name descname"><span class="pre">pyResponseCount</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyResponseCount" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pxObjClass">
+<span class="sig-name descname"><span class="pre">pxObjClass</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pxObjClass" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pzInsKey">
+<span class="sig-name descname"><span class="pre">pzInsKey</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pzInsKey" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pxInsName">
+<span class="sig-name descname"><span class="pre">pxInsName</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pxInsName" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pxSaveDateTime">
+<span class="sig-name descname"><span class="pre">pxSaveDateTime</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pxSaveDateTime" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pxCommitDateTime">
+<span class="sig-name descname"><span class="pre">pxCommitDateTime</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pxCommitDateTime" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pyExtension">
+<span class="sig-name descname"><span class="pre">pyExtension</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyExtension" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pyActivePredictors">
+<span class="sig-name descname"><span class="pre">pyActivePredictors</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyActivePredictors" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pyTotalPredictors">
+<span class="sig-name descname"><span class="pre">pyTotalPredictors</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyTotalPredictors" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pyNegatives">
+<span class="sig-name descname"><span class="pre">pyNegatives</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyNegatives" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pyPositives">
+<span class="sig-name descname"><span class="pre">pyPositives</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyPositives" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pyRelativeNegatives">
+<span class="sig-name descname"><span class="pre">pyRelativeNegatives</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyRelativeNegatives" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pyRelativePositives">
+<span class="sig-name descname"><span class="pre">pyRelativePositives</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyRelativePositives" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pyRelativeResponseCount">
+<span class="sig-name descname"><span class="pre">pyRelativeResponseCount</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyRelativeResponseCount" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pyMemory">
+<span class="sig-name descname"><span class="pre">pyMemory</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyMemory" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pyPerformanceThreshold">
+<span class="sig-name descname"><span class="pre">pyPerformanceThreshold</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyPerformanceThreshold" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pyCorrelationThreshold">
+<span class="sig-name descname"><span class="pre">pyCorrelationThreshold</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyCorrelationThreshold" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pyPerformanceError">
+<span class="sig-name descname"><span class="pre">pyPerformanceError</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyPerformanceError" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pyModelData">
+<span class="sig-name descname"><span class="pre">pyModelData</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyModelData" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pyModelVersion">
+<span class="sig-name descname"><span class="pre">pyModelVersion</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyModelVersion" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMModelSnapshot.pyFactoryUpdatetime">
+<span class="sig-name descname"><span class="pre">pyFactoryUpdatetime</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyFactoryUpdatetime" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ADMPredictorBinningSnapshot</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot" title="Permalink to this definition">#</a></dt>
+<dd><dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pxCommitDateTime">
+<span class="sig-name descname"><span class="pre">pxCommitDateTime</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pxCommitDateTime" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pxSaveDateTime">
+<span class="sig-name descname"><span class="pre">pxSaveDateTime</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pxSaveDateTime" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyModelID">
+<span class="sig-name descname"><span class="pre">pyModelID</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyModelID" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pxObjClass">
+<span class="sig-name descname"><span class="pre">pxObjClass</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pxObjClass" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pzInsKey">
+<span class="sig-name descname"><span class="pre">pzInsKey</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pzInsKey" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pxInsName">
+<span class="sig-name descname"><span class="pre">pxInsName</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pxInsName" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyPredictorName">
+<span class="sig-name descname"><span class="pre">pyPredictorName</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyPredictorName" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyContents">
+<span class="sig-name descname"><span class="pre">pyContents</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyContents" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyPerformance">
+<span class="sig-name descname"><span class="pre">pyPerformance</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyPerformance" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyPositives">
+<span class="sig-name descname"><span class="pre">pyPositives</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyPositives" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyNegatives">
+<span class="sig-name descname"><span class="pre">pyNegatives</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyNegatives" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyType">
+<span class="sig-name descname"><span class="pre">pyType</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyType" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyTotalBins">
+<span class="sig-name descname"><span class="pre">pyTotalBins</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyTotalBins" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyResponseCount">
+<span class="sig-name descname"><span class="pre">pyResponseCount</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyResponseCount" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyRelativePositives">
+<span class="sig-name descname"><span class="pre">pyRelativePositives</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyRelativePositives" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyRelativeNegatives">
+<span class="sig-name descname"><span class="pre">pyRelativeNegatives</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyRelativeNegatives" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyRelativeResponseCount">
+<span class="sig-name descname"><span class="pre">pyRelativeResponseCount</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyRelativeResponseCount" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinNegatives">
+<span class="sig-name descname"><span class="pre">pyBinNegatives</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinNegatives" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinPositives">
+<span class="sig-name descname"><span class="pre">pyBinPositives</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinPositives" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinType">
+<span class="sig-name descname"><span class="pre">pyBinType</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinType" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinNegativesPercentage">
+<span class="sig-name descname"><span class="pre">pyBinNegativesPercentage</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinNegativesPercentage" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinPositivesPercentage">
+<span class="sig-name descname"><span class="pre">pyBinPositivesPercentage</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinPositivesPercentage" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinSymbol">
+<span class="sig-name descname"><span class="pre">pyBinSymbol</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinSymbol" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinLowerBound">
+<span class="sig-name descname"><span class="pre">pyBinLowerBound</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinLowerBound" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinUpperBound">
+<span class="sig-name descname"><span class="pre">pyBinUpperBound</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinUpperBound" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyRelativeBinPositives">
+<span class="sig-name descname"><span class="pre">pyRelativeBinPositives</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyRelativeBinPositives" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyRelativeBinNegatives">
+<span class="sig-name descname"><span class="pre">pyRelativeBinNegatives</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyRelativeBinNegatives" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinResponseCount">
+<span class="sig-name descname"><span class="pre">pyBinResponseCount</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinResponseCount" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyRelativeBinResponseCount">
+<span class="sig-name descname"><span class="pre">pyRelativeBinResponseCount</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyRelativeBinResponseCount" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinResponseCountPercentage">
+<span class="sig-name descname"><span class="pre">pyBinResponseCountPercentage</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinResponseCountPercentage" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pySnapshotTime">
+<span class="sig-name descname"><span class="pre">pySnapshotTime</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pySnapshotTime" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinIndex">
+<span class="sig-name descname"><span class="pre">pyBinIndex</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinIndex" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyLift">
+<span class="sig-name descname"><span class="pre">pyLift</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyLift" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyZRatio">
+<span class="sig-name descname"><span class="pre">pyZRatio</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyZRatio" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyEntryType">
+<span class="sig-name descname"><span class="pre">pyEntryType</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyEntryType" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyExtension">
+<span class="sig-name descname"><span class="pre">pyExtension</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyExtension" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyGroupIndex">
+<span class="sig-name descname"><span class="pre">pyGroupIndex</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyGroupIndex" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyCorrelationPredictor">
+<span class="sig-name descname"><span class="pre">pyCorrelationPredictor</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyCorrelationPredictor" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.pyValueFinder">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">pyValueFinder</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.pyValueFinder" title="Permalink to this definition">#</a></dt>
+<dd><dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.pyValueFinder.pyDirection">
+<span class="sig-name descname"><span class="pre">pyDirection</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.pyValueFinder.pyDirection" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.pyValueFinder.pySubjectType">
+<span class="sig-name descname"><span class="pre">pySubjectType</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.pyValueFinder.pySubjectType" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.pyValueFinder.ModelPositives">
+<span class="sig-name descname"><span class="pre">ModelPositives</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.pyValueFinder.ModelPositives" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.pyValueFinder.pyGroup">
+<span class="sig-name descname"><span class="pre">pyGroup</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.pyValueFinder.pyGroup" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.pyValueFinder.pyPropensity">
+<span class="sig-name descname"><span class="pre">pyPropensity</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.pyValueFinder.pyPropensity" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.pyValueFinder.FinalPropensity">
+<span class="sig-name descname"><span class="pre">FinalPropensity</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.pyValueFinder.FinalPropensity" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.pyValueFinder.pyStage">
+<span class="sig-name descname"><span class="pre">pyStage</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.pyValueFinder.pyStage" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.pyValueFinder.pxRank">
+<span class="sig-name descname"><span class="pre">pxRank</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.pyValueFinder.pxRank" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.pyValueFinder.pxPriority">
+<span class="sig-name descname"><span class="pre">pxPriority</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.pyValueFinder.pxPriority" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.pyValueFinder.pyModelPropensity">
+<span class="sig-name descname"><span class="pre">pyModelPropensity</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.pyValueFinder.pyModelPropensity" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.pyValueFinder.pyChannel">
+<span class="sig-name descname"><span class="pre">pyChannel</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.pyValueFinder.pyChannel" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.pyValueFinder.Value">
+<span class="sig-name descname"><span class="pre">Value</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.pyValueFinder.Value" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.pyValueFinder.pyName">
+<span class="sig-name descname"><span class="pre">pyName</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.pyValueFinder.pyName" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.pyValueFinder.StartingEvidence">
+<span class="sig-name descname"><span class="pre">StartingEvidence</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.pyValueFinder.StartingEvidence" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.pyValueFinder.pySubjectID">
+<span class="sig-name descname"><span class="pre">pySubjectID</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.pyValueFinder.pySubjectID" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.pyValueFinder.DecisionTime">
+<span class="sig-name descname"><span class="pre">DecisionTime</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.pyValueFinder.DecisionTime" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.pyValueFinder.pyTreatment">
+<span class="sig-name descname"><span class="pre">pyTreatment</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.pyValueFinder.pyTreatment" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.PegaDefaultTables.pyValueFinder.pyIssue">
+<span class="sig-name descname"><span class="pre">pyIssue</span></span><a class="headerlink" href="#pdstools.PegaDefaultTables.pyValueFinder.pyIssue" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="pdstools.ValueFinder">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ValueFinder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.DataFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.LazyFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">import_strategy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="pre">eager</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">lazy</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'eager'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ValueFinder" title="Permalink to this definition">#</a></dt>
 <dd><p>Class to analyze Value Finder datasets.</p>
@@ -1894,7 +2350,6 @@ or based on the quantile of the propensity</p></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart.processTables"><code class="docutils literal notranslate"><span class="pre">processTables()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart.save_data"><code class="docutils literal notranslate"><span class="pre">save_data()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart._apply_query"><code class="docutils literal notranslate"><span class="pre">_apply_query()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.ADMDatamart._extract_keys"><code class="docutils literal notranslate"><span class="pre">_extract_keys()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart.discover_modelTypes"><code class="docutils literal notranslate"><span class="pre">discover_modelTypes()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart.get_AGB_models"><code class="docutils literal notranslate"><span class="pre">get_AGB_models()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart._create_sign_df"><code class="docutils literal notranslate"><span class="pre">_create_sign_df()</span></code></a></li>
@@ -1952,6 +2407,108 @@ or based on the quantile of the propensity</p></li>
 <li><a class="reference internal" href="#pdstools.DataAnonymization.get_predictors_mapping"><code class="docutils literal notranslate"><span class="pre">get_predictors_mapping()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.DataAnonymization.getHasher"><code class="docutils literal notranslate"><span class="pre">getHasher()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.DataAnonymization.process"><code class="docutils literal notranslate"><span class="pre">process()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables"><code class="docutils literal notranslate"><span class="pre">PegaDefaultTables</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot"><code class="docutils literal notranslate"><span class="pre">ADMModelSnapshot</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pxApplication"><code class="docutils literal notranslate"><span class="pre">pxApplication</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyAppliesToClass"><code class="docutils literal notranslate"><span class="pre">pyAppliesToClass</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyModelID"><code class="docutils literal notranslate"><span class="pre">pyModelID</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyConfigurationName"><code class="docutils literal notranslate"><span class="pre">pyConfigurationName</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pySnapshotTime"><code class="docutils literal notranslate"><span class="pre">pySnapshotTime</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyIssue"><code class="docutils literal notranslate"><span class="pre">pyIssue</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyGroup"><code class="docutils literal notranslate"><span class="pre">pyGroup</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyName"><code class="docutils literal notranslate"><span class="pre">pyName</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyChannel"><code class="docutils literal notranslate"><span class="pre">pyChannel</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyDirection"><code class="docutils literal notranslate"><span class="pre">pyDirection</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyTreatment"><code class="docutils literal notranslate"><span class="pre">pyTreatment</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyPerformance"><code class="docutils literal notranslate"><span class="pre">pyPerformance</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pySuccessRate"><code class="docutils literal notranslate"><span class="pre">pySuccessRate</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyResponseCount"><code class="docutils literal notranslate"><span class="pre">pyResponseCount</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pxObjClass"><code class="docutils literal notranslate"><span class="pre">pxObjClass</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pzInsKey"><code class="docutils literal notranslate"><span class="pre">pzInsKey</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pxInsName"><code class="docutils literal notranslate"><span class="pre">pxInsName</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pxSaveDateTime"><code class="docutils literal notranslate"><span class="pre">pxSaveDateTime</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pxCommitDateTime"><code class="docutils literal notranslate"><span class="pre">pxCommitDateTime</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyExtension"><code class="docutils literal notranslate"><span class="pre">pyExtension</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyActivePredictors"><code class="docutils literal notranslate"><span class="pre">pyActivePredictors</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyTotalPredictors"><code class="docutils literal notranslate"><span class="pre">pyTotalPredictors</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyNegatives"><code class="docutils literal notranslate"><span class="pre">pyNegatives</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyPositives"><code class="docutils literal notranslate"><span class="pre">pyPositives</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyRelativeNegatives"><code class="docutils literal notranslate"><span class="pre">pyRelativeNegatives</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyRelativePositives"><code class="docutils literal notranslate"><span class="pre">pyRelativePositives</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyRelativeResponseCount"><code class="docutils literal notranslate"><span class="pre">pyRelativeResponseCount</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyMemory"><code class="docutils literal notranslate"><span class="pre">pyMemory</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyPerformanceThreshold"><code class="docutils literal notranslate"><span class="pre">pyPerformanceThreshold</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyCorrelationThreshold"><code class="docutils literal notranslate"><span class="pre">pyCorrelationThreshold</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyPerformanceError"><code class="docutils literal notranslate"><span class="pre">pyPerformanceError</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyModelData"><code class="docutils literal notranslate"><span class="pre">pyModelData</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyModelVersion"><code class="docutils literal notranslate"><span class="pre">pyModelVersion</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pyFactoryUpdatetime"><code class="docutils literal notranslate"><span class="pre">pyFactoryUpdatetime</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot"><code class="docutils literal notranslate"><span class="pre">ADMPredictorBinningSnapshot</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pxCommitDateTime"><code class="docutils literal notranslate"><span class="pre">pxCommitDateTime</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pxSaveDateTime"><code class="docutils literal notranslate"><span class="pre">pxSaveDateTime</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyModelID"><code class="docutils literal notranslate"><span class="pre">pyModelID</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pxObjClass"><code class="docutils literal notranslate"><span class="pre">pxObjClass</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pzInsKey"><code class="docutils literal notranslate"><span class="pre">pzInsKey</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pxInsName"><code class="docutils literal notranslate"><span class="pre">pxInsName</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyPredictorName"><code class="docutils literal notranslate"><span class="pre">pyPredictorName</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyContents"><code class="docutils literal notranslate"><span class="pre">pyContents</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyPerformance"><code class="docutils literal notranslate"><span class="pre">pyPerformance</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyPositives"><code class="docutils literal notranslate"><span class="pre">pyPositives</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyNegatives"><code class="docutils literal notranslate"><span class="pre">pyNegatives</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyType"><code class="docutils literal notranslate"><span class="pre">pyType</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyTotalBins"><code class="docutils literal notranslate"><span class="pre">pyTotalBins</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyResponseCount"><code class="docutils literal notranslate"><span class="pre">pyResponseCount</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyRelativePositives"><code class="docutils literal notranslate"><span class="pre">pyRelativePositives</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyRelativeNegatives"><code class="docutils literal notranslate"><span class="pre">pyRelativeNegatives</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyRelativeResponseCount"><code class="docutils literal notranslate"><span class="pre">pyRelativeResponseCount</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinNegatives"><code class="docutils literal notranslate"><span class="pre">pyBinNegatives</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinPositives"><code class="docutils literal notranslate"><span class="pre">pyBinPositives</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinType"><code class="docutils literal notranslate"><span class="pre">pyBinType</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinNegativesPercentage"><code class="docutils literal notranslate"><span class="pre">pyBinNegativesPercentage</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinPositivesPercentage"><code class="docutils literal notranslate"><span class="pre">pyBinPositivesPercentage</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinSymbol"><code class="docutils literal notranslate"><span class="pre">pyBinSymbol</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinLowerBound"><code class="docutils literal notranslate"><span class="pre">pyBinLowerBound</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinUpperBound"><code class="docutils literal notranslate"><span class="pre">pyBinUpperBound</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyRelativeBinPositives"><code class="docutils literal notranslate"><span class="pre">pyRelativeBinPositives</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyRelativeBinNegatives"><code class="docutils literal notranslate"><span class="pre">pyRelativeBinNegatives</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinResponseCount"><code class="docutils literal notranslate"><span class="pre">pyBinResponseCount</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyRelativeBinResponseCount"><code class="docutils literal notranslate"><span class="pre">pyRelativeBinResponseCount</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinResponseCountPercentage"><code class="docutils literal notranslate"><span class="pre">pyBinResponseCountPercentage</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pySnapshotTime"><code class="docutils literal notranslate"><span class="pre">pySnapshotTime</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyBinIndex"><code class="docutils literal notranslate"><span class="pre">pyBinIndex</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyLift"><code class="docutils literal notranslate"><span class="pre">pyLift</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyZRatio"><code class="docutils literal notranslate"><span class="pre">pyZRatio</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyEntryType"><code class="docutils literal notranslate"><span class="pre">pyEntryType</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyExtension"><code class="docutils literal notranslate"><span class="pre">pyExtension</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyGroupIndex"><code class="docutils literal notranslate"><span class="pre">pyGroupIndex</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMPredictorBinningSnapshot.pyCorrelationPredictor"><code class="docutils literal notranslate"><span class="pre">pyCorrelationPredictor</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.pyValueFinder"><code class="docutils literal notranslate"><span class="pre">pyValueFinder</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.pyValueFinder.pyDirection"><code class="docutils literal notranslate"><span class="pre">pyDirection</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.pyValueFinder.pySubjectType"><code class="docutils literal notranslate"><span class="pre">pySubjectType</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.pyValueFinder.ModelPositives"><code class="docutils literal notranslate"><span class="pre">ModelPositives</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.pyValueFinder.pyGroup"><code class="docutils literal notranslate"><span class="pre">pyGroup</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.pyValueFinder.pyPropensity"><code class="docutils literal notranslate"><span class="pre">pyPropensity</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.pyValueFinder.FinalPropensity"><code class="docutils literal notranslate"><span class="pre">FinalPropensity</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.pyValueFinder.pyStage"><code class="docutils literal notranslate"><span class="pre">pyStage</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.pyValueFinder.pxRank"><code class="docutils literal notranslate"><span class="pre">pxRank</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.pyValueFinder.pxPriority"><code class="docutils literal notranslate"><span class="pre">pxPriority</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.pyValueFinder.pyModelPropensity"><code class="docutils literal notranslate"><span class="pre">pyModelPropensity</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.pyValueFinder.pyChannel"><code class="docutils literal notranslate"><span class="pre">pyChannel</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.pyValueFinder.Value"><code class="docutils literal notranslate"><span class="pre">Value</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.pyValueFinder.pyName"><code class="docutils literal notranslate"><span class="pre">pyName</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.pyValueFinder.StartingEvidence"><code class="docutils literal notranslate"><span class="pre">StartingEvidence</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.pyValueFinder.pySubjectID"><code class="docutils literal notranslate"><span class="pre">pySubjectID</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.pyValueFinder.DecisionTime"><code class="docutils literal notranslate"><span class="pre">DecisionTime</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.pyValueFinder.pyTreatment"><code class="docutils literal notranslate"><span class="pre">pyTreatment</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.PegaDefaultTables.pyValueFinder.pyIssue"><code class="docutils literal notranslate"><span class="pre">pyIssue</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a class="reference internal" href="#pdstools.ValueFinder"><code class="docutils literal notranslate"><span class="pre">ValueFinder</span></code></a><ul>

@@ -232,6 +232,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../polars_ext/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.polars_ext</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../show_versions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.show_versions</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../streamlit_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.streamlit_utils</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../table_definitions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.table_definitions</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../types/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.types</span></code></a></li>
 </ul>
 </li>
@@ -293,8 +294,20 @@ of data analysis, reporting and monitoring.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.defaultPredictorCategorization" title="pdstools.utils.cdh_utils.defaultPredictorCategorization"><code class="xref py py-obj docutils literal notranslate"><span class="pre">defaultPredictorCategorization</span></code></a>() → polars.Expr)</p></td>
 <td><p>Function to determine the 'category' of a predictor.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.parsePegaDateTimeFormats" title="pdstools.utils.cdh_utils.parsePegaDateTimeFormats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">parsePegaDateTimeFormats</span></code></a>([timestampCol, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils._extract_keys" title="pdstools.utils.cdh_utils._extract_keys"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_extract_keys</span></code></a>(→ pdstools.utils.types.any_frame)</p></td>
+<td><p>Extracts keys out of the pyName column</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.parsePegaDateTimeFormats" title="pdstools.utils.cdh_utils.parsePegaDateTimeFormats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">parsePegaDateTimeFormats</span></code></a>([timestampCol, ...])</p></td>
 <td><p>Parses Pega DateTime formats.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.getTypeMapping" title="pdstools.utils.cdh_utils.getTypeMapping"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getTypeMapping</span></code></a>(df, definition, **timestamp_opts)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.set_types" title="pdstools.utils.cdh_utils.set_types"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_types</span></code></a>(df[, table])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.inferTableDefinition" title="pdstools.utils.cdh_utils.inferTableDefinition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">inferTableDefinition</span></code></a>(df)</p></td>
+<td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.safe_range_auc" title="pdstools.utils.cdh_utils.safe_range_auc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">safe_range_auc</span></code></a>(→ float)</p></td>
 <td><p>Internal helper to keep auc a safe number between 0.5 and 1.0 always.</p></td>
@@ -373,6 +386,27 @@ otherwise returns the first string before the first period</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils._extract_keys">
+<span class="sig-name descname"><span class="pre">_extract_keys</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pdstools.utils.types.any_frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Name'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">capitalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">import_strategy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'eager'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pdstools.utils.types.any_frame</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils._extract_keys" title="Permalink to this definition">#</a></dt>
+<dd><p>Extracts keys out of the pyName column</p>
+<p>This is not a lazy operation as we don’t know the possible keys
+in advance. For that reason, we select only the pyName column,
+extract the keys from that, and then collect the resulting dataframe.
+This dataframe is then joined back to the original dataframe.</p>
+<p>This is relatively efficient, but we still do need the whole
+pyName column in memory to do this, so it won’t work completely
+lazily from e.g. s3. That’s why it only works with eager mode.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>Union</em><em>[</em><em>pl.DataFrame</em><em>, </em><em>pl.LazyFrame</em><em>]</em>) – The dataframe to extract the keys from</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>pdstools.utils.types.any_frame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="pdstools.utils.cdh_utils.parsePegaDateTimeFormats">
 <span class="sig-name descname"><span class="pre">parsePegaDateTimeFormats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestampCol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'SnapshotTime'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamp_fmt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict_conversion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.cdh_utils.parsePegaDateTimeFormats" title="Permalink to this definition">#</a></dt>
 <dd><p>Parses Pega DateTime formats.</p>
@@ -393,6 +427,21 @@ otherwise returns the first string before the first period</p>
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.getTypeMapping">
+<span class="sig-name descname"><span class="pre">getTypeMapping</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">definition</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">timestamp_opts</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.cdh_utils.getTypeMapping" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.set_types">
+<span class="sig-name descname"><span class="pre">set_types</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'infer'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">timestamp_opts</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.cdh_utils.set_types" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.inferTableDefinition">
+<span class="sig-name descname"><span class="pre">inferTableDefinition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.cdh_utils.inferTableDefinition" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.utils.cdh_utils.safe_range_auc">
@@ -757,7 +806,11 @@ will prompt you to update them.</p>
 <li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
 <li><a class="reference internal" href="#functions">Functions</a><ul>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.defaultPredictorCategorization"><code class="docutils literal notranslate"><span class="pre">defaultPredictorCategorization()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils._extract_keys"><code class="docutils literal notranslate"><span class="pre">_extract_keys()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.parsePegaDateTimeFormats"><code class="docutils literal notranslate"><span class="pre">parsePegaDateTimeFormats()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.getTypeMapping"><code class="docutils literal notranslate"><span class="pre">getTypeMapping()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.set_types"><code class="docutils literal notranslate"><span class="pre">set_types()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.inferTableDefinition"><code class="docutils literal notranslate"><span class="pre">inferTableDefinition()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.safe_range_auc"><code class="docutils literal notranslate"><span class="pre">safe_range_auc()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.auc_from_probs"><code class="docutils literal notranslate"><span class="pre">auc_from_probs()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.auc_from_bincounts"><code class="docutils literal notranslate"><span class="pre">auc_from_bincounts()</span></code></a></li>
