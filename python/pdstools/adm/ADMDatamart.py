@@ -474,8 +474,8 @@ class ADMDatamart(Plots, Tables):
 
         return to_import, missing
 
-    @staticmethod
     def _set_types(
+        self,
         df: any_frame,
         table: str = "infer",
         *,
@@ -506,7 +506,11 @@ class ADMDatamart(Plots, Tables):
         """
 
         df = cdh_utils.set_types(
-            df, table, timestamp_fmt=timestamp_fmt, strict_conversion=strict_conversion
+            df,
+            table,
+            verbose=self.verbose,
+            timestamp_fmt=timestamp_fmt,
+            strict_conversion=strict_conversion,
         )
         if "SnapshotTime" not in df.columns:
             df = df.with_columns(SnapshotTime=None)

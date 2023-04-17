@@ -142,7 +142,7 @@ def parsePegaDateTimeFormats(
         ).alias(timestampCol)
 
 
-def getTypeMapping(df, definition, **timestamp_opts):
+def getTypeMapping(df, definition, verbose=False, **timestamp_opts):
     def getMapping(columns, reverse=False):
         if not reverse:
             return dict(zip(columns, _capitalize(columns)))
@@ -163,11 +163,12 @@ def getTypeMapping(df, definition, **timestamp_opts):
                 else:
                     types.append(pl.col(col).cast(new_type))
         except:
-            print("Unknown column:", col)
+            if verbose:
+                print(f"Column {col} not in default table schema, can't set type.")
     return types
 
 
-def set_types(df, table="infer", **timestamp_opts):
+def set_types(df, table="infer", verbose=False, **timestamp_opts):
     if table == "infer":
         table = inferTableDefinition(df)
 
@@ -181,7 +182,7 @@ def set_types(df, table="infer", **timestamp_opts):
     else:
         raise ValueError(table)
 
-    mapping = getTypeMapping(df, definition, **timestamp_opts)
+    mapping = getTypeMapping(df, definition, verbose=verbose, **timestamp_opts)
 
     if len(mapping) > 0:
         return df.with_columns(mapping)
