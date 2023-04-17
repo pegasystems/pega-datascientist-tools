@@ -667,7 +667,7 @@ class ValueFinder:
             )
             .join(
                 df.groupby("pyStage")
-                .agg(pl.col(level).value_counts().sort())
+                .agg(pl.col(level).cast(pl.Utf8).value_counts().sort())
                 .explode(level)
                 .unnest(level),
                 on="pyStage",
