@@ -212,7 +212,6 @@ Classes
 
 
    .. py:method:: _set_types(df: pdstools.utils.types.any_frame, table: str = 'infer', *, timestamp_fmt: str = None, strict_conversion: bool = True) -> pdstools.utils.types.any_frame
-      :staticmethod:
 
       A method to change columns to their proper type
 

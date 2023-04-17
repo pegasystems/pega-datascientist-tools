@@ -103,10 +103,10 @@ Functions
    :type strict_conversion: bool, default = True
 
 
-.. py:function:: getTypeMapping(df, definition, **timestamp_opts)
+.. py:function:: getTypeMapping(df, definition, verbose=False, **timestamp_opts)
 
 
-.. py:function:: set_types(df, table='infer', **timestamp_opts)
+.. py:function:: set_types(df, table='infer', verbose=False, **timestamp_opts)
 
 
 .. py:function:: inferTableDefinition(df)
