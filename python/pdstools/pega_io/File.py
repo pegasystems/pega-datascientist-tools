@@ -157,20 +157,21 @@ def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
         file = BytesIO(gzip.GzipFile(file).read())
 
     if extension == ".csv":
+        csv_opts = dict(
+            separator=reading_opts.get("sep", ","),
+            infer_schema_length=reading_opts.pop("infer_schema_length", 10000),
+            null_values=["", "NA", "N/A", "NULL"],
+            dtypes={"PYMODELID": pl.Utf8},
+            try_parse_dates=True,
+            **reading_opts,
+        )
         if isinstance(file, BytesIO):
             file = pl.read_csv(
                 file,
-                infer_schema_length=reading_opts.pop("infer_schema_length", 10000),
-                try_parse_dates=True,
+                **csv_opts,
             ).lazy()
         else:
-            file = pl.scan_csv(
-                file,
-                separator=reading_opts.get("sep", ","),
-                infer_schema_length=10000,
-                null_values=["", "NA", "N/A"],
-                dtypes={"PYMODELID": pl.Utf8},
-            )
+            file = pl.scan_csv(file, **csv_opts)
 
     elif extension == ".json":
         try:
