@@ -32,10 +32,54 @@ class S3Data:
         This method asyncronously retrieves these files, and puts them in
         a temporary directory.
 
-        parameters
+        The logic, if `use_meta_files` is True, is:
+
+        1. Take the prefix, add a `.` in front of it
+        (`'path/to/files'` becomes (`'path/to/.files'`)
+
+        * rsplit on `/` (`['path/to', 'files']`)
+
+        * take the last element (`'files'`)
+
+        * add `.` in front of it (`'.files'`)
+
+        * concat back to a filepath  (`'path/to/.files'`)
+
+        3. fetch all files in the repo that adhere to the prefix (`'path/to/.files*'`)
+
+        4. For each file, if the file ends with `.meta`:
+
+        * rsplit on '/' (`['path/to', '.files_001.json.meta']`)
+
+        * for the last element (just the filename), strip the period and the .meta (`['path/to', 'files_001.json']`)
+
+        * concat back to a filepath (`'path/to/files_001.json'`)
+
+        5. Import all files in the list
+
+        If `use_meta_files` is False, the logic is as simple as:
+
+        1. Import all files starting with the prefix 
+        (`'path/to/files'` gives 
+        `['path/to/files_001.json', 'path/to/files_002.json', etc]`, 
+        irrespective of whether a `.meta` file exists).
+
+        Parameters
         ----------
         prefix: str
             The prefix, pointing to the s3 files. See boto3 docs for filter.
+        use_meta_files: bool, default=False
+            Whether to use the meta files to check for eligible files
+
+        Notes
+        -----
+        We don't import/copy over the .meta files at all.
+        There is an internal function, getNewFiles(), that checks if the filename
+        exists in the local file system. Since the meta files are not really useful for
+        local processing, there's no sense in copying them over. This logic also still
+        works with the use_meta_files - we first check which files are 'eligible' in S3
+        because they have a meta file, then we check if the 'real' files exist on disk.
+        If the file is already on disk, we don't copy it over.
 
         """
         import os
