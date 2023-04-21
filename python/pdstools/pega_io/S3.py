@@ -26,7 +26,7 @@ class S3Data:
         self.bucketName = bucketName
         self.temp_dir = temp_dir
 
-    async def getS3Files(self, prefix, verbose=True):
+    async def getS3Files(self, prefix, use_meta_files=False, verbose=True):
         """OOTB file exports can be written in many very small files.
 
         This method asyncronously retrieves these files, and puts them in
@@ -44,31 +44,54 @@ class S3Data:
             if not os.path.exists(path):
                 os.mkdir(path)
 
+        def localFile(file):
+            return f"{self.temp_dir}/{file}"
+
+        def getNewFiles(files):
+            newFiles, alreadyOnDisk = [], []
+            for file in files:
+                localFileName = localFile(file)
+                if os.path.exists(localFileName):
+                    alreadyOnDisk.append(file)
+                else:
+                    newFiles.append(file)
+            return newFiles, alreadyOnDisk
+
+        def createTask(file):
+            filename = f"{self.temp_dir}/{file}"
+            createPathIfNotExists(f"{self.temp_dir}/{file.rsplit('/')[:-1][0]}")
+            return asyncio.create_task(
+                s3.meta.client.download_file(self.bucketName, file, filename)
+            )
+
+        async def getfilesToImport(bucket, prefix, use_meta_files=False):
+            if use_meta_files:
+                to_import = []
+                prefix2 = "/.".join(prefix.rsplit("/", 1))
+                async for s3_object in bucket.objects.filter(Prefix=prefix2):
+                    f = s3_object.key
+                    if str(f).endswith(".meta"):
+                        to_import.append(
+                            "/".join(f.rsplit("/.", 1)).rsplit(".meta", 1)[0]
+                        )
+            else:
+                to_import = [
+                    s3_object.key
+                    async for s3_object in bucket.objects.filter(Prefix=prefix)
+                ]
+            return getNewFiles(to_import)
+
         createPathIfNotExists(self.temp_dir)
+
         session = aioboto3.Session()
         async with session.resource("s3") as s3:
-            tasks = []
-            files = []
-            alreadyOnDisk = []
             bucket = await s3.Bucket(self.bucketName)
-            async for s3_object in bucket.objects.filter(Prefix=prefix):
-                filename = f"{self.temp_dir}/{s3_object.key}"
-                files.append(filename)
-                if os.path.exists(filename):
-                    alreadyOnDisk.append(filename)
-                    continue
+            files, alreadyOnDisk = await getfilesToImport(
+                bucket, prefix, use_meta_files
+            )
 
-                createPathIfNotExists(
-                    f"{self.temp_dir}/{s3_object.key.rsplit('/')[:-1][0]}"
-                )
+            tasks = [createTask(f) for f in files]
 
-                tasks.append(
-                    asyncio.create_task(
-                        s3.meta.client.download_file(
-                            self.bucketName, s3_object.key, filename
-                        )
-                    )
-                )
             _ = [
                 await task_
                 for task_ in tqdm.as_completed(
@@ -78,11 +101,12 @@ class S3Data:
                     disable=not verbose,
                 )
             ]
+
         if verbose:
             print(
                 f"Completed {prefix}. Imported {len(files)} files, skipped {len(alreadyOnDisk)} files."
             )
-        return files
+        return list(map(localFile, [*files, *alreadyOnDisk]))
 
     async def getDatamartData(
         self, table, datamart_folder: str = "datamart", verbose: bool = True
