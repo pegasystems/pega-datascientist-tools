@@ -558,11 +558,48 @@ Default is IPC, also supports parquet</p></li>
 <dd><p>OOTB file exports can be written in many very small files.</p>
 <p>This method asyncronously retrieves these files, and puts them in
 a temporary directory.</p>
+<p>The logic, if <cite>use_meta_files</cite> is True, is:</p>
+<p>1. Take the prefix, add a <cite>.</cite> in front of it
+(<cite>‘path/to/files’</cite> becomes (<cite>‘path/to/.files’</cite>)</p>
+<ul class="simple">
+<li><p>rsplit on <cite>/</cite> (<cite>[‘path/to’, ‘files’]</cite>)</p></li>
+<li><p>take the last element (<cite>‘files’</cite>)</p></li>
+<li><p>add <cite>.</cite> in front of it (<cite>‘.files’</cite>)</p></li>
+<li><p>concat back to a filepath  (<cite>‘path/to/.files’</cite>)</p></li>
+</ul>
+<ol class="arabic simple" start="3">
+<li><p>fetch all files in the repo that adhere to the prefix (<cite>‘path/to/.files*’</cite>)</p></li>
+<li><p>For each file, if the file ends with <cite>.meta</cite>:</p></li>
+</ol>
+<ul class="simple">
+<li><p>rsplit on ‘/’ (<cite>[‘path/to’, ‘.files_001.json.meta’]</cite>)</p></li>
+<li><p>for the last element (just the filename), strip the period and the .meta (<cite>[‘path/to’, ‘files_001.json’]</cite>)</p></li>
+<li><p>concat back to a filepath (<cite>‘path/to/files_001.json’</cite>)</p></li>
+</ul>
+<ol class="arabic simple" start="5">
+<li><p>Import all files in the list</p></li>
+</ol>
+<p>If <cite>use_meta_files</cite> is False, the logic is as simple as:</p>
+<p>1. Import all files starting with the prefix
+(<cite>‘path/to/files’</cite> gives
+<cite>[‘path/to/files_001.json’, ‘path/to/files_002.json’, etc]</cite>,
+irrespective of whether a <cite>.meta</cite> file exists).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>prefix</strong> (<em>str</em>) – The prefix, pointing to the s3 files. See boto3 docs for filter.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>prefix</strong> (<em>str</em>) – The prefix, pointing to the s3 files. See boto3 docs for filter.</p></li>
+<li><p><strong>use_meta_files</strong> (<em>bool</em><em>, </em><em>default=False</em>) – Whether to use the meta files to check for eligible files</p></li>
+</ul>
 </dd>
 </dl>
+<p class="rubric">Notes</p>
+<p>We don’t import/copy over the .meta files at all.
+There is an internal function, getNewFiles(), that checks if the filename
+exists in the local file system. Since the meta files are not really useful for
+local processing, there’s no sense in copying them over. This logic also still
+works with the use_meta_files - we first check which files are ‘eligible’ in S3
+because they have a meta file, then we check if the ‘real’ files exist on disk.
+If the file is already on disk, we don’t copy it over.</p>
 </dd></dl>
 
 <dl class="py method">
