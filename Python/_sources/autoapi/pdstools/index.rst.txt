@@ -911,10 +911,10 @@ Attributes
       Map the predictor names to their anonymized form.
 
 
-   .. py:method:: getHasher(cols, algorithm='xxhash', seed: Union[Literal[0, random], int] = 0, seed_1=None, seed_2=None, seed_3=None)
+   .. py:method:: getHasher(cols, algorithm='xxhash', seed='random', seed_1=None, seed_2=None, seed_3=None)
 
 
-   .. py:method:: process(**kwargs)
+   .. py:method:: process(strategy='eager', **kwargs)
 
       Anonymize the dataset.
 
