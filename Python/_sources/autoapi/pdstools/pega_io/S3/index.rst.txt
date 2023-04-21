@@ -19,7 +19,7 @@ Classes
 
 .. py:class:: S3Data(bucketName: str, temp_dir='./s3_download')
 
-   .. py:method:: getS3Files(prefix, verbose=True)
+   .. py:method:: getS3Files(prefix, use_meta_files=False, verbose=True)
       :async:
 
       OOTB file exports can be written in many very small files.
