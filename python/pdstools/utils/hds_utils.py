@@ -268,7 +268,9 @@ class DataAnonymization:
 
         for col in df_.columns:
             try:
-                df_.get_column(col).cast(pl.Float64)
+                df_.get_column(col).map_dict({"": None}, default=pl.first()).cast(
+                    pl.Float64
+                )
                 types[col] = "numeric"
             except:
                 types[col] = "symbolic"
@@ -395,7 +397,7 @@ class DataAnonymization:
         self,
         cols,
         algorithm="xxhash",
-        seed: Union[Literal[0, "random"], int] = 0,
+        seed="random",
         seed_1=None,
         seed_2=None,
         seed_3=None,
@@ -416,7 +418,7 @@ class DataAnonymization:
         else:
             return pl.col(cols).apply(algorithm)
 
-    def process(self, **kwargs):
+    def process(self, strategy="eager", **kwargs):
         """Anonymize the dataset."""
 
         def to_hash(cols, **kwargs):
@@ -442,7 +444,9 @@ class DataAnonymization:
             ).alias(col)
 
         df = self.df.with_columns(
-            pl.col(self.numeric_predictors_to_mask).cast(pl.Float64)
+            pl.col(self.numeric_predictors_to_mask)
+            .map_dict({"": None}, default=pl.first())
+            .cast(pl.Float64)
         ).with_columns(
             [
                 to_hash(
@@ -456,7 +460,7 @@ class DataAnonymization:
             df = df.with_columns(
                 to_boolean(self.config.outcome_column, self.config.positive_outcomes)
             )
-        df = (
-            df.select(self.column_mapping.keys()).rename(self.column_mapping)
-        ).collect()
+        df = df.select(self.column_mapping.keys()).rename(self.column_mapping)
+        if strategy == "eager":
+            return df.collect()
         return df
