@@ -768,7 +768,7 @@ Attributes
 .. py:function:: SampleValueFinder(verbose=True)
 
 
-.. py:class:: Config(config_file: Optional[str] = None, hds_folder: pathlib.Path = '.', use_datamart: bool = False, datamart_folder: pathlib.Path = 'datamart', output_format: Literal[ndjson, parquet, arrow, csv] = 'ndjson', output_folder: pathlib.Path = 'output', mapping_file: str = 'mapping.map', mask_predictor_names: bool = True, mask_context_key_names: bool = True, mask_ih_names: bool = True, mask_outcome_name: bool = True, mask_predictor_values: bool = True, mask_context_key_values: bool = True, mask_ih_values: bool = True, mask_outcome_values: bool = True, context_key_label: str = 'Context_*', ih_label: str = 'IH_*', outcome_column: str = 'Decision_Outcome', positive_outcomes: list = ['Accepted', 'Clicked'], negative_outcomes: list = ['Rejected', 'Impression'], special_predictors: list = ['Decision_DecisionTime', 'Decision_OutcomeTime'])
+.. py:class:: Config(config_file: Optional[str] = None, hds_folder: pathlib.Path = '.', use_datamart: bool = False, datamart_folder: pathlib.Path = 'datamart', output_format: Literal[ndjson, parquet, arrow, csv] = 'ndjson', output_folder: pathlib.Path = 'output', mapping_file: str = 'mapping.map', mask_predictor_names: bool = True, mask_context_key_names: bool = True, mask_ih_names: bool = True, mask_outcome_name: bool = True, mask_predictor_values: bool = True, mask_context_key_values: bool = True, mask_ih_values: bool = True, mask_outcome_values: bool = True, context_key_label: str = 'Context_*', ih_label: str = 'IH_*', outcome_column: str = 'Decision_Outcome', positive_outcomes: list = ['Accepted', 'Clicked'], negative_outcomes: list = ['Rejected', 'Impression'], special_predictors: list = ['Decision_DecisionTime', 'Decision_OutcomeTime'], sample_percentage_schema_inferencing: float = 0.01)
 
    Configuration file for the data anonymizer.
 
@@ -814,6 +814,10 @@ Attributes
    :type negative_outcomes: list = ["Rejected", "Impression"]
    :param special_predictors: A list of special predictors which are not touched
    :type special_predictors: list = ["Decision_DecisionTime", "Decision_OutcomeTime"]
+   :param sample_percentage_schema_inferencing: The percentage of records to sample to infer the column type.
+                                                In case you're getting casting errors, it may be useful to
+                                                increase this percentage to check a larger portion of data.
+   :type sample_percentage_schema_inferencing: float
 
    .. py:method:: load_from_config_file(config_file: pathlib.Path)
 
@@ -873,7 +877,6 @@ Attributes
 
 
    .. py:method:: read_predictor_type_from_file(df: polars.LazyFrame)
-      :staticmethod:
 
       Infer the types of the preditors from the data.
 
