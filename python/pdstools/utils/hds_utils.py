@@ -256,7 +256,7 @@ class DataAnonymization:
         def sample_it(s: pl.Series) -> pl.Series:
             out = pl.Series(
                 values=np.random.binomial(
-                    1, self.sample_percentage_schema_inferencing, s.len()
+                    1, self.config.sample_percentage_schema_inferencing, s.len()
                 ),
                 dtype=pl.Boolean,
             )
