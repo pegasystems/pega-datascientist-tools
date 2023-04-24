@@ -57,6 +57,10 @@ class Config:
         Which negative outcomes to map to False
     special_predictors: list = ["Decision_DecisionTime", "Decision_OutcomeTime"]
         A list of special predictors which are not touched
+    sample_percentage_schema_inferencing: float
+        The percentage of records to sample to infer the column type.
+        In case you're getting casting errors, it may be useful to 
+        increase this percentage to check a larger portion of data.
     """
 
     def __init__(
@@ -82,6 +86,7 @@ class Config:
         positive_outcomes: list = ["Accepted", "Clicked"],
         negative_outcomes: list = ["Rejected", "Impression"],
         special_predictors: list = ["Decision_DecisionTime", "Decision_OutcomeTime"],
+        sample_percentage_schema_inferencing:float=0.01,
     ):
         self._opts = {key: value for key, value in vars().items() if key != "self"}
 
@@ -227,8 +232,7 @@ class DataAnonymization:
         df = pl.concat(out, how="diagonal")
         return df
 
-    @staticmethod
-    def read_predictor_type_from_file(df: pl.LazyFrame):
+    def read_predictor_type_from_file(self, df: pl.LazyFrame):
         """Infer the types of the preditors from the data.
 
         This is non-trivial, as it's not ideal to pull in all data to memory for this.
@@ -251,7 +255,9 @@ class DataAnonymization:
 
         def sample_it(s: pl.Series) -> pl.Series:
             out = pl.Series(
-                values=np.random.binomial(1, 0.01, s.len()),
+                values=np.random.binomial(
+                    1, self.sample_percentage_schema_inferencing, s.len()
+                ),
                 dtype=pl.Boolean,
             )
             if out.len() < 50:
