@@ -768,7 +768,7 @@ Attributes
 .. py:function:: SampleValueFinder(verbose=True)
 
 
-.. py:class:: Config(config_file: Optional[str] = None, hds_folder: pathlib.Path = '.', use_datamart: bool = False, datamart_folder: pathlib.Path = 'datamart', output_format: Literal[ndjson, parquet, arrow, csv] = 'ndjson', output_folder: pathlib.Path = 'output', mapping_file: str = 'mapping.map', mask_predictor_names: bool = True, mask_context_key_names: bool = True, mask_ih_names: bool = True, mask_outcome_name: bool = True, mask_predictor_values: bool = True, mask_context_key_values: bool = True, mask_ih_values: bool = True, mask_outcome_values: bool = True, context_key_label: str = 'Context_*', ih_label: str = 'IH_*', outcome_column: str = 'Decision_Outcome', positive_outcomes: list = ['Accepted', 'Clicked'], negative_outcomes: list = ['Rejected', 'Impression'], special_predictors: list = ['Decision_DecisionTime', 'Decision_OutcomeTime'], sample_percentage_schema_inferencing: float = 0.01)
+.. py:class:: Config(config_file: Optional[str] = None, hds_folder: pathlib.Path = '.', use_datamart: bool = False, datamart_folder: pathlib.Path = 'datamart', output_format: Literal[ndjson, parquet, arrow, csv] = 'ndjson', output_folder: pathlib.Path = 'output', mapping_file: str = 'mapping.map', mask_predictor_names: bool = True, mask_context_key_names: bool = False, mask_ih_names: bool = True, mask_outcome_name: bool = False, mask_predictor_values: bool = True, mask_context_key_values: bool = True, mask_ih_values: bool = True, mask_outcome_values: bool = True, context_key_label: str = 'Context_*', ih_label: str = 'IH_*', outcome_column: str = 'Decision_Outcome', positive_outcomes: list = ['Accepted', 'Clicked'], negative_outcomes: list = ['Rejected', 'Impression'], special_predictors: list = ['Decision_DecisionTime', 'Decision_OutcomeTime', 'Decision_Rank', 'Decision_SubjectID'], sample_percentage_schema_inferencing: float = 0.01)
 
    Configuration file for the data anonymizer.
 
@@ -917,7 +917,7 @@ Attributes
    .. py:method:: getHasher(cols, algorithm='xxhash', seed='random', seed_1=None, seed_2=None, seed_3=None)
 
 
-   .. py:method:: process(strategy='eager', **kwargs)
+   .. py:method:: process(strategy='eager', mode: Literal[optimized, robust] = 'optimized', **kwargs)
 
       Anonymize the dataset.
 
