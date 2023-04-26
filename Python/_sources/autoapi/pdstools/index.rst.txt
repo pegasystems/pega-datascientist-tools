@@ -855,7 +855,7 @@ Attributes
 
    See https://pegasystems.github.io/pega-datascientist-tools/Python/articles/Example_Data_Anonymization.html
 
-   .. py:method:: write_to_output(df: Optional[polars.DataFrame] = None, ext: Literal[ndjson, parquet, arrow, csv] = None)
+   .. py:method:: write_to_output(df: Optional[polars.DataFrame] = None, ext: Literal[ndjson, parquet, arrow, csv] = None, mode: Literal[optimized, robust] = 'optimized')
 
       Write the processed dataframe to an output file.
 
@@ -864,6 +864,11 @@ Attributes
       :type df: Optional[pl.DataFrame]
       :param ext: What extension to write the file to
       :type ext: Literal["ndjson", "parquet", "arrow", "csv"]
+      :param mode: Whether to output a single file (optimized) or maintain
+                   the same file structure as the original files (robust).
+                   Optimized should be faster, but robust should allow for bigger
+                   data as we don't need all data in memory at the same time.
+      :type mode: Literal['optimized', 'robust'], default = 'optimized'
 
 
    .. py:method:: create_mapping_file()
@@ -917,7 +922,7 @@ Attributes
    .. py:method:: getHasher(cols, algorithm='xxhash', seed='random', seed_1=None, seed_2=None, seed_3=None)
 
 
-   .. py:method:: process(strategy='eager', mode: Literal[optimized, robust] = 'optimized', **kwargs)
+   .. py:method:: process(strategy='eager', **kwargs)
 
       Anonymize the dataset.
 
