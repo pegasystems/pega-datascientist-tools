@@ -415,6 +415,8 @@ class DataAnonymization:
             )
 
         special_predictors = {x: x for x in special_predictors_t}
+        if "Decision_SubjectID" in special_predictors_t:
+            symbolic_predictors_to_mask.append("Decision_SubjectID")
 
         outcome_column[outcome_t] = (
             "OUTCOME" if self.config.mask_outcome_name else outcome_t
