@@ -33,9 +33,9 @@ def testDefault(sampleInput):
         "PREDICTOR_0",
         "PREDICTOR_1",
         "PREDICTOR_2",
-        "CK_PREDICTOR_0",
+        "Context_Name",
         "IH_PREDICTOR_0",
-        "OUTCOME",
+        "Decision_Outcome",
     ]
     assert processed.columns == cols
     processed = processed.select(cols)
@@ -49,7 +49,7 @@ def testDefault(sampleInput):
         0.02332979851537646,
     ]
     assert processed[5, 4] is None
-    assert processed.get_column("OUTCOME").to_list() == [
+    assert processed.get_column("Decision_Outcome").to_list() == [
         False,
         True,
         False,
