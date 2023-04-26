@@ -188,6 +188,7 @@ class DataAnonymization:
         self,
         df: Optional[pl.DataFrame] = None,
         ext: Literal["ndjson", "parquet", "arrow", "csv"] = None,
+        mode: Literal["optimized", "robust"] = "optimized",
     ):
         """Write the processed dataframe to an output file.
 
@@ -198,24 +199,45 @@ class DataAnonymization:
             If not provided, runs `self.process()`
         ext : Literal["ndjson", "parquet", "arrow", "csv"]
             What extension to write the file to
+        mode : Literal['optimized', 'robust'], default = 'optimized'
+            Whether to output a single file (optimized) or maintain
+            the same file structure as the original files (robust).
+            Optimized should be faster, but robust should allow for bigger
+            data as we don't need all data in memory at the same time.
 
         """
         out_filename = f"{self.config.output_folder}/hds"
         out_format = self.config.output_format if ext is None else ext
-        if df is None:
-            df = self.process()
-            
-        if "filename" in df.columns:
-            df = df.drop(pl.col("filename"))
 
-        if out_format == "ndjson":
-            df.write_ndjson(f"{out_filename}.json")
-        elif out_format == "parquet":
-            df.write_parquet(f"{out_filename}.parquet")
-        elif out_format == "arrow":
-            df.write_ipc(f"{out_filename}.arrow")
-        else:
-            df.write_csv(f"{out_filename}.csv")
+        if df is None:
+            df = self.process(strategy="lazy")
+        if mode == "robust":
+            if "filename" not in df.columns:
+                mode = "optimized"
+            else:
+                for filename in (
+                    df.select(pl.col("filename").unique())
+                    .collect()
+                    .to_series()
+                    .to_list()
+                ):
+                    newName = Path(out_filename) / Path(filename).name
+                    df.filter(pl.col("filename") == filename).drop(
+                        "filename"
+                    ).collect().write_ndjson(newName)
+
+        if mode == "optimized":
+            if "filename" in df.columns:
+                df = df.drop(pl.col("filename"))
+            df = df.collect()
+            if out_format == "ndjson":
+                df.write_ndjson(f"{out_filename}.json")
+            elif out_format == "parquet":
+                df.write_parquet(f"{out_filename}.parquet")
+            elif out_format == "arrow":
+                df.write_ipc(f"{out_filename}.arrow")
+            else:
+                df.write_csv(f"{out_filename}.csv")
 
     def create_mapping_file(self):
         """Create a file to write the column mapping"""
@@ -436,7 +458,6 @@ class DataAnonymization:
     def process(
         self,
         strategy="eager",
-        mode: Literal["optimized", "robust"] = "optimized",
         **kwargs,
     ):
         """Anonymize the dataset."""
