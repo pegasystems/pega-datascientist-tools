@@ -59,7 +59,7 @@ class Config:
         A list of special predictors which are not touched
     sample_percentage_schema_inferencing: float
         The percentage of records to sample to infer the column type.
-        In case you're getting casting errors, it may be useful to 
+        In case you're getting casting errors, it may be useful to
         increase this percentage to check a larger portion of data.
     """
 
@@ -73,9 +73,9 @@ class Config:
         output_folder: Path = "output",
         mapping_file: str = "mapping.map",
         mask_predictor_names: bool = True,
-        mask_context_key_names: bool = True,
+        mask_context_key_names: bool = False,
         mask_ih_names: bool = True,
-        mask_outcome_name: bool = True,
+        mask_outcome_name: bool = False,
         mask_predictor_values: bool = True,
         mask_context_key_values: bool = True,
         mask_ih_values: bool = True,
@@ -85,8 +85,13 @@ class Config:
         outcome_column: str = "Decision_Outcome",
         positive_outcomes: list = ["Accepted", "Clicked"],
         negative_outcomes: list = ["Rejected", "Impression"],
-        special_predictors: list = ["Decision_DecisionTime", "Decision_OutcomeTime"],
-        sample_percentage_schema_inferencing:float=0.01,
+        special_predictors: list = [
+            "Decision_DecisionTime",
+            "Decision_OutcomeTime",
+            "Decision_Rank",
+            "Decision_SubjectID",
+        ],
+        sample_percentage_schema_inferencing: float = 0.01,
     ):
         self._opts = {key: value for key, value in vars().items() if key != "self"}
 
@@ -227,7 +232,7 @@ class DataAnonymization:
             )
         out = []
         for file in files:
-            out.append(pl.scan_ndjson(file))
+            out.append(pl.scan_ndjson(file).with_columns(filename=file))
 
         df = pl.concat(out, how="diagonal")
         return df
@@ -424,7 +429,12 @@ class DataAnonymization:
         else:
             return pl.col(cols).apply(algorithm)
 
-    def process(self, strategy="eager", **kwargs):
+    def process(
+        self,
+        strategy="eager",
+        mode: Literal["optimized", "robust"] = "optimized",
+        **kwargs,
+    ):
         """Anonymize the dataset."""
 
         def to_hash(cols, **kwargs):
