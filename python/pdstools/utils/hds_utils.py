@@ -204,6 +204,10 @@ class DataAnonymization:
         out_format = self.config.output_format if ext is None else ext
         if df is None:
             df = self.process()
+            
+        if "filename" in df.columns:
+            df = df.drop(pl.col("filename"))
+
         if out_format == "ndjson":
             df.write_ndjson(f"{out_filename}.json")
         elif out_format == "parquet":
