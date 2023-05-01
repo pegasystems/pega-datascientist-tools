@@ -258,7 +258,9 @@ class DataAnonymization:
             )
         out = []
         for file in files:
-            out.append(pl.scan_ndjson(file).with_columns(filename=file))
+            out.append(
+                pl.scan_ndjson(file).with_columns(pl.lit(file).alias("filename"))
+            )
 
         df = pl.concat(out, how="diagonal")
         return df
