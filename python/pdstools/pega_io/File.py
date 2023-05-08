@@ -150,19 +150,28 @@ def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
     if extension == ".zip":
         logging.debug("Zip file found, extracting data.json to BytesIO.")
         file, extension = readZippedFile(file)
+    elif extension == ".gz":
+        import gzip
+
+        extension = os.path.splitext(os.path.splitext(file)[0])[1]
+        file = BytesIO(gzip.GzipFile(file).read())
 
     if extension == ".csv":
+        csv_opts = dict(
+            separator=reading_opts.get("sep", ","),
+            infer_schema_length=reading_opts.pop("infer_schema_length", 10000),
+            null_values=["", "NA", "N/A", "NULL"],
+            dtypes={"PYMODELID": pl.Utf8},
+            try_parse_dates=True,
+            ignore_errors=reading_opts.get("ignore_errors", False),
+        )
         if isinstance(file, BytesIO):
             file = pl.read_csv(
                 file,
-                infer_schema_length=reading_opts.pop("infer_schema_length", 10000),
-                try_parse_dates=True,
+                **csv_opts,
             ).lazy()
         else:
-            file = pl.scan_csv(
-                file,
-                separator=reading_opts.get("sep", ","),
-            )
+            file = pl.scan_csv(file, **csv_opts)
 
     elif extension == ".json":
         try:
@@ -180,7 +189,13 @@ def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
                     infer_schema_length=reading_opts.pop("infer_schema_length", 10000),
                 )
         except:  # pragma: no cover
-            file = pl.read_json(file).lazy()
+            try:
+                file = pl.read_json(file).lazy()
+            except:
+                import json
+
+                with open(file) as f:
+                    file = pl.from_dicts(json.loads(f.read())["pxResults"]).lazy()
 
     elif extension == ".parquet":
         file = pl.scan_parquet(file)
@@ -247,7 +262,6 @@ def readZippedFile(file: str, verbose: bool = False) -> BytesIO:
             raise FileNotFoundError("Cannot find a 'data.json' file in the zip folder.")
 
 
-
 def readMultiZip(files: list, zip_type: Literal["gzip"] = "gzip", verbose: bool = True):
     """Reads multiple zipped ndjson files, and concats them to one Polars dataframe.
 
@@ -271,7 +285,6 @@ def readMultiZip(files: list, zip_type: Literal["gzip"] = "gzip", verbose: bool 
     if verbose:
         print("Combining completed")
     return df
-
 
 
 def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
@@ -337,6 +350,7 @@ def getMatches(files_dir, target):
         "MD_FACT",
         "ADMMART_MDL_FACT_Data",
         "cached_modelData",
+        "Models_data",
     ]
     default_predictor_names = [
         "Data-Decision-ADM-PredictorBinningSnapshot",

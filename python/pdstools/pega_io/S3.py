@@ -26,16 +26,60 @@ class S3Data:
         self.bucketName = bucketName
         self.temp_dir = temp_dir
 
-    async def getS3Files(self, prefix, verbose=True):
+    async def getS3Files(self, prefix, use_meta_files=False, verbose=True):
         """OOTB file exports can be written in many very small files.
 
         This method asyncronously retrieves these files, and puts them in
         a temporary directory.
 
-        parameters
+        The logic, if `use_meta_files` is True, is:
+
+        1. Take the prefix, add a `.` in front of it
+        (`'path/to/files'` becomes (`'path/to/.files'`)
+
+        * rsplit on `/` (`['path/to', 'files']`)
+
+        * take the last element (`'files'`)
+
+        * add `.` in front of it (`'.files'`)
+
+        * concat back to a filepath  (`'path/to/.files'`)
+
+        3. fetch all files in the repo that adhere to the prefix (`'path/to/.files*'`)
+
+        4. For each file, if the file ends with `.meta`:
+
+        * rsplit on '/' (`['path/to', '.files_001.json.meta']`)
+
+        * for the last element (just the filename), strip the period and the .meta (`['path/to', 'files_001.json']`)
+
+        * concat back to a filepath (`'path/to/files_001.json'`)
+
+        5. Import all files in the list
+
+        If `use_meta_files` is False, the logic is as simple as:
+
+        1. Import all files starting with the prefix 
+        (`'path/to/files'` gives 
+        `['path/to/files_001.json', 'path/to/files_002.json', etc]`, 
+        irrespective of whether a `.meta` file exists).
+
+        Parameters
         ----------
         prefix: str
             The prefix, pointing to the s3 files. See boto3 docs for filter.
+        use_meta_files: bool, default=False
+            Whether to use the meta files to check for eligible files
+
+        Notes
+        -----
+        We don't import/copy over the .meta files at all.
+        There is an internal function, getNewFiles(), that checks if the filename
+        exists in the local file system. Since the meta files are not really useful for
+        local processing, there's no sense in copying them over. This logic also still
+        works with the use_meta_files - we first check which files are 'eligible' in S3
+        because they have a meta file, then we check if the 'real' files exist on disk.
+        If the file is already on disk, we don't copy it over.
 
         """
         import os
@@ -44,31 +88,54 @@ class S3Data:
             if not os.path.exists(path):
                 os.mkdir(path)
 
+        def localFile(file):
+            return f"{self.temp_dir}/{file}"
+
+        def getNewFiles(files):
+            newFiles, alreadyOnDisk = [], []
+            for file in files:
+                localFileName = localFile(file)
+                if os.path.exists(localFileName):
+                    alreadyOnDisk.append(file)
+                else:
+                    newFiles.append(file)
+            return newFiles, alreadyOnDisk
+
+        def createTask(file):
+            filename = f"{self.temp_dir}/{file}"
+            createPathIfNotExists(f"{self.temp_dir}/{file.rsplit('/')[:-1][0]}")
+            return asyncio.create_task(
+                s3.meta.client.download_file(self.bucketName, file, filename)
+            )
+
+        async def getfilesToImport(bucket, prefix, use_meta_files=False):
+            if use_meta_files:
+                to_import = []
+                prefix2 = "/.".join(prefix.rsplit("/", 1))
+                async for s3_object in bucket.objects.filter(Prefix=prefix2):
+                    f = s3_object.key
+                    if str(f).endswith(".meta"):
+                        to_import.append(
+                            "/".join(f.rsplit("/.", 1)).rsplit(".meta", 1)[0]
+                        )
+            else:
+                to_import = [
+                    s3_object.key
+                    async for s3_object in bucket.objects.filter(Prefix=prefix)
+                ]
+            return getNewFiles(to_import)
+
         createPathIfNotExists(self.temp_dir)
+
         session = aioboto3.Session()
         async with session.resource("s3") as s3:
-            tasks = []
-            files = []
-            alreadyOnDisk = []
             bucket = await s3.Bucket(self.bucketName)
-            async for s3_object in bucket.objects.filter(Prefix=prefix):
-                filename = f"{self.temp_dir}/{s3_object.key}"
-                files.append(filename)
-                if os.path.exists(filename):
-                    alreadyOnDisk.append(filename)
-                    continue
+            files, alreadyOnDisk = await getfilesToImport(
+                bucket, prefix, use_meta_files
+            )
 
-                createPathIfNotExists(
-                    f"{self.temp_dir}/{s3_object.key.rsplit('/')[:-1][0]}"
-                )
+            tasks = [createTask(f) for f in files]
 
-                tasks.append(
-                    asyncio.create_task(
-                        s3.meta.client.download_file(
-                            self.bucketName, s3_object.key, filename
-                        )
-                    )
-                )
             _ = [
                 await task_
                 for task_ in tqdm.as_completed(
@@ -78,11 +145,12 @@ class S3Data:
                     disable=not verbose,
                 )
             ]
+
         if verbose:
             print(
                 f"Completed {prefix}. Imported {len(files)} files, skipped {len(alreadyOnDisk)} files."
             )
-        return files
+        return list(map(localFile, [*files, *alreadyOnDisk]))
 
     async def getDatamartData(
         self, table, datamart_folder: str = "datamart", verbose: bool = True

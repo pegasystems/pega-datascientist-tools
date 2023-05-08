@@ -1,6 +1,6 @@
 """Python pdstools"""
 
-__version__ = "3.1.2"
+__version__ = "3.1.7"
 
 from polars import enable_string_cache
 
@@ -18,6 +18,7 @@ from .utils.cdh_utils import defaultPredictorCategorization
 from .utils.show_versions import show_versions
 from .utils.datasets import CDHSample, SampleTrees, SampleValueFinder
 from .utils.hds_utils import Config, DataAnonymization
+from .utils.table_definitions import PegaDefaultTables
 from .valuefinder.ValueFinder import ValueFinder
 from .utils.polars_ext import *
 

@@ -488,7 +488,7 @@ class ADMTreesModel:
             .agg(
                 [
                     pl.first("predictor"),
-                    pl.col("gains").list(),
+                    pl.col("gains").implode(),
                     pl.col("gains").mean().alias("mean"),
                     pl.first("split")
                     .apply(lambda x: self.parseSplitValues(x)[1])

@@ -858,7 +858,7 @@ So when one of the graphs shows more volume on the left, that is to be interpret
 to_plot = "Propensity"
 if to_plot == "Propensity" and to_plot not in datamart.predictorData.columns:
     to_plot = "BinPropensity"
-df = datamart.combinedData.filter(pl.col("PredictorName")!="Classifier").groupby([to_plot, "Channel", "Direction"]).agg(pl.sum("BinResponseCount")).with_columns(pl.col(to_plot).round(4)).collect()
+df = datamart.combinedData.filter(pl.col("PredictorName")!="Classifier").groupby([to_plot, "Channel", "Direction"]).agg(pl.sum("BinResponseCount")).with_columns(pl.col(to_plot).round(4).cast(pl.Float64)).collect()
 color_col = "Channel"
 smallest_bin = 0
 

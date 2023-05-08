@@ -31,4 +31,4 @@ def test_import_SampleTrees():
 
 def test_import_SampleValueFinder():
     vf = datasets.SampleValueFinder()
-    assert vf.df.shape == (27133, 11)
+    assert vf.df.shape == (27133, 10)

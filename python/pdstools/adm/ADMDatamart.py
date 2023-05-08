@@ -290,7 +290,9 @@ class ADMDatamart(Plots, Tables):
                 ),
             )
             if self.predictorCategorization is not None:
-                df2 = df2.with_columns(PredictorCategory=self.predictorCategorization())
+                if not isinstance(self.predictorCategorization, pl.Expr):
+                    self.predictorCategorization = self.predictorCategorization()
+                df2 = df2.with_columns(PredictorCategory=self.predictorCategorization)
 
         if df1 is not None and df2 is not None:
             total_missing = (
@@ -380,13 +382,14 @@ class ADMDatamart(Plots, Tables):
         if subset:
             df = df.select(cols)
         if extract_keys:
-            df = self._extract_keys(df)
+            df = cdh_utils._extract_keys(df, import_strategy=self.import_strategy)
             df = cdh_utils._polarsCapitalize(df)
 
         df = self._set_types(
             df,
             timestamp_fmt=reading_opts.get("timestamp_fmt", None),
             strict_conversion=reading_opts.get("strict_conversion", True),
+            table=reading_opts.get("typesetting_table", "infer"),
         )
 
         if self.query is not None:
@@ -471,9 +474,10 @@ class ADMDatamart(Plots, Tables):
 
         return to_import, missing
 
-    @staticmethod
     def _set_types(
+        self,
         df: any_frame,
+        table: str = "infer",
         *,
         timestamp_fmt: str = None,
         strict_conversion: bool = True,
@@ -484,6 +488,9 @@ class ADMDatamart(Plots, Tables):
         ----------
         df : Union[pl.DataFrame, pl.LazyFrame]
             The input dataframe
+        table: str
+            The table to set types for. Default is infer, in which case
+            it infers the table type from the columns in it.
 
         Keyword arguments
         -----------------
@@ -497,30 +504,16 @@ class ADMDatamart(Plots, Tables):
         Union[pl.DataFrame, pl.LazyFrame]
             The input dataframe, but the proper typing applied
         """
-        from polars.datatypes import Datetime, Date
 
-        retype = {
-            pl.Categorical: ["Issue", "Group", "Channel", "Direction", "Configuration"],
-            # pl.Int64: ["Positives", "Negatives", "ResponseCount"],
-            pl.Float64: ["Performance"],
-        }
-        to_retype = []
-        for type, cols in retype.items():
-            for col in cols:
-                if col in set(df.columns):
-                    to_retype.append(pl.col(col).cast(type))
-        df = df.with_columns(to_retype)
-
-        timestampCol = "SnapshotTime"
-        if timestampCol not in df.columns:
+        df = cdh_utils.set_types(
+            df,
+            table,
+            verbose=self.verbose,
+            timestamp_fmt=timestamp_fmt,
+            strict_conversion=strict_conversion,
+        )
+        if "SnapshotTime" not in df.columns:
             df = df.with_columns(SnapshotTime=None)
-        elif df.schema[timestampCol].base_type() not in {Datetime, Date}:
-            df = df.with_columns(
-                cdh_utils.parsePegaDateTimeFormats(
-                    timestampCol, timestamp_fmt, strict_conversion
-                )
-            )
-
         return df
 
     def last(
@@ -753,52 +746,6 @@ class ADMDatamart(Plots, Tables):
                 df = df.filter(pl.col(col).is_in(val))
         return df
 
-    def _extract_keys(
-        self,
-        df: any_frame,
-    ) -> any_frame:
-        """Extracts keys out of the pyName column
-
-        This is not a lazy operation as we don't know the possible keys
-        in advance. For that reason, we select only the pyName column,
-        extract the keys from that, and then collect the resulting dataframe.
-        This dataframe is then joined back to the original dataframe.
-
-        This is relatively efficient, but we still do need the whole
-        pyName column in memory to do this, so it won't work completely
-        lazily from e.g. s3. That's why it only works with eager mode.
-
-        Parameters
-        ----------
-        df: Union[pl.DataFrame, pl.LazyFrame]
-            The dataframe to extract the keys from
-        """
-        if self.import_strategy != "eager":
-            raise NotEagerError("Extracting keys")
-        if self.verbose:
-            print("Extracting keys...")
-
-        def safeName():
-            return (
-                pl.when(~pl.col("Name").cast(pl.Utf8).str.starts_with("{"))
-                .then(
-                    pl.concat_str([pl.lit('{"pyName":"'), pl.col("Name"), pl.lit('"}')])
-                )
-                .otherwise(pl.col("Name"))
-                .alias("tempName")
-            )
-
-        return df.with_columns(
-            cdh_utils._polarsCapitalize(
-                df.select(
-                    safeName().str.json_extract(),
-                )
-                .unnest("tempName")
-                .lazy()
-                .collect()
-            )
-        )
-
     def discover_modelTypes(
         self, df: pl.LazyFrame, by: str = "Configuration"
     ) -> Dict:  # pragma: no cover
@@ -962,7 +909,12 @@ class ADMDatamart(Plots, Tables):
         if pivot:
             df = (
                 df.collect()
-                .pivot(index="SnapshotTime", columns=by, values="Increase")
+                .pivot(
+                    index="SnapshotTime",
+                    columns=by,
+                    values="Increase",
+                    aggregate_function="first",
+                )
                 .lazy()
             )
         if mask:
@@ -1082,7 +1034,12 @@ class ADMDatamart(Plots, Tables):
             )
         df = (
             df.collect()
-            .pivot(index=by, columns="PredictorName", values="PerformanceBin")
+            .pivot(
+                index=by,
+                columns="PredictorName",
+                values="PerformanceBin",
+                aggregate_function="first",
+            )
             .fill_null(0.5)
             .fill_nan(0.5)
         )
