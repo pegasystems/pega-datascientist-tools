@@ -36,6 +36,7 @@ def show_versions() -> None:
     itables: 1.5.1
     pandas: 1.5.3
     jinja2: 3.1.2
+    xlsxwriter: 3.0
     """
 
     # note: we import 'platform' here as a micro-optimisation for initial import
@@ -81,6 +82,7 @@ def _get_opt_dependency_info() -> dict[str, str]:
         "itables",
         "pandas",
         "jinja2",
+        "xlsxwriter",
     ]
     return {name: _get_dependency_version(name) for name in opt_deps}
 
