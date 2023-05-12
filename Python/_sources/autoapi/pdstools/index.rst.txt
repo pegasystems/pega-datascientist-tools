@@ -50,8 +50,8 @@ Functions
 .. autoapisummary::
 
    pdstools.getToken
-   pdstools.readClientCredentialFile
    pdstools.readDSExport
+   pdstools.setupAzureOpenAI
    pdstools.defaultPredictorCategorization
    pdstools.show_versions
    pdstools.CDHSample
@@ -70,7 +70,7 @@ Attributes
 
 
 .. py:data:: __version__
-   :value: '3.1.7'
+   :value: '3.1.8'
 
    
 
@@ -669,10 +669,25 @@ Attributes
 
 
 
-.. py:function:: getToken(credentialFile, verify=True, **kwargs)
+.. py:function:: getToken(credentialFile: str, verify: bool = True, **kwargs)
 
+   Get API credentials to a Pega Platform instance.
 
-.. py:function:: readClientCredentialFile(credentialFile)
+   After setting up OAuth2 authentication in Dev Studio, you should
+   be able to download a credential file. Simply point this method to that file,
+   and it'll read the relevant properties and give you your access token.
+
+   :param credentialFile: The credential file downloaded after setting up OAuth in a Pega system
+   :type credentialFile: str
+   :param verify: Whether to only allow safe SSL requests.
+                  In case you're connecting to an unsecured API endpoint, you need to
+                  explicitly set verify to False, otherwise Python will yell at you.
+   :type verify: bool, default = True
+
+   :keyword url: An optional override of the URL to connect to.
+                 This is also extracted out of the credential file, but you may want
+                 to customize this (to a different port, etc).
+   :kwtype url: str
 
 
 .. py:function:: readDSExport(filename: Union[pandas.DataFrame, polars.DataFrame, str], path: str = '.', verbose: bool = True, **reading_opts) -> polars.LazyFrame
@@ -709,6 +724,41 @@ Attributes
 
                >>> df = pd.read_csv('file.csv')
                >>> df = readDSExport(filename = df)
+
+
+.. py:function:: setupAzureOpenAI(api_base: str = 'https://aze-openai-01.openai.azure.com/', api_version: Literal[2023-03-15-preview, 2022-12-01] = '2023-03-15-preview')
+
+   Convenience function to automagically setup Azure AD-based authentication
+   for the Azure OpenAI service. Mostly meant as an internal tool within Pega,
+   but can of course also be used beyond.
+
+   Prerequisites (you should only need to do this once!):
+   - Download Azure CLI (https://learn.microsoft.com/en-us/cli/azure/install-azure-cli)
+   - Once installed, run 'az login' in your terminal
+   - Additional dependencies: `(pip install)` azure-identity and `(pip install)` openai
+
+   Running this function automatically sets, among others:
+   - `openai.api_key`
+   - `os.environ["OPENAI_API_KEY"]`
+
+   This should ensure that you don't need to pass tokens and/or api_keys around.
+   The key that's set has a lifetime, typically of one hour. Therefore, if you
+   get an error message like 'invalid token', you may need to run this method again
+   to refresh the token for another hour.
+
+   :param api_base: The url of the Azure service name you'd like to connect to
+                    If you have access to the Azure OpenAI playground
+                    (https://oai.azure.com/portal), you can easily find this url by clicking
+                    'view code' in one of the playgrounds. If you have access to the Azure portal
+                    directly (https://portal.azure.com), this will be found under 'endpoint'.
+                    Else, ask your system administrator for the correct url.
+   :type api_base: str
+   :param api_version: The version of the api to use
+   :type api_version: Literal["2023-03-15-preview", "2022-12-01"]:
+   :param Usage:
+   :param -----:
+   :param >>> from pdstools import setupAzureOpenAI:
+   :param >>> setupAzureOpenAI():
 
 
 .. py:function:: defaultPredictorCategorization(x: Union[str, polars.Expr] = pl.col('PredictorName')) -> polars.Expr
