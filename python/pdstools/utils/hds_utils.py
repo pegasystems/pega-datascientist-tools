@@ -89,7 +89,6 @@ class Config:
             "Decision_DecisionTime",
             "Decision_OutcomeTime",
             "Decision_Rank",
-            "Decision_SubjectID",
         ],
         sample_percentage_schema_inferencing: float = 0.01,
     ):
@@ -259,7 +258,7 @@ class DataAnonymization:
         out = []
         for file in files:
             out.append(
-                pl.scan_ndjson(file).with_columns(pl.lit(file).alias("filename"))
+                pl.scan_ndjson(file).with_columns(pl.lit(str(file)).alias("filename"))
             )
 
         df = pl.concat(out, how="diagonal")
