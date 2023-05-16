@@ -57,6 +57,10 @@ class Config:
         Which negative outcomes to map to False
     special_predictors: list = ["Decision_DecisionTime", "Decision_OutcomeTime"]
         A list of special predictors which are not touched
+    sample_percentage_schema_inferencing: float
+        The percentage of records to sample to infer the column type.
+        In case you're getting casting errors, it may be useful to
+        increase this percentage to check a larger portion of data.
     """
 
     def __init__(
@@ -69,9 +73,9 @@ class Config:
         output_folder: Path = "output",
         mapping_file: str = "mapping.map",
         mask_predictor_names: bool = True,
-        mask_context_key_names: bool = True,
+        mask_context_key_names: bool = False,
         mask_ih_names: bool = True,
-        mask_outcome_name: bool = True,
+        mask_outcome_name: bool = False,
         mask_predictor_values: bool = True,
         mask_context_key_values: bool = True,
         mask_ih_values: bool = True,
@@ -81,7 +85,12 @@ class Config:
         outcome_column: str = "Decision_Outcome",
         positive_outcomes: list = ["Accepted", "Clicked"],
         negative_outcomes: list = ["Rejected", "Impression"],
-        special_predictors: list = ["Decision_DecisionTime", "Decision_OutcomeTime"],
+        special_predictors: list = [
+            "Decision_DecisionTime",
+            "Decision_OutcomeTime",
+            "Decision_Rank",
+        ],
+        sample_percentage_schema_inferencing: float = 0.01,
     ):
         self._opts = {key: value for key, value in vars().items() if key != "self"}
 
@@ -178,6 +187,7 @@ class DataAnonymization:
         self,
         df: Optional[pl.DataFrame] = None,
         ext: Literal["ndjson", "parquet", "arrow", "csv"] = None,
+        mode: Literal["optimized", "robust"] = "optimized",
     ):
         """Write the processed dataframe to an output file.
 
@@ -188,20 +198,45 @@ class DataAnonymization:
             If not provided, runs `self.process()`
         ext : Literal["ndjson", "parquet", "arrow", "csv"]
             What extension to write the file to
+        mode : Literal['optimized', 'robust'], default = 'optimized'
+            Whether to output a single file (optimized) or maintain
+            the same file structure as the original files (robust).
+            Optimized should be faster, but robust should allow for bigger
+            data as we don't need all data in memory at the same time.
 
         """
         out_filename = f"{self.config.output_folder}/hds"
         out_format = self.config.output_format if ext is None else ext
+
         if df is None:
-            df = self.process()
-        if out_format == "ndjson":
-            df.write_ndjson(f"{out_filename}.json")
-        elif out_format == "parquet":
-            df.write_parquet(f"{out_filename}.parquet")
-        elif out_format == "arrow":
-            df.write_ipc(f"{out_filename}.arrow")
-        else:
-            df.write_csv(f"{out_filename}.csv")
+            df = self.process(strategy="lazy")
+        if mode == "robust":
+            if "filename" not in df.columns:
+                mode = "optimized"
+            else:
+                for filename in (
+                    df.select(pl.col("filename").unique())
+                    .collect()
+                    .to_series()
+                    .to_list()
+                ):
+                    newName = Path(out_filename) / Path(filename).name
+                    df.filter(pl.col("filename") == filename).drop(
+                        "filename"
+                    ).collect().write_ndjson(newName)
+
+        if mode == "optimized":
+            if "filename" in df.columns:
+                df = df.drop(pl.col("filename"))
+            df = df.collect()
+            if out_format == "ndjson":
+                df.write_ndjson(f"{out_filename}.json")
+            elif out_format == "parquet":
+                df.write_parquet(f"{out_filename}.parquet")
+            elif out_format == "arrow":
+                df.write_ipc(f"{out_filename}.arrow")
+            else:
+                df.write_csv(f"{out_filename}.csv")
 
     def create_mapping_file(self):
         """Create a file to write the column mapping"""
@@ -222,13 +257,14 @@ class DataAnonymization:
             )
         out = []
         for file in files:
-            out.append(pl.scan_ndjson(file))
+            out.append(
+                pl.scan_ndjson(file).with_columns(pl.lit(str(file)).alias("filename"))
+            )
 
         df = pl.concat(out, how="diagonal")
         return df
 
-    @staticmethod
-    def read_predictor_type_from_file(df: pl.LazyFrame):
+    def read_predictor_type_from_file(self, df: pl.LazyFrame):
         """Infer the types of the preditors from the data.
 
         This is non-trivial, as it's not ideal to pull in all data to memory for this.
@@ -251,7 +287,9 @@ class DataAnonymization:
 
         def sample_it(s: pl.Series) -> pl.Series:
             out = pl.Series(
-                values=np.random.binomial(1, 0.01, s.len()),
+                values=np.random.binomial(
+                    1, self.config.sample_percentage_schema_inferencing, s.len()
+                ),
                 dtype=pl.Boolean,
             )
             if out.len() < 50:
@@ -268,7 +306,9 @@ class DataAnonymization:
 
         for col in df_.columns:
             try:
-                df_.get_column(col).cast(pl.Float64)
+                df_.get_column(col).map_dict({"": None}, default=pl.first()).cast(
+                    pl.Float64
+                )
                 types[col] = "numeric"
             except:
                 types[col] = "symbolic"
@@ -376,6 +416,8 @@ class DataAnonymization:
             )
 
         special_predictors = {x: x for x in special_predictors_t}
+        if "Decision_SubjectID" in special_predictors_t:
+            symbolic_predictors_to_mask.append("Decision_SubjectID")
 
         outcome_column[outcome_t] = (
             "OUTCOME" if self.config.mask_outcome_name else outcome_t
@@ -395,7 +437,7 @@ class DataAnonymization:
         self,
         cols,
         algorithm="xxhash",
-        seed: Union[Literal[0, "random"], int] = 0,
+        seed="random",
         seed_1=None,
         seed_2=None,
         seed_3=None,
@@ -416,7 +458,11 @@ class DataAnonymization:
         else:
             return pl.col(cols).apply(algorithm)
 
-    def process(self, **kwargs):
+    def process(
+        self,
+        strategy="eager",
+        **kwargs,
+    ):
         """Anonymize the dataset."""
 
         def to_hash(cols, **kwargs):
@@ -442,7 +488,9 @@ class DataAnonymization:
             ).alias(col)
 
         df = self.df.with_columns(
-            pl.col(self.numeric_predictors_to_mask).cast(pl.Float64)
+            pl.col(self.numeric_predictors_to_mask)
+            .map_dict({"": None}, default=pl.first())
+            .cast(pl.Float64)
         ).with_columns(
             [
                 to_hash(
@@ -456,7 +504,7 @@ class DataAnonymization:
             df = df.with_columns(
                 to_boolean(self.config.outcome_column, self.config.positive_outcomes)
             )
-        df = (
-            df.select(self.column_mapping.keys()).rename(self.column_mapping)
-        ).collect()
+        df = df.select(self.column_mapping.keys()).rename(self.column_mapping)
+        if strategy == "eager":
+            return df.collect()
         return df

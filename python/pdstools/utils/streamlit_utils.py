@@ -1,12 +1,12 @@
 import streamlit as st
 from typing import Optional
 import polars as pl
-import sys
 from pathlib import Path
 from . import cdh_utils
 from ..adm.ADMDatamart import ADMDatamart
-from ..utils import cdh_utils, datasets
+from ..utils import datasets
 import plotly.express as px
+from .. import pega_io
 
 
 @st.cache_resource
@@ -22,6 +22,7 @@ def cachedDatamart(*args, **kwargs):
 
 def import_datamart(**opts):
     st.session_state["params"] = {}
+    st.session_state["modelhc"] = False
     st.write("### Data import")
 
     source = st.selectbox(
@@ -51,18 +52,31 @@ def fromUploadedFile(**opts):
         "Upload Predictor Binning snapshot",
         type=["json", "zip", "parquet", "csv", "arrow"],
     )
-    if model_file is not None and predictor_file is not None:
+    if model_file and predictor_file:
         try:
             st.session_state["dm"] = cachedDatamart(
                 model_df=model_file, predictor_df=predictor_file, **opts
             )
         except Exception as e:
             st.write("Oh oh.", e)
+    elif model_file is not None and predictor_file is None:
+        st.warning("""Please also upload the Predictor Binning file. 
+                If you don't have access to a predictor binning file
+                and want to run the Health Check only on the model snapshot, check the
+                checkbox below.
+                """)
+        model_analysis = st.checkbox("Only run model-based Health Check")
+        if model_analysis:
+            try:
+                st.session_state["dm"] = cachedDatamart(
+                    model_df=model_file, predictor_filename=None, **opts
+                )
+                st.session_state["modelhc"] = True
+            except Exception as e:
+                st.write("Oh oh.", e)
 
 
 def fromFilePath(**opts):
-    from pdstools import cdh_utils
-
     st.write(
         """If you've followed the instructions on how to get the ADMDatamart data,
     you can import the data simply by pointing the app to the directory
@@ -74,7 +88,7 @@ def fromFilePath(**opts):
     )
     if dir != "":
         try:
-            model_matches = cdh_utils.get_latest_file(dir, target="modelData")
+            model_matches = pega_io.get_latest_file(dir, target="modelData")
         except FileNotFoundError:
             st.error(f"**Directory not found:** {dir}")
             st.stop()
@@ -94,7 +108,7 @@ def fromFilePath(**opts):
             box.write("## X")
             data.write("Could not find a model snapshot in the given folder.   ")
 
-        predictor_matches = cdh_utils.get_latest_file(dir, target="predictorData")
+        predictor_matches = pega_io.get_latest_file(dir, target="predictorData")
         box, data = st.columns([1, 15])
         if predictor_matches is not None:
             box.write("## √")
@@ -105,11 +119,33 @@ def fromFilePath(**opts):
                 "Could not find the predicting binning snapshot in the given folder."
             )
 
-        if model_matches is None and predictor_matches is None:
+        if model_matches is None:
             st.write(
                 """If you can't get the files to automatically be detected, 
     try uploading the files manually using a different data source."""
             )
+
+        elif predictor_matches is None:
+            st.warning(
+                """No predictor binning file found, please also upload the Predictor
+                Binning file. If you have a predictor binning snapshot but we can't
+                detect it, use the **Direct file upload** option in the dropdown above.
+                If you don't have access to a predictor binning file
+                and want to run the Health Check only on the model snapshot, check the
+                checkbox below.
+                """
+            )
+            model_analysis = st.checkbox("Only run model-based Health Check")
+            if model_analysis:
+                st.session_state["dm"] = cachedDatamart(
+                    path=dir,
+                    model_filename=Path(model_matches).name,
+                    predictor_filename=None,
+                    import_strategy="lazy",
+                    **opts,
+                )
+                st.session_state["modelhc"] = True
+
         else:
             st.session_state["dm"] = cachedDatamart(
                 path=dir,
@@ -118,7 +154,6 @@ def fromFilePath(**opts):
                 import_strategy="lazy",
                 **opts,
             )
-            st.write(st.session_state["params"])
 
 
 def filter_dataframe(df: pl.LazyFrame, schema: Optional[dict] = None) -> pl.LazyFrame:
@@ -215,7 +250,6 @@ def configure_predictor_categorization():
     if len(st.session_state["filters"]) > 0:
         for filter in st.session_state["filters"]:
             df = df.filter(filter)
-    newPredictorCategorizationFunc()
     df = (
         df.filter(pl.col("PredictorName") != "Classifier")
         .with_columns((pl.col("PerformanceBin") - 0.5) * 2)

@@ -20,7 +20,7 @@ jobs:
 
       - name: Commit documentation changes
         run: |
-          git clone https://github.com/pegasystems/pega-datascientist-tools.git --branch gh-pages --single-branch gh-pages
+          git clone https://github.com/${{ github.repository }}.git --branch gh-pages --single-branch gh-pages
           cp -r r/docs/* gh-pages/R/
           cd gh-pages
           git config --local user.email "action@github.com"

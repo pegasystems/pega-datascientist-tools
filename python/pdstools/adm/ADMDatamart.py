@@ -17,13 +17,17 @@ from ..plots.plots_plotly import ADMVisualisations as plotly_plot
 from ..utils import cdh_utils
 from ..utils.errors import NotEagerError
 from ..utils.types import any_frame
+from .. import pega_io
 from .ADMTrees import ADMTrees
 from .Tables import Tables
 
 
 class ADMDatamart(Plots, Tables):
     """Main class for importing, preprocessing and structuring Pega ADM Datamart.
-    Gets all available data, properly names and merges into one main dataframe
+    Gets all available data, properly names and merges into one main dataframe.
+
+    It's also possible to import directly from S3. Please refer to
+    :meth:`pdstools.pega_io.S3.S3Data.get_ADMDatamart`.
 
     Parameters
     ----------
@@ -52,7 +56,7 @@ class ADMDatamart(Plots, Tables):
     subset : bool, default = True
         Whether to only keep a subset of columns for efficiency purposes
         Refer to :meth:`._available_columns` for the default list of columns.
-    drop_cols  Optional[list]
+    drop_cols : Optional[list]
         Columns to exclude from reading
     include_cols : Optional[list]
         Additionial columns to include when reading
@@ -70,7 +74,7 @@ class ADMDatamart(Plots, Tables):
         Whether to print out information during importing
     **reading_opts
         Additional parameters used while reading.
-        Refer to :meth:`pdstools.utils.cdh_utils.import_file` for more info.
+        Refer to :meth:`pdstools.pega_io.File.import_file` for more info.
 
     Attributes
     ----------
@@ -93,11 +97,11 @@ class ADMDatamart(Plots, Tables):
 
     Examples
     --------
-    >>> Data =  ADMDatamart(f"/CDHSample")
-    >>> Data =  ADMDatamart(f"Data/Adaptive Models & Predictors Export",
+    >>> Data =  ADMDatamart("/CDHSample")
+    >>> Data =  ADMDatamart("Data/Adaptive Models & Predictors Export",
                 model_filename = "Data-Decision-ADM-ModelSnapshot_AdaptiveModelSnapshotRepo20201110T085543_GMT/data.json",
                 predictor_filename = "Data-Decision-ADM-PredictorBinningSnapshot_PredictorBinningSnapshotRepo20201110T084825_GMT/data.json")
-    >>> Data =  ADMDatamart(f"Data/files",
+    >>> Data =  ADMDatamart("Data/files",
                 model_filename = "ModelData.csv",
                 predictor_filename = "PredictorData.csv")
 
@@ -142,20 +146,15 @@ class ADMDatamart(Plots, Tables):
             **reading_opts,
         )
 
-        if self.modelData is not None and self.predictorData is not None:
-            self.combinedData = self._get_combined_data(strategy=self.import_strategy)
-        elif verbose:
-            print(
-                "Could not be combined. Do you have both model data and predictor data?"
-            )
         self.context_keys = (
             [key for key in self.context_keys if key in self.modelData.columns]
             if self.modelData is not None
             else context_keys
         )
-
         self.plotting_engine = plotting_engine
         super().__init__()
+
+        self.processTables(self.query)
 
     @staticmethod
     def get_engine(plotting_engine):
@@ -215,11 +214,21 @@ class ADMDatamart(Plots, Tables):
             Optional override to supply a dataframe instead of a file
         predictor_df : pd.DataFrame
             Optional override to supply a dataframe instead of a file
+        drop_cols : Optional[list]
+            Columns to exclude from reading
+        include_cols : Optional[list]
+            Additionial columns to include when reading
+        extract_keys : bool, default = False
+            Extra keys, particularly pyTreatment, are hidden within the pyName column.
+            extract_keys can expand that cell to also show these values.
+            To extract these extra keys, set extract_keys to True.
+        verbose : bool, default = False
+            Whether to print out information during importing
 
         Returns
         -------
-        (pl.DataFrame, pl.DataFrame)
-            The model data and predictor binning data as dataframes
+        (polars.LazyFrame, polars.LazyFrame)
+            The model data and predictor binning data as LazyFrames
         """
 
         if model_df is not None:
@@ -281,7 +290,9 @@ class ADMDatamart(Plots, Tables):
                 ),
             )
             if self.predictorCategorization is not None:
-                df2 = df2.with_columns(PredictorCategory=self.predictorCategorization())
+                if not isinstance(self.predictorCategorization, pl.Expr):
+                    self.predictorCategorization = self.predictorCategorization()
+                df2 = df2.with_columns(PredictorCategory=self.predictorCategorization)
 
         if df1 is not None and df2 is not None:
             total_missing = (
@@ -296,14 +307,6 @@ class ADMDatamart(Plots, Tables):
                     f"Missing values: {total_missing}",
                 )
 
-            if self.query is not None:
-                df2 = df2.join(df1.select(pl.col("ModelID").unique()), on="ModelID")
-
-        if self.import_strategy == "eager":
-            if df1 is not None:
-                df1 = df1.collect().lazy()
-            if df2 is not None:
-                df2 = df2.collect().lazy()
         return df1, df2
 
     def _import_utils(
@@ -342,22 +345,22 @@ class ADMDatamart(Plots, Tables):
             extract_keys can expand that cell to also show these values.
 
         Additional keyword arguments
-        -----------------
-        See readDSExport in cdh_utils
+        ----------------------------
+        See :meth:`pdstools.pega_io.File.readDSExport`
 
         Returns
         -------
         (pl.LazyFrame, dict, dict)
-            The requested dataframe,
-            The renamed columns
-            The columns missing in both dataframes
+            - The requested dataframe,
+            - The renamed columns
+            - The columns missing in both dataframes)
         """
 
         if isinstance(name, BytesIO):
             self.import_strategy = "eager"
 
         if isinstance(name, str) or isinstance(name, BytesIO):
-            df = cdh_utils.readDSExport(
+            df = pega_io.readDSExport(
                 filename=name, path=path, verbose=self.verbose, **reading_opts
             )
         elif isinstance(name, pl.DataFrame):
@@ -369,8 +372,8 @@ class ADMDatamart(Plots, Tables):
 
         else:
             return None, None, None
-
-        self.model_snapshots = True
+        if df is None:
+            return None, None, None
 
         df = cdh_utils._polarsCapitalize(df)
         cols, missing = self._available_columns(
@@ -379,13 +382,14 @@ class ADMDatamart(Plots, Tables):
         if subset:
             df = df.select(cols)
         if extract_keys:
-            df = self.extract_keys(df)
+            df = cdh_utils._extract_keys(df, import_strategy=self.import_strategy)
             df = cdh_utils._polarsCapitalize(df)
 
         df = self._set_types(
             df,
-            timestamp_fmt=reading_opts.get("timestamp_fmt", "%Y%m%dT%H%M%S.%f %Z"),
+            timestamp_fmt=reading_opts.get("timestamp_fmt", None),
             strict_conversion=reading_opts.get("strict_conversion", True),
+            table=reading_opts.get("typesetting_table", "infer"),
         )
 
         if self.query is not None:
@@ -422,7 +426,7 @@ class ADMDatamart(Plots, Tables):
 
         Returns
         -------
-        (pl.LazyFrame, set, set)
+        Tuple[set, set]
             The original dataframe, but renamed for the found columns &
             The original and updated names for all renamed columns &
             The variables that were not found in the table
@@ -470,11 +474,12 @@ class ADMDatamart(Plots, Tables):
 
         return to_import, missing
 
-    @staticmethod
     def _set_types(
+        self,
         df: any_frame,
+        table: str = "infer",
         *,
-        timestamp_fmt: str = "%Y%m%dT%H%M%S.%f %Z",
+        timestamp_fmt: str = None,
         strict_conversion: bool = True,
     ) -> any_frame:
         """A method to change columns to their proper type
@@ -483,6 +488,9 @@ class ADMDatamart(Plots, Tables):
         ----------
         df : Union[pl.DataFrame, pl.LazyFrame]
             The input dataframe
+        table: str
+            The table to set types for. Default is infer, in which case
+            it infers the table type from the columns in it.
 
         Keyword arguments
         -----------------
@@ -496,27 +504,16 @@ class ADMDatamart(Plots, Tables):
         Union[pl.DataFrame, pl.LazyFrame]
             The input dataframe, but the proper typing applied
         """
-        retype = {
-            pl.Categorical: ["Issue", "Group", "Channel", "Direction", "Configuration"],
-            # pl.Int64: ["Positives", "Negatives", "ResponseCount"],
-            pl.Float64: ["Performance"],
-        }
-        to_retype = []
-        for type, cols in retype.items():
-            for col in cols:
-                if col in set(df.columns):
-                    to_retype.append(pl.col(col).cast(type))
-        df = df.with_columns(to_retype)
+
+        df = cdh_utils.set_types(
+            df,
+            table,
+            verbose=self.verbose,
+            timestamp_fmt=timestamp_fmt,
+            strict_conversion=strict_conversion,
+        )
         if "SnapshotTime" not in df.columns:
             df = df.with_columns(SnapshotTime=None)
-        elif df.schema["SnapshotTime"] == pl.Utf8:
-            df = df.with_columns(
-                pl.col("SnapshotTime").str.strptime(
-                    pl.Datetime,
-                    timestamp_fmt,
-                    strict=strict_conversion,
-                )
-            )
         return df
 
     def last(
@@ -570,9 +567,9 @@ class ADMDatamart(Plots, Tables):
         """
 
         return (
-            pl.col("SnapshotTime")
-            .where(pl.col(col).diff() != 0)
-            .max()
+            pl.when(pl.col(col).min() == pl.col(col).max())
+            .then(pl.max("SnapshotTime"))
+            .otherwise(pl.col("SnapshotTime").where(pl.col(col).diff() != 0).max())
             .over("ModelID")
             .alias(f"Last_{col}")
         )
@@ -605,6 +602,50 @@ class ADMDatamart(Plots, Tables):
         else:
             return combined
 
+    def processTables(
+        self,
+        query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]] = None,
+    ) -> ADMDatamart:
+        """Processes modelData, predictorData and combinedData tables.
+
+        Can take in a query, which it will apply to modelData
+        If a query is given, it joins predictorData to only retain the modelIDs
+        the modelData was filtered on. If both modelData and predictorData
+        are present, it joins them together into combinedData.
+
+        If memory_strategy is eager, which is the default, this method also
+        collects the tables and then sets them back to lazy.
+
+        Parameters
+        ----------
+        query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]], default = None
+            An optional query to apply to the modelData table.
+            See: :meth:`._apply_query`
+
+        """
+        if self.modelData is not None:
+            if query is not None:
+                self.modelData = self._apply_query(self.modelData, query)
+            if self.import_strategy == "eager":
+                self.modelData = self.modelData.collect().lazy()
+
+        if self.predictorData is not None:
+            if query is not None:
+                self.predictorData = self.predictorData.join(
+                    self.modelData.select(pl.col("ModelID").unique()), on="ModelID"
+                )
+            if self.import_strategy == "eager":
+                self.predictorData = self.predictorData.collect().lazy()
+
+        if self.predictorData is not None and self.modelData is not None:
+            self.combinedData = self._get_combined_data(strategy=self.import_strategy)
+        elif self.verbose:
+            print(
+                "Could not be combined. Do you have both model data and predictor data?"
+            )
+
+        return self
+
     def save_data(self, path: str = ".") -> Tuple[os.PathLike, os.PathLike]:
         """Cache modelData and predictorData to files.
 
@@ -622,13 +663,15 @@ class ADMDatamart(Plots, Tables):
 
         time = datetime.now().strftime("%Y%m%dT%H%M%S.%f")[:-3]
         if self.modelData is not None:
-            modeldata_cache = cdh_utils.cache_to_file(
+            modeldata_cache = pega_io.cache_to_file(
                 self.modelData, path, name=f"cached_modelData_{time}"
             )
         if self.predictorData is not None:
-            predictordata_cache = cdh_utils.cache_to_file(
+            predictordata_cache = pega_io.cache_to_file(
                 self.predictorData, path, name=f"cached_predictorData_{time}"
             )
+        else:
+            predictordata_cache = None
         return modeldata_cache, predictordata_cache
 
     def _apply_query(
@@ -703,41 +746,22 @@ class ADMDatamart(Plots, Tables):
                 df = df.filter(pl.col(col).is_in(val))
         return df
 
-    def extract_keys(
-        self,
-        df,
-        col="Name",
-    ):
-        if self.import_strategy != "eager":
-            raise NotEagerError("Extracting keys")
-        if self.verbose:
-            print("Extracting keys...")
-
-        def safeName():
-            return (
-                pl.when(~pl.col("Name").cast(pl.Utf8).str.starts_with("{"))
-                .then(
-                    pl.concat_str([pl.lit('{"pyName":"'), pl.col("Name"), pl.lit('"}')])
-                )
-                .otherwise(pl.col("Name"))
-                .alias("tempName")
-            )
-
-        return (
-            (
-                df.with_columns(
-                    safeName().str.json_extract(),
-                )
-                .drop(col)
-                .unnest("tempName")
-            )
-            .collect()
-            .lazy()
-        )
-
     def discover_modelTypes(
-        self, df: pl.LazyFrame, by="Configuration"
-    ):  # pragma: no cover
+        self, df: pl.LazyFrame, by: str = "Configuration"
+    ) -> Dict:  # pragma: no cover
+        """Discovers the type of model embedded in the pyModelData column.
+
+        By default, we do a groupby Configuration, because a model rule can only
+        contain one type of model. Then, for each configuration, we look into the
+        pyModelData blob and find the _serialClass, returning it in a dict.
+
+        Parameters
+        ----------
+        df: pl.LazyFrame
+            The dataframe to search for model types
+        by: str
+            The column to look for types in. Configuration is recommended.
+        """
         if self.import_strategy != "eager":
             raise NotEagerError("Discovering AGB models")
         if "Modeldata" not in df.columns:
@@ -885,7 +909,12 @@ class ADMDatamart(Plots, Tables):
         if pivot:
             df = (
                 df.collect()
-                .pivot(index="SnapshotTime", columns=by, values="Increase")
+                .pivot(
+                    index="SnapshotTime",
+                    columns=by,
+                    values="Increase",
+                    aggregate_function="first",
+                )
                 .lazy()
             )
         if mask:
@@ -1005,7 +1034,12 @@ class ADMDatamart(Plots, Tables):
             )
         df = (
             df.collect()
-            .pivot(index=by, columns="PredictorName", values="PerformanceBin")
+            .pivot(
+                index=by,
+                columns="PredictorName",
+                values="PerformanceBin",
+                aggregate_function="first",
+            )
             .fill_null(0.5)
             .fill_nan(0.5)
         )
@@ -1189,7 +1223,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         return ret
 
     def applyGlobalQuery(
-        self, query: Union[pl.Expr, str, Dict[str, list]]
+        self, query: Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]
     ) -> ADMDatamart:
         """Convenience method to further query the datamart
 
@@ -1202,20 +1236,36 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
 
         Paramters
         ---------
-        query: Union[pl.Expr, str, Dict[str, list]]
+        query: Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]
             The query to apply, see :meth:`._apply_query`
         """
-        self.modelData = self._apply_query(self.modelData, query)
-        if self.import_strategy == "eager":
-            self.modelData = self.modelData.collect().lazy()
-        if self.predictorData is not None:
-            self.predictorData = self.predictorData.join(
-                self.modelData.select(pl.col("ModelID").unique()), on="ModelID"
-            )
-            if self.import_strategy == "eager":
-                self.predictorData = self.predictorData.collect().lazy()
-            self.combinedData = self._get_combined_data(strategy=self.import_strategy)
-        return self
+        return self.processTables(query)
+
+    def fillMissing(self) -> ADMDatamart:
+        """Convenience method to fill missing values
+
+        - Fills categorical, string and null type columns with "NA"
+        - Fills SuccessRate, Performance and ResponseCount columns with 0
+        - When context keys have empty string values, replaces them
+        with "NA" string
+        """
+        self.modelData = self.modelData.with_columns(
+            pl.col(pl.Categorical).fill_null("NA"),
+            pl.col(pl.Utf8).fill_null("NA"),
+            pl.col(pl.Null).fill_null("NA"),
+            pl.col("SuccessRate").fill_nan(0).fill_null(0),
+            pl.col("Performance").fill_nan(0).fill_null(0),
+            pl.col("ResponseCount").fill_null(0),
+        ).with_columns(
+            [
+                pl.when((pl.col(key) == "") | (pl.col(key) == " "))
+                .then(pl.lit("NA"))
+                .otherwise(pl.col(key))
+                .alias(key)
+                for key in self.context_keys
+            ]
+        )
+        return self.processTables()
 
     def generateHealthCheck(
         self,
@@ -1226,6 +1276,8 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         output_type="html",
         include_tables=True,
         allow_collect=True,
+        *,
+        modelData_only: bool = False,
         **kwargs,
     ):
         """Manually generates a Health Check
@@ -1241,6 +1293,11 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         By running this method directly, you have control over the exact
         filters you want to use. Simply use the top-level :attr:`.query`
         argument to filter the ADMDatamart class to the desired level.
+
+        This method also propagates the predictorCategorization used by the ADMDatamart
+        class into the Health Check. Simply set the `predictorCategorization` to a
+        supported function and this will be reflected in the Health Check:
+        see :meth:`pdstools.utils.cdh_utils.defaultPredictorCategorization`.
 
         Parameters
         ----------
@@ -1264,6 +1321,11 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             for collecting of data. Naturally, we need to collect the data in order
             to cache it to disk for the health check, so if set to False
             with a `lazy` memory_strategy, you won't be able to generate.
+        Keyword arguments
+        -----------------
+        modelData_only: bool, default = False
+            If set to True, calls model-based Health Check files. Can be used if
+            predictor binning data is missing
 
         Returns
         -------
@@ -1272,26 +1334,39 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         """
 
         def delete_temp_files(working_dir, files):
-            for f in ["params.yaml", "HealthCheck.qmd", "HealthCheck.ipynb", "log.txt"]:
+            temp_files = files + (
+                "params.yaml",
+                "HealthCheck.qmd",
+                "HealthCheck.ipynb",
+                "HealthCheckModel.qmd",
+                "HealthCheckModel.ipynb",
+                "log.txt",
+            )
+            for f in temp_files:
                 try:
                     os.remove(f"{working_dir}/{f}")
                 except:
                     pass
-            for f in files:
-                os.remove(f)
+
+        working_dir, output_location = Path(working_dir), Path(output_location)
 
         from pdstools import __reports__
 
         verbose = kwargs.get("verbose", self.verbose)
-
-        if self.modelData is None or self.predictorData is None:
-            raise AssertionError("Needs both model and predictor data.")
+        if modelData_only:
+            healthcheck_file = "HealthCheckModel.qmd"
+            if self.modelData is None:
+                raise AssertionError("Needs model data.")
+        else:
+            healthcheck_file = "HealthCheck.qmd"
+            if self.modelData is None or self.predictorData is None:
+                raise AssertionError("Needs both model and predictor data.")
         if self.import_strategy == "lazy" and not allow_collect:
             raise NotEagerError("Generating healthcheck")
         if not os.path.exists(working_dir):
             os.mkdir(working_dir)
 
-        shutil.copy(__reports__ / "HealthCheck.qmd", working_dir)
+        shutil.copy(__reports__ / healthcheck_file, working_dir)
         if name is not None:
             output_filename = f"HealthCheck_{name.replace(' ', '_')}.{output_type}"
         else:
@@ -1307,7 +1382,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         with open(f"{working_dir}/params.yaml", "w") as f:
             yaml.dump(params, f)
 
-        bashCommand = f"quarto render HealthCheck.qmd --to {output_type} --output {output_filename} --execute-params params.yaml"
+        bashCommand = f"quarto render {healthcheck_file} --to {output_type} --output {output_filename} --execute-params params.yaml"
         if not verbose:
             stdout, stderr = subprocess.DEVNULL, subprocess.STDOUT
         else:
@@ -1351,11 +1426,17 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         return filename
 
     def exportTables(self, file: Path = "Tables.xlsx"):
+        """Exports all tables from `pdstools.adm.Tables` into one Excel file.
+
+        Parameters
+        ----------
+        file: Path, default = 'Tables.xlsx'
+            The file name of the exported Excel file
+
+        """
         from xlsxwriter import Workbook
 
-        tabs = {
-            tab: getattr(self, tab) for tab in dir(Tables) if not tab.startswith("_")
-        }
+        tabs = {tab: getattr(self, tab) for tab in self.ApplicableTables}
         with Workbook(file) as wb:
             for tab, data in tabs.items():
                 data = data.with_columns(

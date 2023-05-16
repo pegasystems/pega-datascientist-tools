@@ -11,9 +11,9 @@ import itertools
 from pandas.errors import UndefinedVariableError
 import pathlib
 
-pathlib.Path(__file__).parent.parent
-sys.path.append("python")
-from pdstools import ADMDatamart
+basePath = pathlib.Path(__file__).parent.parent.parent
+sys.path.append(f"{str(basePath)}/python")
+from pdstools import ADMDatamart, cdh_utils
 from pdstools import errors
 
 
@@ -54,7 +54,7 @@ class Equals:
 def test():
     """Fixture to serve as class to call functions from."""
     return ADMDatamart(
-        path="data",
+        path=f"{basePath}/data",
         model_filename="Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip",
         predictor_filename="Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip",
         context_keys=["Issue", "Group", "Channel"],
@@ -86,7 +86,7 @@ def test_basic_available_columns(test):
 
 def test_import_utils_with_importing(test):
     output, renamed, missing = test._import_utils(
-        path="data",
+        path=f"{basePath}/data",
         name="Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
     )
     assert isinstance(output, pl.LazyFrame)
@@ -143,7 +143,9 @@ def data():
 
 def test_import_utils(test, data):
     output, renamed, missing = test._import_utils(
-        name=data, timestamp_fmt="%Y-%m-%d %H:%M:%S"
+        name=data,
+        timestamp_fmt="%Y-%m-%d %H:%M:%S",
+        typesetting_table="ADMModelSnapshot",
     )
     assert len(missing) == 19
     assert isinstance(output, pl.LazyFrame)
@@ -151,7 +153,7 @@ def test_import_utils(test, data):
     assert output.shape == (3, 3)
     assert "Name" in output.columns
     assert all(output["ModelID"] == data.collect()["pymodelid"])
-    assert isinstance(output.schema["SnapshotTime"], pl.Datetime)
+    assert output.schema["SnapshotTime"].base_type() == pl.Datetime
     assert "Performance" not in output.columns
     assert renamed == {"Name", "ModelID", "SnapshotTime"}
     assert "Junk" not in output.columns
@@ -159,16 +161,20 @@ def test_import_utils(test, data):
 
 
 def test_import_no_subset(test, data):
-    output = test._import_utils(name=data, subset=False)[0]
+    output = test._import_utils(
+        name=data,
+        subset=False,
+        typesetting_table="ADMModelSnapshot",
+    )[0]
     assert "Junk" in output.columns
 
 
 def test_extract_treatment(test, data):
     mapping = {"pyname": "Name"}
-    output = test.extract_keys(data.rename(mapping).lazy()).collect()
+    output = cdh_utils._extract_keys(data.rename(mapping).lazy()).collect()
     assert output.shape == (3, 6)
-    assert list(output["pyTreatment"]) == ["XYZ", "xyz", None]
-    assert list(output["pyName"]) == ["ABC", "abc", "NormalName"]
+    assert list(output["Treatment"]) == ["XYZ", "xyz", None]
+    assert list(output["Name"]) == ["ABC", "abc", "NormalName"]
     jsonnames = pl.LazyFrame(
         {
             "Name": [
@@ -178,9 +184,9 @@ def test_extract_treatment(test, data):
             ]
         }
     )
-    out = test.extract_keys(jsonnames).collect()
-    assert list(out["pyName"]) == ["ABC", "abc", "ABCD"]
-    assert list(out["pyTreatment"]) == ["XYZ", "xyz", "XYZ1"]
+    out = cdh_utils._extract_keys(jsonnames).collect()
+    assert list(out["Name"]) == ["ABC", "abc", "ABCD"]
+    assert list(out["Treatment"]) == ["XYZ", "xyz", "XYZ1"]
     # Just checking that this'll work without raising errors
     ADMDatamart(
         path="data",
@@ -221,7 +227,7 @@ def test_apply_query(test, data):
 def test_set_types(test):
     df = pl.DataFrame(
         {
-            "Positives": [1, 2, "3b"],
+            "Positives": [1, 2, "3"],
             "Negatives": ["0", 2, 4],
             "Issue": ["Issue1", "Issue2", None],
             "SnapshotTime": [
@@ -232,21 +238,29 @@ def test_set_types(test):
         }
     )
     with pytest.raises(pl.ComputeError):
-        test._set_types(df, timestamp_fmt="%Y-%m-%d %H:%M:%S", strict_conversion=True)
+        test._set_types(
+            df,
+            timestamp_fmt="%Y%m%dT%H%M%S",
+            strict_conversion=True,
+            table="ADMModelSnapshot",
+        )
 
     df2 = test._set_types(
-        df, timestamp_fmt="%Y-%m-%d %H:%M:%S", strict_conversion=False
+        df,
+        timestamp_fmt="%Y-%m-%d %H:%M:%S",
+        strict_conversion=False,
+        table="ADMModelSnapshot",
     )
     assert df2.shape == (3, 4)
     assert df2.dtypes == [
-        pl.Utf8,
-        pl.Utf8,
+        pl.Float32,
+        pl.Float32,
         pl.Categorical,
         pl.Datetime,
     ]
 
-    assert df2["Positives"].to_list() == [None, None, "3b"]
-    assert df2["Negatives"].to_list() == ["0", None, None]
+    assert df2["Positives"].to_list() == [None, None, 3]
+    assert df2["Negatives"].to_list() == [0.0, None, None]
     assert df2["Issue"].to_list() == ["Issue1", "Issue2", None]
     import datetime
 
@@ -260,7 +274,7 @@ def test_set_types(test):
 @pytest.fixture
 def cdhsample_models():
     with zipfile.ZipFile(
-        "data/Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
+        f"{basePath}/data/Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
         mode="r",
     ) as zip:
         with zip.open("data.json") as zippedfile:
@@ -272,7 +286,7 @@ def cdhsample_models():
 @pytest.fixture
 def cdhsample_predictors():
     with zipfile.ZipFile(
-        "data/Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210101T010000_GMT.zip"
+        f"{basePath}/data/Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210101T010000_GMT.zip"
     ) as zip:
         with zip.open("data.json") as zippedfile:
             from io import BytesIO
@@ -303,7 +317,12 @@ def test_init_preds_only(cdhsample_predictors):
 
 
 def test_init_both(cdhsample_models, cdhsample_predictors):
-    output = ADMDatamart(model_df=cdhsample_models, predictor_df=cdhsample_predictors)
+    output = ADMDatamart(
+        model_df=cdhsample_models.lazy(),
+        predictor_df=cdhsample_predictors.lazy(),
+        model_filename=None,
+        predictor_filename=None,
+    )
     assert output.modelData is not None
     assert output.modelData.shape == (20, 13)
     assert output.predictorData is not None
@@ -314,7 +333,7 @@ def test_init_both(cdhsample_models, cdhsample_predictors):
 
 def test_filter_also_filters_predictorData():
     assert ADMDatamart(
-        path="data",
+        path=f"{basePath}/data",
         model_filename="Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip",
         predictor_filename="Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip",
         context_keys=["Issue", "Group", "Channel", "Direction"],
@@ -330,7 +349,7 @@ def test_lazy_strategy():
 def test_eagerFunctionalityFailsInLazy(test):
     with pytest.raises(errors.NotEagerError):
         ADMDatamart(
-            path="data",
+            path=f"{basePath}/data",
             model_filename="Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip",
             predictor_filename="Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip",
             import_strategy="lazy",
@@ -338,14 +357,14 @@ def test_eagerFunctionalityFailsInLazy(test):
         )
     with pytest.raises(errors.NotEagerError):
         ADMDatamart(
-            path="data",
+            path=f"{basePath}/data",
             model_filename="Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip",
             predictor_filename="Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip",
             import_strategy="lazy",
             query="Channel=='Web'",
         )
     lazyADM = ADMDatamart(
-        path="data",
+        path=f"{basePath}/data",
         model_filename="Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip",
         predictor_filename="Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip",
         import_strategy="lazy",
@@ -389,7 +408,7 @@ def test_save_data(test):
 @pytest.fixture
 def sample_with_agb():
     return ADMDatamart(
-        model_df=pl.scan_ipc("data/sample_datamart_with_AGB.arrow"),
+        model_df=pl.scan_ipc(f"{basePath}/data/sample_datamart_with_AGB.arrow"),
         predictor_filename=None,
         include_cols="Modeldata",
     )

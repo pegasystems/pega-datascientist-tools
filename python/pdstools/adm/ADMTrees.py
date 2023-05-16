@@ -75,10 +75,13 @@ class ADMTrees:
                     list(f(ADMTrees, tqdm(df2["Modeldata"]))),
                 )
             )
-        out2 = dict.fromkeys([key[0] for key in out.keys()], {})
-        for key, value in out.items():
-            out2[key[0]][key[1]] = value
-        return {key: MultiTrees(value, model_name=key) for key, value in out2.items()}
+        dictPerConfig = {key[0]: {} for key in out.keys()}
+        for (configuration, timestamp), value in out.items():
+            dictPerConfig[configuration][timestamp] = value
+        return {
+            key: MultiTrees(value, model_name=key)
+            for key, value in dictPerConfig.items()
+        }
 
 
 class ADMTreesModel:
@@ -284,9 +287,12 @@ class ADMTreesModel:
                     self.model = self.trees["model"]["model"]["boosters"][0]["trees"]
                 except Exception as e2:
                     try:
-                        self.model = self.trees["model"]["model"]["booster"]["trees"]
+                        self.model = self.trees["model"]["booster"]["trees"]
                     except Exception as e3:
-                        raise (e1, e2, e3)
+                        try:
+                            self.model = self.trees["model"]["model"]["booster"]["trees"]
+                        except Exception as e4:
+                            raise (e1, e2, e3, e4)
 
         if decode:
             logging.info("Decoding the tree splits.")
@@ -482,7 +488,7 @@ class ADMTreesModel:
             .agg(
                 [
                     pl.first("predictor"),
-                    pl.col("gains").list(),
+                    pl.col("gains").implode(),
                     pl.col("gains").mean().alias("mean"),
                     pl.first("split")
                     .apply(lambda x: self.parseSplitValues(x)[1])

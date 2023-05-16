@@ -2,8 +2,9 @@
 Testing the functionality of some end-to-end scenarios
 """
 import sys
-
-sys.path.append("python")
+import pathlib
+basePath = pathlib.Path(__file__).parent.parent.parent
+sys.path.append(f"{str(basePath)}/python")
 import polars as pl
 from pdstools import ADMDatamart
 from plotly.graph_objs._figure import Figure
@@ -23,7 +24,7 @@ class Shape:
 
 
 def test_end_to_end():
-    datamart = ADMDatamart("data", timestamp_fmt="%Y-%m-%d %H:%M:%S")
+    datamart = ADMDatamart(f"{basePath}/data", timestamp_fmt="%Y-%m-%d %H:%M:%S")
     assert datamart.modelData.shape == (1047, 15)
     modelcols = {
         "ModelID",
