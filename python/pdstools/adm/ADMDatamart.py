@@ -567,9 +567,9 @@ class ADMDatamart(Plots, Tables):
         """
 
         return (
-            pl.col("SnapshotTime")
-            .where(pl.col(col).diff() != 0)
-            .max()
+            pl.when(pl.col(col).min() == pl.col(col).max())
+            .then(pl.max("SnapshotTime"))
+            .otherwise(pl.col("SnapshotTime").where(pl.col(col).diff() != 0).max())
             .over("ModelID")
             .alias(f"Last_{col}")
         )

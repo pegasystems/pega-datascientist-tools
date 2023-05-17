@@ -45,12 +45,11 @@ jobs:
 
       - name: "Install quarto"
         run: |
-          #  curl -OL https://github.com/quarto-dev/quarto-cli/releases/download/v0.1.340/quarto-1.3.340-linux-amd64.deb
           curl -s https://api.github.com/repos/quarto-dev/quarto-cli/releases/latest | 
           grep "browser_download_url.*deb" | 
           cut -d '"' -f 4 |
           wget -i -
-          sudo dpkg -i quarto-1.3.340-linux-amd64.deb
+          sudo dpkg -i quarto*amd64.deb
           
       - name: Run Health Check
         run: pytest python/tests/test_healthcheck.py

@@ -284,9 +284,11 @@ can be configured with one of the parameters in the Yaml header of this notebook
 for (f in unique(modelPredictorBins[!params$predictordetails_activeonly | EntryType == "Active"]$PredictorName)) {
   predictorBinning <- modelPredictorBins[PredictorName==f]
   
-  if (nrow(predictorBinning) < 1) {
+  if (nrow(predictorBinning[!is.na(Propensity)]) < 2) {
     cat("<p style='color:Red;'>NO data available for", f, "for date:", max(modelPredictorBins$SnapshotTime), "</p>", fill=T)
   } else {
+    
+    # write.csv(predictorBinning, "tempbin.csv")
     
     # Find other predictors in the same group
     correlatedPreds <- predSummary[Group != 0 & Group == predSummary[Predictor==f]$Group & Predictor != f]

@@ -1,6 +1,6 @@
 """Python pdstools"""
 
-__version__ = "3.1.7"
+__version__ = "3.1.8"
 
 from polars import enable_string_cache
 
@@ -11,8 +11,9 @@ from pathlib import Path
 
 from .adm.ADMDatamart import ADMDatamart
 from .adm.ADMTrees import ADMTrees, MultiTrees
-from .pega_io import getToken, readClientCredentialFile, readDSExport
+from .pega_io import getToken, readDSExport
 from .pega_io import File, API, S3
+from .pega_io.API import setupAzureOpenAI
 from .utils import cdh_utils, datasets, errors, hds_utils
 from .utils.cdh_utils import defaultPredictorCategorization
 from .utils.show_versions import show_versions
