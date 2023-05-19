@@ -442,6 +442,7 @@ See if there are predictors that are just always perform poorly.
 ```{python}
 # weighted performance
 if include_tables:
+    responses_column_index = datamart.bad_predictors.columns.index("Response Count")
     bad_predictors = datamart.bad_predictors.to_pandas(
         use_pyarrow_extension_array=False
     )
@@ -452,7 +453,7 @@ if include_tables:
         columnDefs=[
             {
                 "className": "dt-left",
-                "targets": [1],
+                "targets": [responses_column_index],
                 "createdCell": JavascriptFunction(
                     """
 function (td, cellData, rowData, row, col) {
@@ -924,12 +925,13 @@ A list of all the models is written to a file so a script can iterate over all m
 Generally you will want to apply some filtering, or do this for specific models only. This can be accomplished in either this script here, or by editing the generated file.
 ```{python}
 if include_tables:
+    responses_column_index = datamart.appendix.columns.index("Responses")
     appendix = datamart.appendix.to_pandas(use_pyarrow_extension_array=True)
     show(
         appendix,
         columnDefs=[
             {
-                "targets": [8],
+                "targets": [responses_column_index],
                 "createdCell": JavascriptFunction(
                     """
 function (td, cellData, rowData, row, col) {

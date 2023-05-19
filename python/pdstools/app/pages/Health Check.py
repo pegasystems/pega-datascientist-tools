@@ -57,7 +57,7 @@ with imports:
         with col1:
             opts["extract_keys"] = st.checkbox(
                 "Extract additional keys",
-                False,
+                True,
                 help="""By default, ADM has a few "Context Keys" it uses to 
                 distinguish between models, such as Issue, Group, Channel, or Name. 
                 However, if you've setup custom context keys that are not part of a regular 
