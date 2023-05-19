@@ -297,7 +297,11 @@
 </pre></div>
 </div>
 <p>Now, you can proceed to download pdstools and other libraries required to run Health Check app. Simply run:</p>
-<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>pip install pdstools[&#39;app&#39;]
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>pip install --upgrade pdstools[app]
+</pre></div>
+</div>
+<p>For zsh on Mac use quotes:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>pip install --upgrade pdstools&#39;[app]&#39;
 </pre></div>
 </div>
 <p>This will install pdstools, along with all required <em>optional dependencies</em> we use in the webapp.</p>
@@ -307,6 +311,7 @@
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>pip install --upgrade pdstools
 </pre></div>
 </div>
+<p>Finally, download Quarto cli from <a class="reference external" href="https://quarto.org/docs/get-started/">quarto.org</a>. It is an open-source publishing library for creating dynamic html content.</p>
 </section>
 <section id="Running-the-App">
 <h2>Running the App<a class="headerlink" href="#Running-the-App" title="Permalink to this heading">#</a></h2>
@@ -337,11 +342,16 @@
 </ul>
 <p>For testing the app, you may use the provided sample data from CDH Sample. For instructions on how to export your own datamart data, <a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools/wiki/How-to-export-and-use-the-ADM-Datamart">please refer to this article</a></p>
 <p>If you’re using Treatments, make sure to add that to the context keys in the <em>Configure Advanced Options</em> section by clicking on <em>Extract Additional Keys</em>. Additionally, if you are not using all the default context keys(Channel, Direction, Issue, and Group), feel free to remove the ones you won’t be using.</p>
-<ul class="simple">
-<li><p>Next, you can select your import method from the dropdown menu under Data Import. You will see 4 options:</p>
 <ul>
+<li><p>Next, you can select your import method from the dropdown menu under Data Import. You will see 4 options:</p>
+<ul class="simple">
 <li><p><strong>Direct file path:</strong> Simply paste the folder path where the ADM files are located. <em>Ex. /User/Downloads/</em>. pdstools should automatically find the relevant files in that directory. <em>Note</em>: there is no need to extract the zip files, we will also take care of that for you.</p></li>
-<li><p><strong>Direct file upload:</strong> Browse your local files with this option. If you don’t have access Predictor Binning files, you can upload only the Model Snapshot file and then click on the checkbox to confirm that you want to run only model-based Health Check.</p></li>
+<li><p><strong>Direct file upload:</strong> Browse your local files with this option. If you don’t have access Predictor Binning files, you can upload only the Model Snapshot file and then click on the checkbox to confirm that you want to run only model-based Health Check. Note: Maximum file upload size is 2000 MB. You can increase it by launching the app with this command “pdstools run –server.maxUploadSize <em>desired file size</em>” Ex. :</p></li>
+</ul>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>pdstools run --server.maxUploadSize 5000
+</pre></div>
+</div>
+<ul class="simple">
 <li><p><strong>CDH Sample:</strong> You can generate a sample HealthCheck with this option. It is a convenient way to test out the Health Check using a CDH Sample dataset.</p></li>
 <li><p><strong>Download from S3:</strong> This feature is not implemented yet but soon, you will be able to run HealthCheck without downloading the files to your local system if they are located in S3.</p></li>
 </ul>
