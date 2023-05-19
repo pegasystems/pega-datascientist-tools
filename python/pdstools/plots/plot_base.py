@@ -1,5 +1,4 @@
 from typing import Optional, Union, Dict, List, Any
-import pandas as pd
 import polars as pl
 from .plots_plotly import ADMVisualisations as plotly
 from ..utils.cdh_utils import (

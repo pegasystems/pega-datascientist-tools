@@ -33,6 +33,7 @@ keywords = [
     "tools",
 ]
 dependencies = [
+        "pandas",
         "plotly>=5.14.1",
         "requests",
         "pydot",
