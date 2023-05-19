@@ -91,9 +91,6 @@ of bulletted lists of attention points. However these are only generic
 practices and may or may not be applicable to the specific use case and 
 situation of the implementation. 
 
-Pega Customer Decision Hub deployed in Pega Cloud has limits in place that constrain certain elements of the service and its use to ensure high quality of service for your team. Where
-relevant, these limits are used in the guidance in this health check. See [Service and data health limits for Pega Customer Decision Hub on Pega Cloud](https://docs-previous.pega.com/pega-customer-decision-hub-user-guide/87/service-and-data-health-limits-pega-customer-decision-hub-pega-cloud).
-
 ## User experience
 
 Some of the plots provide some interactivity. For best viewing results, open the 
@@ -112,13 +109,13 @@ if (!("modelfile" %in% names(params))) stop("Model data missing. Please provide 
 if (!file.exists(params$modelfile)) stop(paste("File does not exist:", params$modelfile))
 
 if (params$predictordatafile == "") {
-  datamart <- ADMDatamart(params$modelfile, predictordata = F)  
+  datamart <- pdstools::ADMDatamart(params$modelfile, predictordata = F)  
 } else {
   if (!is.null(params$predictordatafile)) {
     if (!file.exists(params$predictordatafile)) stop(paste("File does not exist:", params$predictordatafile))  
   }
   
-  datamart <- ADMDatamart(params$modelfile, params$predictordatafile)
+  datamart <- pdstools::ADMDatamart(params$modelfile, params$predictordatafile)
 }
 
 # Hmm. Perhaps the 'ADMDatamart' function should be doing this. We need Issue
@@ -208,21 +205,25 @@ that the framework **`r ifelse(any(configurationNamesInStandardNBADModelNames), 
 
 ## Guidance
 
-* Look out for channels supported by more than two model configurations
+* Look out for channels supported by more than two model configurations, although
+there may be valid reasons to do so (e.g. different sets of predictors for certain issues)
 * Channels with no responses at all
 * Channels with no positive feedback
 
 ```{r Channel overview}
 channelSummary <- datamart$modeldata[, .(`Responses` = max(ResponseCount), 
-                       `Positives` = max(Positives), 
-                       `Base rate` = sprintf("%.2f%%", 100*max(Positives)/max(ResponseCount)),
-                       `Supported by Configurations` = paste(sort(unique(ConfigurationName)), collapse = ", ")), by=c("Channel","Direction")][order(Channel)]
+                                         `Positives` = max(Positives), 
+                                         `Base rate` = sprintf("%.2f%%", 100*max(Positives)/max(ResponseCount)),
+                                         `Supported by Configurations` = paste(sort(unique(ConfigurationName)), collapse = ", "),
+                                         N = uniqueN(ConfigurationName)), 
+                                     by=c("Channel","Direction")][order(Channel)]
 
-channelSummary %>%
+channelSummary[, 1:(ncol(channelSummary)-1)] %>%
   kbl() %>%
   kable_paper(c("striped", "hover"), full_width = F) %>%
   column_spec(3, background = ifelse(channelSummary[[3]] > 0 ,"white", "red")) %>%
-  column_spec(4, background = ifelse(channelSummary[[4]] > 0 ,"white", "red"))
+  column_spec(4, background = ifelse(channelSummary[[4]] > 0 ,"white", "red")) %>%
+  column_spec(6, background = ifelse(channelSummary$N <= 2 ,"white", "orange"))
 ```
 
 # Overview of the Actions
@@ -236,7 +237,7 @@ are actions.
 Adaptive Models are created per treatment (at least in the default setup) and
 the recommendation is to stick the default context keys of the models.
 
-```{r Overview Helpers, echo=F, include=F}
+```{r Overview Helpers}
 nUniqueValues <- function(dm, fld) { 
   values <- as.vector(na.omit(unique(dm$modeldata[[fld]])))
   length(values)
@@ -262,18 +263,61 @@ allUniqueChannelDirectionValues <- function(dm) {
         collapse=", ") }
 
 avgGroupsPerIssue <- function(dm) { 
-  mean(dm$modeldata[, .(Groups = uniqueN(Group)), by="Issue"]$Groups)
+  round(mean(dm$modeldata[, .(Groups = uniqueN(Group)), by="Issue"]$Groups), 2)
 }
+
+actionsOverview <- data.table(
+  Item = c("Overall Number of Actions", 
+           "Max number of Actions within an Issue and Group",
+           "Number of Treatments across all Actions",
+           "Max number of Treatments per Channel",
+           "Max number of Treatments for any single Action",
+           "Number of unique Issues", 
+           "Average number of Groups per Issue", 
+           "Max number of Groups per Issue",
+           "Channels"),
+  Number = c(as.character(nUniqueValues(datamart, "Name")),
+             max(datamart$modeldata[, .(N = uniqueN(Name)), by=intersect(c("Channel","Direction","Issue","Group"), 
+                                                                         names(datamart$modeldata))]$N, na.rm = T),
+             nUniqueValues(datamart, "Treatment"),
+             max(datamart$modeldata[, .(N = uniqueN(.SD[["Treatment"]])), by=c("Channel","Direction")]$N, na.rm = T),
+             max(datamart$modeldata[, .(N = uniqueN(.SD[["Treatment"]])), by=intersect(c("Direction", "Channel", "Issue", "Group", "Name"), 
+                                                                              names(datamart$modeldata))]$N, na.rm = T),
+             nUniqueValues(datamart, "Issue"),
+             avgGroupsPerIssue(datamart),
+             max(datamart$modeldata[, .(N = uniqueN(.SD[["Group"]])), by=intersect(c("Channel","Direction","Issue"),
+                                                                          names(datamart$modeldata))]$N, na.rm = T),
+             nUniqueChannelDirections(datamart)),
+  `(Example) Values` = c(allUniqueValues(datamart, "Name", 10),
+                         "-",
+                         allUniqueValues(datamart, "Treatment", 10),
+                         
+                         "-",
+                         "-",
+                         allUniqueValues(datamart, "Issue"),
+                         allUniqueValues(datamart, "Group"),
+                         "-",
+                         allUniqueChannelDirectionValues(datamart)),
+  
+  # from service limits
+  
+  LimitLo = c(1000, 100, 2500, 1000, 5,  5, -Inf,  5, -Inf),
+  LimitHi = c(2500, 250, 5000, 2500, 5, 25, +Inf, 25, +Inf)
+)
+
+actionsOverview[,1:3] %>% 
+  kbl() %>% kable_paper(c("striped", "hover"), full_width = T) %>%
+  column_spec(2, background = ifelse(as.numeric(actionsOverview$Number) >= actionsOverview$LimitLo &
+                                       as.numeric(actionsOverview$Number) <= actionsOverview$LimitHi,"white", "orange"))
 ```
 
-| Item | Number | (example) values |
-| --- | --- | --- |
-| Number of unique Actions | `r nUniqueValues(datamart, "Name")` | `r allUniqueValues(datamart, "Name", 10)` |
-| Number of unique Treatments | `r nUniqueValues(datamart, "Treatment")` | `r allUniqueValues(datamart, "Treatment", 10)` |
-| Number of unique Issues | `r nUniqueValues(datamart, "Issue")` | `r allUniqueValues(datamart, "Issue")` |
-| Average number of Groups per Issue | `r avgGroupsPerIssue(datamart)` | `r allUniqueValues(datamart, "Group")` |
-| Channels | `r nUniqueChannelDirections(datamart)` | `r allUniqueChannelDirectionValues(datamart)` |
 
+### Guidance
+
+* Recommended best practice is to have multiple treatments for an action. Too few
+gives less opportunity for personalization of the interactions.
+* Pega Customer Decision Hub deployed in Pega Cloud has limits in place that constrain certain elements of the service and its use to ensure high quality of service for your team. Where
+relevant, these limits are used in the guidance in this health check. See [Service and data health limits for Pega Customer Decision Hub on Pega Cloud](https://docs-previous.pega.com/pega-customer-decision-hub-user-guide/87/service-and-data-health-limits-pega-customer-decision-hub-pega-cloud).
 
 ## Success Rates per Channel
 
@@ -384,18 +428,14 @@ actionsOverviewSummary <- actionsOverview[, .(`Standard in NBAD Framework` = fir
 
 actionsOverviewSummary %>%
   kbl() %>%
-  kable_paper(c("striped", "hover"), full_width = F)
+  kable_paper(c("striped", "hover"), full_width = F) %>%
+  column_spec(4, background = ifelse(actionsOverviewSummary[[4]],"white", "orange")) %>%
+  column_spec(7, background = ifelse(actionsOverviewSummary[[7]] >= 2,"white", "orange"))
 ```
-
-### Guidance
-
-* Recommended best practice is to have multiple treatments for an action. Too few
-gives less opportunity for personalization of the interactions.
-
 
 ## Model Performance
 
-### Model Performance vs Action Success Rates (the Bubble Chart)
+### Model Performance vs Action Success Rates (aka the Bubble Chart)
 
 This "Bubble Chart" - similar to the standard plot in the ADM reports in Pega - 
 shows the relation between model performance and proposition success rates. In 
@@ -403,18 +443,22 @@ addition, the size of the bubbles indicates the number of responses.
 
 #### Guidance
 
-* If all the bubbles clutter too much on the left-hand side of the charts, this
-means the models are not predictive. These models may be still be ramping up, or
+* Bubbles stacked up against the left-hand vertical axis represent actions/treatments
+for which the models are not predictive. These models may be still be ramping up, or
 they may not have predictive enough features to work with: consider if new/better
 predictors can be added. 
-* Bubbles at the bottom of the charts
-represent propositions with very low success rates - they may not be compelling 
+
+* Charts should not be empty or contain only a few bubbles. Such charts may 
+represent channels or configurations not (or no longer).
+
+* Bubbles at the bottom of the charts represent propositions with very low success rates - they may not be compelling 
 enough. 
+
 * In an ideal scenario you
 will see the larger bubbles more on the top-right, so more volume for propositions
 with higher success rates and better models.
 
-* There should be a positive correlation between success rate and performance - per channel. 
+* There should - roughly - be a positive correlation between success rate and performance per channel. 
 
 * There should be a positive correlation between responses and performance - also per channel.
 
@@ -501,13 +545,19 @@ fig <- plot_ly(
 fig %>% layout(title = "Model Performance")
 ```
 
-### Response counts for all the actions
+## Response counts for all the actions
 
 Using an interactive treemap to visualize the response counts. Darker is more.
 
 Different channels will have very different numbers but within one channel the
 relative differences in response counts give an indication how skewed the
 distribution is.
+
+### Guidance
+
+* If there are actions that have a much higher response count than the rest see 
+why that is. Possibly they are levered up for valid business reasons.
+
 
 ```{r Treemap response count}
 fig <- plot_ly(
@@ -537,28 +587,85 @@ this to add patterns to identify for example external scores.
 
 ## Number of Predictors per model configuration
 
-```{r}
-datamart$modeldata[, .(Predictors = max(TotalPredictors), 
-                       `Used In (Channels)` = paste(sort(unique(paste(Direction, Channel, sep="/"))), collapse=", "), 
-                       `Used For (Issues)` = paste(sort(unique(Issue)), collapse=", ")), 
-                   by=c("ConfigurationName")][order(ConfigurationName)] %>%
-  kbl() %>%
-  kable_paper(c("striped", "hover"), full_width = F)
+Both active and inactive predictors.
 
+Note that the total number of predictors in the model data does not always equate
+the data from the more detailed view split by category below.
+
+```{r}
+predictorsPerModelConfiguration <- filterLatestSnapshotOnly(datamart$modeldata)[, .(Predictors = max(TotalPredictors), 
+                                                 `Used In (Channels)` = paste(sort(unique(paste(Direction, Channel, sep="/"))), collapse=", "), 
+                                                 `Used For (Issues)` = paste(sort(unique(Issue)), collapse=", ")), 
+                                             by=c("ConfigurationName")][order(ConfigurationName)] 
+predictorsPerModelConfiguration %>%
+  kbl() %>%
+  kable_paper(c("striped", "hover"), full_width = F) %>%
+  column_spec(2, background = ifelse(predictorsPerModelConfiguration[[2]] >= 200 & predictorsPerModelConfiguration[[2]] <= 700,"white", "orange"))
 ```
+
+## Number of Predictors per Predictor Category
+
+Split by category (defaults to the string before the first dot, can be overridden
+when reading the data).
+
+The numbers here can differ from the totals above, these ones are leading.
+
+```{r Predictor Type Counts}
+if (!is.null(datamart$predictordata) && nrow(datamart$predictordata) > 0) {
+  combined <- merge(filterClassifierOnly(filterLatestSnapshotOnly(datamart$predictordata), reverse = T), 
+                    filterLatestSnapshotOnly(datamart$modeldata)[, .N, by=c("ModelID", "ConfigurationName")], by="ModelID")
+  counts <- combined[, .(N = uniqueN(PredictorName)), keyby=c("ConfigurationName", "PredictorCategory")]
+  
+  predictorTypeCounts <- dcast(counts, ConfigurationName ~ PredictorCategory, value.var="N", fill = 0)
+  predictorTypeCounts[, Total := rowSums(.SD[,2:ncol(predictorTypeCounts)])]
+  
+  tbl <-  predictorTypeCounts %>%
+    kbl() %>%
+    kable_paper(c("striped", "hover"), full_width = F)
+
+  if ("IH" %in% names(predictorTypeCounts)) {
+    colIdx <- which(names(predictorTypeCounts) == "IH")[1]
+    tbl <- tbl %>% column_spec(colIdx, background = ifelse(predictorTypeCounts[[colIdx]] <= 100,"white", "orange"))    
+  }
+  
+  if ("Param" %in% names(predictorTypeCounts)) {
+    colIdx <- which(names(predictorTypeCounts) == "Param")[1]
+    tbl <- tbl %>% column_spec(colIdx, background = ifelse(predictorTypeCounts[[colIdx]] <= 24,"white", "orange"))    
+  }
+  
+  tbl <- tbl %>% 
+    column_spec(ncol(predictorTypeCounts), background = ifelse(predictorTypeCounts$Total >= 200 & predictorTypeCounts$Total <= 700,"white", "orange"))
+  
+  # for (i in 2:ncol(predictorTypeCounts)) {
+  #   tbl <- tbl %>% column_spec(i, background = ifelse(predictorTypeCounts[[i]] >= 200 & predictorTypeCounts[[i]] <= 700,"white", "orange"))  
+  # }
+  
+  tbl
+} else {
+  cat("Predictor analysis not available.", fill=T)
+}
+```
+
+### Guidance
+
+* Total number of predictors per model 200 - 700 to stay within service limits
+* There should be some "IH" predictors but no more than ca 100 of them
+* No more than a few dozen Param predictors
+* Consistency in the numbers across configurations
 
 ## Predictor Importance across all models per configuration
 
 Box plots of the predictor importance. Importance can be shown either as
 a global feature importance or simply as the univariate predictor importance,
-here we default to univariate performance measured in AUC (Area under the ROC curve).
+here we use univariate performance measured in AUC (Area under the ROC curve)
+but the PDS tools functions also support using Feature Importance.
 
 ### Guidance
 
-* Number of predictors per model 200 - 700
-* There should be IH* predictors
-* There should not be > 100 IH predictors
-* No more than a few dozen Param predictors
+* You expect most predictors to have a spread in the performance range, doing better for some actions than for others
+* Predictors only showing as a single bar (no range) are suspicious
+* A variation of predictors from different categories in the top `r params$max_predictors_in_plot`
+* A min/max of the univariate AUC performance somewhere between 55 and 75
 
 
 ```{r Univariate Predictors Boxplot}
