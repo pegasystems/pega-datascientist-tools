@@ -30,7 +30,7 @@ from pdstools import datasets, ADMDatamart
 from pdstools import cdh_utils
 from pdstools import defaultPredictorCategorization
 from plotly.offline import iplot
-from itables import show
+from itables import show, JavascriptFunction
 import plotly.express as px
 import plotly.graph_objs as go
 import polars as pl
@@ -442,11 +442,34 @@ See if there are predictors that are just always perform poorly.
 ```{python}
 # weighted performance
 if include_tables:
-    bad_predictors = datamart.bad_predictors.to_pandas(use_pyarrow_extension_array=False)
+    responses_column_index = datamart.bad_predictors.columns.index("Response Count")
+    bad_predictors = datamart.bad_predictors.to_pandas(
+        use_pyarrow_extension_array=False
+    )
 
-    show(bad_predictors, scrollX=True)
+    show(
+        bad_predictors,
+        scrollX=True,
+        columnDefs=[
+            {
+                "className": "dt-left",
+                "targets": [responses_column_index],
+                "createdCell": JavascriptFunction(
+                    """
+function (td, cellData, rowData, row, col) {
+    if (cellData < 200) {
+        $(td).css('color', 'red')
+    }
+}
+"""
+                ),
+            }
+        ],
+    )
+
+
 else:
-    print('Please refer to the `bad_predictors` tab in the included Excel file.')
+    print("Please refer to the `bad_predictors` tab in the included Excel file.")
 ```
 
 ## Number of Active and Inactive Predictors
@@ -902,9 +925,26 @@ A list of all the models is written to a file so a script can iterate over all m
 Generally you will want to apply some filtering, or do this for specific models only. This can be accomplished in either this script here, or by editing the generated file.
 ```{python}
 if include_tables:
+    responses_column_index = datamart.appendix.columns.index("Responses")
     appendix = datamart.appendix.to_pandas(use_pyarrow_extension_array=True)
-    show(appendix)
+    show(
+        appendix,
+        columnDefs=[
+            {
+                "targets": [responses_column_index],
+                "createdCell": JavascriptFunction(
+                    """
+function (td, cellData, rowData, row, col) {
+    if (cellData < 200) {
+        $(td).css('color', 'red')
+    }
+}
+"""
+                ),
+            }
+        ],
+    )
 else:
-    print('Please refer to the `appendix` tab in the included Excel file.')
+    print("Please refer to the `appendix` tab in the included Excel file.")
 
 ```

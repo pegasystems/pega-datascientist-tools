@@ -1333,15 +1333,16 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             The full path to the generated Health Check file.
         """
 
-        def delete_temp_files(working_dir, files):
+        def delete_temp_files(working_dir, files, del_log=True):
             temp_files = files + (
                 "params.yaml",
                 "HealthCheck.qmd",
                 "HealthCheck.ipynb",
                 "HealthCheckModel.qmd",
                 "HealthCheckModel.ipynb",
-                "log.txt",
             )
+            if del_log:
+                temp_files += tuple(["log.txt"])
             for f in temp_files:
                 try:
                     os.remove(f"{working_dir}/{f}")
@@ -1384,11 +1385,11 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
 
         bashCommand = f"quarto render {healthcheck_file} --to {output_type} --output {output_filename} --execute-params params.yaml"
         if not verbose:
-            stdout, stderr = subprocess.DEVNULL, subprocess.STDOUT
+            stdout, stderr = subprocess.DEVNULL, None
         else:
             print("Set verbose=False to hide output.")
             print("Running:", bashCommand)
-            stdout, stderr = subprocess.PIPE, None
+            stdout, stderr = subprocess.PIPE, subprocess.STDOUT
         if kwargs.get("output_to_file", False):
             with open(f"{working_dir}/log.txt", "w") as outfile:
                 process = subprocess.Popen(
@@ -1406,7 +1407,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             if not verbose and not kwargs.get("output_to_file", False):
                 msg += "Set 'verbose' to True to see the full output"
             if delete_temp_files:
-                delete_temp_files(working_dir, files)
+                delete_temp_files(working_dir, files, del_log=False)
             raise ValueError(msg)
 
         filename = f"{output_location}/{output_filename}"

@@ -15,6 +15,7 @@ basePath = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(f"{str(basePath)}/python")
 from pdstools import ADMDatamart, cdh_utils
 from pdstools import errors
+from polars.testing import assert_frame_equal
 
 
 @pl.api.register_lazyframe_namespace("shape")
@@ -209,10 +210,11 @@ def test_apply_query(test, data):
         # with pandas query
         test._apply_query(data, query=f"pymodelid.isin({mods})"),
     ]
-    assert all(
-        frame1.frame.equal(frame2)
+
+    [
+        assert_frame_equal(frame1, frame2, check_column_order=False)
         for frame1, frame2 in itertools.combinations(frames, 2)
-    )
+    ]
 
     with pytest.raises(pl.ColumnNotFoundError):
         test._apply_query(data, pl.col("TEST") > 0)
@@ -396,7 +398,7 @@ def test_last_timestamp():
 def test_save_data(test):
     out = test.save_data()
     imported = ADMDatamart(".")
-    assert imported.modelData.frame.equal(test.modelData)
+    assert_frame_equal(imported.modelData, test.modelData, check_column_order=False)
     from os import remove
 
     try:

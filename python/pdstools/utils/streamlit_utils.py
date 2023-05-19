@@ -86,6 +86,7 @@ def fromFilePath(**opts):
         "The folder of the Model Snapshot and Predictor Binning files:",
         placeholder="/Users/Downloads",
     )
+    import_strategy = "eager" if opts["extract_keys"] else "lazy"
     if dir != "":
         try:
             model_matches = pega_io.get_latest_file(dir, target="modelData")
@@ -141,7 +142,7 @@ def fromFilePath(**opts):
                     path=dir,
                     model_filename=Path(model_matches).name,
                     predictor_filename=None,
-                    import_strategy="lazy",
+                    import_strategy=import_strategy,
                     **opts,
                 )
                 st.session_state["modelhc"] = True
@@ -151,7 +152,7 @@ def fromFilePath(**opts):
                 path=dir,
                 model_filename=Path(model_matches).name,
                 predictor_filename=Path(predictor_matches).name,
-                import_strategy="lazy",
+                import_strategy=import_strategy,
                 **opts,
             )
 
