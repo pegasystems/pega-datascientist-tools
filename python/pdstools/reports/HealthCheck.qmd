@@ -30,7 +30,7 @@ from pdstools import datasets, ADMDatamart
 from pdstools import cdh_utils
 from pdstools import defaultPredictorCategorization
 from plotly.offline import iplot
-from itables import show
+from itables import show, JavascriptFunction
 import plotly.express as px
 import plotly.graph_objs as go
 import polars as pl
@@ -442,11 +442,33 @@ See if there are predictors that are just always perform poorly.
 ```{python}
 # weighted performance
 if include_tables:
-    bad_predictors = datamart.bad_predictors.to_pandas(use_pyarrow_extension_array=False)
+    bad_predictors = datamart.bad_predictors.to_pandas(
+        use_pyarrow_extension_array=False
+    )
 
-    show(bad_predictors, scrollX=True)
+    show(
+        bad_predictors,
+        scrollX=True,
+        columnDefs=[
+            {
+                "className": "dt-left",
+                "targets": [1],
+                "createdCell": JavascriptFunction(
+                    """
+function (td, cellData, rowData, row, col) {
+    if (cellData < 200) {
+        $(td).css('color', 'red')
+    }
+}
+"""
+                ),
+            }
+        ],
+    )
+
+
 else:
-    print('Please refer to the `bad_predictors` tab in the included Excel file.')
+    print("Please refer to the `bad_predictors` tab in the included Excel file.")
 ```
 
 ## Number of Active and Inactive Predictors
@@ -903,8 +925,24 @@ Generally you will want to apply some filtering, or do this for specific models 
 ```{python}
 if include_tables:
     appendix = datamart.appendix.to_pandas(use_pyarrow_extension_array=True)
-    show(appendix)
+    show(
+        appendix,
+        columnDefs=[
+            {
+                "targets": [8],
+                "createdCell": JavascriptFunction(
+                    """
+function (td, cellData, rowData, row, col) {
+    if (cellData < 200) {
+        $(td).css('color', 'red')
+    }
+}
+"""
+                ),
+            }
+        ],
+    )
 else:
-    print('Please refer to the `appendix` tab in the included Excel file.')
+    print("Please refer to the `appendix` tab in the included Excel file.")
 
 ```
