@@ -747,7 +747,7 @@ class ADMDatamart(Plots, Tables):
         return df
 
     def discover_modelTypes(
-        self, df: pl.LazyFrame, by: str = "Configuration"
+        self, by: str = "Configuration", allow_collect=False
     ) -> Dict:  # pragma: no cover
         """Discovers the type of model embedded in the pyModelData column.
 
@@ -757,14 +757,15 @@ class ADMDatamart(Plots, Tables):
 
         Parameters
         ----------
-        df: pl.LazyFrame
-            The dataframe to search for model types
         by: str
             The column to look for types in. Configuration is recommended.
+        allow_collect: bool, default = False
+            Set to True to allow discovering modelTypes, even if in lazy strategy. 
+            It will fetch one modelData string per configuration.
         """
-        if self.import_strategy != "eager":
+        if self.import_strategy != "eager" and allow_collect==False:
             raise NotEagerError("Discovering AGB models")
-        if "Modeldata" not in df.columns:
+        if "Modeldata" not in self.modelData.columns:
             raise ValueError(
                 (
                     "Modeldata column not in the data. "
@@ -783,10 +784,8 @@ class ADMDatamart(Plots, Tables):
                 if line.startswith('  "_serialClass"')
             )
 
-        if isinstance(df, pl.DataFrame):
-            df = df.lazy()
         types = (
-            df.filter(pl.col("Modeldata").is_not_null())
+            self.modelData.filter(pl.col("Modeldata").is_not_null())
             .groupby(by)
             .agg(pl.col("Modeldata").last())
             .collect()
