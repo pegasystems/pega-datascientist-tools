@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import streamlit as st
+import traceback
 from pdstools.utils import streamlit_utils
 
 intro, imports, filters, report = st.tabs(
@@ -56,7 +57,7 @@ with imports:
         with col1:
             opts["extract_keys"] = st.checkbox(
                 "Extract additional keys",
-                False,
+                True,
                 help="""By default, ADM has a few "Context Keys" it uses to 
                 distinguish between models, such as Issue, Group, Channel, or Name. 
                 However, if you've setup custom context keys that are not part of a regular 
@@ -134,58 +135,76 @@ with report:
                         include_tables=include_tables,
                         output_to_file=True,
                         modelData_only=st.session_state["modelhc"],
+                        verbose=True,
                     )
                 )
                 if os.path.isfile(outfile):
                     file = open(outfile, "rb")
+
+                st.session_state["run"][st.session_state["runID"]] = {
+                    "name": outfile,
+                    "file": file,
+                }
+
+                if not include_tables:
+                    tablename = Path(outfile).name.rsplit(".", 1)[0] + "_Tables.xlsx"
+                    tables = (
+                        st.session_state["dm"]
+                        .applyGlobalQuery(st.session_state["filters"])
+                        .exportTables(tablename)
+                    )
+                    st.session_state["run"][st.session_state["runID"]][
+                        "tables"
+                    ] = tablename
+                    st.session_state["run"][st.session_state["runID"]][
+                        "tablefile"
+                    ] = open(tables, "rb")
+
+                if len(st.session_state["run"][st.session_state["runID"]]) == 0:
+                    st.stop()
+
+                col1, col2 = st.columns([1, 1])
+                with col1:
+                    if "file" in st.session_state["run"][st.session_state["runID"]]:
+                        btn = st.download_button(
+                            label="Download Health Check",
+                            data=st.session_state["run"][st.session_state["runID"]][
+                                "file"
+                            ],
+                            file_name=Path(
+                                st.session_state["run"][st.session_state["runID"]][
+                                    "name"
+                                ]
+                            ).name,
+                        )
+                        if (
+                            "tables"
+                            in st.session_state["run"][st.session_state["runID"]]
+                        ):
+                            with col2:
+                                btn = st.download_button(
+                                    label="Download additional tables",
+                                    data=st.session_state["run"][
+                                        st.session_state["runID"]
+                                    ]["tablefile"],
+                                    file_name=st.session_state["run"][
+                                        st.session_state["runID"]
+                                    ]["tables"],
+                                )
+
             except Exception as e:
                 st.error(f"""Error occured when generating healthcheck: {e}""")
+                traceback_str = traceback.format_exc()
+                with open(working_dir / "log.txt", "a") as f:
+                    f.write(traceback_str)
                 with open(working_dir / "log.txt", "rb") as f:
                     btn = st.download_button(
                         label="Download error log",
                         data=f,
                         file_name="errorlog.txt",
                     )
-            st.session_state["run"][st.session_state["runID"]] = {
-                "name": outfile,
-                "file": file,
-            }
-
-            if not include_tables:
-                tablename = Path(outfile).name.rsplit(".", 1)[0] + "_Tables.xlsx"
-                tables = (
-                    st.session_state["dm"]
-                    .applyGlobalQuery(st.session_state["filters"])
-                    .exportTables(tablename)
-                )
-                st.session_state["run"][st.session_state["runID"]]["tables"] = tablename
-                st.session_state["run"][st.session_state["runID"]]["tablefile"] = open(
-                    tables, "rb"
-                )
-
-    print(st.session_state["run"])
-
-    if len(st.session_state["run"][st.session_state["runID"]]) == 0:
-        st.stop()
-
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        if "file" in st.session_state["run"][st.session_state["runID"]]:
-            btn = st.download_button(
-                label="Download Health Check",
-                data=st.session_state["run"][st.session_state["runID"]]["file"],
-                file_name=Path(
-                    st.session_state["run"][st.session_state["runID"]]["name"]
-                ).name,
-            )
-            if "tables" in st.session_state["run"][st.session_state["runID"]]:
-                with col2:
-                    btn = st.download_button(
-                        label="Download additional tables",
-                        data=st.session_state["run"][st.session_state["runID"]][
-                            "tablefile"
-                        ],
-                        file_name=st.session_state["run"][st.session_state["runID"]][
-                            "tables"
-                        ],
-                    )
+                
+                for filename in os.listdir(working_dir):
+                    file_path = os.path.join(working_dir, filename)
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)

@@ -33,7 +33,8 @@ keywords = [
     "tools",
 ]
 dependencies = [
-        "plotly>=5.5.0",
+        "pandas>=1.5.3",
+        "plotly>=5.14.1",
         "requests",
         "pydot",
         "polars>=0.17.14",
@@ -49,7 +50,7 @@ version = {attr="pdstools.__version__"}
 
 [project.optional-dependencies]
 docs = ['sphinx','furo','sphinx-autoapi','nbsphinx','sphinx-copybutton','myst-parser']
-app = ['streamlit>=1.20', 'quarto', 'papermill', 'itables', 'pandas>=1.5.3', 'jinja2>=3.1', 'xlsxwriter>=3.0']
+app = ['streamlit>=1.20', 'quarto', 'papermill', 'itables', 'jinja2>=3.1', 'xlsxwriter>=3.0']
 
 [project.urls]
 "Homepage" = "https://github.com/pegasystems/pega-datascientist-tools"

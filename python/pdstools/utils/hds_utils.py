@@ -221,13 +221,15 @@ class DataAnonymization:
                     .to_list()
                 ):
                     newName = Path(out_filename) / Path(filename).name
+                    if not os.path.exists(newName.parent):
+                        os.mkdir(newName.parent)
                     df.filter(pl.col("filename") == filename).drop(
                         "filename"
                     ).collect().write_ndjson(newName)
 
         if mode == "optimized":
             if "filename" in df.columns:
-                df = df.drop(pl.col("filename"))
+                df = df.drop("filename")
             df = df.collect()
             if out_format == "ndjson":
                 df.write_ndjson(f"{out_filename}.json")
@@ -292,7 +294,7 @@ class DataAnonymization:
                 ),
                 dtype=pl.Boolean,
             )
-            if out.len() < 50:
+            if out.len() < 500:
                 out = pl.Series(values=[True] * out.len(), dtype=pl.Boolean)
             return out
 
@@ -406,7 +408,7 @@ class DataAnonymization:
             )
 
         for idx, val in enumerate(predictors_t):
-            if self.config.mask_predictor_values:
+            if self.config.mask_predictor_values and val != "filename":
                 if self.predictors_by_type[val] == "symbolic":
                     symbolic_predictors_to_mask.append(val)
                 else:
@@ -430,6 +432,9 @@ class DataAnonymization:
             **special_predictors,
             **outcome_column,
         }
+
+        if "filename" in predictors_t:
+            column_mapping["filename"] = "filename"
 
         return symbolic_predictors_to_mask, numeric_predictors_to_mask, column_mapping
 
@@ -470,8 +475,8 @@ class DataAnonymization:
             return (
                 pl.when(
                     (pl.col(cols).is_not_null())
-                    & (pl.col(cols) != "")
-                    & (pl.col(cols).is_in(["true", "false"]).is_not())
+                    & (pl.col(cols).cast(pl.Utf8) != pl.lit(""))
+                    & (pl.col(cols).cast(pl.Utf8).is_in(["true", "false"]).is_not())
                 )
                 .then(hasher)
                 .otherwise(pl.col(cols))
@@ -484,7 +489,9 @@ class DataAnonymization:
 
         def to_boolean(col, positives):
             return (
-                pl.when(pl.col(col).is_in(positives)).then(True).otherwise(False)
+                pl.when(pl.col(col).cast(pl.Utf8).is_in(positives))
+                .then(True)
+                .otherwise(False)
             ).alias(col)
 
         df = self.df.with_columns(
