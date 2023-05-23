@@ -102,6 +102,13 @@ class ValueFinder:
         )
 
         self.NBADStages = ["Eligibility", "Applicability", "Suitability", "Arbitration"]
+        self.StageOrder = (
+            pl.DataFrame(
+                {"pyStage": self.NBADStages}, schema={"pyStage": pl.Categorical}
+            )
+            .select(pl.col("pyStage").cat.set_ordering("physical"))
+            .lazy()
+        )  # This pre-fills the stringcache to make the ordering of stages correct
         self.maxPropPerCustomer = self.df.groupby(["CustomerID", "pyStage"]).agg(
             pl.max("pyModelPropensity").alias("MaxModelPropensity")
         )
@@ -325,7 +332,7 @@ class ValueFinder:
         )
         for stage in self.NBADStages:
             data = self.df.filter(pl.col("pyStage") == stage)
-            data = data.pdstools.sample(sampledN).collect()
+            data = data.pdstools.sample(sampledN).drop_nulls().collect()
             temp = ff.create_distplot(
                 [data["pyModelPropensity"].to_list()],
                 ["pyModelPropensity"],
@@ -662,16 +669,11 @@ class ValueFinder:
 
         df = self.df if query is None else self.df.filter(query)
         df = (
-            pl.LazyFrame(
-                {"pyStage": self.NBADStages}, schema={"pyStage": pl.Categorical}
-            )
-            .join(
-                df.groupby("pyStage")
-                .agg(pl.col(level).cast(pl.Utf8).value_counts().sort())
-                .explode(level)
-                .unnest(level),
-                on="pyStage",
-            )
+            df.groupby("pyStage")
+            .agg(pl.col(level).cast(pl.Utf8).value_counts(sort=True))
+            .explode(level)
+            .unnest(level)
+            .sort("pyStage")
             .rename({level: "Name", "counts": "Count", "pyStage": "Stage"})
             .collect()
         )
@@ -689,4 +691,6 @@ class ValueFinder:
         )
         fig.update_xaxes(categoryorder="array", categoryarray=self.NBADStages)
         fig.update_layout(legend_title_text=cat)
+        if return_df == "both":
+            return fig, df
         return fig
