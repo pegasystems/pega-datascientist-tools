@@ -846,7 +846,7 @@ and the corresponding value is a list of values to keep in the dataframe</p></li
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMDatamart.discover_modelTypes">
-<span class="sig-name descname"><span class="pre">discover_modelTypes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Configuration'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#pdstools.ADMDatamart.discover_modelTypes" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">discover_modelTypes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Configuration'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_collect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#pdstools.ADMDatamart.discover_modelTypes" title="Permalink to this definition">#</a></dt>
 <dd><p>Discovers the type of model embedded in the pyModelData column.</p>
 <p>By default, we do a groupby Configuration, because a model rule can only
 contain one type of model. Then, for each configuration, we look into the
@@ -854,8 +854,9 @@ pyModelData blob and find the _serialClass, returning it in a dict.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> (<em>pl.LazyFrame</em>) – The dataframe to search for model types</p></li>
 <li><p><strong>by</strong> (<em>str</em>) – The column to look for types in. Configuration is recommended.</p></li>
+<li><p><strong>allow_collect</strong> (<em>bool</em><em>, </em><em>default = False</em>) – Set to True to allow discovering modelTypes, even if in lazy strategy.
+It will fetch one modelData string per configuration.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>

@@ -382,7 +382,7 @@ Attributes
       :rtype: pl.DataFrame
 
 
-   .. py:method:: discover_modelTypes(df: polars.LazyFrame, by: str = 'Configuration') -> Dict
+   .. py:method:: discover_modelTypes(by: str = 'Configuration', allow_collect=False) -> Dict
 
       Discovers the type of model embedded in the pyModelData column.
 
@@ -390,10 +390,11 @@ Attributes
       contain one type of model. Then, for each configuration, we look into the
       pyModelData blob and find the _serialClass, returning it in a dict.
 
-      :param df: The dataframe to search for model types
-      :type df: pl.LazyFrame
       :param by: The column to look for types in. Configuration is recommended.
       :type by: str
+      :param allow_collect: Set to True to allow discovering modelTypes, even if in lazy strategy.
+                            It will fetch one modelData string per configuration.
+      :type allow_collect: bool, default = False
 
 
    .. py:method:: get_AGB_models(last: bool = False, by: str = 'Configuration', n_threads: int = 1, query: Optional[Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]] = None, verbose: bool = True, **kwargs) -> Dict
