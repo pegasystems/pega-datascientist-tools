@@ -120,6 +120,13 @@ In principle, Thompson Sampling is based on the $\beta$-distribution (https://en
 
 But for practical reasons, instead of using $\beta(positives, negatives)$, we approximate this with $\beta(p*evidence, (1-p)*evidence)$.
 
+### Using Positives directly
+
+With https://agilestudio.pega.com/prweb/AgileStudio/app/agilestudio/bugs/BUG-803575 we will
+change the implementation in NBAD to use the positives directly so it will become $p + \beta(positives, negatives) - \frac{positives}{evidence}$ with $evidence = positives + negatives$.
+
+### Visualization of Thompson Sampling
+
 Here we show the distribution for a few combinations of model propensity and evidence. Note that the distributions
 do not have their top at exactly the model propensity. This is because the beta distribution gives values in the
 range 0..1 so for the (typical) small propensity values, the distribution is somewhat right-tailed.
@@ -281,11 +288,4 @@ ggplot(actions, aes(week, impressions, fill=action, group=action)) +
   ggtitle("Effect of Outbound Model Maturity", subtitle = "when introducing weekly new actions")
 
 ```
-
-
-
-
-
-
-
 
