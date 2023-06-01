@@ -37,7 +37,7 @@ dependencies = [
         "plotly>=5.14.1",
         "requests",
         "pydot",
-        "polars>=0.17.14",
+        "polars>=0.18.0",
         "pyarrow",
         "tqdm",
         "pyyaml",
