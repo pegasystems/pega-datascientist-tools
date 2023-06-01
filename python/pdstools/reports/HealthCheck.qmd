@@ -70,10 +70,10 @@ if len(kwargs)>0: #override with keyword arguments
 else: #fall back to 'default'
     datamart = datasets.CDHSample()
 
-try:
-    treatment = datamart.modelData.with_columns(pl.lit(None).alias("null_col")).schema["Treatment"] != pl.Null
-except KeyError:
-    treatment = False
+treatment = (
+    "Treatment" in datamart.modelData.columns
+    and datamart.modelData.schema["Treatment"] != pl.Null
+)
     
 last_data = (
     datamart.last(strategy='lazy')
