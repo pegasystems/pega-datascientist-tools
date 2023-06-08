@@ -160,7 +160,7 @@ Showing the current success rate of the treatments. Different channels usually h
 - Variation in the set of offered propositions across customers is also an important metric but not one that can be derived from the Adaptive Model data - this requires analysis of the actual interactions.
 ```{python}
 facet = "Channel/Direction"
-hover_columns = ["Issue", "Group", "Name"]
+hover_columns = [col for col in  ["Issue", "Group", "Name"] if col in datamart_all_columns]
 if treatment:
     hover_columns += ["Treatment"]
 df = (
@@ -529,7 +529,9 @@ cdh_utils.legend_color_order(only_positives).show()
 Zooming in into the models that drive most of the responses, here we list the top 20 models with the highest number of responses.
 
 ```{python}
-facet= "Configuration/Issue/Group/Name/Channel/Direction"
+subset = ['Configuration', 'Issue', 'Group', 'Name', 'Channel', 'Direction']
+facet = '/'.join([col for col in subset if col in datamart_all_columns])
+
 for split_facet in facet.split("/"):
     last_data = last_data.with_columns(
         pl.col(split_facet).cast(pl.Utf8).fill_null("NA")
@@ -544,20 +546,20 @@ response_counts = last_data.groupby([facet] + facet.split("/")).agg(
 
 all_responses = response_counts.sort("all_responses", descending=False).tail(20)
 hover_data = {
-    "Configuration": ":.d",
-    "Issue": ":.d",
-    "Group": ":.d",
-    "Name": ":.d",
-    "Channel": ":.d",
-    "Direction": ":.d",
     facet: False
 }
-fig = px.bar(all_responses.to_pandas(use_pyarrow_extension_array=True), x ="all_responses", y=facet, color="Channel", title="Top 20 Highest Responses", template="pega", text=facet, hover_data=hover_data)
+for col in facet.split("/"):
+    hover_data[col] = ":.d"
+
+possible_color_vars = ['Channel', 'Issue', 'Name']
+color = next((col for col in possible_color_vars if col in datamart_all_columns), None)
+
+fig = px.bar(all_responses.to_pandas(use_pyarrow_extension_array=True), x ="all_responses", y=facet, color=color, title="Top 20 Highest Responses", template="pega", text=facet, hover_data=hover_data)
 fig.update_yaxes(matches=None, showticklabels=False, visible=False).update_traces(textposition="inside")
 fig.for_each_annotation(
     lambda a: a.update(text=a.text.replace(facet, ""))
 )
-    
+fig.update_layout(yaxis={'categoryorder':'total ascending'})    
 cdh_utils.legend_color_order(fig).show()
 ```
 
@@ -566,13 +568,12 @@ And these are the 20 models with the largest number of positives.
 
 ```{python}
 positives = response_counts.sort("positive_sum", descending=True).head(20)
-fig = px.bar(positives.to_pandas(use_pyarrow_extension_array=True), x ="positive_sum", y=facet, color="Channel", title="Top 20 Highest Positives", template="pega", text=facet, hover_data=hover_data)
+fig = px.bar(positives.to_pandas(use_pyarrow_extension_array=True), x ="positive_sum", y=facet, color=color, title="Top 20 Highest Positives", template="pega", text=facet, hover_data=hover_data)
 fig.update_yaxes(matches=None, showticklabels=False, visible=False).update_xaxes(matches=None).update_traces(textposition='inside')
 fig.for_each_annotation(
     lambda a: a.update(text=a.text.replace(facet, ""))
 )
 fig.update_layout(yaxis={'categoryorder':'total ascending'})
-fig.data[0]
 
 cdh_utils.legend_color_order(fig).show()
 ```
@@ -584,6 +585,7 @@ The plot below shows this relation. Horizontally the model performance (the AUC,
 
 A lot of volume on the first bins, where the performance is minimal, means that a lot of immature models are used. This is sub-optimal in terms of targeting. Ideally there is a smooth curve with a peak in the 60-80 range of AUC. Much higher AUC’s are possibly indicative of immature models or even outcome leakers (although that is effectively prevented by the standard delayed learning pattern). AUC’s below 60 are not uncommon but should be investigated - consider different predictors or outcomes.
 ```{python}
+#| error: true
 to_plot = "Performance"
 df = (
     datamart.modelData.with_columns(pl.col(to_plot) * 100)
@@ -633,7 +635,7 @@ for channel_num, channel in enumerate(channels):
 fig.update_yaxes(tickformat=",.0%")
 fig.update_xaxes(categoryorder='array', categoryarray = out.sort_values("PerformanceBin")["PerformanceBin"].unique())
 
-fig.show()
+cdh_utils.legend_color_order(fig).show()
 
 ```
 

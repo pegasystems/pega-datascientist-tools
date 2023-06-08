@@ -160,7 +160,7 @@ Showing the current success rate of the treatments. Different channels usually h
 - Variation in the set of offered propositions across customers is also an important metric but not one that can be derived from the Adaptive Model data - this requires analysis of the actual interactions.
 ```{python}
 facet = "Channel/Direction"
-hover_columns = ["Issue", "Group", "Name"]
+hover_columns = [col for col in  ["Issue", "Group", "Name"] if col in datamart_all_columns]
 if treatment:
     hover_columns += ["Treatment"]
 df = (
@@ -365,6 +365,7 @@ The predictors are categorized (by color) by the “source”. By default this t
 ## Number of Predictors per model configuration 
 
 ```{python}
+#| error: true
 if include_tables:
     predictors_per_configuration = datamart.predictors_per_configuration.to_pandas(use_pyarrow_extension_array=False)
     show(predictors_per_configuration)
@@ -383,6 +384,7 @@ Box plots of the predictor importance. Importance can be shown either as a globa
 - No more than a few dozen Param predictors
 
 ```{python}
+#| error: true
 if datamart.predictorData is not None:
     figs = datamart.plotPredictorPerformance(top_n=20, facets='Configuration',separate=True, active_only=True)
     if not isinstance(figs, list):
@@ -403,9 +405,10 @@ Aggregating up to the category of the predictors. This gives a view at a glance 
 ### Predictor Category performance per Channel/Direction/Issue 
 
 ```{python}
+#| error: true
 facets = 'Configuration/Channel/Direction'
 facet_col_wrap = 3
-fig = datamart.plotPredictorCategoryPerformance(facets='Configuration/Channel/Direction', facet_col_wrap=facet_col_wrap)
+fig = datamart.plotPredictorCategoryPerformance(facets=facets, facet_col_wrap=facet_col_wrap)
 
 fig.update_layout(font=dict(size=10))
 fig.for_each_annotation(
@@ -751,7 +754,9 @@ cdh_utils.legend_color_order(only_positives).show()
 Zooming in into the models that drive most of the responses, here we list the top 20 models with the highest number of responses.
 
 ```{python}
-facet= "Configuration/Issue/Group/Name/Channel/Direction"
+subset = ['Configuration', 'Issue', 'Group', 'Name', 'Channel', 'Direction']
+facet = '/'.join([col for col in subset if col in datamart_all_columns])
+
 for split_facet in facet.split("/"):
     last_data = last_data.with_columns(
         pl.col(split_facet).cast(pl.Utf8).fill_null("NA")
@@ -766,20 +771,20 @@ response_counts = last_data.groupby([facet] + facet.split("/")).agg(
 
 all_responses = response_counts.sort("all_responses", descending=False).tail(20)
 hover_data = {
-    "Configuration": ":.d",
-    "Issue": ":.d",
-    "Group": ":.d",
-    "Name": ":.d",
-    "Channel": ":.d",
-    "Direction": ":.d",
     facet: False
 }
-fig = px.bar(all_responses.to_pandas(use_pyarrow_extension_array=True), x ="all_responses", y=facet, color="Channel", title="Top 20 Highest Responses", template="pega", text=facet, hover_data=hover_data)
+for col in facet.split("/"):
+    hover_data[col] = ":.d"
+
+possible_color_vars = ['Channel', 'Issue', 'Name']
+color = next((col for col in possible_color_vars if col in datamart_all_columns), None)
+
+fig = px.bar(all_responses.to_pandas(use_pyarrow_extension_array=True), x ="all_responses", y=facet, color=color, title="Top 20 Highest Responses", template="pega", text=facet, hover_data=hover_data)
 fig.update_yaxes(matches=None, showticklabels=False, visible=False).update_traces(textposition="inside")
 fig.for_each_annotation(
     lambda a: a.update(text=a.text.replace(facet, ""))
 )
-    
+fig.update_layout(yaxis={'categoryorder':'total ascending'})    
 cdh_utils.legend_color_order(fig).show()
 ```
 
@@ -788,13 +793,12 @@ And these are the 20 models with the largest number of positives.
 
 ```{python}
 positives = response_counts.sort("positive_sum", descending=True).head(20)
-fig = px.bar(positives.to_pandas(use_pyarrow_extension_array=True), x ="positive_sum", y=facet, color="Channel", title="Top 20 Highest Positives", template="pega", text=facet, hover_data=hover_data)
+fig = px.bar(positives.to_pandas(use_pyarrow_extension_array=True), x ="positive_sum", y=facet, color=color, title="Top 20 Highest Positives", template="pega", text=facet, hover_data=hover_data)
 fig.update_yaxes(matches=None, showticklabels=False, visible=False).update_xaxes(matches=None).update_traces(textposition='inside')
 fig.for_each_annotation(
     lambda a: a.update(text=a.text.replace(facet, ""))
 )
 fig.update_layout(yaxis={'categoryorder':'total ascending'})
-fig.data[0]
 
 cdh_utils.legend_color_order(fig).show()
 ```
@@ -806,6 +810,7 @@ The plot below shows this relation. Horizontally the model performance (the AUC,
 
 A lot of volume on the first bins, where the performance is minimal, means that a lot of immature models are used. This is sub-optimal in terms of targeting. Ideally there is a smooth curve with a peak in the 60-80 range of AUC. Much higher AUC’s are possibly indicative of immature models or even outcome leakers (although that is effectively prevented by the standard delayed learning pattern). AUC’s below 60 are not uncommon but should be investigated - consider different predictors or outcomes.
 ```{python}
+#| error: true
 to_plot = "Performance"
 df = (
     datamart.modelData.with_columns(pl.col(to_plot) * 100)
@@ -855,7 +860,7 @@ for channel_num, channel in enumerate(channels):
 fig.update_yaxes(tickformat=",.0%")
 fig.update_xaxes(categoryorder='array', categoryarray = out.sort_values("PerformanceBin")["PerformanceBin"].unique())
 
-fig.show()
+cdh_utils.legend_color_order(fig).show()
 
 ```
 
@@ -887,6 +892,7 @@ Note that the propensity bins are not of equal width. Propensities are typically
 So when one of the graphs shows more volume on the left, that is to be interpreted as relative to the other graphs.
 
 ```{python}
+#| error: true
 to_plot = "Propensity"
 if to_plot == "Propensity" and to_plot not in datamart.predictorData.columns:
     to_plot = "BinPropensity"
