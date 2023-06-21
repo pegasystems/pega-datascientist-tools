@@ -19,7 +19,9 @@ Classes
 
 .. py:class:: PegaDefaultTables
 
+
    .. py:class:: ADMModelSnapshot
+
 
       .. py:attribute:: pxApplication
 
@@ -159,6 +161,7 @@ Classes
 
 
    .. py:class:: ADMPredictorBinningSnapshot
+
 
       .. py:attribute:: pxCommitDateTime
 
@@ -314,6 +317,7 @@ Classes
 
 
    .. py:class:: pyValueFinder
+
 
       .. py:attribute:: pyDirection
 

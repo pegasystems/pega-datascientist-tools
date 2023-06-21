@@ -19,6 +19,7 @@ Classes
 
 .. py:class:: ADMVisualisations
 
+
    .. py:method:: distribution_graph(df, title)
       :staticmethod:
 

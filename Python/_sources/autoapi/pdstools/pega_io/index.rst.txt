@@ -245,6 +245,7 @@ Functions
 
 .. py:class:: S3Data(bucketName: str, temp_dir='./s3_download')
 
+
    .. py:method:: getS3Files(prefix, use_meta_files=False, verbose=True)
       :async:
 

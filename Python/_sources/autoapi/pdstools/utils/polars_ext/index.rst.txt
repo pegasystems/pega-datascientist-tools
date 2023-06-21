@@ -19,6 +19,7 @@ Classes
 
 .. py:class:: Sample(ldf: polars.LazyFrame)
 
+
    .. py:method:: sample(n)
 
 

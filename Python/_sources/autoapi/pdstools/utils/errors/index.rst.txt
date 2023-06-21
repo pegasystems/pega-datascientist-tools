@@ -9,12 +9,14 @@ Module Contents
 
 .. py:exception:: NotApplicableError
 
+
    Bases: :py:obj:`ValueError`
 
    Inappropriate argument value (of correct type).
 
 
 .. py:exception:: NotEagerError(operationType=None, defaultmsg='This operation is only possible in eager mode.')
+
 
    Bases: :py:obj:`ValueError`
 

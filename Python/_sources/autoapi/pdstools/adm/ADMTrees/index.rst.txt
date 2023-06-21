@@ -21,12 +21,14 @@ Classes
 
 .. py:class:: ADMTrees
 
+
    .. py:method:: getMultiTrees(file: polars.DataFrame, n_threads=1, verbose=True, **kwargs)
       :staticmethod:
 
 
 
 .. py:class:: ADMTreesModel(file: str, **kwargs)
+
 
    Functions for ADM Gradient boosting
 
@@ -331,6 +333,7 @@ Classes
 
 
 .. py:class:: MultiTrees
+
 
    .. py:property:: first
 
