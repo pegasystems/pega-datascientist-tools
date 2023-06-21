@@ -113,11 +113,26 @@ The model scores (sum of the log odds of the Naive Bayes classifier) are mapped 
 
 ## Model Performance
 
-The model reports a performance of **`r round(modelPredictorBins[EntryType == "Classifier"]$Performance[1],5)`** measured in AUC. This AUC is calculated from the bins of the Classifier.
+The model reports a performance of **`r round(modelPredictorBins[EntryType == "Classifier"]$Performance[1],3)`** measured in AUC-ROC. This number is calculated from the "active" bins of the Classifier.
 
-|Total Positives|Total Negatives|Total Responses|Success Rate|AUC|
-|--------------:|--------------:|--------------:|-----------------:|-----------------:|
-|`r sum(classifierBinning$BinPositives)`|`r sum(classifierBinning$BinNegatives)`|`r sum(classifierBinning$BinResponseCount)`|`r sprintf("%.2f%%", 100*sum(classifierBinning$BinPositives)/sum(classifierBinning$BinResponseCount))`|`r round(modelPredictorBins[EntryType == "Classifier"]$Performance[1],5)`|
+The "active" bins are the ones that can be reached from the current binning
+of the predictors. When calculating the AUC from all the classifier binning
+all bins will be taken into account, also bins (typically
+at the start or end) that can no longer be reached from the current predictor
+binning.
+
+Finding the actual range is not trivially done outside of the platform. Here we 
+report both the AUC-ROC as well as the AUC-PR from the full range.
+
+```{r, echo=F, warning=F, error=F, include=F}
+fullrange_auc_roc <- pdstools::auc_from_bincounts(classifierBinning$BinPositives, classifierBinning$BinNegatives)
+fullrange_auc_pr <- pdstools::aucpr_from_bincounts(classifierBinning$BinPositives, classifierBinning$BinNegatives)
+```
+
+
+|Total Positives|Total Negatives|Total Responses|Success Rate|AUC|AUC-ROC (Full Range)|AUC-PR (Full Range)|
+|--------------:|--------------:|--------------:|-----------------:|-----------------:|-----------------:|-----------------:|
+|`r sum(classifierBinning$BinPositives)`|`r sum(classifierBinning$BinNegatives)`|`r sum(classifierBinning$BinResponseCount)`|`r sprintf("%.2f%%", 100*sum(classifierBinning$BinPositives)/sum(classifierBinning$BinResponseCount))`|`r round(modelPredictorBins[EntryType == "Classifier"]$Performance[1],3)`|`r round(fullrange_auc_roc,3)`|`r round(fullrange_auc_pr,3)`|
 
 ```{r, results="asis", echo=F, warning=F, error=F, fig.align = "center"}
 if (nrow(classifierBinning) < 1) {
