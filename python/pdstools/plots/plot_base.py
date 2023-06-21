@@ -122,7 +122,7 @@ class Plots:
                     pl.col(*facets, "PredictorName")
                     .sort_by(to_plot, "PredictorName")
                     .tail(top_n)
-                    .list()
+                    .implode()
                     .over(facets)
                     .flatten()
                 ),

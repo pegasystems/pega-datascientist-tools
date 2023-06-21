@@ -498,7 +498,7 @@ class ADMTreesModel:
                     .alias("values"),
                 ]
             )
-            .with_columns(n=pl.col("gains").arr.lengths())
+            .with_columns(n=pl.col("gains").list.lengths())
         )
 
     def getSplitsRecursively(

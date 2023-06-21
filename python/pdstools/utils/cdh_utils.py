@@ -43,8 +43,8 @@ def defaultPredictorCategorization(
         x = pl.col(x)
     x = x.cast(pl.Utf8) if not isinstance(x, pl.Utf8) else x
     return (
-        pl.when(x.str.split(".").arr.lengths() > 1)
-        .then(x.str.split(".").arr.get(0))
+        pl.when(x.str.split(".").list.lengths() > 1)
+        .then(x.str.split(".").list.get(0))
         .otherwise(pl.lit("Primary"))
     ).alias("PredictorCategory")
 
