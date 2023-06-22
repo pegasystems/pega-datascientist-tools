@@ -175,9 +175,9 @@ class ADMVisualisations:
 
         hide_legend = kwargs.pop("hide_legend", False)
         metric_hovers = {
-            "SuccessRate": ":.2%",
-            "Performance": ":.2f",
-            "weighted_performance": ":.2f",
+            "SuccessRate": ":.4%",
+            "Performance": ":.4f",
+            "weighted_performance": ":.4f",
             "Positives": ":.d",
             "ResponseCount": ":.d",
         }
@@ -215,7 +215,7 @@ class ADMVisualisations:
         if hide_legend:
             fig.update_layout(showlegend=False)
         if metric == "SuccessRate":
-            fig.update_yaxes(tickformat=",.0%")
+            fig.update_yaxes(tickformat=".2%")
             fig.update_layout(yaxis={"rangemode": "tozero"})
 
         return self.post_plot(fig, name="Lines_over_time", title=title, **kwargs)
@@ -710,7 +710,7 @@ class ADMVisualisations:
             "Model count": ":.d",
             "Percentage without responses": ":.0%",
             "Response Count sum": ":.d",
-            "Success Rate mean": ":.2%",
+            "(%) Success Rate mean": ":.3f",
             "Performance weighted mean": ":.2f",
             "Positives sum": ":.d",
         }

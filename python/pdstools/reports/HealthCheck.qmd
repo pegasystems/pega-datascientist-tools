@@ -70,6 +70,11 @@ if len(kwargs)>0: #override with keyword arguments
 else: #fall back to 'default'
     datamart = datasets.CDHSample()
 
+treatment = (
+    "Treatment" in datamart.modelData.columns
+    and datamart.modelData.schema["Treatment"] != pl.Null
+)
+    
 last_data = (
     datamart.last(strategy='lazy')
     .with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
@@ -102,7 +107,6 @@ standardNBADNames = [
     "Web_Click_Through_Rate",
 ]
 
-
 ```
 
 This document gives a generic and global overview of the Adaptive models 
@@ -129,7 +133,6 @@ In a standard setup, the offers/conversations are presented as treatments for ac
 
 Adaptive Models are created per treatment (at least in the default setup) and the recommendation is to stick the default context keys of the models.
 ```{python}
-datamart.context_keys
 context_keys= {'Channels':'Channel/Direction', 'Issues':'Issue', 'Groups':'Group','Actions':'Name', 'Treatments':'Treatment'}
 value_keys = ['Actions', 'Treatments','Issues', 'Groups', 'Channels']
 counts, values = dict(), dict()
@@ -157,17 +160,17 @@ Showing the current success rate of the treatments. Different channels usually h
 - Variation in the set of offered propositions across customers is also an important metric but not one that can be derived from the Adaptive Model data - this requires analysis of the actual interactions.
 ```{python}
 facet = "Channel/Direction"
-hover_columns = ["Issue", "Group", "Name"]
-df = last_data.lazy().with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet)).with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
+hover_columns = [col for col in  ["Issue", "Group", "Name"] if col in datamart_all_columns]
+if treatment:
+    hover_columns += ["Treatment"]
 df = (
-    df
-    .filter(pl.col("ResponseCount") > 100)
-    .groupby(hover_columns + ["ModelID","Channel/Direction"])
-    .agg(
-        cdh_utils.weighed_average_polars("SuccessRate", "ResponseCount").alias(
-            "SuccessRate"
-        )
-    )
+    last_data.lazy()
+    .with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet))
+    .with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
+)
+df = (
+    df.filter(pl.col("ResponseCount") > 100)
+    .select(hover_columns + ["ModelID", "Channel/Direction","SuccessRate"])
     .with_columns(pl.col("SuccessRate").round(4))
     .sort(["Channel/Direction", "SuccessRate"], descending=True)
     .groupby(["Channel/Direction"])
@@ -177,13 +180,12 @@ df = (
 
 hover_data = {
     "SuccessRate": ":.2%",
-    "Issue": ":.d",
-    "Group": ":.d",
-    "Name": ":.d",
 }
+for col in hover_columns:
+    hover_data[col] = ":.d"
 
 
-facet= "Channel/Direction"
+facet = "Channel/Direction"
 facet_col_wrap = 3
 fig = px.bar(
     df.sort_values(["Channel/Direction", "SuccessRate"]),
@@ -206,9 +208,16 @@ fig.for_each_annotation(
 )
 fig.update(layout_coloraxis_showscale=False)
 
-unique_count = datamart.last(strategy='lazy').with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet)).select(facet).collect().to_series().n_unique()
+unique_count = (
+    datamart.last(strategy="lazy")
+    .with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet))
+    .select(facet)
+    .collect()
+    .to_series()
+    .n_unique()
+)
 
-height = 200 + (math.ceil( unique_count / facet_col_wrap) * 250)
+height = 200 + (math.ceil(unique_count / facet_col_wrap) * 250)
 
 fig.update_layout(autosize=True, height=height)
 
@@ -219,10 +228,12 @@ display(fig)
 Interactive chart with all success rates.
 
 ```{python}
+levels = [col for col in ["Configuration",'Channel', 'Direction', 'Issue', 'Group', "Name", "Treatment"] if col in datamart_all_columns]
 fig = datamart.plotTreeMap(color_var="SuccessRate",
-                     groupby_col= None,
-                     levels=['Channel', 'Direction', 'Issue', 'Group', "Name"], 
-                     colorscale=pega_template.success)
+                     groupby_col=None,
+                     levels=levels, 
+                     colorscale=pega_template.success,
+                     query=pl.col("ResponseCount")>100,)
 fig
 ```
 
@@ -236,7 +247,7 @@ by = "Channel/Direction"
 facet = "Configuration"
 fig = datamart.plotOverTime('SuccessRate', by=by, facets=facet, facet_col_wrap=2, query=pl.col("ResponseCount") > 100)
 fig.update_yaxes(matches=None)
-fig.for_each_yaxis(lambda yaxis: yaxis.update(showticklabels=True, rangemode="tozero"))
+fig.for_each_yaxis(lambda yaxis: yaxis.update(showticklabels=True))
 unique_count = datamart.modelData.with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet)).select(facet).collect().unique().shape[0]
 height = 200 + (math.ceil( unique_count / 2) * 250)
 fig.update_layout(autosize=True, height=height)
@@ -331,7 +342,7 @@ Using an interactive treemap to visualize the performance. Lighter is better, da
 It can be interesting to see which issues, groups or channels can be better predicted than others. Identifying categories of items for which the predictions are poor can help to drive the search for better predictors, for example.
 
 ```{python}
-fig = datamart.plotTreeMap(color_var="performance_weighted", groupby_col= None, levels=['Channel', 'Direction', 'Issue', 'Group', "Name"])
+fig = datamart.plotTreeMap(color_var="performance_weighted", groupby_col= None, levels=levels)
 
 fig.show()
 ```
@@ -342,7 +353,7 @@ Different channels will have very different numbers but within one channel the r
 
 Warning : Currently treemap calculates mean response count moving upwards in the hierarchy. 
 ```{python}
-fig = datamart.plotTreeMap(color_var="responsecount", levels=['Channel', 'Direction', 'Issue', 'Group', "Name"], colorscale=pega_template.negative_positive)
+fig = datamart.plotTreeMap(color_var="responsecount", levels=levels, colorscale=pega_template.negative_positive)
 fig
 
 ```
@@ -354,6 +365,7 @@ The predictors are categorized (by color) by the “source”. By default this t
 ## Number of Predictors per model configuration 
 
 ```{python}
+#| error: true
 if include_tables:
     predictors_per_configuration = datamart.predictors_per_configuration.to_pandas(use_pyarrow_extension_array=False)
     show(predictors_per_configuration)
@@ -372,6 +384,7 @@ Box plots of the predictor importance. Importance can be shown either as a globa
 - No more than a few dozen Param predictors
 
 ```{python}
+#| error: true
 if datamart.predictorData is not None:
     figs = datamart.plotPredictorPerformance(top_n=20, facets='Configuration',separate=True, active_only=True)
     if not isinstance(figs, list):
@@ -392,9 +405,10 @@ Aggregating up to the category of the predictors. This gives a view at a glance 
 ### Predictor Category performance per Channel/Direction/Issue 
 
 ```{python}
+#| error: true
 facets = 'Configuration/Channel/Direction'
 facet_col_wrap = 3
-fig = datamart.plotPredictorCategoryPerformance(facets='Configuration/Channel/Direction', facet_col_wrap=facet_col_wrap)
+fig = datamart.plotPredictorCategoryPerformance(facets=facets, facet_col_wrap=facet_col_wrap)
 
 fig.update_layout(font=dict(size=10))
 fig.for_each_annotation(
@@ -740,7 +754,9 @@ cdh_utils.legend_color_order(only_positives).show()
 Zooming in into the models that drive most of the responses, here we list the top 20 models with the highest number of responses.
 
 ```{python}
-facet= "Configuration/Issue/Group/Name/Channel/Direction"
+subset = ['Configuration', 'Issue', 'Group', 'Name', 'Channel', 'Direction']
+facet = '/'.join([col for col in subset if col in datamart_all_columns])
+
 for split_facet in facet.split("/"):
     last_data = last_data.with_columns(
         pl.col(split_facet).cast(pl.Utf8).fill_null("NA")
@@ -755,20 +771,20 @@ response_counts = last_data.groupby([facet] + facet.split("/")).agg(
 
 all_responses = response_counts.sort("all_responses", descending=False).tail(20)
 hover_data = {
-    "Configuration": ":.d",
-    "Issue": ":.d",
-    "Group": ":.d",
-    "Name": ":.d",
-    "Channel": ":.d",
-    "Direction": ":.d",
     facet: False
 }
-fig = px.bar(all_responses.to_pandas(use_pyarrow_extension_array=True), x ="all_responses", y=facet, color="Channel", title="Top 20 Highest Responses", template="pega", text=facet, hover_data=hover_data)
+for col in facet.split("/"):
+    hover_data[col] = ":.d"
+
+possible_color_vars = ['Channel', 'Issue', 'Name']
+color = next((col for col in possible_color_vars if col in datamart_all_columns), None)
+
+fig = px.bar(all_responses.to_pandas(use_pyarrow_extension_array=True), x ="all_responses", y=facet, color=color, title="Top 20 Highest Responses", template="pega", text=facet, hover_data=hover_data)
 fig.update_yaxes(matches=None, showticklabels=False, visible=False).update_traces(textposition="inside")
 fig.for_each_annotation(
     lambda a: a.update(text=a.text.replace(facet, ""))
 )
-    
+fig.update_layout(yaxis={'categoryorder':'total ascending'})    
 cdh_utils.legend_color_order(fig).show()
 ```
 
@@ -777,13 +793,12 @@ And these are the 20 models with the largest number of positives.
 
 ```{python}
 positives = response_counts.sort("positive_sum", descending=True).head(20)
-fig = px.bar(positives.to_pandas(use_pyarrow_extension_array=True), x ="positive_sum", y=facet, color="Channel", title="Top 20 Highest Positives", template="pega", text=facet, hover_data=hover_data)
+fig = px.bar(positives.to_pandas(use_pyarrow_extension_array=True), x ="positive_sum", y=facet, color=color, title="Top 20 Highest Positives", template="pega", text=facet, hover_data=hover_data)
 fig.update_yaxes(matches=None, showticklabels=False, visible=False).update_xaxes(matches=None).update_traces(textposition='inside')
 fig.for_each_annotation(
     lambda a: a.update(text=a.text.replace(facet, ""))
 )
 fig.update_layout(yaxis={'categoryorder':'total ascending'})
-fig.data[0]
 
 cdh_utils.legend_color_order(fig).show()
 ```
@@ -795,34 +810,33 @@ The plot below shows this relation. Horizontally the model performance (the AUC,
 
 A lot of volume on the first bins, where the performance is minimal, means that a lot of immature models are used. This is sub-optimal in terms of targeting. Ideally there is a smooth curve with a peak in the 60-80 range of AUC. Much higher AUC’s are possibly indicative of immature models or even outcome leakers (although that is effectively prevented by the standard delayed learning pattern). AUC’s below 60 are not uncommon but should be investigated - consider different predictors or outcomes.
 ```{python}
+#| error: true
 to_plot = "Performance"
 df = (
-    datamart.combinedData.with_columns(pl.col(to_plot) * 100)
+    datamart.modelData.with_columns(pl.col(to_plot) * 100)
     .groupby([to_plot, "Channel", "Direction"])
-    .agg(pl.sum("BinResponseCount"))
+    .agg(pl.sum("ResponseCount"))
     .with_columns(pl.col(to_plot).round(2))
     .collect()
 )
 
 cut_off_value = [percentile for percentile in range(50, 100, 3)]
-
 df_pl = df.get_column(to_plot).fill_null(0).fill_nan(0).cut(bins=cut_off_value, category_label="PerformanceBin").lazy()
 join = df.lazy().join(
     df_pl.select([to_plot, "PerformanceBin"]).unique(), on=to_plot, how="left"
 )
-grouped = join.groupby(["Channel", "PerformanceBin"]).agg(pl.sum("BinResponseCount"))
-
+grouped = join.groupby(["Channel", "PerformanceBin"]).agg(pl.sum("ResponseCount"))
 out = (
     grouped.sort(["Channel", "PerformanceBin"])
     .select(
         [
-            "Channel",
+            pl.col("Channel").cast(pl.Utf8),
             "PerformanceBin",
-            "BinResponseCount",
-            pl.col("BinResponseCount").sum().over("Channel").alias("sum"),
+            "ResponseCount",
+            pl.col("ResponseCount").sum().over("Channel").alias("sum"),
         ]
     )
-    .with_columns([(pl.col("BinResponseCount") / pl.col("sum")).alias("Volume")])
+    .with_columns([(pl.col("ResponseCount") / pl.col("sum")).alias("Volume")])
 )
 
 out = out.sort(["Channel", "PerformanceBin"]).collect().to_pandas()
@@ -840,13 +854,13 @@ for bar in fig.data:
 channels = out["Channel"].unique()
 for channel_num, channel in enumerate(channels):
     channel_df = out[out["Channel"] == channel]
-    fig.add_traces(go.Scatter(x = channel_df.PerformanceBin, y=channel_df.Volume, line_shape = 'spline', marker_color = fig.data[channel_num].marker.color, name=channel))
+    fig.add_traces(go.Scatter(x = channel_df["PerformanceBin"], y=channel_df.Volume, line_shape = 'spline', marker_color = fig.data[channel_num].marker.color, name=channel))
 
 
 fig.update_yaxes(tickformat=",.0%")
 fig.update_xaxes(categoryorder='array', categoryarray = out.sort_values("PerformanceBin")["PerformanceBin"].unique())
 
-fig.show()
+cdh_utils.legend_color_order(fig).show()
 
 ```
 
@@ -878,6 +892,7 @@ Note that the propensity bins are not of equal width. Propensities are typically
 So when one of the graphs shows more volume on the left, that is to be interpreted as relative to the other graphs.
 
 ```{python}
+#| error: true
 to_plot = "Propensity"
 if to_plot == "Propensity" and to_plot not in datamart.predictorData.columns:
     to_plot = "BinPropensity"
