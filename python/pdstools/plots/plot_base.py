@@ -116,16 +116,13 @@ class Plots:
 
         if facets:
             df = df.join(
-                df.groupby(*facets, "PredictorName")
-                .agg(pl.median(to_plot))
-                .select(
-                    pl.col(*facets, "PredictorName")
-                    .sort_by(to_plot, "PredictorName")
-                    .tail(top_n)
-                    .implode()
-                    .over(facets)
-                    .flatten()
-                ),
+                df.groupby(*facets)
+                .agg(
+                    pl.col("PredictorName")
+                    .sort_by("PerformanceBin", "PredictorName", descending=True)
+                    .head(20)
+                )
+                .explode("PredictorName"),
                 on=(*facets, "PredictorName"),
             )
 
