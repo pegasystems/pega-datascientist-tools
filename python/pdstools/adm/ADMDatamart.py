@@ -1050,8 +1050,8 @@ class ADMDatamart(Plots, Tables):
         mod_order = (
             df.select(
                 pl.concat_list(pl.col(pl.Float64))
-                .arr.eval(pl.element().mean())
-                .arr.get(0)
+                .list.eval(pl.element().mean())
+                .list.get(0)
             )
             .select(pl.all().arg_sort(descending=True))
             .to_series()
@@ -1116,9 +1116,10 @@ class ADMDatamart(Plots, Tables):
             s, label="PositivesBin", bins=list(range(0, 210, 10))
         ) -> pl.Series:
             _arg_sort = pl.Series(name="_sort", values=s.arg_sort())
-            result = pl.cut(
-                s, bins=[bins + [float("inf")]][0], category_label="PositivesBin"
+            result = s.cut(
+                bins=[bins + [float("inf")]][0], category_label="PositivesBin"
             )
+
             return (
                 result.select(
                     [
@@ -1446,8 +1447,8 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             for tab, data in tabs.items():
                 data = data.with_columns(
                     pl.col(pl.List(pl.Categorical), pl.List(pl.Utf8))
-                    .arr.eval(pl.element().cast(pl.Utf8))
-                    .arr.join(", ")
+                    .list.eval(pl.element().cast(pl.Utf8))
+                    .list.join(", ")
                 )
                 data.write_excel(workbook=wb, worksheet=tab)
         return file

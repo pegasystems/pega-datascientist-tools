@@ -597,10 +597,16 @@ predictorsPerModelConfiguration <- filterLatestSnapshotOnly(datamart$modeldata)[
                                                  `Used In (Channels)` = paste(sort(unique(paste(Direction, Channel, sep="/"))), collapse=", "), 
                                                  `Used For (Issues)` = paste(sort(unique(Issue)), collapse=", ")), 
                                              by=c("ConfigurationName")][order(ConfigurationName)] 
-predictorsPerModelConfiguration %>%
-  kbl() %>%
-  kable_paper(c("striped", "hover"), full_width = F) %>%
-  column_spec(2, background = ifelse(predictorsPerModelConfiguration[[2]] >= 200 & predictorsPerModelConfiguration[[2]] <= 700,"white", "orange"))
+
+if (all(is.na(predictorsPerModelConfiguration$Predictors)))
+{
+  cat("No predictor information present in the model data.", fill=T)
+} else {
+  predictorsPerModelConfiguration %>%
+    kbl() %>%
+    kable_paper(c("striped", "hover"), full_width = F) %>%
+    column_spec(2, background = ifelse(predictorsPerModelConfiguration[[2]] >= 200 & predictorsPerModelConfiguration[[2]] <= 700,"white", "orange"))
+}
 ```
 
 ## Number of Predictors per Predictor Category
