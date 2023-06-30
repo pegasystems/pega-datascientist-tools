@@ -479,7 +479,7 @@ class Plots:
                 df.groupby_dynamic("SnapshotTime", every=every, by=groupby)
                 .agg(
                     [
-                        (pl.sum("Positives") / pl.sum("ResponseCount")).alias(
+                        weighed_average_polars("SuccessRate", "ResponseCount").alias(
                             "SuccessRate"
                         ),
                         weighed_performance_polars().alias("weighted_performance"),
@@ -1345,7 +1345,7 @@ class Plots:
             f"{by}_count": "Model count",
             "Percentage_without_responses": "Percentage without responses",
             "ResponseCount_sum": "Response Count sum",
-            "SuccessRate_mean": "Success Rate mean",
+            "SuccessRate_mean": "(%) Success Rate mean",
             "Performance_weighted": "Performance weighted mean",
             "Positives_sum": "Positives sum",
         }
@@ -1356,6 +1356,7 @@ class Plots:
             .sort(levels)
             .fill_null("Missing")
             .with_columns(pl.col("Performance weighted mean") * 100)
+            .with_columns(pl.col("(%) Success Rate mean") * 100)
             .fill_nan(pl.lit(50))
             .fill_nan(0)
             .collect()
@@ -1417,7 +1418,7 @@ class Plots:
                 None,
             ],
             "successrate": [
-                "Success Rate mean",
+                "(%) Success Rate mean",
                 "Model count",
                 "Success rate, per context key combination",
                 False,
