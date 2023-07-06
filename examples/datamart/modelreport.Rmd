@@ -119,7 +119,8 @@ number is calculated from the "active" bins of the Classifier.
 The "active" bins are the ones that can be reached from the current binning
 of the active predictors. In the below table we give the AUC from both this
 active range as well as the full range, but only the active range is really
-meaningful.
+meaningful. In a future product version, the non-reachable classifier bins may be 
+dropped from the table.
 
 ```{r, echo=F, warning=F, error=F, include=F}
 activeRangeInfo <- pdstools::getActiveRanges(datamart)
@@ -138,10 +139,13 @@ activerange_auc_pr <- pdstools::aucpr_from_bincounts(classifierBins[(isInActiveR
                                                      classifierBins[(isInActiveRange)]$BinNegatives)
 ```
 
+|Total Positives|Total Negatives|Total Responses|Success Rate|
+|--------------:|--------------:|--------------:|-----------------:|
+|`r sum(classifierBins$BinPositives)`|`r sum(classifierBins$BinNegatives)`|`r sum(classifierBins$BinResponseCount)`|`r sprintf("%.2f%%", 100*sum(classifierBins$BinPositives)/sum(classifierBins$BinResponseCount))`|
 
-|Total Positives|Total Negatives|Total Responses|Success Rate|AUC (Reported)|AUC-ROC (Active Range)|AUC-PR (Active Range)|AUC-ROC (Full Range)|AUC-PR (Full Range)|
-|--------------:|--------------:|--------------:|-----------------:|-----------------:|-----------------:|-----------------:|
-|`r sum(classifierBins$BinPositives)`|`r sum(classifierBins$BinNegatives)`|`r sum(classifierBins$BinResponseCount)`|`r sprintf("%.2f%%", 100*sum(classifierBins$BinPositives)/sum(classifierBins$BinResponseCount))`|`r round(allPredictorBins[EntryType == "Classifier"]$Performance[1],5)`|`r round(activerange_auc_roc,5)`|`r round(activerange_auc_pr,5)`|`r round(fullrange_auc_roc,5)`|`r round(fullrange_auc_pr,5)`|
+|AUC (Reported)|AUC-ROC (Active Range)|AUC-PR (Active Range)|AUC-ROC (Full Range)|AUC-PR (Full Range)|
+|-----------------:|-----------------:|-----------------:|-----------------:|-----------------:|
+|`r round(allPredictorBins[EntryType == "Classifier"]$Performance[1],5)`|`r round(activerange_auc_roc,5)`|`r round(activerange_auc_pr,5)`|`r round(fullrange_auc_roc,5)`|`r round(fullrange_auc_pr,5)`|
 
 ```{r, results="asis", echo=F, warning=F, error=F, fig.align = "center"}
 if (nrow(classifierBins) < 1) {
@@ -169,13 +173,18 @@ classifierBins[, propensity := 100*BinPositives/BinResponseCount]
 pegaClassifierBlueBar <- "#278DC1"
 pegaClassifierYellowLine <- "EF8B08"
 
+#classifierBins[, isInActiveRange := (seq(.N) %% 2) == 1]
+
 if (nrow(classifierBins) >= 1) {
   ply <- plot_ly(classifierBins) %>%
-    add_bars(x = ~BinIndex, y = ~BinResponseCount, 
-             colors = pegaClassifierBlueBar,
+    add_bars(x = ~BinIndex, y = ~BinResponseCount,
+             color = ~factor(isInActiveRange, levels=c(T, F)), 
+             colors = c(pegaClassifierBlueBar, "darkgrey"),
              alpha = 0.8,
              hoverinfo = "text", 
-             text = ~paste0("Score Range: ", BinSymbol, "\nResponses: ", BinResponseCount, "\nPropensity: ", sprintf("%.2f%%", propensity)),
+             text = ~paste0("Score Range: ", BinSymbol, "<br>",
+                            "Responses: ", BinResponseCount, "<br>",
+                            "Propensity: ", sprintf("%.2f%%", propensity)),
              yaxis = 'y') %>%
     add_lines(x = ~BinIndex, y = ~propensity,
               line = list(color = pegaClassifierYellowLine, width = 4),
@@ -301,7 +310,7 @@ Binning of all individual predictors. Predictors are listed in the same order as
 Here we show `r ifelse(params$predictordetails_activeonly, "only the active", "all")` predictors. This 
 can be configured with one of the parameters in the Yaml header of this notebook.
 
-```{r, results="asis", fig.height = 3, fig.width = 4, fig.align = "center"}
+```{r, results="asis", fig.height = 3, fig.width = 6, fig.align = "center"}
 
 # to print all instead of only the active ones, change condition to: EntryType != "Classifier"
 
@@ -311,6 +320,9 @@ for (f in unique(allPredictorBins[!params$predictordetails_activeonly | EntryTyp
   if (nrow(predictorBinning[!is.na(Propensity)]) < 2) {
     cat("<p style='color:Red;'>NO data available for", f, "for date:", max(allPredictorBins$SnapshotTime), "</p>", fill=T)
   } else {
+    cat("##", f, fill=T) # Predictor name
+    
+    cat("<table><tr><th>Info</th><th>Binning</th></tr>", fill=T)
     
     # write.csv(predictorBinning, "tempbin.csv")
     
@@ -323,15 +335,19 @@ for (f in unique(allPredictorBins[!params$predictordetails_activeonly | EntryTyp
     }
     
     # Table prelude with some overall info about the predictor
+    cat("<tr><td>", fill=T)
     printADMPredictorInfo(f, predictorBinning, extraPredInfo)
+    cat("</td>", fill=T)
     
     # colour names: http://sape.inf.usi.ch/quick-reference/ggplot2/colour
     
+    cat("<td>", fill=T)
     if (nrow(predictorBinning) > 1) {
       p <- plotBinning(predictorBinning)+ ggtitle(f)
       
       print(p)
     }  
+    cat("</td></tr></table>", fill=T)
     
     print(kable(userFriendlyADMBinning(predictorBinning), format = "markdown"))
   }

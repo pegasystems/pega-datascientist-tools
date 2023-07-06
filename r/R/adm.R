@@ -740,12 +740,12 @@ getModelPerformanceOverview <- function(dmModels = NULL, dmPredictors = NULL, js
   ModelID <- name <- PredictorType <- NULL # Trick to silence R CMD Check warnings
 
   if (!is.null(dmModels) & !is.null(dmPredictors)) {
-    modelList <- normalizedBinningFromDatamart(dmPredictors[ModelID %in% dmModels$ModelID],
+    modelList <- normalizedBinningFromDatamart(dmPredictors[ModelID %in% dmModels$ModelID & EntryType != "Inactive"],
                                                fullName="Dummy",
                                                modelsForPartition=dmModels)
   } else if (!is.null(dmPredictors) & is.null(dmModels)) {
 
-    modelList <- normalizedBinningFromDatamart(dmPredictors, fullName="Dummy")
+    modelList <- normalizedBinningFromDatamart(dmPredictors[EntryType != "Inactive"], fullName="Dummy")
     modelList[[1]][["context"]] <- list("pyName" = "Dummy") # should arguably be part of the normalizedBinning but that breaks some tests, didnt want to bother
   } else if (!is.null(jsonPartitions)) {
     modelList <- normalizedBinningFromADMFactory(jsonPartitions, overallModelName="Dummy")
