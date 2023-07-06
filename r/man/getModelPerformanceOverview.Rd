@@ -21,7 +21,13 @@ getModelPerformanceOverview(
 A \code{data.table} with model name, stored performance, actual performance, number of responses and the score range.
 }
 \description{
-In the actual performance the actual score range of the model is
+In the actual performance the actual (active) score range of the model is
 taken into account, while for the stored (reported) performance that is not always the case. This function is mainly in support of validating
 a fix to the reported performance.
+}
+\details{
+Note this function is tricky and depends on names. It gets used in the off line
+model reports (modelreport.Rmd) but possibly also internally. It could be
+deprecated once product stores just the "active" bins of the classifier
+as per https://agilestudio.pega.com/prweb/AgileStudio/app/agilestudio/user-stories/US-553631.
 }
