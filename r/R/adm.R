@@ -718,16 +718,16 @@ admVarImp <- function(datamart, facets = NULL, filter = function(x) {filterClass
   }
 }
 
-# TODO below function is tricky and depends on names. It was used in the
-# modelreport.Rmd but possibly also internally.
-
-# TODO consider removing now
-
 #' Helper function to return the actual and reported performance of ADM models.
 #'
 #' In the actual performance the actual score range of the model is
 #' taken into account, while for the stored (reported) performance that is not always the case. This function is mainly in support of validating
 #' a fix to the reported performance.
+#'
+#' Note this function is tricky and depends on names. It gets used in the off line
+#' model reports (modelreport.Rmd) but possibly also internally. It should be
+#' deprecated once the products stores just the "active" bins of the classifier
+#' as per https://agilestudio.pega.com/prweb/AgileStudio/app/agilestudio/user-stories/US-553631.
 #'
 #' @param dmModels A \code{data.table} with (possibly a subset of) the models exported from the ADM Datamart (\code{Data-Decision-ADM-ModelSnapshot}).
 #' @param dmPredictors A \code{data.table} with the predictors exported from the ADM Datamart (\code{Data-Decision-ADM-PredictorBinningSnapshot}).
@@ -746,7 +746,7 @@ getModelPerformanceOverview <- function(dmModels = NULL, dmPredictors = NULL, js
   } else if (!is.null(dmPredictors) & is.null(dmModels)) {
 
     modelList <- normalizedBinningFromDatamart(dmPredictors, fullName="Dummy")
-    modelList[[1]][["context"]] <- list("Name" =  "Dummy") # should arguably be part of the normalizedBinning but that breaks some tests, didnt want to bother
+    modelList[[1]][["context"]] <- list("pyName" = "Dummy") # should arguably be part of the normalizedBinning but that breaks some tests, didnt want to bother
   } else if (!is.null(jsonPartitions)) {
     modelList <- normalizedBinningFromADMFactory(jsonPartitions, overallModelName="Dummy")
   } else {
@@ -758,6 +758,7 @@ getModelPerformanceOverview <- function(dmModels = NULL, dmPredictors = NULL, js
   # normalized log odds and score min/max is found by adding them up.
 
   perfOverview <- data.table( name = sapply(modelList, function(m) {return(m$context$pyName)}),
+                              id = sapply(modelList, function(m) {return(m$binning$ModelID[1])}),
                               reported_performance = sapply(modelList, function(m) {return(m$binning$Performance[1])}),
                               actual_performance = NA, # placeholder
                               responses = sapply(modelList, function(m) {return(m$binning$TotalPos[1] + m$binning$TotalNeg[1])}),
@@ -782,16 +783,44 @@ getModelPerformanceOverview <- function(dmModels = NULL, dmPredictors = NULL, js
   perfOverview$actual_score_bin_max <- sapply(seq(nrow(perfOverview)),
                                               function(n) { return( findClassifierBin( classifiers[[n]], perfOverview$score_max[n]))} )
   perfOverview$actual_performance <- sapply(seq(nrow(perfOverview)),
-                                            function(n) { return( auc_from_bincounts(
+                                            function(n) { return( round(auc_from_bincounts(
                                               classifiers[[n]]$BinPos[perfOverview$actual_score_bin_min[n]:perfOverview$actual_score_bin_max[n]],
-                                              classifiers[[n]]$BinNeg[perfOverview$actual_score_bin_min[n]:perfOverview$actual_score_bin_max[n]] )) })
+                                              classifiers[[n]]$BinNeg[perfOverview$actual_score_bin_min[n]:perfOverview$actual_score_bin_max[n]]), 6)) })
+
   # print(perfOverview)
   # print(sapply(perfOverview, class))
   # print(modelList)
   # stop("Booh")
-  setorder(perfOverview, name)
 
+  setorder(perfOverview, name)
 
   return(perfOverview)
 }
 
+#' Convenience function to get the active (reachable) score range of one
+#' or more models
+#'
+#' @param dm An ADM Datamart object (list with models and predictors)
+#'
+#' @return A list with the min and max score, and the min and max bin index for
+#' each of the models.
+#' @export
+getActiveRanges <- function(dm)
+{
+  perfOverview <- getModelPerformanceOverview(dm$modeldata, dm$predictordata)
+
+  # print(perfOverview)
+
+  rangeList <- lapply(seq(nrow(perfOverview)), function(r) {list(
+    "score_min"=perfOverview[r, score_min],
+    "score_max"=perfOverview[r, score_max],
+    "active_index_min"=perfOverview[r, actual_score_bin_min],
+    "active_index_max"=perfOverview[r, actual_score_bin_max],
+    "is_full_indexrange"=perfOverview[r, nbins == actual_score_bin_max-actual_score_bin_min+1])})
+  names(rangeList) <- perfOverview$id
+
+  # show list version
+  # print(rangeList)
+
+  rangeList
+}

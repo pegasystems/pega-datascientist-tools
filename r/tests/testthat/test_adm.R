@@ -158,7 +158,7 @@ test_that("Reading data from models wo context", {
 # This test confirms BUG-417860 stating that ADM performance numbers can be overly
 # optimistic in the beginning.
 test_that("Score Ranges No Predictors", {
-  context("Verify range of score distribution w/o predictors")
+  # context("Verify range of score distribution w/o predictors")
 
   load("dsexports/test_score_ranges.RData")
 
@@ -174,7 +174,7 @@ test_that("Score Ranges No Predictors", {
 
 # More normal performance values
 test_that("Score Ranges DMSample", {
-  context("Verify range of score distribution")
+  # context("Verify range of score distribution")
 
   load("dsexports/test_score_ranges.RData")
 
@@ -199,6 +199,48 @@ test_that("Score Ranges DMSample", {
   expect_equal(perfOverviewSalesModel[(nbins > 1) & (actual_score_bin_max - actual_score_bin_min + 1 == nbins)]$reported_performance,
                perfOverviewSalesModel[(nbins > 1) & (actual_score_bin_max - actual_score_bin_min + 1 == nbins)]$actual_performance,
                tolerance = 1e-06)
+})
+
+test_that("Get active score range", {
+  # returns a list with min/max score for each of the model IDs
+  # activeRange <- getActiveRange(allPredictorBins)
+
+  load("dsexports/test_score_ranges.RData")
+
+  # one model where the actual range is smaller than the full one
+  activeRange <- getActiveRanges(ADMDatamart(dmModels[ModelID == "664cc653-279f-54ae-926f-694652d89a54"], dmPredictors))
+  expect_equal(activeRange[[1]]$active_index_min, 7)
+  expect_equal(activeRange[[1]]$active_index_max, 7)
+  expect_false(activeRange[[1]]$is_full_indexrange)
+
+  # one model that covers the full range
+  activeRange <- getActiveRanges(ADMDatamart(dmModels[ModelID == "ec6dd922-5f80-5f38-95ed-7e6bf29cbe3e"], dmPredictors))
+  expect_equal(activeRange[[1]]$active_index_min, 1)
+  expect_equal(activeRange[[1]]$active_index_max, 26)
+  expect_true(activeRange[[1]]$is_full_indexrange)
+
+  # when just the predictor data is given
+  activeRange <- getActiveRanges(ADMDatamart(modeldata = F, predictordata = dmPredictors[ModelID == "664cc653-279f-54ae-926f-694652d89a54"]))
+  expect_equal(activeRange[[1]]$active_index_min, 7)
+  expect_equal(activeRange[[1]]$active_index_max, 7)
+  expect_false(activeRange[[1]]$is_full_indexrange)
+
+  datamart <- ADMDatamart("Data-Decision-ADM-ModelSnapshot_All",
+                          "Data-Decision-ADM-PredictorBinningSnapshot_All",
+                          "dsexports")
+  activeRange <- getActiveRanges(datamart)
+  expect_equal(length(activeRange), uniqueN(datamart$modeldata$ModelID))
+
+  # find some more interesting deviations of the full range:
+  # print(which(sapply(activeRange, function(e) {e$active_index_min != e$active_index_max & !e$is_full_indexrange})))
+
+  expect_equal(activeRange[[1]]$active_index_min, 1)
+  expect_equal(activeRange[[1]]$active_index_max, 7)
+  expect_false(activeRange[[1]]$is_full_indexrange)
+
+  expect_equal(activeRange[[2]]$active_index_min, 1)
+  expect_equal(activeRange[[2]]$active_index_max, 35)
+  expect_true(activeRange[[2]]$is_full_indexrange)
 })
 
 test_that("Feature Importance", {
