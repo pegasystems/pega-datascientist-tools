@@ -19,6 +19,8 @@
 <![endif]-->
 </head>
 <body data-spy="scroll" data-target="#toc">
+    
+
     <div class="container template-article">
       <header><div class="navbar navbar-default navbar-fixed-top" role="navigation">
   <div class="container">
@@ -31,18 +33,12 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">pdstools</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.2.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">2.2.0</span>
       </span>
     </div>
 
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
-<li>
-  <a href="../index.html">
-    <span class="fas fa-home fa-lg"></span>
-     
-  </a>
-</li>
 <li>
   <a href="../reference/index.html">Reference</a>
 </li>
@@ -87,13 +83,13 @@
 
       
 
-      </header><script src="historical-dataset_files/header-attrs-2.16/header-attrs.js"></script><div class="row">
+      </header><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>historical-dataset</h1>
-                        <h4 class="author">Pega</h4>
+                        <h4 data-toc-skip class="author">Pega</h4>
             
-            <h4 class="date">2022-10-16</h4>
+            <h4 data-toc-skip class="date">2023-07-06</h4>
       
       
       <div class="hidden name"><code>historical-dataset.Rmd</code></div>
@@ -102,9 +98,9 @@
 
     
     
-<div id="exploring-the-historical-datasets" class="section level1">
-<h1 class="hasAnchor">
-<a href="#exploring-the-historical-datasets" class="anchor"></a>Exploring the Historical Datasets</h1>
+<div class="section level2">
+<h2 id="exploring-the-historical-datasets">Exploring the Historical Datasets<a class="anchor" aria-label="anchor" href="#exploring-the-historical-datasets"></a>
+</h2>
 <p>Historical Datasets can be created from Adaptive models. They contain
 all the values of the predictors at the time of decision plus the
 associated outcome.</p>
@@ -114,17 +110,17 @@ repository. These are in multi-line JSON format.</p>
 <p>In this example we use a dataset that is included in the package
 (<em>hds</em>).</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">pdstools</span><span class="op">)</span>
-
-<span class="fu"><a href="https://rdrr.io/r/utils/data.html">data</a></span><span class="op">(</span><span class="va">hds</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">pdstools</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">hds</span><span class="op">)</span></span></code></pre></div>
 <p>To read your own Historical Data files from a repository use the
 “arrow” library for fast reading of LDJSON.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">hds</span> <span class="op">&lt;-</span> <span class="fu">rbindlist</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.files.html">list.files</a></span><span class="op">(</span><span class="st">"data/hds"</span>, <span class="st">"*.json"</span>, full.names <span class="op">=</span> <span class="cn">T</span><span class="op">)</span>,
-                 <span class="fu">arrow</span><span class="fu">::</span><span class="va"><a href="https://arrow.apache.org/docs/r/reference/read_json_arrow.html">read_json_arrow</a></span><span class="op">)</span><span class="op">)</span></code></pre></div>
-<div id="fields" class="section level2">
-<h2 class="hasAnchor">
-<a href="#fields" class="anchor"></a>Fields</h2>
+<code class="sourceCode R"><span><span class="va">hds</span> <span class="op">&lt;-</span> <span class="fu">rbindlist</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="st">"data/hds"</span>, <span class="st">"*.json"</span>, full.names <span class="op">=</span> <span class="cn">T</span><span class="op">)</span>,</span>
+<span>                 <span class="fu">arrow</span><span class="fu">::</span><span class="va"><a href="https://arrow.apache.org/docs/r/reference/read_json_arrow.html" class="external-link">read_json_arrow</a></span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="section level3">
+<h3 id="fields">Fields<a class="anchor" aria-label="anchor" href="#fields"></a>
+</h3>
 <p>This Historical Dataset contains a number of categories of fields,
 indicated by a prefix to the field name.</p>
 <p>Customer data shows like this:</p>
@@ -247,31 +243,31 @@ to a specific version of the model.</p>
 <span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a> <span class="sc">$</span> rulesetName     <span class="sc">:</span> chr  <span class="st">"CDHSample-Artifacts"</span> <span class="st">"CDHSample-Artifacts"</span> <span class="st">"CDHSample-Artifacts"</span> <span class="st">"CDHSample-Artifacts"</span> ...</span>
 <span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a> <span class="sc">-</span> <span class="fu">attr</span>(<span class="sc">*</span>, <span class="st">".internal.selfref"</span>)<span class="ot">=</span><span class="er">&lt;</span>externalptr<span class="sc">&gt;</span> </span></code></pre></div>
 </div>
-<div id="setting-the-correct-types" class="section level2">
-<h2 class="hasAnchor">
-<a href="#setting-the-correct-types" class="anchor"></a>Setting the correct types</h2>
+<div class="section level3">
+<h3 id="setting-the-correct-types">Setting the correct types<a class="anchor" aria-label="anchor" href="#setting-the-correct-types"></a>
+</h3>
 <p>The data from the JSON file will all be read as symbolic. We fix up
 the date/time fields and the numerics.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="kw">for</span> <span class="op">(</span><span class="va">timeField</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"Decision_DecisionTime"</span>, <span class="st">"Decision_OutcomeTime"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span>
-  <span class="va">hds</span><span class="op">[[</span><span class="va">timeField</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fromPRPCDateTime.html">fromPRPCDateTime</a></span><span class="op">(</span><span class="va">hds</span><span class="op">[[</span><span class="va">timeField</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>
-<span class="op">}</span>
-
-<span class="co"># Assume fields are numeric if conversion yields &lt; 1% NA's</span>
-
-<span class="kw">for</span> <span class="op">(</span><span class="va">fld</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">hds</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span>
-  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html">is.character</a></span><span class="op">(</span><span class="va">hds</span><span class="op">[[</span><span class="va">fld</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span>
-    <span class="fu"><a href="https://rdrr.io/r/base/warning.html">suppressWarnings</a></span><span class="op">(</span><span class="va">asnum</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">as.numeric</a></span><span class="op">(</span><span class="va">hds</span><span class="op">[[</span><span class="va">fld</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>
-    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html">is.na</a></span><span class="op">(</span><span class="va">hds</span><span class="op">[[</span><span class="va">fld</span><span class="op">]</span><span class="op">]</span><span class="op">)</span> <span class="op">&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/NA.html">is.na</a></span><span class="op">(</span><span class="va">asnum</span><span class="op">)</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html">is.na</a></span><span class="op">(</span><span class="va">hds</span><span class="op">[[</span><span class="va">fld</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">0.01</span><span class="op">)</span> <span class="op">{</span>
-      <span class="va">hds</span><span class="op">[[</span><span class="va">fld</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="va">asnum</span>
-    <span class="op">}</span>
-  <span class="op">}</span>
-<span class="op">}</span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw">for</span> <span class="op">(</span><span class="va">timeField</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Decision_DecisionTime"</span>, <span class="st">"Decision_OutcomeTime"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">hds</span><span class="op">[[</span><span class="va">timeField</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fromPRPCDateTime.html">fromPRPCDateTime</a></span><span class="op">(</span><span class="va">hds</span><span class="op">[[</span><span class="va">timeField</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="co"># Assume fields are numeric if conversion yields &lt; 1% NA's</span></span>
+<span></span>
+<span><span class="kw">for</span> <span class="op">(</span><span class="va">fld</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">hds</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">is.character</a></span><span class="op">(</span><span class="va">hds</span><span class="op">[[</span><span class="va">fld</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="va">asnum</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">hds</span><span class="op">[[</span><span class="va">fld</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">hds</span><span class="op">[[</span><span class="va">fld</span><span class="op">]</span><span class="op">]</span><span class="op">)</span> <span class="op">&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">asnum</span><span class="op">)</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">hds</span><span class="op">[[</span><span class="va">fld</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">0.01</span><span class="op">)</span> <span class="op">{</span></span>
+<span>      <span class="va">hds</span><span class="op">[[</span><span class="va">fld</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="va">asnum</span></span>
+<span>    <span class="op">}</span></span>
+<span>  <span class="op">}</span></span>
+<span><span class="op">}</span></span></code></pre></div>
 </div>
 </div>
-<div id="exploring-the-data" class="section level1">
-<h1 class="hasAnchor">
-<a href="#exploring-the-data" class="anchor"></a>Exploring the data</h1>
+<div class="section level2">
+<h2 id="exploring-the-data">Exploring the data<a class="anchor" aria-label="anchor" href="#exploring-the-data"></a>
+</h2>
 <p>We now have all data at hand and can create some simple overviews of
 the data.</p>
 <p>Here we just zoom in into one particular customer field - but this
@@ -280,37 +276,42 @@ can obviously be applied to any field.</p>
 needs this can be done to hours or weeks - or whatever suits the use
 case.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">hds</span><span class="op">[</span>, <span class="va">Day</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.POSIXlt.html">as.POSIXct</a></span><span class="op">(</span><span class="fu">round_date</span><span class="op">(</span><span class="va">hds</span><span class="op">$</span><span class="va">Decision_DecisionTime</span>, unit<span class="op">=</span><span class="st">"day"</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></code></pre></div>
-<div id="value-of-customer-age-over-time" class="section level2">
-<h2 class="hasAnchor">
-<a href="#value-of-customer-age-over-time" class="anchor"></a>Value of Customer Age over time</h2>
+<code class="sourceCode R"><span><span class="va">hds</span><span class="op">[</span>, <span class="va">Day</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.POSIXlt.html" class="external-link">as.POSIXct</a></span><span class="op">(</span><span class="fu"><a href="https://lubridate.tidyverse.org/reference/round_date.html" class="external-link">round_date</a></span><span class="op">(</span><span class="va">hds</span><span class="op">$</span><span class="va">Decision_DecisionTime</span>, unit<span class="op">=</span><span class="st">"day"</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<div class="section level3">
+<h3 id="value-of-customer-age-over-time">Value of Customer Age over time<a class="anchor" aria-label="anchor" href="#value-of-customer-age-over-time"></a>
+</h3>
 <p>We can do a simple boxplot of Age over time. This gives an indication
 of the mean, p10, p90 and outlier values.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu">ggplot</span><span class="op">(</span><span class="va">hds</span>, <span class="fu">aes</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="va">Day</span><span class="op">)</span>, <span class="va">Customer_Age</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">geom_boxplot</span><span class="op">(</span>size<span class="op">=</span><span class="fl">1</span>, fill<span class="op">=</span><span class="st">"lightblue"</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">ggtitle</span><span class="op">(</span><span class="st">"Customer_Age"</span>, subtitle <span class="op">=</span> <span class="st">"values over time"</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">theme_minimal</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu">xlab</span><span class="op">(</span><span class="st">""</span><span class="op">)</span> <span class="op">+</span> <span class="fu">theme</span><span class="op">(</span>axis.text.x <span class="op">=</span> <span class="fu">element_text</span><span class="op">(</span>angle <span class="op">=</span> <span class="fl">45</span>, vjust <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">hds</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">Day</span><span class="op">)</span>, <span class="va">Customer_Age</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_boxplot.html" class="external-link">geom_boxplot</a></span><span class="op">(</span>size<span class="op">=</span><span class="fl">1</span>, fill<span class="op">=</span><span class="st">"lightblue"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Customer_Age"</span>, subtitle <span class="op">=</span> <span class="st">"values over time"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">xlab</a></span><span class="op">(</span><span class="st">""</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>axis.text.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>angle <span class="op">=</span> <span class="fl">45</span>, vjust <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p><img src="historical-dataset_files/figure-html/unnamed-chunk-11-1.png" width="672" style="display: block; margin: auto;"></p>
 </div>
-<div id="missing-values" class="section level2">
-<h2 class="hasAnchor">
-<a href="#missing-values" class="anchor"></a>Missing values</h2>
+<div class="section level3">
+<h3 id="missing-values">Missing values<a class="anchor" aria-label="anchor" href="#missing-values"></a>
+</h3>
 <p>Showing the percentage of missing values per day. Missing values are
 a common source of issues in models.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu">ggplot</span><span class="op">(</span><span class="va">hds</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>nMissing <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html">is.na</a></span><span class="op">(</span><span class="va">Customer_Age</span><span class="op">)</span><span class="op">)</span><span class="op">/</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">hds</span><span class="op">)</span><span class="op">)</span>, by<span class="op">=</span><span class="va">Day</span><span class="op">]</span>,
-       <span class="fu">aes</span><span class="op">(</span><span class="va">Day</span>, <span class="va">nMissing</span>, fill<span class="op">=</span><span class="va">nMissing</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">geom_col</span><span class="op">(</span>size<span class="op">=</span><span class="fl">1</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">scale_fill_continuous_diverging</span><span class="op">(</span>guide<span class="op">=</span><span class="st">"none"</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">scale_y_continuous</span><span class="op">(</span>labels<span class="op">=</span><span class="va">percent</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">ggtitle</span><span class="op">(</span><span class="st">"Customer_Age"</span>, subtitle <span class="op">=</span> <span class="st">"percentage of missing values"</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">theme_minimal</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu">xlab</span><span class="op">(</span><span class="st">""</span><span class="op">)</span> <span class="op">+</span> <span class="fu">ylab</span><span class="op">(</span><span class="st">""</span><span class="op">)</span> <span class="op">+</span> <span class="fu">theme</span><span class="op">(</span>axis.text.x <span class="op">=</span> <span class="fu">element_text</span><span class="op">(</span>angle <span class="op">=</span> <span class="fl">45</span>, vjust <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">hds</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>nMissing <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">Customer_Age</span><span class="op">)</span><span class="op">)</span><span class="op">/</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">hds</span><span class="op">)</span><span class="op">)</span>, by<span class="op">=</span><span class="va">Day</span><span class="op">]</span>,</span>
+<span>       <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">Day</span>, <span class="va">nMissing</span>, fill<span class="op">=</span><span class="va">nMissing</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_bar.html" class="external-link">geom_col</a></span><span class="op">(</span>size<span class="op">=</span><span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">scale_fill_continuous_diverging</span><span class="op">(</span>guide<span class="op">=</span><span class="st">"none"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_y_continuous</a></span><span class="op">(</span>labels<span class="op">=</span><span class="va">percent</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Customer_Age"</span>, subtitle <span class="op">=</span> <span class="st">"percentage of missing values"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">xlab</a></span><span class="op">(</span><span class="st">""</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ylab</a></span><span class="op">(</span><span class="st">""</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>axis.text.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>angle <span class="op">=</span> <span class="fl">45</span>, vjust <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Please use `linewidth` instead.</span></span>
+<span><span class="co">#&gt; <span style="color: #555555;">This warning is displayed once every 8 hours.</span></span></span>
+<span><span class="co">#&gt; <span style="color: #555555;">Call `lifecycle::last_lifecycle_warnings()` to see where this warning was</span></span></span>
+<span><span class="co">#&gt; <span style="color: #555555;">generated.</span></span></span></code></pre></div>
 <p><img src="historical-dataset_files/figure-html/unnamed-chunk-12-1.png" width="672" style="display: block; margin: auto;"></p>
 </div>
-<div id="predictor-performance" class="section level2">
-<h2 class="hasAnchor">
-<a href="#predictor-performance" class="anchor"></a>Predictor Performance</h2>
+<div class="section level3">
+<h3 id="predictor-performance">Predictor Performance<a class="anchor" aria-label="anchor" href="#predictor-performance"></a>
+</h3>
 <p>Since the Historical Dataset contains the outcomes, we can also plot
 the day-over-day predictor performance. We can “bin” the predictor using
 a simple quantile binning, then use the number of “positives” and
@@ -320,10 +321,10 @@ fields this will be a good approximation. For symbolic fields the
 binning should take a similar approach as ADM is doing, by grouping
 labels by z-ratio first.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">hds</span><span class="op">[</span>, <span class="va">Customer_Age_Binned</span> <span class="op">:=</span> <span class="fu">cut2</span><span class="op">(</span><span class="va">Customer_Age</span>, g<span class="op">=</span><span class="fl">20</span><span class="op">)</span><span class="op">]</span>
-<span class="va">hds</span><span class="op">[</span>, <span class="va">Customer_Age_BinPos</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">Decision_Outcome</span><span class="op">==</span><span class="st">"Accepted"</span><span class="op">)</span>, by<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"Day"</span>, <span class="st">"Customer_Age_Binned"</span><span class="op">)</span><span class="op">]</span>
-<span class="va">hds</span><span class="op">[</span>, <span class="va">Customer_Age_BinNeg</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">Decision_Outcome</span><span class="op">==</span><span class="st">"Rejected"</span><span class="op">)</span>, by<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"Day"</span>, <span class="st">"Customer_Age_Binned"</span><span class="op">)</span><span class="op">]</span>
-<span class="va">hds</span><span class="op">[</span>, <span class="va">Customer_Age_Performance</span> <span class="op">:=</span> <span class="fu"><a href="../reference/auc_from_bincounts.html">auc_from_bincounts</a></span><span class="op">(</span><span class="va">Customer_Age_BinPos</span>, <span class="va">Customer_Age_BinNeg</span><span class="op">)</span>, by<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"Day"</span><span class="op">)</span><span class="op">]</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">hds</span><span class="op">[</span>, <span class="va">Customer_Age_Binned</span> <span class="op">:=</span> <span class="fu">cut2</span><span class="op">(</span><span class="va">Customer_Age</span>, g<span class="op">=</span><span class="fl">20</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="va">hds</span><span class="op">[</span>, <span class="va">Customer_Age_BinPos</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">Decision_Outcome</span><span class="op">==</span><span class="st">"Accepted"</span><span class="op">)</span>, by<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Day"</span>, <span class="st">"Customer_Age_Binned"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="va">hds</span><span class="op">[</span>, <span class="va">Customer_Age_BinNeg</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">Decision_Outcome</span><span class="op">==</span><span class="st">"Rejected"</span><span class="op">)</span>, by<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Day"</span>, <span class="st">"Customer_Age_Binned"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="va">hds</span><span class="op">[</span>, <span class="va">Customer_Age_Performance</span> <span class="op">:=</span> <span class="fu"><a href="../reference/auc_from_bincounts.html">auc_from_bincounts</a></span><span class="op">(</span><span class="va">Customer_Age_BinPos</span>, <span class="va">Customer_Age_BinNeg</span><span class="op">)</span>, by<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Day"</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
 <p><img src="historical-dataset_files/figure-html/unnamed-chunk-14-1.png" width="672" style="display: block; margin: auto;"></p>
 </div>
 </div>
@@ -340,11 +341,13 @@ labels by z-ratio first.</p>
 
 
       <footer><div class="copyright">
-  <p>Developed by Otto Perdeck.</p>
+  <p></p>
+<p>Developed by Otto Perdeck.</p>
 </div>
 
 <div class="pkgdown">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.6.1.</p>
+  <p></p>
+<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.7.</p>
 </div>
 
       </footer>
@@ -352,6 +355,8 @@ labels by z-ratio first.</p>
 
   
 
+
+  
 
   </body>
 </html>

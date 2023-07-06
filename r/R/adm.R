@@ -720,13 +720,13 @@ admVarImp <- function(datamart, facets = NULL, filter = function(x) {filterClass
 
 #' Helper function to return the actual and reported performance of ADM models.
 #'
-#' In the actual performance the actual score range of the model is
+#' In the actual performance the actual (active) score range of the model is
 #' taken into account, while for the stored (reported) performance that is not always the case. This function is mainly in support of validating
 #' a fix to the reported performance.
 #'
 #' Note this function is tricky and depends on names. It gets used in the off line
-#' model reports (modelreport.Rmd) but possibly also internally. It should be
-#' deprecated once the products stores just the "active" bins of the classifier
+#' model reports (modelreport.Rmd) but possibly also internally. It could be
+#' deprecated once product stores just the "active" bins of the classifier
 #' as per https://agilestudio.pega.com/prweb/AgileStudio/app/agilestudio/user-stories/US-553631.
 #'
 #' @param dmModels A \code{data.table} with (possibly a subset of) the models exported from the ADM Datamart (\code{Data-Decision-ADM-ModelSnapshot}).
@@ -798,13 +798,23 @@ getModelPerformanceOverview <- function(dmModels = NULL, dmPredictors = NULL, js
 }
 
 #' Convenience function to get the active (reachable) score range of one
-#' or more models
+#' or more models.
+#'
+#' Returns a list with the min/max scores as well as the lower/upper bin
+#' indices of the classifiers of the models provided via the datamart
+#' passed in.
 #'
 #' @param dm An ADM Datamart object (list with models and predictors)
 #'
 #' @return A list with the min and max score, and the min and max bin index for
 #' each of the models.
 #' @export
+#'
+#' @examples
+#' \dontrun{
+#'   dm <- ADMDatamart("~/Downloads")
+#'   activeRanges <- getActiveRanges(dm)
+#' }
 getActiveRanges <- function(dm)
 {
   perfOverview <- getModelPerformanceOverview(dm$modeldata, dm$predictordata)
