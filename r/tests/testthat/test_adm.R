@@ -192,7 +192,8 @@ test_that("Active score range CDH Sample Pega8", {
   data <- ADMDatamart("CDHSample-Pega8-ADMModelSnapshots_20211029T133255_GMT.zip",
                       "CDHSample-Pega8-ADMPredictorSnapshots_20211029T134643_GMT.zip", folder = "dsexports")
 
-  activeRange <- rbindlist(getActiveRanges(data))
+  activeRangeList <- getActiveRanges(data)
+  activeRange <- rbindlist(activeRangeList[-length(activeRangeList)])
 
   expect_equal(nrow(activeRange), 4)
 
@@ -217,7 +218,8 @@ test_that("Active score range CDH Sample Pega8", {
 
 test_that("Active score range old datamart", {
   data <- ADMDatamart(modeldata=F, "BigModel_predictordata.csv", folder = "d")
-  activeRange <- rbindlist(getActiveRanges(data))
+  activeRangeList <- getActiveRanges(data)
+  activeRange <- rbindlist(activeRangeList[-length(activeRangeList)])
 
   expect_equal(nrow(activeRange), 5)
 
