@@ -90,7 +90,7 @@
       <h1 data-toc-skip>adm-explained</h1>
                         <h4 data-toc-skip class="author">Pega</h4>
             
-            <h4 data-toc-skip class="date">2023-07-06</h4>
+            <h4 data-toc-skip class="date">2023-07-14</h4>
       
       
       <div class="hidden name"><code>adm-explained.Rmd</code></div>
@@ -107,8 +107,8 @@ are calculated. It also shows how the propensity is calculated for a
 particular customer.</p>
 <p>We use one of the shipped datamart exports for the example. This is a
 model very similar to one used in some of the ADM PowerPoint/Excel deep
-dive examples. To load your own data, see the vignette on ADM reporting
-for examples.</p>
+dive examples. You can change this notebook to apply to your own
+data.</p>
 <p>For the example we use one particular model: <em>AutoNew36Months</em>
 over <em>SMS</em>. You can use your own data and select a different
 model.</p>
@@ -403,31 +403,31 @@ MISSING
 </td>
 </tr>
 <tr>
-<td style="text-align:left;">
-Grand Total
+<td style="text-align:left;font-weight: bold;">
+Total
 </td>
-<td style="text-align:right;">
+<td style="text-align:right;font-weight: bold;">
 1.0000000
 </td>
-<td style="text-align:right;">
+<td style="text-align:right;font-weight: bold;">
 36
 </td>
-<td style="text-align:right;">
+<td style="text-align:right;font-weight: bold;">
 1.0000000
 </td>
-<td style="text-align:right;">
+<td style="text-align:right;font-weight: bold;">
 5566
 </td>
-<td style="text-align:right;">
+<td style="text-align:right;font-weight: bold;">
 1.0000000
 </td>
-<td style="text-align:right;">
+<td style="text-align:right;font-weight: bold;">
 0.0064263
 </td>
-<td style="text-align:right;">
+<td style="text-align:right;font-weight: bold;">
 0.000000
 </td>
-<td style="text-align:right;">
+<td style="text-align:right;font-weight: bold;">
 1.000000
 </td>
 </tr>
@@ -704,7 +704,7 @@ spread, the better the predictor is.</p>
 <p><span class="math display">\[\frac{posFraction-negFraction}{\sqrt(\frac{posFraction*(1-posFraction)}{\sum
 positives}+\frac{negFraction*(1-negFraction)}{\sum
 negatives})}\]</span></p>
-<p>See also: <a href="http://techdocs.rpega.com/display/EPZ/2019/06/21/Z-ratio+calculation+in+ADM" class="external-link uri">http://techdocs.rpega.com/display/EPZ/2019/06/21/Z-ratio+calculation+in+ADM</a>.</p>
+<p>See the calculation here, which is also included in <a href="https://pegasystems.github.io/pega-datascientist-tools/R/reference/zratio.html" class="external-link">pdstools::zratio</a>.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">binningDerived</span><span class="op">[</span>, <span class="va">posFraction</span> <span class="op">:=</span> <span class="va">Positives</span><span class="op">/</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">Positives</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="va">binningDerived</span><span class="op">[</span>, <span class="va">negFraction</span> <span class="op">:=</span> <span class="va">Negatives</span><span class="op">/</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">Negatives</span><span class="op">)</span><span class="op">]</span></span>
@@ -854,9 +854,9 @@ negatives, e.g. using the <em>pROC</em> package.</p>
 <span>                                                    <span class="va">predictorbinning</span><span class="op">$</span><span class="va">Negatives</span><span class="op">[</span><span class="va">r</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/pkg/pROC/man/plot.roc.html" class="external-link">plot.roc</a></span><span class="op">(</span><span class="va">response</span>, <span class="va">prediction</span>, print.auc<span class="op">=</span><span class="cn">T</span>, col<span class="op">=</span><span class="st">"darkgreen"</span>, levels<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">T</span>,<span class="cn">F</span><span class="op">)</span>, direction<span class="op">=</span><span class="st">"&gt;"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="adm-explained_files/figure-html/unnamed-chunk-14-1.png" width="672" style="display: block; margin: auto;"></p>
+<p><img src="adm-explained_files/figure-html/unnamed-chunk-15-1.png" width="672" style="display: block; margin: auto;"></p>
 <p>There is also a convenient function in <em>pdstools</em> to calculate
-it directly from the positives and negatives:</p>
+it directly from the positives and negatives: <a href="https://pegasystems.github.io/pega-datascientist-tools/R/reference/auc_from_bincounts.html" class="external-link"><code>pdstools::auc_from_bincounts()</code></a>.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">pdstools</span><span class="fu">::</span><span class="fu"><a href="../reference/auc_from_bincounts.html">auc_from_bincounts</a></span><span class="op">(</span><span class="va">predictorbinning</span><span class="op">$</span><span class="va">Positives</span>, <span class="va">predictorbinning</span><span class="op">$</span><span class="va">Negatives</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 0.6541527</span></span></code></pre></div>
@@ -867,15 +867,20 @@ it directly from the positives and negatives:</p>
 <p>The score is calculated from the log odds which are simply the ratio
 of the probabilities of positives and negatives. For the actual
 calculation in ADM this is modified slightly to avoid division-by-zero
-problems and is written differently to avoid numeric instability as
-shown below.</p>
+problems and to avoid numeric instability issues.</p>
+<p>The contribution of an active predictor <span class="math inline">\(p\)</span> for bin <span class="math inline">\(i\)</span> with the number of positive and
+negative responses in <span class="math inline">\(Positives_i\)</span>
+and <span class="math inline">\(Negatives_i\)</span>:</p>
+<p><span class="math display">\[contribution_p =
+\log(Positives_i+\frac{1}{nBins}) - \log(Negatives_i+\frac{1}{nBins}) -
+\log(1+\sum_i{Positives_i}) + \log(1+\sum_i{Negatives_i})\]</span></p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">binningDerived</span><span class="op">[</span>, <span class="va">posFraction</span> <span class="op">:=</span> <span class="va">Positives</span><span class="op">/</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">Positives</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="va">binningDerived</span><span class="op">[</span>, <span class="va">negFraction</span> <span class="op">:=</span> <span class="va">Negatives</span><span class="op">/</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">Negatives</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="va">binningDerived</span><span class="op">[</span>, <span class="va">`Log odds`</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">posFraction</span><span class="op">/</span><span class="va">negFraction</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="va">binningDerived</span><span class="op">[</span>, <span class="va">`Modified Log odds`</span> <span class="op">:=</span> </span>
-<span>                 <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">Positives</span><span class="op">+</span><span class="fl">1</span><span class="op">/</span><span class="va">.N</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">Positives</span><span class="op">+</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">-</span> </span>
-<span>                 <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">Negatives</span><span class="op">+</span><span class="fl">1</span><span class="op">/</span><span class="va">.N</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">Negatives</span><span class="op">+</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<span>                 <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">Positives</span><span class="op">+</span><span class="fl">1</span><span class="op">/</span><span class="va">.N</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">Positives</span><span class="op">)</span><span class="op">+</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span> <span class="op">-</span> </span>
+<span>                 <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">Negatives</span><span class="op">+</span><span class="fl">1</span><span class="op">/</span><span class="va">.N</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">Negatives</span><span class="op">)</span><span class="op">+</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
 <table class="table table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
 <thead><tr>
 <th style="text-align:left;">
@@ -921,7 +926,7 @@ MISSING
 -Inf
 </td>
 <td style="text-align:right;color: blue !important;">
-1.6536612
+1.7555971
 </td>
 </tr>
 <tr>
@@ -944,7 +949,7 @@ MISSING
 -0.7130193
 </td>
 <td style="text-align:right;color: blue !important;">
--0.8140942
+-0.7121583
 </td>
 </tr>
 <tr>
@@ -967,7 +972,7 @@ MISSING
 -0.1207512
 </td>
 <td style="text-align:right;color: blue !important;">
--0.2319921
+-0.1300563
 </td>
 </tr>
 <tr>
@@ -990,7 +995,7 @@ MISSING
 0.5392532
 </td>
 <td style="text-align:right;color: blue !important;">
-0.4264424
+0.5283783
 </td>
 </tr>
 <tr>
@@ -1013,7 +1018,7 @@ MISSING
 0.9690413
 </td>
 <td style="text-align:right;color: blue !important;">
-0.8721079
+0.9740438
 </td>
 </tr>
 </tbody>
@@ -1025,15 +1030,20 @@ MISSING
 <div class="section level3">
 <h3 id="log-odds-contribution-for-all-the-predictors">Log odds contribution for all the predictors<a class="anchor" aria-label="anchor" href="#log-odds-contribution-for-all-the-predictors"></a>
 </h3>
-<p>To get to a propensity, the log odds of the relevant bins of the
-active predictors are added up and divided by the number of active
-predictors +1, then used to index in the classifier.</p>
+<p>The final score is loosely referred to as “the average contribution”
+but in fact is a little more nuanced. The final score is calculated
+as:</p>
+<p><span class="math display">\[score = \frac{\log(1 + TotalPositives) –
+\log(1 + TotalNegatives) + \sum_p contribution_p}{1 +
+nActivePredictors}\]</span></p>
+<p>Here, <span class="math inline">\(TotalPositives\)</span> and <span class="math inline">\(TotalNegatives\)</span> are the total number of
+positive and negative responses to the model.</p>
 <p>Below an example. From all the active predictors of the model for we
 pick a value (in the middle for numerics, first symbol for symbolics)
-and show the (modified) log odds. These log odds values are averaged
-(added up and divided by number of active predictors + 1), and this is
-the “score” that is mapped to a propensity value by the classifier
-(which is constructed using the PAV(A) algorithm).</p>
+and show the (modified) log odds. The final score is calculated per the
+above formula, and this is the value that is mapped to a propensity
+value by the classifier (which is constructed using the <a href="https://en.wikipedia.org/wiki/Isotonic_regression" class="external-link">PAV(A)</a>
+algorithm).</p>
 <table class="table table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
 <thead><tr>
 <th style="text-align:left;">
@@ -1057,502 +1067,502 @@ Log odds
 </tr></thead>
 <tbody>
 <tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-Customer.AnnualIncome
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-2827
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-7
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-3401
-</td>
-<td style="text-align:right;color: blue !important;">
--1.1780835
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-Customer.CreditScore
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-432
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-14
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-426
-</td>
-<td style="text-align:right;color: blue !important;">
-1.5687755
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:left;">
 Customer.Age
 </td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:left;">
 37
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:right;">
 2
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:right;">
 7
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:right;">
 3042
 </td>
 <td style="text-align:right;color: blue !important;">
--1.1030803
+-1.0256575
 </td>
 </tr>
 <tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-Customer.NetWealth
+<td style="text-align:left;">
+Customer.AnnualIncome
 </td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-5458
+<td style="text-align:left;">
+2827
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:right;">
 1
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:right;">
 7
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-2679
+<td style="text-align:right;">
+3401
 </td>
 <td style="text-align:right;color: blue !important;">
--0.9394840
+-1.1257990
 </td>
 </tr>
 <tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:left;">
 Customer.BusinessSegment
 </td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:left;">
 middleSegmentPlus
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:right;">
 1
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:right;">
 10
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:right;">
 3369
 </td>
 <td style="text-align:right;color: blue !important;">
--0.8256861
+-0.7734016
 </td>
 </tr>
 <tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.Email.Outbound.Accepted.pxLastGroupID
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-CreditCards
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-2
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-10
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-2887
-</td>
-<td style="text-align:right;color: blue !important;">
--0.7338969
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-Customer.WinScore
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-66
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-2
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-9
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-462
-</td>
-<td style="text-align:right;color: blue !important;">
-1.0247886
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-2
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-7
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-2208
-</td>
-<td style="text-align:right;color: blue !important;">
--0.8140942
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.Email.Outbound.Accepted.pyHistoricalOutcomeCount
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-2
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-10
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1244
-</td>
-<td style="text-align:right;color: blue !important;">
-0.1372604
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.Email.Outbound.Rejected.pyHistoricalOutcomeCount
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-68
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-2
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-6
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1251
-</td>
-<td style="text-align:right;color: blue !important;">
--0.3955513
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-Customer.MaritalStatus
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-Single
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-6
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1454
-</td>
-<td style="text-align:right;color: blue !important;">
--0.4750671
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-Customer.OrganizationLabel
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-NON-MISSING
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-31
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-3646
-</td>
-<td style="text-align:right;color: blue !important;">
-0.2356695
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-Customer.Gender
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-M
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-7
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1735
-</td>
-<td style="text-align:right;color: blue !important;">
--0.5051155
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.Web.Inbound.Accepted.pyHistoricalOutcomeCount
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-NA
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-0
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-4
-</td>
-<td style="text-align:right;color: blue !important;">
-2.3964598
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:left;">
 Customer.CLV_VALUE
 </td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:left;">
 352
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:right;">
 1
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:right;">
 7
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:right;">
 1379
 </td>
 <td style="text-align:right;color: blue !important;">
--0.2755163
+-0.2232317
 </td>
 </tr>
 <tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.SMS.Outbound.Accepted.pxLastGroupID
+<td style="text-align:left;">
+Customer.CreditScore
 </td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-Customer
+<td style="text-align:left;">
+432
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-2
+<td style="text-align:right;">
+1
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-9
+<td style="text-align:right;">
+14
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-2090
+<td style="text-align:right;">
+426
 </td>
 <td style="text-align:right;color: blue !important;">
--0.5140538
+1.6210600
 </td>
 </tr>
 <tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:left;">
+Customer.Gender
+</td>
+<td style="text-align:left;">
+M
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+1735
+</td>
+<td style="text-align:right;color: blue !important;">
+-0.4528310
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Customer.MaritalStatus
+</td>
+<td style="text-align:left;">
+Single
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+1454
+</td>
+<td style="text-align:right;color: blue !important;">
+-0.4227825
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Customer.NetWealth
+</td>
+<td style="text-align:left;">
+5458
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+2679
+</td>
+<td style="text-align:right;color: blue !important;">
+-0.8871994
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Customer.OrganizationLabel
+</td>
+<td style="text-align:left;">
+NON-MISSING
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+31
+</td>
+<td style="text-align:right;">
+3646
+</td>
+<td style="text-align:right;color: blue !important;">
+0.2621581
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
 Customer.Prefix
 </td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:left;">
 Miss
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:right;">
 2
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:right;">
 8
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:right;">
 1174
 </td>
 <td style="text-align:right;color: blue !important;">
--0.0219008
+0.0555220
 </td>
 </tr>
 <tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.Web.Inbound.Churned.pxLastGroupID
+<td style="text-align:left;">
+Customer.WinScore
 </td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-MISSING
+<td style="text-align:left;">
+66
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-23
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-2891
-</td>
-<td style="text-align:right;color: blue !important;">
-0.1412802
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.SMS.Outbound.Loyal.pyHistoricalOutcomeCount
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-NA
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-24
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-4563
-</td>
-<td style="text-align:right;color: blue !important;">
--0.2161764
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.Web.Inbound.Rejected.pxLastGroupID
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-Account
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-18
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-3425
-</td>
-<td style="text-align:right;color: blue !important;">
--0.2688240
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.Email.Outbound.Rejected.pxLastGroupID
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-DepositAccounts
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:right;">
 2
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:right;">
+9
+</td>
+<td style="text-align:right;">
+462
+</td>
+<td style="text-align:right;color: blue !important;">
+1.1022114
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+IH.Email.Outbound.Accepted.pxLastGroupID
+</td>
+<td style="text-align:left;">
+CreditCards
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+10
+</td>
+<td style="text-align:right;">
+2887
+</td>
+<td style="text-align:right;color: blue !important;">
+-0.6319611
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+IH.Email.Outbound.Accepted.pyHistoricalOutcomeCount
+</td>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+10
+</td>
+<td style="text-align:right;">
+1244
+</td>
+<td style="text-align:right;color: blue !important;">
+0.2146832
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+IH.Email.Outbound.Rejected.pxLastGroupID
+</td>
+<td style="text-align:left;">
+DepositAccounts
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
 7
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:right;">
 975
 </td>
 <td style="text-align:right;color: blue !important;">
-0.0345785
+0.1120013
 </td>
 </tr>
 <tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.Web.Inbound.Churned.pxLastOutcomeTime.DaysSince
+<td style="text-align:left;">
+IH.Email.Outbound.Rejected.pyHistoricalOutcomeCount
 </td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-NA
+<td style="text-align:left;">
+68
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-23
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-2891
-</td>
-<td style="text-align:right;color: blue !important;">
-0.1741358
-</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.SMS.Outbound.Rejected.pxLastGroupID
-</td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-Account
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:right;">
 2
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-10
+<td style="text-align:right;">
+6
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-1484
+<td style="text-align:right;">
+1251
 </td>
 <td style="text-align:right;color: blue !important;">
--0.0391163
+-0.2936154
 </td>
 </tr>
 <tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-IH.SMS.Outbound.Churned.pxLastGroupID
+<td style="text-align:left;">
+IH.SMS.Outbound.Accepted.pxLastGroupID
 </td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-MISSING
+<td style="text-align:left;">
+Customer
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+9
+</td>
+<td style="text-align:right;">
+2090
+</td>
+<td style="text-align:right;color: blue !important;">
+-0.4121179
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount
+</td>
+<td style="text-align:left;">
 1
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+2208
+</td>
+<td style="text-align:right;color: blue !important;">
+-0.7121583
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+IH.SMS.Outbound.Churned.pxLastGroupID
+</td>
+<td style="text-align:left;">
+MISSING
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
 28
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:right;">
 4935
 </td>
 <td style="text-align:right;color: blue !important;">
--0.1440303
+-0.1168116
 </td>
 </tr>
 <tr>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-Average Log odds
+<td style="text-align:left;">
+IH.SMS.Outbound.Loyal.pyHistoricalOutcomeCount
 </td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-</td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:left;">
 NA
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-NA
+<td style="text-align:right;">
+1
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
-NA
+<td style="text-align:right;">
+24
+</td>
+<td style="text-align:right;">
+4563
 </td>
 <td style="text-align:right;color: blue !important;">
--0.1094691
+-0.1889576
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+IH.SMS.Outbound.Rejected.pxLastGroupID
+</td>
+<td style="text-align:left;">
+Account
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+10
+</td>
+<td style="text-align:right;">
+1484
+</td>
+<td style="text-align:right;color: blue !important;">
+0.0383065
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+IH.Web.Inbound.Accepted.pyHistoricalOutcomeCount
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;color: blue !important;">
+2.4487443
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+IH.Web.Inbound.Churned.pxLastGroupID
+</td>
+<td style="text-align:left;">
+MISSING
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+23
+</td>
+<td style="text-align:right;">
+2891
+</td>
+<td style="text-align:right;color: blue !important;">
+0.1935646
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+IH.Web.Inbound.Churned.pxLastOutcomeTime.DaysSince
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+23
+</td>
+<td style="text-align:right;">
+2891
+</td>
+<td style="text-align:right;color: blue !important;">
+0.2006244
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+IH.Web.Inbound.Rejected.pxLastGroupID
+</td>
+<td style="text-align:left;">
+Account
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+18
+</td>
+<td style="text-align:right;">
+3425
+</td>
+<td style="text-align:right;color: blue !important;">
+-0.2165395
+</td>
+</tr>
+<tr>
+<td style="text-align:left;font-weight: bold;">
+Final Score
+</td>
+<td style="text-align:left;font-weight: bold;">
+</td>
+<td style="text-align:right;font-weight: bold;">
+NA
+</td>
+<td style="text-align:right;font-weight: bold;">
+NA
+</td>
+<td style="text-align:right;font-weight: bold;">
+NA
+</td>
+<td style="text-align:right;color: blue !important;font-weight: bold;">
+-0.2499153
 </td>
 </tr>
 </tbody>
@@ -1567,6 +1577,8 @@ bin.</p>
 <p>The adjusted propensity that is returned is a small modification
 (Laplace smoothing) to this and calculated as <span class="math inline">\(\frac{0.5+positives}{1+positives+negatives}\)</span>
 so empty models return a propensity of 0.5.</p>
+<p>Bins that are not reachable given the current predictor binning are
+greyed out.</p>
 <table class="table table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
 <thead><tr>
 <th style="text-align:right;">
@@ -1602,34 +1614,34 @@ Lift (%)
 </tr></thead>
 <tbody>
 <tr>
-<td style="text-align:right;">
+<td style="text-align:right;color: grey !important;">
 1
 </td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;color: grey !important;">
 &lt;-1.95
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;color: grey !important;">
 0
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;color: grey !important;">
 35
 </td>
-<td style="text-align:right;">
+<td style="text-align:right;color: grey !important;">
 100.000000
 </td>
-<td style="text-align:right;">
+<td style="text-align:right;color: grey !important;">
 0.0000000
 </td>
-<td style="text-align:right;color: blue !important;">
+<td style="text-align:right;color: blue !important;color: grey !important;">
 1.3888889
 </td>
-<td style="text-align:right;">
+<td style="text-align:right;color: grey !important;">
 100.00000
 </td>
-<td style="text-align:right;">
+<td style="text-align:right;color: grey !important;">
 -5.934769
 </td>
-<td style="text-align:right;">
+<td style="text-align:right;color: grey !important;">
 0.0000
 </td>
 </tr>
@@ -1826,34 +1838,34 @@ Lift (%)
 </td>
 </tr>
 <tr>
-<td style="text-align:right;">
+<td style="text-align:right;color: grey !important;">
 8
 </td>
-<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:left;font-weight: bold;border-left:1px solid;border-right:1px solid;color: grey !important;">
 &gt;=0.99
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;color: grey !important;">
 5
 </td>
-<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;">
+<td style="text-align:right;font-weight: bold;border-left:1px solid;border-right:1px solid;color: grey !important;">
 227
 </td>
-<td style="text-align:right;">
+<td style="text-align:right;color: grey !important;">
 4.141378
 </td>
-<td style="text-align:right;">
+<td style="text-align:right;color: grey !important;">
 2.1551724
 </td>
-<td style="text-align:right;color: blue !important;">
+<td style="text-align:right;color: blue !important;color: grey !important;">
 2.3605150
 </td>
-<td style="text-align:right;">
+<td style="text-align:right;color: grey !important;">
 13.88889
 </td>
-<td style="text-align:right;">
+<td style="text-align:right;color: grey !important;">
 1.700289
 </td>
-<td style="text-align:right;">
+<td style="text-align:right;color: grey !important;">
 335.3688
 </td>
 </tr>
@@ -1867,15 +1879,15 @@ Lift (%)
 odds values), on the y-axis the Propensity. Note the returned
 propensities are following a slightly adjusted formula, see the table
 above. The bin that contains the calculated score is highlighted.</p>
-<p>The score <em>-0.1094691</em> falls in <em>bin 7</em> of the
+<p>The score <em>-0.2499153</em> falls in <em>bin 6</em> of the
 classifier, so for this set of inputs, the model returns a propensity of
-1.70%.</p>
+1.08%.</p>
 <pre><code><span><span class="co">#&gt; Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Please use `linewidth` instead.</span></span>
 <span><span class="co">#&gt; <span style="color: #555555;">This warning is displayed once every 8 hours.</span></span></span>
 <span><span class="co">#&gt; <span style="color: #555555;">Call `lifecycle::last_lifecycle_warnings()` to see where this warning was</span></span></span>
 <span><span class="co">#&gt; <span style="color: #555555;">generated.</span></span></span></code></pre>
-<p><img src="adm-explained_files/figure-html/unnamed-chunk-20-1.png" width="672" style="display: block; margin: auto;"></p>
+<p><img src="adm-explained_files/figure-html/unnamed-chunk-22-1.png" width="672" style="display: block; margin: auto;"></p>
 </div>
   </div>
 

@@ -130,11 +130,11 @@ classifierBins[, isInActiveRange :=
                  (BinIndex >= activeRangeInfo[[1]]$active_index_min) &
                  (BinIndex <= activeRangeInfo[[1]]$active_index_max)]
 
-fullrange_auc_roc <- pdstools::auc_from_bincounts(classifierBins$BinPositives, classifierBins$BinNegatives)
-fullrange_auc_pr <- pdstools::aucpr_from_bincounts(classifierBins$BinPositives, classifierBins$BinNegatives)
+fullrange_auc_roc <- activeRangeInfo[[1]]$fullRangeAUC
+fullrange_auc_pr <- pdstools::aucpr_from_bincounts(classifierBins$BinPositives, 
+                                                   classifierBins$BinNegatives)
 
-activerange_auc_roc <- pdstools::auc_from_bincounts(classifierBins[(isInActiveRange)]$BinPositives,
-                                                    classifierBins[(isInActiveRange)]$BinNegatives)
+activerange_auc_roc <- activeRangeInfo[[1]]$activeRangeAUC
 activerange_auc_pr <- pdstools::aucpr_from_bincounts(classifierBins[(isInActiveRange)]$BinPositives,
                                                      classifierBins[(isInActiveRange)]$BinNegatives)
 ```
@@ -235,16 +235,18 @@ The Lift chart is derived from this and shows the ratio of the cumulative gain a
 # see http://dmg.org/pmml/v4-0-1/ModelExplanation.html#gainscharts
 # and https://www.ibm.com/support/knowledgecenter/de/SSLVMB_24.0.0/spss/tutorials/mlp_bankloan_outputtype_02.html
 
-if (nrow(classifierBins) >= 1 & (sum(classifierBins$BinNegatives) + sum(classifierBins$BinPositives) > 0)) {
-  cumGains <- plotCumulativeGains(classifierBins)
+activeClassifierBins <- classifierBins[(isInActiveRange)]
+
+if (nrow(activeClassifierBins) >= 1 & (sum(activeClassifierBins$BinNegatives) + sum(activeClassifierBins$BinPositives) > 0)) {
+  cumGains <- plotCumulativeGains(activeClassifierBins)
   
-  cumLift <- plotCumulativeLift(classifierBins)
+  cumLift <- plotCumulativeLift(activeClassifierBins)
   
   # TODO: add a cum Success rate one. Like lift but w/o the division.
   # TODO: consider ggplot of these, those work just fine
   # TODO: classic one on separate line. Make bars less prominent. Swap y-axes - they're opposite what product does.
   
-  classic <- plotBinning(classifierBins) + ggtitle("Score Distribution")
+  classic <- plotBinning(activeClassifierBins) + ggtitle("Score Distribution")
   
   #ggplotly(cumGains) - TODO convert to plotly plot as ggplotly doesnt show both axes
   
@@ -279,12 +281,12 @@ negatives is not set
 # TODO - consider colouring the predictor names by part before first dot ; unless there are > 10 of those
 
 predSummary <- allPredictorBins[EntryType != "Classifier", list(Negatives = sum(BinNegatives),
-                                                                  Positives = sum(BinPositives),
-                                                                  Active = EntryType[1],
-                                                                  Type = Type[1],
-                                                                  Bins = .N,
-                                                                  Performance = Performance[1],
-                                                                  Group = GroupIndex[1]), by=PredictorName]
+                                                                Positives = sum(BinPositives),
+                                                                Active = EntryType[1],
+                                                                Type = Type[1],
+                                                                Bins = .N,
+                                                                Performance = Performance[1],
+                                                                Group = GroupIndex[1]), by=PredictorName]
 names(predSummary)[1] <- "Predictor"
 if (nrow(predSummary) == 0) {
   cat("The model has no predictors", fill=T)

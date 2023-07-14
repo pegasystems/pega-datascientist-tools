@@ -157,90 +157,73 @@ test_that("Reading data from models wo context", {
 
 # This test confirms BUG-417860 stating that ADM performance numbers can be overly
 # optimistic in the beginning.
-test_that("Score Ranges No Predictors", {
-  # context("Verify range of score distribution w/o predictors")
 
+test_that("Active score range DMSample", {
   load("dsexports/test_score_ranges.RData")
-
-  # Models from the "independent bundle" strategy. There are no customer level predictors in this model and there
-  # are also no parameterized predictors for the sequencing. No predictors at all should give all models performance
-  # 0.5 but due to BUG-417860 this is not the case in older releases. Therefore commented out the first test.
-  perfOverviewNoPredictors <-
-    getModelPerformanceOverview(dmModels[ConfigurationName=="BundleModelIndependent"], dmPredictors)
-
-  # expect_equal(perfOverviewNoPredictors$reported_performance, rep(0.5, nrow(perfOverviewNoPredictors)))
-  expect_equal(perfOverviewNoPredictors$actual_performance, rep(0.5, nrow(perfOverviewNoPredictors)))
-})
-
-# More normal performance values
-test_that("Score Ranges DMSample", {
-  # context("Verify range of score distribution")
-
-  load("dsexports/test_score_ranges.RData")
-
-  # The Sales Model is an initialized DMSample system. Some of the models have too optimistic performance numbers early on in their
-  # life due to the same bug mentioned above.
-  perfOverviewSalesModel <- getModelPerformanceOverview(dmModels[ConfigurationName=="SalesModel"], dmPredictors)
-
-  expect_equal(nrow(perfOverviewSalesModel), 47)
-
-  # Models with a single active classifier bin should have performance 0.5. Only the ones that have just one
-  # classifier bin (active or not) currently do.
-  expect_equal(perfOverviewSalesModel[(actual_score_bin_max - actual_score_bin_min) == 0]$actual_performance, rep(0.5, 10))
-  expect_equal(perfOverviewSalesModel[nbins==1]$reported_performance, rep(0.5, sum(perfOverviewSalesModel$nbins==1)))
-
-  # All of the models that have multiple classifier bins currently report a performance > 0.5 even if those
-  # bins are not active.
-  # This test explictly tests that situation and should be flipped once the bug is fixed.
-  dummy <- sapply(perfOverviewSalesModel[(nbins != 1) & ((actual_score_bin_max - actual_score_bin_min) == 0)]$reported_performance,
-                  function(x) { expect_gt(x, 0.5) })
-
-  # Performance of classifiers that use their full range should be correct
-  expect_equal(perfOverviewSalesModel[(nbins > 1) & (actual_score_bin_max - actual_score_bin_min + 1 == nbins)]$reported_performance,
-               perfOverviewSalesModel[(nbins > 1) & (actual_score_bin_max - actual_score_bin_min + 1 == nbins)]$actual_performance,
-               tolerance = 1e-06)
-})
-
-test_that("Get active score range", {
-  # returns a list with min/max score for each of the model IDs
-  # activeRange <- getActiveRange(allPredictorBins)
-
-  load("dsexports/test_score_ranges.RData")
+  activeRange <- getActiveRanges(ADMDatamart(dmModels, dmPredictors))
 
   # one model where the actual range is smaller than the full one
-  activeRange <- getActiveRanges(ADMDatamart(dmModels[ModelID == "664cc653-279f-54ae-926f-694652d89a54"], dmPredictors))
-  expect_equal(activeRange[[1]]$active_index_min, 7)
-  expect_equal(activeRange[[1]]$active_index_max, 7)
-  expect_false(activeRange[[1]]$is_full_indexrange)
+  expect_equal(activeRange[["664cc653-279f-54ae-926f-694652d89a54"]]$active_index_min, 7)
+  expect_equal(activeRange[["664cc653-279f-54ae-926f-694652d89a54"]]$active_index_max, 7)
+  expect_false(activeRange[["664cc653-279f-54ae-926f-694652d89a54"]]$is_full_indexrange)
+  expect_equal(activeRange[["664cc653-279f-54ae-926f-694652d89a54"]]$reportedAUC, 0.760333, 1e-5)
+  expect_equal(activeRange[["664cc653-279f-54ae-926f-694652d89a54"]]$activeRangeAUC, 0.5, 1e-5)
 
-  # one model that covers the full range
-  activeRange <- getActiveRanges(ADMDatamart(dmModels[ModelID == "ec6dd922-5f80-5f38-95ed-7e6bf29cbe3e"], dmPredictors))
-  expect_equal(activeRange[[1]]$active_index_min, 1)
-  expect_equal(activeRange[[1]]$active_index_max, 26)
-  expect_true(activeRange[[1]]$is_full_indexrange)
-
-  # when just the predictor data is given
-  activeRange <- getActiveRanges(ADMDatamart(modeldata = F, predictordata = dmPredictors[ModelID == "664cc653-279f-54ae-926f-694652d89a54"]))
-  expect_equal(activeRange[[1]]$active_index_min, 7)
-  expect_equal(activeRange[[1]]$active_index_max, 7)
-  expect_false(activeRange[[1]]$is_full_indexrange)
+  # one model with active range equal to full range
+  expect_equal(activeRange[["4574f1fd-13a7-5703-bf38-9374641f370f"]]$active_index_min, 1)
+  expect_equal(activeRange[["4574f1fd-13a7-5703-bf38-9374641f370f"]]$active_index_max, 2)
+  expect_true(activeRange[["4574f1fd-13a7-5703-bf38-9374641f370f"]]$is_full_indexrange)
+  expect_equal(activeRange[["4574f1fd-13a7-5703-bf38-9374641f370f"]]$reportedAUC, 0.557292, 1e-5)
+  expect_equal(activeRange[["4574f1fd-13a7-5703-bf38-9374641f370f"]]$activeRangeAUC, 0.557292, 1e-5)
 
   datamart <- ADMDatamart("Data-Decision-ADM-ModelSnapshot_All",
                           "Data-Decision-ADM-PredictorBinningSnapshot_All",
                           "dsexports")
   activeRange <- getActiveRanges(datamart)
-  expect_equal(length(activeRange), uniqueN(datamart$modeldata$ModelID))
-
-  # find some more interesting deviations of the full range:
-  # print(which(sapply(activeRange, function(e) {e$active_index_min != e$active_index_max & !e$is_full_indexrange})))
 
   expect_equal(activeRange[[1]]$active_index_min, 1)
-  expect_equal(activeRange[[1]]$active_index_max, 7)
+  expect_equal(activeRange[[1]]$active_index_max, 3)
   expect_false(activeRange[[1]]$is_full_indexrange)
+  expect_equal(activeRange[[1]]$reportedAUC, 0.544661, 1e-5)
+  expect_equal(activeRange[[1]]$activeRangeAUC, 0.534542, 1e-5)
+})
 
-  expect_equal(activeRange[[2]]$active_index_min, 1)
-  expect_equal(activeRange[[2]]$active_index_max, 35)
-  expect_true(activeRange[[2]]$is_full_indexrange)
+test_that("Active score range CDH Sample Pega8", {
+  data <- ADMDatamart("CDHSample-Pega8-ADMModelSnapshots_20211029T133255_GMT.zip",
+                      "CDHSample-Pega8-ADMPredictorSnapshots_20211029T134643_GMT.zip", folder = "dsexports")
+
+  activeRange <- rbindlist(getActiveRanges(data))
+
+  expect_equal(nrow(activeRange), 4)
+
+  # Note that the last model here may have an issue. The reported AUC does not match
+  # either the full range AUC or the AUC from the re-calculated active range. For this
+  # data (the full one) a few models had this issue.
+  expect_equal(activeRange$score_min, c(-0.6007593, -0.6209292, -0.7491203, -1.4255568), 1e-5)
+  expect_equal(activeRange$score_max, c(0.6812438, 0.4689029, 1.4541791, -0.4254948), 1e-5)
+  expect_equal(activeRange$active_index_min, c(1, 3, 1, 2))
+  expect_equal(activeRange$active_index_max, c(10, 10, 2, 4))
+  expect_equal(activeRange$nClassifierBins, c(11, 11, 2, 6))
+  expect_equal(activeRange$reportedAUC, c(0.562353, 0.533401, 0.559777, 0.628571), 1e-5)
+  expect_equal(activeRange$fullRangeAUC, c(0.5652007, 0.5460856, 0.5597765, 0.5781145), 1e-5)
+  expect_equal(activeRange$activeRangeAUC, c(0.5623530, 0.5334013, 0.5597765, 0.5476054), 1e-5)
+  expect_equal(activeRange$is_full_indexrange, c(F, F, T, F))
+  expect_equal(activeRange$is_AUC_fullrange, c(F, F, T, F))
+  expect_equal(activeRange$is_AUC_activerange, c(T, T, T, F))
+})
+
+# In old versions of Pega, ADM calculated the AUC from all the classifier bins
+# this test uses data from those days
+
+test_that("Active score range old datamart", {
+  data <- ADMDatamart(modeldata=F, "BigModel_predictordata.csv", folder = "d")
+  activeRange <- rbindlist(getActiveRanges(data))
+
+  expect_equal(nrow(activeRange), 5)
+
+  expect_equal(activeRange$is_full_indexrange, rep(F, 5)) # active range is always smaller
+  expect_equal(activeRange$is_AUC_fullrange, rep(T, 5))   # reported AUC always matches full range AUC
+  expect_equal(activeRange$is_AUC_activerange, rep(F, 5)) # reported AUC never matches active range AUC
 })
 
 test_that("Feature Importance", {
