@@ -51,26 +51,35 @@ library(data.table)
 data(adm_datamart)
 ```
 
-For the example we use one particular model: *AutoNew36Months* over
-*SMS*. You can use your own data and select a different model.
-
-To explain the ADM model report, we use one of the *IH* predictors as an
-example. Swap for any other predictor when using different data.
-
 ```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 # Commented-out chunk useful to find a good example in the data
-modelsGoodPreds <- unique((filterLatestSnapshotOnly(adm_datamart$predictordata) [TotalBins>4 & Type=="numeric" & EntryType == "Active"])$ModelID )
-filterLatestSnapshotOnly(adm_datamart$modeldata)[ModelID %in% modelsGoodPreds, c("Positives","Performance","ActivePredictors","Name","Channel")][order(-ActivePredictors)]
-print(unique(adm_datamart$predictordata[TotalBins>4 & Type=="numeric" & EntryType == "Active"]$PredictorName))
+# this is just used internally, not run as part of the notebook
 
-# TODO find a predictor with AUC < model AUC
+# Find models that have active numeric predictors with multiple bins
+modelsGoodPreds <- unique((filterLatestSnapshotOnly(adm_datamart$predictordata) [TotalBins>4 & Type=="numeric" & EntryType == "Active"])$ModelID )
+print(filterLatestSnapshotOnly(adm_datamart$modeldata)[ModelID %in% modelsGoodPreds, c("ModelID", "Positives","Performance","ActivePredictors","Name","Channel","AUC")][order(-ActivePredictors)])
+
+adm_datamart$predictordata[ModelID == "68e1d164-81e3-5da0-816c-0bbc3c20ac6c" & TotalBins>4 & Type=="numeric" & EntryType == "Active", .(AUC = first(AUC)), by=c("ModelID", "PredictorName")]
 ```
 
 ```{r}
-model <- filterLatestSnapshotOnly(adm_datamart$modeldata) [Name == "AutoNew36Months" & Channel == "SMS"]
+example.Name <- "AutoNew84Months"
+example.Channel <- "Web"
+example.Predictor <- "Customer.NetWealth"
+```
+
+For the example we use one particular model: *`r example.Name`* over
+*`r example.Channel`*. You can use your own data and select a different
+model.
+
+To explain the ADM model report, we use one of the active predictors as
+an example. Swap for any other predictor when using different data.
+
+```{r include=F}
+model <- filterLatestSnapshotOnly(adm_datamart$modeldata) [Name == example.Name & Channel == example.Channel]
 modelpredictors <- filterLatestSnapshotOnly(adm_datamart$predictordata) [ModelID == model$ModelID & EntryType != "Inactive"]
 
-predictorbinning <- modelpredictors[PredictorName == "IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount"][order(BinIndex)]
+predictorbinning <- modelpredictors[PredictorName == example.Predictor][order(BinIndex)]
 ```
 
 ```{r include=F}
@@ -105,10 +114,12 @@ kable(t(modelmetadata))  %>%
 
 ## Predictor binning for `r predictorbinning$PredictorName[1]`
 
-The ADM model report will show predictor binning similar to this, with
-all displayed data coming from fields in the ADM data mart. In
-subsequent sections we'll show how all the data is derived from the
-number of positives and negatives in each of the bins.
+The Model Report in Prediction Studio for this model will have a
+predictor binning plot like below.
+
+All numbers can be derived from just the number of positives and
+negatives in each bin that are stored in the ADM Data Mart. The next
+sections will show exactly how that is done.
 
 ```{r, echo=FALSE}
 predictormetadata <- data.table(Name = predictorbinning$PredictorName[1],
@@ -119,6 +130,10 @@ predictormetadata <- data.table(Name = predictorbinning$PredictorName[1],
 kable(t(predictormetadata))  %>%
   kable_styling(bootstrap_options = "striped", full_width = F, position = "left") %>%
   column_spec(1, bold=T)
+```
+
+```{r, echo=FALSE, fig.height=3, fig.width=4}
+pdstools::plotBinning(predictorbinning)
 ```
 
 ```{r, echo=FALSE}
@@ -207,7 +222,8 @@ the better the predictor is.
 
 $$\frac{posFraction-negFraction}{\sqrt(\frac{posFraction*(1-posFraction)}{\sum positives}+\frac{negFraction*(1-negFraction)}{\sum negatives})}$$
 
-See the calculation here, which is also included in [pdstools::zratio](https://pegasystems.github.io/pega-datascientist-tools/R/reference/zratio.html).
+See the calculation here, which is also included in
+[pdstools::zratio](https://pegasystems.github.io/pega-datascientist-tools/R/reference/zratio.html).
 
 ```{r}
 binningDerived[, posFraction := Positives/sum(Positives)]
@@ -246,23 +262,36 @@ plot.roc(response, prediction, print.auc=T, col="darkgreen", levels=c(T,F), dire
 ```
 
 There is also a convenient function in *pdstools* to calculate it
-directly from the positives and negatives:  [`pdstools::auc_from_bincounts()`](https://pegasystems.github.io/pega-datascientist-tools/R/reference/auc_from_bincounts.html).
+directly from the positives and negatives:
+[`pdstools::auc_from_bincounts()`](https://pegasystems.github.io/pega-datascientist-tools/R/reference/auc_from_bincounts.html).
 
 ```{r}
 pdstools::auc_from_bincounts(predictorbinning$Positives, predictorbinning$Negatives)
 ```
 
-# Predictor score and log odds
+# Naive Bayes and Log Odds
 
-The score is calculated from the log odds which are simply the ratio of
-the probabilities of positives and negatives. For the actual calculation
-in ADM this is modified slightly to avoid division-by-zero problems and
-to avoid numeric instability issues.
+The basis for the Naive Bayes algorithm is Bayes' Theorem:
 
-The contribution of an active predictor $p$ for bin $i$ with the number
-of positive and negative responses in $Positives_i$ and $Negatives_i$:
+$$p(C_k|x) = \frac{p(x|C_k)*p(C_k)}{p(x)}$$
 
-$$contribution_p = \log(Positives_i+\frac{1}{nBins}) - \log(Negatives_i+\frac{1}{nBins}) - \log(1+\sum_i{Positives_i}) + \log(1+\sum_i{Negatives_i})$$
+with $C_k$ the outcome and $x$ the customer. Bayes' theorem turns the
+question "what's the probability to accept this action given a customer" around to 
+"what's the probability of this customer given an action". With the independence
+assumption, and after applying a log odds transformation we get a log odds score 
+that can be calculated efficiently and in a numerically stable manner:
+
+$$log\ odds\ score = \sum_{p\ \in\ active\ predictors}log(p(x_p|Positive)) + log(p_{positive}) - \sum_plog(p(x_p|Negative)) - log(p_{negative})$$
+note that the _prior_ can be written as:
+
+$$log(p_{positive}) - log(p_{negative}) = log(\frac{TotalPositives}{Total})-log(\frac{TotalNegatives}{Total}) = log(TotalPositives) - log(TotalNegatives)$$
+
+## Predictor Contribution
+
+The contribution (_conditional log odds_) of an active predictor $p$ for bin $i$ with the number
+of positive and negative responses in $Positives_i$ and $Negatives_i$ is calculated as (note the "laplace smoothing" to avoid log 0 issues):
+
+$$contribution_p = \log(Positives_i+\frac{1}{nBins}) - \log(Negatives_i+\frac{1}{nBins}) - \log(1+\sum_{i\ = 1..nBins}{Positives_i}) + \log(1+\sum_i{Negatives_i})$$
 
 ```{r}
 binningDerived[, posFraction := Positives/sum(Positives)]
@@ -295,8 +324,7 @@ kable(binningDerived) %>%
 
 ## Log odds contribution for all the predictors
 
-The final score is loosely referred to as "the average contribution" but
-in fact is a little more nuanced. The final score is calculated as:
+The final score is normalized by the number of active predictors, 1's are added to avoid avoid numerical instability:
 
 $$score = \frac{\log(1 + TotalPositives) – \log(1 + TotalNegatives) + \sum_p contribution_p}{1 + nActivePredictors}$$
 
@@ -368,7 +396,7 @@ kable(binning) %>%
   row_spec(nrow(binning), bold=T)
 ```
 
-# Classifier
+## Classifier
 
 The success rate is defined as $\frac{positives}{positives+negatives}$
 per bin.
@@ -402,16 +430,16 @@ if (activeRangeInfo[[1]]$is_full_indexrange) {
 }
 ```
 
-# Final propensity
+## Final propensity
 
 Below the classifier mapping. On the x-axis the binned scores (log odds
 values), on the y-axis the Propensity. Note the returned propensities
 are following a slightly adjusted formula, see the table above. The bin
 that contains the calculated score is highlighted.
 
-The score *`r score`* falls in *bin `r scorebin`* of the classifier, so
-for this set of inputs, the model returns a propensity of
-`r sprintf("%.2f%%", 100*classifier$AdjustedPropensity[scorebin])`.
+The score *`r score`* falls in **bin `r scorebin`** of the classifier, so
+for this customer, the model returns a propensity of
+**`r sprintf("%.2f%%", 100*classifier$AdjustedPropensity[scorebin])`**.
 
 ```{r, echo=F}
 responsesMax <- max(classifier$BinResponseCount, na.rm = T)
@@ -419,15 +447,17 @@ if (0 == responsesMax) { responsesMax <- 1 }
 secAxisFactor <- max(classifier$BinPositives/classifier$BinResponseCount) / responsesMax
 
 plotBinning(classifier) +
-  geom_col(aes(y=BinResponseCount), classifier[BinIndex != scorebin], fill="grey")+
+  geom_col(aes(y=BinResponseCount), classifier[BinIndex < activeRangeInfo[[1]]$active_index_min | BinIndex > activeRangeInfo[[1]]$active_index_max], fill="grey")+
+  geom_col(aes(y=BinResponseCount), classifier[!(BinIndex < activeRangeInfo[[1]]$active_index_min | BinIndex > activeRangeInfo[[1]]$active_index_max) & (BinIndex != scorebin)], fill="lightblue")+
   geom_col(aes(y=BinResponseCount), classifier[BinIndex == scorebin], fill="steelblue3")+
-  geom_line(aes(y=Propensity/secAxisFactor), colour="orange", size=2)+
+  geom_line(aes(y=Propensity/secAxisFactor), colour="orange", linewidth=2)+
   geom_point(aes(y=Propensity/secAxisFactor)) +
   geom_hline(data=classifier[1,], 
              mapping = aes(yintercept = (Positives/ResponseCount)/secAxisFactor),
              colour="orange", linetype="dashed") +
   geom_label(data=classifier[scorebin,],
-             mapping = aes(y=Propensity/secAxisFactor, label=sprintf("Returned Propensity: %.2f%%", 100*AdjustedPropensity)),
+             mapping = aes(y=Propensity/secAxisFactor, 
+                           label=sprintf("Propensity: %.2f%%", 100*AdjustedPropensity)),
              # y=(classifier[scorebin,]$BinPositives/classifier[scorebin,]$BinResponseCount)/secAxisFactor + 0.0002,
-             vjust=0)
+             vjust=0, alpha=0.6)
 ```
