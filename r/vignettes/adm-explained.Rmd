@@ -5,8 +5,11 @@ date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{adm-explained}
-  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 ```{r setup, include = FALSE}
@@ -23,15 +26,19 @@ library(ggplot2)
 library(scales)
 
 theme_set(theme_minimal())
+
+scoreCalculationWarning <- "Log odds do not match up. Please issue a GitHub issue to PDS tools with all details."
 ```
 
 # ADM Model Report Explained
 
-This notebook shows exactly how all the values in an ADM model report are
-calculated. It also shows how the propensity is calculated for a particular
-customer.
+This notebook shows exactly how all the values in an ADM model report
+are calculated. It also shows how the propensity is calculated for a
+particular customer.
 
-We use one of the shipped datamart exports for the example. This is a model very similar to one used in some of the ADM PowerPoint/Excel deep dive examples. To load your own data, see the vignette on ADM reporting for examples.
+We use one of the shipped datamart exports for the example. This is a
+model very similar to one used in some of the ADM PowerPoint/Excel deep
+dive examples. You can change this notebook to apply to your own data.
 
 ```{r include=F}
 library(pdstools)
@@ -44,8 +51,8 @@ library(data.table)
 data(adm_datamart)
 ```
 
-For the example we use one particular model: *AutoNew36Months* over *SMS*. You can
-use your own data and select a different model.
+For the example we use one particular model: *AutoNew36Months* over
+*SMS*. You can use your own data and select a different model.
 
 To explain the ADM model report, we use one of the *IH* predictors as an
 example. Swap for any other predictor when using different data.
@@ -55,6 +62,8 @@ example. Swap for any other predictor when using different data.
 modelsGoodPreds <- unique((filterLatestSnapshotOnly(adm_datamart$predictordata) [TotalBins>4 & Type=="numeric" & EntryType == "Active"])$ModelID )
 filterLatestSnapshotOnly(adm_datamart$modeldata)[ModelID %in% modelsGoodPreds, c("Positives","Performance","ActivePredictors","Name","Channel")][order(-ActivePredictors)]
 print(unique(adm_datamart$predictordata[TotalBins>4 & Type=="numeric" & EntryType == "Active"]$PredictorName))
+
+# TODO find a predictor with AUC < model AUC
 ```
 
 ```{r}
@@ -62,6 +71,11 @@ model <- filterLatestSnapshotOnly(adm_datamart$modeldata) [Name == "AutoNew36Mon
 modelpredictors <- filterLatestSnapshotOnly(adm_datamart$predictordata) [ModelID == model$ModelID & EntryType != "Inactive"]
 
 predictorbinning <- modelpredictors[PredictorName == "IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount"][order(BinIndex)]
+```
+
+```{r include=F}
+# For verification of the code, see if the results correspond to the official version
+activeRangeInfo <- pdstools::getActiveRanges(ADMDatamart(model, modelpredictors[,Contents := "N/A"]))
 ```
 
 ```{r include=F}
@@ -73,8 +87,8 @@ predictorbinning[, BinNegativesPercentage := BinNegatives/sum(BinNegatives)]
 
 # Model overview
 
-The selected model is shown below. Only the currently active predictors are
-used for the propensity calculation, so only showing those.
+The selected model is shown below. Only the currently active predictors
+are used for the propensity calculation, so only showing those.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 library(knitr)
@@ -91,8 +105,10 @@ kable(t(modelmetadata))  %>%
 
 ## Predictor binning for `r predictorbinning$PredictorName[1]`
 
-The ADM model report will show predictor binning similar to this, with all displayed data coming from fields in the ADM data mart. 
-In subsequent sections we'll show how all the data is derived from the number of positives and negatives in each of the bins.
+The ADM model report will show predictor binning similar to this, with
+all displayed data coming from fields in the ADM data mart. In
+subsequent sections we'll show how all the data is derived from the
+number of positives and negatives in each of the bins.
 
 ```{r, echo=FALSE}
 predictormetadata <- data.table(Name = predictorbinning$PredictorName[1],
@@ -117,23 +133,26 @@ predictorbinning2 <- data.table( `Range/Symbols` = predictorbinning$BinSymbol,
                                  `Z-Ratio` = predictorbinning$ZRatio,
                                  `Lift` = predictorbinning$Lift
 )
-totals <- data.table(`Range/Symbols` = "Grand Total")[, names(predictorbinning2)[2:9] := c(lapply(predictorbinning2[, 2:6], sum), as.numeric(predictorbinning$Positives[1])/predictorbinning$ResponseCount[1], 0.0, 1.0)]
+totals <- data.table(`Range/Symbols` = "Total")[, names(predictorbinning2)[2:9] := c(lapply(predictorbinning2[, 2:6], sum), as.numeric(predictorbinning$Positives[1])/predictorbinning$ResponseCount[1], 0.0, 1.0)]
 
 predictorbinning <- predictorbinning2
 predictorbinning2 <- rbind(predictorbinning2, totals)
 
 kable(predictorbinning2) %>%
-  kable_styling(bootstrap_options = "striped", full_width = F)
+  kable_styling(bootstrap_options = "striped", full_width = F) %>% 
+  row_spec(nrow(predictorbinning2), bold=T)
 ```
 
 # Bin statistics
 
 ## Positive and Negative ratios
 
-Internally, ADM only keeps track of the total counts of positive and negative responses in each bin. Everything
-else is derived from those numbers. The percentages and totals are trivially derived, and the propensity is just 
-the number of positives divided by the total. The numbers calculated here match the numbers from the datamart
-table exactly.
+Internally, ADM only keeps track of the total counts of positive and
+negative responses in each bin. Everything else is derived from those
+numbers. The percentages and totals are trivially derived, and the
+propensity is just the number of positives divided by the total. The
+numbers calculated here match the numbers from the datamart table
+exactly.
 
 ```{r}
 binningDerived <- predictorbinning[, c("Range/Symbols","Positives","Negatives")] # copy over only the labels, pos and neg counts
@@ -157,7 +176,9 @@ binningDerived[, Propensity := (Positives)/(Positives+Negatives)] # put back as 
 
 ## Lift
 
-Lift is the ratio of the propensity in a particular bin over the average propensity. So a value of 1 is the average, larger than 1 means higher propensity, smaller means lower propensity:
+Lift is the ratio of the propensity in a particular bin over the average
+propensity. So a value of 1 is the average, larger than 1 means higher
+propensity, smaller means lower propensity:
 
 ```{r}
 binningDerived[, Lift := (Positives/(Positives+Negatives)) / (sum(Positives)/sum(Positives+Negatives))]
@@ -178,11 +199,15 @@ kable(binningDerived) %>%
 
 ## Z-Ratio
 
-The Z-Ratio is also a measure of the how the propensity in a bin differs from the average, but takes into account the size of the bin and thus is statistically more relevant. It represents the number of standard deviations from the average, so centers around 0. The wider the spread, the better the predictor is.
+The Z-Ratio is also a measure of the how the propensity in a bin differs
+from the average, but takes into account the size of the bin and thus is
+statistically more relevant. It represents the number of standard
+deviations from the average, so centers around 0. The wider the spread,
+the better the predictor is.
 
-$$\frac{posFraction-negFraction}{\sqrt(\frac{posFraction*(1-posFraction)}{\sum positives}+\frac{negFraction*(1-negFraction)}{\sum negatives})}$$ 
+$$\frac{posFraction-negFraction}{\sqrt(\frac{posFraction*(1-posFraction)}{\sum positives}+\frac{negFraction*(1-negFraction)}{\sum negatives})}$$
 
-See also: http://techdocs.rpega.com/display/EPZ/2019/06/21/Z-ratio+calculation+in+ADM.
+See the calculation here, which is also included in [pdstools::zratio](https://pegasystems.github.io/pega-datascientist-tools/R/reference/zratio.html).
 
 ```{r}
 binningDerived[, posFraction := Positives/sum(Positives)]
@@ -201,8 +226,9 @@ kable(binningDerived) %>%
 
 # Predictor AUC
 
-The predictor AUC is the univariate performance of this predictor against the
-outcome. This too can be derived from the positives and negatives, e.g. using the *pROC* package.
+The predictor AUC is the univariate performance of this predictor
+against the outcome. This too can be derived from the positives and
+negatives, e.g. using the *pROC* package.
 
 ```{r, warning=F,message=F}
 library(pROC)
@@ -219,7 +245,8 @@ prediction = unlist(sapply(1:nrow(predictorbinning),
 plot.roc(response, prediction, print.auc=T, col="darkgreen", levels=c(T,F), direction=">")
 ```
 
-There is also a convenient function in *pdstools* to calculate it directly from the positives and negatives:
+There is also a convenient function in *pdstools* to calculate it
+directly from the positives and negatives:  [`pdstools::auc_from_bincounts()`](https://pegasystems.github.io/pega-datascientist-tools/R/reference/auc_from_bincounts.html).
 
 ```{r}
 pdstools::auc_from_bincounts(predictorbinning$Positives, predictorbinning$Negatives)
@@ -227,15 +254,33 @@ pdstools::auc_from_bincounts(predictorbinning$Positives, predictorbinning$Negati
 
 # Predictor score and log odds
 
-The score is calculated from the log odds which are simply the ratio of the probabilities of positives and negatives. For the actual calculation in ADM this is modified slightly to avoid division-by-zero problems and is written differently to avoid numeric instability as shown below.
+The score is calculated from the log odds which are simply the ratio of
+the probabilities of positives and negatives. For the actual calculation
+in ADM this is modified slightly to avoid division-by-zero problems and
+to avoid numeric instability issues.
+
+The contribution of an active predictor $p$ for bin $i$ with the number
+of positive and negative responses in $Positives_i$ and $Negatives_i$:
+
+$$contribution_p = \log(Positives_i+\frac{1}{nBins}) - \log(Negatives_i+\frac{1}{nBins}) - \log(1+\sum_i{Positives_i}) + \log(1+\sum_i{Negatives_i})$$
 
 ```{r}
 binningDerived[, posFraction := Positives/sum(Positives)]
 binningDerived[, negFraction := Negatives/sum(Negatives)]
 binningDerived[, `Log odds` := log(posFraction/negFraction)]
 binningDerived[, `Modified Log odds` := 
-                 (log(Positives+1/.N) - log(sum(Positives+1))) - 
-                 (log(Negatives+1/.N) - log(sum(Negatives+1)))]
+                 (log(Positives+1/.N) - log(sum(Positives)+1)) - 
+                 (log(Negatives+1/.N) - log(sum(Negatives)+1))]
+```
+
+```{r include=FALSE}
+# internal validation
+if (abs(min(binningDerived$`Modified Log odds`) - activeRangeInfo[["predictordetails"]][PredictorName == predictormetadata$Name]$logOddsMin) > 1e-5) {
+  stop(paste0(scoreCalculationWarning, " (", predictormetadata$Name, " minimum log odds contribution)"))
+}
+if (abs(max(binningDerived$`Modified Log odds`) - activeRangeInfo[["predictordetails"]][PredictorName == predictormetadata$Name]$logOddsMax) > 1e-5) {
+  stop(paste0(scoreCalculationWarning, " (", predictormetadata$Name, " maximum log odds contribution)"))
+}
 ```
 
 ```{r, echo=F}
@@ -250,15 +295,56 @@ kable(binningDerived) %>%
 
 ## Log odds contribution for all the predictors
 
-To get to a propensity, the log odds of the relevant bins of the active predictors are added up and divided by the number of active predictors +1, then used to index in the classifier.
+The final score is loosely referred to as "the average contribution" but
+in fact is a little more nuanced. The final score is calculated as:
 
-Below an example. From all the active predictors of the model for `r model$name` we pick a value (in the middle for numerics, first symbol for symbolics) and show the (modified) log odds. These log odds values are averaged (added up and divided by number of active predictors + 1), and this is the "score" that is mapped to a propensity value by the classifier (which is constructed using the PAV(A) algorithm).
+$$score = \frac{\log(1 + TotalPositives) – \log(1 + TotalNegatives) + \sum_p contribution_p}{1 + nActivePredictors}$$
+
+Here, $TotalPositives$ and $TotalNegatives$ are the total number of
+positive and negative responses to the model.
+
+Below an example. From all the active predictors of the model for
+`r model$name` we pick a value (in the middle for numerics, first symbol
+for symbolics) and show the (modified) log odds. The final score is
+calculated per the above formula, and this is the value that is mapped
+to a propensity value by the classifier (which is constructed using the
+[PAV(A)](https://en.wikipedia.org/wiki/Isotonic_regression) algorithm).
 
 ```{r, echo=F}
-binning <- modelpredictors[EntryType=="Active", c("PredictorName", "BinSymbol", "BinIndex", "BinPositives", "BinNegatives", "Type","BinLowerBound", "BinUpperBound"), with=F]
+binning <- modelpredictors[EntryType=="Active", c("PredictorName", "BinSymbol", "BinIndex", "BinPositives", "BinNegatives", "Type","BinLowerBound", "BinUpperBound"), with=F][order(PredictorName, BinIndex)]
 setnames(binning, c("Name", "Value", "Bin", "Positives", "Negatives", "Type", "lobound", "hibound"))
 
-binning[, `Log odds` := (log(Positives+1/.N) - log(sum(Positives+1))) - (log(Negatives+1/.N) - log(sum(Negatives+1))), by=Name]
+binning[, `Log odds` := (log(Positives+1/.N) - log(1+sum(Positives))) - (log(Negatives+1/.N) - log(1+sum(Negatives))), by=Name]
+
+# double check against the official results
+binningSummaryByPredictor <- binning[, .(logOddsMin = min(`Log odds`), logOddsMax = max(`Log odds`)), by=Name]
+predictorMinMaxLogOddsValidation <- merge(binningSummaryByPredictor,
+                                activeRangeInfo[["predictordetails"]], by.x="Name", by.y="PredictorName", all.x = T)
+if (any(abs(predictorMinMaxLogOddsValidation$logOddsMin.x - predictorMinMaxLogOddsValidation$logOddsMin.y) > 1e-5)) {
+  stop(paste(scoreCalculationWarning, "(all predictors minimum log odds contribution)"))
+}
+if (any(abs(predictorMinMaxLogOddsValidation$logOddsMax.x - predictorMinMaxLogOddsValidation$logOddsMax.y) > 1e-5)) {
+  stop(paste(scoreCalculationWarning, "(all predictors maximum log odds contribution)"))
+}
+
+# classifier factor
+classifier <- modelpredictors[EntryType == "Classifier"][order(BinIndex)]
+classifier[, Propensity := BinPositives/(BinPositives+BinNegatives)]
+classifier[, AdjustedPropensity := (0.5+BinPositives)/(1+BinPositives+BinNegatives)]
+classifierLogOffset <- log(1+sum(classifier$BinPositives)) - log(1+sum(classifier$BinNegatives))
+
+# double check against official results
+score_min <- (sum(binningSummaryByPredictor$logOddsMin) + classifierLogOffset) / (nrow(binningSummaryByPredictor)+1)
+score_max <- (sum(binningSummaryByPredictor$logOddsMax) + classifierLogOffset) / (nrow(binningSummaryByPredictor)+1)
+if (abs(classifierLogOffset - activeRangeInfo[[1]]$classifierLogOffset) > 1e-5) {
+  stop(paste(scoreCalculationWarning, "(Classifier offset)"))
+}
+if (any(abs(score_min - activeRangeInfo[[1]]$score_min) > 1e-5)) {
+  stop(paste(scoreCalculationWarning, "(minimum Classifier score)"))
+}
+if (any(abs(score_max - activeRangeInfo[[1]]$score_max) > 1e-5)) {
+  stop(paste(scoreCalculationWarning, "(maximum Classifier score)"))
+}
 
 binning[,nbins := max(Bin), by=Name]
 binning <- binning[Bin == trunc(nbins/2)] # take middle bin
@@ -271,43 +357,61 @@ for (r in 1:nrow(binning)) {
 }
 binning <- binning[, c(1:5,9)]
 
-binning <- rbindlist(list(binning, data.table(Name = "Average Log odds",
+# last row becomes the total score
+binning <- rbindlist(list(binning, data.table(Name = "Final Score",
                                               Value = "",
-                                              `Log odds` = sum(binning$`Log odds`)/(nrow(binning)+1))), use.names = T, fill = T)
+                                              `Log odds` = (sum(binning$`Log odds`)+classifierLogOffset)/(nrow(binning)+1))), 
+                     use.names = T, fill = T)
 kable(binning) %>%
   kable_styling(bootstrap_options = "striped", full_width = F) %>%
-  column_spec(c(1, 2, 3, 4, 5), bold = T, border_left = T, border_right = T) %>%
-  column_spec(6, color = "blue") 
+  column_spec(6, color = "blue") %>%
+  row_spec(nrow(binning), bold=T)
 ```
 
 # Classifier
 
-The success rate is defined as $\frac{positives}{positives+negatives}$ per bin. 
+The success rate is defined as $\frac{positives}{positives+negatives}$
+per bin.
 
-The adjusted propensity that is returned is a small modification (Laplace smoothing) to this and calculated as $\frac{0.5+positives}{1+positives+negatives}$ so empty models return a propensity of 0.5.
+The adjusted propensity that is returned is a small modification
+(Laplace smoothing) to this and calculated as
+$\frac{0.5+positives}{1+positives+negatives}$ so empty models return a
+propensity of 0.5.
 
-```{r, echo=F, warning=F, error=F}
-classifier <- modelpredictors[EntryType == "Classifier"][order(BinIndex)]
-classifier[, Propensity := BinPositives/(BinPositives+BinNegatives)]
-classifier[, AdjustedPropensity := (0.5+BinPositives)/(1+BinPositives+BinNegatives)]
+Bins that are not reachable given the current predictor binning are
+greyed out.
 
-score <- binning$`Log odds`[nrow(binning)] # last one is the average log odds
+```{r echo=F, error=F, warning=FALSE}
+score <- binning[Name == "Final Score"]$`Log odds`
 scorebin <- findInterval(score, as.numeric(classifier$BinLowerBound), left.open = T, all.inside = T)
 
 classifierTable <- userFriendlyADMBinning(classifier)
 
-kable(classifierTable) %>%
-  kable_styling(bootstrap_options = "striped", full_width = F) %>%
-  column_spec(c(2,3,4), bold = T, border_left = T, border_right = T) %>%
-  column_spec(c(7), color = "blue") 
+# grey out unreachable bins
+if (activeRangeInfo[[1]]$is_full_indexrange) {
+  kable(classifierTable) %>%
+    kable_styling(bootstrap_options = "striped", full_width = F) %>%
+    column_spec(c(2,3,4), bold = T, border_left = T, border_right = T) %>%
+    column_spec(c(7), color = "blue") 
+} else {
+  kable(classifierTable) %>%
+    kable_styling(bootstrap_options = "striped", full_width = F) %>%
+    column_spec(c(2,3,4), bold = T, border_left = T, border_right = T) %>%
+    column_spec(c(7), color = "blue") %>%
+    row_spec(setdiff((1:nrow(classifier)), activeRangeInfo[[1]]$active_index_min : activeRangeInfo[[1]]$active_index_max), color = "grey")
+}
 ```
-
 
 # Final propensity
 
-Below the classifier mapping. On the x-axis the binned scores (log odds values), on the y-axis the Propensity. Note the returned propensities are following a slightly adjusted formula, see the table above. The bin that contains the calculated score is highlighted.
+Below the classifier mapping. On the x-axis the binned scores (log odds
+values), on the y-axis the Propensity. Note the returned propensities
+are following a slightly adjusted formula, see the table above. The bin
+that contains the calculated score is highlighted.
 
-The score *`r score`* falls in *bin `r scorebin`* of the classifier, so for this set of inputs, the model returns a propensity of `r sprintf("%.2f%%", 100*classifier$AdjustedPropensity[scorebin])`.
+The score *`r score`* falls in *bin `r scorebin`* of the classifier, so
+for this set of inputs, the model returns a propensity of
+`r sprintf("%.2f%%", 100*classifier$AdjustedPropensity[scorebin])`.
 
 ```{r, echo=F}
 responsesMax <- max(classifier$BinResponseCount, na.rm = T)

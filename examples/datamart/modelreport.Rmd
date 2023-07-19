@@ -61,7 +61,7 @@ knitr::opts_chunk$set(
 
 # Code below reads the predictor data and is bloated somewhat to deal with various formatting issues,
 # different product versions not always having exactly the same fields etc. In the end, it produces a
-# well behaved modelPredictorBins object with the current (latest) snapshot.
+# well behaved allPredictorBins object with the current (latest) snapshot.
 # If there are multiple snapshots, predPerformanceOverTime will give that data.
 
 if (!("predictordatafile" %in% names(params))) stop("Predictor binning missing. Please provide through parameter 'predictordatafile'.")
@@ -103,8 +103,8 @@ if (nrow(datamart$predictordata) <= 1) {
   stop(paste("No data found for model ID", params$modelid))
 }
 
-modelPredictorBins <- datamart$predictordata
-classifierBinning <- filterClassifierOnly(modelPredictorBins)
+allPredictorBins <- datamart$predictordata
+classifierBins <- filterClassifierOnly(allPredictorBins)
 ```
 
 # Model Performance and Score Distribution
@@ -113,30 +113,43 @@ The model scores (sum of the log odds of the Naive Bayes classifier) are mapped 
 
 ## Model Performance
 
-The model reports a performance of **`r round(modelPredictorBins[EntryType == "Classifier"]$Performance[1],3)`** measured in AUC-ROC. This number is calculated from the "active" bins of the Classifier.
+The model reports a performance of **`r round(allPredictorBins[EntryType == "Classifier"]$Performance[1],3)`** measured as AUC-ROC. This 
+number is calculated from the "active" bins of the Classifier.
 
 The "active" bins are the ones that can be reached from the current binning
-of the predictors. When calculating the AUC from all the classifier binning
-all bins will be taken into account, also bins (typically
-at the start or end) that can no longer be reached from the current predictor
-binning.
-
-Finding the actual range is not trivially done outside of the platform. Here we 
-report both the AUC-ROC as well as the AUC-PR from the full range.
+of the active predictors. In the below table we give the AUC from both this
+active range as well as the full range, but only the active range is really
+meaningful. In a future product version, the non-reachable classifier bins may be 
+dropped from the table.
 
 ```{r, echo=F, warning=F, error=F, include=F}
-fullrange_auc_roc <- pdstools::auc_from_bincounts(classifierBinning$BinPositives, classifierBinning$BinNegatives)
-fullrange_auc_pr <- pdstools::aucpr_from_bincounts(classifierBinning$BinPositives, classifierBinning$BinNegatives)
+activeRangeInfo <- pdstools::getActiveRanges(datamart)
+
+# there is only 1 model now, so we can safely take the first element
+classifierBins[, isInActiveRange := 
+                 (BinIndex >= activeRangeInfo[[1]]$active_index_min) &
+                 (BinIndex <= activeRangeInfo[[1]]$active_index_max)]
+
+fullrange_auc_roc <- activeRangeInfo[[1]]$fullRangeAUC
+fullrange_auc_pr <- pdstools::aucpr_from_bincounts(classifierBins$BinPositives, 
+                                                   classifierBins$BinNegatives)
+
+activerange_auc_roc <- activeRangeInfo[[1]]$activeRangeAUC
+activerange_auc_pr <- pdstools::aucpr_from_bincounts(classifierBins[(isInActiveRange)]$BinPositives,
+                                                     classifierBins[(isInActiveRange)]$BinNegatives)
 ```
 
+|Total Positives|Total Negatives|Total Responses|Success Rate|
+|--------------:|--------------:|--------------:|-----------------:|
+|`r sum(classifierBins$BinPositives)`|`r sum(classifierBins$BinNegatives)`|`r sum(classifierBins$BinResponseCount)`|`r sprintf("%.2f%%", 100*sum(classifierBins$BinPositives)/sum(classifierBins$BinResponseCount))`|
 
-|Total Positives|Total Negatives|Total Responses|Success Rate|AUC|AUC-ROC (Full Range)|AUC-PR (Full Range)|
-|--------------:|--------------:|--------------:|-----------------:|-----------------:|-----------------:|-----------------:|
-|`r sum(classifierBinning$BinPositives)`|`r sum(classifierBinning$BinNegatives)`|`r sum(classifierBinning$BinResponseCount)`|`r sprintf("%.2f%%", 100*sum(classifierBinning$BinPositives)/sum(classifierBinning$BinResponseCount))`|`r round(modelPredictorBins[EntryType == "Classifier"]$Performance[1],3)`|`r round(fullrange_auc_roc,3)`|`r round(fullrange_auc_pr,3)`|
+|AUC (Reported)|AUC-ROC (Active Range)|AUC-PR (Active Range)|AUC-ROC (Full Range)|AUC-PR (Full Range)|
+|-----------------:|-----------------:|-----------------:|-----------------:|-----------------:|
+|`r round(allPredictorBins[EntryType == "Classifier"]$Performance[1],5)`|`r round(activerange_auc_roc,5)`|`r round(activerange_auc_pr,5)`|`r round(fullrange_auc_roc,5)`|`r round(fullrange_auc_pr,5)`|
 
 ```{r, results="asis", echo=F, warning=F, error=F, fig.align = "center"}
-if (nrow(classifierBinning) < 1) {
-  cat("<p style='color:Red;'>NO data available for Classifier for date:", max(modelPredictorBins$SnapshotTime), "</p>", fill=T)
+if (nrow(classifierBins) < 1) {
+  cat("<p style='color:Red;'>NO data available for Classifier for date:", max(allPredictorBins$SnapshotTime), "</p>", fill=T)
 }
 ```
 
@@ -150,23 +163,28 @@ when viewed in portals like Sharepoint or Box, and will also not render to PDF.
 Make sure to open the HTML file in a browser.
 
 ```{r fig.align="center", fig.width=8, results="asis"}
-subtitle <- paste0("Performance: ", round(classifierBinning$Performance[1],5), " (AUC)")
+subtitle <- paste0("Performance: ", round(classifierBins$Performance[1],5), " (AUC)")
 
 # Using a native Plotly version of the graph to make the hover-over work. Just 
 # ggplotly(p) doesnt work perfectly, unfortunately.
 
-classifierBinning[, propensity := 100*BinPositives/BinResponseCount]
+classifierBins[, propensity := 100*BinPositives/BinResponseCount]
 
 pegaClassifierBlueBar <- "#278DC1"
 pegaClassifierYellowLine <- "EF8B08"
 
-if (nrow(classifierBinning) >= 1) {
-  ply <- plot_ly(classifierBinning) %>%
-    add_bars(x = ~BinIndex, y = ~BinResponseCount, 
-             colors = pegaClassifierBlueBar,
+#classifierBins[, isInActiveRange := (seq(.N) %% 2) == 1]
+
+if (nrow(classifierBins) >= 1) {
+  ply <- plot_ly(classifierBins) %>%
+    add_bars(x = ~BinIndex, y = ~BinResponseCount,
+             color = ~factor(isInActiveRange, levels=c(T, F)), 
+             colors = c(pegaClassifierBlueBar, "darkgrey"),
              alpha = 0.8,
              hoverinfo = "text", 
-             text = ~paste0("Score Range: ", BinSymbol, "\nResponses: ", BinResponseCount, "\nPropensity: ", sprintf("%.2f%%", propensity)),
+             text = ~paste0("Score Range: ", BinSymbol, "<br>",
+                            "Responses: ", BinResponseCount, "<br>",
+                            "Propensity: ", sprintf("%.2f%%", propensity)),
              yaxis = 'y') %>%
     add_lines(x = ~BinIndex, y = ~propensity,
               line = list(color = pegaClassifierYellowLine, width = 4),
@@ -196,8 +214,8 @@ The adjusted propensity that is returned is a small modification (*Laplace smoot
 to address the cold start problem when introducing new actions.
 
 ```{r, echo=F, warning=F, error=F, include=T}
-if (nrow(classifierBinning) >= 1) {
-  kable(userFriendlyADMBinning(classifierBinning)) %>% kable_styling()
+if (nrow(classifierBins) >= 1) {
+  kable(userFriendlyADMBinning(classifierBins)) %>% kable_styling()
 }
 ```
 
@@ -217,16 +235,18 @@ The Lift chart is derived from this and shows the ratio of the cumulative gain a
 # see http://dmg.org/pmml/v4-0-1/ModelExplanation.html#gainscharts
 # and https://www.ibm.com/support/knowledgecenter/de/SSLVMB_24.0.0/spss/tutorials/mlp_bankloan_outputtype_02.html
 
-if (nrow(classifierBinning) >= 1 & (sum(classifierBinning$BinNegatives) + sum(classifierBinning$BinPositives) > 0)) {
-  cumGains <- plotCumulativeGains(classifierBinning)
+activeClassifierBins <- classifierBins[(isInActiveRange)]
+
+if (nrow(activeClassifierBins) >= 1 & (sum(activeClassifierBins$BinNegatives) + sum(activeClassifierBins$BinPositives) > 0)) {
+  cumGains <- plotCumulativeGains(activeClassifierBins)
   
-  cumLift <- plotCumulativeLift(classifierBinning)
+  cumLift <- plotCumulativeLift(activeClassifierBins)
   
   # TODO: add a cum Success rate one. Like lift but w/o the division.
   # TODO: consider ggplot of these, those work just fine
   # TODO: classic one on separate line. Make bars less prominent. Swap y-axes - they're opposite what product does.
   
-  classic <- plotBinning(classifierBinning) + ggtitle("Score Distribution")
+  classic <- plotBinning(activeClassifierBins) + ggtitle("Score Distribution")
   
   #ggplotly(cumGains) - TODO convert to plotly plot as ggplotly doesnt show both axes
   
@@ -260,13 +280,13 @@ negatives is not set
 # TODO - the grouping could be displayed in more fancy ways using kableExtra options for grouping
 # TODO - consider colouring the predictor names by part before first dot ; unless there are > 10 of those
 
-predSummary <- modelPredictorBins[EntryType != "Classifier", list(Negatives = sum(BinNegatives),
-                                                                  Positives = sum(BinPositives),
-                                                                  Active = EntryType[1],
-                                                                  Type = Type[1],
-                                                                  Bins = .N,
-                                                                  Performance = Performance[1],
-                                                                  Group = GroupIndex[1]), by=PredictorName]
+predSummary <- allPredictorBins[EntryType != "Classifier", list(Negatives = sum(BinNegatives),
+                                                                Positives = sum(BinPositives),
+                                                                Active = EntryType[1],
+                                                                Type = Type[1],
+                                                                Bins = .N,
+                                                                Performance = Performance[1],
+                                                                Group = GroupIndex[1]), by=PredictorName]
 names(predSummary)[1] <- "Predictor"
 if (nrow(predSummary) == 0) {
   cat("The model has no predictors", fill=T)
@@ -292,16 +312,19 @@ Binning of all individual predictors. Predictors are listed in the same order as
 Here we show `r ifelse(params$predictordetails_activeonly, "only the active", "all")` predictors. This 
 can be configured with one of the parameters in the Yaml header of this notebook.
 
-```{r, results="asis", fig.height = 4, fig.width = 6, fig.align = "center"}
+```{r, results="asis", fig.height = 3, fig.width = 6, fig.align = "center"}
 
 # to print all instead of only the active ones, change condition to: EntryType != "Classifier"
 
-for (f in unique(modelPredictorBins[!params$predictordetails_activeonly | EntryType == "Active"]$PredictorName)) {
-  predictorBinning <- modelPredictorBins[PredictorName==f]
+for (f in unique(allPredictorBins[!params$predictordetails_activeonly | EntryType == "Active"]$PredictorName)) {
+  predictorBinning <- allPredictorBins[PredictorName==f]
   
   if (nrow(predictorBinning[!is.na(Propensity)]) < 2) {
-    cat("<p style='color:Red;'>NO data available for", f, "for date:", max(modelPredictorBins$SnapshotTime), "</p>", fill=T)
+    cat("<p style='color:Red;'>NO data available for", f, "for date:", max(allPredictorBins$SnapshotTime), "</p>", fill=T)
   } else {
+    cat("##", f, fill=T) # Predictor name
+    
+    cat("<table><tr><th>Info</th><th>Binning</th></tr>", fill=T)
     
     # write.csv(predictorBinning, "tempbin.csv")
     
@@ -314,15 +337,19 @@ for (f in unique(modelPredictorBins[!params$predictordetails_activeonly | EntryT
     }
     
     # Table prelude with some overall info about the predictor
+    cat("<tr><td>", fill=T)
     printADMPredictorInfo(f, predictorBinning, extraPredInfo)
+    cat("</td>", fill=T)
     
     # colour names: http://sape.inf.usi.ch/quick-reference/ggplot2/colour
     
+    cat("<td>", fill=T)
     if (nrow(predictorBinning) > 1) {
       p <- plotBinning(predictorBinning)+ ggtitle(f)
       
       print(p)
     }  
+    cat("</td></tr></table>", fill=T)
     
     print(kable(userFriendlyADMBinning(predictorBinning), format = "markdown"))
   }

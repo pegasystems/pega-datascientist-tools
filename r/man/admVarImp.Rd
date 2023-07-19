@@ -7,7 +7,9 @@
 admVarImp(
   datamart,
   facets = NULL,
-  filter = function(x) {     filterClassifierOnly(x, reverse = T) }
+  filter = function(x) {
+     filterClassifierOnly(x, reverse = T)
+ }
 )
 }
 \arguments{

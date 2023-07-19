@@ -718,80 +718,86 @@ admVarImp <- function(datamart, facets = NULL, filter = function(x) {filterClass
   }
 }
 
-# TODO below function is tricky and depends on names. It was used in the
-# modelreport.Rmd but possibly also internally.
-
-# TODO consider removing now
-
-#' Helper function to return the actual and reported performance of ADM models.
+#' Get the active (reachable) score range of one or more models.
 #'
-#' In the actual performance the actual score range of the model is
-#' taken into account, while for the stored (reported) performance that is not always the case. This function is mainly in support of validating
-#' a fix to the reported performance.
+#' Returns a model ID indexed list with the min/max scores as well as the
+#' lower/upper bin indices of the classifiers of the models provided via the
+#' datamart passed in.
+#' Note this method does not support multiple snapshots in the predictor binning
+#' although this could easily be addressed by keying on both ModelID + SnapshotTime
+#' but this situation is very uncommon.
 #'
-#' @param dmModels A \code{data.table} with (possibly a subset of) the models exported from the ADM Datamart (\code{Data-Decision-ADM-ModelSnapshot}).
-#' @param dmPredictors A \code{data.table} with the predictors exported from the ADM Datamart (\code{Data-Decision-ADM-PredictorBinningSnapshot}).
-#' @param jsonPartitions A list with the (possibly subset) partitions data from the ADM Factory table
+#' @param dm An ADM Datamart object (list with models and predictors)
 #'
-#' @return A \code{data.table} with model name, stored performance, actual performance, number of responses and the score range.
+#' @return A list with the min and max score, and the min and max bin index for
+#' each of the models. Apply \code{rbindlist} to the result to get as a table.
 #' @export
-getModelPerformanceOverview <- function(dmModels = NULL, dmPredictors = NULL, jsonPartitions = NULL)
+#'
+#' @examples
+#' \dontrun{
+#'   dm <- ADMDatamart("~/Downloads")
+#'   activeRanges <- getActiveRanges(dm)
+#' }
+
+getActiveRanges <- function(dm)
 {
-  ModelID <- name <- PredictorType <- NULL # Trick to silence R CMD Check warnings
-
-  if (!is.null(dmModels) & !is.null(dmPredictors)) {
-    modelList <- normalizedBinningFromDatamart(dmPredictors[ModelID %in% dmModels$ModelID],
-                                               fullName="Dummy",
-                                               modelsForPartition=dmModels)
-  } else if (!is.null(dmPredictors) & is.null(dmModels)) {
-
-    modelList <- normalizedBinningFromDatamart(dmPredictors, fullName="Dummy")
-    modelList[[1]][["context"]] <- list("Name" =  "Dummy") # should arguably be part of the normalizedBinning but that breaks some tests, didnt want to bother
-  } else if (!is.null(jsonPartitions)) {
-    modelList <- normalizedBinningFromADMFactory(jsonPartitions, overallModelName="Dummy")
-  } else {
-    stop("Needs either datamart or JSON Factory specifications")
+  # log odds contribution of the bins, including Laplace smoothing
+  binLogOdds <- function(binpos, binneg) {
+    nbins = length(binpos)
+    return((log(binpos+1/nbins) - log(sum(binpos)+1)) - (log(binneg+1/nbins) - log(sum(binneg)+1)))
   }
 
-  # Name, response count and reported performance obtained from the data directly. For the score min/max using the utility function
-  # that summarizes the predictor bins into a table ("ScaledBins") with the min and max weight per predictor. These weights are the
-  # normalized log odds and score min/max is found by adding them up.
+  # min and max log odds contribution per predictor
+  minMaxScoresPerPredictor <- dm$predictordata[EntryType!="Inactive", .(totalPos = sum(BinPositives),
+                                                                        totalNeg = sum(BinNegatives),
+                                                                        logOddsMin = min(binLogOdds(BinPositives, BinNegatives)),
+                                                                        logOddsMax = max(binLogOdds(BinPositives, BinNegatives))),
+                                               by=c("ModelID", "PredictorName", "EntryType")]
 
-  perfOverview <- data.table( name = sapply(modelList, function(m) {return(m$context$pyName)}),
-                              reported_performance = sapply(modelList, function(m) {return(m$binning$Performance[1])}),
-                              actual_performance = NA, # placeholder
-                              responses = sapply(modelList, function(m) {return(m$binning$TotalPos[1] + m$binning$TotalNeg[1])}),
-                              score_min = sapply(modelList, function(m) {scaled <- getNBFormulaWeights(copy(m$binning)); return(sum(scaled$binning[PredictorType != "CLASSIFIER"]$minWeight))}),
-                              score_max = sapply(modelList, function(m) {scaled <- getNBFormulaWeights(copy(m$binning)); return(sum(scaled$binning[PredictorType != "CLASSIFIER"]$maxWeight))}))
+  # min and max score (sum of log odds) per model, plus some extra summary statistics per model
+  minMaxScoresPerModel <- minMaxScoresPerPredictor[, .(nActivePredictors = sum(EntryType=="Active"),
+                                                       classifierLogOffset = log(1+totalPos[EntryType=="Classifier"]) - log(1+totalNeg[EntryType=="Classifier"]),
+                                                       sumMinLogOdds = sum(logOddsMin[EntryType=="Active"]),
+                                                       sumMaxLogOdds = sum(logOddsMax[EntryType=="Active"])),
+                                                   by=c("ModelID")]
+  minMaxScoresPerModel[, score_min := (classifierLogOffset + sumMinLogOdds)/(1 + nActivePredictors)]
+  minMaxScoresPerModel[, score_max := (classifierLogOffset + sumMaxLogOdds)/(1 + nActivePredictors)]
 
-
-  classifiers <- lapply(modelList, function(m) { return (m$binning[PredictorType == "CLASSIFIER"])})
-
-  findClassifierBin <- function( classifierBins, score )
-  {
-    if (nrow(classifierBins) == 1) {
-      return(-999)
-    }
-
-    return (1 + findInterval(score, classifierBins$BinUpperBound[1 : (nrow(classifierBins) - 1)]))
+  # bin indices of classifier that fall within the score min/max range - the
+  # first and last bin are assumed to have open bounds, which does not seem
+  # to be the case in the datamart data always
+  findActiveRangeInClassifierBinning <- function(min, max, binning) {
+    binning$BinIndex[which((max >= c(-Inf,binning$BinLowerBound[-1])) & (min < c(rev(rev(binning$BinUpperBound)[-1]), Inf)))]
   }
 
-  perfOverview$nbins <- sapply(classifiers, nrow)
-  perfOverview$actual_score_bin_min <- sapply(seq(nrow(perfOverview)),
-                                              function(n) { return( findClassifierBin( classifiers[[n]], perfOverview$score_min[n]))} )
-  perfOverview$actual_score_bin_max <- sapply(seq(nrow(perfOverview)),
-                                              function(n) { return( findClassifierBin( classifiers[[n]], perfOverview$score_max[n]))} )
-  perfOverview$actual_performance <- sapply(seq(nrow(perfOverview)),
-                                            function(n) { return( auc_from_bincounts(
-                                              classifiers[[n]]$BinPos[perfOverview$actual_score_bin_min[n]:perfOverview$actual_score_bin_max[n]],
-                                              classifiers[[n]]$BinNeg[perfOverview$actual_score_bin_min[n]:perfOverview$actual_score_bin_max[n]] )) })
-  # print(perfOverview)
-  # print(sapply(perfOverview, class))
-  # print(modelList)
-  # stop("Booh")
-  setorder(perfOverview, name)
+  # convenience function to calculate AUC from the pos/neg in a binning table
+  aucFromBinning <- function(binning) {
+    return(pdstools::auc_from_bincounts(binning$BinPositives, binning$BinNegatives))
+  }
 
+  # add range of the active bin indices and various AUC's (from the datamart
+  # data, calculated from all the bins and calculated from the active range)
+  minMaxScoresPerModel[, c("active_index_min", "active_index_max", "nClassifierBins") :=
+                         .(min(findActiveRangeInClassifierBinning(score_min, score_max, dm$predictordata[EntryType=="Classifier" & ModelID == .BY$ModelID])),
+                           max(findActiveRangeInClassifierBinning(score_min, score_max, dm$predictordata[EntryType=="Classifier" & ModelID == .BY$ModelID])),
+                           nrow(dm$predictordata[EntryType=="Classifier" & ModelID == .BY$ModelID])),
+                       by=c("ModelID")]
+  minMaxScoresPerModel[, reportedAUC := dm$predictordata[EntryType=="Classifier" & ModelID == .BY$ModelID, Performance[1]],
+                       by=c("ModelID")]
+  minMaxScoresPerModel[, fullRangeAUC := aucFromBinning(dm$predictordata[EntryType=="Classifier" & ModelID == .BY$ModelID]),
+                       by=c("ModelID")]
+  minMaxScoresPerModel[, activeRangeAUC := aucFromBinning(dm$predictordata[EntryType=="Classifier" & ModelID == .BY$ModelID][active_index_min:active_index_max]),
+                       by=c("ModelID")]
+  minMaxScoresPerModel[, is_full_indexrange := (active_index_min == 1) & (active_index_max == nClassifierBins)]
+  minMaxScoresPerModel[, is_AUC_fullrange := abs(reportedAUC - fullRangeAUC) < 1e-5]
+  minMaxScoresPerModel[, is_AUC_activerange := abs(reportedAUC - activeRangeAUC) < 1e-5]
 
-  return(perfOverview)
+  # turn into list
+  minMaxScoresPerModelAsList <- lapply(1:nrow(minMaxScoresPerModel), function(i) {as.list(minMaxScoresPerModel[i])})
+  names(minMaxScoresPerModelAsList) <- minMaxScoresPerModel$ModelID
+
+  # for debugging
+  minMaxScoresPerModelAsList[["predictordetails"]] <- minMaxScoresPerPredictor
+
+  return(minMaxScoresPerModelAsList)
 }
-

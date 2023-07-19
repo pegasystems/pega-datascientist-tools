@@ -783,15 +783,14 @@ printADMPredictorInfo <- function(predictorName, binning, extra = list())
 
   kvps <- c(kvps, extra)
 
-  cat(paste0("\n<p></p>## ", predictorName, "\n<p></p>"))
-  cat("\n<p></p>|Field|Value|\n")
-  cat("|---|---|\n")
+  cat("|Field|Value|", fill=T)
+  cat("|---|---|", fill=T)
 
   for (key in names(kvps)) {
-    cat(paste0("|", key, "|", kvps[[key]],"|\n"))
+    cat(paste0("|", key, "|", kvps[[key]],"|"), fill=T)
   }
 
-  cat("<p></p>")
+  cat("<br>", fill=T)
 }
 
 #' Creates user friendly table with binning info.

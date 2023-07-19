@@ -19,6 +19,8 @@
 <![endif]-->
 </head>
 <body data-spy="scroll" data-target="#toc">
+    
+
     <div class="container template-article">
       <header><div class="navbar navbar-default navbar-fixed-top" role="navigation">
   <div class="container">
@@ -31,18 +33,12 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">pdstools</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">2.2.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">2.2.0</span>
       </span>
     </div>
 
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
-<li>
-  <a href="../index.html">
-    <span class="fas fa-home fa-lg"></span>
-     
-  </a>
-</li>
 <li>
   <a href="../reference/index.html">Reference</a>
 </li>
@@ -87,13 +83,13 @@
 
       
 
-      </header><script src="thompson-sampling-explained_files/header-attrs-2.16/header-attrs.js"></script><div class="row">
+      </header><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>thompson-sampling-explained</h1>
-                        <h4 class="author">Pega</h4>
+                        <h4 data-toc-skip class="author">Pega</h4>
             
-            <h4 class="date">2022-10-16</h4>
+            <h4 data-toc-skip class="date">2023-07-14</h4>
       
       
       <div class="hidden name"><code>thompson-sampling-explained.Rmd</code></div>
@@ -102,9 +98,9 @@
 
     
     
-<div id="thompson-sampling" class="section level1">
-<h1 class="hasAnchor">
-<a href="#thompson-sampling" class="anchor"></a>Thompson Sampling</h1>
+<div class="section level2">
+<h2 id="thompson-sampling">Thompson Sampling<a class="anchor" aria-label="anchor" href="#thompson-sampling"></a>
+</h2>
 <p>Pega Customer Decision Hub uses a mechanism called Thompson Sampling,
 which is a method to sample the propensities from a distribution that
 centers around the model propensity. The width of the distribution
@@ -121,21 +117,21 @@ Sampling helps to add some extra “exploration” to the models in the
 early phases.</p>
 <p>See also:</p>
 <ul>
-<li><a href="https://en.wikipedia.org/wiki/Thompson_sampling" class="uri">https://en.wikipedia.org/wiki/Thompson_sampling</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Thompson_sampling" class="external-link uri">https://en.wikipedia.org/wiki/Thompson_sampling</a></li>
 <li>
-<a href="https://docs.pega.com/pega-customer-decision-hub-user-guide/87/model-learning-new-actions" class="uri">https://docs.pega.com/pega-customer-decision-hub-user-guide/87/model-learning-new-actions</a>.</li>
+<a href="https://docs.pega.com/pega-customer-decision-hub-user-guide/87/model-learning-new-actions" class="external-link uri">https://docs.pega.com/pega-customer-decision-hub-user-guide/87/model-learning-new-actions</a>.</li>
 </ul>
-<div id="spread-of-the-thompson-sampled-propensities" class="section level2">
-<h2 class="hasAnchor">
-<a href="#spread-of-the-thompson-sampled-propensities" class="anchor"></a>Spread of the Thompson Sampled propensities</h2>
+<div class="section level3">
+<h3 id="spread-of-the-thompson-sampled-propensities">Spread of the Thompson Sampled propensities<a class="anchor" aria-label="anchor" href="#spread-of-the-thompson-sampled-propensities"></a>
+</h3>
 <p>The following plot shows how the spread of sampled propensities
 narrows with more responses received by the models. We show simulated
 results for a few different model propensities.</p>
 <p><img src="thompson-sampling-explained_files/figure-html/unnamed-chunk-2-1.png" width="672" style="display: block; margin: auto;"></p>
 </div>
-<div id="convergence-of-the-thompson-sampled-propensities" class="section level2">
-<h2 class="hasAnchor">
-<a href="#convergence-of-the-thompson-sampled-propensities" class="anchor"></a>Convergence of the Thompson Sampled propensities</h2>
+<div class="section level3">
+<h3 id="convergence-of-the-thompson-sampled-propensities">Convergence of the Thompson Sampled propensities<a class="anchor" aria-label="anchor" href="#convergence-of-the-thompson-sampled-propensities"></a>
+</h3>
 <p>To illustrate the fact that the Thompson Sampled propensities quickly
 converge to the model propensities, below plot shows the percentage of
 sampled propensities that are within 10% of the original model
@@ -149,14 +145,25 @@ be seen, the convergence rate is independent of the base
 propensities.</p>
 <p><img src="thompson-sampling-explained_files/figure-html/unnamed-chunk-3-1.png" width="672" style="display: block; margin: auto;"></p>
 </div>
-<div id="beta-distribution" class="section level2">
-<h2 class="hasAnchor">
-<a href="#beta-distribution" class="anchor"></a>Beta distribution</h2>
-<p>In principle, Thompson Sampling is based on the <span class="math inline">\(\beta\)</span>-distribution (<a href="https://en.wikipedia.org/wiki/Beta_distribution" class="uri">https://en.wikipedia.org/wiki/Beta_distribution</a>) with
+<div class="section level3">
+<h3 id="beta-distribution">Beta distribution<a class="anchor" aria-label="anchor" href="#beta-distribution"></a>
+</h3>
+<p>In principle, Thompson Sampling is based on the <span class="math inline">\(\beta\)</span>-distribution (<a href="https://en.wikipedia.org/wiki/Beta_distribution" class="external-link uri">https://en.wikipedia.org/wiki/Beta_distribution</a>) with
 “positive” and “negative” responses as the shape parameters.</p>
 <p>But for practical reasons, instead of using <span class="math inline">\(\beta(positives, negatives)\)</span>, we
 approximate this with <span class="math inline">\(\beta(p*evidence,
 (1-p)*evidence)\)</span>.</p>
+<div class="section level4">
+<h4 id="using-positives-directly">Using Positives directly<a class="anchor" aria-label="anchor" href="#using-positives-directly"></a>
+</h4>
+<p>With <a href="https://agilestudio.pega.com/prweb/AgileStudio/app/agilestudio/bugs/BUG-803575" class="external-link uri">https://agilestudio.pega.com/prweb/AgileStudio/app/agilestudio/bugs/BUG-803575</a>
+we will change the implementation in NBAD to use the positives directly
+so it will become <span class="math inline">\(p + \beta(positives,
+negatives) - \frac{positives}{evidence}\)</span> with <span class="math inline">\(evidence = positives + negatives\)</span>.</p>
+</div>
+<div class="section level4">
+<h4 id="visualization-of-thompson-sampling">Visualization of Thompson Sampling<a class="anchor" aria-label="anchor" href="#visualization-of-thompson-sampling"></a>
+</h4>
 <p>Here we show the distribution for a few combinations of model
 propensity and evidence. Note that the distributions do not have their
 top at exactly the model propensity. This is because the beta
@@ -165,9 +172,10 @@ propensity values, the distribution is somewhat right-tailed.</p>
 <p><img src="thompson-sampling-explained_files/figure-html/unnamed-chunk-4-1.png" width="672" style="display: block; margin: auto;"></p>
 </div>
 </div>
-<div id="outbound-model-maturity" class="section level1">
-<h1 class="hasAnchor">
-<a href="#outbound-model-maturity" class="anchor"></a>Outbound Model Maturity</h1>
+</div>
+<div class="section level2">
+<h2 id="outbound-model-maturity">Outbound Model Maturity<a class="anchor" aria-label="anchor" href="#outbound-model-maturity"></a>
+</h2>
 <p>Thompson Sampling is related to the concept of Outbound Model
 Maturity. In outbound channels, we limit the reach of new actions to
 avoid sending too many actions “blindly” to customers. As more feedback
@@ -176,10 +184,15 @@ actions is increased.</p>
 <p>We start with 2% of the population for new actions and scale that
 linearly to 100% until we reach a threshold of 200 positive responses.
 This is illustrated by the following plot:</p>
+<pre><code><span><span class="co">#&gt; Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Please use `linewidth` instead.</span></span>
+<span><span class="co">#&gt; <span style="color: #555555;">This warning is displayed once every 8 hours.</span></span></span>
+<span><span class="co">#&gt; <span style="color: #555555;">Call `lifecycle::last_lifecycle_warnings()` to see where this warning was</span></span></span>
+<span><span class="co">#&gt; <span style="color: #555555;">generated.</span></span></span></code></pre>
 <p><img src="thompson-sampling-explained_files/figure-html/unnamed-chunk-5-1.png" width="672" style="display: block; margin: auto;"></p>
-<div id="effect-when-introducing-new-actions" class="section level2">
-<h2 class="hasAnchor">
-<a href="#effect-when-introducing-new-actions" class="anchor"></a>Effect when introducing new actions</h2>
+<div class="section level3">
+<h3 id="effect-when-introducing-new-actions">Effect when introducing new actions<a class="anchor" aria-label="anchor" href="#effect-when-introducing-new-actions"></a>
+</h3>
 <p>Suppose we start with 5 actions and introduce a new action every
 week. We receive feedback after a week, so the reach of the new actions
 ramps up after each week until it reaches the 200 positives and is then
@@ -192,9 +205,9 @@ includes volume constraints, propensity thresholding and other
 factors.</p>
 <p><img src="thompson-sampling-explained_files/figure-html/unnamed-chunk-7-1.png" width="672" style="display: block; margin: auto;"></p>
 </div>
-<div id="effect-on-all-new-actions" class="section level2">
-<h2 class="hasAnchor">
-<a href="#effect-on-all-new-actions" class="anchor"></a>Effect on all new actions</h2>
+<div class="section level3">
+<h3 id="effect-on-all-new-actions">Effect on all new actions<a class="anchor" aria-label="anchor" href="#effect-on-all-new-actions"></a>
+</h3>
 <p>If at day zero all actions are new, it depends on the amount of
 available actions.</p>
 <p>If there are sufficient actions, then all customers may receive one,
@@ -219,11 +232,13 @@ mature and become more targeted, this will change.</p>
 
 
       <footer><div class="copyright">
-  <p>Developed by Otto Perdeck.</p>
+  <p></p>
+<p>Developed by Otto Perdeck.</p>
 </div>
 
 <div class="pkgdown">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.6.1.</p>
+  <p></p>
+<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.7.</p>
 </div>
 
       </footer>
@@ -231,6 +246,8 @@ mature and become more targeted, this will change.</p>
 
   
 
+
+  
 
   </body>
 </html>

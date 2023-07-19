@@ -1,5 +1,5 @@
-pandoc: '2.18'
-pkgdown: 1.6.1
+pandoc: 3.1.1
+pkgdown: 2.0.7
 pkgdown_sha: ~
 articles:
   adhoc-datasetanalysis: adhoc-datasetanalysis.html
@@ -9,5 +9,5 @@ articles:
   ih-reporting: ih-reporting.html
   snapshots-to-scorecards: snapshots-to-scorecards.html
   thompson-sampling-explained: thompson-sampling-explained.html
-last_built: 2022-10-16T13:29Z
+last_built: 2023-07-14T13:05Z
 
