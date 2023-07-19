@@ -5,7 +5,7 @@ on:
     branches:
       - master
     paths:
-      - R/docs/**
+      - r/docs/**
       - .github/workflows/**
 
 concurrency:
