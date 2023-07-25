@@ -140,7 +140,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <div class="visually-hidden">Toggle table of contents sidebar</div>
         <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
       </label>
@@ -181,7 +181,6 @@
 <li class="toctree-l2"><a class="reference internal" href="pdstoolsv3.html">pdstools version 3: Polars</a></li>
 <li class="toctree-l2"><a class="reference internal" href="thompsonsampling.html">Thompson Sampling</a></li>
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">ADM Explained</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#ADM-Model-Report-Explained">ADM Model Report Explained</a></li>
 <li class="toctree-l2"><a class="reference internal" href="HealthCheckSetUp.html">ADM Health Check</a></li>
 </ul>
 </li>
@@ -277,7 +276,7 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <div class="visually-hidden">Toggle table of contents sidebar</div>
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
@@ -287,15 +286,12 @@
 <h1>ADM Explained<a class="headerlink" href="#ADM-Explained" title="Permalink to this heading">#</a></h1>
 <p><strong>Pega</strong></p>
 <p><strong>2023-03-15</strong></p>
-</section>
-<section id="ADM-Model-Report-Explained">
-<h1>ADM Model Report Explained<a class="headerlink" href="#ADM-Model-Report-Explained" title="Permalink to this heading">#</a></h1>
 <p>This notebook shows exactly how all the values in an ADM model report are calculated. It also shows how the propensity is calculated for a particular customer.</p>
 <p>We use one of the shipped datamart exports for the example. This is a model very similar to one used in some of the ADM PowerPoint/Excel deep dive examples. You can change this notebook to apply to your own data.</p>
 <p>For the example we use one particular model: <em>AutoNew36Months</em> over <em>SMS</em>. You can use your own data and select a different model.</p>
 <p>To explain the ADM model report, we use one of the <em>IH</em> predictors as an example. Swap for any other predictor when using different data.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model_name</span> <span class="o">=</span> <span class="s2">&quot;AutoNew84Months&quot;</span>
@@ -327,18 +323,317 @@
 <section id="Model-Overview">
 <h2>Model Overview<a class="headerlink" href="#Model-Overview" title="Permalink to this heading">#</a></h2>
 <p>The selected model is shown below. Only the currently active predictors are used for the propensity calculation, so only showing those.</p>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Values</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Action</th>
+      <td>Sales/AutoLoans</td>
+    </tr>
+    <tr>
+      <th>Channel</th>
+      <td>Web</td>
+    </tr>
+    <tr>
+      <th>Name</th>
+      <td>AutoNew84Months</td>
+    </tr>
+    <tr>
+      <th>Active Predictors</th>
+      <td>[Classifier, Customer.Age, Customer.AnnualIncome, Customer.BusinessSegment, Customer.CLV, Customer.CLV_VALUE, Customer.CreditScore, Customer.Date_of_Birth, Customer.Gender, Customer.MaritalStatus, Customer.NetWealth, Customer.NoOfDependents, Customer.Prefix, Customer.RelationshipStartDate, Customer.RiskCode, Customer.WinScore, Customer.pyCountry, IH.Email.Outbound.Accepted.pxLastGroupID, IH.Email.Outbound.Accepted.pxLastOutcomeTime.DaysSince, IH.Email.Outbound.Accepted.pyHistoricalOutcomeCount, IH.Email.Outbound.Churned.pyHistoricalOutcomeCount, IH.Email.Outbound.Loyal.pxLastOutcomeTime.DaysSince, IH.Email.Outbound.Rejected.pyHistoricalOutcomeCount, IH.SMS.Outbound.Accepted.pxLastGroupID, IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount, IH.SMS.Outbound.Churned.pxLastOutcomeTime.DaysSince, IH.SMS.Outbound.Loyal.pxLastOutcomeTime.DaysSince, IH.SMS.Outbound.Loyal.pyHistoricalOutcomeCount, IH.SMS.Outbound.Rejected.pxLastGroupID, IH.SMS.Outbound.Rejected.pyHistoricalOutcomeCount, IH.Web.Inbound.Accepted.pxLastGroupID, IH.Web.Inbound.Accepted.pyHistoricalOutcomeCount, IH.Web.Inbound.Loyal.pxLastGroupID, IH.Web.Inbound.Loyal.pyHistoricalOutcomeCount, IH.Web.Inbound.Rejected.pxLastGroupID, IH.Web.Inbound.Rejected.pyHistoricalOutcomeCount, Param.ExtGroupCreditcards]</td>
+    </tr>
+    <tr>
+      <th>Model Performance (AUC)</th>
+      <td>77.4901</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
 </section>
 <section id="Predictor-binning-for-IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount">
 <h2>Predictor binning for IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount<a class="headerlink" href="#Predictor-binning-for-IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount" title="Permalink to this heading">#</a></h2>
 <p>The ADM model report will show predictor binning similar to this, with all displayed data coming from fields in the ADM data mart. In subsequent sections we’ll show how all the data is derived from the number of positives and negatives in each of the bins.</p>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Value</th>
+    </tr>
+    <tr>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Predictor Name</th>
+      <td>Customer.NetWealth</td>
+    </tr>
+    <tr>
+      <th># Responses</th>
+      <td>1636</td>
+    </tr>
+    <tr>
+      <th># Bins</th>
+      <td>8</td>
+    </tr>
+    <tr>
+      <th>Predictor Performance(AUC)</th>
+      <td>72.2077</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<script type="text/javascript">
+window.PlotlyConfig = {MathJaxConfig: 'local'};
+if (window.MathJax && window.MathJax.Hub && window.MathJax.Hub.Config) {window.MathJax.Hub.Config({SVG: {font: "STIX-Web"}});}
+if (typeof require !== 'undefined') {
+require.undef("plotly");
+requirejs.config({
+    paths: {
+        'plotly': ['https://cdn.plot.ly/plotly-2.24.1.min']
+    }
+});
+require(['plotly'], function(Plotly) {
+    window._Plotly = Plotly;
+});
+}
+</script></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>                            <div id="46b93009-b5ee-46d9-b889-d94fc963b3fa" class="plotly-graph-div" style="height:400px; width:600px;"></div>            <script type="text/javascript">                require(["plotly"], function(Plotly) {                    window.PLOTLYENV=window.PLOTLYENV || {};                                    if (document.getElementById("46b93009-b5ee-46d9-b889-d94fc963b3fa")) {                    Plotly.newPlot(                        "46b93009-b5ee-46d9-b889-d94fc963b3fa",                        [{"name":"Responses","x":["\u003c11684.56","[11684.56, 13732.56\u003e","[13732.56, 16845.52\u003e","[16845.52, 19139.28\u003e","[19139.28, 20286.16\u003e","[20286.16, 22743.76\u003e","[22743.76, 23890.64\u003e","\u003e=23890.64"],"y":[436.0,202.0,267.0,230.0,90.0,222.0,90.0,99.0],"type":"bar"},{"mode":"lines+markers","name":"Propensity","x":["\u003c11684.56","[11684.56, 13732.56\u003e","[13732.56, 16845.52\u003e","[16845.52, 19139.28\u003e","[19139.28, 20286.16\u003e","[20286.16, 22743.76\u003e","[22743.76, 23890.64\u003e","\u003e=23890.64"],"y":[0.029816513881087303,0.11881188303232193,0.06367041170597076,0.22173912823200226,0.07777778059244156,0.2387387454509735,0.14444445073604584,0.28282827138900757],"yaxis":"y2","type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"anchor":"y","domain":[0.0,0.94],"title":{"text":"Range"}},"yaxis":{"anchor":"x","domain":[0.0,1.0],"title":{"text":"Responses"},"showgrid":false},"yaxis2":{"anchor":"x","overlaying":"y","side":"right","title":{"text":"Propensity"},"tickformat":",.2%","zeroline":false,"showgrid":false},"title":{"text":"Model name: ('AutoNew84Months',)\u003cbr\u003e\u003csup\u003eModel ID: 68e1d164-81e3-5da0-816c-0bbc3c20ac6c\u003cbr\u003ePredictor name: Customer.NetWealth\u003c\u002fsup\u003e"},"width":600,"height":400},                        {"responsive": true}                    ).then(function(){
+
+var gd = document.getElementById('46b93009-b5ee-46d9-b889-d94fc963b3fa');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };                });            </script>        </div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Responses (%)</th>
+      <th>Positives</th>
+      <th>Positives (%)</th>
+      <th>Negatives</th>
+      <th>Negatives (%)</th>
+      <th>Propensity (%)</th>
+      <th>ZRatio</th>
+      <th>Lift</th>
+    </tr>
+    <tr>
+      <th>Range/Symbol</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>&lt;11684.56</th>
+      <td>0.267</td>
+      <td>13.0</td>
+      <td>0.063</td>
+      <td>423.0</td>
+      <td>0.296</td>
+      <td>0.0298</td>
+      <td>-11.186877</td>
+      <td>0.236795</td>
+    </tr>
+    <tr>
+      <th>[11684.56, 13732.56&gt;</th>
+      <td>0.123</td>
+      <td>24.0</td>
+      <td>0.117</td>
+      <td>178.0</td>
+      <td>0.124</td>
+      <td>0.1188</td>
+      <td>-0.332146</td>
+      <td>0.943574</td>
+    </tr>
+    <tr>
+      <th>[13732.56, 16845.52&gt;</th>
+      <td>0.163</td>
+      <td>17.0</td>
+      <td>0.083</td>
+      <td>250.0</td>
+      <td>0.175</td>
+      <td>0.0637</td>
+      <td>-4.264671</td>
+      <td>0.505654</td>
+    </tr>
+    <tr>
+      <th>[16845.52, 19139.28&gt;</th>
+      <td>0.141</td>
+      <td>51.0</td>
+      <td>0.248</td>
+      <td>179.0</td>
+      <td>0.125</td>
+      <td>0.2217</td>
+      <td>3.908162</td>
+      <td>1.760996</td>
+    </tr>
+    <tr>
+      <th>[19139.28, 20286.16&gt;</th>
+      <td>0.055</td>
+      <td>7.0</td>
+      <td>0.034</td>
+      <td>83.0</td>
+      <td>0.058</td>
+      <td>0.0778</td>
+      <td>-1.711775</td>
+      <td>0.617692</td>
+    </tr>
+    <tr>
+      <th>[20286.16, 22743.76&gt;</th>
+      <td>0.136</td>
+      <td>53.0</td>
+      <td>0.257</td>
+      <td>169.0</td>
+      <td>0.118</td>
+      <td>0.2387</td>
+      <td>4.397646</td>
+      <td>1.896003</td>
+    </tr>
+    <tr>
+      <th>[22743.76, 23890.64&gt;</th>
+      <td>0.055</td>
+      <td>13.0</td>
+      <td>0.063</td>
+      <td>77.0</td>
+      <td>0.054</td>
+      <td>0.1444</td>
+      <td>0.515565</td>
+      <td>1.147141</td>
+    </tr>
+    <tr>
+      <th>&gt;=23890.64</th>
+      <td>0.061</td>
+      <td>28.0</td>
+      <td>0.136</td>
+      <td>71.0</td>
+      <td>0.050</td>
+      <td>0.2828</td>
+      <td>3.512888</td>
+      <td>2.246151</td>
+    </tr>
+    <tr>
+      <th>Total</th>
+      <td>1.001</td>
+      <td>206.0</td>
+      <td>1.001</td>
+      <td>1430.0</td>
+      <td>1.000</td>
+      <td>1.1777</td>
+      <td>-5.161209</td>
+      <td>9.354007</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
 </section>
 <section id="Bin-Statistics">
 <h2>Bin Statistics<a class="headerlink" href="#Bin-Statistics" title="Permalink to this heading">#</a></h2>
 <section id="Positive-and-Negative-ratios">
 <h3>Positive and Negative ratios<a class="headerlink" href="#Positive-and-Negative-ratios" title="Permalink to this heading">#</a></h3>
 <p>Internally, ADM only keeps track of the total counts of positive and negative responses in each bin. Everything else is derived from those numbers. The percentages and totals are trivially derived, and the propensity is just the number of positives divided by the total. The numbers calculated here match the numbers from the datamart table exactly.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">binningDerived</span> <span class="o">=</span> <span class="n">predictorbinning</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
@@ -360,12 +655,119 @@
 </pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<style type="text/css">
+#T_147d3_row0_col2, #T_147d3_row0_col3, #T_147d3_row0_col4, #T_147d3_row0_col5, #T_147d3_row1_col2, #T_147d3_row1_col3, #T_147d3_row1_col4, #T_147d3_row1_col5, #T_147d3_row2_col2, #T_147d3_row2_col3, #T_147d3_row2_col4, #T_147d3_row2_col5, #T_147d3_row3_col2, #T_147d3_row3_col3, #T_147d3_row3_col4, #T_147d3_row3_col5, #T_147d3_row4_col2, #T_147d3_row4_col3, #T_147d3_row4_col4, #T_147d3_row4_col5, #T_147d3_row5_col2, #T_147d3_row5_col3, #T_147d3_row5_col4, #T_147d3_row5_col5, #T_147d3_row6_col2, #T_147d3_row6_col3, #T_147d3_row6_col4, #T_147d3_row6_col5, #T_147d3_row7_col2, #T_147d3_row7_col3, #T_147d3_row7_col4, #T_147d3_row7_col5 {
+  color: #0000FF;
+}
+</style>
+<table id="T_147d3">
+  <thead>
+    <tr>
+      <th class="blank level0" >&nbsp;</th>
+      <th id="T_147d3_level0_col0" class="col_heading level0 col0" >Positives</th>
+      <th id="T_147d3_level0_col1" class="col_heading level0 col1" >Negatives</th>
+      <th id="T_147d3_level0_col2" class="col_heading level0 col2" >Responses %</th>
+      <th id="T_147d3_level0_col3" class="col_heading level0 col3" >Positives %</th>
+      <th id="T_147d3_level0_col4" class="col_heading level0 col4" >Negatives %</th>
+      <th id="T_147d3_level0_col5" class="col_heading level0 col5" >Propensity</th>
+    </tr>
+    <tr>
+      <th class="index_name level0" >Range/Symbol</th>
+      <th class="blank col0" >&nbsp;</th>
+      <th class="blank col1" >&nbsp;</th>
+      <th class="blank col2" >&nbsp;</th>
+      <th class="blank col3" >&nbsp;</th>
+      <th class="blank col4" >&nbsp;</th>
+      <th class="blank col5" >&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th id="T_147d3_level0_row0" class="row_heading level0 row0" ><11684.56</th>
+      <td id="T_147d3_row0_col0" class="data row0 col0" >13</td>
+      <td id="T_147d3_row0_col1" class="data row0 col1" >423</td>
+      <td id="T_147d3_row0_col2" class="data row0 col2" >26.65</td>
+      <td id="T_147d3_row0_col3" class="data row0 col3" >6.31</td>
+      <td id="T_147d3_row0_col4" class="data row0 col4" >29.58</td>
+      <td id="T_147d3_row0_col5" class="data row0 col5" >0.0298</td>
+    </tr>
+    <tr>
+      <th id="T_147d3_level0_row1" class="row_heading level0 row1" >[11684.56, 13732.56></th>
+      <td id="T_147d3_row1_col0" class="data row1 col0" >24</td>
+      <td id="T_147d3_row1_col1" class="data row1 col1" >178</td>
+      <td id="T_147d3_row1_col2" class="data row1 col2" >12.35</td>
+      <td id="T_147d3_row1_col3" class="data row1 col3" >11.65</td>
+      <td id="T_147d3_row1_col4" class="data row1 col4" >12.45</td>
+      <td id="T_147d3_row1_col5" class="data row1 col5" >0.1188</td>
+    </tr>
+    <tr>
+      <th id="T_147d3_level0_row2" class="row_heading level0 row2" >[13732.56, 16845.52></th>
+      <td id="T_147d3_row2_col0" class="data row2 col0" >17</td>
+      <td id="T_147d3_row2_col1" class="data row2 col1" >250</td>
+      <td id="T_147d3_row2_col2" class="data row2 col2" >16.32</td>
+      <td id="T_147d3_row2_col3" class="data row2 col3" >8.25</td>
+      <td id="T_147d3_row2_col4" class="data row2 col4" >17.48</td>
+      <td id="T_147d3_row2_col5" class="data row2 col5" >0.0637</td>
+    </tr>
+    <tr>
+      <th id="T_147d3_level0_row3" class="row_heading level0 row3" >[16845.52, 19139.28></th>
+      <td id="T_147d3_row3_col0" class="data row3 col0" >51</td>
+      <td id="T_147d3_row3_col1" class="data row3 col1" >179</td>
+      <td id="T_147d3_row3_col2" class="data row3 col2" >14.06</td>
+      <td id="T_147d3_row3_col3" class="data row3 col3" >24.76</td>
+      <td id="T_147d3_row3_col4" class="data row3 col4" >12.52</td>
+      <td id="T_147d3_row3_col5" class="data row3 col5" >0.2217</td>
+    </tr>
+    <tr>
+      <th id="T_147d3_level0_row4" class="row_heading level0 row4" >[19139.28, 20286.16></th>
+      <td id="T_147d3_row4_col0" class="data row4 col0" >7</td>
+      <td id="T_147d3_row4_col1" class="data row4 col1" >83</td>
+      <td id="T_147d3_row4_col2" class="data row4 col2" >5.50</td>
+      <td id="T_147d3_row4_col3" class="data row4 col3" >3.40</td>
+      <td id="T_147d3_row4_col4" class="data row4 col4" >5.80</td>
+      <td id="T_147d3_row4_col5" class="data row4 col5" >0.0778</td>
+    </tr>
+    <tr>
+      <th id="T_147d3_level0_row5" class="row_heading level0 row5" >[20286.16, 22743.76></th>
+      <td id="T_147d3_row5_col0" class="data row5 col0" >53</td>
+      <td id="T_147d3_row5_col1" class="data row5 col1" >169</td>
+      <td id="T_147d3_row5_col2" class="data row5 col2" >13.57</td>
+      <td id="T_147d3_row5_col3" class="data row5 col3" >25.73</td>
+      <td id="T_147d3_row5_col4" class="data row5 col4" >11.82</td>
+      <td id="T_147d3_row5_col5" class="data row5 col5" >0.2387</td>
+    </tr>
+    <tr>
+      <th id="T_147d3_level0_row6" class="row_heading level0 row6" >[22743.76, 23890.64></th>
+      <td id="T_147d3_row6_col0" class="data row6 col0" >13</td>
+      <td id="T_147d3_row6_col1" class="data row6 col1" >77</td>
+      <td id="T_147d3_row6_col2" class="data row6 col2" >5.50</td>
+      <td id="T_147d3_row6_col3" class="data row6 col3" >6.31</td>
+      <td id="T_147d3_row6_col4" class="data row6 col4" >5.38</td>
+      <td id="T_147d3_row6_col5" class="data row6 col5" >0.1444</td>
+    </tr>
+    <tr>
+      <th id="T_147d3_level0_row7" class="row_heading level0 row7" >>=23890.64</th>
+      <td id="T_147d3_row7_col0" class="data row7 col0" >28</td>
+      <td id="T_147d3_row7_col1" class="data row7 col1" >71</td>
+      <td id="T_147d3_row7_col2" class="data row7 col2" >6.05</td>
+      <td id="T_147d3_row7_col3" class="data row7 col3" >13.59</td>
+      <td id="T_147d3_row7_col4" class="data row7 col4" >4.97</td>
+      <td id="T_147d3_row7_col5" class="data row7 col5" >0.2828</td>
+    </tr>
+  </tbody>
+</table></div>
+</div>
 </section>
 <section id="Lift">
 <h3>Lift<a class="headerlink" href="#Lift" title="Permalink to this heading">#</a></h3>
 <p>Lift is the ratio of the propensity in a particular bin over the average propensity. So a value of 1 is the average, larger than 1 means higher propensity, smaller means lower propensity:</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">Positives</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Positives&quot;</span><span class="p">)</span>
@@ -386,6 +788,83 @@
 </pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<style type="text/css">
+#T_cdaac_row0_col2, #T_cdaac_row1_col2, #T_cdaac_row2_col2, #T_cdaac_row3_col2, #T_cdaac_row4_col2, #T_cdaac_row5_col2, #T_cdaac_row6_col2, #T_cdaac_row7_col2 {
+  color: blue;
+}
+</style>
+<table id="T_cdaac">
+  <thead>
+    <tr>
+      <th class="blank level0" >&nbsp;</th>
+      <th id="T_cdaac_level0_col0" class="col_heading level0 col0" >Positives</th>
+      <th id="T_cdaac_level0_col1" class="col_heading level0 col1" >Negatives</th>
+      <th id="T_cdaac_level0_col2" class="col_heading level0 col2" >Lift</th>
+    </tr>
+    <tr>
+      <th class="index_name level0" >Range/Symbol</th>
+      <th class="blank col0" >&nbsp;</th>
+      <th class="blank col1" >&nbsp;</th>
+      <th class="blank col2" >&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th id="T_cdaac_level0_row0" class="row_heading level0 row0" ><11684.56</th>
+      <td id="T_cdaac_row0_col0" class="data row0 col0" >13</td>
+      <td id="T_cdaac_row0_col1" class="data row0 col1" >423</td>
+      <td id="T_cdaac_row0_col2" class="data row0 col2" >0.2368</td>
+    </tr>
+    <tr>
+      <th id="T_cdaac_level0_row1" class="row_heading level0 row1" >[11684.56, 13732.56></th>
+      <td id="T_cdaac_row1_col0" class="data row1 col0" >24</td>
+      <td id="T_cdaac_row1_col1" class="data row1 col1" >178</td>
+      <td id="T_cdaac_row1_col2" class="data row1 col2" >0.9436</td>
+    </tr>
+    <tr>
+      <th id="T_cdaac_level0_row2" class="row_heading level0 row2" >[13732.56, 16845.52></th>
+      <td id="T_cdaac_row2_col0" class="data row2 col0" >17</td>
+      <td id="T_cdaac_row2_col1" class="data row2 col1" >250</td>
+      <td id="T_cdaac_row2_col2" class="data row2 col2" >0.5057</td>
+    </tr>
+    <tr>
+      <th id="T_cdaac_level0_row3" class="row_heading level0 row3" >[16845.52, 19139.28></th>
+      <td id="T_cdaac_row3_col0" class="data row3 col0" >51</td>
+      <td id="T_cdaac_row3_col1" class="data row3 col1" >179</td>
+      <td id="T_cdaac_row3_col2" class="data row3 col2" >1.7610</td>
+    </tr>
+    <tr>
+      <th id="T_cdaac_level0_row4" class="row_heading level0 row4" >[19139.28, 20286.16></th>
+      <td id="T_cdaac_row4_col0" class="data row4 col0" >7</td>
+      <td id="T_cdaac_row4_col1" class="data row4 col1" >83</td>
+      <td id="T_cdaac_row4_col2" class="data row4 col2" >0.6177</td>
+    </tr>
+    <tr>
+      <th id="T_cdaac_level0_row5" class="row_heading level0 row5" >[20286.16, 22743.76></th>
+      <td id="T_cdaac_row5_col0" class="data row5 col0" >53</td>
+      <td id="T_cdaac_row5_col1" class="data row5 col1" >169</td>
+      <td id="T_cdaac_row5_col2" class="data row5 col2" >1.8960</td>
+    </tr>
+    <tr>
+      <th id="T_cdaac_level0_row6" class="row_heading level0 row6" >[22743.76, 23890.64></th>
+      <td id="T_cdaac_row6_col0" class="data row6 col0" >13</td>
+      <td id="T_cdaac_row6_col1" class="data row6 col1" >77</td>
+      <td id="T_cdaac_row6_col2" class="data row6 col2" >1.1471</td>
+    </tr>
+    <tr>
+      <th id="T_cdaac_level0_row7" class="row_heading level0 row7" >>=23890.64</th>
+      <td id="T_cdaac_row7_col0" class="data row7 col0" >28</td>
+      <td id="T_cdaac_row7_col1" class="data row7 col1" >71</td>
+      <td id="T_cdaac_row7_col2" class="data row7 col2" >2.2462</td>
+    </tr>
+  </tbody>
+</table></div>
+</div>
 </section>
 <section id="Z-Ratio">
 <h3>Z-Ratio<a class="headerlink" href="#Z-Ratio" title="Permalink to this heading">#</a></h3>
@@ -395,8 +874,8 @@
 \[\frac{posFraction-negFraction}{\sqrt(\frac{posFraction*(1-posFraction)}{\sum positives}+\frac{negFraction*(1-negFraction)}{\sum negatives})}\]</div>
 </div>
 <p>See the calculation here, which is also included in <a class="reference external" href="https://pegasystems.github.io/pega-datascientist-tools/Python/autoapi/pdstools/utils/cdh_utils/index.html#pdstools.utils.cdh_utils.zRatio">cdh_utils’ zRatio()</a>.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">zRatio</span><span class="p">(</span>
@@ -432,14 +911,111 @@
 </pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<style type="text/css">
+#T_10495_row0_col4, #T_10495_row1_col4, #T_10495_row2_col4, #T_10495_row3_col4, #T_10495_row4_col4, #T_10495_row5_col4, #T_10495_row6_col4, #T_10495_row7_col4 {
+  color: blue;
+}
+</style>
+<table id="T_10495">
+  <thead>
+    <tr>
+      <th class="blank level0" >&nbsp;</th>
+      <th id="T_10495_level0_col0" class="col_heading level0 col0" >Positives</th>
+      <th id="T_10495_level0_col1" class="col_heading level0 col1" >Negatives</th>
+      <th id="T_10495_level0_col2" class="col_heading level0 col2" >Positives %</th>
+      <th id="T_10495_level0_col3" class="col_heading level0 col3" >Negatives %</th>
+      <th id="T_10495_level0_col4" class="col_heading level0 col4" >ZRatio</th>
+    </tr>
+    <tr>
+      <th class="index_name level0" >Range/Symbol</th>
+      <th class="blank col0" >&nbsp;</th>
+      <th class="blank col1" >&nbsp;</th>
+      <th class="blank col2" >&nbsp;</th>
+      <th class="blank col3" >&nbsp;</th>
+      <th class="blank col4" >&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th id="T_10495_level0_row0" class="row_heading level0 row0" ><11684.56</th>
+      <td id="T_10495_row0_col0" class="data row0 col0" >13</td>
+      <td id="T_10495_row0_col1" class="data row0 col1" >423</td>
+      <td id="T_10495_row0_col2" class="data row0 col2" >6.31</td>
+      <td id="T_10495_row0_col3" class="data row0 col3" >29.58</td>
+      <td id="T_10495_row0_col4" class="data row0 col4" >-11.1869</td>
+    </tr>
+    <tr>
+      <th id="T_10495_level0_row1" class="row_heading level0 row1" >[11684.56, 13732.56></th>
+      <td id="T_10495_row1_col0" class="data row1 col0" >24</td>
+      <td id="T_10495_row1_col1" class="data row1 col1" >178</td>
+      <td id="T_10495_row1_col2" class="data row1 col2" >11.65</td>
+      <td id="T_10495_row1_col3" class="data row1 col3" >12.45</td>
+      <td id="T_10495_row1_col4" class="data row1 col4" >-0.3321</td>
+    </tr>
+    <tr>
+      <th id="T_10495_level0_row2" class="row_heading level0 row2" >[13732.56, 16845.52></th>
+      <td id="T_10495_row2_col0" class="data row2 col0" >17</td>
+      <td id="T_10495_row2_col1" class="data row2 col1" >250</td>
+      <td id="T_10495_row2_col2" class="data row2 col2" >8.25</td>
+      <td id="T_10495_row2_col3" class="data row2 col3" >17.48</td>
+      <td id="T_10495_row2_col4" class="data row2 col4" >-4.2647</td>
+    </tr>
+    <tr>
+      <th id="T_10495_level0_row3" class="row_heading level0 row3" >[16845.52, 19139.28></th>
+      <td id="T_10495_row3_col0" class="data row3 col0" >51</td>
+      <td id="T_10495_row3_col1" class="data row3 col1" >179</td>
+      <td id="T_10495_row3_col2" class="data row3 col2" >24.76</td>
+      <td id="T_10495_row3_col3" class="data row3 col3" >12.52</td>
+      <td id="T_10495_row3_col4" class="data row3 col4" >3.9082</td>
+    </tr>
+    <tr>
+      <th id="T_10495_level0_row4" class="row_heading level0 row4" >[19139.28, 20286.16></th>
+      <td id="T_10495_row4_col0" class="data row4 col0" >7</td>
+      <td id="T_10495_row4_col1" class="data row4 col1" >83</td>
+      <td id="T_10495_row4_col2" class="data row4 col2" >3.40</td>
+      <td id="T_10495_row4_col3" class="data row4 col3" >5.80</td>
+      <td id="T_10495_row4_col4" class="data row4 col4" >-1.7118</td>
+    </tr>
+    <tr>
+      <th id="T_10495_level0_row5" class="row_heading level0 row5" >[20286.16, 22743.76></th>
+      <td id="T_10495_row5_col0" class="data row5 col0" >53</td>
+      <td id="T_10495_row5_col1" class="data row5 col1" >169</td>
+      <td id="T_10495_row5_col2" class="data row5 col2" >25.73</td>
+      <td id="T_10495_row5_col3" class="data row5 col3" >11.82</td>
+      <td id="T_10495_row5_col4" class="data row5 col4" >4.3976</td>
+    </tr>
+    <tr>
+      <th id="T_10495_level0_row6" class="row_heading level0 row6" >[22743.76, 23890.64></th>
+      <td id="T_10495_row6_col0" class="data row6 col0" >13</td>
+      <td id="T_10495_row6_col1" class="data row6 col1" >77</td>
+      <td id="T_10495_row6_col2" class="data row6 col2" >6.31</td>
+      <td id="T_10495_row6_col3" class="data row6 col3" >5.38</td>
+      <td id="T_10495_row6_col4" class="data row6 col4" >0.5156</td>
+    </tr>
+    <tr>
+      <th id="T_10495_level0_row7" class="row_heading level0 row7" >>=23890.64</th>
+      <td id="T_10495_row7_col0" class="data row7 col0" >28</td>
+      <td id="T_10495_row7_col1" class="data row7 col1" >71</td>
+      <td id="T_10495_row7_col2" class="data row7 col2" >13.59</td>
+      <td id="T_10495_row7_col3" class="data row7 col3" >4.97</td>
+      <td id="T_10495_row7_col4" class="data row7 col4" >3.5129</td>
+    </tr>
+  </tbody>
+</table></div>
+</div>
 </section>
 </section>
 <section id="Predictor-AUC">
 <h2>Predictor AUC<a class="headerlink" href="#Predictor-AUC" title="Permalink to this heading">#</a></h2>
 <p>The predictor AUC is the univariate performance of this predictor against the outcome. This too can be derived from the positives and negatives and there is a convenient function in pdstools to calculate it directly from the positives and negatives.</p>
 <p>This function is implemented in cdh_utils: <code class="docutils literal notranslate"><span class="pre">`cdh_utils.auc_from_bincounts()</span></code> &lt;<a class="reference external" href="https://pegasystems.github.io/pega-datascientist-tools/Python/autoapi/pdstools/utils/cdh_utils/index.html#pdstools.utils.cdh_utils.auc_from_bincounts">https://pegasystems.github.io/pega-datascientist-tools/Python/autoapi/pdstools/utils/cdh_utils/index.html#pdstools.utils.cdh_utils.auc_from_bincounts</a>&gt;`__.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pos</span><span class="o">=</span><span class="n">binningDerived</span><span class="o">.</span><span class="n">get_column</span><span class="p">(</span><span class="s2">&quot;Positives&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
@@ -474,6 +1050,36 @@
 <br/></pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>                            <div id="2ca9bbaa-764d-4069-96da-9c1da0d38cf2" class="plotly-graph-div" style="height:700px; width:700px;"></div>            <script type="text/javascript">                require(["plotly"], function(Plotly) {                    window.PLOTLYENV=window.PLOTLYENV || {};                                    if (document.getElementById("2ca9bbaa-764d-4069-96da-9c1da0d38cf2")) {                    Plotly.newPlot(                        "2ca9bbaa-764d-4069-96da-9c1da0d38cf2",                        [{"hovertemplate":"Specificity=%{x}\u003cbr\u003eSensitivity=%{y}\u003cextra\u003e\u003c\u002fextra\u003e","legendgroup":"","line":{"color":"#1F77B4","dash":"solid"},"marker":{"symbol":"circle"},"mode":"lines","name":"","orientation":"v","showlegend":false,"x":[1.0,0.9368932023644447,0.8543689250946045,0.8203883469104767,0.7038834989070892,0.6407766938209534,0.39320385456085205,0.13592231273651123,0.0],"xaxis":"x","y":[0.0,0.2958042025566101,0.47062936425209045,0.5286713242530823,0.6531468629837036,0.7069929838180542,0.8321678042411804,0.9503496289253235,1.0],"yaxis":"y","type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"anchor":"y","domain":[0.0,1.0],"title":{"text":"Specificity"},"range":[1,0]},"yaxis":{"anchor":"x","domain":[0.0,1.0],"title":{"text":"Sensitivity"}},"legend":{"tracegroupgap":0},"title":{"text":"AUC = 0.722"},"height":700,"width":700,"shapes":[{"line":{"dash":"dash"},"type":"line","x0":1,"x1":0,"y0":0,"y1":1}]},                        {"responsive": true}                    ).then(function(){
+
+var gd = document.getElementById('2ca9bbaa-764d-4069-96da-9c1da0d38cf2');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };                });            </script>        </div></div>
+</div>
 </section>
 <section id="Predictor-score-and-log-odds">
 <h2>Predictor score and log odds<a class="headerlink" href="#Predictor-score-and-log-odds" title="Permalink to this heading">#</a></h2>
@@ -483,8 +1089,8 @@
 <div class="math notranslate nohighlight">
 \[contribution_p = \log(Positives_i+\frac{1}{nBins}) - \log(Negatives_i+\frac{1}{nBins}) - \log(1+\sum_i{Positives_i}) + \log(1+\sum_i{Negatives_i})\]</div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">N</span> <span class="o">=</span> <span class="n">binningDerived</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -502,6 +1108,113 @@
 </pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<style type="text/css">
+#T_b650e_row0_col4, #T_b650e_row0_col5, #T_b650e_row1_col4, #T_b650e_row1_col5, #T_b650e_row2_col4, #T_b650e_row2_col5, #T_b650e_row3_col4, #T_b650e_row3_col5, #T_b650e_row4_col4, #T_b650e_row4_col5, #T_b650e_row5_col4, #T_b650e_row5_col5, #T_b650e_row6_col4, #T_b650e_row6_col5, #T_b650e_row7_col4, #T_b650e_row7_col5 {
+  color: blue;
+}
+</style>
+<table id="T_b650e">
+  <thead>
+    <tr>
+      <th class="blank level0" >&nbsp;</th>
+      <th id="T_b650e_level0_col0" class="col_heading level0 col0" >Positives</th>
+      <th id="T_b650e_level0_col1" class="col_heading level0 col1" >Negatives</th>
+      <th id="T_b650e_level0_col2" class="col_heading level0 col2" >Positives %</th>
+      <th id="T_b650e_level0_col3" class="col_heading level0 col3" >Negatives %</th>
+      <th id="T_b650e_level0_col4" class="col_heading level0 col4" >LogOdds</th>
+      <th id="T_b650e_level0_col5" class="col_heading level0 col5" >ModifiedLogOdds</th>
+    </tr>
+    <tr>
+      <th class="index_name level0" >Range/Symbol</th>
+      <th class="blank col0" >&nbsp;</th>
+      <th class="blank col1" >&nbsp;</th>
+      <th class="blank col2" >&nbsp;</th>
+      <th class="blank col3" >&nbsp;</th>
+      <th class="blank col4" >&nbsp;</th>
+      <th class="blank col5" >&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th id="T_b650e_level0_row0" class="row_heading level0 row0" ><11684.56</th>
+      <td id="T_b650e_row0_col0" class="data row0 col0" >13</td>
+      <td id="T_b650e_row0_col1" class="data row0 col1" >423</td>
+      <td id="T_b650e_row0_col2" class="data row0 col2" >6.31</td>
+      <td id="T_b650e_row0_col3" class="data row0 col3" >29.580000</td>
+      <td id="T_b650e_row0_col4" class="data row0 col4" >-1.544963</td>
+      <td id="T_b650e_row0_col5" class="data row0 col5" >-1.5397</td>
+    </tr>
+    <tr>
+      <th id="T_b650e_level0_row1" class="row_heading level0 row1" >[11684.56, 13732.56></th>
+      <td id="T_b650e_row1_col0" class="data row1 col0" >24</td>
+      <td id="T_b650e_row1_col1" class="data row1 col1" >178</td>
+      <td id="T_b650e_row1_col2" class="data row1 col2" >11.65</td>
+      <td id="T_b650e_row1_col3" class="data row1 col3" >12.450000</td>
+      <td id="T_b650e_row1_col4" class="data row1 col4" >-0.066414</td>
+      <td id="T_b650e_row1_col5" class="data row1 col5" >-0.0658</td>
+    </tr>
+    <tr>
+      <th id="T_b650e_level0_row2" class="row_heading level0 row2" >[13732.56, 16845.52></th>
+      <td id="T_b650e_row2_col0" class="data row2 col0" >17</td>
+      <td id="T_b650e_row2_col1" class="data row2 col1" >250</td>
+      <td id="T_b650e_row2_col2" class="data row2 col2" >8.25</td>
+      <td id="T_b650e_row2_col3" class="data row2 col3" >17.480000</td>
+      <td id="T_b650e_row2_col4" class="data row2 col4" >-0.750844</td>
+      <td id="T_b650e_row2_col5" class="data row2 col5" >-0.7480</td>
+    </tr>
+    <tr>
+      <th id="T_b650e_level0_row3" class="row_heading level0 row3" >[16845.52, 19139.28></th>
+      <td id="T_b650e_row3_col0" class="data row3 col0" >51</td>
+      <td id="T_b650e_row3_col1" class="data row3 col1" >179</td>
+      <td id="T_b650e_row3_col2" class="data row3 col2" >24.76</td>
+      <td id="T_b650e_row3_col3" class="data row3 col3" >12.520000</td>
+      <td id="T_b650e_row3_col4" class="data row3 col4" >0.681902</td>
+      <td id="T_b650e_row3_col5" class="data row3 col5" >0.6796</td>
+    </tr>
+    <tr>
+      <th id="T_b650e_level0_row4" class="row_heading level0 row4" >[19139.28, 20286.16></th>
+      <td id="T_b650e_row4_col0" class="data row4 col0" >7</td>
+      <td id="T_b650e_row4_col1" class="data row4 col1" >83</td>
+      <td id="T_b650e_row4_col2" class="data row4 col2" >3.40</td>
+      <td id="T_b650e_row4_col3" class="data row4 col3" >5.800000</td>
+      <td id="T_b650e_row4_col4" class="data row4 col4" >-0.534083</td>
+      <td id="T_b650e_row4_col5" class="data row4 col5" >-0.5233</td>
+    </tr>
+    <tr>
+      <th id="T_b650e_level0_row5" class="row_heading level0 row5" >[20286.16, 22743.76></th>
+      <td id="T_b650e_row5_col0" class="data row5 col0" >53</td>
+      <td id="T_b650e_row5_col1" class="data row5 col1" >169</td>
+      <td id="T_b650e_row5_col2" class="data row5 col2" >25.73</td>
+      <td id="T_b650e_row5_col3" class="data row5 col3" >11.820000</td>
+      <td id="T_b650e_row5_col4" class="data row5 col4" >0.777865</td>
+      <td id="T_b650e_row5_col5" class="data row5 col5" >0.7754</td>
+    </tr>
+    <tr>
+      <th id="T_b650e_level0_row6" class="row_heading level0 row6" >[22743.76, 23890.64></th>
+      <td id="T_b650e_row6_col0" class="data row6 col0" >13</td>
+      <td id="T_b650e_row6_col1" class="data row6 col1" >77</td>
+      <td id="T_b650e_row6_col2" class="data row6 col2" >6.31</td>
+      <td id="T_b650e_row6_col3" class="data row6 col3" >5.380000</td>
+      <td id="T_b650e_row6_col4" class="data row6 col4" >0.159447</td>
+      <td id="T_b650e_row6_col5" class="data row6 col5" >0.1625</td>
+    </tr>
+    <tr>
+      <th id="T_b650e_level0_row7" class="row_heading level0 row7" >>=23890.64</th>
+      <td id="T_b650e_row7_col0" class="data row7 col0" >28</td>
+      <td id="T_b650e_row7_col1" class="data row7 col1" >71</td>
+      <td id="T_b650e_row7_col2" class="data row7 col2" >13.59</td>
+      <td id="T_b650e_row7_col3" class="data row7 col3" >4.970000</td>
+      <td id="T_b650e_row7_col4" class="data row7 col4" >1.005915</td>
+      <td id="T_b650e_row7_col5" class="data row7 col5" >1.0056</td>
+    </tr>
+  </tbody>
+</table></div>
+</div>
 </section>
 <section id="Propensity-mapping">
 <h2>Propensity mapping<a class="headerlink" href="#Propensity-mapping" title="Permalink to this heading">#</a></h2>
@@ -514,16 +1227,596 @@
 </div>
 <p>Here, <span class="math notranslate nohighlight">\(TotalPositives\)</span> and <span class="math notranslate nohighlight">\(TotalNegatives\)</span> are the total number of positive and negative responses to the model.</p>
 <p>Below an example. From all the active predictors of the model we pick a value (in the middle for numerics, first symbol for symbolics) and show the (modified) log odds. The final score is calculated per the above formula, and this is the value that is mapped to a propensity value by the classifier (which is constructed using the <a class="reference external" href="https://en.wikipedia.org/wiki/Isotonic_regression">PAV(A)</a> algorithm).</p>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<style type="text/css">
+#T_c4900_row0_col4, #T_c4900_row1_col4, #T_c4900_row2_col4, #T_c4900_row3_col4, #T_c4900_row4_col4, #T_c4900_row5_col4, #T_c4900_row6_col4, #T_c4900_row7_col4, #T_c4900_row8_col4, #T_c4900_row9_col4, #T_c4900_row10_col4, #T_c4900_row11_col4, #T_c4900_row12_col4, #T_c4900_row13_col4, #T_c4900_row14_col4, #T_c4900_row15_col4, #T_c4900_row16_col4, #T_c4900_row17_col4, #T_c4900_row18_col4, #T_c4900_row19_col4, #T_c4900_row20_col4, #T_c4900_row21_col4, #T_c4900_row22_col4, #T_c4900_row23_col4, #T_c4900_row24_col4, #T_c4900_row25_col4, #T_c4900_row26_col4, #T_c4900_row27_col4, #T_c4900_row28_col4, #T_c4900_row29_col4, #T_c4900_row30_col4, #T_c4900_row31_col4, #T_c4900_row32_col4, #T_c4900_row33_col4, #T_c4900_row34_col4, #T_c4900_row35_col4, #T_c4900_row36_col4 {
+  color: blue;
+}
+</style>
+<table id="T_c4900">
+  <thead>
+    <tr>
+      <th class="blank level0" >&nbsp;</th>
+      <th id="T_c4900_level0_col0" class="col_heading level0 col0" >Value</th>
+      <th id="T_c4900_level0_col1" class="col_heading level0 col1" >Bin</th>
+      <th id="T_c4900_level0_col2" class="col_heading level0 col2" >Positives</th>
+      <th id="T_c4900_level0_col3" class="col_heading level0 col3" >Negatives</th>
+      <th id="T_c4900_level0_col4" class="col_heading level0 col4" >LogOdds</th>
+    </tr>
+    <tr>
+      <th class="index_name level0" >PredictorName</th>
+      <th class="blank col0" >&nbsp;</th>
+      <th class="blank col1" >&nbsp;</th>
+      <th class="blank col2" >&nbsp;</th>
+      <th class="blank col3" >&nbsp;</th>
+      <th class="blank col4" >&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th id="T_c4900_level0_row0" class="row_heading level0 row0" >Customer.Age</th>
+      <td id="T_c4900_row0_col0" class="data row0 col0" >34.56</td>
+      <td id="T_c4900_row0_col1" class="data row0 col1" >4.000000</td>
+      <td id="T_c4900_row0_col2" class="data row0 col2" >9.000000</td>
+      <td id="T_c4900_row0_col3" class="data row0 col3" >198.000000</td>
+      <td id="T_c4900_row0_col4" class="data row0 col4" >-1.145923</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row1" class="row_heading level0 row1" >Customer.AnnualIncome</th>
+      <td id="T_c4900_row1_col0" class="data row1 col0" >-24043.049</td>
+      <td id="T_c4900_row1_col1" class="data row1 col1" >1.000000</td>
+      <td id="T_c4900_row1_col2" class="data row1 col2" >74.000000</td>
+      <td id="T_c4900_row1_col3" class="data row1 col3" >1166.000000</td>
+      <td id="T_c4900_row1_col4" class="data row1 col4" >-0.819651</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row2" class="row_heading level0 row2" >Customer.BusinessSegment</th>
+      <td id="T_c4900_row2_col0" class="data row2 col0" >middleSegmentPlus</td>
+      <td id="T_c4900_row2_col1" class="data row2 col1" >1.000000</td>
+      <td id="T_c4900_row2_col2" class="data row2 col2" >96.000000</td>
+      <td id="T_c4900_row2_col3" class="data row2 col3" >970.000000</td>
+      <td id="T_c4900_row2_col4" class="data row2 col4" >-0.376415</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row3" class="row_heading level0 row3" >Customer.CLV</th>
+      <td id="T_c4900_row3_col0" class="data row3 col0" >NON-MISSING</td>
+      <td id="T_c4900_row3_col1" class="data row3 col1" >1.000000</td>
+      <td id="T_c4900_row3_col2" class="data row3 col2" >111.000000</td>
+      <td id="T_c4900_row3_col3" class="data row3 col3" >570.000000</td>
+      <td id="T_c4900_row3_col4" class="data row3 col4" >0.300922</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row4" class="row_heading level0 row4" >Customer.CLV_VALUE</th>
+      <td id="T_c4900_row4_col0" class="data row4 col0" >1345.52</td>
+      <td id="T_c4900_row4_col1" class="data row4 col1" >4.000000</td>
+      <td id="T_c4900_row4_col2" class="data row4 col2" >31.000000</td>
+      <td id="T_c4900_row4_col3" class="data row4 col3" >297.000000</td>
+      <td id="T_c4900_row4_col4" class="data row4 col4" >-0.322731</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row5" class="row_heading level0 row5" >Customer.CreditScore</th>
+      <td id="T_c4900_row5_col0" class="data row5 col0" >518.92</td>
+      <td id="T_c4900_row5_col1" class="data row5 col1" >3.000000</td>
+      <td id="T_c4900_row5_col2" class="data row5 col2" >33.000000</td>
+      <td id="T_c4900_row5_col3" class="data row5 col3" >205.000000</td>
+      <td id="T_c4900_row5_col4" class="data row5 col4" >0.110531</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row6" class="row_heading level0 row6" >Customer.Date_of_Birth</th>
+      <td id="T_c4900_row6_col0" class="data row6 col0" >18773.504</td>
+      <td id="T_c4900_row6_col1" class="data row6 col1" >5.000000</td>
+      <td id="T_c4900_row6_col2" class="data row6 col2" >28.000000</td>
+      <td id="T_c4900_row6_col3" class="data row6 col3" >152.000000</td>
+      <td id="T_c4900_row6_col4" class="data row6 col4" >0.244642</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row7" class="row_heading level0 row7" >Customer.Gender</th>
+      <td id="T_c4900_row7_col0" class="data row7 col0" >U</td>
+      <td id="T_c4900_row7_col1" class="data row7 col1" >1.000000</td>
+      <td id="T_c4900_row7_col2" class="data row7 col2" >52.000000</td>
+      <td id="T_c4900_row7_col3" class="data row7 col3" >481.000000</td>
+      <td id="T_c4900_row7_col4" class="data row7 col4" >-0.285516</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row8" class="row_heading level0 row8" >Customer.MaritalStatus</th>
+      <td id="T_c4900_row8_col0" class="data row8 col0" >No Resp+</td>
+      <td id="T_c4900_row8_col1" class="data row8 col1" >1.000000</td>
+      <td id="T_c4900_row8_col2" class="data row8 col2" >67.000000</td>
+      <td id="T_c4900_row8_col3" class="data row8 col3" >745.000000</td>
+      <td id="T_c4900_row8_col4" class="data row8 col4" >-0.470766</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row9" class="row_heading level0 row9" >Customer.NetWealth</th>
+      <td id="T_c4900_row9_col0" class="data row9 col0" >17992.398</td>
+      <td id="T_c4900_row9_col1" class="data row9 col1" >4.000000</td>
+      <td id="T_c4900_row9_col2" class="data row9 col2" >51.000000</td>
+      <td id="T_c4900_row9_col3" class="data row9 col3" >179.000000</td>
+      <td id="T_c4900_row9_col4" class="data row9 col4" >0.679600</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row10" class="row_heading level0 row10" >Customer.NoOfDependents</th>
+      <td id="T_c4900_row10_col0" class="data row10 col0" >0.0</td>
+      <td id="T_c4900_row10_col1" class="data row10 col1" >1.000000</td>
+      <td id="T_c4900_row10_col2" class="data row10 col2" >111.000000</td>
+      <td id="T_c4900_row10_col3" class="data row10 col3" >850.000000</td>
+      <td id="T_c4900_row10_col4" class="data row10 col4" >-0.099690</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row11" class="row_heading level0 row11" >Customer.Prefix</th>
+      <td id="T_c4900_row11_col0" class="data row11 col0" >Mrs.</td>
+      <td id="T_c4900_row11_col1" class="data row11 col1" >1.000000</td>
+      <td id="T_c4900_row11_col2" class="data row11 col2" >64.000000</td>
+      <td id="T_c4900_row11_col3" class="data row11 col3" >552.000000</td>
+      <td id="T_c4900_row11_col4" class="data row11 col4" >-0.216664</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row12" class="row_heading level0 row12" >Customer.RelationshipStartDate</th>
+      <td id="T_c4900_row12_col0" class="data row12 col0" >1426.4596</td>
+      <td id="T_c4900_row12_col1" class="data row12 col1" >4.000000</td>
+      <td id="T_c4900_row12_col2" class="data row12 col2" >16.000000</td>
+      <td id="T_c4900_row12_col3" class="data row12 col3" >117.000000</td>
+      <td id="T_c4900_row12_col4" class="data row12 col4" >-0.050204</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row13" class="row_heading level0 row13" >Customer.RiskCode</th>
+      <td id="T_c4900_row13_col0" class="data row13 col0" >R4</td>
+      <td id="T_c4900_row13_col1" class="data row13 col1" >1.000000</td>
+      <td id="T_c4900_row13_col2" class="data row13 col2" >36.000000</td>
+      <td id="T_c4900_row13_col3" class="data row13 col3" >329.000000</td>
+      <td id="T_c4900_row13_col4" class="data row13 col4" >-0.270925</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row14" class="row_heading level0 row14" >Customer.WinScore</th>
+      <td id="T_c4900_row14_col0" class="data row14 col0" >66.600006</td>
+      <td id="T_c4900_row14_col1" class="data row14 col1" >4.000000</td>
+      <td id="T_c4900_row14_col2" class="data row14 col2" >39.000000</td>
+      <td id="T_c4900_row14_col3" class="data row14 col3" >102.000000</td>
+      <td id="T_c4900_row14_col4" class="data row14 col4" >0.973755</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row15" class="row_heading level0 row15" >Customer.pyCountry</th>
+      <td id="T_c4900_row15_col0" class="data row15 col0" >USA</td>
+      <td id="T_c4900_row15_col1" class="data row15 col1" >1.000000</td>
+      <td id="T_c4900_row15_col2" class="data row15 col2" >99.000000</td>
+      <td id="T_c4900_row15_col3" class="data row15 col3" >776.000000</td>
+      <td id="T_c4900_row15_col4" class="data row15 col4" >-0.122691</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row16" class="row_heading level0 row16" >IH.Email.Outbound.Accepted.pxLastGroupID</th>
+      <td id="T_c4900_row16_col0" class="data row16 col0" >HomeLoans</td>
+      <td id="T_c4900_row16_col1" class="data row16 col1" >3.000000</td>
+      <td id="T_c4900_row16_col2" class="data row16 col2" >25.000000</td>
+      <td id="T_c4900_row16_col3" class="data row16 col3" >218.000000</td>
+      <td id="T_c4900_row16_col4" class="data row16 col4" >-0.227166</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row17" class="row_heading level0 row17" >IH.Email.Outbound.Accepted.pxLastOutcomeTime.DaysSince</th>
+      <td id="T_c4900_row17_col0" class="data row17 col0" >-55.88436</td>
+      <td id="T_c4900_row17_col1" class="data row17 col1" >2.000000</td>
+      <td id="T_c4900_row17_col2" class="data row17 col2" >145.000000</td>
+      <td id="T_c4900_row17_col3" class="data row17 col3" >881.000000</td>
+      <td id="T_c4900_row17_col4" class="data row17 col4" >0.130525</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row18" class="row_heading level0 row18" >IH.Email.Outbound.Accepted.pyHistoricalOutcomeCount</th>
+      <td id="T_c4900_row18_col0" class="data row18 col0" >1.5</td>
+      <td id="T_c4900_row18_col1" class="data row18 col1" >2.000000</td>
+      <td id="T_c4900_row18_col2" class="data row18 col2" >30.000000</td>
+      <td id="T_c4900_row18_col3" class="data row18 col3" >351.000000</td>
+      <td id="T_c4900_row18_col4" class="data row18 col4" >-0.520104</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row19" class="row_heading level0 row19" >IH.Email.Outbound.Churned.pyHistoricalOutcomeCount</th>
+      <td id="T_c4900_row19_col0" class="data row19 col0" >None</td>
+      <td id="T_c4900_row19_col1" class="data row19 col1" >1.000000</td>
+      <td id="T_c4900_row19_col2" class="data row19 col2" >143.000000</td>
+      <td id="T_c4900_row19_col3" class="data row19 col3" >898.000000</td>
+      <td id="T_c4900_row19_col4" class="data row19 col4" >0.101486</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row20" class="row_heading level0 row20" >IH.Email.Outbound.Loyal.pxLastOutcomeTime.DaysSince</th>
+      <td id="T_c4900_row20_col0" class="data row20 col0" >None</td>
+      <td id="T_c4900_row20_col1" class="data row20 col1" >1.000000</td>
+      <td id="T_c4900_row20_col2" class="data row20 col2" >129.000000</td>
+      <td id="T_c4900_row20_col3" class="data row20 col3" >1071.000000</td>
+      <td id="T_c4900_row20_col4" class="data row20 col4" >-0.178813</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row21" class="row_heading level0 row21" >IH.Email.Outbound.Rejected.pyHistoricalOutcomeCount</th>
+      <td id="T_c4900_row21_col0" class="data row21 col0" >83.16</td>
+      <td id="T_c4900_row21_col1" class="data row21 col1" >3.000000</td>
+      <td id="T_c4900_row21_col2" class="data row21 col2" >24.000000</td>
+      <td id="T_c4900_row21_col3" class="data row21 col3" >218.000000</td>
+      <td id="T_c4900_row21_col4" class="data row21 col4" >-0.267751</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row22" class="row_heading level0 row22" >IH.SMS.Outbound.Accepted.pxLastGroupID</th>
+      <td id="T_c4900_row22_col0" class="data row22 col0" >Account</td>
+      <td id="T_c4900_row22_col1" class="data row22 col1" >4.000000</td>
+      <td id="T_c4900_row22_col2" class="data row22 col2" >45.000000</td>
+      <td id="T_c4900_row22_col3" class="data row22 col3" >316.000000</td>
+      <td id="T_c4900_row22_col4" class="data row22 col4" >-0.013291</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row23" class="row_heading level0 row23" >IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount</th>
+      <td id="T_c4900_row23_col0" class="data row23 col0" >9.02</td>
+      <td id="T_c4900_row23_col1" class="data row23 col1" >4.000000</td>
+      <td id="T_c4900_row23_col2" class="data row23 col2" >6.000000</td>
+      <td id="T_c4900_row23_col3" class="data row23 col3" >96.000000</td>
+      <td id="T_c4900_row23_col4" class="data row23 col4" >-0.821986</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row24" class="row_heading level0 row24" >IH.SMS.Outbound.Churned.pxLastOutcomeTime.DaysSince</th>
+      <td id="T_c4900_row24_col0" class="data row24 col0" >-20.5537</td>
+      <td id="T_c4900_row24_col1" class="data row24 col1" >2.000000</td>
+      <td id="T_c4900_row24_col2" class="data row24 col2" >9.000000</td>
+      <td id="T_c4900_row24_col3" class="data row24 col3" >27.000000</td>
+      <td id="T_c4900_row24_col4" class="data row24 col4" >0.849243</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row25" class="row_heading level0 row25" >IH.SMS.Outbound.Loyal.pxLastOutcomeTime.DaysSince</th>
+      <td id="T_c4900_row25_col0" class="data row25 col0" >None</td>
+      <td id="T_c4900_row25_col1" class="data row25 col1" >1.000000</td>
+      <td id="T_c4900_row25_col2" class="data row25 col2" >165.000000</td>
+      <td id="T_c4900_row25_col3" class="data row25 col3" >1240.000000</td>
+      <td id="T_c4900_row25_col4" class="data row25 col4" >-0.079718</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row26" class="row_heading level0 row26" >IH.SMS.Outbound.Loyal.pyHistoricalOutcomeCount</th>
+      <td id="T_c4900_row26_col0" class="data row26 col0" >None</td>
+      <td id="T_c4900_row26_col1" class="data row26 col1" >1.000000</td>
+      <td id="T_c4900_row26_col2" class="data row26 col2" >165.000000</td>
+      <td id="T_c4900_row26_col3" class="data row26 col3" >1240.000000</td>
+      <td id="T_c4900_row26_col4" class="data row26 col4" >-0.079718</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row27" class="row_heading level0 row27" >IH.SMS.Outbound.Rejected.pxLastGroupID</th>
+      <td id="T_c4900_row27_col0" class="data row27 col0" >Account</td>
+      <td id="T_c4900_row27_col1" class="data row27 col1" >2.000000</td>
+      <td id="T_c4900_row27_col2" class="data row27 col2" >47.000000</td>
+      <td id="T_c4900_row27_col3" class="data row27 col3" >357.000000</td>
+      <td id="T_c4900_row27_col4" class="data row27 col4" >-0.090492</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row28" class="row_heading level0 row28" >IH.SMS.Outbound.Rejected.pyHistoricalOutcomeCount</th>
+      <td id="T_c4900_row28_col0" class="data row28 col0" >102.72</td>
+      <td id="T_c4900_row28_col1" class="data row28 col1" >4.000000</td>
+      <td id="T_c4900_row28_col2" class="data row28 col2" >12.000000</td>
+      <td id="T_c4900_row28_col3" class="data row28 col3" >117.000000</td>
+      <td id="T_c4900_row28_col4" class="data row28 col4" >-0.335590</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row29" class="row_heading level0 row29" >IH.Web.Inbound.Accepted.pxLastGroupID</th>
+      <td id="T_c4900_row29_col0" class="data row29 col0" >DepositAccounts</td>
+      <td id="T_c4900_row29_col1" class="data row29 col1" >3.000000</td>
+      <td id="T_c4900_row29_col2" class="data row29 col2" >53.000000</td>
+      <td id="T_c4900_row29_col3" class="data row29 col3" >397.000000</td>
+      <td id="T_c4900_row29_col4" class="data row29 col4" >-0.077902</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row30" class="row_heading level0 row30" >IH.Web.Inbound.Accepted.pyHistoricalOutcomeCount</th>
+      <td id="T_c4900_row30_col0" class="data row30 col0" >11.04</td>
+      <td id="T_c4900_row30_col1" class="data row30 col1" >5.000000</td>
+      <td id="T_c4900_row30_col2" class="data row30 col2" >25.000000</td>
+      <td id="T_c4900_row30_col3" class="data row30 col3" >164.000000</td>
+      <td id="T_c4900_row30_col4" class="data row30 col4" >0.055802</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row31" class="row_heading level0 row31" >IH.Web.Inbound.Loyal.pxLastGroupID</th>
+      <td id="T_c4900_row31_col0" class="data row31 col0" >MISSING</td>
+      <td id="T_c4900_row31_col1" class="data row31 col1" >1.000000</td>
+      <td id="T_c4900_row31_col2" class="data row31 col2" >100.000000</td>
+      <td id="T_c4900_row31_col3" class="data row31 col3" >857.000000</td>
+      <td id="T_c4900_row31_col4" class="data row31 col4" >-0.211919</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row32" class="row_heading level0 row32" >IH.Web.Inbound.Loyal.pyHistoricalOutcomeCount</th>
+      <td id="T_c4900_row32_col0" class="data row32 col0" >4.52</td>
+      <td id="T_c4900_row32_col1" class="data row32 col1" >3.000000</td>
+      <td id="T_c4900_row32_col2" class="data row32 col2" >30.000000</td>
+      <td id="T_c4900_row32_col3" class="data row32 col3" >212.000000</td>
+      <td id="T_c4900_row32_col4" class="data row32 col4" >-0.017224</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row33" class="row_heading level0 row33" >IH.Web.Inbound.Rejected.pxLastGroupID</th>
+      <td id="T_c4900_row33_col0" class="data row33 col0" >Account</td>
+      <td id="T_c4900_row33_col1" class="data row33 col1" >2.000000</td>
+      <td id="T_c4900_row33_col2" class="data row33 col2" >81.000000</td>
+      <td id="T_c4900_row33_col3" class="data row33 col3" >546.000000</td>
+      <td id="T_c4900_row33_col4" class="data row33 col4" >0.027864</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row34" class="row_heading level0 row34" >IH.Web.Inbound.Rejected.pyHistoricalOutcomeCount</th>
+      <td id="T_c4900_row34_col0" class="data row34 col0" >111.08</td>
+      <td id="T_c4900_row34_col1" class="data row34 col1" >4.000000</td>
+      <td id="T_c4900_row34_col2" class="data row34 col2" >35.000000</td>
+      <td id="T_c4900_row34_col3" class="data row34 col3" >306.000000</td>
+      <td id="T_c4900_row34_col4" class="data row34 col4" >-0.231670</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row35" class="row_heading level0 row35" >Param.ExtGroupCreditcards</th>
+      <td id="T_c4900_row35_col0" class="data row35 col0" >NON-MISSING</td>
+      <td id="T_c4900_row35_col1" class="data row35 col1" >1.000000</td>
+      <td id="T_c4900_row35_col2" class="data row35 col2" >136.000000</td>
+      <td id="T_c4900_row35_col3" class="data row35 col3" >721.000000</td>
+      <td id="T_c4900_row35_col4" class="data row35 col4" >0.268402</td>
+    </tr>
+    <tr>
+      <th id="T_c4900_level0_row36" class="row_heading level0 row36" >Final Score</th>
+      <td id="T_c4900_row36_col0" class="data row36 col0" >None</td>
+      <td id="T_c4900_row36_col1" class="data row36 col1" >nan</td>
+      <td id="T_c4900_row36_col2" class="data row36 col2" >nan</td>
+      <td id="T_c4900_row36_col3" class="data row36 col3" >nan</td>
+      <td id="T_c4900_row36_col4" class="data row36 col4" >-0.149329</td>
+    </tr>
+  </tbody>
+</table></div>
+</div>
 </section>
 </section>
 <section id="Classifier">
 <h2>Classifier<a class="headerlink" href="#Classifier" title="Permalink to this heading">#</a></h2>
 <p>The success rate is defined as <span class="math notranslate nohighlight">\(\frac{positives}{positives+negatives}\)</span> per bin.</p>
 <p>The adjusted propensity that is returned is a small modification (Laplace smoothing) to this and calculated as <span class="math notranslate nohighlight">\(\frac{0.5+positives}{1+positives+negatives}\)</span> so empty models return a propensity of 0.5.</p>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<style type="text/css">
+#T_d8dee_row0_col5, #T_d8dee_row1_col5, #T_d8dee_row2_col5, #T_d8dee_row3_col5, #T_d8dee_row4_col5, #T_d8dee_row5_col5, #T_d8dee_row6_col5, #T_d8dee_row7_col5, #T_d8dee_row8_col5, #T_d8dee_row9_col5, #T_d8dee_row10_col5, #T_d8dee_row11_col5, #T_d8dee_row12_col5, #T_d8dee_row13_col5, #T_d8dee_row14_col5 {
+  color: blue;
+}
+</style>
+<table id="T_d8dee">
+  <thead>
+    <tr>
+      <th class="blank level0" >&nbsp;</th>
+      <th id="T_d8dee_level0_col0" class="col_heading level0 col0" >Bin</th>
+      <th id="T_d8dee_level0_col1" class="col_heading level0 col1" >Positives</th>
+      <th id="T_d8dee_level0_col2" class="col_heading level0 col2" >Negatives</th>
+      <th id="T_d8dee_level0_col3" class="col_heading level0 col3" >Cum. Total (%)</th>
+      <th id="T_d8dee_level0_col4" class="col_heading level0 col4" >Propensity (%)</th>
+      <th id="T_d8dee_level0_col5" class="col_heading level0 col5" >Adjusted Propensity (%)</th>
+      <th id="T_d8dee_level0_col6" class="col_heading level0 col6" >Cum Positives (%)</th>
+      <th id="T_d8dee_level0_col7" class="col_heading level0 col7" >ZRatio</th>
+      <th id="T_d8dee_level0_col8" class="col_heading level0 col8" >Lift(%)</th>
+    </tr>
+    <tr>
+      <th class="index_name level0" >Index</th>
+      <th class="blank col0" >&nbsp;</th>
+      <th class="blank col1" >&nbsp;</th>
+      <th class="blank col2" >&nbsp;</th>
+      <th class="blank col3" >&nbsp;</th>
+      <th class="blank col4" >&nbsp;</th>
+      <th class="blank col5" >&nbsp;</th>
+      <th class="blank col6" >&nbsp;</th>
+      <th class="blank col7" >&nbsp;</th>
+      <th class="blank col8" >&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th id="T_d8dee_level0_row0" class="row_heading level0 row0" >1</th>
+      <td id="T_d8dee_row0_col0" class="data row0 col0" ><-0.21</td>
+      <td id="T_d8dee_row0_col1" class="data row0 col1" >17</td>
+      <td id="T_d8dee_row0_col2" class="data row0 col2" >443</td>
+      <td id="T_d8dee_row0_col3" class="data row0 col3" >28.117359</td>
+      <td id="T_d8dee_row0_col4" class="data row0 col4" >3.695652</td>
+      <td id="T_d8dee_row0_col5" class="data row0 col5" >3.796095</td>
+      <td id="T_d8dee_row0_col6" class="data row0 col6" >8.252427</td>
+      <td id="T_d8dee_row0_col7" class="data row0 col7" >-9.994484</td>
+      <td id="T_d8dee_row0_col8" class="data row0 col8" >1.956663</td>
+    </tr>
+    <tr>
+      <th id="T_d8dee_level0_row1" class="row_heading level0 row1" >2</th>
+      <td id="T_d8dee_row1_col0" class="data row1 col0" >[-0.21, -0.185></td>
+      <td id="T_d8dee_row1_col1" class="data row1 col1" >8</td>
+      <td id="T_d8dee_row1_col2" class="data row1 col2" >133</td>
+      <td id="T_d8dee_row1_col3" class="data row1 col3" >36.735939</td>
+      <td id="T_d8dee_row1_col4" class="data row1 col4" >5.673759</td>
+      <td id="T_d8dee_row1_col5" class="data row1 col5" >5.985916</td>
+      <td id="T_d8dee_row1_col6" class="data row1 col6" >12.135922</td>
+      <td id="T_d8dee_row1_col7" class="data row1 col7" >-3.495416</td>
+      <td id="T_d8dee_row1_col8" class="data row1 col8" >3.003971</td>
+    </tr>
+    <tr>
+      <th id="T_d8dee_level0_row2" class="row_heading level0 row2" >3</th>
+      <td id="T_d8dee_row2_col0" class="data row2 col0" >[-0.185, -0.175></td>
+      <td id="T_d8dee_row2_col1" class="data row2 col1" >3</td>
+      <td id="T_d8dee_row2_col2" class="data row2 col2" >48</td>
+      <td id="T_d8dee_row2_col3" class="data row2 col3" >39.853302</td>
+      <td id="T_d8dee_row2_col4" class="data row2 col4" >5.882353</td>
+      <td id="T_d8dee_row2_col5" class="data row2 col5" >6.730770</td>
+      <td id="T_d8dee_row2_col6" class="data row2 col6" >13.592233</td>
+      <td id="T_d8dee_row2_col7" class="data row2 col7" >-1.977473</td>
+      <td id="T_d8dee_row2_col8" class="data row2 col8" >3.114411</td>
+    </tr>
+    <tr>
+      <th id="T_d8dee_level0_row3" class="row_heading level0 row3" >4</th>
+      <td id="T_d8dee_row3_col0" class="data row3 col0" >[-0.175, -0.105></td>
+      <td id="T_d8dee_row3_col1" class="data row3 col1" >28</td>
+      <td id="T_d8dee_row3_col2" class="data row3 col2" >370</td>
+      <td id="T_d8dee_row3_col3" class="data row3 col3" >64.180931</td>
+      <td id="T_d8dee_row3_col4" class="data row3 col4" >7.035176</td>
+      <td id="T_d8dee_row3_col5" class="data row3 col5" >7.142858</td>
+      <td id="T_d8dee_row3_col6" class="data row3 col6" >27.184465</td>
+      <td id="T_d8dee_row3_col7" class="data row3 col7" >-4.628074</td>
+      <td id="T_d8dee_row3_col8" class="data row3 col8" >3.724772</td>
+    </tr>
+    <tr>
+      <th id="T_d8dee_level0_row4" class="row_heading level0 row4" >5</th>
+      <td id="T_d8dee_row4_col0" class="data row4 col0" >[-0.105, -0.095></td>
+      <td id="T_d8dee_row4_col1" class="data row4 col1" >4</td>
+      <td id="T_d8dee_row4_col2" class="data row4 col2" >51</td>
+      <td id="T_d8dee_row4_col3" class="data row4 col3" >67.542786</td>
+      <td id="T_d8dee_row4_col4" class="data row4 col4" >7.272727</td>
+      <td id="T_d8dee_row4_col5" class="data row4 col5" >8.035714</td>
+      <td id="T_d8dee_row4_col6" class="data row4 col6" >29.126215</td>
+      <td id="T_d8dee_row4_col7" class="data row4 col7" >-1.505372</td>
+      <td id="T_d8dee_row4_col8" class="data row4 col8" >3.850544</td>
+    </tr>
+    <tr>
+      <th id="T_d8dee_level0_row5" class="row_heading level0 row5" >6</th>
+      <td id="T_d8dee_row5_col0" class="data row5 col0" >[-0.095, -0.09></td>
+      <td id="T_d8dee_row5_col1" class="data row5 col1" >2</td>
+      <td id="T_d8dee_row5_col2" class="data row5 col2" >19</td>
+      <td id="T_d8dee_row5_col3" class="data row5 col3" >68.826408</td>
+      <td id="T_d8dee_row5_col4" class="data row5 col4" >9.523809</td>
+      <td id="T_d8dee_row5_col5" class="data row5 col5" >11.363637</td>
+      <td id="T_d8dee_row5_col6" class="data row5 col6" >30.097088</td>
+      <td id="T_d8dee_row5_col7" class="data row5 col7" >-0.478811</td>
+      <td id="T_d8dee_row5_col8" class="data row5 col8" >5.042379</td>
+    </tr>
+    <tr>
+      <th id="T_d8dee_level0_row6" class="row_heading level0 row6" >7</th>
+      <td id="T_d8dee_row6_col0" class="data row6 col0" >[-0.09, -0.065></td>
+      <td id="T_d8dee_row6_col1" class="data row6 col1" >9</td>
+      <td id="T_d8dee_row6_col2" class="data row6 col2" >77</td>
+      <td id="T_d8dee_row6_col3" class="data row6 col3" >74.083130</td>
+      <td id="T_d8dee_row6_col4" class="data row6 col4" >10.465117</td>
+      <td id="T_d8dee_row6_col5" class="data row6 col5" >10.919540</td>
+      <td id="T_d8dee_row6_col6" class="data row6 col6" >34.466019</td>
+      <td id="T_d8dee_row6_col7" class="data row6 col7" >-0.657755</td>
+      <td id="T_d8dee_row6_col8" class="data row6 col8" >5.540754</td>
+    </tr>
+    <tr>
+      <th id="T_d8dee_level0_row7" class="row_heading level0 row7" >8</th>
+      <td id="T_d8dee_row7_col0" class="data row7 col0" >[-0.065, -0.02></td>
+      <td id="T_d8dee_row7_col1" class="data row7 col1" >30</td>
+      <td id="T_d8dee_row7_col2" class="data row7 col2" >154</td>
+      <td id="T_d8dee_row7_col3" class="data row7 col3" >85.330078</td>
+      <td id="T_d8dee_row7_col4" class="data row7 col4" >16.304348</td>
+      <td id="T_d8dee_row7_col5" class="data row7 col5" >16.486486</td>
+      <td id="T_d8dee_row7_col6" class="data row7 col6" >49.029125</td>
+      <td id="T_d8dee_row7_col7" class="data row7 col7" >1.464400</td>
+      <td id="T_d8dee_row7_col8" class="data row7 col8" >8.632335</td>
+    </tr>
+    <tr>
+      <th id="T_d8dee_level0_row8" class="row_heading level0 row8" >9</th>
+      <td id="T_d8dee_row8_col0" class="data row8 col0" >[-0.02, 0.03></td>
+      <td id="T_d8dee_row8_col1" class="data row8 col1" >37</td>
+      <td id="T_d8dee_row8_col2" class="data row8 col2" >65</td>
+      <td id="T_d8dee_row8_col3" class="data row8 col3" >91.564789</td>
+      <td id="T_d8dee_row8_col4" class="data row8 col4" >36.274509</td>
+      <td id="T_d8dee_row8_col5" class="data row8 col5" >36.407764</td>
+      <td id="T_d8dee_row8_col6" class="data row8 col6" >66.990295</td>
+      <td id="T_d8dee_row8_col7" class="data row8 col7" >4.913029</td>
+      <td id="T_d8dee_row8_col8" class="data row8 col8" >19.205534</td>
+    </tr>
+    <tr>
+      <th id="T_d8dee_level0_row9" class="row_heading level0 row9" >10</th>
+      <td id="T_d8dee_row9_col0" class="data row9 col0" >[0.03, 0.06></td>
+      <td id="T_d8dee_row9_col1" class="data row9 col1" >20</td>
+      <td id="T_d8dee_row9_col2" class="data row9 col2" >29</td>
+      <td id="T_d8dee_row9_col3" class="data row9 col3" >94.559898</td>
+      <td id="T_d8dee_row9_col4" class="data row9 col4" >40.816326</td>
+      <td id="T_d8dee_row9_col5" class="data row9 col5" >41.000000</td>
+      <td id="T_d8dee_row9_col6" class="data row9 col6" >76.699028</td>
+      <td id="T_d8dee_row9_col7" class="data row9 col7" >3.664015</td>
+      <td id="T_d8dee_row9_col8" class="data row9 col8" >21.610199</td>
+    </tr>
+    <tr>
+      <th id="T_d8dee_level0_row10" class="row_heading level0 row10" >11</th>
+      <td id="T_d8dee_row10_col0" class="data row10 col0" >[0.06, 0.12></td>
+      <td id="T_d8dee_row10_col1" class="data row10 col1" >30</td>
+      <td id="T_d8dee_row10_col2" class="data row10 col2" >33</td>
+      <td id="T_d8dee_row10_col3" class="data row10 col3" >98.410759</td>
+      <td id="T_d8dee_row10_col4" class="data row10 col4" >47.619049</td>
+      <td id="T_d8dee_row10_col5" class="data row10 col5" >47.656250</td>
+      <td id="T_d8dee_row10_col6" class="data row10 col6" >91.262138</td>
+      <td id="T_d8dee_row10_col7" class="data row10 col7" >4.922851</td>
+      <td id="T_d8dee_row10_col8" class="data row10 col8" >25.211897</td>
+    </tr>
+    <tr>
+      <th id="T_d8dee_level0_row11" class="row_heading level0 row11" >12</th>
+      <td id="T_d8dee_row11_col0" class="data row11 col0" >[0.12, 0.125></td>
+      <td id="T_d8dee_row11_col1" class="data row11 col1" >2</td>
+      <td id="T_d8dee_row11_col2" class="data row11 col2" >2</td>
+      <td id="T_d8dee_row11_col3" class="data row11 col3" >98.655258</td>
+      <td id="T_d8dee_row11_col4" class="data row11 col4" >50.000000</td>
+      <td id="T_d8dee_row11_col5" class="data row11 col5" >50.000000</td>
+      <td id="T_d8dee_row11_col6" class="data row11 col6" >92.233009</td>
+      <td id="T_d8dee_row11_col7" class="data row11 col7" >1.203876</td>
+      <td id="T_d8dee_row11_col8" class="data row11 col8" >26.472490</td>
+    </tr>
+    <tr>
+      <th id="T_d8dee_level0_row12" class="row_heading level0 row12" >13</th>
+      <td id="T_d8dee_row12_col0" class="data row12 col0" >[0.125, 0.13></td>
+      <td id="T_d8dee_row12_col1" class="data row12 col1" >4</td>
+      <td id="T_d8dee_row12_col2" class="data row12 col2" >2</td>
+      <td id="T_d8dee_row12_col3" class="data row12 col3" >99.022003</td>
+      <td id="T_d8dee_row12_col4" class="data row12 col4" >66.666672</td>
+      <td id="T_d8dee_row12_col5" class="data row12 col5" >64.285713</td>
+      <td id="T_d8dee_row12_col6" class="data row12 col6" >94.174751</td>
+      <td id="T_d8dee_row12_col7" class="data row12 col7" >1.864405</td>
+      <td id="T_d8dee_row12_col8" class="data row12 col8" >35.296658</td>
+    </tr>
+    <tr>
+      <th id="T_d8dee_level0_row13" class="row_heading level0 row13" >14</th>
+      <td id="T_d8dee_row13_col0" class="data row13 col0" >[0.13, 0.995></td>
+      <td id="T_d8dee_row13_col1" class="data row13 col1" >8</td>
+      <td id="T_d8dee_row13_col2" class="data row13 col2" >3</td>
+      <td id="T_d8dee_row13_col3" class="data row13 col3" >99.694374</td>
+      <td id="T_d8dee_row13_col4" class="data row13 col4" >72.727272</td>
+      <td id="T_d8dee_row13_col5" class="data row13 col5" >70.833328</td>
+      <td id="T_d8dee_row13_col6" class="data row13 col6" >98.058250</td>
+      <td id="T_d8dee_row13_col7" class="data row13 col7" >2.718192</td>
+      <td id="T_d8dee_row13_col8" class="data row13 col8" >38.505444</td>
+    </tr>
+    <tr>
+      <th id="T_d8dee_level0_row14" class="row_heading level0 row14" >15</th>
+      <td id="T_d8dee_row14_col0" class="data row14 col0" >>=0.995</td>
+      <td id="T_d8dee_row14_col1" class="data row14 col1" >4</td>
+      <td id="T_d8dee_row14_col2" class="data row14 col2" >1</td>
+      <td id="T_d8dee_row14_col3" class="data row14 col3" >100.000000</td>
+      <td id="T_d8dee_row14_col4" class="data row14 col4" >80.000000</td>
+      <td id="T_d8dee_row14_col5" class="data row14 col5" >75.000000</td>
+      <td id="T_d8dee_row14_col6" class="data row14 col6" >100.000000</td>
+      <td id="T_d8dee_row14_col7" class="data row14 col7" >1.941841</td>
+      <td id="T_d8dee_row14_col8" class="data row14 col8" >42.355988</td>
+    </tr>
+  </tbody>
+</table></div>
+</div>
 </section>
 <section id="Final-Propensity">
 <h2>Final Propensity<a class="headerlink" href="#Final-Propensity" title="Permalink to this heading">#</a></h2>
 <p>Below the classifier mapping. On the x-axis the binned scores (log odds values), on the y-axis the Propensity. Note the returned propensities are following a slightly adjusted formula, see the table above. The bin that contains the calculated final score is highlighted.</p>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>                            <div id="a2210ce0-354b-45b5-b31a-20eff41ce3b9" class="plotly-graph-div" style="height:525px; width:100%;"></div>            <script type="text/javascript">                require(["plotly"], function(Plotly) {                    window.PLOTLYENV=window.PLOTLYENV || {};                                    if (document.getElementById("a2210ce0-354b-45b5-b31a-20eff41ce3b9")) {                    Plotly.newPlot(                        "a2210ce0-354b-45b5-b31a-20eff41ce3b9",                        [{"name":"Responses","x":["\u003c-0.21","[-0.21, -0.185\u003e","[-0.185, -0.175\u003e","[-0.175, -0.105\u003e","[-0.105, -0.095\u003e","[-0.095, -0.09\u003e","[-0.09, -0.065\u003e","[-0.065, -0.02\u003e","[-0.02, 0.03\u003e","[0.03, 0.06\u003e","[0.06, 0.12\u003e","[0.12, 0.125\u003e","[0.125, 0.13\u003e","[0.13, 0.995\u003e","\u003e=0.995"],"y":[460.0,141.0,51.0,398.0,55.0,21.0,86.0,184.0,102.0,49.0,63.0,4.0,6.0,11.0,5.0],"type":"bar","marker":{"color":["grey","grey","grey","#1f77b4","grey","grey","grey","grey","grey","grey","grey","grey","grey","grey","grey"]}},{"mode":"lines+markers","name":"Propensity","x":["\u003c-0.21","[-0.21, -0.185\u003e","[-0.185, -0.175\u003e","[-0.175, -0.105\u003e","[-0.105, -0.095\u003e","[-0.095, -0.09\u003e","[-0.09, -0.065\u003e","[-0.065, -0.02\u003e","[-0.02, 0.03\u003e","[0.03, 0.06\u003e","[0.06, 0.12\u003e","[0.12, 0.125\u003e","[0.125, 0.13\u003e","[0.13, 0.995\u003e","\u003e=0.995"],"y":[0.03695652261376381,0.05673758685588837,0.05882352963089943,0.07035175710916519,0.072727270424366,0.095238097012043,0.10465116053819656,0.16304348409175873,0.36274510622024536,0.40816327929496765,0.4761904776096344,0.5,0.6666666865348816,0.7272727489471436,0.800000011920929],"yaxis":"y2","type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"anchor":"y","domain":[0.0,0.94],"title":{"text":"Range"}},"yaxis":{"anchor":"x","domain":[0.0,1.0],"title":{"text":"Responses"},"showgrid":false},"yaxis2":{"anchor":"x","overlaying":"y","side":"right","title":{"text":"Propensity"},"tickformat":",.2%","zeroline":false,"showgrid":false},"title":{"text":"Propensity distribution"},"annotations":[{"bgcolor":"#FFFFFF","bordercolor":"#000000","opacity":0.7,"showarrow":false,"text":"Returned propensity: 7.14%","x":"[-0.175, -0.105\u003e","y":0.07142857551574706,"yref":"y2"}]},                        {"responsive": true}                    ).then(function(){
+
+var gd = document.getElementById('a2210ce0-354b-45b5-b31a-20eff41ce3b9');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };                });            </script>        </div></div>
+</div>
 </section>
 </section>
 
@@ -577,8 +1870,42 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADM Explained</a><ul>
+<li><a class="reference internal" href="#Model-Overview">Model Overview</a></li>
+<li><a class="reference internal" href="#Predictor-binning-for-IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount">Predictor binning for IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount</a></li>
+<li><a class="reference internal" href="#Bin-Statistics">Bin Statistics</a><ul>
+<li><a class="reference internal" href="#Positive-and-Negative-ratios">Positive and Negative ratios</a></li>
+<li><a class="reference internal" href="#Lift">Lift</a></li>
+<li><a class="reference internal" href="#Z-Ratio">Z-Ratio</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#Predictor-AUC">Predictor AUC</a></li>
+<li><a class="reference internal" href="#Predictor-score-and-log-odds">Predictor score and log odds</a></li>
+<li><a class="reference internal" href="#Propensity-mapping">Propensity mapping</a><ul>
+<li><a class="reference internal" href="#Log-odds-contribution-for-all-the-predictors">Log odds contribution for all the predictors</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#Classifier">Classifier</a></li>
+<li><a class="reference internal" href="#Final-Propensity">Final Propensity</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>

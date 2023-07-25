@@ -11,8 +11,6 @@
                 "\n",
                 "__2023-03-15__\n",
                 "\n",
-                "# ADM Model Report Explained\n",
-                "\n",
                 "This notebook shows exactly how all the values in an ADM model report\n",
                 "are calculated. It also shows how the propensity is calculated for a\n",
                 "particular customer.\n",
@@ -35,14 +33,13 @@
                 "# Do not run if you're running the notebook seperately\n",
                 "\n",
                 "import plotly.io as pio\n",
-                "from math import log\n",
                 "\n",
                 "pio.renderers.default = \"notebook_connected\"\n",
                 "\n",
                 "import sys\n",
                 "import re\n",
-                "\n",
                 "sys.path.append(\"../../../\")\n",
+                "sys.path.append('../../python')\n",
                 "import pandas as pd\n",
                 "pd.set_option('display.max_colwidth', 0)\n",
                 "\n",
@@ -69,6 +66,7 @@
                 "import plotly.graph_objects as go\n",
                 "import plotly.express as px\n",
                 "from typing import List\n",
+                "from math import log\n",
                 "\n",
                 "from pdstools import datasets, cdh_utils\n",
                 "from pdstools.plots.plots_plotly import ADMVisualisations\n",
@@ -768,7 +766,7 @@
         },
         {
             "cell_type": "code",
-            "execution_count": 33,
+            "execution_count": null,
             "metadata": {
                 "tags": [
                     "remove_input"
