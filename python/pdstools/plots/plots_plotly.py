@@ -33,7 +33,7 @@ class ADMVisualisations:
             template="none", title=title, xaxis_title="Range", yaxis_title="Responses"
         )
         fig.update_yaxes(title_text="Propensity", secondary_y=True)
-        fig.layout.yaxis2.tickformat = ",.0%"
+        fig.layout.yaxis2.tickformat = ",.2%"
         fig.layout.yaxis2.zeroline = False
         fig.update_yaxes(showgrid=False)
 
@@ -612,7 +612,12 @@ class ADMVisualisations:
             title=title,
             labels={"cumModels": "Percentage of Models", "PositivesBin": "Positives"},
             template="pega",
-            category_orders={"PositivesBin": df["PositivesBin"].unique().to_list()},
+            category_orders={
+                "PositivesBin": df.select("PositivesBin", "break_point")
+                .unique()
+                .sort("break_point")["PositivesBin"]
+                .to_list()
+            },
         )
         fig.layout.yaxis.tickformat = ",.0%"
         fig = self.post_plot(fig, name="Models_by_positives", **kwargs)

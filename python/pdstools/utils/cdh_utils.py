@@ -294,14 +294,15 @@ def auc_from_bincounts(
     """
     pos = np.asarray(pos)
     neg = np.asarray(neg)
-    if probs is None:
-        o = np.argsort(-(pos / (pos + neg)))
-    else:
-        o = np.argsort(-np.asarray(probs))
-    FPR = np.flip(np.cumsum(neg[o]) / np.sum(neg), axis=0)
-    TPR = np.flip(np.cumsum(pos[o]) / np.sum(pos), axis=0)
-    Area = (FPR - np.append(FPR[1:], 0)) * (TPR + np.append(TPR[1:], 0)) / 2
-    return safe_range_auc(np.sum(Area))
+    if probs is None:  
+        probs = pos / (pos + neg)  
+  
+    binorder = np.argsort(probs)[::-1]  
+    FPR = np.cumsum(neg[binorder]) / np.sum(neg)  
+    TPR = np.cumsum(pos[binorder]) / np.sum(pos)  
+      
+    Area = (np.diff(FPR, prepend=0)) * (TPR + np.insert(np.roll(TPR, 1)[1:], 0,0)) / 2  
+    return safe_range_auc(np.sum(Area))  
 
 
 def aucpr_from_probs(

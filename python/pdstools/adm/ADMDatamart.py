@@ -1112,44 +1112,26 @@ class ADMDatamart(Plots, Tables):
         if self.import_strategy == "lazy" and not allow_collect:
             raise NotEagerError("Models by positive df.")
 
-        def orderedCut(
-            s, label="PositivesBin", bins=list(range(0, 210, 10))
-        ) -> pl.Series:
-            _arg_sort = pl.Series(name="_sort", values=s.arg_sort())
-            result = s.cut(
-                bins=[bins + [float("inf")]][0], category_label="PositivesBin"
-            )
-
-            return (
-                result.select(
-                    [
-                        pl.col(label),
-                        _arg_sort,
-                    ]
-                )
-                .sort("_sort")
-                .drop("_sort")
-                .to_series()
-            )
-
         modelsByPositives = df.select([by, "Positives", "ModelID"]).collect()
         return (
-            modelsByPositives.hstack(
-                [
-                    orderedCut(
-                        modelsByPositives["Positives"],
-                    )
-                ]
+            modelsByPositives.join(
+                modelsByPositives["Positives"].cut(
+                    bins=list(range(0, 210, 10)),
+                    series=False,
+                    category_label="PositivesBin",
+                ),
+                on="Positives",
+                how="left",
             )
             .lazy()
-            .groupby([by, "PositivesBin"])
+            .groupby([by, "PositivesBin", "break_point"])
             .agg([pl.min("Positives"), pl.n_unique("ModelID").alias("ModelCount")])
             .with_columns(
                 (pl.col("ModelCount") / (pl.sum("ModelCount").over(by))).alias(
                     "cumModels"
                 )
             )
-            .sort("PositivesBin")
+            .sort("break_point")
         )
 
     def get_model_stats(self, last: bool = True) -> dict:
