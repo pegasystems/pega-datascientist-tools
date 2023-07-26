@@ -12,7 +12,7 @@ exclude = ['/tests/*', '*.dist-info', '/docs/*']
 
 [project]
 name = "pdstools"
-dynamic = ["version"]
+dynamic = ["version", "dependencies"]
 description = "Open source tooling that helps Data Scientists to analyze Pega models and conduct impactful analyses."
 readme = "README.md"
 authors = [ { name = "Stijn Kas", email = "stijn.kas@pega.com" } ] 
@@ -32,21 +32,11 @@ keywords = [
     "datascientist",
     "tools",
 ]
-dependencies = [
-        "pandas>=1.5.3",
-        "plotly>=5.14.1",
-        "requests",
-        "pydot",
-        "polars>=0.18.0",
-        "pyarrow",
-        "tqdm",
-        "pyyaml",
-        "aioboto3>=11.0"
-    ]
 requires-python = ">=3.8"
 
 [tool.setuptools.dynamic]
 version = {attr="pdstools.__version__"}
+dependencies = {file = ["python/requirements.txt"]}
 
 [project.optional-dependencies]
 docs = ['sphinx','furo','sphinx-autoapi','nbsphinx','sphinx-copybutton','myst-parser']
