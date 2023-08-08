@@ -195,7 +195,7 @@ Classes
       :rtype: go.FigureWidget
 
 
-   .. py:method:: plotOverTime(metric: str = 'Performance', by: str = 'ModelID', every: int = '1d', query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None, facets: Union[str, list] = None, **kwargs) -> plotly.graph_objs.FigureWidget
+   .. py:method:: plotOverTime(metric: str = 'Performance', by: str = 'ModelID', every: int = '1d', query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None, facets: Union[str, list] = None, mode: str = 'Diff', **kwargs) -> plotly.graph_objs.FigureWidget
 
       Plots a given metric over time
 
@@ -211,6 +211,10 @@ Classes
       :type query: Optional[Union[pl.Expr, str, Dict[str, list]]]
       :param facets: Please refer to :meth:`._generateFacets`
       :type facets: Union[str, list], deafult = None
+      :param mode: The plotting mode. Should be one of the following:
+                   - 'Diff': Plot differences over a specified period.
+                   - 'Cumulative': Plot time series plot of the values as is.
+      :type mode: str, default = Diff
 
       :keyword plotting_engine: 'plotly' or a custom plot class
       :kwtype plotting_engine: str

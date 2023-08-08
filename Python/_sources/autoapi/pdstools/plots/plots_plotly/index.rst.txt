@@ -58,7 +58,7 @@ Classes
       :rtype: px.Figure
 
 
-   .. py:method:: OverTime(df, metric='Performance', by='ModelID', facet=None, **kwargs)
+   .. py:method:: OverTime(df, metric='Performance', by='ModelID', facet=None, mode='diff', **kwargs)
 
       Shows metric of models over time
 
