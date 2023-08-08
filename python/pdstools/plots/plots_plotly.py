@@ -157,7 +157,9 @@ class ADMVisualisations:
 
         return self.post_plot(fig, name="Bubble", title=title, **kwargs)
 
-    def OverTime(self, df, metric="Performance", by="ModelID", facet=None, **kwargs):
+    def OverTime(
+        self, df, metric="Performance", by="ModelID", facet=None, mode="diff", **kwargs
+    ):
         """Shows metric of models over time
 
         Parameters
@@ -183,6 +185,12 @@ class ADMVisualisations:
         }
         if metric in ["Performance", "weighted_performance", "SuccessRate"]:
             df = df.to_pandas(use_pyarrow_extension_array=False)
+            x = "SnapshotTime"
+            y = metric
+            color = by
+            hover_data = {by: ":.d", metric: metric_hovers[metric]}
+        elif mode == "Cumulative":
+            df = df.sort("SnapshotTime")
             x = "SnapshotTime"
             y = metric
             color = by

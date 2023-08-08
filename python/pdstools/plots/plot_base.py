@@ -410,6 +410,7 @@ class Plots:
         every: int = "1d",
         query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
         facets: Union[str, list] = None,
+        mode: str = "Diff",
         **kwargs,
     ) -> go.FigureWidget:
         """Plots a given metric over time
@@ -428,6 +429,10 @@ class Plots:
             Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
         facets : Union[str, list], deafult = None
             Please refer to :meth:`._generateFacets`
+        mode: str, default = Diff
+            The plotting mode. Should be one of the following:
+            - 'Diff': Plot differences over a specified period.
+            - 'Cumulative': Plot time series plot of the values as is.
 
         Keyword arguments
         -----------------
@@ -488,9 +493,12 @@ class Plots:
                 .with_columns(pl.col("weighted_performance") * 100)
             ).sort(["SnapshotTime", by])
         else:
-            df = self._create_sign_df(
-                df, by=groupby, what=metric, every=every, mask=False, pivot=False
-            )
+            if mode == "diff":
+                df = self._create_sign_df(
+                    df, by=groupby, what=metric, every=every, mask=False, pivot=False
+                )
+            elif mode == "Cumulative":
+                df = df.groupby(groupby + ["SnapshotTime"]).agg(pl.sum(metric))
         if metric == "Performance":
             metric = "weighted_performance"
 
@@ -505,6 +513,7 @@ class Plots:
             metric=metric,
             by=by,
             query=query,
+            mode=mode,
             **kwargs,
         )
 
