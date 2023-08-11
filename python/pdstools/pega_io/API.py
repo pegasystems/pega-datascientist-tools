@@ -48,8 +48,12 @@ def getToken(credentialFile: str, verify: bool = True, **kwargs):  # pragma: no 
 def setupAzureOpenAI(
     api_base: str = "https://aze-openai-01.openai.azure.com/",
     api_version: Literal[
-        "2023-03-15-preview", "2022-12-01", "2023-05-15", "2023-06-01-preview"
-    ] = "2023-06-01-preview",
+        "2023-03-15-preview",
+        "2022-12-01",
+        "2023-05-15",
+        "2023-06-01-preview",
+        "2023-07-01-preview",
+    ] = "2023-07-01-preview",
 ):
     """Convenience function to automagically setup Azure AD-based authentication
     for the Azure OpenAI service. Mostly meant as an internal tool within Pega,
