@@ -64,10 +64,11 @@ globalQuery = None
 #| code-summary: Initialization of the datamart class.
 
 # Initialize the class after the parameters have been overwritten.
- 
-datamart = ADMDatamart("/Users/uyany/Documents/customers/usbank/datamart/2023_Aug_25", include_cols="pyFeatureImportance").fillMissing()
 
-
+if len(kwargs)>0: #override with keyword arguments
+    datamart = ADMDatamart(**kwargs, include_cols="pyFeatureImportance").fillMissing()
+else: #fall back to 'default'
+    datamart = datasets.CDHSample()
 treatment = (
     "Treatment" in datamart.modelData.columns
     and datamart.modelData.schema["Treatment"] != pl.Null
