@@ -116,11 +116,13 @@ class Plots:
 
         if facets:
             df = df.join(
-                df.groupby(*facets)
+                df.groupby(facets + ["PredictorName"])
+                .agg(weighed_average_polars(to_plot, "ResponseCountBin"))
+                .groupby(*facets)
                 .agg(
                     pl.col("PredictorName")
-                    .sort_by("PerformanceBin", "PredictorName", descending=True)
-                    .head(20)
+                    .sort_by(to_plot, descending=True)
+                    .head(top_n)
                 )
                 .explode("PredictorName"),
                 on=(*facets, "PredictorName"),
@@ -130,7 +132,7 @@ class Plots:
             df = df.join(
                 df.filter(pl.col("PredictorName").cast(pl.Utf8) != "Classifier")
                 .groupby("PredictorName")
-                .agg(pl.median(to_plot))
+                .agg(weighed_average_polars(to_plot, "ResponseCountBin"))
                 .sort(to_plot)
                 .tail(top_n)
                 .select("PredictorName"),
@@ -385,9 +387,7 @@ class Plots:
             last=last,
         )
         df = df.with_columns(
-            (pl.col(["Performance", "SuccessRate"]) * pl.lit(100)).round(
-                kwargs.pop("round", 5)
-            )
+            (pl.col(["Performance"]) * pl.lit(100)).round(kwargs.pop("round", 5))
         )
         df = df.collect()
         if kwargs.pop("return_df", False):
@@ -834,11 +834,8 @@ class Plots:
 
         df = (
             df.filter(pl.col("PredictorName") != "Classifier")
-            .groupby("ModelID", "PredictorName")
-            .agg(pl.all().first())
-            .with_columns(
-                pl.col("PredictorName"), pl.col("PredictorCategory").alias("Legend")
-            )
+            .unique(subset=["ModelID", "PredictorName"], keep="first")
+            .rename({"PredictorCategory": "Legend"})
         )
 
         separate = kwargs.pop("separate", False)
@@ -851,8 +848,10 @@ class Plots:
             order = {}
             for facet, group_df in (
                 df.groupby(*facets, "PredictorName")
-                .agg(pl.median(to_plot))
-                .sort(to_plot)
+                .agg(
+                    pl.median(to_plot).alias(f"median_{to_plot}"),
+                )
+                .sort(f"median_{to_plot}")
                 .partition_by(*facets, as_dict=True)
                 .items()
             ):
@@ -860,16 +859,18 @@ class Plots:
 
         else:
             partition = None
-            df = self.top_n(df, top_n, to_plot)  # TODO: add groupby
+            df = self.top_n(df, top_n, to_plot)
             order = (
                 df.groupby("PredictorName")
-                .agg(pl.median(to_plot))
+                .agg(
+                    pl.median(to_plot).alias(f"median_{to_plot}"),
+                )
                 .fill_nan(0)
-                .sort(to_plot, descending=False)
+                .sort(f"median_{to_plot}", descending=False)
                 .get_column("PredictorName")
                 .to_list()
             )
-        if to_plot == "PerformanceBin":
+        if to_plot in ["PerformanceBin", "FeatureImportance"]:
             df = df.with_columns(pl.col(to_plot) * 100)
         if kwargs.pop("return_df", False):
             return df, order
@@ -938,12 +939,12 @@ class Plots:
         table = "combinedData"
         last = True
         required_columns = {
+            "ModelID",
             "Configuration",
             "Channel",
             "Direction",
             "PredictorName",
-            "Name",
-            "BinResponseCount",
+            "ResponseCountBin",
             to_plot,
             "Type",
             "PredictorCategory",
@@ -959,25 +960,20 @@ class Plots:
         )
         df = df.filter(pl.col("PredictorName").cast(pl.Utf8) != "Classifier")
 
-        df = df.collect().with_columns(
-            pl.col("PredictorName"),
-            pl.col("PredictorCategory").alias("Predictor Category"),
-        )
-
         df = (
-            df.groupby(facets + ["Name", "Predictor Category"])
+            df.groupby(facets + ["ModelID", "PredictorCategory"])
             .agg(
-                weighed_average_polars("PerformanceBin", "BinResponseCount").alias(
+                weighed_average_polars("PerformanceBin", "ResponseCountBin").alias(
                     "PerformanceBin"
                 )
             )
             .with_columns(
                 [
-                    (pl.col("Predictor Category").alias("Legend")),
+                    (pl.col("PredictorCategory").alias("Legend")),
                     (pl.col("PerformanceBin") * 100),
                 ]
             )
-        )
+        ).collect()
 
         if kwargs.pop("separate", False):
             partition = "facet"
@@ -992,7 +988,7 @@ class Plots:
             plotting_engine.PredictorPerformance,
             partition=partition,
             df=df,
-            y="Predictor Category",
+            y="PredictorCategory",
             query=query,
             to_plot=to_plot,
             **kwargs,
