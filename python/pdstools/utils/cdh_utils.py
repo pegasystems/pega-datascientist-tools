@@ -294,15 +294,15 @@ def auc_from_bincounts(
     """
     pos = np.asarray(pos)
     neg = np.asarray(neg)
-    if probs is None:  
-        probs = pos / (pos + neg)  
-  
-    binorder = np.argsort(probs)[::-1]  
-    FPR = np.cumsum(neg[binorder]) / np.sum(neg)  
-    TPR = np.cumsum(pos[binorder]) / np.sum(pos)  
-      
-    Area = (np.diff(FPR, prepend=0)) * (TPR + np.insert(np.roll(TPR, 1)[1:], 0,0)) / 2  
-    return safe_range_auc(np.sum(Area))  
+    if probs is None:
+        probs = pos / (pos + neg)
+
+    binorder = np.argsort(probs)[::-1]
+    FPR = np.cumsum(neg[binorder]) / np.sum(neg)
+    TPR = np.cumsum(pos[binorder]) / np.sum(pos)
+
+    Area = (np.diff(FPR, prepend=0)) * (TPR + np.insert(np.roll(TPR, 1)[1:], 0, 0)) / 2
+    return safe_range_auc(np.sum(Area))
 
 
 def aucpr_from_probs(
@@ -663,18 +663,19 @@ def legend_color_order(fig):
         "#A7A9B4",  # medium grey
         "#D0D1DB",  # light grey
     ]
-
     colors = []
     for trace in fig.data:
-        colors.append(trace.legendgroup)
+        if trace.legendgroup is not None:
+            colors.append(trace.legendgroup)
     colors.sort()
     indexed_colors = {k: v for v, k in enumerate(colors)}
     for trace in fig.data:
-        try:
-            trace.marker.color = colorway[indexed_colors[trace.legendgroup]]
-            trace.line.color = colorway[indexed_colors[trace.legendgroup]]
-        except AttributeError:  # pragma: no cover
-            pass
+        if trace.legendgroup is not None:
+            try:
+                trace.marker.color = colorway[indexed_colors[trace.legendgroup]]
+                trace.line.color = colorway[indexed_colors[trace.legendgroup]]
+            except AttributeError:  # pragma: no cover
+                pass
 
     return fig
 

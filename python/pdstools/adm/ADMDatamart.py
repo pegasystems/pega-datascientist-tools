@@ -1020,21 +1020,25 @@ class ADMDatamart(Plots, Tables):
             by = by[0]
         if self.import_strategy == "lazy" and not allow_collect:
             raise NotEagerError("Pivot df.")
-        df = df.filter(pl.col("PredictorName") != "Classifier")
-        if by not in ["ModelID", "Name"]:
-            df = (
-                df.with_columns(pl.col("ResponseCount"))
-                .groupby([by, "PredictorName"])
+
+        df = df.filter(pl.col("PredictorName") != "Classifier").with_columns(
+            pl.col("PerformanceBin").fill_nan(0.5),
+        )
+        if top_n > 0:
+            top_n_xaxis = (
+                df.unique(subset=[by], keep="first")
+                .groupby(by)
                 .agg(
                     cdh_utils.weighed_average_polars("PerformanceBin", "ResponseCount")
                 )
-            )
-
-        if top_n > 0:
-            df = (
-                df.with_columns(pl.col("PerformanceBin").fill_nan(0.5))
                 .sort("PerformanceBin", descending=True)
                 .head(top_n)
+                .select(by)
+            )
+            df = top_n_xaxis.join(df, on=by, how="left") 
+        if by not in ["ModelID", "Name"]:
+            df = df.groupby([by, "PredictorName"]).agg(
+                cdh_utils.weighed_average_polars("PerformanceBin", "ResponseCount")
             )
         df = (
             df.collect()
@@ -1055,7 +1059,7 @@ class ADMDatamart(Plots, Tables):
             )
             .select(pl.all().arg_sort(descending=True))
             .to_series()
-        )
+        )[:top_n]
         pred_order = [by] + [
             df.columns[i + 1]
             for i in 0
@@ -1063,7 +1067,8 @@ class ADMDatamart(Plots, Tables):
             .transpose()
             .select(pl.all().arg_sort(descending=True))
             .to_series()
-        ]
+        ][:top_n]
+
         return df[mod_order].select(pred_order)
 
     @staticmethod

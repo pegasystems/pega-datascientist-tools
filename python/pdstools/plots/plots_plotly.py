@@ -154,7 +154,7 @@ class ADMVisualisations:
                 newtext = f"{len(df)} models: {bottomleft} ({round(bottomleft/len(df)*100, 2)}%) at (50,0)"
                 fig.layout.title.text += f"<br><sup>{newtext}</sup>"
                 fig.data[0].marker.size *= bubble_size
-
+            fig.update_yaxes(tickformat="%")
         return self.post_plot(fig, name="Bubble", title=title, **kwargs)
 
     def OverTime(
@@ -222,7 +222,7 @@ class ADMVisualisations:
         )
         if hide_legend:
             fig.update_layout(showlegend=False)
-        if metric == "SuccessRate":
+        if metric in ["SuccessRate"]:
             fig.update_yaxes(tickformat=".2%")
             fig.update_layout(yaxis={"rangemode": "tozero"})
 
@@ -379,13 +379,15 @@ class ADMVisualisations:
         -------
         px.Figure
         """
-
-        # TODO: perhaps get top n & order per facet.
-
-        title = (
+        title_suffix = (
             f"{kwargs.get('facet_val','over all models')}"
             if facet is None
             else f"per {facet}"
+        )
+        title_prefix = (
+            "Predictor Importance"
+            if to_plot == "FeatureImportance"
+            else f"Predictor {to_plot}"
         )
         df = df.to_pandas(use_pyarrow_extension_array=True)
         if order:
@@ -397,12 +399,11 @@ class ADMVisualisations:
             y=y,
             color="Legend",
             template="pega",
-            title=f"Predictor Performance {title} {kwargs.get('title_text','')}",
+            title=f"{title_prefix} {title_suffix} {kwargs.get('title_text','')}",
             facet_col=facet,
             facet_col_wrap=kwargs.get("facet_col_wrap", 5),
             labels={"PredictorName": "Predictor Name", "PerformanceBin": "Performance"},
         )
-
         fig.update_yaxes(
             categoryorder="array", categoryarray=order, automargin=True, dtick=1
         )

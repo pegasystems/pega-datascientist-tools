@@ -64,12 +64,11 @@ globalQuery = None
 #| code-summary: Initialization of the datamart class.
 
 # Initialize the class after the parameters have been overwritten.
- 
+
 if len(kwargs)>0: #override with keyword arguments
-    datamart = ADMDatamart(**kwargs).fillMissing()
+    datamart = ADMDatamart(**kwargs, include_cols="pyFeatureImportance").fillMissing()
 else: #fall back to 'default'
     datamart = datasets.CDHSample()
-
 treatment = (
     "Treatment" in datamart.modelData.columns
     and datamart.modelData.schema["Treatment"] != pl.Null
@@ -221,7 +220,7 @@ fig = px.bar(
     title="Proposition success rates <br><sup>Issue/Group/Name/Treatment</sup>",
     hover_data=hover_data,
 )
-fig.update_xaxes(tickformat=",.0%")
+fig.update_xaxes(tickformat=",.2%")
 fig.update_yaxes(matches=None, showticklabels=False, visible=False).update_xaxes(
     matches=None,
 ).update_traces(textposition="inside")
@@ -331,7 +330,7 @@ fig.update_layout(font=dict(size=10))
 
 fig.for_each_annotation(lambda a: a.update(text="<br> ".join(a.text.split("/", 1))))
 fig.update_coloraxes(colorbar_len= 1 / math.ceil( len(fig.layout.annotations) / facet_col_wrap))
-
+fig.update_yaxes(tickformat=",.2%")
 fig.show()
 ```
 
@@ -407,13 +406,20 @@ Box plots of the predictor importance. Importance can be shown either as a globa
 
 ```{python}
 #| error: true
+to_plot = (
+    "FeatureImportance"
+    if "FeatureImportance" in datamart_all_columns
+    else "Performance"
+)
 if datamart.predictorData is not None:
-    figs = datamart.plotPredictorPerformance(top_n=20, facets='Configuration',separate=True, active_only=True)
+    figs = datamart.plotPredictorPerformance(
+        top_n=30, facets="Configuration", separate=True, active_only=False,to_plot=to_plot
+    )
     if not isinstance(figs, list):
         figs = [figs]
     for fig in figs:
         fig.update_traces(width=0.3)
-        fig.update_layout(font=dict(size=10))
+        fig.update_layout(font=dict(size=10), height=700)
         fig.layout.xaxis.tickformat = ".d"
 
         fig.show()
@@ -571,25 +577,22 @@ path =  [col for col in ["Configuration", "PredictorCategory", "PredictorName"] 
 gb_cols = path
 path = [px.Constant("All Models")] + path 
 
-missing = (
-    datamart.combinedData.filter(pl.col("BinSymbol") == "MISSING")
-    .groupby(gb_cols)
-    .agg(pl.sum("BinResponseCount").alias("MissingCount"))
-)
-whole_df = (
-    datamart.combinedData.groupby(gb_cols).agg(pl.sum("BinResponseCount"))
-)
-
-with_missing = whole_df.join(missing, on=gb_cols, how="inner").with_columns(
+missing = datamart.last(table = "combinedData").filter(pl.col("PredictorName") != "Classifier").groupby(gb_cols).agg(
+    pl.col("BinResponseCount")
+    .where(pl.col("BinSymbol") == "MISSING")
+    .sum()
+    .alias("MissingCount"),
+    pl.sum("BinResponseCount").alias("BinResponseCount")
+).with_columns(
     (pl.col("MissingCount") / pl.col("BinResponseCount")).alias("Percentage without responses")
-).filter((~pl.col("Percentage without responses").is_nan())).collect()
+).filter((~pl.col("Percentage without responses").is_nan()))
 
 hover_data = {
     "Percentage without responses": ":.2%",
 }
 
 fig = px.treemap(
-    with_missing.to_pandas(),
+    missing.to_pandas(),
     path=path,
     color="Percentage without responses",
     template="pega",
@@ -842,14 +845,14 @@ df = (
     .collect()
 )
 
-cut_off_value = [percentile for percentile in range(50, 100, 3)]
-df_pl = df.get_column(to_plot).fill_null(0).fill_nan(0).cut(bins=cut_off_value, category_label="PerformanceBin").lazy()
-join = df.lazy().join(
-    df_pl.select([to_plot, "PerformanceBin"]).unique(), on=to_plot, how="left"
+breaks = [percentile for percentile in range(50, 100, 3)]
+df = df.with_columns(pl.col("Performance").cut(breaks=breaks).alias("PerformanceBin"))
+
+grouped = df.groupby(["Channel", "PerformanceBin"]).agg(
+    pl.sum("ResponseCount"), pl.min(to_plot).alias("break_label")
 )
-grouped = join.groupby(["Channel", "PerformanceBin"]).agg(pl.sum("ResponseCount"))
 out = (
-    grouped.sort(["Channel", "PerformanceBin"])
+    grouped.sort(["Channel", "break_label"])
     .select(
         [
             pl.col("Channel").cast(pl.Utf8),
@@ -861,7 +864,6 @@ out = (
     .with_columns([(pl.col("ResponseCount") / pl.col("sum")).alias("Volume")])
 )
 
-out = out.sort(["Channel", "PerformanceBin"]).collect().to_pandas()
 fig = px.bar(
     out,
     x="PerformanceBin",
@@ -875,15 +877,12 @@ for bar in fig.data:
 
 channels = out["Channel"].unique()
 for channel_num, channel in enumerate(channels):
-    channel_df = out[out["Channel"] == channel]
-    fig.add_traces(go.Scatter(x = channel_df["PerformanceBin"], y=channel_df.Volume, line_shape = 'spline', marker_color = fig.data[channel_num].marker.color, name=channel))
+    channel_df = out.filter(pl.col("Channel") == channel) 
+    fig.add_traces(go.Scatter(x = channel_df["PerformanceBin"], y=channel_df["Volume"], line_shape = 'spline', marker_color = fig.data[channel_num].marker.color, name=channel))
 
 
 fig.update_yaxes(tickformat=",.0%")
-fig.update_xaxes(categoryorder='array', categoryarray = out.sort_values("PerformanceBin")["PerformanceBin"].unique())
-
 cdh_utils.legend_color_order(fig).show()
-
 ```
 
 ## Positives vs. Number of Models
@@ -918,41 +917,73 @@ So when one of the graphs shows more volume on the left, that is to be interpret
 to_plot = "Propensity"
 if to_plot == "Propensity" and to_plot not in datamart.predictorData.columns:
     to_plot = "BinPropensity"
-df = datamart.combinedData.filter(pl.col("PredictorName")!="Classifier").groupby([to_plot, "Channel", "Direction"]).agg(pl.sum("BinResponseCount")).with_columns(pl.col(to_plot).round(4).cast(pl.Float64)).collect()
+df = (
+    datamart.combinedData.filter(pl.col("PredictorName") != "Classifier")
+    .groupby([to_plot, "Channel", "Direction"])
+    .agg(pl.sum("BinResponseCount"))
+    .with_columns(pl.col(to_plot).round(4).cast(pl.Float64))
+    .collect()
+)
 color_col = "Channel"
 smallest_bin = 0
 
 for color in df.get_column(color_col).unique().to_list():
     color_df = df.filter(pl.col(color_col) == color)
-    propensity_list = list(set(color_df.select(to_plot).fill_null(0).fill_nan(0).filter(pl.col(to_plot)>0).get_column(to_plot).to_list()))
+    propensity_list = list(
+        set(
+            color_df.select(to_plot)
+            .fill_null(0)
+            .fill_nan(0)
+            .filter(pl.col(to_plot) > 0)
+            .get_column(to_plot)
+            .to_list()
+        )
+    )
     if len(propensity_list) > 0:
-        if (np.percentile(propensity_list, 10) > smallest_bin):
+        if np.percentile(propensity_list, 10) > smallest_bin:
             smallest_bin = np.percentile(propensity_list, 10)
-            cut_off_value = np.percentile(propensity_list, [percentile for percentile in range(0,101,5)])
+            cut_off_value = np.percentile(
+                propensity_list, [percentile for percentile in range(0, 101, 5)]
+            )
 
-df_pl = df.get_column(to_plot).fill_null(0).fill_nan(0).cut(bins=cut_off_value, category_label="propensity").lazy()
-join= df.lazy().join(df_pl.select([to_plot, "propensity"]).unique(), on=to_plot, how="left")
-grouped = join.groupby(["Channel","propensity"]).agg(pl.sum("BinResponseCount"))
+df_pl = df.with_columns(
+    pl.col(to_plot)
+    .fill_null(0)
+    .fill_nan(0)
+    .cut(breaks=cut_off_value)
+    .alias(f"{to_plot}_range")
+)
 
-out = grouped.sort(["Channel","propensity"]).select(
-    [
-        "Channel",
-        "propensity",
-        "BinResponseCount",
-        pl.col("BinResponseCount").sum().over("Channel").alias("sum"),
-        
-    ]
-).with_columns([
-    (pl.col("BinResponseCount")/ pl.col("sum")).alias("Responses")
-    ])
+grouped = df_pl.groupby(["Channel", f"{to_plot}_range"]).agg(
+    pl.sum("BinResponseCount"), pl.min(to_plot).alias("break_label")
+)
 
-out = out.sort(["Channel", "propensity"]).collect().to_pandas()
-fig = px.bar(out, x='propensity', y='Responses', color=color_col,template="pega", barmode="overlay")
+out = (
+    grouped.sort(["Channel", "break_label"])
+    .select(
+        [
+            "Channel",
+            f"{to_plot}_range",
+            "break_label",
+            "BinResponseCount",
+            pl.col("BinResponseCount").sum().over("Channel").alias("sum"),
+        ]
+    )
+    .with_columns([(pl.col("BinResponseCount") / pl.col("sum")).alias("Responses")])
+)
+
+out = out.sort(["Channel", "break_label"])
+fig = px.bar(
+    out,
+    x=f"{to_plot}_range",
+    y="Responses",
+    color=color_col,
+    template="pega",
+    barmode="overlay",
+)
 fig.update_yaxes(tickformat=",.0%")
-fig.update_xaxes(categoryorder='array', categoryarray = out.sort_values("propensity")["propensity"].unique())
 
 fig.show()
-
 ```
 
 # Appendix - all the models
