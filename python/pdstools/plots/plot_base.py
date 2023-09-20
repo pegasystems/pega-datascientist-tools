@@ -1084,7 +1084,7 @@ class Plots:
 
     def plotPredictorPerformanceHeatmap(
         self,
-        top_n: int = 0,
+        top_n: int = 20,
         by="Name",
         active_only: bool = False,
         query: Optional[Union[pl.Expr, str, Dict[str, list]]] = None,
