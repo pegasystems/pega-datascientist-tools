@@ -237,7 +237,7 @@ The Lift chart is derived from this and shows the ratio of the cumulative gain a
 
 activeClassifierBins <- classifierBins[(isInActiveRange)]
 
-if (nrow(activeClassifierBins) >= 1 & (sum(activeClassifierBins$BinNegatives) + sum(activeClassifierBins$BinPositives) > 0)) {
+if (nrow(activeClassifierBins) >= 2 & (sum(activeClassifierBins$BinNegatives) + sum(activeClassifierBins$BinPositives) > 0)) {
   cumGains <- plotCumulativeGains(activeClassifierBins)
   
   cumLift <- plotCumulativeLift(activeClassifierBins)
@@ -314,6 +314,19 @@ can be configured with one of the parameters in the Yaml header of this notebook
 
 ```{r, results="asis", fig.height = 3, fig.width = 6, fig.align = "center"}
 
+plotBinningPM <- function(bins)
+{
+  ggplot(bins[,BinSymbol := factor(BinSymbol, levels=BinSymbol)], aes(BinSymbol, Lift-1)) +
+    geom_col(aes(fill=I(ifelse(Lift < 1, "#A00005", "#5F9F36")),
+                 alpha=I(ifelse(BinPositives < 25, 0.4, 1.0))), 
+             width=0.5) + 
+    coord_flip() + 
+    ylab("Propensity Lift") + xlab("") +
+    scale_x_discrete(limits=rev) +
+    scale_y_continuous(labels=percent) +
+    geom_hline(yintercept = 0, linetype="dashed")
+}
+
 # to print all instead of only the active ones, change condition to: EntryType != "Classifier"
 
 for (f in unique(allPredictorBins[!params$predictordetails_activeonly | EntryType == "Active"]$PredictorName)) {
@@ -324,7 +337,7 @@ for (f in unique(allPredictorBins[!params$predictordetails_activeonly | EntryTyp
   } else {
     cat("##", f, fill=T) # Predictor name
     
-    cat("<table><tr><th>Info</th><th>Binning</th></tr>", fill=T)
+    cat('<table style="width: 100%"><tr><th>Info</th><th>Binning</th></tr>', fill=T)
     
     # write.csv(predictorBinning, "tempbin.csv")
     
@@ -337,16 +350,18 @@ for (f in unique(allPredictorBins[!params$predictordetails_activeonly | EntryTyp
     }
     
     # Table prelude with some overall info about the predictor
-    cat("<tr><td>", fill=T)
+    cat('<tr><td width="40%">', fill=T)
     printADMPredictorInfo(f, predictorBinning, extraPredInfo)
     cat("</td>", fill=T)
     
     # colour names: http://sape.inf.usi.ch/quick-reference/ggplot2/colour
     
-    cat("<td>", fill=T)
+    cat('<td width="60%">', fill=T)
     if (nrow(predictorBinning) > 1) {
       p <- plotBinning(predictorBinning)+ ggtitle(f)
+      print(p)
       
+      p <- plotBinningPM(predictorBinning)+ ggtitle(f)
       print(p)
     }  
     cat("</td></tr></table>", fill=T)
@@ -355,4 +370,7 @@ for (f in unique(allPredictorBins[!params$predictordetails_activeonly | EntryTyp
   }
 }
 ```
+
+
+
 
