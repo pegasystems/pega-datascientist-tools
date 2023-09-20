@@ -411,7 +411,7 @@ Classes
       :rtype: go.FigureWidget
 
 
-   .. py:method:: plotPredictorPerformanceHeatmap(top_n: int = 0, by='Name', active_only: bool = False, query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None, facets: list = None, **kwargs) -> plotly.graph_objs.FigureWidget
+   .. py:method:: plotPredictorPerformanceHeatmap(top_n: int = 20, by='Name', active_only: bool = False, query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None, facets: list = None, **kwargs) -> plotly.graph_objs.FigureWidget
 
       Plots heatmap of the performance of the predictors
 
