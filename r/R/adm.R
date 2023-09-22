@@ -741,6 +741,12 @@ admVarImp <- function(datamart, facets = NULL, filter = function(x) {filterClass
 
 getActiveRanges <- function(dm)
 {
+  is_AUC_activerange <- is_AUC_fullrange <- nClassifierBins <- is_full_indexrange <- active_index_max <- NULL # Trick to silence warnings from R CMD Check
+  active_index_min <- activeRangeAUC <- fullRangeAUC <- Performance <- reportedAUC <- NULL
+  ModelID <- sumMaxLogOdds <- score_max <- NULL
+  EntryType <- BinPositives <- BinNegatives <- totalPos <- totalNeg <- NULL
+  logOddsMin <- logOddsMax <- score_min <- classifierLogOffset <- sumMinLogOdds <- nActivePredictors <- NULL
+
   # log odds contribution of the bins, including Laplace smoothing
   binLogOdds <- function(binpos, binneg) {
     nbins = length(binpos)

@@ -14,9 +14,8 @@ examples/**/*.html
 r/*.csv
 r/tests/testthat/*.html
 r/tests/testthat/*.pdf
-/*.ipynb
-
-# Python
+**/*.ipynb
+**/*.gz
 *.pyc
 build/
 *.egg-info/
