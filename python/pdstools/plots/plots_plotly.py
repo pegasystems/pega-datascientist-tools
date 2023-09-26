@@ -200,7 +200,7 @@ class ADMVisualisations:
                 "SnapshotTime"
             )
             x = None
-            y = "Increase"
+            y = metric
             color = by
             hover_data = None
         title = "over all models" if facet is None else f"per {facet}"
