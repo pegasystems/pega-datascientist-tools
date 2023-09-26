@@ -21,6 +21,7 @@ params:
   modeldescription:
     # Optional model description typically corresponding to the model info of the indicated model
     value: "Sales Model - PSDISCOUNT100"
+    
   modelid:
     # Model ID that is used to filter the predictor binning table data. If the
     # binning data only contains a single Model ID it can be left empty.
@@ -301,11 +302,15 @@ to the text before the first dot. This can be customized when reading the data
 for a particular customer.
 
 ```{r Predictor Category, message=FALSE, warning=FALSE}
-plotPredictorImportance(datamart, categoryAggregateView = T) +
-           # same palette as health check
-           scale_fill_discrete_qualitative(palette="Dark 3", drop=T, guide="none") +
-           ylab("Predictor Category") +
-           scale_x_continuous(limits=c(50, NA), name="Average Univariate Performance")
+if (any(datamart$predictordata$EntryType == "Active")) {
+  plotPredictorImportance(datamart, categoryAggregateView = T) +
+             # same palette as health check
+             scale_fill_discrete_qualitative(palette="Dark 3", drop=T, guide="none") +
+             ylab("Predictor Category") +
+             scale_x_continuous(limits=c(50, NA), name="Average Univariate Performance")
+} else {
+  cat("No active predictors", fill=T)
+}
 ```
 
 # Predictor Overview
