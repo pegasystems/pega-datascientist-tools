@@ -1,8 +1,7 @@
 
 # Colors picked from score distribution of the classifier of ADM
-pegaClassifierBlueBar <- "#278DC1"
-pegaClassifierYellowLine <- "#EF8B08"
-
+pegaClassifierBlueBar <- "#278DC1" # "dodgerblue2"
+pegaClassifierYellowLine <- "goldenrod1" # "#EF8B08"
 
 # Abbreviate lengthy names
 plotsAbbreviateName <- function(str, abbreviateLength)
@@ -36,6 +35,7 @@ plotsAbbreviateName <- function(str, abbreviateLength)
 }
 
 # Rewrite interval label with only limited precision
+# TODO: this cuts off numbers, does not abbreviate, e.g. 72.8299 becomes 72.829 not 72.83
 plotsAbbreviateInterval <- function(str)
 {
   # split inputs by space, abbreviate numbers in the elements (if matching,
@@ -43,6 +43,16 @@ plotsAbbreviateInterval <- function(str)
   regexpNumber <- "(.*)([[:digit:]]+)([.])([[:digit:]]{1,3})[[:digit:]]*(.*)"
   sapply(strsplit(as.character(str), " ", fixed=T),
          function(v) {paste(gsub(regexpNumber, "\\1\\2\\3\\4\\5", v), collapse = " ")} )
+}
+
+# Abbreviate long intervals and long symbols
+plotsBinLabeller <- function(bins)
+{
+  ifelse(getPredictorType(bins) == "numeric",
+         plotsAbbreviateInterval(bins$BinSymbol),
+         ifelse(nchar(as.character(bins$BinSymbol)) <= 25,
+                bins$BinSymbol,
+                paste(substr(as.character(bins$BinSymbol), 1, 25), "...")))
 }
 
 # Build faceting expression
@@ -147,7 +157,7 @@ plotPerformanceSuccessRateBubbleChart <- function(datamart,
     geom_point(alpha=0.7) +
     guides(colour="none", size="none")+
     scale_x_continuous(limits = c(50, 100), name = "Performance") +
-    scale_y_continuous(limits = c(0, NA), name = "Success Rate", labels = scales::percent) +
+    scale_y_continuous(limits = c(0, NA), name = "Success Rate", labels = scales::label_percent(accuracy=0.1)) +
     plotsGetFacets(facets) +
     plotsGetTitles("Performance vs Success Rate", aggregation, facets)
 }
@@ -185,7 +195,7 @@ plotPerformanceSuccessRateBoxPlot <- function(datamart,
   ggplot(modeldata, aes(AUC, Positives/ResponseCount, colour=!!primaryCriterionSym)) +
     geom_boxplot(alpha=0.7, lwd=1) +
     scale_x_continuous(limits = c(50, 100), name = "Performance") +
-    scale_y_continuous(limits = c(0, NA), name = "Success Rate", labels = scales::percent) +
+    scale_y_continuous(limits = c(0, NA), name = "Success Rate", labels = scales::label_percent(accuracy=0.1)) +
     plotsGetFacets(facets) +
     plotsGetTitles("Performance vs Success Rate", primaryCriterion, facets)
 }
@@ -280,7 +290,7 @@ plotSuccessRateOverTime <- function(datamart,
   ggplot(plotdata, aes(SnapshotTime, SuccessRate, color=Proposition)) +
     geom_line() +
     xlab("") +
-    scale_y_continuous(limits = c(0, NA), name = "Success Rate", labels = scales::percent) +
+    scale_y_continuous(limits = c(0, NA), name = "Success Rate", labels = scales::label_percent(accuracy=0.1)) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
     plotsGetFacets(facets, scales="free_y") +
     plotsGetTitles("Success Rate over Time", aggregation, facets)
@@ -594,8 +604,8 @@ plotPropositionSuccessRates <- function(datamart,
          aes(SuccessRate, factor(PropositionRank, levels=rev(sort(unique(PropositionRank)))), fill=SuccessRate)) +
     geom_col() +
     # geom_text(aes(label=sprintf("%.2f%%", 100*`Success Rate`)), color="blue", hjust=0.5, size=2)+
-    geom_text(aes(x=0, label=plotsAbbreviateName(Proposition, maxNameLength)), color="black", hjust=0, size=2)+
-    scale_x_continuous(labels=percent) +
+    geom_text(aes(x=0, label = plotsAbbreviateName(Proposition, maxNameLength)), color="black", hjust=0, size=2)+
+    scale_x_continuous(labels = scales::label_percent(accuracy=0.1)) +
     guides(fill="none") +
     ylab("") +
     theme(axis.text.y = element_text(hjust = 1, size=6)) +
@@ -621,27 +631,28 @@ plotPropositionSuccessRates <- function(datamart,
 #' }
 plotCumulativeGains <- function(binning)
 {
-  BinIndex <- CumPositivesPct <- BinPositives <- CumVolumePct <- BinResponseCount <- NULL  # Trick to silence warnings from R CMD Check
+  BinIndex <- PositivesPercentage <- BinPositives <- PopulationPercentage <- BinResponseCount <- NULL  # Trick to silence warnings from R CMD Check
 
   binning[, BinIndex := as.numeric(BinIndex)] # just in case
   setorder(binning, BinIndex)
 
-  binning[, CumPositivesPct := rev(100.0*cumsum(rev(BinPositives))/sum(BinPositives))]
-  binning[, CumVolumePct := rev(100.0*cumsum(rev(BinResponseCount))/sum(BinResponseCount))]
+  binning[, PositivesPercentage := rev(100.0*cumsum(rev(BinPositives))/sum(BinPositives))/100]
+  binning[, PopulationPercentage := rev(100.0*cumsum(rev(BinResponseCount))/sum(BinResponseCount))/100]
 
-  secAxisFactor <- sum(binning$BinPositives)
-  lastRow <- copy(binning[1,])[, c("CumPositivesPct", "CumVolumePct") := 0 ]
+  # secAxisFactor <- sum(binning$BinPositives)
+  lastRow <- copy(binning[1,])[, c("PositivesPercentage", "PopulationPercentage") := 0 ]
 
-  ggplot(rbind(binning, lastRow), aes(CumVolumePct/100, CumPositivesPct/100)) +
-    geom_ribbon(aes(ymin=CumVolumePct/100, ymax=CumPositivesPct/100),
+  ggplot(rbind(binning, lastRow), aes(PopulationPercentage, PositivesPercentage)) +
+    geom_ribbon(aes(ymin=PopulationPercentage, ymax=PositivesPercentage),
                 color = pegaClassifierBlueBar, size=0, fill=pegaClassifierBlueBar, alpha=0.6) +
     geom_abline(slope = 1, linetype = "dashed", color = "grey") +
     #geom_area(color = "steelblue3", size=1, fill="steelblue3", alpha=0.6) +
     geom_line(color = pegaClassifierYellowLine, size=2) +
     geom_point(color = "black", size=1) +
-    scale_x_continuous(labels = scales::percent, name = "% of Population", breaks = (0:10)/10, limits = c(0,1)) +
-    scale_y_continuous(labels = scales::percent, name = "% of Total Positive Responses", limits = c(0,1),
-                       sec.axis = sec_axis(~.*secAxisFactor, name = "Total Positive Responses")) +
+    scale_x_continuous(labels = scales::label_percent(), name = "% of Population", breaks = (0:10)/10, limits = c(0,1)) +
+    scale_y_continuous(labels = scales::label_percent(), name = "% of Total Positive Responses", limits = c(0,1)) +
+  # ,
+  #                      sec.axis = sec_axis(~.*secAxisFactor, name = "Total Positive Responses")) +
     ggtitle("Cumulative Gains") +
     theme(plot.title = element_text(hjust = 0.5),
           plot.subtitle = element_text(hjust = 0.5),
@@ -666,24 +677,26 @@ plotCumulativeGains <- function(binning)
 #' }
 plotCumulativeLift <- function(binning)
 {
-  BinIndex <- CumPositivesPct <- BinPositives <- CumVolumePct <- BinResponseCount <- NULL  # Trick to silence warnings from R CMD Check
+  BinIndex <- PositivesPercentage <- BinPositives <- PopulationPercentage <- BinResponseCount <- CumulativeLift <- NULL  # Trick to silence warnings from R CMD Check
 
   binning[, BinIndex := as.numeric(BinIndex)] # just in case
   setorder(binning, BinIndex)
 
-  binning[, CumPositivesPct := rev(100.0*cumsum(rev(BinPositives))/sum(BinPositives))]
-  binning[, CumVolumePct := rev(100.0*cumsum(rev(BinResponseCount))/sum(BinResponseCount))]
+  binning[, PositivesPercentage := rev(100.0*cumsum(rev(BinPositives))/sum(BinPositives))/100]
+  binning[, PopulationPercentage := rev(100.0*cumsum(rev(BinResponseCount))/sum(BinResponseCount))/100]
+  binning[, CumulativeLift := PositivesPercentage/PopulationPercentage]
 
-  secAxisFactorBaseRate <- sum(binning$BinPositives)/(sum(binning$BinPositives) + sum(binning$BinNegatives))
+  # secAxisFactorBaseRate <- sum(binning$BinPositives)/(sum(binning$BinPositives) + sum(binning$BinNegatives))
 
-  ggplot(binning, aes(CumVolumePct/100, CumPositivesPct/CumVolumePct)) +
-    geom_ribbon(aes(ymin=1.0, ymax=CumPositivesPct/CumVolumePct),
+  ggplot(binning, aes(PopulationPercentage, CumulativeLift)) +
+    geom_ribbon(aes(ymin=1.0, ymax=CumulativeLift),
                 color = pegaClassifierBlueBar, size=0, fill=pegaClassifierBlueBar, alpha=0.6) +
-    geom_line(color = pegaClassifierYellowLine, size=2) +
+    geom_line(color = pegaClassifierYellowLine, linewidth=2) +
     geom_point(color = "black", size=1) +
-    scale_x_continuous(labels = scales::percent, name = "% of Population", breaks = (0:10)/10, limits = c(0,1)) +
-    scale_y_continuous(name = "Lift", limits = c(1.0,NA),
-                       sec.axis = sec_axis(~.*secAxisFactorBaseRate, labels = scales::percent, name = "Success Rate")) +
+    scale_x_continuous(labels = scales::label_percent(), name = "% of Population", breaks = (0:10)/10, limits = c(0,1)) +
+    scale_y_continuous(name = "Lift", limits = c(1.0,NA), labels = scales::label_number(0.1)) +
+    # ,
+    #                    sec.axis = sec_axis(~.*secAxisFactorBaseRate, labels = scales::label_percent(accuracy=0.1), name = "Success Rate")) +
     ggtitle("Lift") +
     theme(plot.title = element_text(hjust = 0.5),
           plot.subtitle = element_text(hjust = 0.5),
@@ -735,26 +748,70 @@ plotBinning <- function(binning, useSmartLabels = T) # TODO consider adding lapl
              fill=ifelse(binning$EntryType[1]=="Inactive", "darkgrey", pegaClassifierBlueBar),
              alpha=0.8)+
     geom_line(aes(y=Propensity/secAxisFactor),
-              colour="orange", size=2) +
+              colour="orange", linewidth=2) +
     geom_point(aes(y=Propensity/secAxisFactor),
                size=1) +
     geom_hline(data=data.table(Positives = sum(binning$BinPositives),
                                Negatives = sum(binning$BinNegatives)),
                mapping = aes(yintercept = (Positives/(Positives+Negatives))/secAxisFactor),
                colour="orange", linetype="dashed") +
-    scale_y_continuous(limits=c(0, NA), name="Responses",
-                       sec.axis = sec_axis(~.*secAxisFactor, name = "Propensity (%)", labels=percent))+
+    scale_y_continuous(limits=c(0, NA), name="Responses", labels = scales::label_number(scale_cut = scales::cut_short_scale()),
+                       sec.axis = sec_axis(~.*secAxisFactor, name = "Propensity", labels=scales::label_percent(accuracy=0.1)))+
     theme(axis.text.x = element_text(angle = 45, hjust = 1),
           plot.title = element_text(hjust = 0.5),
           plot.subtitle = element_text(hjust = 0.5))
 
   if (useSmartLabels) {
-    plt <- plt + scale_x_discrete(name = "",
-                                  labels=ifelse(getPredictorType(binning) == "numeric",
-                                                plotsAbbreviateInterval(binning$BinSymbol),
-                                                ifelse(nchar(as.character(binning$BinSymbol)) <= 25,
-                                                       binning$BinSymbol,
-                                                       paste(substr(as.character(binning$BinSymbol), 1, 25), "..."))))
+    plt <- plt + scale_x_discrete(name = "", labels=plotsBinLabeller(binning))
+  }
+
+  plt
+}
+
+
+#' Create an alternative binning plot for any predictor.
+#'
+#' Produces a bar plot that indicates which bins push the propensity above
+#' and below the average. Somewhat like common visualizations of Shap values.
+
+#' @param binning Binning of the predictor.
+#' @param useSmartLabels If true (default) it will abbreviate lengthy symbols
+#' and for numerics it will re-create a shorter interval notation from the
+#' lower and upper bounds. This will generally look better than the labels in
+#' the binning. Turn it off to use the default bin labels. Smart labels do not work
+#' well with additional faceting, so turn it off in that case as well.
+#'
+#' @return A \code{ggplot} object that can either be printed directly, or to
+#' which additional decoration (e.g. coloring or labels) can be added first.
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' plotBinningLift(predictorbinning[PredictorName=="NetWealth"])
+#' }
+plotBinningLift <- function(binning, useSmartLabels = T) # TODO consider adding laplaceSmoothing = F to add 0.5 and 1.0
+{
+  BinIndex <- BinPositives <- BinResponseCount <- BinSymbol <- Positives <- Negatives <- Propensity <- Lift <- NULL  # Trick to silence warnings from R CMD Check
+
+  binning[, BinIndex := as.numeric(BinIndex)] # just in case
+  binning <- copy(binning) # don't change the order of the original
+  setorder(binning, -BinIndex)
+
+  if (useSmartLabels) {
+    plt <- ggplot(binning, aes(Lift-1, factor(BinIndex)))
+  } else {
+    plt <- ggplot(binning, aes(Lift-1, BinSymbol))
+  }
+
+  plt <- plt +
+    geom_col(aes(fill=I(ifelse(Lift < 1, "#A00005", "#5F9F36")),
+                 alpha=I(ifelse(BinPositives < 25, 0.4, 1.0))),
+             width=0.5) +
+    scale_x_continuous(labels=scales::label_percent(), name = "Propensity Lift") +
+    geom_vline(xintercept = 0, linetype="dashed")
+
+  if (useSmartLabels) {
+    plt <- plt + scale_y_discrete(name = "", labels=plotsBinLabeller(binning))
   }
 
   plt
@@ -806,12 +863,13 @@ userFriendlyADMBinning <- function(bins)
                         Bin = bins$BinSymbol,
                         Positives = bins$BinPositives,
                         Negatives = bins$BinNegatives,
+                        `Cum. Positives (%)` = rev(100.0*cumsum(rev(bins$BinPositives))/sum(bins$BinPositives)),
                         `Cum. Total (%)` = rev(100.0*cumsum(rev(bins$BinResponseCount))/sum(bins$BinResponseCount)),
                         `Propensity (%)` =  100*bins$BinPositives/bins$BinResponseCount,
-                        `Adjusted Propensity (%)` = 100*(0.5+bins$BinPositives)/(1+bins$BinResponseCount),
-                        `Cum. Positives (%)` = rev(100.0*cumsum(rev(bins$BinPositives))/sum(bins$BinPositives)),
                         `Z-Ratio` = bins$ZRatio,
-                        `Lift (%)` = 100*bins$Lift) )
+                        `Lift (%)` = 100*bins$Lift,
+                        `Adjusted Propensity (%)` = 100*(0.5+bins$BinPositives)/(1+bins$BinResponseCount))
+    )
   } else {
     return (data.table( Index = bins$BinIndex,
                         Bin = bins$BinSymbol,

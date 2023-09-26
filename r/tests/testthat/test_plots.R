@@ -23,11 +23,30 @@ test_that("Abbreviate Intervals" , {
   expect_equal(plotsAbbreviateInterval(">=0.987654321"), ">=0.987")
 })
 
+test_that("Bin Labeller", {
+  data("adm_datamart")
+
+  bins <- pdstools::filterLatestSnapshotOnly(adm_datamart$predictordata) [PredictorName=="Customer.AnnualIncome" & ModelID == unique(ModelID)[20]]
+  labels <- plotsBinLabeller(bins)
+
+  expect_equal(length(labels), 6)
+  expect_equal(bins[1,BinSymbol], "<13841.2209")
+  expect_equal(labels[1], "<13841.220")
+  expect_equal(bins[2, BinSymbol], "[13841.2209, 26293.0609>")
+  expect_equal(labels[2], "[13841.220, 26293.060>")
+
+  bins <- pdstools::filterLatestSnapshotOnly(adm_datamart$predictordata)[ModelID=="24f11deb-a6fa-59bf-b5f7-c61abffc9482" & PredictorName=="Customer.City"]
+  labels <- plotsBinLabeller(bins)
+
+  expect_equal(length(labels), 2)
+  expect_equal(labels[2], "East Kianborough, Catheri ...")
+})
+
 test_that("Default Predictor Categorization", {
   expect_equal(defaultPredictorCategorization("IH.Inbound.CountOf"), "IH")
   expect_equal(defaultPredictorCategorization("NetWealth"), "TopLevel")
   expect_equal(defaultPredictorCategorization(
-    c("IH.Inbound.CountOf", "Parameter.HourOfDay", "Age", "Customer.Incomd")),
+    c("IH.Inbound.CountOf", "Parameter.HourOfDay", "Age", "Customer.Income")),
     c("IH", "Parameter", "TopLevel", "Customer"))
 })
 
@@ -35,6 +54,14 @@ test_that("plotBinning", {
   data(adm_datamart)
 
   p <- plotBinning(adm_datamart$predictordata[PredictorName=="Customer.Age"][ModelID==ModelID[1]])
+
+  expect_s3_class(p, "ggplot")
+})
+
+test_that("plotBinningLift", {
+  data(adm_datamart)
+
+  p <- plotBinningLift(adm_datamart$predictordata[PredictorName=="Customer.Age"][ModelID==ModelID[1]], useSmartLabels = F)
 
   expect_s3_class(p, "ggplot")
 })
