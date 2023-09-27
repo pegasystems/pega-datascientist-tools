@@ -798,7 +798,7 @@ plotBinningLift <- function(binning, useSmartLabels = T) # TODO consider adding 
   setorder(binning, -BinIndex)
 
   if (useSmartLabels) {
-    plt <- ggplot(binning, aes(Lift-1, factor(BinIndex)))
+    plt <- ggplot(binning, aes(Lift-1, factor(BinIndex, levels = binning$BinIndex)))
   } else {
     plt <- ggplot(binning, aes(Lift-1, BinSymbol))
   }
