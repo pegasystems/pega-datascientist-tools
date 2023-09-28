@@ -19,7 +19,7 @@ def _metricPerPeriod(
 
     df = (
         df.sort(OutcomeTime_col)
-        .groupby_dynamic(OutcomeTime_col, every=period, by=by)
+        .group_by_dynamic(OutcomeTime_col, every=period, by=by)
         .agg(metrics)
     )
     if isinstance(df, pl.LazyFrame):

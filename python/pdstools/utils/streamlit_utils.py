@@ -254,7 +254,7 @@ def configure_predictor_categorization():
     df = (
         df.filter(pl.col("PredictorName") != "Classifier")
         .with_columns((pl.col("PerformanceBin") - 0.5) * 2)
-        .groupby("PredictorCategory")
+        .group_by("PredictorCategory")
         .agg(
             Performance=cdh_utils.weighed_average_polars(
                 "PerformanceBin", "BinResponseCount"

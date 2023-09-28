@@ -113,12 +113,12 @@ class Plots:
 
         if top_n < 1:
             return df
-
         if facets:
             df = df.join(
-                df.groupby(facets + ["PredictorName"])
+                df.group_by(facets + ["PredictorName"])
                 .agg(weighed_average_polars(to_plot, "ResponseCountBin"))
-                .groupby(*facets)
+                .filter(pl.col(to_plot).is_not_nan())
+                .group_by(*facets)
                 .agg(
                     pl.col("PredictorName")
                     .sort_by(to_plot, descending=True)
@@ -130,11 +130,11 @@ class Plots:
 
         else:
             df = df.join(
-                df.filter(pl.col("PredictorName").cast(pl.Utf8) != "Classifier")
-                .groupby("PredictorName")
+                df.group_by("PredictorName")
                 .agg(weighed_average_polars(to_plot, "ResponseCountBin"))
-                .sort(to_plot)
-                .tail(top_n)
+                .filter(pl.col(to_plot).is_not_nan())
+                .sort(to_plot, descending=True)
+                .head(top_n)
                 .select("PredictorName"),
                 on="PredictorName",
             )
@@ -310,7 +310,7 @@ class Plots:
                     figlist.append(plotFunc(facet=facet, *args, **kwargs))
             else:
                 order = kwargs.pop("order", None)
-                for facet_val, groupdf in kwargs.pop("df").groupby(*facets):
+                for facet_val, groupdf in kwargs.pop("df").group_by(*facets):
                     figlist.append(
                         plotFunc(
                             df=groupdf,
@@ -476,12 +476,12 @@ class Plots:
         )
         df = df.sort(by="SnapshotTime")
 
-        groupby = [by]
+        group_by = [by]
         if len(facets) > 0 and facets[0] is not None:
-            groupby = groupby + facets
+            group_by = group_by + facets
         if metric in ["Performance", "weighted_performance", "SuccessRate"]:
             df = (
-                df.groupby_dynamic("SnapshotTime", every=every, by=groupby)
+                df.group_by_dynamic("SnapshotTime", every=every, by=group_by)
                 .agg(
                     [
                         weighed_average_polars("SuccessRate", "ResponseCount").alias(
@@ -495,10 +495,10 @@ class Plots:
         else:
             if mode == "diff":
                 df = self._create_sign_df(
-                    df, by=groupby, what=metric, every=every, mask=False, pivot=False
+                    df, by=group_by, what=metric, every=every, mask=False, pivot=False
                 )
             elif mode == "Cumulative":
-                df = df.groupby(groupby + ["SnapshotTime"]).agg(pl.sum(metric))
+                df = df.group_by(group_by + ["SnapshotTime"]).agg(pl.sum(metric))
         if metric == "Performance":
             metric = "weighted_performance"
 
@@ -580,10 +580,10 @@ class Plots:
         top_n_by = by if facets == [None] else facets + [by]
         if top_n > 0:  # TODO: fix.
             df = df.join(
-                df.groupby(facets)
+                df.group_by(facets)
                 .agg(pl.mean(metric))
                 .sort(metric)
-                .tail(top_n)
+                .head(top_n, descending=True)
                 .select(facets),
                 on=facets,
             )
@@ -847,7 +847,7 @@ class Plots:
 
             order = {}
             for facet, group_df in (
-                df.groupby(*facets, "PredictorName")
+                df.group_by(*facets, "PredictorName")
                 .agg(
                     pl.median(to_plot).alias(f"median_{to_plot}"),
                 )
@@ -861,7 +861,7 @@ class Plots:
             partition = None
             df = self.top_n(df, top_n, to_plot)
             order = (
-                df.groupby("PredictorName")
+                df.group_by("PredictorName")
                 .agg(
                     pl.median(to_plot).alias(f"median_{to_plot}"),
                 )
@@ -961,7 +961,7 @@ class Plots:
         df = df.filter(pl.col("PredictorName").cast(pl.Utf8) != "Classifier")
 
         df = (
-            df.groupby(facets + ["ModelID", "PredictorCategory"])
+            df.group_by(facets + ["ModelID", "PredictorCategory"])
             .agg(
                 weighed_average_polars("PerformanceBin", "ResponseCountBin").alias(
                     "PerformanceBin"
@@ -1060,7 +1060,7 @@ class Plots:
         df = (
             df.filter(pl.col("PredictorName") != "Classifier")
             .with_columns((pl.col("PerformanceBin") - 0.5) * 2)
-            .groupby(by, "PredictorCategory")
+            .group_by(by, "PredictorCategory")
             .agg(
                 Performance=weighed_average_polars("PerformanceBin", "BinResponseCount")
             )
@@ -1437,7 +1437,7 @@ class Plots:
         else:
             color_var = color_var.lower()
         color = kwargs.pop("color_col", defaults[color_var][0])
-        values = kwargs.pop("groupby_col", defaults[color_var][1])
+        values = kwargs.pop("group_by_col", defaults[color_var][1])
         title = kwargs.pop("title", defaults[color_var][2])
         reverse_scale = kwargs.pop("reverse_scale", defaults[color_var][3])
         log = kwargs.pop("log", defaults[color_var][4])
@@ -1482,12 +1482,12 @@ class Plots:
 
         df = (
             df.filter(pl.col("PredictorName") != "Classifier")
-            .groupby(pl.all().exclude("PredictorName"))
+            .group_by(pl.all().exclude("PredictorName"))
             .agg(pl.n_unique("PredictorName").alias("Predictor Count"))
         )
 
         overall = (
-            df.groupby(pl.all().exclude(["PredictorName", "Type", "Predictor Count"]))
+            df.group_by(pl.all().exclude(["PredictorName", "Type", "Predictor Count"]))
             .agg(pl.sum("Predictor Count"))
             .with_columns(pl.lit("Overall").alias("Type"))
         )

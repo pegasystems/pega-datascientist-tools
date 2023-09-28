@@ -137,9 +137,9 @@ The standard Pega Next Best Action Designer framework defines a number of standa
 channel_overwiev_columns = [
     col for col in ["Channel", "Direction"] if col in datamart_all_columns
 ]
-channel_overview = last_data.groupby(["Configuration", "ModelID"] + channel_overwiev_columns).agg(
+channel_overview = last_data.group_by(["Configuration", "ModelID"] + channel_overwiev_columns).agg(
     pl.max("ResponseCount"), pl.max("Positives")
-).groupby(channel_overwiev_columns).agg(
+).group_by(channel_overwiev_columns).agg(
     pl.sum("ResponseCount"),
     pl.sum("Positives"),
     pl.col("Configuration").unique().alias("Supported by Configurations"),
@@ -194,7 +194,7 @@ df = (
     .select(hover_columns + ["ModelID", "Channel/Direction","SuccessRate"])
     .with_columns(pl.col("SuccessRate").round(4))
     .sort(["Channel/Direction", "SuccessRate"], descending=True)
-    .groupby(["Channel/Direction"])
+    .group_by(["Channel/Direction"])
     .head(20)
     .collect()
 ).to_pandas(use_pyarrow_extension_array=True)
@@ -251,7 +251,7 @@ Interactive chart with all success rates.
 ```{python}
 levels = [col for col in ["Configuration",'Channel', 'Direction', 'Issue', 'Group', "Name", "Treatment"] if col in datamart_all_columns]
 fig = datamart.plotTreeMap(color_var="SuccessRate",
-                     groupby_col=None,
+                     group_by_col=None,
                      levels=levels, 
                      colorscale=pega_template.success,
                      query=pl.col("ResponseCount")>100,)
@@ -363,7 +363,7 @@ Using an interactive treemap to visualize the performance. Lighter is better, da
 It can be interesting to see which issues, groups or channels can be better predicted than others. Identifying categories of items for which the predictions are poor can help to drive the search for better predictors, for example.
 
 ```{python}
-fig = datamart.plotTreeMap(color_var="performance_weighted", groupby_col= None, levels=levels)
+fig = datamart.plotTreeMap(color_var="performance_weighted", group_by_col= None, levels=levels)
 
 fig.show()
 ```
@@ -577,7 +577,7 @@ path =  [col for col in ["Configuration", "PredictorCategory", "PredictorName"] 
 gb_cols = path
 path = [px.Constant("All Models")] + path 
 
-missing = datamart.last(table = "combinedData").filter(pl.col("PredictorName") != "Classifier").groupby(gb_cols).agg(
+missing = datamart.last(table = "combinedData").filter(pl.col("PredictorName") != "Classifier").group_by(gb_cols).agg(
     pl.col("BinResponseCount")
     .where(pl.col("BinSymbol") == "MISSING")
     .sum()
@@ -697,7 +697,7 @@ df = (
     datamart.modelData
     .with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
     .with_columns(pl.col(pl.Utf8).fill_null("Missing"))
-    .groupby(by)
+    .group_by(by)
     .agg(
         [
             ((pl.col("Positives") > 0) & (pl.col("Positives") < 100 )).sum().alias("immature_count"),
@@ -787,7 +787,7 @@ for split_facet in facet.split("/"):
         pl.col(split_facet).cast(pl.Utf8).fill_null("NA")
     )
 last_data = last_data.with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet))
-response_counts = last_data.groupby([facet] + facet.split("/")).agg(
+response_counts = last_data.group_by([facet] + facet.split("/")).agg(
     [
         pl.sum("ResponseCount").alias("all_responses"),
         pl.sum("Positives").alias("positive_sum")
@@ -839,7 +839,7 @@ A lot of volume on the first bins, where the performance is minimal, means that 
 to_plot = "Performance"
 df = (
     datamart.modelData.with_columns(pl.col(to_plot) * 100)
-    .groupby([to_plot, "Channel", "Direction"])
+    .group_by([to_plot, "Channel", "Direction"])
     .agg(pl.sum("ResponseCount"))
     .with_columns(pl.col(to_plot).round(2))
     .collect()
@@ -848,7 +848,7 @@ df = (
 breaks = [percentile for percentile in range(50, 100, 3)]
 df = df.with_columns(pl.col("Performance").cut(breaks=breaks).alias("PerformanceBin"))
 
-grouped = df.groupby(["Channel", "PerformanceBin"]).agg(
+grouped = df.group_by(["Channel", "PerformanceBin"]).agg(
     pl.sum("ResponseCount"), pl.min(to_plot).alias("break_label")
 )
 out = (
@@ -919,7 +919,7 @@ if to_plot == "Propensity" and to_plot not in datamart.predictorData.columns:
     to_plot = "BinPropensity"
 df = (
     datamart.combinedData.filter(pl.col("PredictorName") != "Classifier")
-    .groupby([to_plot, "Channel", "Direction"])
+    .group_by([to_plot, "Channel", "Direction"])
     .agg(pl.sum("BinResponseCount"))
     .with_columns(pl.col(to_plot).round(4).cast(pl.Float64))
     .collect()
@@ -954,7 +954,7 @@ df_pl = df.with_columns(
     .alias(f"{to_plot}_range")
 )
 
-grouped = df_pl.groupby(["Channel", f"{to_plot}_range"]).agg(
+grouped = df_pl.group_by(["Channel", f"{to_plot}_range"]).agg(
     pl.sum("BinResponseCount"), pl.min(to_plot).alias("break_label")
 )
 

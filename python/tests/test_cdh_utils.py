@@ -147,7 +147,7 @@ def test_weighted_average_polars():
         }
     )
     output = (
-        input.groupby("Channel")
+        input.group_by("Channel")
         .agg(
             cdh_utils.weighed_average_polars("SuccessRate", "ResponseCount").alias(
                 "SuccessRate_weighted"
@@ -194,7 +194,7 @@ def test_weighed_performance_polars():
     )
 
     output = (
-        input.groupby("Channel")
+        input.group_by("Channel")
         .agg(cdh_utils.weighed_performance_polars())
         .sort("Channel")
     )
