@@ -300,7 +300,7 @@ class DataAnonymization:
 
         df_ = (
             df.lazy()
-            .with_columns(pl.first().map(sample_it).alias("_sample"))
+            .with_columns(pl.first().map_batches(sample_it).alias("_sample"))
             .filter(pl.col("_sample"))
             .drop("_sample")
             .collect()
@@ -461,7 +461,7 @@ class DataAnonymization:
             )
 
         else:
-            return pl.col(cols).apply(algorithm)
+            return pl.col(cols).map_elements(algorithm)
 
     def process(
         self,
