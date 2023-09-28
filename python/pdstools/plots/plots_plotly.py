@@ -269,7 +269,7 @@ class ADMVisualisations:
         if show_error:
             errors = {
                 i[0]: i[1]
-                for i in df.groupby(by, maintain_order=True)
+                for i in df.group_by(by, maintain_order=True)
                 .agg(pl.std("SuccessRate").fill_nan(0))
                 .iter_rows()
             }

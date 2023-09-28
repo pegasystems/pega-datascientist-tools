@@ -255,7 +255,7 @@ def auc_from_probs(
         raise Exception("'Groundtruth' has more than two levels.")
 
     df = pl.DataFrame({"truth": groundtruth, "probs": probs})
-    binned = df.groupby(by="probs").agg(
+    binned = df.group_by(by="probs").agg(
         [
             (pl.col("truth") == 1).sum().alias("pos"),
             (pl.col("truth") == 0).sum().alias("neg"),
@@ -333,7 +333,7 @@ def aucpr_from_probs(
         raise Exception("'Groundtruth' has more than two levels.")
 
     df = pl.DataFrame({"truth": groundtruth, "probs": probs})
-    binned = df.groupby(by="probs").agg(
+    binned = df.group_by(by="probs").agg(
         [
             (pl.col("truth") == 1).sum().alias("pos"),
             (pl.col("truth") == 0).sum().alias("neg"),
@@ -581,7 +581,7 @@ def zRatio(
     It represents the number of standard deviations from the avreage,
     so centers around 0. The wider the spread, the better the predictor is.
 
-    To recreate the OOTB ZRatios from the datamart, use in a groupby.
+    To recreate the OOTB ZRatios from the datamart, use in a group_by.
     See `examples`.
 
     Parameters
@@ -593,7 +593,7 @@ def zRatio(
 
     Examples
     --------
-    >>> df.groupby(['ModelID', 'PredictorName']).agg([zRatio()]).explode()
+    >>> df.group_by(['ModelID', 'PredictorName']).agg([zRatio()]).explode()
     """
 
     def getFracs(posCol=pl.col("BinPositives"), negCol=pl.col("BinNegatives")):

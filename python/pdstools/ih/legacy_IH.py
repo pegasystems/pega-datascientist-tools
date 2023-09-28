@@ -48,7 +48,7 @@ def get_total_outcome(df, outcome, rollup):  # pragma: no cover
         for i in outcome:
             _df = (
                 df[df["pyOutcome"] == i]
-                .groupby(rollup)
+                .group_by(rollup)
                 .count()[["pxInteractionID"]]
                 .rename(columns={"pxInteractionID": "Count: " + i})
             )
@@ -56,7 +56,7 @@ def get_total_outcome(df, outcome, rollup):  # pragma: no cover
     else:
         _df_all = (
             df[df["pyOutcome"] == outcome]
-            .groupby(rollup)
+            .group_by(rollup)
             .count()[["pxInteractionID"]]
             .rename(columns={"pxInteractionID": "Count: " + outcome})
         )
@@ -75,14 +75,14 @@ def get_accept_rate(df, pos, neg, rollup):
 
     _df = (
         df[df["pyOutcome"].isin(total)]
-        .groupby(rollup)
+        .group_by(rollup)
         .count()[["pxInteractionID"]]
         .reset_index()
         .rename(columns={"pxInteractionID": "Total"})
     )
     _df = _df.merge(
         df[df["pyOutcome"].isin(pos)]
-        .groupby(rollup)
+        .group_by(rollup)
         .count()[["pxInteractionID"]]
         .reset_index()
         .rename(columns={"pxInteractionID": "Accepted"}),
@@ -134,8 +134,8 @@ def plot_daily_cumulative_accept_rate(df, pos, neg, **kwargs):
     _df, rollup, hue = get_accept_rate_time(df, pos, neg, "Date", **kwargs)
 
     if "hue" in kwargs.keys():
-        _df["Total_cum"] = _df.groupby(hue)["Total"].apply(lambda x: x.cumsum())
-        _df["Accepted_cum"] = _df.groupby(hue)["Accepted"].apply(lambda x: x.cumsum())
+        _df["Total_cum"] = _df.group_by(hue)["Total"].apply(lambda x: x.cumsum())
+        _df["Accepted_cum"] = _df.group_by(hue)["Accepted"].apply(lambda x: x.cumsum())
         _df["hue"] = _df[hue].agg("__".join, axis=1)
         kwargs["hue"] = "hue"
     else:
@@ -221,7 +221,7 @@ def plot_outcome_count_time(df, outcome, time, **kwargs):
         else:
             rollup.append(kwargs["hue"])
             hue.append(kwargs["hue"])
-    _df = _df.groupby(rollup).count().reset_index()
+    _df = _df.group_by(rollup).count().reset_index()
     if len(hue) > 0:
         _df["hue"] = _df[hue].agg("__".join, axis=1)
         kwargs["hue"] = "hue"
@@ -261,7 +261,7 @@ def get_allDays_df(_df, inds_df, hue):
 def get_total_outcome_share_per_level(df, outcome, level):
     _df = (
         df[df["pyOutcome"] == outcome]
-        .groupby(level)
+        .group_by(level)
         .count()[["pxInteractionID"]]
         .rename(columns={"pxInteractionID": "Count"})
         .reset_index()
@@ -298,7 +298,7 @@ def get_outcome_share_time(df, outcome, level, time="daily"):
 
     _df = df[df["pyOutcome"] == outcome].reset_index(drop=True)
     outcome_per_gra = (
-        _df.groupby([gra])
+        _df.group_by([gra])
         .count()[["pxInteractionID"]]
         .rename(columns={"pxInteractionID": "total " + time + " " + outcome})
         .reset_index()
@@ -309,7 +309,7 @@ def get_outcome_share_time(df, outcome, level, time="daily"):
     ).rename(columns={"newCol": level})
 
     level_outcome_share_gra = (
-        _df.groupby([level, gra])
+        _df.group_by([level, gra])
         .count()[["pxInteractionID"]]
         .rename(columns={"pxInteractionID": level + " " + outcome + " Count"})
         .reset_index()
@@ -368,14 +368,14 @@ def get_delta_df(df, outcome, level, dates):
     total_range_outcomes = (
         share_delta[["Date", "Date Range", "total daily " + outcome]]
         .drop_duplicates()
-        .groupby("Date Range")
+        .group_by("Date Range")
         .sum()
         .reset_index()
         .rename(columns={"total daily " + outcome: "total range " + outcome})
     )
     share_delta = (
         share_delta.drop("total daily " + outcome, axis=1)
-        .groupby([level, "Date Range"])
+        .group_by([level, "Date Range"])
         .sum()
         .reset_index()
     )

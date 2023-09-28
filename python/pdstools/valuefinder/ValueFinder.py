@@ -109,7 +109,7 @@ class ValueFinder:
             .select(pl.col("pyStage").cat.set_ordering("physical"))
             .lazy()
         )  # This pre-fills the stringcache to make the ordering of stages correct
-        self.maxPropPerCustomer = self.df.groupby(["CustomerID", "pyStage"]).agg(
+        self.maxPropPerCustomer = self.df.group_by(["CustomerID", "pyStage"]).agg(
             pl.max("pyModelPropensity").alias("MaxModelPropensity")
         )
 
@@ -165,7 +165,7 @@ class ValueFinder:
 
         df = (
             self.df.with_context(th)
-            .groupby(["CustomerID", "pyStage"])
+            .group_by(["CustomerID", "pyStage"])
             .agg(
                 [
                     pl.max("pyPropensity").alias("MaxPropensity"),
@@ -207,7 +207,7 @@ class ValueFinder:
             customersummary = self.customersummary
 
         df = (
-            customersummary.groupby("pyStage")
+            customersummary.group_by("pyStage")
             .agg(
                 [
                     pl.sum("relevantActions"),
@@ -266,7 +266,7 @@ class ValueFinder:
                         ]
                     )
                 )
-                .groupby("pyStage")
+                .group_by("pyStage")
                 .agg(
                     [
                         pl.sum("relevantActions"),
@@ -669,7 +669,7 @@ class ValueFinder:
 
         df = self.df if query is None else self.df.filter(query)
         df = (
-            df.groupby("pyStage")
+            df.group_by("pyStage")
             .agg(pl.col(level).cast(pl.Utf8).value_counts(sort=True))
             .explode(level)
             .unnest(level)

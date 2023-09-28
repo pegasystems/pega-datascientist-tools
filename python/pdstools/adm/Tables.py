@@ -36,9 +36,9 @@ class Tables:
         return [
             col
             for col in columns
-            if col in self.modelData.columns
-            and self.modelData.schema[col] != pl.Null
+            if col in self.modelData.columns and self.modelData.schema[col] != pl.Null
         ]
+
     @property
     def AvailableTables(self):
         df = pl.DataFrame(
@@ -56,7 +56,7 @@ class Tables:
         df = df.transpose().with_columns(pl.Series(df.columns))
         df.columns = ["modelData", "predictorData", "Tables"]
         return df.select(["Tables", "modelData", "predictorData"])
-    
+
     @property
     def ApplicableTables(self):
         df = self.AvailableTables
@@ -70,7 +70,7 @@ class Tables:
     def model_overview(self):
         return (
             self.last(strategy="lazy")
-            .groupby(["Configuration", "Channel", "Direction"])
+            .group_by(["Configuration", "Channel", "Direction"])
             .agg(
                 [
                     pl.col("Name").unique().count().alias("Number of Actions"),
@@ -93,7 +93,7 @@ class Tables:
     @cached_property
     def predictors_per_configuration(self):
         return (
-            self.combinedData.groupby("Configuration")
+            self.combinedData.group_by("Configuration")
             .agg(
                 [
                     pl.col("PredictorName").unique().count().alias("Predictor Count"),
@@ -108,7 +108,7 @@ class Tables:
     def bad_predictors(self):
         return (
             self.predictorData.filter(pl.col("PredictorName") != "Classifier")
-            .groupby("PredictorName")
+            .group_by("PredictorName")
             .agg(
                 [
                     pl.sum("ResponseCount").alias("Response Count"),
@@ -123,7 +123,7 @@ class Tables:
 
     @property
     def _zero_response(self):
-        return self.modelData.groupby(self._by).agg(
+        return self.modelData.group_by(self._by).agg(
             [pl.sum("ResponseCount"), pl.sum("Positives"), pl.mean("Performance")]
         )
 
@@ -139,14 +139,14 @@ class Tables:
     def _last_counts(self):
         return (
             self.last(strategy="lazy")
-            .groupby(self._by)
+            .group_by(self._by)
             .agg([pl.sum("ResponseCount"), pl.sum("Positives"), pl.mean("Performance")])
         )
 
     @cached_property
     def reach(self):
         def calc_reach(x=pl.col("Positives")):
-            return 0.02 + 0.98 * (pl.min([pl.lit(200), x]) / 200)
+            return 0.02 + 0.98 * (pl.min_horizontal([pl.lit(200), x]) / 200)
 
         return (
             self._last_counts.filter(
@@ -165,7 +165,7 @@ class Tables:
     @cached_property
     def appendix(self):
         return (
-            self.modelData.groupby(self._by + ["ModelID"])
+            self.modelData.group_by(self._by + ["ModelID"])
             .agg(
                 [
                     pl.max("ResponseCount").alias("Responses"),

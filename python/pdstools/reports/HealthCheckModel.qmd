@@ -138,9 +138,9 @@ The standard Pega Next Best Action Designer framework defines a number of standa
 channel_overwiev_columns = [
     col for col in ["Channel", "Direction"] if col in datamart_all_columns
 ]
-channel_overview = last_data.groupby(["Configuration", "ModelID"] + channel_overwiev_columns).agg(
+channel_overview = last_data.group_by(["Configuration", "ModelID"] + channel_overwiev_columns).agg(
     pl.max("ResponseCount"), pl.max("Positives")
-).groupby(channel_overwiev_columns).agg(
+).group_by(channel_overwiev_columns).agg(
     pl.sum("ResponseCount"),
     pl.sum("Positives"),
     pl.col("Configuration").unique().alias("Supported by Configurations"),
@@ -195,7 +195,7 @@ df = (
     .select(hover_columns + ["ModelID", "Channel/Direction","SuccessRate"])
     .with_columns(pl.col("SuccessRate").round(4))
     .sort(["Channel/Direction", "SuccessRate"], descending=True)
-    .groupby(["Channel/Direction"])
+    .group_by(["Channel/Direction"])
     .head(20)
     .collect()
 ).to_pandas(use_pyarrow_extension_array=True)
@@ -252,7 +252,7 @@ Interactive chart with all success rates.
 ```{python}
 levels = [col for col in ["Configuration",'Channel', 'Direction', 'Issue', 'Group', "Name", "Treatment"] if col in datamart_all_columns]
 fig = datamart.plotTreeMap(color_var="SuccessRate",
-                     groupby_col=None,
+                     group_by_col=None,
                      levels=levels, 
                      colorscale=pega_template.success,
                      query=pl.col("ResponseCount")>100,)
@@ -364,7 +364,7 @@ Using an interactive treemap to visualize the performance. Lighter is better, da
 It can be interesting to see which issues, groups or channels can be better predicted than others. Identifying categories of items for which the predictions are poor can help to drive the search for better predictors, for example.
 
 ```{python}
-fig = datamart.plotTreeMap(color_var="performance_weighted", groupby_col= None, levels=levels)
+fig = datamart.plotTreeMap(color_var="performance_weighted", group_by_col= None, levels=levels)
 
 fig.show()
 ```
@@ -469,7 +469,7 @@ df = (
     datamart.modelData
     .with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
     .with_columns(pl.col(pl.Utf8).fill_null("Missing"))
-    .groupby(by)
+    .group_by(by)
     .agg(
         [
             ((pl.col("Positives") > 0) & (pl.col("Positives") < 100 )).sum().alias("immature_count"),
@@ -559,7 +559,7 @@ for split_facet in facet.split("/"):
         pl.col(split_facet).cast(pl.Utf8).fill_null("NA")
     )
 last_data = last_data.with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet))
-response_counts = last_data.groupby([facet] + facet.split("/")).agg(
+response_counts = last_data.group_by([facet] + facet.split("/")).agg(
     [
         pl.sum("ResponseCount").alias("all_responses"),
         pl.sum("Positives").alias("positive_sum")
@@ -611,7 +611,7 @@ A lot of volume on the first bins, where the performance is minimal, means that 
 to_plot = "Performance"
 df = (
     datamart.modelData.with_columns(pl.col(to_plot) * 100)
-    .groupby([to_plot, "Channel", "Direction"])
+    .group_by([to_plot, "Channel", "Direction"])
     .agg(pl.sum("ResponseCount"))
     .with_columns(pl.col(to_plot).round(2))
     .collect()
@@ -622,7 +622,7 @@ df_pl = df.get_column(to_plot).fill_null(0).fill_nan(0).cut(bins=cut_off_value, 
 join = df.lazy().join(
     df_pl.select([to_plot, "PerformanceBin"]).unique(), on=to_plot, how="left"
 )
-grouped = join.groupby(["Channel", "PerformanceBin"]).agg(pl.sum("ResponseCount"))
+grouped = join.group_by(["Channel", "PerformanceBin"]).agg(pl.sum("ResponseCount"))
 out = (
     grouped.sort(["Channel", "PerformanceBin"])
     .select(

@@ -751,7 +751,7 @@ class ADMDatamart(Plots, Tables):
     ) -> Dict:  # pragma: no cover
         """Discovers the type of model embedded in the pyModelData column.
 
-        By default, we do a groupby Configuration, because a model rule can only
+        By default, we do a group_by Configuration, because a model rule can only
         contain one type of model. Then, for each configuration, we look into the
         pyModelData blob and find the _serialClass, returning it in a dict.
 
@@ -791,7 +791,7 @@ class ADMDatamart(Plots, Tables):
 
         types = (
             df.filter(pl.col("Modeldata").is_not_null())
-            .groupby(by)
+            .group_by(by)
             .agg(pl.col("Modeldata").last())
             .collect()
             .with_columns(pl.col("Modeldata").apply(lambda v: _getType(v)))
@@ -907,7 +907,7 @@ class ADMDatamart(Plots, Tables):
                 .alias("Daily_increase")
                 .over("ModelID")
             )
-            .groupby_dynamic("SnapshotTime", every=every, by=by)
+            .group_by_dynamic("SnapshotTime", every=every, by=by)
             .agg(pl.sum("Daily_increase").alias("Increase"))
         )
         if pivot:
@@ -947,7 +947,7 @@ class ADMDatamart(Plots, Tables):
         Returns
         -------
         pl.LazyFrame:
-            Groupby dataframe over all models
+            group_by dataframe over all models
         """
         df = self._apply_query(self.modelData, query)
         data = self.last(df, strategy="lazy").lazy()
@@ -959,7 +959,7 @@ class ADMDatamart(Plots, Tables):
         assert required_columns.issubset(set(data.columns) | set(context_keys))
 
         return (
-            data.groupby(context_keys)
+            data.group_by(context_keys)
             .agg(
                 [
                     pl.count(by).suffix("_count"),
@@ -1027,7 +1027,7 @@ class ADMDatamart(Plots, Tables):
         if top_n > 0:
             top_n_xaxis = (
                 df.unique(subset=[by], keep="first")
-                .groupby(by)
+                .group_by(by)
                 .agg(
                     cdh_utils.weighed_average_polars("PerformanceBin", "ResponseCount")
                 )
@@ -1037,7 +1037,7 @@ class ADMDatamart(Plots, Tables):
             )
             df = top_n_xaxis.join(df, on=by, how="left") 
         if by not in ["ModelID", "Name"]:
-            df = df.groupby([by, "PredictorName"]).agg(
+            df = df.group_by([by, "PredictorName"]).agg(
                 cdh_utils.weighed_average_polars("PerformanceBin", "ResponseCount")
             )
         df = (
@@ -1077,7 +1077,7 @@ class ADMDatamart(Plots, Tables):
         if isinstance(by, list):
             by = by[0]
         return (
-            df.groupby([by, "ModelID"])
+            df.group_by([by, "ModelID"])
             .agg(pl.max("ResponseCount"))
             .sort([by, "ResponseCount"], descending=True)
             .with_columns(
@@ -1129,7 +1129,7 @@ class ADMDatamart(Plots, Tables):
                 how="left",
             )
             .lazy()
-            .groupby([by, "PositivesBin", "break_point"])
+            .group_by([by, "PositivesBin", "break_point"])
             .agg([pl.min("Positives"), pl.n_unique("ModelID").alias("ModelCount")])
             .with_columns(
                 (pl.col("ModelCount") / (pl.sum("ModelCount").over(by))).alias(
