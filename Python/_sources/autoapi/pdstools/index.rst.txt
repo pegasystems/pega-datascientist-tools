@@ -387,7 +387,7 @@ Attributes
 
       Discovers the type of model embedded in the pyModelData column.
 
-      By default, we do a groupby Configuration, because a model rule can only
+      By default, we do a group_by Configuration, because a model rule can only
       contain one type of model. Then, for each configuration, we look into the
       pyModelData blob and find the _serialClass, returning it in a dict.
 
@@ -464,7 +464,7 @@ Attributes
       :param query: Please refer to :meth:`._apply_query`
       :type query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]]
 
-      :returns: Groupby dataframe over all models
+      :returns: group_by dataframe over all models
       :rtype: pl.LazyFrame
 
 

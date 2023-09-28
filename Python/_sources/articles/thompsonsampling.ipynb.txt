@@ -80,7 +80,7 @@
                 "# Convergence of the Thompson Sampled propensities\n",
                 "s = thompsonSamplingSimulation['positives']\n",
                 "thompsonSamplingSimulation2 = thompsonSamplingSimulation.hstack(s.cut(breaks=np.array(range(int(s.min()), int(s.max())+20, 20))-1, series=False).select(bin='category'))\n",
-                "s = thompsonSamplingSimulation2.groupby(\"p\", \"bin\").agg(\n",
+                "s = thompsonSamplingSimulation2.group_by(\"p\", \"bin\").agg(\n",
                 "    n=pl.count(),\n",
                 "    n90=(((pl.col(\"sampled_propensity\") - pl.col(\"p\")) / pl.col(\"p\")) < 0.1).sum(),\n",
                 "    positives=pl.min(\"positives\"),\n",
@@ -98,7 +98,7 @@
                 ").explode('sampled_propensity').with_columns(positives = pl.col('evidence')*pl.col('p'))\n",
                 "from scipy.stats import gaussian_kde\n",
                 "results = {}\n",
-                "for p, series in settings1.groupby('p'):\n",
+                "for p, series in settings1.group_by('p'):\n",
                 "    results[str(p)] = gaussian_kde(series['sampled_propensity'], 'silverman')(np.arange(0,0.15,0.0001))\n",
                 "results = pl.DataFrame(results).with_columns(sampledPropensity=pl.Series(np.arange(0,0.15,0.0001))).to_pandas().set_index('sampledPropensity')\n",
                 "DistributionOfSampled = px.area(results, title='Distribution of the sampled propensities<br><sup>for a few combinations of model propensity and evidence</sup>', template='none', labels={'value':'', 'sampledPropensity':'Sampled Propensity', 'variable':'Propensity'}).update_yaxes({'visible':True}).update_xaxes({'tickformat':',.0%', 'tickmode':'array', 'tickvals':[0, 0.01, 0.05, 0.1]}).update_layout(showlegend=False).update_traces({'line':{'width':0.0}})#.add_annotation()\n",
@@ -456,7 +456,7 @@
             "name": "python",
             "nbconvert_exporter": "python",
             "pygments_lexer": "ipython3",
-            "version": "3.11.0"
+            "version": "3.11.4"
         },
         "orig_nbformat": 4
     },

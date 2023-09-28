@@ -704,7 +704,7 @@ False it will return in datetime type</p></li>
 but takes into account the size of the bin and thus is statistically more relevant.
 It represents the number of standard deviations from the avreage,
 so centers around 0. The wider the spread, the better the predictor is.</p>
-<p>To recreate the OOTB ZRatios from the datamart, use in a groupby.
+<p>To recreate the OOTB ZRatios from the datamart, use in a group_by.
 See <cite>examples</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -718,7 +718,7 @@ See <cite>examples</cite>.</p>
 </dd>
 </dl>
 <p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">&#39;ModelID&#39;</span><span class="p">,</span> <span class="s1">&#39;PredictorName&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">agg</span><span class="p">([</span><span class="n">zRatio</span><span class="p">()])</span><span class="o">.</span><span class="n">explode</span><span class="p">()</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">df</span><span class="o">.</span><span class="n">group_by</span><span class="p">([</span><span class="s1">&#39;ModelID&#39;</span><span class="p">,</span> <span class="s1">&#39;PredictorName&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">agg</span><span class="p">([</span><span class="n">zRatio</span><span class="p">()])</span><span class="o">.</span><span class="n">explode</span><span class="p">()</span>
 </pre></div>
 </div>
 </dd></dl>

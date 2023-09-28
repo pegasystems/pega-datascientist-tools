@@ -262,7 +262,7 @@ Functions
    It represents the number of standard deviations from the avreage,
    so centers around 0. The wider the spread, the better the predictor is.
 
-   To recreate the OOTB ZRatios from the datamart, use in a groupby.
+   To recreate the OOTB ZRatios from the datamart, use in a group_by.
    See `examples`.
 
    :param posCol: The (Polars) column of the bin positives
@@ -272,7 +272,7 @@ Functions
 
    .. rubric:: Examples
 
-   >>> df.groupby(['ModelID', 'PredictorName']).agg([zRatio()]).explode()
+   >>> df.group_by(['ModelID', 'PredictorName']).agg([zRatio()]).explode()
 
 
 .. py:function:: LogOdds(Positives=pl.col('Positives'), Negatives=pl.col('ResponseCount') - pl.col('Positives'))
