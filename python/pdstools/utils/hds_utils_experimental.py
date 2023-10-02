@@ -493,7 +493,7 @@ class DataAnonymization2:
             return pl.col(cols).hash(**self.seeds)
 
         else:
-            return pl.col(cols).apply(algorithm)
+            return pl.col(cols).map_elements(algorithm)
 
     def to_normalize(self, cols, verbose=False):
         self.normalizationFailures, exprs = [], []

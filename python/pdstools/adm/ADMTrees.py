@@ -473,7 +473,7 @@ class ADMTreesModel:
             list(zip(total_split_list, total_gains_list)), schema=["split", "gains"]
         )
         gainsPerSplit = gainsPerSplit.with_columns(
-            predictor=pl.col("split").apply(lambda x: self.parseSplitValues(x)[0])
+            predictor=pl.col("split").map_elements(lambda x: self.parseSplitValues(x)[0])
         )
         return splitsPerTree, gainsPerTree, gainsPerSplit
 
@@ -491,10 +491,10 @@ class ADMTreesModel:
                     pl.col("gains").implode(),
                     pl.col("gains").mean().alias("mean"),
                     pl.first("split")
-                    .apply(lambda x: self.parseSplitValues(x)[1])
+                    .map_elements(lambda x: self.parseSplitValues(x)[1])
                     .alias("sign"),
                     pl.first("split")
-                    .apply(lambda x: self.parseSplitValues(x)[2])
+                    .map_elements(lambda x: self.parseSplitValues(x)[2])
                     .alias("values"),
                 ]
             )
