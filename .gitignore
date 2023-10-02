@@ -14,12 +14,12 @@ examples/**/*.html
 r/*.csv
 r/tests/testthat/*.html
 r/tests/testthat/*.pdf
-**/*.ipynb
 **/*.gz
 *.pyc
 build/
 *.egg-info/
 .vscode
+**/*.Rcheck
 
 .DS_Store
 .idea
