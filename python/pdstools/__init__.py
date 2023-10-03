@@ -1,6 +1,6 @@
 """Python pdstools"""
 
-__version__ = "3.2.3"
+__version__ = "3.2.4"
 
 from polars import enable_string_cache
 
