@@ -75,6 +75,7 @@ class ValueFinder:
             "pyDirection",
             "CustomerID",
             "pyName",
+            "pyTreatment",
             "pyModelPropensity",
             "pyPropensity",
             "FinalPropensity",
@@ -86,7 +87,9 @@ class ValueFinder:
             filename = kwargs.pop("filename", "ValueFinder")
             self.df = pega_io.readDSExport(filename, path, verbose=verbose)
         if kwargs.get("subset", True):
-            self.df = self.df.select(keep_cols)
+            self.df = self.df.select(
+                [col for col in keep_cols if col in self.df.columns]
+            )
         self.df = cdh_utils.set_types(self.df, "pyValueFinder")
 
         if "th" not in kwargs:
@@ -541,9 +544,9 @@ class ValueFinder:
                 visibleStages[x] = True
             title = "Distribution of customers per stage "
             if method == "threshold":
-                title += f"at propensity threshold: {round(threshold,rounding):.1%}"
+                title += f"at propensity threshold: {round(threshold,rounding):.{rounding-2}%}"
             else:
-                title += f"at quantile: {round(iter_val,rounding)} (threshold: {round(threshold,rounding):.1%})"
+                title += f"at quantile: {round(iter_val,rounding)} (threshold: {round(threshold,rounding):.{rounding-2}%})"
             step = dict(
                 method="update",
                 label=str(round(iter_val, rounding)),
@@ -573,7 +576,7 @@ class ValueFinder:
         for i in range(len(fig.layout.sliders[0].steps)):
             fig.layout.sliders[0].steps[
                 i
-            ].label = f"{float(fig.layout.sliders[0].steps[i].label):.1%}"
+            ].label = f"{float(fig.layout.sliders[0].steps[i].label):.{rounding-2}%}"
         return fig
 
     def plotDistributionPerThreshold(
@@ -652,7 +655,9 @@ class ValueFinder:
             fig.update_xaxes(tickformat=",.1%")
         return fig
 
-    def plotFunnelChart(self, level: str = "Action", query=None, return_df=False):
+    def plotFunnelChart(
+        self, level: str = "Action", query=None, return_df=False, **kwargs
+    ):
         """Plots the funnel of actions or issues per stage.
 
         Parameters
@@ -662,12 +667,21 @@ class ValueFinder:
             - If 'Actions', plots the distribution of actions.
             - If 'Issues', plots the distribution of issues
         """
+
         if level.casefold() in {"action", "name", "pyname"}:
             level, cat = "pyName", "Actions"
         elif level.casefold() in {"issue", "pyissue"}:
             level, cat = "pyIssue", "Issues"
         elif level.casefold() in {"group", "pygroup"}:
             level, cat = "pyGroup", "Groups"
+        elif level.casefold() in {"treatment", "pytreatment"}:
+            level, cat = "pyTreatment", "Treatments"
+        elif kwargs is not None:
+            level, cat = level, kwargs.pop("cat")
+        else:
+            raise ValueError(
+                f"Level argument {level} not found. Either supply a good argument or set the level and category as keyword argument."
+            )
 
         df = self.df if query is None else self.df.filter(query)
         df = (
@@ -691,6 +705,7 @@ class ValueFinder:
             title=f"Distribution of {cat.casefold()} over the stages",
             template="none",
         )
+        # fig.update_traces(textinfo = "value+percent initial")
         fig.update_xaxes(categoryorder="array", categoryarray=self.NBADStages)
         fig.update_layout(legend_title_text=cat)
         if return_df == "both":
