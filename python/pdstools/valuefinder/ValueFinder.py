@@ -57,6 +57,7 @@ class ValueFinder:
         df: Optional[Union[pd.DataFrame, pl.DataFrame, pl.LazyFrame]] = None,
         verbose: bool = True,
         import_strategy: Literal["eager", "lazy"] = "eager",
+        ncust: int = None,
         **kwargs,
     ):
         if path is None and df is None:
@@ -95,11 +96,12 @@ class ValueFinder:
         else:
             self.th = pl.LazyFrame({"th": kwargs.pop("th")})
 
-        self.ncust = self.df.select(
-            (pl.lit(10) ** pl.col("CustomerID").n_unique().log10().ceil())
-            .cast(pl.UInt32)
-            .alias("ncust")
-        )
+        if ncust is None:
+            self.ncust = self.df.select(
+                pl.col("CustomerID").n_unique().cast(pl.UInt32).alias("ncust")
+            )
+        else:
+            self.ncust = pl.LazyFrame({"ncust": ncust}, schema={"ncust": pl.UInt32})
 
         self.NBADStages = ["Eligibility", "Applicability", "Suitability", "Arbitration"]
         self.StageOrder = (
