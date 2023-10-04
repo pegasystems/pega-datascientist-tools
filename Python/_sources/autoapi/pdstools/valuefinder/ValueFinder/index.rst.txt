@@ -17,7 +17,7 @@ Classes
 
 
 
-.. py:class:: ValueFinder(path: Optional[str] = None, df: Optional[Union[pandas.DataFrame, polars.DataFrame, polars.LazyFrame]] = None, verbose: bool = True, import_strategy: Literal[eager, lazy] = 'eager', **kwargs)
+.. py:class:: ValueFinder(path: Optional[str] = None, df: Optional[Union[pandas.DataFrame, polars.DataFrame, polars.LazyFrame]] = None, verbose: bool = True, import_strategy: Literal[eager, lazy] = 'eager', ncust: int = None, **kwargs)
 
 
    Class to analyze Value Finder datasets.
@@ -186,7 +186,7 @@ Classes
       :kwtype rounding: int
 
 
-   .. py:method:: plotFunnelChart(level: str = 'Action', query=None, return_df=False)
+   .. py:method:: plotFunnelChart(level: str = 'Action', query=None, return_df=False, **kwargs)
 
       Plots the funnel of actions or issues per stage.
 
