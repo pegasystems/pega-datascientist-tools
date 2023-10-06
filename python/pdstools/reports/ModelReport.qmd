@@ -1,0 +1,261 @@
+---
+title: "ADM Standalone Model Report"
+title-block-banner: true
+author: "Pega data scientist tools"
+date: today
+subtitle: > 
+  Details of the binning of all the predictors used
+execute:
+  echo: false
+format:
+  html:
+    code-fold: true
+    embed-resources: true
+    standalone: true
+    code-tools: true
+    toc: true
+    toc-title: Table of Contents
+    theme:
+        light: flatly
+        dark: darkly
+jupyter: python3
+---
+
+```{python}
+from pdstools import datasets, ADMDatamart
+import polars as pl
+from IPython.display import display, Markdown
+import os.path
+```
+
+```{python}
+#| tags: [parameters]
+
+# These parameters are overwritten when called externally
+datafolder = os.path.expanduser("~/Downloads/tmp/")
+modelfilename = "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20230927T113905_GMT.zip"
+predictorfilename = "Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20230927T113944_GMT.zip"
+#model_id = "bd70a915-697a-5d43-ab2c-53b0557c85a0" # sample
+model_id = "99ba769f-1e22-5f26-a7a2-96777b957190"
+predictordetails_activeonly = True
+```
+
+```{python}
+# Predictor data for one model ID
+if datafolder == "":
+  datamart = datasets.CDHSample()
+else:
+  datamart = ADMDatamart(datafolder, model_filename=modelfilename, predictor_filename=predictorfilename)
+datamart.modelData = datamart.modelData.filter(pl.col("ModelID") == model_id)
+predictorBinning = datamart.predictorData.filter(pl.col("ModelID") == model_id)
+# TODO ensure this is only one snapshot, just in case
+
+display(
+    Markdown(
+        f"""
+# Model: {model_id}
+"""
+    )
+)
+```
+
+```{python}
+fig = datamart.plotScoreDistribution(modelids = [model_id])
+name = datamart.modelData.select(pl.col("Name")).unique().collect().item()
+
+# Customize some of the default styling of the plot
+# TODO except for title consider moving into library
+# TODO make the fly-over better
+fig.update_layout(title=f"Classifier Score Distribution<br>{name}", xaxis_title="")
+fig.data[0].opacity=0.5
+fig.data[1].line.color="#EF8B08"
+fig.data[1].line.width=3
+fig.data[1].marker.color="black"
+
+fig.show()
+```
+
+::: {.callout-tip}
+The [Plotly](https://plotly.com/python/) charts have [user controls for panning,
+zooming etc](https://plotly.com/chart-studio-help/zoom-pan-hover-controls/) but
+note that these interactive plots do not render well in portals like Sharepoint
+or Box. It is preferable to view them from a browser.
+:::
+
+## Model Performance
+
+```{python}
+auc_roc = round(datamart.modelData.filter(pl.col('ModelID')==model_id).select('Performance').collect().to_series(0).tail(1).item(), 4)
+
+display(
+    Markdown(
+        f"""
+The model performance is {auc_roc} measured as AUC-ROC. This number is calculated from the “active” bins of the Classifier.
+"""
+    )
+)
+
+```
+
+The classifier is used to map the model scores (average of the log odds of the active predictors) to a propensity value.
+
+The “active” bins are the ones that can be reached from the current binning of the active predictors.
+
+See the [ADM Explained](https://pegasystems.github.io/pega-datascientist-tools/Python/articles/ADMExplained.html) article for more information on how ADM exactly works.
+
+## Score Distribution
+
+The Score Distribution shows the volume and average propensity in every bin of
+the score ranges of the Classifier.
+
+
+
+::: {.callout-note title="TODO"}
+See if we can make this plot look a little nicer, see styles and labels from the R markdown version
+:::
+
+
+
+
+Propensity is defined as $\frac{positives}{positives+negatives}$ per bin.
+The adjusted propensity that is returned is a small modification (*Laplace
+smoothing*) to this and calculated as
+$\frac{0.5+positives}{1+positives+negatives}$ so new models initially return a
+propensity of 0.5. This helps to address the cold start when introducing new
+actions.
+
+::: {.callout-note title="TODO"}
+show classifier bins as a nice table
+
+See quarto's tables https://quarto.org/docs/authoring/tables.html which are much nicer than panda
+:::
+
+
+## Cumulative Gains and Lift charts
+
+Below are alternative ways to view the Classifier.
+
+The Cumulative Gains chart shows the percentage of he overall cases in the "positive" category gained by targeting a percentage of the total number of cases. For example, this view shows how large a percentage of the total expected responders you target by targeting only the top decile.
+
+The Lift chart is derived from this and shows the ratio of the cumulative gain and the targeted volume.
+
+TODO get both plots in
+
+# Trend charts
+
+TODO using model datamart show trend of auc, responses, ctr, maybe all in
+one with tabs
+
+# Performance by Predictor Category
+
+Showing the performance across all predictors. The predictor categories default
+to the text before the first dot. This can be customized when reading the data
+for a particular customer.
+
+TODO add plot of overall predictor category performance
+
+
+# Predictor Overview
+
+The predictors for this model are sorted by performance and grouped if they are
+correlated (shown with an indentation and a lighter color).
+
+The negatives and positives counts are usually the same across all the
+predictors but will be different when predictors have been removed or added. IH
+predictors often have slightly lower counts.
+
+For Adaptive Gradient Boosting models ("AGB") the number of positives and
+negatives is not available.
+
+TODO show table with all the predictors and key properties - should match with the properties we show in the predictor sections, incl missing % etc
+
+
+```{python}
+# TODO this assumes we have the latest snapshot, see above
+if predictordetails_activeonly:
+    predictors = predictorBinning.filter(pl.col("EntryType") == "Active").select(
+        pl.col("PredictorName").unique().sort()
+    )
+else:
+    predictors = predictorBinning.filter(pl.col("EntryType") != "Classifier").select(
+        pl.col("PredictorName").unique().sort()
+    )
+```
+
+# Binning of the Predictors
+
+The predictors are listed in the same order as in the summary above.
+
+```{python}
+display(
+    Markdown(
+        f"""
+Here we show **{'only the active' if predictordetails_activeonly else 'all'}**
+predictors. This can be configured via a parameter to this report.
+"""
+    )
+)
+```
+
+TODO make the binning plot a little nicer, now the blue bars are too prominent, see the R version. Also reconsider title, etc. Add the alternative view (the red/green bars). Add a table with the binning below. See if we can format the info a bit more compact, like in the R markdown version.
+
+TODO If there are two plots perhaps we can align them with layout-ncol, see https://quarto.org/docs/authoring/figures.html
+
+
+```{python}
+#| output: asis
+
+def get_predictor_property_value(pred, prop):
+    return (
+        predictorBinning.filter(pl.col("PredictorName") == pred)
+        .select(prop)
+        .collect()
+        .to_series(0)
+        .tail(1)
+        .item()
+    )
+
+def show_single_predictor(pred):
+    display(Markdown(f"## {pred}"))
+
+    display(Markdown("|Predictor property|Value|"))
+    display(Markdown("|---|---|"))
+    display(Markdown(f"| Univariate Performance (AUC) | {round(get_predictor_property_value(pred, 'Performance'),4)} |"))
+    display(Markdown(f"| Status | {get_predictor_property_value(pred, 'EntryType')} |"))
+    display(Markdown(f"| Total Responses | {get_predictor_property_value(pred, 'ResponseCount')} |"))
+    display(Markdown(f"| Total Positives | {get_predictor_property_value(pred, 'Positives')} |"))
+    display(Markdown(f"| Base Propensity | {get_predictor_property_value(pred, 'Positives')/get_predictor_property_value(pred, 'ResponseCount'):.4%} |"))
+
+    # TODO figure out how to calculate these easily
+    display(Markdown(f"| Percentage Missing values | TODO |"))
+    display(Markdown(f"| Percentage Residual values | TODO |"))
+
+    # TODO predictor groups missing https://github.com/pegasystems/pega-datascientist-tools/issues/127
+    display(Markdown(f"| Predictor Group | TODO |"))
+    display(Markdown(f"| Correlated Predictors | TODO |"))
+
+    display(Markdown(": A Great Predictor {.striped .hover}"))
+    
+    # In the R version I managed to use a table to format it so
+    # the description is on the left, the plots on the right. With
+    # quarto I couldnt figure out, so the plots are seperate. Also
+    # the width/height of the figures doesnt seem changeable,
+    # show(width=20, height=10) has no effect
+
+    fig = datamart.plotPredictorBinning(modelids=[model_id], predictors=[pred])
+
+    # Customize some of the default styling of the plot
+    # TODO except for title consider moving into library
+    # TODO make the fly-over better
+    fig.update_layout(title=pred, xaxis_title="")
+    fig.data[0].opacity=0.5
+    fig.data[1].line.color="#EF8B08"
+    fig.data[1].line.width=3
+    fig.data[1].marker.color="black"
+    fig.show()
+
+for pred in predictors.collect().to_series(0):
+    show_single_predictor(pred)
+```
+
+
