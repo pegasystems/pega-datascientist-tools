@@ -33,9 +33,13 @@ class ADMVisualisations:
             template="none", title=title, xaxis_title="Range", yaxis_title="Responses"
         )
         fig.update_yaxes(title_text="Propensity", secondary_y=True)
-        fig.layout.yaxis2.tickformat = ",.2%"
+        fig.layout.yaxis2.tickformat = ",.3%"
         fig.layout.yaxis2.zeroline = False
         fig.update_yaxes(showgrid=False)
+        fig.update_xaxes(type='category')
+
+        # TODO fig.update_xaxes(type='category')
+        # TODO see a few more small changes in the off-line model report quarto
 
         return fig
 
@@ -342,6 +346,7 @@ class ADMVisualisations:
         name = df.select(["Name"]).row(0)
         modelid, predictorname = facet_val
         title = f"Model name: {name}<br><sup>Model ID: {modelid}<br>Predictor name: {predictorname}</sup>"
+        df = df.sort("BinIndex")
         fig = self.distribution_graph(df, title)
         return self.post_plot(fig, name="Predictor_binning", **kwargs)
 
