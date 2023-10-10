@@ -16,7 +16,10 @@
     "portsAttributes": {
         "8501": {
             "label": "Pdstools App",
-            "onAutoForward": "notify"
+            "onAutoForward": "openBrowser"
         }
-    }
+	},
+	"features": {
+		"ghcr.io/rocker-org/devcontainer-features/quarto-cli:1": {}
+	}
 }
