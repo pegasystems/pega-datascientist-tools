@@ -10,5 +10,11 @@
             ]
         }
     },
-    "postCreateCommand": "pip3 install ."
+    "postCreateCommand": "pip3 install .['app'] & pdstools run",
+    "portsAttributes": {
+        "8501": {
+            "label": "Pdstools App",
+            "onAutoForward": "notify"
+        }
+    }
 }
