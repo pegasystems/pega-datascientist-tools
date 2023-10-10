@@ -6,7 +6,9 @@
         "vscode": {
             "extensions": [
                 "ms-python.black-formatter",
-                "charliermarsh.ruff"
+                "charliermarsh.ruff",
+                "ms-python.python",
+                "ms-toolsai.jupyter"
             ]
         }
     },
