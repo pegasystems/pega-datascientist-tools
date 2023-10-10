@@ -60,11 +60,13 @@ def fromUploadedFile(**opts):
         except Exception as e:
             st.write("Oh oh.", e)
     elif model_file is not None and predictor_file is None:
-        st.warning("""Please also upload the Predictor Binning file. 
+        st.warning(
+            """Please also upload the Predictor Binning file. 
                 If you don't have access to a predictor binning file
                 and want to run the Health Check only on the model snapshot, check the
                 checkbox below.
-                """)
+                """
+        )
         model_analysis = st.checkbox("Only run model-based Health Check")
         if model_analysis:
             try:
@@ -157,7 +159,9 @@ def fromFilePath(**opts):
             )
 
 
-def filter_dataframe(df: pl.LazyFrame, schema: Optional[dict] = None) -> pl.LazyFrame:
+def filter_dataframe(
+    df: pl.LazyFrame, schema: Optional[dict] = None, queries=[]
+) -> pl.LazyFrame:
     """
     Adds a UI on top of a dataframe to let viewers filter columns
 
@@ -172,9 +176,6 @@ def filter_dataframe(df: pl.LazyFrame, schema: Optional[dict] = None) -> pl.Lazy
         The filtered LazyFrame
 
     """
-
-    queries = []
-
     to_filter_columns = st.multiselect(
         "Filter dataframe on", df.columns, key="multiselect"
     )
@@ -256,7 +257,7 @@ def configure_predictor_categorization():
         .with_columns((pl.col("PerformanceBin") - 0.5) * 2)
         .group_by("PredictorCategory")
         .agg(
-            Performance=cdh_utils.weighed_average_polars(
+            Performance=cdh_utils.weighted_average_polars(
                 "PerformanceBin", "BinResponseCount"
             )
         )
@@ -275,6 +276,11 @@ def configure_predictor_categorization():
         title="Contribution of different sources",
     )
     st.plotly_chart(fig)
+
+
+@st.cache
+def convert_df(df):
+    return df.write_csv().encode("utf-8")
 
 
 # def newPredictorCategorizationFunc():

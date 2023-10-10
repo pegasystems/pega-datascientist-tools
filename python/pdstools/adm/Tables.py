@@ -1,5 +1,5 @@
-from . import ADMDatamart
 import polars as pl
+from pdstools.utils.cdh_utils import weighted_average_polars
 from functools import cached_property
 
 standardNBADNames = [
@@ -51,6 +51,8 @@ class Tables:
                 "reach": [1, 0],
                 "minimum_performance": [1, 1],
                 "appendix": [1, 0],
+                "predictor_summary": [1, 1],
+                "model_summary_table": [1, 0],
             }
         )
         df = df.transpose().with_columns(pl.Series(df.columns))
@@ -174,3 +176,80 @@ class Tables:
             )
             .collect()
         )
+
+    @cached_property
+    def predictor_summary(self):
+        """
+        This function returns a Polars dataframe containing some predictor statistics
+
+        Returns
+        -------
+        polars.DataFrame
+
+        """
+
+        bin_counts = (
+            (
+                self.last(table="predictorData")
+                .filter(pl.col("PredictorName") != "Classifier")
+                .group_by(["PredictorName", "ModelID"])
+                .agg(
+                    BinCounts=pl.col("BinSymbol").n_unique(),
+                )
+                .fill_null(0)
+            )
+            .group_by("PredictorName")
+            .agg(
+                Min_Bins_in_1_Model=pl.min("BinCounts"),
+                Median_Bin_Count=pl.median("BinCounts").cast(pl.Int16),
+                Max_Bins_in_1_Model=pl.max("BinCounts"),
+            )
+        )
+        PredictorPerformaces = (
+            self.last(table="predictorData")
+            .filter(pl.col("PredictorName") != "Classifier")
+            .unique(subset=["ModelID", "PredictorName"], keep="last")
+            .group_by("PredictorName")
+            .agg(
+                Performance=weighted_average_polars(
+                    vals="Performance", weights="ResponseCount"
+                ),
+                Min_Performance=pl.min("Performance"),
+                Median_Performance=pl.median("Performance"),
+                Max_Performance=pl.max("Performance"),
+                Model_Count=pl.col("ModelID").n_unique(),
+                Active_Model_Count=pl.col("ModelID")
+                .where(pl.col("EntryType") == "Active")
+                .n_unique(),
+            )
+            .fill_null(0)
+            .join(bin_counts, on="PredictorName", how="left")
+            .sort("Performance", descending=True)
+        )
+
+        missing_bin_percentage = (
+            self.last("predictorData")
+            .group_by("PredictorName")
+            .agg(
+                MissingResponseCount=pl.col("BinResponseCount")
+                .where(pl.col("BinSymbol") == "MISSING")
+                .sum()
+                .alias("MissingCount"),
+                TotalResponseCount=pl.sum("BinResponseCount"),
+            )
+            .with_columns(
+                PercentageWithoutResponses=(
+                    pl.col("MissingResponseCount") / pl.col("TotalResponseCount")
+                )
+            )
+            .fill_nan(0)
+        )
+        PredictorPerformaces = PredictorPerformaces.join(
+            missing_bin_percentage, on="PredictorName", how="left"
+        )
+
+        return PredictorPerformaces
+
+    @cached_property
+    def model_summary_table(self):
+        return self.model_summary().collect()
