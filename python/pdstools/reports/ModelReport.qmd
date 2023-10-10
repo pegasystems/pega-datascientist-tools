@@ -26,7 +26,7 @@ import sys
 sys.path.append('/Users/perdo/Documents/pega/pega-datascientist-tools/python')
 
 from pdstools import datasets, ADMDatamart
-from pdstools.utils.cdh_utils import zRatio
+from pdstools.utils.cdh_utils import zRatio, lift
 import polars as pl
 from IPython.display import display, Markdown
 from tabulate import tabulate
@@ -77,9 +77,10 @@ display(
         f"""
 # {model_name_in_context}
 
-Channel: {channel_name}
+| Channel | ID |
+|:-----|------:|
+| {channel_name} | {model_id} |
 
-Internal ID: {model_id}
 """
     )
 )
@@ -101,8 +102,7 @@ fig.show()
 
 ::: {.callout-tip}
 The charts (built with [Plotly](https://plotly.com/python/)) have [user controls for panning,
-zooming etc](https://plotly.com/chart-studio-help/zoom-pan-hover-controls/) but
-note that these interactive plots do not render well in portals like Sharepoint
+zooming etc](https://plotly.com/chart-studio-help/zoom-pan-hover-controls/). These interactive plots do not render well in portals like Sharepoint
 or Box. It is preferable to view them from a browser.
 :::
 
@@ -123,14 +123,14 @@ auc_roc = round(classifier
 display(
     Markdown(
         f"""
-The model performance is {auc_roc} measured as AUC-ROC. This number is calculated from the “active” bins of the Classifier.
+The model performance is **{auc_roc}** measured as AUC-ROC. This number is calculated from the “active” bins of the Classifier.
 """
     )
 )
 
 ```
 
-The classifier is used to map the model scores (average of the log odds of the active predictors) to a propensity value. The “active” bins are the ones that can be reached from the current binning of the active predictors.
+The classifier maps the model scores (average of the log odds of the active predictors) to a propensity value. The “active” bins are the ones that can be reached from the current binning of the active predictors.
 
 See the [ADM Explained](https://pegasystems.github.io/pega-datascientist-tools/Python/articles/ADMExplained.html) article for more information on how ADM exactly works.
 
@@ -140,7 +140,8 @@ See the [ADM Explained](https://pegasystems.github.io/pega-datascientist-tools/P
 classifier_properties = classifier.select(
     pl.last("ResponseCount").alias("Responses"),
     pl.last("Positives"),
-    pl.format("{}%", (pl.last("Positives")*100/pl.last("ResponseCount")).round(3)).alias("Base Propensity")
+    pl.format("{}%", (pl.last("Positives")*100/pl.last("ResponseCount")).round(3)).alias("Base Propensity"),
+    pl.format("{}", pl.last("Performance").round(4)).alias("Performance")
 )
 
 show(classifier_properties.collect().to_pandas())
@@ -159,28 +160,27 @@ $\frac{0.5+positives}{1+positives+negatives}$ so new models initially return a
 propensity of 0.5. This helps to address the cold start when introducing new
 actions.
 
-TODO: unfortunately the Python version has no notion of unreachable bins (yet)
+TODO: the Python version has no notion of unreachable bins (yet), when it has we should grey out the binning rows that fall outside of the active range
 
 ```{python}
 #| tbl-cap: Score Distribution
 
-# available fields:
-# BinNegatives	BinResponseCount	SnapshotTime	BinPositives	ResponseCount	PredictorName	Type	BinType	ModelID	BinIndex	Contents	Performance	EntryType	Positives	BinSymbol	BinPropensity	BinAdjustedPropensity	PredictorCategory
-
 human_friendly_scoredistribution = (classifier
-    .rename({"BinIndex" : "Index", 
-             "BinSymbol" : "Bin",
-             "BinResponseCount" : "Responses",
-             "BinPositives" : "Positives"})
     .select(
-        pl.col(["Index", "Bin", "Responses", "Positives"]), 
-        (100 * (pl.col("Positives").cumsum(reverse=True)) / pl.sum("Positives")).round(4).alias("Cum. Positives (%)"),
-        (100 * (pl.col("Responses").cumsum(reverse=True)) / pl.sum("Responses")).round(4).alias("Cum. Total (%)"),
+        pl.col("BinIndex").alias("Index"),
+        pl.col("BinSymbol").alias("Bin"),
+        pl.col("BinResponseCount").alias("Responses"),
+        pl.col("BinPositives").alias("Positives"),
+
+        (100 * (pl.col("BinPositives").cumsum(reverse=True)) / pl.sum("BinPositives")).round(2).alias("Cum. Positives (%)"),
+        (100 * (pl.col("BinResponseCount").cumsum(reverse=True)) / pl.sum("BinResponseCount")).round(2).alias("Cum. Total (%)"),
         (100*pl.col("BinPropensity")).round(3).alias("Propensity (%)"),
-        zRatio(pl.col("Positives"), pl.col("Responses") - pl.col("Positives")).round(3).alias("Z Ratio"),
-        # TODO perhaps put lift calculation in PDS tools library, it is chopped off from the DM data so we need to recalculate it
-        ((pl.col("Positives") * pl.sum("Responses") * 100)/(pl.col("Responses") * pl.sum("Positives"))).round(3).alias("Lift (%)"),
-        (100*pl.col("BinAdjustedPropensity")).round(3).alias("Adjusted Propensity (%)"))
+
+        zRatio(pl.col("BinPositives"), pl.col("BinNegatives")).round(3).alias("Z Ratio"),
+
+        (lift(pl.col("BinPositives"), pl.col("BinNegatives")) * 100).round(2).alias("Lift (%)"),
+
+        (pl.col("BinAdjustedPropensity") * 100).round(3).alias("Adjusted Propensity (%)"))
 ).collect()
 
 # Convert to a list of lists, use tabulate to print to ascii art
@@ -328,15 +328,6 @@ predictors. This can be configured via a parameter to this report.
 )
 ```
 
-TODO Add the alternative view (the red/green bars). See if we can format the info a bit more compact, like in the R markdown version.
-
-TODO Add some more overall stats like for percentage missing and overflow symbolics
-
-TODO Binning plot is sometimes totally off, looks like when bins seem to be numeric but are not
-
-TODO If there are two plots perhaps we can align them with layout-ncol, see https://quarto.org/docs/authoring/figures.html
-
-
 ```{python}
 #| output: asis
 
@@ -359,16 +350,18 @@ def show_single_predictor(pred):
     predictor_properties = (predictor_data
         .select(
             pl.last("Type"),
-            pl.last("Performance").round(4),
-            pl.last("EntryType").alias("Status")
-
-            # # TODO figure out how to calculate these easily
-            # display(Markdown(f"| Percentage Missing values | TODO |"))
+            pl.last("Performance").round(4).alias("Univariate Performance"),
+            pl.last("EntryType").alias("Status"),
+            pl.format("{}%", ((pl.col("BinResponseCount").where(pl.col("BinType") == "MISSING").sum()) * 100 / pl.last("ResponseCount")).round(2)).alias("Missing"),
+            # Residual aka Symbolic Overflow only applies to symbolics. Interestingly
+            # there almost always is a residual bin. We don't know exactly how many
+            # items are in that bin unfortunately, and there is no exact way to derive.
+            pl.format("{}%", ((pl.col("BinResponseCount").where(pl.col("BinType") == "RESIDUAL").sum()) * 100 / pl.last("ResponseCount")).round(2)).alias("Residual"),
 
             # # TODO predictor groups missing https://github.com/pegasystems/pega-datascientist-tools/issues/127
             # display(Markdown(f"| Predictor Group | TODO |"))
             # display(Markdown(f"| Correlated Predictors | TODO |"))
-            )
+        )
     )
 
     show(predictor_properties.collect().to_pandas())
@@ -398,8 +391,7 @@ def show_single_predictor(pred):
         predictor_data
         .select(
             pl.col(["BinSymbol", "BinPositives", "BinIndex"]), 
-            # TODO See earlier remark on Lift
-            ((pl.col("BinPositives") * pl.sum("BinResponseCount"))/(pl.col("BinResponseCount") * pl.sum("BinPositives")) - 1.0).alias("Lift")
+            (lift(pl.col("BinPositives"), pl.col("BinNegatives")) - 1.0)
         )
         .with_columns(
             pl.when((pl.col("Lift") >= 0.0) & (pl.col("BinPositives") > 5)).then(pl.lit('pos'))
@@ -440,17 +432,13 @@ def show_single_predictor(pred):
 
     human_friendly_binning_table = (
         predictor_data
-        .rename({
-            "BinIndex" : "Index", 
-            "BinSymbol" : "Bin",
-            "BinResponseCount" : "Responses",
-            "BinPositives" : "Positives"}
-        )
         .select(
-            pl.col(["Index", "Bin", "Responses", "Positives"]), 
-            zRatio(pl.col("Positives"), pl.col("Responses") - pl.col("Positives")).round(3).alias("Z Ratio"),
-            # TODO See earlier remark on Lift
-            ((pl.col("Positives") * pl.sum("Responses") * 100)/(pl.col("Responses") * pl.sum("Positives"))).round(3).alias("Lift (%)"),
+            pl.col("BinIndex").alias("Index"),
+            pl.col("BinSymbol").alias("Bin"),
+            pl.col("BinResponseCount").alias("Responses"),
+            pl.col("BinPositives").alias("Positives"),
+            zRatio(pl.col("BinPositives"), pl.col("BinNegatives")).round(3).alias("Z Ratio"),
+            (lift(pl.col("BinPositives"), pl.col("BinNegatives")) * 100).round(2).alias("Lift (%)"),
             (pl.col("BinPropensity") * 100).round(3).alias("Propensity (%)")
         )
         .collect()
@@ -471,23 +459,4 @@ for pred in predictors.collect().to_series(0):
 ```
 
 
-```{python}
-import plotly.express as px
-
-fig = px.bar(
-    x=[-10, -5, 5, 23],
-    y=['giraffes', 'bonobos', 'orangutans', 'monkeys'], 
-    color=['neg', 'neg_shaded', 'pos_shaded', 'pos'],
-    color_discrete_map = {
-        'neg': '#A01503', 
-        'pos': '#5F9F37',
-        'neg_shaded' : '#DAA9AB',
-        'pos_shaded' : '#C5D9B7'},
-    orientation='h',
-    template='pega'
-)
-fig.add_vline(x=0, line_color="black")
-
-fig.show()
-```
 

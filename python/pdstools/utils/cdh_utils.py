@@ -615,6 +615,35 @@ def zRatio(
 
     return zRatioimpl(*getFracs(posCol, negCol), posCol.sum(), negCol.sum())
 
+def lift(
+    posCol: pl.Expr = pl.col("BinPositives"), negCol: pl.Expr = pl.col("BinNegatives")
+) -> pl.Expr:
+    """Calculates the Lift for predictor bins.
+
+    The Lift is the ratio of the propensity in a particular bin over the average 
+    propensity. So a value of 1 is the average, larger than 1 means higher 
+    propensity, smaller means lower propensity.
+
+    Parameters
+    ----------
+    posCol: pl.Expr
+        The (Polars) column of the bin positives
+    negCol: pl.Expr
+        The (Polars) column of the bin positives
+
+    Examples
+    --------
+    >>> df.group_by(['ModelID', 'PredictorName']).agg([lift()]).explode()
+    """
+
+    def liftImpl(binPos, binNeg, totalPos, totalNeg):
+        return (
+            # TODO not sure how polars (mis)behaves when there are no positives at all
+            # I would hope for a NaN but base python doesn't do that. Polars perhaps.
+            binPos * (totalPos + totalNeg) / ((binPos + binNeg) * totalPos)
+        ).alias("Lift")
+
+    return liftImpl(posCol, negCol, posCol.sum(), negCol.sum())
 
 def LogOdds(
     Positives=pl.col("Positives"),

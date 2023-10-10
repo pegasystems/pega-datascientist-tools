@@ -38,9 +38,6 @@ class ADMVisualisations:
         fig.update_yaxes(showgrid=False)
         fig.update_xaxes(type='category')
 
-        # TODO fig.update_xaxes(type='category')
-        # TODO see a few more small changes in the off-line model report quarto
-
         return fig
 
     @staticmethod
