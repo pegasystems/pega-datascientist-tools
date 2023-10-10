@@ -60,11 +60,13 @@ def fromUploadedFile(**opts):
         except Exception as e:
             st.write("Oh oh.", e)
     elif model_file is not None and predictor_file is None:
-        st.warning("""Please also upload the Predictor Binning file. 
+        st.warning(
+            """Please also upload the Predictor Binning file. 
                 If you don't have access to a predictor binning file
                 and want to run the Health Check only on the model snapshot, check the
                 checkbox below.
-                """)
+                """
+        )
         model_analysis = st.checkbox("Only run model-based Health Check")
         if model_analysis:
             try:
@@ -256,7 +258,7 @@ def configure_predictor_categorization():
         .with_columns((pl.col("PerformanceBin") - 0.5) * 2)
         .group_by("PredictorCategory")
         .agg(
-            Performance=cdh_utils.weighed_average_polars(
+            Performance=cdh_utils.weighted_average_polars(
                 "PerformanceBin", "BinResponseCount"
             )
         )
