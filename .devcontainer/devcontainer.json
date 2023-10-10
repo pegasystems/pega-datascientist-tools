@@ -1,0 +1,25 @@
+{
+    "name": "Python 3",
+    // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+    "image": "mcr.microsoft.com/devcontainers/python:0-3.11",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.black-formatter",
+                "charliermarsh.ruff",
+                "ms-python.python",
+                "ms-toolsai.jupyter"
+            ]
+        }
+    },
+    "postCreateCommand": "pip3 install .['app'] && pdstools run",
+    "portsAttributes": {
+        "8501": {
+            "label": "Pdstools App",
+            "onAutoForward": "openBrowserOnce"
+        }
+    },
+    "features": {
+        "ghcr.io/rocker-org/devcontainer-features/quarto-cli:1": {}
+    }
+}
