@@ -970,19 +970,19 @@ class ADMDatamart(Plots, Tables):
                     .sum()
                     .alias("Count_without_responses"),
                     (
-                        cdh_utils.weighed_performance_polars().alias(
-                            "Performance_weighted"
-                        )
+                        cdh_utils.weighted_performance_polars()
+                        .alias("Performance_weighted")
+                        .fill_nan(0.5)
                     ),
-                    cdh_utils.weighed_average_polars(
-                        "SuccessRate", "ResponseCount"
-                    ).alias("SuccessRate_weighted"),
+                    cdh_utils.weighted_average_polars("SuccessRate", "ResponseCount")
+                    .fill_nan(0.0)
+                    .alias("SuccessRate_weighted"),
                 ],
             )
             .with_columns(
-                (pl.col("Count_without_responses") / pl.col(f"{by}_count")).alias(
-                    "Percentage_without_responses"
-                )
+                (pl.col("Count_without_responses") / pl.col(f"{by}_count"))
+                .alias("Percentage_without_responses")
+                .fill_nan(0.0)
             )
         )
 
@@ -1029,16 +1029,16 @@ class ADMDatamart(Plots, Tables):
                 df.unique(subset=[by], keep="first")
                 .group_by(by)
                 .agg(
-                    cdh_utils.weighed_average_polars("PerformanceBin", "ResponseCount")
+                    cdh_utils.weighted_average_polars("PerformanceBin", "ResponseCount")
                 )
                 .sort("PerformanceBin", descending=True)
                 .head(top_n)
                 .select(by)
             )
-            df = top_n_xaxis.join(df, on=by, how="left") 
+            df = top_n_xaxis.join(df, on=by, how="left")
         if by not in ["ModelID", "Name"]:
             df = df.group_by([by, "PredictorName"]).agg(
-                cdh_utils.weighed_average_polars("PerformanceBin", "ResponseCount")
+                cdh_utils.weighted_average_polars("PerformanceBin", "ResponseCount")
             )
         df = (
             df.collect()
@@ -1430,7 +1430,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         from xlsxwriter import Workbook
 
         tabs = {tab: getattr(self, tab) for tab in self.ApplicableTables}
-        with Workbook(file) as wb:
+        with Workbook(file, {"nan_inf_to_errors": True}) as wb:
             for tab, data in tabs.items():
                 data = data.with_columns(
                     pl.col(pl.List(pl.Categorical), pl.List(pl.Utf8))
