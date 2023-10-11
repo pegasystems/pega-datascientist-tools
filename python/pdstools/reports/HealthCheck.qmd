@@ -49,12 +49,19 @@ import math
 #| tags: [parameters]
 #| echo: false
 
-# These parameters are overwritten when called by the app function.
-# Though if running this healthcheck separately, you can populate this cell.
+# The kwargs argument is in support of the streamlit app specifically.
+# The folder/filename arguments are in support of calling from a command line,
+# using the same argument names as the stand-alone model report.
+# When neither is passed in, it falls back to the sample data.
 
 name = 'CDH Sample'
-filters = dict()
+filters = dict() # TODO: not used?
 kwargs = dict()
+
+datafolder = ""
+modelfilename = ""
+predictorfilename = ""
+
 include_tables=True
 globalQuery = None
 
@@ -67,9 +74,17 @@ globalQuery = None
 
 # Initialize the class after the parameters have been overwritten.
 
-if len(kwargs)>0: #override with keyword arguments
+if len(kwargs)>0: 
+    # streamlit call
     datamart = ADMDatamart(**kwargs, include_cols="pyFeatureImportance").fillMissing()
-else: #fall back to 'default'
+elif len(datafolder) > 0 or len(modelfilename) > 0 or len(predictorfilename) > 0:
+    # command line call
+    datamart = ADMDatamart(
+        path = "." if len(datafolder) == 0 else datafolder, 
+        model_filename = None if len(modelfilename)==0 else modelfilename, 
+        predictor_filename = None if len(predictorfilename)==0 else predictorfilename)
+else: 
+    # fall back to sample data
     datamart = datasets.CDHSample()
 treatment = (
     "Treatment" in datamart.modelData.columns
