@@ -39,7 +39,7 @@ import plotly.express as px
 
 # These parameters are overwritten when called externally
 
-datafolder = "."
+datafolder = ""
 modelfilename = ""
 predictorfilename = ""
 model_id = ""
