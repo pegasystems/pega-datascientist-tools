@@ -61,8 +61,8 @@ kwargs = dict()
 title = "Demo Dataset" # pass in customer name here
 subtitle = "" # typically used to pass in a date range or other qualification of the data source
 
-datafolder = "/Users/perdo/Downloads/CrossCustomerCache"
-modelfilename = "Achmea_-_PDC_ModelSnapshots.arrow"
+datafolder = ""
+modelfilename = ""
 predictorfilename = ""
 
 include_tables=True
