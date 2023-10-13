@@ -23,7 +23,6 @@ jupyter: python3
 
 ```{python}
 import sys
-sys.path.append('/Users/perdo/Documents/pega/pega-datascientist-tools/python')
 
 from pdstools import datasets, ADMDatamart
 from pdstools.utils.cdh_utils import zRatio, lift
@@ -40,13 +39,17 @@ import plotly.express as px
 
 # These parameters are overwritten when called externally
 
-# TODO see if we can align with the params of the Health Check
-
 datafolder = os.path.expanduser("~/Downloads/tmp/")
 modelfilename = "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20230927T113905_GMT.zip"
 predictorfilename = "Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20230927T113944_GMT.zip"
 model_id = "99ba769f-1e22-5f26-a7a2-96777b957190"
 predictordetails_activeonly = True
+
+# TODO title and subtitle not currently used but should be if given
+
+title = "Demo Dataset" # pass in customer name here
+subtitle = "" # typically used to pass in a date range or other qualification of the data source
+
 ```
 
 ```{python}
@@ -67,6 +70,7 @@ datamart.predictorData = datamart.predictorData.filter(pl.col("ModelID") == mode
 
 ```{python}
 # TODO to make generic make sure these context keys really exist, do intersect with names in the model data
+# TODO use .format instead of concat
 
 channel_name = datamart.modelData.select(pl.concat_str(["Direction", "Channel"], separator="/")).unique().collect().item()
 model_name_in_context = datamart.modelData.select(pl.concat_str(["Issue", "Group", "Name", "Treatment"], separator="/")).unique().collect().item()
@@ -422,8 +426,10 @@ def show_single_predictor(pred):
         yaxis = dict(autorange="reversed"),
         title="Propensity Lift", xaxis_title="", yaxis_title="")
     # Not convinced why we need below. It should respect the binindex order but w/o this it doesnt always.
+    # Stijn: I think, if there's no missing bin, it tries to cast to numeric and tries to do magic with sorting. If there's a missing bin, then casting to numeric will fail and it will just keep the order
     fig.update_yaxes(categoryorder='array', categoryarray=pm_plot_binning_table['BinSymbol'])
     # TODO: when there are many bins not all are always shown, figure out how to fix
+    # see nbins argument? https://plotly.com/python/histograms/#choosing-the-number-of-bins
 
     fig.update_layout(width=700, height=300, showlegend=False)
     fig.show()

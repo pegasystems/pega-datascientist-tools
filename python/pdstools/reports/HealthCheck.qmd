@@ -58,13 +58,38 @@ name = 'CDH Sample'
 filters = dict() # TODO: not used?
 kwargs = dict()
 
-datafolder = ""
-modelfilename = ""
+title = "Demo Dataset" # pass in customer name here
+subtitle = "" # typically used to pass in a date range or other qualification of the data source
+
+datafolder = "/Users/perdo/Downloads/CrossCustomerCache"
+modelfilename = "Achmea_-_PDC_ModelSnapshots.arrow"
 predictorfilename = ""
 
 include_tables=True
 globalQuery = None
 
+```
+
+```{python}
+#| echo: false
+
+display(
+    Markdown(
+        f"""
+# {title}
+
+## {subtitle}
+
+"""
+    )
+)
+```
+
+```{python}
+xxx=ADMDatamart(
+        path = "/Users/perdo/Downloads/CrossCustomerCache", 
+        model_filename = "Achmea_-_PDC_ModelSnapshots.arrow", 
+        predictor_filename = '')
 ```
 
 ```{python}
@@ -81,8 +106,8 @@ elif len(datafolder) > 0 or len(modelfilename) > 0 or len(predictorfilename) > 0
     # command line call
     datamart = ADMDatamart(
         path = "." if len(datafolder) == 0 else datafolder, 
-        model_filename = None if len(modelfilename)==0 else modelfilename, 
-        predictor_filename = None if len(predictorfilename)==0 else predictorfilename)
+        model_filename = "" if len(modelfilename)==0 else modelfilename, 
+        predictor_filename = "" if len(predictorfilename)==0 else predictorfilename)
 else: 
     # fall back to sample data
     datamart = datasets.CDHSample()
@@ -105,7 +130,11 @@ last_data = (
         ]
     )
 ).collect()
-datamart_all_columns = datamart.combinedData.columns
+
+if datamart.predictorData is not None:
+    datamart_all_columns = datamart.combinedData.columns
+else:
+    datamart_all_columns = datamart.modelData.columns
 
 standardNBADNames = [
     "Assisted_Click_Through_Rate",
@@ -128,14 +157,10 @@ currentConfigurationNames = datamart.modelData.select(pl.col('Configuration')).u
 configurationNamesInStandardNBADModelNames = [(c in standardNBADNames) for c in currentConfigurationNames]
 ```
 
-This document gives a generic and global overview of the Adaptive models 
-and predictors. It is generated from a Python markdown file in the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools). That repository
-of tools and scripts also contains a notebook to generate stand-alone
-model reports for individual models, please refer 
-to the [Wiki](https://github.com/pegasystems/pega-datascientist-tools/wiki).
 
-This document provides a first-level scan of the models after which a 
-deeper and more customer specific deeper dive can be done.
+
+This document gives a global overview of the Adaptive models and predictors. It is generated from a Python markdown file in the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools). This is open-source software and comes without guarantees. Off-line reports for individual
+models can be created as well, see [Wiki](https://github.com/pegasystems/pega-datascientist-tools/wiki).
 
 ## Guidance
 
@@ -518,6 +543,21 @@ fig.show()
 ```
 
 # Analysis of Predictors
+
+```{python}
+#| output: asis
+#| echo: false
+
+if datamart.predictorData is None:
+    display(Markdown(
+"""
+::: {.callout-important}
+Predictor Data is not available. All the below analyses based on predictor data
+will be empty.
+:::
+"""))
+```
+
 This analysis focuses on finding which are top predictors that are driving the models.
 
 The predictors are categorized (by color) by the “source”. By default this takes just the first part before the dot, so this typically distinguishes between Customer, Account, IH and parameterized (Param.) predictors. You can customize this to add patterns to identify for example external scores.
@@ -530,15 +570,19 @@ Note that the total number of predictors in the model data does not always equat
 
 ```{python}
 #| error: true
-if include_tables:
 
-    # TODO: see if we can highlight table cells like in the R version
-    # to highlight best practices
+if datamart.predictorData is not None:
+    if include_tables:
 
-    predictors_per_configuration = datamart.predictors_per_configuration.to_pandas(use_pyarrow_extension_array=False)
-    show(predictors_per_configuration)
+        # TODO: see if we can highlight table cells like in the R version
+        # to highlight best practices
+
+        predictors_per_configuration = datamart.predictors_per_configuration.to_pandas(use_pyarrow_extension_array=False)
+        show(predictors_per_configuration)
+    else:
+        print('Please refer to the `predictors_per_configuration` tab in the included Excel file.')
 else:
-    print('Please refer to the `predictors_per_configuration` tab in the included Excel file.')
+    Text("No predictor data")
 ```
 
 ## Number of Predictors per Predictor Category
@@ -604,24 +648,28 @@ Aggregating up to the category of the predictors. This gives a view at a glance 
 
 ```{python}
 #| error: true
-facets = 'Configuration/Channel/Direction'
-facet_col_wrap = 3
-fig = datamart.plotPredictorCategoryPerformance(facets=facets, facet_col_wrap=facet_col_wrap)
 
-fig.update_layout(font=dict(size=10))
-fig.for_each_annotation(
-    lambda a: a.update(text=a.text.replace(f"{facets}=", ""))
-)
-fig.for_each_annotation(lambda a: a.update(text=" <br> ".join(a.text.split("/"))))
+if datamart.predictorData is not None:
+    facets = 'Configuration/Channel/Direction'
+    facet_col_wrap = 3
+    fig = datamart.plotPredictorCategoryPerformance(facets=facets, facet_col_wrap=facet_col_wrap)
 
-facet_list = []
-for data in fig.data:
-    facet_list.append(data["yaxis"][1:])
-facet_count = len(set(facet_list))
+    fig.update_layout(font=dict(size=10))
+    fig.for_each_annotation(
+        lambda a: a.update(text=a.text.replace(f"{facets}=", ""))
+    )
+    fig.for_each_annotation(lambda a: a.update(text=" <br> ".join(a.text.split("/"))))
 
-height = 200 + (math.ceil( facet_count/ facet_col_wrap) * 250)
-fig.update_layout(autosize=True, height=height)
-fig.show() 
+    facet_list = []
+    for data in fig.data:
+        facet_list.append(data["yaxis"][1:])
+    facet_count = len(set(facet_list))
+
+    height = 200 + (math.ceil( facet_count/ facet_col_wrap) * 250)
+    fig.update_layout(autosize=True, height=height)
+    fig.show() 
+else:
+    Text("Predictor data is not available.")
 
 ```
 
@@ -629,18 +677,21 @@ fig.show()
 Although the same could be achieved using the standard **plotPredictorImportance** method, now that we only split by Configuration this allows for a more compact visualization using a stacked bar chart.
 
 ```{python}
+
 ''' By dividing a predictor category's weighted performance to the sum of all predictor categories weighted performance in a configuration, creates a plot that displays relative importance of categories in a configuration.
 Changes the Predictor performance range from 50-100 to 0-100 in order to increase visibilty of performance differences among categories.'''
 
-fig = datamart.plotPredictorContribution()
-height = 200 + (math.ceil(len(datamart.modelData.select(pl.col("Configuration").unique()).collect()['Configuration'].to_list()) / 2) * 50)
-fig.update_layout(height=height)
-fig.update_yaxes(
-    automargin=True,
-    dtick=1,
-)
-fig.show()
-
+if datamart.predictorData is not None:
+    fig = datamart.plotPredictorContribution()
+    height = 200 + (math.ceil(len(datamart.modelData.select(pl.col("Configuration").unique()).collect()['Configuration'].to_list()) / 2) * 50)
+    fig.update_layout(height=height)
+    fig.update_yaxes(
+        automargin=True,
+        dtick=1,
+    )
+    fig.show()
+else:
+    Text("Predictor data is not available")
 ```
 
 ## Bad predictors across all models
@@ -654,35 +705,36 @@ See if there are predictors that are just always perform poorly.
 
 ```{python}
 # weighted performance
-if include_tables:
-    responses_column_index = datamart.bad_predictors.columns.index("Response Count")
-    bad_predictors = datamart.bad_predictors.to_pandas(
-        use_pyarrow_extension_array=False
-    )
+if datamart.predictorData is not None:
+    if include_tables:
+        responses_column_index = datamart.bad_predictors.columns.index("Response Count")
+        bad_predictors = datamart.bad_predictors.to_pandas(
+            use_pyarrow_extension_array=False
+        )
 
-    show(
-        bad_predictors,
-        scrollX=True,
-        columnDefs=[
-            {
-                "className": "dt-left",
-                "targets": [responses_column_index],
-                "createdCell": JavascriptFunction(
-                    """
-function (td, cellData, rowData, row, col) {
-    if (cellData < 200) {
-        $(td).css('color', 'red')
+        show(
+            bad_predictors,
+            scrollX=True,
+            columnDefs=[
+                {
+                    "className": "dt-left",
+                    "targets": [responses_column_index],
+                    "createdCell": JavascriptFunction(
+                        """
+    function (td, cellData, rowData, row, col) {
+        if (cellData < 200) {
+            $(td).css('color', 'red')
+        }
     }
-}
-"""
-                ),
-            }
-        ],
-    )
-
-
+    """
+                    ),
+                }
+            ],
+        )
+    else:
+        print("Please refer to the `bad_predictors` tab in the included Excel file.")
 else:
-    print("Please refer to the `bad_predictors` tab in the included Excel file.")
+    Text("Predictor data is not available")
 ```
 
 ## Number of Active and Inactive Predictors
@@ -695,16 +747,19 @@ Showing the number of active and inactive predictors per model.
 :::
 
 ```{python}
-facets= ["Configuration"]
-fig = datamart.plotPredictorCount(facets = facets)
+if datamart.predictorData is not None:
+    facets= ["Configuration"]
+    fig = datamart.plotPredictorCount(facets = facets)
 
-height = 250 + (math.ceil(len(fig.layout.annotations) / 2) * 270)
-fig.update_layout(autosize=True, height=height)
-fig.update_yaxes(categoryorder="array", automargin=True, dtick=1)
-fig.for_each_annotation(
-    lambda a: a.update(text=a.text.replace(f"{facets[0]}=", ""))
-)
-fig.show()
+    height = 250 + (math.ceil(len(fig.layout.annotations) / 2) * 270)
+    fig.update_layout(autosize=True, height=height)
+    fig.update_yaxes(categoryorder="array", automargin=True, dtick=1)
+    fig.for_each_annotation(
+        lambda a: a.update(text=a.text.replace(f"{facets[0]}=", ""))
+    )
+    fig.show()
+else:
+    Text("Predictor data is not available")
 ```
 
 ## Predictor Performance across Propositions
@@ -738,7 +793,7 @@ if datamart.predictorData is not None:
         except:
             print(f"Plot was not drawn for {conf} because of an error")    #TODO: add error message instead of typing "an error"
 else:
-    Text("There is no predictor data available.")
+    Text("Predictor data is not available")
 ```
 
 ## Missing values
@@ -747,37 +802,39 @@ Missing % is number of missing vs all responses, really just a filter on model d
 This TreeMap only shows the fields that have any missing values.
 
 ```{python}
-path =  [col for col in ["Configuration", "PredictorCategory", "PredictorName"] if col in datamart_all_columns]
-gb_cols = path
-path = [px.Constant("All Models")] + path 
+if datamart.predictorData is not None:
+    path =  [col for col in ["Configuration", "PredictorCategory", "PredictorName"] if col in datamart_all_columns]
+    gb_cols = path
+    path = [px.Constant("All Models")] + path 
 
-missing = datamart.last(table = "combinedData").filter(pl.col("PredictorName") != "Classifier").group_by(gb_cols).agg(
-    pl.col("BinResponseCount")
-    .where(pl.col("BinSymbol") == "MISSING")
-    .sum()
-    .alias("MissingCount"),
-    pl.sum("BinResponseCount").alias("BinResponseCount")
-).with_columns(
-    (pl.col("MissingCount") / pl.col("BinResponseCount")).alias("Percentage without responses")
-).filter((~pl.col("Percentage without responses").is_nan()))
+    missing = datamart.last(table = "combinedData").filter(pl.col("PredictorName") != "Classifier").group_by(gb_cols).agg(
+        pl.col("BinResponseCount")
+        .where(pl.col("BinSymbol") == "MISSING")
+        .sum()
+        .alias("MissingCount"),
+        pl.sum("BinResponseCount").alias("BinResponseCount")
+    ).with_columns(
+        (pl.col("MissingCount") / pl.col("BinResponseCount")).alias("Percentage without responses")
+    ).filter((~pl.col("Percentage without responses").is_nan()))
 
-hover_data = {
-    "Percentage without responses": ":.2%",
-}
+    hover_data = {
+        "Percentage without responses": ":.2%",
+    }
 
-fig = px.treemap(
-    missing.to_pandas(),
-    path=path,
-    color="Percentage without responses",
-    template="pega",
-    hover_data=hover_data,
-    title="Missing Data in Adaptive Models",
-)
+    fig = px.treemap(
+        missing.to_pandas(),
+        path=path,
+        color="Percentage without responses",
+        template="pega",
+        hover_data=hover_data,
+        title="Missing Data in Adaptive Models",
+    )
 
-fig.layout.coloraxis.colorscale =  pega_template.positive_negative
+    fig.layout.coloraxis.colorscale =  pega_template.positive_negative
 
-fig.show()
-
+    fig.show()
+else:
+    Text("Predictor data is not available")
 
 ```
 
@@ -817,6 +874,7 @@ else:
 
 ```{python}
 #| output: asis
+
 if include_tables:
     zero_positives = datamart.zero_positives.to_pandas(use_pyarrow_extension_array=True)
     if zero_positives.shape[0] >0:
@@ -836,13 +894,13 @@ We show the “reach” of these actions as the percentage of the population tha
 
 
 ```{python}
-if include_tables:
-    reach = datamart.reach.to_pandas()
-    reach.style.format({
-        'Reach': '{:,.2%}'.format})
-    show(reach, scrollX=True)
-else:
-    print('Please refer to the `reach` tab in the included Excel file.')
+# if include_tables:
+#     reach = datamart.reach.to_pandas()
+#     reach.style.format({
+#         'Reach': '{:,.2%}'.format})
+#     show(reach, scrollX=True)
+# else:
+#     print('Please refer to the `reach` tab in the included Excel file.')
 
 ```
 

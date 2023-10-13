@@ -640,6 +640,7 @@ def lift(
         return (
             # TODO not sure how polars (mis)behaves when there are no positives at all
             # I would hope for a NaN but base python doesn't do that. Polars perhaps.
+            # Stijn: It does have proper None value support, may work like you say
             binPos * (totalPos + totalNeg) / ((binPos + binNeg) * totalPos)
         ).alias("Lift")
 
