@@ -39,10 +39,10 @@ import plotly.express as px
 
 # These parameters are overwritten when called externally
 
-datafolder = os.path.expanduser("~/Downloads/tmp/")
-modelfilename = "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20230927T113905_GMT.zip"
-predictorfilename = "Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20230927T113944_GMT.zip"
-model_id = "99ba769f-1e22-5f26-a7a2-96777b957190"
+datafolder = "."
+modelfilename = ""
+predictorfilename = ""
+model_id = ""
 predictordetails_activeonly = True
 
 # TODO title and subtitle not currently used but should be if given
