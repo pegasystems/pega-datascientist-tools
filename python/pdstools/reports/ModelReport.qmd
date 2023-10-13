@@ -52,6 +52,7 @@ subtitle = "" # typically used to pass in a date range or other qualification of
 
 ```
 
+
 ```{python}
 # Predictor data for one model ID
 if datafolder == "":
@@ -79,7 +80,11 @@ model_name = datamart.modelData.select(pl.concat_str(["Name", "Treatment"], sepa
 display(
     Markdown(
         f"""
-# {model_name_in_context}
+# {title}
+
+{subtitle}
+
+## {model_name_in_context}
 
 | Channel | ID |
 |:-----|------:|
