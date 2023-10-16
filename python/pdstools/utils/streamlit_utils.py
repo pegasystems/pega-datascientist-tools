@@ -159,7 +159,9 @@ def fromFilePath(**opts):
             )
 
 
-def filter_dataframe(df: pl.LazyFrame, schema: Optional[dict] = None) -> pl.LazyFrame:
+def filter_dataframe(
+    df: pl.LazyFrame, schema: Optional[dict] = None, queries=[]
+) -> pl.LazyFrame:
     """
     Adds a UI on top of a dataframe to let viewers filter columns
 
@@ -174,9 +176,6 @@ def filter_dataframe(df: pl.LazyFrame, schema: Optional[dict] = None) -> pl.Lazy
         The filtered LazyFrame
 
     """
-
-    queries = []
-
     to_filter_columns = st.multiselect(
         "Filter dataframe on", df.columns, key="multiselect"
     )
@@ -277,6 +276,11 @@ def configure_predictor_categorization():
         title="Contribution of different sources",
     )
     st.plotly_chart(fig)
+
+
+@st.cache
+def convert_df(df):
+    return df.write_csv().encode("utf-8")
 
 
 # def newPredictorCategorizationFunc():
