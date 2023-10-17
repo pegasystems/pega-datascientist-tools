@@ -221,18 +221,27 @@ configurations it seems that the framework
 -   Channels with no positive feedback
 
 ```{r Channel overview}
-channelSummary <- datamart$modeldata[, .(`Responses` = max(ResponseCount), 
-                                         `Positives` = max(Positives), 
-                                         `Base rate` = sprintf("%.2f%%", 100*max(Positives)/max(ResponseCount)),
-                                         `Supported by Configurations` = paste(sort(unique(ConfigurationName)), collapse = ", "),
-                                         N = uniqueN(ConfigurationName)), 
-                                     by=c("Channel","Direction")][order(Channel)]
+
+# take the max counts per model
+channelSummaryMaxByModel <- datamart$modeldata[, .(Responses = max(ResponseCount), 
+                                                   Positives = max(Positives)),
+                                               by=c("Direction", "Channel", "ModelID", "ConfigurationName")]
+# sum up the response counts per configuration and channel
+channelSummaryCountsByConfiguration <- channelSummaryMaxByModel[, .(Responses = sum(Responses), 
+                                                                    Positives = sum(Positives)), 
+                                                                by=c("Direction", "Channel", "ConfigurationName")]
+# multiple model configurations could be driving one channel, take the max
+channelSummary <- channelSummaryCountsByConfiguration[, .(Responses = max(Responses),
+                                                          Positives = max(Positives),
+                                                          `Base rate` = sprintf("%.2f%%", 100*max(Positives)/max(Responses)),
+                                                          `Supported by Configurations` = paste(sort(unique(ConfigurationName)), collapse = ", "),
+                                                          N = uniqueN(ConfigurationName)), by=c("Direction", "Channel")][order(Channel, Direction)]
 
 channelSummary[, 1:(ncol(channelSummary)-1)] %>%
   kbl() %>%
   kable_paper(c("striped", "hover"), full_width = F) %>%
-  column_spec(3, background = ifelse(channelSummary[[3]] > 0 ,"white", "red")) %>%
-  column_spec(4, background = ifelse(channelSummary[[4]] > 0 ,"white", "red")) %>%
+  column_spec(3, background = ifelse(channelSummary$Responses > 0 ,"white", "red")) %>%
+  column_spec(4, background = ifelse(channelSummary$Positives > 0 ,"white", "red")) %>%
   column_spec(6, background = ifelse(channelSummary$N <= 2 ,"white", "orange"))
 ```
 

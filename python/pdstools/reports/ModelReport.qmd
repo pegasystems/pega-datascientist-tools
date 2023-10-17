@@ -4,7 +4,7 @@ title-block-banner: true
 author: "Pega data scientist tools"
 date: today
 subtitle: > 
-  Details of the binning of all the predictors used
+  Details of one particular ADM model
 execute:
   echo: false
 format:
@@ -16,44 +16,80 @@ format:
     toc: true
     toc-title: Table of Contents
     theme:
-        light: flatly
-        dark: darkly
+      light: flatly
+      dark: darkly
 jupyter: python3
 ---
 
 ```{python}
+import sys
+
 from pdstools import datasets, ADMDatamart
+from pdstools.utils.cdh_utils import zRatio, lift
 import polars as pl
 from IPython.display import display, Markdown
+from tabulate import tabulate
+from itables import show
 import os.path
+import plotly.express as px
 ```
 
 ```{python}
 #| tags: [parameters]
 
 # These parameters are overwritten when called externally
-datafolder = os.path.expanduser("~/Downloads/tmp/")
-modelfilename = "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20230927T113905_GMT.zip"
-predictorfilename = "Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20230927T113944_GMT.zip"
-#model_id = "bd70a915-697a-5d43-ab2c-53b0557c85a0" # sample
-model_id = "99ba769f-1e22-5f26-a7a2-96777b957190"
+
+datafolder = ""
+modelfilename = ""
+predictorfilename = ""
+model_id = ""
 predictordetails_activeonly = True
+
+# TODO title and subtitle not currently used but should be if given
+
+title = "Demo Dataset" # pass in customer name here
+subtitle = "" # typically used to pass in a date range or other qualification of the data source
+
 ```
+
 
 ```{python}
 # Predictor data for one model ID
 if datafolder == "":
   datamart = datasets.CDHSample()
+  model_id = "bd70a915-697a-5d43-ab2c-53b0557c85a0"
 else:
-  datamart = ADMDatamart(datafolder, model_filename=modelfilename, predictor_filename=predictorfilename)
+  datamart = ADMDatamart(datafolder, model_filename=modelfilename, predictor_filename=predictorfilename, extract_keys=True)
+
+# TODO below seems silly, can probably filter in the constructor arguments
 datamart.modelData = datamart.modelData.filter(pl.col("ModelID") == model_id)
-predictorBinning = datamart.predictorData.filter(pl.col("ModelID") == model_id)
-# TODO ensure this is only one snapshot, just in case
+datamart.predictorData = datamart.predictorData.filter(pl.col("ModelID") == model_id)
+
+# TODO ensure this is only one predictor snapshot, just in case? although it would be 
+# neat to show predictor evolution, if available
+```
+
+```{python}
+# TODO to make generic make sure these context keys really exist, do intersect with names in the model data
+# TODO use .format instead of concat
+
+channel_name = datamart.modelData.select(pl.concat_str(["Direction", "Channel"], separator="/")).unique().collect().item()
+model_name_in_context = datamart.modelData.select(pl.concat_str(["Issue", "Group", "Name", "Treatment"], separator="/")).unique().collect().item()
+model_name = datamart.modelData.select(pl.concat_str(["Name", "Treatment"], separator="/")).unique().collect().item()
 
 display(
     Markdown(
         f"""
-# Model: {model_id}
+# {title}
+
+{subtitle}
+
+## {model_name_in_context}
+
+| Channel | ID |
+|:-----|------:|
+| {channel_name} | {model_id} |
+
 """
     )
 )
@@ -61,12 +97,10 @@ display(
 
 ```{python}
 fig = datamart.plotScoreDistribution(modelids = [model_id])
-name = datamart.modelData.select(pl.col("Name")).unique().collect().item()
 
 # Customize some of the default styling of the plot
-# TODO except for title consider moving into library
-# TODO make the fly-over better
-fig.update_layout(title=f"Classifier Score Distribution<br>{name}", xaxis_title="")
+
+fig.update_layout(title=f"Classifier Score Distribution<br>{model_name}", xaxis_title="")
 fig.data[0].opacity=0.5
 fig.data[1].line.color="#EF8B08"
 fig.data[1].line.width=3
@@ -76,46 +110,57 @@ fig.show()
 ```
 
 ::: {.callout-tip}
-The [Plotly](https://plotly.com/python/) charts have [user controls for panning,
-zooming etc](https://plotly.com/chart-studio-help/zoom-pan-hover-controls/) but
-note that these interactive plots do not render well in portals like Sharepoint
+The charts (built with [Plotly](https://plotly.com/python/)) have [user controls for panning,
+zooming etc](https://plotly.com/chart-studio-help/zoom-pan-hover-controls/). These interactive plots do not render well in portals like Sharepoint
 or Box. It is preferable to view them from a browser.
 :::
 
 ## Model Performance
 
 ```{python}
-auc_roc = round(datamart.modelData.filter(pl.col('ModelID')==model_id).select('Performance').collect().to_series(0).tail(1).item(), 4)
+classifier = (
+    datamart.predictorData
+    .filter(pl.col("EntryType")=="Classifier")
+    .sort("BinIndex")
+)
+
+auc_roc = round(classifier
+    .select(pl.last('Performance'))
+    .collect()
+    .item(), 4)
 
 display(
     Markdown(
         f"""
-The model performance is {auc_roc} measured as AUC-ROC. This number is calculated from the “active” bins of the Classifier.
+The model performance is **{auc_roc}** measured as AUC-ROC. This number is calculated from the “active” bins of the Classifier.
 """
     )
 )
 
 ```
 
-The classifier is used to map the model scores (average of the log odds of the active predictors) to a propensity value.
-
-The “active” bins are the ones that can be reached from the current binning of the active predictors.
+The classifier maps the model scores (average of the log odds of the active predictors) to a propensity value. The “active” bins are the ones that can be reached from the current binning of the active predictors.
 
 See the [ADM Explained](https://pegasystems.github.io/pega-datascientist-tools/Python/articles/ADMExplained.html) article for more information on how ADM exactly works.
+
+```{python}
+#| output: asis
+
+classifier_properties = classifier.select(
+    pl.last("ResponseCount").alias("Responses"),
+    pl.last("Positives"),
+    pl.format("{}%", (pl.last("Positives")*100/pl.last("ResponseCount")).round(3)).alias("Base Propensity"),
+    pl.format("{}", pl.last("Performance").round(4)).alias("Performance")
+)
+
+show(classifier_properties.collect().to_pandas())
+```
+
 
 ## Score Distribution
 
 The Score Distribution shows the volume and average propensity in every bin of
 the score ranges of the Classifier.
-
-
-
-::: {.callout-note title="TODO"}
-See if we can make this plot look a little nicer, see styles and labels from the R markdown version
-:::
-
-
-
 
 Propensity is defined as $\frac{positives}{positives+negatives}$ per bin.
 The adjusted propensity that is returned is a small modification (*Laplace
@@ -124,11 +169,40 @@ $\frac{0.5+positives}{1+positives+negatives}$ so new models initially return a
 propensity of 0.5. This helps to address the cold start when introducing new
 actions.
 
-::: {.callout-note title="TODO"}
-show classifier bins as a nice table
+TODO: the Python version has no notion of unreachable bins (yet), when it has we should grey out the binning rows that fall outside of the active range
 
-See quarto's tables https://quarto.org/docs/authoring/tables.html which are much nicer than panda
-:::
+```{python}
+#| tbl-cap: Score Distribution
+
+human_friendly_scoredistribution = (classifier
+    .select(
+        pl.col("BinIndex").alias("Index"),
+        pl.col("BinSymbol").alias("Bin"),
+        pl.col("BinResponseCount").alias("Responses"),
+        pl.col("BinPositives").alias("Positives"),
+
+        (100 * (pl.col("BinPositives").cumsum(reverse=True)) / pl.sum("BinPositives")).round(2).alias("Cum. Positives (%)"),
+        (100 * (pl.col("BinResponseCount").cumsum(reverse=True)) / pl.sum("BinResponseCount")).round(2).alias("Cum. Total (%)"),
+        (100*pl.col("BinPropensity")).round(3).alias("Propensity (%)"),
+
+        zRatio(pl.col("BinPositives"), pl.col("BinNegatives")).round(3).alias("Z Ratio"),
+
+        (lift(pl.col("BinPositives"), pl.col("BinNegatives")) * 100).round(2).alias("Lift (%)"),
+
+        (pl.col("BinAdjustedPropensity") * 100).round(3).alias("Adjusted Propensity (%)"))
+).collect()
+
+# Convert to a list of lists, use tabulate to print to ascii art
+# the markdown to make it a nice table
+# Seems to look better than itables.show() but maybe I'm missing something
+# Neither of the two are as good as kable / kableExtra, highlighting of specific
+# cells, rows, columns is not easily done
+
+Markdown(
+    tabulate([[f[i] for f in human_friendly_scoredistribution] for i in range(human_friendly_scoredistribution.shape[0])],
+    headers = human_friendly_scoredistribution.columns))
+
+```
 
 
 ## Cumulative Gains and Lift charts
@@ -139,12 +213,66 @@ The Cumulative Gains chart shows the percentage of he overall cases in the "posi
 
 The Lift chart is derived from this and shows the ratio of the cumulative gain and the targeted volume.
 
-TODO get both plots in
+TODO: unfortunately the Python version has no notion of unreachable bins (yet) which can cause really strange high lift values
+
+::: {layout-ncol=2}
+
+```{python}
+# TODO perhaps this should move into the pdstools plot functions "plotCumulativeGains"
+fig = px.area(
+    human_friendly_scoredistribution, 
+    x="Cum. Total (%)", y="Cum. Positives (%)", 
+    title='Cumulative Gains',
+    template="pega")
+fig.add_shape(
+    type='line', line=dict(dash='dash'),
+    x0=0, x1=100, y0=0, y1=100
+)
+fig.update_yaxes(scaleanchor="x", scaleratio=1, constrain='domain', title=dict(text="% of Positive Responders"))
+fig.update_xaxes(constrain='domain', title=dict(text="% of Population"))
+fig.show()
+```
+
+```{python}
+# TODO perhaps this should move into the pdstools plot functions "plotCumulativeLift"
+fig = px.area(
+    human_friendly_scoredistribution, 
+    x="Cum. Total (%)", y="Lift (%)", 
+    title='Lift',
+    template="pega")
+fig.update_yaxes(scaleanchor="x", scaleratio=0.01, constrain='domain', title=dict(text="Propensity Lift"))
+fig.update_xaxes(constrain='domain', title=dict(text="% of Population"))
+fig.show()
+```
+
+:::
 
 # Trend charts
 
-TODO using model datamart show trend of auc, responses, ctr, maybe all in
-one with tabs
+TODO see if we can put the various trend charts in tabs - although this seems to require go not express, then gain .data[0] probably gives the go objects
+
+But maybe .data[0] gives the trace
+
+
+```{python}
+fig = datamart.plotOverTime('weighted_performance')
+
+fig.update_layout(title="Model Performance Trend", yaxis_title="ROC-AUC", xaxis_title = "")
+fig.update_layout(showlegend=False)
+
+fig.show()
+```
+
+```{python}
+fig = datamart.plotOverTime('SuccessRate')
+
+fig.update_layout(title="Success Rate Trend", yaxis_title="Success Rate", xaxis_title = "")
+fig.update_layout(showlegend=False)
+fig.update_yaxes(rangemode="tozero")
+
+fig.show()
+```
+
 
 # Performance by Predictor Category
 
@@ -152,8 +280,23 @@ Showing the performance across all predictors. The predictor categories default
 to the text before the first dot. This can be customized when reading the data
 for a particular customer.
 
-TODO add plot of overall predictor category performance
+```{python}
+#| error: true
 
+# TODO facets are meaningless but plotPredictorCategoryPerformance fails when
+# not giving any
+
+fig = datamart.plotPredictorCategoryPerformance(facets='Channel')
+
+fig.update_layout(
+    title="Predictor Performance per Category", 
+    yaxis_title="", 
+    showlegend=False,
+    height=300,
+    width=500)
+
+fig.show() 
+```
 
 # Predictor Overview
 
@@ -167,17 +310,14 @@ predictors often have slightly lower counts.
 For Adaptive Gradient Boosting models ("AGB") the number of positives and
 negatives is not available.
 
-TODO show table with all the predictors and key properties - should match with the properties we show in the predictor sections, incl missing % etc
-
-
 ```{python}
 # TODO this assumes we have the latest snapshot, see above
 if predictordetails_activeonly:
-    predictors = predictorBinning.filter(pl.col("EntryType") == "Active").select(
+    predictors = datamart.predictorData.filter(pl.col("EntryType") == "Active").select(
         pl.col("PredictorName").unique().sort()
     )
 else:
-    predictors = predictorBinning.filter(pl.col("EntryType") != "Classifier").select(
+    predictors = datamart.predictorData.filter(pl.col("EntryType") != "Classifier").select(
         pl.col("PredictorName").unique().sort()
     )
 ```
@@ -197,65 +337,137 @@ predictors. This can be configured via a parameter to this report.
 )
 ```
 
-TODO make the binning plot a little nicer, now the blue bars are too prominent, see the R version. Also reconsider title, etc. Add the alternative view (the red/green bars). Add a table with the binning below. See if we can format the info a bit more compact, like in the R markdown version.
-
-TODO If there are two plots perhaps we can align them with layout-ncol, see https://quarto.org/docs/authoring/figures.html
-
-
 ```{python}
 #| output: asis
-
-def get_predictor_property_value(pred, prop):
-    return (
-        predictorBinning.filter(pl.col("PredictorName") == pred)
-        .select(prop)
-        .collect()
-        .to_series(0)
-        .tail(1)
-        .item()
-    )
 
 def show_single_predictor(pred):
     display(Markdown(f"## {pred}"))
 
-    display(Markdown("|Predictor property|Value|"))
-    display(Markdown("|---|---|"))
-    display(Markdown(f"| Univariate Performance (AUC) | {round(get_predictor_property_value(pred, 'Performance'),4)} |"))
-    display(Markdown(f"| Status | {get_predictor_property_value(pred, 'EntryType')} |"))
-    display(Markdown(f"| Total Responses | {get_predictor_property_value(pred, 'ResponseCount')} |"))
-    display(Markdown(f"| Total Positives | {get_predictor_property_value(pred, 'Positives')} |"))
-    display(Markdown(f"| Base Propensity | {get_predictor_property_value(pred, 'Positives')/get_predictor_property_value(pred, 'ResponseCount'):.4%} |"))
+    predictor_data = (
+        datamart.predictorData
+        .filter(pl.col("PredictorName") == pred)
+        .sort("BinIndex")
+    )
 
-    # TODO figure out how to calculate these easily
-    display(Markdown(f"| Percentage Missing values | TODO |"))
-    display(Markdown(f"| Percentage Residual values | TODO |"))
+    base_propensity = (
+        predictor_data
+        .select(pl.last("Positives")/pl.last("ResponseCount"))
+        .collect()
+        .item()
+    )
 
-    # TODO predictor groups missing https://github.com/pegasystems/pega-datascientist-tools/issues/127
-    display(Markdown(f"| Predictor Group | TODO |"))
-    display(Markdown(f"| Correlated Predictors | TODO |"))
+    predictor_properties = (predictor_data
+        .select(
+            pl.last("Type"),
+            pl.last("Performance").round(4).alias("Univariate Performance"),
+            pl.last("EntryType").alias("Status"),
+            pl.format("{}%", ((pl.col("BinResponseCount").where(pl.col("BinType") == "MISSING").sum()) * 100 / pl.last("ResponseCount")).round(2)).alias("Missing"),
+            # Residual aka Symbolic Overflow only applies to symbolics. Interestingly
+            # there almost always is a residual bin. We don't know exactly how many
+            # items are in that bin unfortunately, and there is no exact way to derive.
+            pl.format("{}%", ((pl.col("BinResponseCount").where(pl.col("BinType") == "RESIDUAL").sum()) * 100 / pl.last("ResponseCount")).round(2)).alias("Residual"),
 
-    display(Markdown(": A Great Predictor {.striped .hover}"))
-    
-    # In the R version I managed to use a table to format it so
-    # the description is on the left, the plots on the right. With
-    # quarto I couldnt figure out, so the plots are seperate. Also
-    # the width/height of the figures doesnt seem changeable,
-    # show(width=20, height=10) has no effect
+            # # TODO predictor groups missing https://github.com/pegasystems/pega-datascientist-tools/issues/127
+            # display(Markdown(f"| Predictor Group | TODO |"))
+            # display(Markdown(f"| Correlated Predictors | TODO |"))
+        )
+    )
+
+    show(predictor_properties.collect().to_pandas())
 
     fig = datamart.plotPredictorBinning(modelids=[model_id], predictors=[pred])
 
     # Customize some of the default styling of the plot
-    # TODO except for title consider moving into library
-    # TODO make the fly-over better
-    fig.update_layout(title=pred, xaxis_title="")
+
+    fig.update_layout(title="Predictor Binning", xaxis_title="")
+    # fig.layout.yaxis2.tickformat = ",.3%"
     fig.data[0].opacity=0.5
     fig.data[1].line.color="#EF8B08"
     fig.data[1].line.width=3
     fig.data[1].marker.color="black"
+
+    # Add line for base propensity, TODO consider putting back in the library
+    fig.add_hline(y=base_propensity, line_dash="dash", line_color="grey", yref='y2')
+    # fig.update_xaxes(type='category') # prevent plotly from trying to guess
+
+    fig.update_layout(width=700, height=300)
     fig.show()
+
+    # "Philip Mann" plot with simple red/green lift bars relative to base propensity
+    # TODO move below "Philip Mann" plot into a plot function (plotBinningLift)
+
+    pm_plot_binning_table = (
+        predictor_data
+        .select(
+            pl.col(["BinSymbol", "BinPositives", "BinIndex"]), 
+            (lift(pl.col("BinPositives"), pl.col("BinNegatives")) - 1.0)
+        )
+        .with_columns(
+            pl.when((pl.col("Lift") >= 0.0) & (pl.col("BinPositives") > 5)).then(pl.lit('pos'))
+            .when((pl.col("Lift") >= 0.0) & (pl.col("BinPositives") <= 5)).then(pl.lit('pos_shaded'))
+            .when((pl.col("Lift") < 0.0) & (pl.col("BinPositives") > 5)).then(pl.lit('neg'))
+            .otherwise(pl.lit('neg_shaded'))
+            .alias("Direction"))
+        .sort("BinIndex")
+        .collect()
+    )
+
+    fig = px.bar(
+        x=pm_plot_binning_table['Lift'],
+        y=pm_plot_binning_table['BinSymbol'], 
+        color=pm_plot_binning_table['Direction'],
+        color_discrete_map = {
+            'neg': '#A01503', 
+            'pos': '#5F9F37',
+            'neg_shaded' : '#DAA9AB',
+            'pos_shaded' : '#C5D9B7'},
+        orientation='h',
+        template='pega'
+    )
+    fig.update_yaxes(type='category')
+    fig.layout.xaxis.tickformat = ",.2%"
+    fig.add_vline(x=0, line_color="black")
+    fig.update_layout(
+        yaxis = dict(autorange="reversed"),
+        title="Propensity Lift", xaxis_title="", yaxis_title="")
+    # Not convinced why we need below. It should respect the binindex order but w/o this it doesnt always.
+    # Stijn: I think, if there's no missing bin, it tries to cast to numeric and tries to do magic with sorting. If there's a missing bin, then casting to numeric will fail and it will just keep the order
+    fig.update_yaxes(categoryorder='array', categoryarray=pm_plot_binning_table['BinSymbol'])
+    # TODO: when there are many bins not all are always shown, figure out how to fix
+    # see nbins argument? https://plotly.com/python/histograms/#choosing-the-number-of-bins
+
+    fig.update_layout(width=700, height=300, showlegend=False)
+    fig.show()
+
+    # Table with binning details
+
+    human_friendly_binning_table = (
+        predictor_data
+        .select(
+            pl.col("BinIndex").alias("Index"),
+            pl.col("BinSymbol").alias("Bin"),
+            pl.col("BinResponseCount").alias("Responses"),
+            pl.col("BinPositives").alias("Positives"),
+            zRatio(pl.col("BinPositives"), pl.col("BinNegatives")).round(3).alias("Z Ratio"),
+            (lift(pl.col("BinPositives"), pl.col("BinNegatives")) * 100).round(2).alias("Lift (%)"),
+            (pl.col("BinPropensity") * 100).round(3).alias("Propensity (%)")
+        )
+        .collect()
+    )
+
+    display(Markdown(
+        tabulate([[f[i] for f in human_friendly_binning_table] for i in range(human_friendly_binning_table.shape[0])],
+        headers = human_friendly_binning_table.columns))
+    )
+
+    
+
+    display(Markdown("   "))
+    display(Markdown("___"))
 
 for pred in predictors.collect().to_series(0):
     show_single_predictor(pred)
 ```
+
 
 
