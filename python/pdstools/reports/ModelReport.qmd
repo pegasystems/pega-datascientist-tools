@@ -23,14 +23,18 @@ jupyter: python3
 
 ```{python}
 import sys
+import os.path
+from pathlib import Path
+import re
+import subprocess
+import datetime
 
 from pdstools import datasets, ADMDatamart
-from pdstools.utils.cdh_utils import zRatio, lift
+from pdstools.utils.cdh_utils import zRatio # , lift # TODO put back when PDS tools version upped
 import polars as pl
 from IPython.display import display, Markdown
 from tabulate import tabulate
 from itables import show
-import os.path
 import plotly.express as px
 ```
 
@@ -42,40 +46,100 @@ import plotly.express as px
 datafolder = ""
 modelfilename = ""
 predictorfilename = ""
-model_id = ""
-predictordetails_activeonly = True
+modelid = ""
 
-# TODO title and subtitle not currently used but should be if given
+predictordetails_activeonly = True
 
 title = "Demo Dataset" # pass in customer name here
 subtitle = "" # typically used to pass in a date range or other qualification of the data source
 
 ```
 
+```{python}
+# TODO: this has moved into pdstools
+# when we've bumped the official pdstools version
+# we can remove this function definition
+def lift(
+    posCol: pl.Expr = pl.col("BinPositives"), negCol: pl.Expr = pl.col("BinNegatives")
+) -> pl.Expr:
+    """Calculates the Lift for predictor bins.
+
+    The Lift is the ratio of the propensity in a particular bin over the average 
+    propensity. So a value of 1 is the average, larger than 1 means higher 
+    propensity, smaller means lower propensity.
+
+    Parameters
+    ----------
+    posCol: pl.Expr
+        The (Polars) column of the bin positives
+    negCol: pl.Expr
+        The (Polars) column of the bin positives
+
+    Examples
+    --------
+    >>> df.group_by(['ModelID', 'PredictorName']).agg([lift()]).explode()
+    """
+
+    def liftImpl(binPos, binNeg, totalPos, totalNeg):
+        return (
+            # TODO not sure how polars (mis)behaves when there are no positives at all
+            # I would hope for a NaN but base python doesn't do that. Polars perhaps.
+            # Stijn: It does have proper None value support, may work like you say
+            binPos * (totalPos + totalNeg) / ((binPos + binNeg) * totalPos)
+        ).alias("Lift")
+
+    return liftImpl(posCol, negCol, posCol.sum(), negCol.sum())
+```
 
 ```{python}
 # Predictor data for one model ID
 if datafolder == "":
   datamart = datasets.CDHSample()
-  model_id = "bd70a915-697a-5d43-ab2c-53b0557c85a0"
+  modelid = "bd70a915-697a-5d43-ab2c-53b0557c85a0"
 else:
   datamart = ADMDatamart(datafolder, model_filename=modelfilename, predictor_filename=predictorfilename, extract_keys=True)
 
 # TODO below seems silly, can probably filter in the constructor arguments
-datamart.modelData = datamart.modelData.filter(pl.col("ModelID") == model_id)
-datamart.predictorData = datamart.predictorData.filter(pl.col("ModelID") == model_id)
+datamart.modelData = datamart.modelData.filter(pl.col("ModelID") == modelid)
+datamart.predictorData = datamart.predictorData.filter(pl.col("ModelID") == modelid)
 
 # TODO ensure this is only one predictor snapshot, just in case? although it would be 
 # neat to show predictor evolution, if available
+
+def columnExists(df, col):
+    return(col in df.columns and df.schema[col] != pl.Null)    
+
+# Simple way to make sure Treatment is set and not null
+if columnExists(datamart.modelData, "Treatment"):
+    datamart.modelData = datamart.modelData.with_columns(
+        pl.col("Treatment").fill_null("-")
+    )
+else:
+    datamart.modelData = datamart.modelData.with_columns(
+        pl.lit("-").alias("Treatment")
+    )
+
 ```
 
 ```{python}
-# TODO to make generic make sure these context keys really exist, do intersect with names in the model data
-# TODO use .format instead of concat
-
-channel_name = datamart.modelData.select(pl.concat_str(["Direction", "Channel"], separator="/")).unique().collect().item()
-model_name_in_context = datamart.modelData.select(pl.concat_str(["Issue", "Group", "Name", "Treatment"], separator="/")).unique().collect().item()
-model_name = datamart.modelData.select(pl.concat_str(["Name", "Treatment"], separator="/")).unique().collect().item()
+channel_name = (
+    datamart.last(strategy='lazy')
+    .filter(pl.col("ModelID") == modelid)
+    .select(pl.format("{}/{}", "Direction", "Channel"))
+    .unique().collect().item(0, 0)
+)
+model_name_in_context = (
+    datamart.last(strategy='lazy')
+    .filter(pl.col("ModelID") == modelid)
+    .select(pl.format("{}/{}/{}/{}", "Issue", "Group", "Name", "Treatment"))
+    .unique().collect().item(0, 0)
+)
+model_name = (
+    datamart.last(strategy='lazy')
+    .filter(pl.col("ModelID") == modelid)
+    .select(pl.format("{}/{}", "Name", "Treatment"))
+    .unique().collect().item(0, 0)
+)
 
 display(
     Markdown(
@@ -88,7 +152,7 @@ display(
 
 | Channel | ID |
 |:-----|------:|
-| {channel_name} | {model_id} |
+| {channel_name} | {modelid} |
 
 """
     )
@@ -96,7 +160,7 @@ display(
 ```
 
 ```{python}
-fig = datamart.plotScoreDistribution(modelids = [model_id])
+fig = datamart.plotScoreDistribution(modelids = [modelid])
 
 # Customize some of the default styling of the plot
 
@@ -375,7 +439,7 @@ def show_single_predictor(pred):
 
     show(predictor_properties.collect().to_pandas())
 
-    fig = datamart.plotPredictorBinning(modelids=[model_id], predictors=[pred])
+    fig = datamart.plotPredictorBinning(modelids=[modelid], predictors=[pred])
 
     # Customize some of the default styling of the plot
 
@@ -470,4 +534,39 @@ for pred in predictors.collect().to_series(0):
 ```
 
 
+# Credits
+
+```{python}
+def get_cmd_output(args):
+    result = subprocess.run(args, stdout=subprocess.PIPE).stdout.decode('utf-8')
+    return(result)
+
+def get_pip_package_version(pck):
+    package_info = get_cmd_output(['pip', 'show', pck])
+    package_version = re.search('Version:.*[^\n]', package_info).group()
+    return(package_version)
+
+# unfortunately no way to get the quarto source file name, so that is hardcoded
+quarto_source = 'pega-datascientist-tools/python/pdstools/reports/ModelReport.qmd'
+quarto_version = get_cmd_output(['quarto', '--version'])
+python_version = get_cmd_output([sys.executable, '--version'])
+timestamp_str = datetime.datetime.now().strftime("%d %b %Y %H:%M:%S")
+
+display(
+    Markdown(
+        f"""
+
+| Tool | Version |
+|-----|------|
+| Notebook | {quarto_source} |
+| Quarto | {quarto_version} |
+| PDS Tools | {get_pip_package_version('pdstools')} |
+| Polars | {get_pip_package_version('polars')} |
+| Jupyter Notebook format | {get_pip_package_version('nbformat')} |
+| Python | {python_version} |
+| Created at | {timestamp_str} |
+
+"""))
+
+```
 
