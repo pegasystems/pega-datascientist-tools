@@ -183,7 +183,7 @@ or Box. It is preferable to view them from a browser.
 
 ```{python}
 classifier = (
-    datamart.predictorData
+    datamart.last("predictorData", strategy='lazy')
     .filter(pl.col("EntryType")=="Classifier")
     .sort("BinIndex")
 )
@@ -377,11 +377,11 @@ negatives is not available.
 ```{python}
 # TODO this assumes we have the latest snapshot, see above
 if predictordetails_activeonly:
-    predictors = datamart.predictorData.filter(pl.col("EntryType") == "Active").select(
+    predictors = datamart.last("predictorData", strategy='lazy').filter(pl.col("EntryType") == "Active").select(
         pl.col("PredictorName").unique().sort()
     )
 else:
-    predictors = datamart.predictorData.filter(pl.col("EntryType") != "Classifier").select(
+    predictors = datamart.last("predictorData", strategy='lazy').filter(pl.col("EntryType") != "Classifier").select(
         pl.col("PredictorName").unique().sort()
     )
 ```
@@ -408,19 +408,20 @@ def show_single_predictor(pred):
     display(Markdown(f"## {pred}"))
 
     predictor_data = (
-        datamart.predictorData
+        datamart.last("predictorData", strategy='lazy')
         .filter(pl.col("PredictorName") == pred)
         .sort("BinIndex")
     )
 
     base_propensity = (
-        predictor_data
+        datamart.last("predictorData", strategy='lazy')
         .select(pl.last("Positives")/pl.last("ResponseCount"))
         .collect()
         .item()
     )
 
-    predictor_properties = (predictor_data
+    predictor_properties = (
+        datamart.last("predictorData", strategy='lazy')
         .select(
             pl.last("Type"),
             pl.last("Performance").round(4).alias("Univariate Performance"),
@@ -537,19 +538,24 @@ for pred in predictors.collect().to_series(0):
 # Credits
 
 ```{python}
+# unfortunately no way to get the quarto source file name, so that is hardcoded
+quarto_source = 'pega-datascientist-tools/python/pdstools/reports/ModelReport.qmd'
+
 def get_cmd_output(args):
-    result = subprocess.run(args, stdout=subprocess.PIPE).stdout.decode('utf-8')
+    result = subprocess.run(args, stdout=subprocess.PIPE).stdout.decode('utf-8').split('\n')
     return(result)
+
+def get_version_only(versionstr):
+    return(re.sub('[^.\d]','',versionstr))
 
 def get_pip_package_version(pck):
     package_info = get_cmd_output(['pip', 'show', pck])
-    package_version = re.search('Version:.*[^\n]', package_info).group()
-    return(package_version)
+    package_version = package_info[1]
+    return(get_version_only(package_version))
 
-# unfortunately no way to get the quarto source file name, so that is hardcoded
-quarto_source = 'pega-datascientist-tools/python/pdstools/reports/ModelReport.qmd'
-quarto_version = get_cmd_output(['quarto', '--version'])
-python_version = get_cmd_output([sys.executable, '--version'])
+quarto_version = get_version_only(get_cmd_output(['quarto', '--version'])[0])
+pandoc_version = get_version_only(get_cmd_output(["pandoc", "--version"])[0])
+python_version = get_version_only(get_cmd_output([sys.executable, '--version'])[0])
 timestamp_str = datetime.datetime.now().strftime("%d %b %Y %H:%M:%S")
 
 display(
@@ -560,9 +566,10 @@ display(
 |-----|------|
 | Notebook | {quarto_source} |
 | Quarto | {quarto_version} |
+| Pandoc | {pandoc_version} |
 | PDS Tools | {get_pip_package_version('pdstools')} |
 | Polars | {get_pip_package_version('polars')} |
-| Jupyter Notebook format | {get_pip_package_version('nbformat')} |
+| Jupyter Notebook format | {get_pip_package_version('nbformat')} (nbformat)|
 | Python | {python_version} |
 | Created at | {timestamp_str} |
 

@@ -30,9 +30,6 @@ import subprocess
 import datetime
 
 from IPython.display import display, Markdown
-def Text(d):
-   return display(Markdown(d))
-import sys
 sys.path.append('..')
 from pdstools import datasets, ADMDatamart
 from pdstools import cdh_utils
@@ -215,8 +212,6 @@ configurations it seems that the framework **{framework_usage}**.
 In the table below we show the overall numbers per channel and direction. The numbers are not guaranteed to be correct: in the ADM data we only have aggregate numbers, we need to make some assumptions about the configurations, especially about having only one ADM model per configuration for an individual action or treatment. In some use cases these assumptions may not hold, so the ultimate truth about these numbers should come from data that tracks all interactions.
 
 ```{python}
-#| output: asis
-
 channel_overview = (
     datamart.modelData
     # first, take max per model ID
@@ -243,15 +238,12 @@ channel_overview = (
     .collect()
 )
 
-df = channel_overview.to_pandas()
-
-# work in progress..
-# df.style \
-#   .format(precision=0) \
-#   .apply(lambda x: ["background: red" if v > 2000 else None for v in x], axis=1, subset="Positives") \
-#   .apply(lambda x: ["background: orange" if len(v) == 2 else None for v in x], axis=1, subset="Configuration")
-
-show(df)
+channel_overview.to_pandas().style \
+    .hide(axis="index") \
+    .format(precision=0) \
+    .apply(lambda x: ["background-color: orange" if (i >= 2 and i <= 3 and (v < 200)) else "" for i, v in enumerate(x)], axis = 1) \
+    .apply(lambda x: ["background-color: orangered" if (i >= 2 and i <= 3 and (v == 0)) else "" for i, v in enumerate(x)], axis = 1) \
+    .apply(lambda x: ["background-color: orange" if (i == 5 and len(v) > 2) else "" for i, v in enumerate(x)], axis = 1)
 ```
 
 
@@ -363,11 +355,18 @@ df = pd.DataFrame({
         sampleValues("Issue"),
         sampleValues("Group"),
         "-",
-        sampleValues(["Channel", "Direction"])]
+        sampleValues(["Channel", "Direction"])],
+    "Best Practice" : [1000, 100, 2500, 1000, 5,  5, 0,  5, 0],
+    "Cloud Service Limit" : [2500, 250, 5000, 2500, 5, 25,  float('inf'), 25,  float('inf')]
+
 })
 
-# TODO number highlighting as in the R version
-show(df)
+df.style \
+    .hide(axis="index") \
+    .format(precision=0) \
+    .apply(lambda x: ["background-color: orange" if (df.iloc[i, 1] < df.iloc[i, 3]) else "" for i, v in enumerate(x)], axis = 0) \
+    .apply(lambda x: ["background-color: orangered" if (df.iloc[i, 1] > df.iloc[i, 4] or df.iloc[i, 1] == 0) else "" for i, v in enumerate(x)], axis = 0)
+
 ```
 
 
@@ -665,14 +664,16 @@ fig.show()
 #| output: asis
 #| echo: false
 
-if datamart.predictorData is None:
+def display_no_predictor_data_warning(extra = ""):
     display(Markdown(
 """
 ::: {.callout-important}
-Predictor Data is not available. All the below analyses based on predictor data
-will be empty.
+Predictor Data is not available. {extra}
 :::
 """))
+
+if datamart.predictorData is None:
+    display_no_predictor_data_warning("All the below analyses based on predictor data will be empty.")
 ```
 
 This analysis focuses on finding which are top predictors that are driving the models.
@@ -699,7 +700,7 @@ if datamart.predictorData is not None:
     else:
         print('Please refer to the `predictors_per_configuration` tab in the included Excel file.')
 else:
-    Text("No predictor data")
+    display_no_predictor_data_warning()
 ```
 
 ## Number of Predictors per Predictor Category
@@ -755,7 +756,7 @@ if datamart.predictorData is not None:
 
         fig.show()
 else:
-    Text("Predictor data is not available.")
+    display_no_predictor_data_warning()
 ```
 
 ## Importance by Predictor Category 
@@ -786,7 +787,7 @@ if datamart.predictorData is not None:
     fig.update_layout(autosize=True, height=height)
     fig.show() 
 else:
-    Text("Predictor data is not available.")
+    display_no_predictor_data_warning()
 
 ```
 
@@ -808,7 +809,7 @@ if datamart.predictorData is not None:
     )
     fig.show()
 else:
-    Text("Predictor data is not available")
+    display_no_predictor_data_warning()
 ```
 
 ## Bad predictors across all models
@@ -851,7 +852,7 @@ if datamart.predictorData is not None:
     else:
         print("Please refer to the `bad_predictors` tab in the included Excel file.")
 else:
-    Text("Predictor data is not available")
+    display_no_predictor_data_warning()
 ```
 
 ## Number of Active and Inactive Predictors
@@ -876,7 +877,7 @@ if datamart.predictorData is not None:
     )
     fig.show()
 else:
-    Text("Predictor data is not available")
+    display_no_predictor_data_warning()
 ```
 
 ## Predictor Performance across Propositions
@@ -910,7 +911,7 @@ if datamart.predictorData is not None:
         except:
             print(f"Plot was not drawn for {conf} because of an error")    #TODO: add error message instead of typing "an error"
 else:
-    Text("Predictor data is not available")
+    display_no_predictor_data_warning()
 ```
 
 ## Missing values
@@ -951,7 +952,7 @@ if datamart.predictorData is not None:
 
     fig.show()
 else:
-    Text("Predictor data is not available")
+    display_no_predictor_data_warning()
 
 ```
 
@@ -1435,19 +1436,24 @@ else:
 # Credits
 
 ```{python}
+# unfortunately no way to get the quarto source file name, so that is hardcoded
+quarto_source = 'pega-datascientist-tools/python/pdstools/reports/HealthCheck.qmd'
+
 def get_cmd_output(args):
-    result = subprocess.run(args, stdout=subprocess.PIPE).stdout.decode('utf-8')
+    result = subprocess.run(args, stdout=subprocess.PIPE).stdout.decode('utf-8').split('\n')
     return(result)
+
+def get_version_only(versionstr):
+    return(re.sub('[^.\d]','',versionstr))
 
 def get_pip_package_version(pck):
     package_info = get_cmd_output(['pip', 'show', pck])
-    package_version = re.search('Version:.*[^\n]', package_info).group()
-    return(package_version)
+    package_version = package_info[1]
+    return(get_version_only(package_version))
 
-# unfortunately no way to get the quarto source file name, so that is hardcoded
-quarto_source = 'pega-datascientist-tools/python/pdstools/reports/HealthCheck.qmd'
-quarto_version = get_cmd_output(['quarto', '--version'])
-python_version = get_cmd_output([sys.executable, '--version'])
+quarto_version = get_version_only(get_cmd_output(['quarto', '--version'])[0])
+pandoc_version = get_version_only(get_cmd_output(["pandoc", "--version"])[0])
+python_version = get_version_only(get_cmd_output([sys.executable, '--version'])[0])
 timestamp_str = datetime.datetime.now().strftime("%d %b %Y %H:%M:%S")
 
 display(
@@ -1458,9 +1464,10 @@ display(
 |-----|------|
 | Notebook | {quarto_source} |
 | Quarto | {quarto_version} |
+| Pandoc | {pandoc_version} |
 | PDS Tools | {get_pip_package_version('pdstools')} |
 | Polars | {get_pip_package_version('polars')} |
-| Jupyter Notebook format | {get_pip_package_version('nbformat')} |
+| Jupyter Notebook format | {get_pip_package_version('nbformat')} (nbformat)|
 | Python | {python_version} |
 | Created at | {timestamp_str} |
 

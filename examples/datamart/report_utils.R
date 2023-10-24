@@ -4,6 +4,7 @@ library(quarto)
 library(pdstools)
 library(arrow)
 library(jsonlite)
+library(lubridate)
 
 # Sets a few global variables for the run_report functions. Call this first. Acts
 # like a constructor in a proper language.
@@ -99,14 +100,14 @@ report_utils_is_target_current <- function(targetfiles, expectedhash, quiet) {
   return(TRUE)
 }
 
+# Change time of a file
+# TODO maybe this is overly sensitive on onedrive folders
+fileModificationTime <- function(f) { as.POSIXct(file.info(f)$mtime) }
+
 # Generic markdown/quarto call that will check hashes and dates to prevent
 # unnecessary re-creation
 report_utils_run_report <- function(customer, dm, target_filename, target_generator_hash, renderer, quiet)
 {
-  # Change time of a file
-  # TODO maybe this is overly sensitive on onedrive folders
-  fileModificationTime <- function(f) { file.info(f)$mtime }
-
   destinationFullPath <- file.path(report_utils_results_folder, target_filename)
   cachedDMFilesFullName <- file.path(report_utils_intermediates_folder, report_utils_cached_dm_filenames(customer))
 
@@ -149,6 +150,9 @@ report_utils_run_report <- function(customer, dm, target_filename, target_genera
     report_utils_write_hashfiles(destinationFullPath, target_generator_hash)
   } else {
     cat("Skipping re-generation of", target_filename, fill = T)
+
+    # touch the file
+    Sys.setFileTime(target_filename, lubridate::now())
   }
 
   return(target_filename)
