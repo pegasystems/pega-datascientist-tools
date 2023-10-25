@@ -149,10 +149,9 @@ report_utils_run_report <- function(customer, dm, target_filename, target_genera
     # writer renderer hash
     report_utils_write_hashfiles(destinationFullPath, target_generator_hash)
   } else {
-    cat("Skipping re-generation of", target_filename, fill = T)
+    ok <- Sys.setFileTime(normalizePath(destinationFullPath), lubridate::now())
 
-    # touch the file
-    Sys.setFileTime(target_filename, lubridate::now())
+    cat("Skipped re-generation of", target_filename, paste0("(", ok, ")"), fill = T)
   }
 
   return(target_filename)
@@ -414,8 +413,9 @@ run_python_model_reports <-function(customer, dm,
   return(paste("Created", length(modelids), "python off-line model reports for", customer))
 }
 
-# read ADM data using given code black, write cached versions in target
-# folder with .hash files next to them
+# read ADM data from cache or using given code block, write cached versions
+# back alongside a .hash file representing the hash of the code block (not the
+# data!)
 read_adm_datamartdata <- function(customer, block, quiet = T)
 {
   # Hash of the code block to actually read the data - R specific trick, not portable
