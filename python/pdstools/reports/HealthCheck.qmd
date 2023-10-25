@@ -1399,40 +1399,6 @@ fig.show()
 
 TODO: Implement like in the R version
 
-# Appendix - all the models
-
-A list of all the models is written to a file so a script can iterate over all models and generate off-line model reports for each of them.
-
-Generally you will want to apply some filtering, or do this for specific models only. This can be accomplished in either this script here, or by editing the generated file.
-
-TODO: reconsider this
-
-```{python}
-if include_tables:
-    responses_column_index = datamart.appendix.columns.index("Responses")
-    appendix = datamart.appendix.to_pandas(use_pyarrow_extension_array=True)
-    show(
-        appendix,
-        columnDefs=[
-            {
-                "targets": [responses_column_index],
-                "createdCell": JavascriptFunction(
-                    """
-function (td, cellData, rowData, row, col) {
-    if (cellData < 200) {
-        $(td).css('color', 'red')
-    }
-}
-"""
-                ),
-            }
-        ],
-    )
-else:
-    print("Please refer to the `appendix` tab in the included Excel file.")
-
-```
-
 # Credits
 
 ```{python}

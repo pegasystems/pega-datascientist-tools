@@ -100,6 +100,36 @@ report_utils_is_target_current <- function(targetfiles, expectedhash, quiet) {
   return(TRUE)
 }
 
+# Drop old HTML files and orphaned hash files
+report_utils_cleanup_cache <- function(folder = report_utils_results_folder, keep_days = 7)
+{
+  is_obsolete <- function(f, before = now() - days(keep_days)) {
+    fileModificationTime(f) < before
+  }
+
+  obsolete_files <- sapply(list.files(folder, pattern=".*[.]html$", full.names = TRUE, recursive = FALSE), is_obsolete)
+  obsolete_files <- obsolete_files[obsolete_files]
+
+  print(names(obsolete_files))
+  cat("Removing", length(obsolete_files), "obsolete HTML files from", folder, fill = T)
+
+  if (length(obsolete_files) > 0) {
+    file.remove(names(obsolete_files))
+  }
+
+  hashFiles <- list.files(path=folder,
+                               pattern = ".*[.]hash$", full.names = T)
+  hashFileReferences <- gsub("(.*)[.]hash$", "\\1", hashFiles)
+  hashFileReferencesExist <- sapply(hashFileReferences, file.exists)
+  orphanedHashFiles <- hashFiles[!hashFileReferencesExist]
+
+  cat("Removing", length(orphanedHashFiles), "obsolete hash files from", folder, fill = T)
+
+  if (length(orphanedHashFiles) > 0) {
+    file.remove(orphanedHashFiles)
+  }
+}
+
 # Change time of a file
 # TODO maybe this is overly sensitive on onedrive folders
 fileModificationTime <- function(f) { as.POSIXct(file.info(f)$mtime) }
@@ -149,10 +179,9 @@ report_utils_run_report <- function(customer, dm, target_filename, target_genera
     # writer renderer hash
     report_utils_write_hashfiles(destinationFullPath, target_generator_hash)
   } else {
-    cat("Skipping re-generation of", target_filename, fill = T)
+    ok <- Sys.setFileTime(normalizePath(destinationFullPath), lubridate::now())
 
-    # touch the file
-    Sys.setFileTime(target_filename, lubridate::now())
+    cat("Skipped re-generation of", target_filename, paste0("(", ok, ")"), fill = T)
   }
 
   return(target_filename)
@@ -289,7 +318,8 @@ run_r_model_reports <-function(customer, dm,
                                                                "Channel",
                                                                "Issue",
                                                                "Group",
-                                                               "Name")]), as.character),
+                                                               "Name",
+                                                               "Treatment")]), as.character),
                                   collapse = "_"))
 
     cat("Model:", modelName, n, "of", length(modelids), fill = T)
@@ -346,7 +376,8 @@ run_python_model_reports <-function(customer, dm,
                                                                "Channel",
                                                                "Issue",
                                                                "Group",
-                                                               "Name")]), as.character),
+                                                               "Name",
+                                                               "Treatment")]), as.character),
                                   collapse = "_"))
 
     cat("Model:", modelName, n, "of", length(modelids), fill = T)
@@ -414,8 +445,9 @@ run_python_model_reports <-function(customer, dm,
   return(paste("Created", length(modelids), "python off-line model reports for", customer))
 }
 
-# read ADM data using given code black, write cached versions in target
-# folder with .hash files next to them
+# read ADM data from cache or using given code block, write cached versions
+# back alongside a .hash file representing the hash of the code block (not the
+# data!)
 read_adm_datamartdata <- function(customer, block, quiet = T)
 {
   # Hash of the code block to actually read the data - R specific trick, not portable

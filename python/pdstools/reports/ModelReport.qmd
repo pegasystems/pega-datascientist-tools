@@ -22,6 +22,11 @@ jupyter: python3
 ---
 
 ```{python}
+#| label: Imports
+#| code-fold: true
+#| code-summary: Python imports
+#| output: false
+
 import sys
 import os.path
 from pathlib import Path
@@ -30,7 +35,7 @@ import subprocess
 import datetime
 
 from pdstools import datasets, ADMDatamart
-from pdstools.utils.cdh_utils import zRatio # , lift # TODO put back when PDS tools version upped
+from pdstools.utils.cdh_utils import zRatio, lift
 import polars as pl
 from IPython.display import display, Markdown
 from tabulate import tabulate
@@ -53,42 +58,6 @@ predictordetails_activeonly = True
 title = "Demo Dataset" # pass in customer name here
 subtitle = "" # typically used to pass in a date range or other qualification of the data source
 
-```
-
-```{python}
-# TODO: this has moved into pdstools
-# when we've bumped the official pdstools version
-# we can remove this function definition
-def lift(
-    posCol: pl.Expr = pl.col("BinPositives"), negCol: pl.Expr = pl.col("BinNegatives")
-) -> pl.Expr:
-    """Calculates the Lift for predictor bins.
-
-    The Lift is the ratio of the propensity in a particular bin over the average 
-    propensity. So a value of 1 is the average, larger than 1 means higher 
-    propensity, smaller means lower propensity.
-
-    Parameters
-    ----------
-    posCol: pl.Expr
-        The (Polars) column of the bin positives
-    negCol: pl.Expr
-        The (Polars) column of the bin positives
-
-    Examples
-    --------
-    >>> df.group_by(['ModelID', 'PredictorName']).agg([lift()]).explode()
-    """
-
-    def liftImpl(binPos, binNeg, totalPos, totalNeg):
-        return (
-            # TODO not sure how polars (mis)behaves when there are no positives at all
-            # I would hope for a NaN but base python doesn't do that. Polars perhaps.
-            # Stijn: It does have proper None value support, may work like you say
-            binPos * (totalPos + totalNeg) / ((binPos + binNeg) * totalPos)
-        ).alias("Lift")
-
-    return liftImpl(posCol, negCol, posCol.sum(), negCol.sum())
 ```
 
 ```{python}
