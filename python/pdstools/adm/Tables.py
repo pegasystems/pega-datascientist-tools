@@ -53,6 +53,7 @@ class Tables:
                 "appendix": [1, 0],
                 "predictor_summary": [1, 1],
                 "model_summary_table": [1, 0],
+                "modeldata_last_snapshot": [1, 1],
             }
         )
         df = df.transpose().with_columns(pl.Series(df.columns))
@@ -253,3 +254,32 @@ class Tables:
     @cached_property
     def model_summary_table(self):
         return self.model_summary().collect()
+
+    @cached_property
+    def modeldata_last_snapshot(self):
+        table = "combinedData" if hasattr(self, "combinedData") else "modelData"
+        last_snapshot = self.last(table=table).filter(
+            pl.col("PredictorName") != "Classifier"
+        )
+        if table == "combinedData":
+            last_snapshot = (
+                last_snapshot.group_by(
+                    self.modelData.columns + ["PredictorName", "PredictorCategory"]
+                )
+                .agg(
+                    BinCount=pl.max("BinIndex"),
+                    MissingBinCount=pl.col("BinResponseCount")
+                    .where(pl.col("BinSymbol") == "MISSING")
+                    .sum()
+                    .alias("MissingCount"),
+                    PredictorResponseCount=pl.sum("BinResponseCount"),
+                )
+                .with_columns(
+                    MissingBinPercent=(
+                        pl.col("MissingBinCount")
+                        / pl.col("PredictorResponseCount").fill_null(0)
+                    )
+                )
+            )
+
+        return last_snapshot

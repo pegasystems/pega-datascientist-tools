@@ -3,9 +3,7 @@ from pathlib import Path
 
 import streamlit as st
 import traceback
-from pdstools.utils import streamlit_utils
 
-"# Generating the Health Check"
 if "dm" not in st.session_state:
     st.warning("Please configure your files in the `data import` tab.")
     st.stop()
@@ -20,7 +18,7 @@ with st.expander("Health Check options"):
     delete_temp_files = st.checkbox("Remove temporary files", True)
     include_tables = st.checkbox(
         "Include tables in document",
-        True,
+        False,
         help="""
         Whether to include the overview tables embedded in the document itself
         or to separately recieve these in a tabbed Excel file.""",
@@ -30,12 +28,11 @@ outfile = ""
 if "run" not in st.session_state:
     st.session_state["runID"] = 0
     st.session_state["run"] = {0: {}}
+try:
+    if st.button("Generate Health Check"):
+        st.session_state["runID"] = max(list(st.session_state["run"].keys())) + 1
 
-if st.button("Generate Health Check"):
-    st.session_state["runID"] = max(list(st.session_state["run"].keys())) + 1
-
-    with st.spinner("Generating Health Check..."):
-        try:
+        with st.spinner("Generating Health Check..."):
             outfile = (
                 st.session_state["dm"]
                 .applyGlobalQuery(st.session_state.get("filters", None))
@@ -74,41 +71,41 @@ if st.button("Generate Health Check"):
             if len(st.session_state["run"][st.session_state["runID"]]) == 0:
                 st.stop()
 
-            col1, col2 = st.columns([1, 1])
-            with col1:
-                if "file" in st.session_state["run"][st.session_state["runID"]]:
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        if "file" in st.session_state["run"][st.session_state["runID"]]:
+            btn = st.download_button(
+                label="Download Health Check",
+                data=st.session_state["run"][st.session_state["runID"]]["file"],
+                file_name=Path(
+                    st.session_state["run"][st.session_state["runID"]]["name"]
+                ).name,
+            )
+            if "tables" in st.session_state["run"][st.session_state["runID"]]:
+                with col2:
                     btn = st.download_button(
-                        label="Download Health Check",
-                        data=st.session_state["run"][st.session_state["runID"]]["file"],
-                        file_name=Path(
-                            st.session_state["run"][st.session_state["runID"]]["name"]
-                        ).name,
+                        label="Download additional tables",
+                        data=st.session_state["run"][st.session_state["runID"]][
+                            "tablefile"
+                        ],
+                        file_name=st.session_state["run"][st.session_state["runID"]][
+                            "tables"
+                        ],
                     )
-                    if "tables" in st.session_state["run"][st.session_state["runID"]]:
-                        with col2:
-                            btn = st.download_button(
-                                label="Download additional tables",
-                                data=st.session_state["run"][st.session_state["runID"]][
-                                    "tablefile"
-                                ],
-                                file_name=st.session_state["run"][
-                                    st.session_state["runID"]
-                                ]["tables"],
-                            )
 
-        except Exception as e:
-            st.error(f"""Error occured when generating healthcheck: {e}""")
-            traceback_str = traceback.format_exc()
-            with open(working_dir / "log.txt", "a") as f:
-                f.write(traceback_str)
-            with open(working_dir / "log.txt", "rb") as f:
-                btn = st.download_button(
-                    label="Download error log",
-                    data=f,
-                    file_name="errorlog.txt",
-                )
+except Exception as e:
+    st.error(f"""Error occured when generating healthcheck: {e}""")
+    traceback_str = traceback.format_exc()
+    with open(working_dir / "log.txt", "a") as f:
+        f.write(traceback_str)
+    with open(working_dir / "log.txt", "rb") as f:
+        btn = st.download_button(
+            label="Download error log",
+            data=f,
+            file_name="errorlog.txt",
+        )
 
-            for filename in os.listdir(working_dir):
-                file_path = os.path.join(working_dir, filename)
-                if os.path.isfile(file_path):
-                    os.remove(file_path)
+    for filename in os.listdir(working_dir):
+        file_path = os.path.join(working_dir, filename)
+        if os.path.isfile(file_path):
+            os.remove(file_path)

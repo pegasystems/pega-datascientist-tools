@@ -5,8 +5,10 @@ from pathlib import Path
 from . import cdh_utils
 from ..adm.ADMDatamart import ADMDatamart
 from ..utils import datasets
+from ..utils.types import any_frame
 import plotly.express as px
 from .. import pega_io
+import regex
 
 
 @st.cache_resource
@@ -179,39 +181,34 @@ def filter_dataframe(
     to_filter_columns = st.multiselect(
         "Filter dataframe on", df.columns, key="multiselect"
     )
-    if "uniques" not in st.session_state:
-        st.session_state["uniques"] = {}
-        st.session_state["selected"] = {}
     for column in to_filter_columns:
         left, right = st.columns((1, 20))
         left.write("## ↳")
 
         # Treat columns with < 20 unique values as categorical
         if (df.schema[column] == pl.Categorical) or (df.schema[column] == pl.Utf8):
-            if column not in st.session_state.uniques.keys():
-                st.session_state.uniques[column] = (
+            if f"categories_{column}" not in st.session_state.keys():
+                st.session_state[f"categories_{column}"] = (
                     df.select(pl.col(column).unique()).collect().to_series().to_list()
                 )
-            if column not in st.session_state.selected.keys():
-                st.session_state.selected[column] = st.session_state.uniques[column]
-            if len(st.session_state.uniques[column]) < 20:
-                options = st.session_state.uniques[column]
-                previously_selected = st.session_state["selected"][column]
+            if f"selected_{column}" not in st.session_state.keys():
+                st.session_state[f"selected_{column}"] = st.session_state[
+                    f"categories_{column}"
+                ]
+            if len(st.session_state[f"categories_{column}"]) < 200:
+                options = st.session_state[f"categories_{column}"]
+                previously_selected = st.session_state[f"selected_{column}"]
                 selected = right.multiselect(
                     f"Values for {column}",
                     options,
                     default=previously_selected,
-                    key=f"{column}",
+                    key=f"selected_{column}",
                 )
-                st.session_state["selected"][column] = selected
-                if (
-                    st.session_state["selected"][column]
-                    != st.session_state.uniques[column]
-                ):
+                if selected != st.session_state[f"categories_{column}"]:
                     queries.append(
                         pl.col(column)
                         .cast(pl.Utf8)
-                        .is_in(st.session_state["selected"][column])
+                        .is_in(st.session_state[f"selected_{column}"])
                     )
             else:
                 user_text_input = right.text_input(
@@ -245,6 +242,35 @@ def filter_dataframe(
                 queries.append(pl.col(column).is_between(*user_date_input))
 
     return queries
+
+
+def model_and_row_counts(df: any_frame):
+    """
+    Returns unique model id count and row count from a dataframe
+
+    Parameters
+    ----------
+    df: Union[pl.DataFrame, pl.LazyFrame]
+        The input dataframe
+
+    Returns
+    -------
+    Tuple[int, int]
+        unique model count
+        row count
+    """
+    if isinstance(df, pl.DataFrame):
+        df = df.lazy()
+
+    counts = df.select(
+        unique_model_id_count=pl.approx_n_unique("ModelID"),
+        row_count=pl.count("ModelID"),
+    ).collect()
+
+    unique_model_id_count = counts.get_column("unique_model_id_count")[0]
+    row_count = counts.get_column("row_count")[0]
+
+    return unique_model_id_count, row_count
 
 
 def configure_predictor_categorization():
