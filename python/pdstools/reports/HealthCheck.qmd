@@ -25,10 +25,11 @@ jupyter: python3
 #| output: false
 import logging, sys
 logging.disable()
+import re
+import subprocess
+import datetime
+
 from IPython.display import display, Markdown
-def Text(d):
-   return display(Markdown(d))
-import sys
 sys.path.append('..')
 from pdstools import datasets, ADMDatamart
 from pdstools import cdh_utils
@@ -105,11 +106,7 @@ elif len(datafolder) > 0 or len(modelfilename) > 0 or len(predictorfilename) > 0
 else: 
     # fall back to sample data
     datamart = datasets.CDHSample()
-treatment = (
-    "Treatment" in datamart.modelData.columns
-    and datamart.modelData.schema["Treatment"] != pl.Null
-)
-    
+
 last_data = (
     datamart.last(strategy='lazy')
     .with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
@@ -130,9 +127,11 @@ if datamart.predictorData is not None:
 else:
     datamart_all_columns = datamart.modelData.columns
 
-channel_overview_columns = [
-    col for col in ["Channel", "Direction"] if col in datamart_all_columns
-]
+def columnExists(df, col):
+    return(col in df.columns and df.schema[col] != pl.Null)    
+
+def subsetToExistingColumns(cols):
+    return([col for col in cols if col in datamart_all_columns])
 
 standardNBADNames = [
     "Assisted_Click_Through_Rate",
@@ -172,6 +171,7 @@ fig.for_each_xaxis(lambda xaxis: xaxis.update(dict(
     )))
 fig.update_layout(autosize=True, height=400, title="All ADM Models",
 xaxis_title="Model Performance", yaxis_title="Success Rate")
+fig.update_yaxes(tickformat=",.3%")
 fig.update_coloraxes(showscale=False)
 fig.show()
 ```
@@ -209,60 +209,41 @@ configurations it seems that the framework **{framework_usage}**.
 * Channels with no positive feedback
 :::
 
+In the table below we show the overall numbers per channel and direction. The numbers are not guaranteed to be correct: in the ADM data we only have aggregate numbers, we need to make some assumptions about the configurations, especially about having only one ADM model per configuration for an individual action or treatment. In some use cases these assumptions may not hold, so the ultimate truth about these numbers should come from data that tracks all interactions.
+
 ```{python}
 channel_overview = (
     datamart.modelData
     # first, take max per model ID
-    .group_by(["Configuration", "ModelID"] + channel_overview_columns)
+    .group_by(["Configuration", "ModelID"] + subsetToExistingColumns(["Channel", "Direction"]))
     .agg(
         pl.max("ResponseCount"), 
         pl.max("Positives")
     )
     # then, take sum of model max per configuration
-    .group_by(["Configuration"] + channel_overview_columns)
+    .group_by(["Configuration"] + subsetToExistingColumns(["Channel", "Direction"]))
     .agg(
         pl.sum("ResponseCount"), 
         pl.sum("Positives")
     )
     # finally, take the max of the configurations per channel
-    .group_by(channel_overview_columns)
+    .group_by(subsetToExistingColumns(["Channel", "Direction"]))
     .agg(
-        pl.max("ResponseCount").cast(pl.Int32).alias("Responses"), 
-        pl.max("Positives").cast(pl.Int32),
+        pl.max("ResponseCount").round().alias("Responses"), 
+        pl.max("Positives").round(),
         pl.format("{}%", ((pl.max("Positives") * 100 / pl.max("ResponseCount")).round(3))).alias("Base rate"),
         pl.col("Configuration").unique().alias("Supported by Configurations")
     )
+    .sort(subsetToExistingColumns(["Channel", "Direction"]))
     .collect()
 )
 
-df = channel_overview.to_pandas()
-
-def get_background_style_channel_overview(values):
-    def get_background(value):
-        if isinstance(value, int) or isinstance(value, float):
-            if value == 0:
-                return("background: red")
-            elif value < 200:
-                return("background: orange")
-            else:
-                return(None)
-        # else:
-        #     # warning for > 2 configurations to drive one channel
-        #     if len(value) > 2:
-        #         return("background: orange")
-        #     else:
-        #         return(None)
-        return(None)
-
-    return([get_background(v) for v in values])
-
-# work in progress..
-# df_styled = (
-#     df.style
-#     .apply(get_background_style_channel_overview, axis=1, subset=["Positives", "Responses"])
-# )
-
-show(df)
+channel_overview.to_pandas().style \
+    .hide(axis="index") \
+    .format(precision=0) \
+    .apply(lambda x: ["background-color: orange" if (i >= 2 and i <= 3 and (v < 200)) else "" for i, v in enumerate(x)], axis = 1) \
+    .apply(lambda x: ["background-color: orangered" if (i >= 2 and i <= 3 and (v == 0)) else "" for i, v in enumerate(x)], axis = 1) \
+    .apply(lambda x: ["background-color: orange" if (i == 5 and len(v) > 2) else "" for i, v in enumerate(x)], axis = 1)
 ```
 
 
@@ -273,30 +254,121 @@ In a standard setup, the offers/conversations are presented as treatments for ac
 Adaptive Models are created per treatment (at least in the default setup) and the recommendation is to stick the default context keys of the models.
 
 ```{python}
+def nUniqueValues(fld):
+    if not isinstance(fld, list):
+        fld = [fld]
+    fld = subsetToExistingColumns(fld)
+    if len(fld) == 0:
+        return(0)
+    return(
+        datamart.modelData
+        .select(pl.col(fld))
+        .drop_nulls()
+        .collect()
+        .n_unique())
 
-# TODO consider a different way to create the table (Quarto has better options)
-# and include all the same items as the R version. Currently not having all of
-# them here.
+def maxByHierarchy(fld, grouping):
+    if not isinstance(fld, list):
+        fld = [fld]
+    fld = subsetToExistingColumns(fld)
+    if len(fld) == 0:
+        return(0)
+    grouping = subsetToExistingColumns(grouping)
+    if len(grouping) == 0:
+        return(0)
+    return(
+        datamart.modelData
+        .group_by(grouping)
+        .agg(
+            pl.col(fld).drop_nulls().n_unique()
+        )
+        .select(fld)
+        .drop_nulls()
+        .max()
+        .collect()
+        .item())
 
-context_keys= {'Channels':'Channel/Direction', 'Issues':'Issue', 'Groups':'Group','Actions':'Name', 'Treatments':'Treatment'}
-value_keys = ['Actions', 'Treatments','Issues', 'Groups', 'Channels']
-counts, values = dict(), dict()
+def avgByHierarchy(fld, grouping):
+    if not isinstance(fld, list):
+        fld = [fld]
+    fld = subsetToExistingColumns(fld)
+    if len(fld) == 0:
+        return(0)
+    grouping = subsetToExistingColumns(grouping)
+    if len(grouping) == 0:
+        return(0)
+    return(
+        datamart.modelData
+        .group_by(grouping)
+        .agg(
+            pl.col(fld).drop_nulls().n_unique()
+        )
+        .select(fld)
+        .drop_nulls()
+        .mean()
+        .collect()
+        .item())
 
-for label, column in context_keys.items():
-    if column in last_data.columns:
-        if label in value_keys:
-            datalist = ', '.join(filter(None, (last_data.select(context_keys[label]).to_series().unique().sort().to_list())[:5]))
-        else:
-            datalist = ''
-        n = last_data.select(column).to_series().n_unique()
-    else:
-        datalist, n = '', 0
-    counts[f'Number of {label}'] = [n, datalist]
-overview_of_adaptive_models = pd.DataFrame(
-    counts, index=['Counts', 'Values']).T
+def sampleValues(fld, n=6):
+    if not isinstance(fld, list):
+        fld = [fld]
+    fld = subsetToExistingColumns(fld)
+    if len(fld) == 0:
+        return("-")
+    return(
+        datamart.modelData
+        .select(pl.concat_str(fld, separator="/").alias("__SampleValues__"))
+        .drop_nulls()
+        .collect()
+        .to_series()
+        .unique()
+        .sort()
+        .to_list()[:n])
 
-show(overview_of_adaptive_models, columnDefs=[{"className": "dt-left", "targets": "_all"}])
+df = pd.DataFrame({
+    "Item" : [
+        "Overall Number of Actions", 
+        "Max number of Actions within an Issue and Group", 
+        "Number of Treatments across all Actions",
+        "Max number of Treatments per Channel",
+        "Max number of Treatments for any single Action",
+        "Number of unique Issues",
+        "Average number of Groups per Issue",
+        "Max number of Groups per Issue",
+        "Channels"],
+    "Number" : [
+        nUniqueValues("Name"), 
+        maxByHierarchy("Name", ["Issue", "Group"]), 
+        nUniqueValues("Treatment"),
+        maxByHierarchy("Treatment", ["Channel", "Direction"]),
+        maxByHierarchy("Treatment", ["Name"]),
+        nUniqueValues("Issue"),
+        avgByHierarchy("Group", ["Issue"]),
+        maxByHierarchy("Group", ["Issue"]),
+        nUniqueValues(["Channel", "Direction"])],
+    "(Example) Values" : [
+        sampleValues("Name"), 
+        "-", 
+        sampleValues("Treatment"),
+        "-",
+        "-",
+        sampleValues("Issue"),
+        sampleValues("Group"),
+        "-",
+        sampleValues(["Channel", "Direction"])],
+    "Best Practice" : [1000, 100, 2500, 1000, 5,  5, 0,  5, 0],
+    "Cloud Service Limit" : [2500, 250, 5000, 2500, 5, 25,  float('inf'), 25,  float('inf')]
+
+})
+
+df.style \
+    .hide(axis="index") \
+    .format(precision=0) \
+    .apply(lambda x: ["background-color: orange" if (df.iloc[i, 1] < df.iloc[i, 3]) else "" for i, v in enumerate(x)], axis = 0) \
+    .apply(lambda x: ["background-color: orangered" if (df.iloc[i, 1] > df.iloc[i, 4] or df.iloc[i, 1] == 0) else "" for i, v in enumerate(x)], axis = 0)
+
 ```
+
 
 ::: {.callout-tip}
 
@@ -324,8 +396,9 @@ Showing the current success rate of the treatments. Different channels usually h
 ```{python}
 facet = "Channel/Direction"
 hover_columns = [col for col in  ["Issue", "Group", "Name"] if col in datamart_all_columns]
-if treatment:
+if columnExists(datamart.modelData, "Treatment"):
     hover_columns += ["Treatment"]
+
 df = (
     last_data.lazy()
     .with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet))
@@ -591,14 +664,16 @@ fig.show()
 #| output: asis
 #| echo: false
 
-if datamart.predictorData is None:
+def display_no_predictor_data_warning(extra = ""):
     display(Markdown(
 """
 ::: {.callout-important}
-Predictor Data is not available. All the below analyses based on predictor data
-will be empty.
+Predictor Data is not available. {extra}
 :::
 """))
+
+if datamart.predictorData is None:
+    display_no_predictor_data_warning("All the below analyses based on predictor data will be empty.")
 ```
 
 This analysis focuses on finding which are top predictors that are driving the models.
@@ -625,7 +700,7 @@ if datamart.predictorData is not None:
     else:
         print('Please refer to the `predictors_per_configuration` tab in the included Excel file.')
 else:
-    Text("No predictor data")
+    display_no_predictor_data_warning()
 ```
 
 ## Number of Predictors per Predictor Category
@@ -681,7 +756,7 @@ if datamart.predictorData is not None:
 
         fig.show()
 else:
-    Text("Predictor data is not available.")
+    display_no_predictor_data_warning()
 ```
 
 ## Importance by Predictor Category 
@@ -712,7 +787,7 @@ if datamart.predictorData is not None:
     fig.update_layout(autosize=True, height=height)
     fig.show() 
 else:
-    Text("Predictor data is not available.")
+    display_no_predictor_data_warning()
 
 ```
 
@@ -734,7 +809,7 @@ if datamart.predictorData is not None:
     )
     fig.show()
 else:
-    Text("Predictor data is not available")
+    display_no_predictor_data_warning()
 ```
 
 ## Bad predictors across all models
@@ -777,7 +852,7 @@ if datamart.predictorData is not None:
     else:
         print("Please refer to the `bad_predictors` tab in the included Excel file.")
 else:
-    Text("Predictor data is not available")
+    display_no_predictor_data_warning()
 ```
 
 ## Number of Active and Inactive Predictors
@@ -802,7 +877,7 @@ if datamart.predictorData is not None:
     )
     fig.show()
 else:
-    Text("Predictor data is not available")
+    display_no_predictor_data_warning()
 ```
 
 ## Predictor Performance across Propositions
@@ -836,7 +911,7 @@ if datamart.predictorData is not None:
         except:
             print(f"Plot was not drawn for {conf} because of an error")    #TODO: add error message instead of typing "an error"
 else:
-    Text("Predictor data is not available")
+    display_no_predictor_data_warning()
 ```
 
 ## Missing values
@@ -877,7 +952,7 @@ if datamart.predictorData is not None:
 
     fig.show()
 else:
-    Text("Predictor data is not available")
+    display_no_predictor_data_warning()
 
 ```
 
@@ -1324,36 +1399,44 @@ fig.show()
 
 TODO: Implement like in the R version
 
-# Appendix - all the models
-
-A list of all the models is written to a file so a script can iterate over all models and generate off-line model reports for each of them.
-
-Generally you will want to apply some filtering, or do this for specific models only. This can be accomplished in either this script here, or by editing the generated file.
-
-TODO: reconsider this
+# Credits
 
 ```{python}
-if include_tables:
-    responses_column_index = datamart.appendix.columns.index("Responses")
-    appendix = datamart.appendix.to_pandas(use_pyarrow_extension_array=True)
-    show(
-        appendix,
-        columnDefs=[
-            {
-                "targets": [responses_column_index],
-                "createdCell": JavascriptFunction(
-                    """
-function (td, cellData, rowData, row, col) {
-    if (cellData < 200) {
-        $(td).css('color', 'red')
-    }
-}
-"""
-                ),
-            }
-        ],
-    )
-else:
-    print("Please refer to the `appendix` tab in the included Excel file.")
+# unfortunately no way to get the quarto source file name, so that is hardcoded
+quarto_source = 'pega-datascientist-tools/python/pdstools/reports/HealthCheck.qmd'
+
+def get_cmd_output(args):
+    result = subprocess.run(args, stdout=subprocess.PIPE).stdout.decode('utf-8').split('\n')
+    return(result)
+
+def get_version_only(versionstr):
+    return(re.sub('[^.\d]','',versionstr))
+
+def get_pip_package_version(pck):
+    package_info = get_cmd_output(['pip', 'show', pck])
+    package_version = package_info[1]
+    return(get_version_only(package_version))
+
+quarto_version = get_version_only(get_cmd_output(['quarto', '--version'])[0])
+pandoc_version = get_version_only(get_cmd_output(["pandoc", "--version"])[0])
+python_version = get_version_only(get_cmd_output([sys.executable, '--version'])[0])
+timestamp_str = datetime.datetime.now().strftime("%d %b %Y %H:%M:%S")
+
+display(
+    Markdown(
+        f"""
+
+| Tool | Version |
+|-----|------|
+| Notebook | {quarto_source} |
+| Quarto | {quarto_version} |
+| Pandoc | {pandoc_version} |
+| PDS Tools | {get_pip_package_version('pdstools')} |
+| Polars | {get_pip_package_version('polars')} |
+| Jupyter Notebook format | {get_pip_package_version('nbformat')} (nbformat)|
+| Python | {python_version} |
+| Created at | {timestamp_str} |
+
+"""))
 
 ```
