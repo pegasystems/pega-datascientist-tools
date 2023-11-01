@@ -43,6 +43,29 @@ import pandas as pd
 import numpy as np
 from pdstools.utils import pega_template 
 import math
+
+def quarto_print(text):
+    display(Markdown(text))
+
+def quarto_callout_info(info):
+    quarto_print(
+"""
+::: {.callout-tip}
+%s
+:::
+""" % info)
+
+def quarto_callout_important(info):
+    quarto_print(
+"""
+::: {.callout-important}
+%s
+:::
+""" % info)
+
+def display_no_predictor_data_warning(extra = ""):
+    quarto_callout_important(f"Predictor Data is not available. {extra}")
+
 ```
 
 
@@ -66,7 +89,11 @@ datafolder = ""
 modelfilename = ""
 predictorfilename = ""
 
-include_tables=True
+datafolder = "/Users/perdo/Documents/customers/usbank-analysis/temp"
+modelfilename = "USBank_ModelSnapshots.arrow"
+predictorfilename = "USBank_PredictorSnapshots.arrow"
+
+tables_max_rows=200 # max number of rows for embedded tables
 globalQuery = None
 
 ```
@@ -74,16 +101,14 @@ globalQuery = None
 ```{python}
 #| echo: false
 
-display(
-    Markdown(
-        f"""
+quarto_print(f"""
 # {title}
 
 ## {subtitle}
 
 """
-    )
 )
+
 ```
 
 
@@ -162,12 +187,15 @@ We provide guidance and best practices in the form of bulletted lists of attenti
 ```{python}
 # Start with a global bubble chart. Maybe later replace by
 # some ADM metrics, e.g. overall AUC, CTR, some other things.
+# If sticking to the overall AUC chart 
+# best to color by channel+direction
 fig = datamart.plotPerformanceSuccessRateBubbleChart()
+
 fig.layout.coloraxis.colorscale = pega_template.success
 fig.for_each_xaxis(lambda xaxis: xaxis.update(showticklabels=True, visible=True))
 fig.for_each_xaxis(lambda xaxis: xaxis.update(dict(
         tickmode = 'array',
-        tickvals = [50, 60, 70, 80, 90,100],
+        tickvals = [x for x in range(50,110,10)],
     )))
 fig.update_layout(autosize=True, height=400, title="All ADM Models",
 xaxis_title="Model Performance", yaxis_title="Success Rate")
@@ -192,14 +220,11 @@ If a channel has two model configurations with a naming pattern like “Adm_1234
 ```{python}
 framework_usage = 'is being used' if all(configurationNamesInStandardNBADModelNames) else ('is being used with additional configurations' if any(configurationNamesInStandardNBADModelNames) else 'is not being used')
 
-display(
-    Markdown(
-        f"""
+quarto_print(f"""
 The standard Pega Next Best Action Designer framework defines a number
 of standard Adaptive Models for channels. By looking at the names of the
 configurations it seems that the framework **{framework_usage}**.
 """
-    )
 )
 ```
 
@@ -249,7 +274,7 @@ channel_overview.to_pandas().style \
 
 # Overview of the Actions
 
-In a standard setup, the offers/conversations are presented as treatments for actions in a hierarchical structure setup in NBA Designer. Treatments are often channel specific and you would typically expect more unique treatments than there are actions.
+In a standard setup, the offers/conversations are presented as treatments for actions in a hierarchical structure setup in NBA Designer. Treatments are often channel specific and typically there are more unique treatments than there are actions.
 
 Adaptive Models are created per treatment (at least in the default setup) and the recommendation is to stick the default context keys of the models.
 
@@ -364,8 +389,8 @@ df = pd.DataFrame({
 df.style \
     .hide(axis="index") \
     .format(precision=0) \
-    .apply(lambda x: ["background-color: orange" if (df.iloc[i, 1] < df.iloc[i, 3]) else "" for i, v in enumerate(x)], axis = 0) \
-    .apply(lambda x: ["background-color: orangered" if (df.iloc[i, 1] > df.iloc[i, 4] or df.iloc[i, 1] == 0) else "" for i, v in enumerate(x)], axis = 0)
+    .apply(lambda x: ["background-color: orange" if (df.iloc[i, 1] < df.iloc[i, 3]) else "" for i, v in enumerate(x)], axis = 0, subset=['Number']) \
+    .apply(lambda x: ["background-color: orangered" if (df.iloc[i, 1] > df.iloc[i, 4] or df.iloc[i, 1] == 0) else "" for i, v in enumerate(x)], axis = 0, subset=['Number'])
 
 ```
 
@@ -385,19 +410,17 @@ df.style \
 
 ## Success Rates per Channel
 
-Showing the current success rate of the treatments. Different channels usually have very different success rates. Just showing the top 20 here and limiting to the propositions that have received at least 100 responses (the rates reported by the models are unreliable otherwise).
+Showing the current success rate of the actions. Different channels usually have very different success rates. Just showing the top 20 here and limiting to the propositions that have received at least 100 responses (the rates reported by the models are unreliable otherwise).
 
 ::: {.callout-tip}
-- Look out for propositions that stand out, having a far higher success rate than the rest. Check with business if that is expected.
+- Look out for actions that stand out, having a far higher success rate than the rest. Check with business if that is expected.
 
-- Variation in the set of offered propositions across customers is also an important metric but not one that can be derived from the Adaptive Model data - this requires analysis of the actual interactions.
+- Variation in the set of offers across customers is also an important metric but not one that can be derived from the Adaptive Model data - this requires analysis of the actual interactions.
 :::
 
 ```{python}
 facet = "Channel/Direction"
-hover_columns = [col for col in  ["Issue", "Group", "Name"] if col in datamart_all_columns]
-if columnExists(datamart.modelData, "Treatment"):
-    hover_columns += ["Treatment"]
+hover_columns = subsetToExistingColumns(["Issue", "Group", "Name", "Treatment"])
 
 df = (
     last_data.lazy()
@@ -407,7 +430,9 @@ df = (
 df = (
     df.filter(pl.col("ResponseCount") > 100)
     .select(hover_columns + ["ModelID", "Channel/Direction","SuccessRate"])
-    .with_columns(pl.col("SuccessRate").round(4))
+    .with_columns(
+        pl.col("SuccessRate").round(4),
+        pl.concat_str(subsetToExistingColumns(['Name', 'Treatment']), separator="/").alias("Label"))
     .sort(["Channel/Direction", "SuccessRate"], descending=True)
     .group_by(["Channel/Direction"])
     .head(20)
@@ -415,11 +440,10 @@ df = (
 ).to_pandas(use_pyarrow_extension_array=True)
 
 hover_data = {
-    "SuccessRate": ":.2%",
+    "SuccessRate": ":.3%",
 }
 for col in hover_columns:
     hover_data[col] = ":.d"
-
 
 facet = "Channel/Direction"
 facet_col_wrap = 3
@@ -431,11 +455,11 @@ fig = px.bar(
     facet_col=facet,
     facet_col_wrap=facet_col_wrap,
     template="pega",
-    text="Name",
+    text="Label",
     title="Proposition success rates <br><sup>Issue/Group/Name/Treatment</sup>",
     hover_data=hover_data,
 )
-fig.update_xaxes(tickformat=",.2%")
+fig.update_xaxes(tickformat=",.3%", tickangle=45, title="Success Rate")
 fig.update_yaxes(matches=None, showticklabels=False, visible=False).update_xaxes(
     matches=None,
 ).update_traces(textposition="inside")
@@ -445,7 +469,7 @@ fig.for_each_annotation(
 fig.update(layout_coloraxis_showscale=False)
 
 unique_count = (
-    datamart.last(strategy="lazy")
+    last_data.lazy()
     .with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet))
     .select(facet)
     .collect()
@@ -461,34 +485,48 @@ display(fig)
 ```
 
 ## All Success Rates
-Interactive chart with all success rates.
+
+Showing the success rates of all actions in an interactive
+tree map.
+
+Excluding actions with fewer than 100 responses.
 
 ```{python}
 
 # TODO put the percentage itself in the tree cells just like in the R version
-#
 
-levels = [col for col in ["Configuration",'Channel', 'Direction', 'Issue', 'Group', "Name", "Treatment"] if col in datamart_all_columns]
-fig = datamart.plotTreeMap(color_var="SuccessRate",
-                     group_by_col=None,
-                     levels=levels, 
-                     colorscale=pega_template.success,
-                     query=pl.col("ResponseCount")>100,)
-fig
+fig = datamart.plotTreeMap(
+    color_var="SuccessRate",
+    group_by_col=None,
+    levels=subsetToExistingColumns(["Configuration",'Channel', 'Direction', 'Issue', 'Group', "Name", "Treatment"]), 
+    colorscale=pega_template.success,
+    query=pl.col("ResponseCount")>100,)
+
+fig.update_layout(title="Action Success Rates")
+fig.update_coloraxes(showscale=False)
+
+fig.show()
 ```
 
 ## Success Rates over Time
+
 Showing how the overall channel success rates evolved over the time that the data export covers. Split by Channel and model configuration. Usually there are separate model configurations for different channels but sometimes there are also additional model configurations for different outcomes (e.g. conversion) or different customers (e.g. anonymous).
+
+Excluding actions with fewer than 100 responses.
 
 ::: {.callout-tip}
 - There shouldn’t be too sudden changes over time
 :::
 
 ```{python}
-by = "Channel/Direction"
 facet = "Configuration"
-fig = datamart.plotOverTime('SuccessRate', by=by, facets=facet, facet_col_wrap=2, query=pl.col("ResponseCount") > 100)
+fig = datamart.plotOverTime(
+    'SuccessRate', 
+    by="Channel/Direction", 
+    facets=facet, 
+    facet_col_wrap=2, query=pl.col("ResponseCount") > 100)
 fig.update_yaxes(matches=None)
+
 fig.for_each_yaxis(lambda yaxis: yaxis.update(showticklabels=True))
 unique_count = datamart.modelData.with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet)).select(facet).collect().unique().shape[0]
 height = 200 + (math.ceil( unique_count / 2) * 250)
@@ -497,6 +535,9 @@ fig.for_each_annotation(
     lambda a: a.update(text=a.text.replace(f"{facet}=", ""))
 )
 fig.for_each_xaxis(lambda xaxis: xaxis.update(showticklabels=True))
+
+fig.update_layout(title="Success Rate Trend", yaxis_title="Success Rate", xaxis_title="")
+
 fig.show()
 ```
 
@@ -505,26 +546,20 @@ fig.show()
 ```{python}
 n_unique_models = len(last_data.select('ModelID').unique()) # TODO or uniqueN ?
 
-display(
-    Markdown(
-        f"""
-There are a total of {n_unique_models} unique models in the latest snapshot.
+quarto_print(f"""
+There are a total of **{n_unique_models}** unique models in the latest snapshot.
 """
-    )
 )
 ```
 
 The standard configuration is to have one model per treatment.
 
 ```{python}
-if include_tables:
-    # TODO review table,
-    # preferably including some simple guidance by applying colors
+# TODO review table,
+# TODO including some simple guidance by applying colors
 
-    model_overview = datamart.model_overview.to_pandas(use_pyarrow_extension_array=True)
-    show(model_overview)
-else:
-    print('Please refer to the `model_overview` tab in the included Excel file.')
+model_overview = datamart.model_overview.head(tables_max_rows).to_pandas(use_pyarrow_extension_array=True)
+show(model_overview)
 ```
 
 ## Model Performance 
@@ -568,15 +603,16 @@ This “Bubble Chart” - similar to the standard plot in the ADM reports in Peg
 ```{python}
 facet_col_wrap=2
 facet = 'Configuration/Channel/Direction'
+
 fig = datamart.plotPerformanceSuccessRateBubbleChart(facets=facet,facet_col_wrap=facet_col_wrap)
 fig.layout.coloraxis.colorscale = pega_template.success
 fig.for_each_xaxis(lambda xaxis: xaxis.update(showticklabels=True, visible=True))
 fig.for_each_xaxis(lambda xaxis: xaxis.update(dict(
         tickmode = 'array',
-        tickvals = [50, 60, 70, 80, 90,100],
+        tickvals = [x for x in range(50,110,10)],
     )))
 height = 250 + (math.ceil( len(fig.layout.annotations) / facet_col_wrap) * 270)
-fig.update_layout(autosize=True, height=height, title=None)
+fig.update_layout(autosize=True, height=height, title="All ADM Models")
 
 fig.for_each_annotation(
     lambda a: a.update(text=a.text.replace(f"{facet}=", ""))
@@ -585,7 +621,15 @@ fig.update_layout(font=dict(size=10))
 
 fig.for_each_annotation(lambda a: a.update(text="<br> ".join(a.text.split("/", 1))))
 fig.update_coloraxes(colorbar_len= 1 / math.ceil( len(fig.layout.annotations) / facet_col_wrap))
-fig.update_yaxes(tickformat=",.2%")
+fig.for_each_yaxis(lambda yaxis: yaxis.update(tickformat=",.3%"))
+
+# TODO this puts the titles everywhere, not just at the bottom and left
+# but doing it only at fig level only puts it at one facet..
+fig.for_each_yaxis(lambda yaxis: yaxis.update(title="Success Rate"))
+fig.for_each_xaxis(lambda xaxis: xaxis.update(title="Model Performance"))
+
+fig.update_coloraxes(showscale=False)
+
 fig.show()
 ```
 
@@ -624,10 +668,11 @@ It can be interesting to see which issues, groups or channels can be better pred
 fig = datamart.plotTreeMap(
     color_var="performance_weighted", 
     group_by_col= None, 
-    levels=levels)
+    levels=subsetToExistingColumns(["Configuration",'Channel', 'Direction', 'Issue', 'Group', "Name", "Treatment"]))
 fig.update_layout(
     title="Model Performance", 
     showlegend=False)
+fig.update_coloraxes(showscale=False)
 
 fig.show()
 ```
@@ -648,12 +693,13 @@ If there are actions that have a much higher response count than the rest see wh
 ```{python}
 fig = datamart.plotTreeMap(
     color_var="responsecount", 
-    levels=levels, 
+    levels=subsetToExistingColumns(["Configuration",'Channel', 'Direction', 'Issue', 'Group', "Name", "Treatment"]), 
     colorscale=pega_template.negative_positive)
 
 fig.update_layout(
     title="Response Counts", 
     showlegend=False)
+fig.update_coloraxes(showscale=False)
 
 fig.show()
 ```
@@ -663,15 +709,6 @@ fig.show()
 ```{python}
 #| output: asis
 #| echo: false
-
-def display_no_predictor_data_warning(extra = ""):
-    display(Markdown(
-"""
-::: {.callout-important}
-Predictor Data is not available. {extra}
-:::
-"""))
-
 if datamart.predictorData is None:
     display_no_predictor_data_warning("All the below analyses based on predictor data will be empty.")
 ```
@@ -690,15 +727,12 @@ Note that the total number of predictors in the model data does not always equat
 #| error: true
 
 if datamart.predictorData is not None:
-    if include_tables:
+    # TODO: apply highlighting like in the R version
+    # TODO: the numbers are slightly off - maybe including Classifier entries?
 
-        # TODO: see if we can highlight table cells like in the R version
-        # to highlight best practices
+    predictors_per_configuration = datamart.predictors_per_configuration.head(tables_max_rows).to_pandas(use_pyarrow_extension_array=False)
 
-        predictors_per_configuration = datamart.predictors_per_configuration.to_pandas(use_pyarrow_extension_array=False)
-        show(predictors_per_configuration)
-    else:
-        print('Please refer to the `predictors_per_configuration` tab in the included Excel file.')
+    show(predictors_per_configuration)
 else:
     display_no_predictor_data_warning()
 ```
@@ -708,8 +742,6 @@ else:
 Split by category (defaults to the string before the first dot, can be overridden when reading the data).
 
 The numbers here can differ from the totals above, these ones are leading.
-
-TODO: include a table like in the R version
 
 ::: {.callout-tip}
 - Total number of predictors per model 200 - 700 to stay within service limits
@@ -731,27 +763,34 @@ univariate predictor performance.
 :::
 
 ```{python}
-# TODO: Optionally feature importance if available in the datamart
+# TODO: Uses feature importance if available in the datamart
 # drop our own calculations of feature importance. Would be nice to
 # be able to toggle in the graph (with a tab)
-```
+# TODO see if the > 200 check actually works 
+# TODO see why the categorization does not work
 
-```{python}
+
 #| error: true
 to_plot = (
     "FeatureImportance"
     if "FeatureImportance" in datamart_all_columns
     else "Performance"
 )
+
 if datamart.predictorData is not None:
     figs = datamart.plotPredictorPerformance(
-        top_n=30, facets="Configuration", separate=True, active_only=False,to_plot=to_plot
+        top_n=30, 
+        facets="Configuration", 
+        separate=True, 
+        active_only=False,
+        to_plot=to_plot,
+        query=pl.col('ResponseCount') > 200
     )
     if not isinstance(figs, list):
         figs = [figs]
     for fig in figs:
         fig.update_traces(width=0.3)
-        fig.update_layout(font=dict(size=10), height=700)
+        fig.update_layout(font=dict(size=10), height=700, yaxis_title="")
         fig.layout.xaxis.tickformat = ".d"
 
         fig.show()
@@ -823,34 +862,33 @@ See if there are predictors that are just always perform poorly.
 
 ```{python}
 # weighted performance
-if datamart.predictorData is not None:
-    if include_tables:
-        responses_column_index = datamart.bad_predictors.columns.index("Response Count")
-        bad_predictors = datamart.bad_predictors.to_pandas(
-            use_pyarrow_extension_array=False
-        )
+# TODO apply highlighting in the std way like in the R version
 
-        show(
-            bad_predictors,
-            scrollX=True,
-            columnDefs=[
-                {
-                    "className": "dt-left",
-                    "targets": [responses_column_index],
-                    "createdCell": JavascriptFunction(
-                        """
-    function (td, cellData, rowData, row, col) {
-        if (cellData < 200) {
-            $(td).css('color', 'red')
-        }
+if datamart.predictorData is not None:
+    responses_column_index = datamart.bad_predictors.columns.index("Response Count")
+    bad_predictors = datamart.bad_predictors.to_pandas(
+        use_pyarrow_extension_array=False
+    )
+
+    show(
+        bad_predictors.head(tables_max_rows),
+        scrollX=True,
+        columnDefs=[
+            {
+                "className": "dt-left",
+                "targets": [responses_column_index],
+                "createdCell": JavascriptFunction(
+                    """
+function (td, cellData, rowData, row, col) {
+    if (cellData < 200) {
+        $(td).css('color', 'red')
     }
-    """
-                    ),
-                }
-            ],
-        )
-    else:
-        print("Please refer to the `bad_predictors` tab in the included Excel file.")
+}
+"""
+                ),
+            }
+        ],
+    )
 else:
     display_no_predictor_data_warning()
 ```
@@ -884,7 +922,8 @@ else:
 A view of predictor performance across all propositions, ordered so that the best performing predictors are at the top and the best performing propositions are on the left. Green indicates good performance, red means more problematic - either too low or too good to be true.
 
 ```{python}
-index_cols = [col for col in ['Issue', 'Group', "Name", "Treatment"] if col in datamart_all_columns]
+index_cols = subsetToExistingColumns(['Issue', 'Group', "Name", "Treatment"])
+
 if datamart.predictorData is not None:
     unique_configurations = datamart.combinedData.collect().get_column("Configuration").unique().to_list()
     for conf in unique_configurations:
@@ -921,7 +960,7 @@ This TreeMap only shows the fields that have any missing values.
 
 ```{python}
 if datamart.predictorData is not None:
-    path =  [col for col in ["Configuration", "PredictorCategory", "PredictorName"] if col in datamart_all_columns]
+    path = subsetToExistingColumns(["Configuration", "PredictorCategory", "PredictorName"])
     gb_cols = path
     path = [px.Constant("All Models")] + path 
 
@@ -949,6 +988,7 @@ if datamart.predictorData is not None:
     )
 
     fig.layout.coloraxis.colorscale =  pega_template.positive_negative
+    fig.update_coloraxes(showscale=False)
 
     fig.show()
 else:
@@ -969,7 +1009,7 @@ In the sections below we check which of these models have reached certain reliab
 
 ## Empty and Immature Models
 
-All below lists are guidance. There should be just a small percentage of immature or empty models overall. Having no or just 1 active predictor is very suspicious
+All below lists are guidance. There should be just a small percentage of immature or empty models overall.
 
 ### Models that have never been used
 
@@ -978,67 +1018,102 @@ These models have no responses at all: no positives but also no negatives. The m
 Often these represent actions that never made it into production and were only used to test out logic. But it could also be that the response mechanism is broken. It could for example be caused by outcome labels that are returned by the channel application not matching the configuration of the adaptive models.
 
 ```{python}
-if include_tables:
-    zero_response = datamart.zero_response.to_pandas(use_pyarrow_extension_array=True)
+empty_or_immature_overviews_cols = subsetToExistingColumns([
+    "Configuration",
+    "Channel",
+    "Direction",
+    "Issue",
+    "Group",
+    "Name",
+    "Treatment",
+    "ResponseCount",
+    "Positives"
+])
 
-    if zero_response.shape[0] >0:
-        print(f"There are {zero_response.shape[0]} models with zero response")
-        show(zero_response, scrollX = True)
-    else:
-        print("All models have received at least 1 response.")
+zero_response = last_data.select(empty_or_immature_overviews_cols).filter(pl.col("ResponseCount") == 0)
+
+if zero_response.shape[0] > 0:
+    quarto_print(f"There are {zero_response.shape[0]} models with no responses at all:")
+    
+    show(zero_response.to_pandas(use_pyarrow_extension_array=True).head(tables_max_rows), scrollX = True)
 else:
-    print('Please refer to the `zero_response` tab in the included Excel file.')
+    quarto_callout_info("All models have received at least 1 response.")
 ```
 
-```{python}
-#| output: asis
+### Models that have have been used but never received a positive response
 
-if include_tables:
-    zero_positives = datamart.zero_positives.to_pandas(use_pyarrow_extension_array=True)
-    if zero_positives.shape[0] >0:
-        print("### Models that have have been used but never received a positive response")
-        show(zero_positives, scrollX = True)
-    else:
-        print("All models have received at least 1 positive Response.")
+These models have been used but never received a “positive” response. This means the action/treatments that these models represent have been selected, so an “impression” has been made to the customer, but they never received a “positive” response.
+
+This could be because no customer ever found the proposition attractive, but it could also be because the response loop is not working correctly. Possibly Pega “believes” the user received the action but the actual channel application did never show it.
+
+```{python}
+zero_positives = (
+    last_data.select(empty_or_immature_overviews_cols)
+    .filter(pl.col("Positives") == 0)
+    .filter(pl.col("ResponseCount") > 0)
+    .sort("ResponseCount"))
+
+if zero_positives.shape[0] > 0:
+    quarto_print(f"There are {zero_positives.shape[0]} models with responses but no positives:")
+
+    show(zero_positives.to_pandas(use_pyarrow_extension_array=True).head(tables_max_rows), scrollX = True)
 else:
-    print('Please refer to the `zero_positives` tab in the included Excel file.')
+    quarto_callout_info("All models that have received feedback have received at least 1 positive response.")
+
 ```
 
 ### Models that are still in an immature phase of learning
 
-These models have received at least one positive response but not enough yet to be qualified to be fully  “mature” - a concept that matters especially for outbound channels. 
-These actions are typically new and still in early phases of learning. 
-We show the “reach” of these actions as the percentage of the population that would be selected by the standard maturity capping algorithm in the NBA framework (which selects 2% for new models and 100% for models with 200 or more positive responses
+These models have received at least one positive response but not enough yet to be qualified to be fully “mature” - a concept that matters especially for outbound channels.
+
+These actions are typically new and still in early phases of learning.
+
+We show the “reach” of these actions as the percentage of the population that would be selected by the standard maturity capping algorithm in the NBA framework (which selects 2% for new models and 100% for models with 200 or more positive responses).
 
 
 ```{python}
-# if include_tables:
-#     reach = datamart.reach.to_pandas()
-#     reach.style.format({
-#         'Reach': '{:,.2%}'.format})
-#     show(reach, scrollX=True)
-# else:
-#     print('Please refer to the `reach` tab in the included Excel file.')
+def calc_reach(x=pl.col("Positives")):
+    return 0.02 + 0.98 * (pl.min_horizontal([pl.lit(200), x]) / 200)
 
+immature_models = (
+    last_data.select(empty_or_immature_overviews_cols) 
+    .filter((pl.col("Positives") < 200) & (pl.col("Positives") > 0))
+    .sort("Positives")
+    .with_columns(pl.format("{}%", (pl.lit(100) * calc_reach()).round(2)).alias('Outbound Default Reach'))
+)
+
+if immature_models.shape[0] > 0:
+    quarto_print(f"There are {immature_models.shape[0]} models with positive responses but fewer than 200:")
+
+    reach = immature_models.to_pandas(use_pyarrow_extension_array=True).head(tables_max_rows)
+    # reach.style.format({'Reach': '{:,.2%}'.format})
+    show(reach, scrollX=True)
+
+else:
+    quarto_callout_info("All non-empty models have received at least 200 positives.")
 ```
 
+### Models that have received sufficient responses but are still at their minimum performance 
+
+These models have received over 200 positives but still show the minimum model performance.
+
+This could be an indication of data problems, or not having the right predictors but may also be caused by technical aspects like the order of the responses to the model.
 
 ```{python}
-#| output: asis
-if include_tables:
-    min_perf_df = datamart.minimum_performance.to_pandas(use_pyarrow_extension_array=True)
-    if min_perf_df.shape[0] >0:
-        print('''### Models that have received sufficient responses but are still at their minimum performance 
-    These models also have received over 200 positives but still show \n
-    the minimum model performance. This could be an indication of data problems, \n
-    or not having the right predictors but may also be caused by technical aspects \n
-    like the order of the responses to the model. \n
-        ''')
-        show(min_perf_df, scrollX = True)
-    else:
-        print("All models with over 200 positive responses are above minimum performance")
+minimum_performance = (
+    last_data
+    .select(empty_or_immature_overviews_cols + ['Performance'])
+    .filter(pl.col("Performance") == 0.5)
+    .filter(pl.col("Positives") >= 200)  
+    .sort("ResponseCount"))
+
+if minimum_performance.shape[0] > 0:
+    quarto_print(f"There are {minimum_performance.shape[0]} models with sufficient evidence but still at minimum performance:")
+
+    show(minimum_performance.to_pandas(use_pyarrow_extension_array=True).head(tables_max_rows), scrollX = True)
 else:
-    print('Please refer to the `minimum_performance` tab in the included Excel file.')
+    quarto_callout_info("All models with over 200 positive responses are above the minimum performance.")
+
 ```
 
 ## Number of Empty/Immature Models over time 
@@ -1083,16 +1158,18 @@ fig = px.line(df_pd,
     title="Immature and Empty Models over Time",
     template="pega",
     facet_col_wrap=facet_col_wrap,
+    color_discrete_sequence=px.colors.qualitative.D3
     )
 fig.for_each_annotation(
     lambda a: a.update(text=a.text.replace(f"{facet}=", ""))
 )
+fig.for_each_xaxis(lambda xaxis: xaxis.update(title=""))
+
 unique_count = len(fig.layout["annotations"])
 height = 200 + (math.ceil( unique_count / facet_col_wrap) * 250)
 fig.update_layout(
     autosize=True, 
     height=height, 
-    xaxis_title="", 
     yaxis_title="Number of Models")
 
 fig.show()
@@ -1102,6 +1179,8 @@ fig.show()
 
 
 ```{python}
+# TODO: make this daily so not continuously rising
+
 facets = "Configuration"
 facet_col_wrap = 2
 response_counts = datamart.plotOverTime('ResponseCount', by="Channel/Direction", facets=facets, facet_col_wrap=facet_col_wrap, mode="Cumulative")
@@ -1112,6 +1191,10 @@ response_counts.update_layout(autosize=True, height=height)
 response_counts.for_each_annotation(
     lambda a: a.update(text=a.text.replace(f"{facets}=", ""))
 )
+response_counts.for_each_xaxis(lambda xaxis: xaxis.update(title=""))
+response_counts.update_layout(
+    yaxis_title="Response Count")
+
 response_counts.show()
 ```
 
@@ -1150,6 +1233,7 @@ cdh_utils.legend_color_order(fig).show()
 # TODO: I don't think this is doing what we want
 # this seems to filter, but we want to plot positives
 # rather than responses
+# Need to generalize plotResponseGain to plotGain(what: ResponseCount, or Positives)
 
 fig = datamart.plotResponseGain(query=pl.col("Positives") > 0)
 
@@ -1167,15 +1251,21 @@ cdh_utils.legend_color_order(fig).show()
 Zooming in into the models that drive most of the responses, here we list the top 20 models with the highest number of responses.
 
 ```{python}
-subset = ['Configuration', 'Issue', 'Group', 'Name', 'Channel', 'Direction']
-facet = '/'.join([col for col in subset if col in datamart_all_columns])
+# TODO better colors, shorter content in the bars
+# nicer colors perhaps - maybe a gradient
+# code seems overly complex for what it is doing
+
+facet = '/'.join(subsetToExistingColumns(['Configuration', 'Issue', 'Group', 'Name', 'Channel', 'Direction']))
+
+response_frequency_data = last_data
 
 for split_facet in facet.split("/"):
-    last_data = last_data.with_columns(
+    response_frequency_data = response_frequency_data.with_columns(
         pl.col(split_facet).cast(pl.Utf8).fill_null("NA")
     )
-last_data = last_data.with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet))
-response_counts = last_data.group_by([facet] + facet.split("/")).agg(
+response_frequency_data = response_frequency_data.with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet))
+
+response_counts = response_frequency_data.group_by([facet] + facet.split("/")).agg(
     [
         pl.sum("ResponseCount").alias("all_responses"),
         pl.sum("Positives").alias("positive_sum")
@@ -1192,7 +1282,15 @@ for col in facet.split("/"):
 possible_color_vars = ['Channel', 'Issue', 'Name']
 color = next((col for col in possible_color_vars if col in datamart_all_columns), None)
 
-fig = px.bar(all_responses.to_pandas(use_pyarrow_extension_array=True), x ="all_responses", y=facet, color=color, title="Top 20 Highest Responses", template="pega", text=facet, hover_data=hover_data)
+fig = px.bar(
+    all_responses.to_pandas(use_pyarrow_extension_array=True), 
+    x = "all_responses", 
+    y=facet, 
+    color=color, 
+    title="Top 20 Highest Responses", 
+    template="pega", 
+    text=facet, 
+    hover_data=hover_data)
 fig.update_yaxes(matches=None, showticklabels=False, visible=False).update_traces(textposition="inside")
 fig.for_each_annotation(
     lambda a: a.update(text=a.text.replace(facet, ""))
@@ -1422,9 +1520,7 @@ pandoc_version = get_version_only(get_cmd_output(["pandoc", "--version"])[0])
 python_version = get_version_only(get_cmd_output([sys.executable, '--version'])[0])
 timestamp_str = datetime.datetime.now().strftime("%d %b %Y %H:%M:%S")
 
-display(
-    Markdown(
-        f"""
+quarto_print(f"""
 
 | Tool | Version |
 |-----|------|
@@ -1437,6 +1533,6 @@ display(
 | Python | {python_version} |
 | Created at | {timestamp_str} |
 
-"""))
+""")
 
 ```

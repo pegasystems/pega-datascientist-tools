@@ -234,6 +234,25 @@ def test_zRatio():
 
     assert output.frame_equal(expected_output)
 
+def test_lift():
+    input = pl.DataFrame(
+        {
+            "BinPositives": [0, 7, 11, 12, 6],
+            "BinNegatives": [5, 2208, 1919, 1082, 352],
+        }
+    )
+
+    output = (
+        input.with_columns(cdh_utils.lift())
+        .with_columns(pl.col("Lift").round(7))
+    )
+
+    vals = [0, 0.4917733, 0.8869027, 1.7068860, 2.6080074]
+    expected_output = input.with_columns(
+        pl.Series(name="Lift", values=vals)
+    )
+
+    assert output.frame_equal(expected_output)
 
 def test_log_odds():
     input = pl.DataFrame(

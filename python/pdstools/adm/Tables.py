@@ -2,6 +2,9 @@ from . import ADMDatamart
 import polars as pl
 from functools import cached_property
 
+# TODO lets reconsider - designing for re-use when there is no re-use, most
+# is just very HC specific code and not very complex either
+
 standardNBADNames = [
     "Assisted_Click_Through_Rate",
     "CallCenter_Click_Through_Rate",
@@ -18,7 +21,6 @@ standardNBADNames = [
     "SMS_Click_Through_Rate",
     "Web_Click_Through_Rate",
 ]
-
 
 class Tables:
     @cached_property
@@ -121,19 +123,19 @@ class Tables:
             .sort("Mean", descending=False)
         ).collect()
 
-    @property
-    def _zero_response(self):
-        return self.modelData.group_by(self._by).agg(
-            [pl.sum("ResponseCount"), pl.sum("Positives"), pl.mean("Performance")]
-        )
+    # @property
+    # def _zero_response(self):
+    #     return self.modelData.group_by(self._by).agg(
+    #         [pl.sum("ResponseCount"), pl.sum("Positives"), pl.mean("Performance")]
+    #     )
 
-    @cached_property
-    def zero_response(self):
-        return self._zero_response.filter(pl.col("ResponseCount") == 0).collect()
+    # @cached_property
+    # def zero_response(self):
+    #     return self._zero_response.filter(pl.col("ResponseCount") == 0).collect()
 
-    @cached_property
-    def zero_positives(self):
-        return self._zero_response.filter(pl.col("Positives") == 0).collect()
+    # @cached_property
+    # def zero_positives(self):
+    #     return self._zero_response.filter(pl.col("Positives") == 0).filter(pl.col("ResponseCount") > 0).collect()
 
     @cached_property
     def _last_counts(self):
@@ -143,18 +145,18 @@ class Tables:
             .agg([pl.sum("ResponseCount"), pl.sum("Positives"), pl.mean("Performance")])
         )
 
-    @cached_property
-    def reach(self):
-        def calc_reach(x=pl.col("Positives")):
-            return 0.02 + 0.98 * (pl.min_horizontal([pl.lit(200), x]) / 200)
+    # @cached_property
+    # def reach(self):
+    #     def calc_reach(x=pl.col("Positives")):
+    #         return 0.02 + 0.98 * (pl.min_horizontal([pl.lit(200), x]) / 200)
 
-        return (
-            self._last_counts.filter(
-                (pl.col("Positives") < 200) & (pl.col("Positives") > 0)
-            )
-            .with_columns(Reach=calc_reach())
-            .collect()
-        )
+    #     return (
+    #         self._last_counts.filter(
+    #             (pl.col("Positives") < 200) & (pl.col("Positives") > 0)
+    #         )
+    #         .with_columns(Reach=calc_reach())
+    #         .collect()
+    #     )
 
     @cached_property
     def minimum_performance(self):
@@ -162,15 +164,15 @@ class Tables:
             (pl.col("Positives") >= 200) & (pl.col("Performance") == 0.5)
         ).collect()
 
-    @cached_property
-    def appendix(self):
-        return (
-            self.modelData.group_by(self._by + ["ModelID"])
-            .agg(
-                [
-                    pl.max("ResponseCount").alias("Responses"),
-                    pl.count("SnapshotTime").alias("Snapshots"),
-                ]
-            )
-            .collect()
-        )
+    # @cached_property
+    # def appendix(self):
+    #     return (
+    #         self.modelData.group_by(self._by + ["ModelID"])
+    #         .agg(
+    #             [
+    #                 pl.max("ResponseCount").alias("Responses"),
+    #                 pl.count("SnapshotTime").alias("Snapshots"),
+    #             ]
+    #         )
+    #         .collect()
+    #     )
