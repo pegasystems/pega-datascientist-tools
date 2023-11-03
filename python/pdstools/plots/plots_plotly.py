@@ -726,7 +726,7 @@ class ADMVisualisations:
             "Model count": ":.d",
             "Percentage without responses": ":.0%",
             "Response Count sum": ":.d",
-            "(%) Success Rate mean": ":.3f",
+            "Success Rate mean (%)": ":.3f",
             "Performance weighted mean": ":.2f",
             "Positives sum": ":.d",
         }

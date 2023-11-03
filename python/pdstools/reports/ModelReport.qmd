@@ -16,8 +16,8 @@ format:
     toc: true
     toc-title: Table of Contents
     theme:
-      light: flatly
-      dark: darkly
+        light: flatly
+    fontsize: smaller
 jupyter: python3
 ---
 
@@ -545,4 +545,6 @@ display(
 """))
 
 ```
+
+For more information please see the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools).
 
