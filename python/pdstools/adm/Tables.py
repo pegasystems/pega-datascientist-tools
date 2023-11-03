@@ -2,25 +2,22 @@ from . import ADMDatamart
 import polars as pl
 from functools import cached_property
 
-# TODO lets reconsider - designing for re-use when there is no re-use, most
-# is just very HC specific code and not very complex either
-
-standardNBADNames = [
-    "Assisted_Click_Through_Rate",
-    "CallCenter_Click_Through_Rate",
-    "CallCenterAcceptRateOutbound",
-    "Default_Inbound_Model",
-    "Default_Outbound_Model",
-    "Email_Click_Through_Rate",
-    "Mobile_Click_Through_Rate",
-    "OmniAdaptiveModel",
-    "Other_Inbound_Click_Through_Rate",
-    "Push_Click_Through_Rate",
-    "Retail_Click_Through_Rate",
-    "Retail_Click_Through_Rate_Outbound",
-    "SMS_Click_Through_Rate",
-    "Web_Click_Through_Rate",
-]
+# standardNBADNames = [
+#     "Assisted_Click_Through_Rate",
+#     "CallCenter_Click_Through_Rate",
+#     "CallCenterAcceptRateOutbound",
+#     "Default_Inbound_Model",
+#     "Default_Outbound_Model",
+#     "Email_Click_Through_Rate",
+#     "Mobile_Click_Through_Rate",
+#     "OmniAdaptiveModel",
+#     "Other_Inbound_Click_Through_Rate",
+#     "Push_Click_Through_Rate",
+#     "Retail_Click_Through_Rate",
+#     "Retail_Click_Through_Rate_Outbound",
+#     "SMS_Click_Through_Rate",
+#     "Web_Click_Through_Rate",
+# ]
 
 class Tables:
     @cached_property
@@ -68,29 +65,29 @@ class Tables:
             df = df.filter(pl.col("predictorData") == 0)
         return df.get_column("Tables").to_list()
 
-    @cached_property
-    def model_overview(self):
-        return (
-            self.last(strategy="lazy")
-            .group_by(["Configuration", "Channel", "Direction"])
-            .agg(
-                [
-                    pl.col("Name").unique().count().alias("Number of Actions"),
-                    pl.col("ModelID").unique().count().alias("Number of Models"),
-                ]
-            )
-            .with_columns(
-                [
-                    pl.col("Configuration")
-                    .is_in(standardNBADNames)
-                    .alias("Standard in NBAD Framework"),
-                    (pl.col("Number of Models") / pl.col("Number of Actions"))
-                    .round(2)
-                    .alias("Average number of Treatments per Action"),
-                ]
-            )
-            .sort("Configuration")
-        ).collect()
+    # @cached_property
+    # def model_overview(self):
+    #     return (
+    #         self.last(strategy="lazy")
+    #         .group_by(["Configuration", "Channel", "Direction"])
+    #         .agg(
+    #             [
+    #                 pl.col("Name").unique().count().alias("Number of Actions"),
+    #                 pl.col("ModelID").unique().count().alias("Number of Models"),
+    #             ]
+    #         )
+    #         .with_columns(
+    #             [
+    #                 pl.col("Configuration")
+    #                 .is_in(standardNBADNames)
+    #                 .alias("Standard in NBAD Framework"),
+    #                 (pl.col("Number of Models") / pl.col("Number of Actions"))
+    #                 .round(2)
+    #                 .alias("Average number of Treatments per Action"),
+    #             ]
+    #         )
+    #         .sort("Configuration")
+    #     ).collect()
 
     @cached_property
     def predictors_per_configuration(self):
@@ -137,13 +134,13 @@ class Tables:
     # def zero_positives(self):
     #     return self._zero_response.filter(pl.col("Positives") == 0).filter(pl.col("ResponseCount") > 0).collect()
 
-    @cached_property
-    def _last_counts(self):
-        return (
-            self.last(strategy="lazy")
-            .group_by(self._by)
-            .agg([pl.sum("ResponseCount"), pl.sum("Positives"), pl.mean("Performance")])
-        )
+    # @cached_property
+    # def _last_counts(self):
+    #     return (
+    #         self.last(strategy="lazy")
+    #         .group_by(self._by)
+    #         .agg([pl.sum("ResponseCount"), pl.sum("Positives"), pl.mean("Performance")])
+    #     )
 
     # @cached_property
     # def reach(self):
@@ -158,11 +155,11 @@ class Tables:
     #         .collect()
     #     )
 
-    @cached_property
-    def minimum_performance(self):
-        return self._last_counts.filter(
-            (pl.col("Positives") >= 200) & (pl.col("Performance") == 0.5)
-        ).collect()
+    # @cached_property
+    # def minimum_performance(self):
+    #     return self._last_counts.filter(
+    #         (pl.col("Positives") >= 200) & (pl.col("Performance") == 0.5)
+    #     ).collect()
 
     # @cached_property
     # def appendix(self):

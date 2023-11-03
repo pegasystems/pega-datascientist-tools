@@ -18,10 +18,6 @@ def testHealthCheckRunsWithoutErrors(sample):
     sample.generateHealthCheck(verbose=True)
 
 
-def testHealthCheckRunsWithoutTables(sample):
-    sample.generateHealthCheck(include_tables=False)
-
-
 def testAdditionalTables(sample):
     sample.exportTables()
     os.remove("Tables.xlsx")

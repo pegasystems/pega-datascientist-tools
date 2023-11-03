@@ -1266,7 +1266,6 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         working_dir: Path = Path("."),
         delete_temp_files=True,
         output_type="html",
-        include_tables=True,
         allow_collect=True,
         *,
         modelData_only: bool = False,
@@ -1304,10 +1303,6 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             If false, these files stay in working_dir
         output_type: : str, default = 'html'
             Which type of export to create. Currently, html is best supported.
-        include_tables : bool, default = True
-            Whether to include the embedded tables directly in the file
-            If false, you can always get the tables directly by calling
-            :meth:`.exportTables`
         allow_collect : bool, default = True
             An override for the `lazy` memory_strategy. If set to True, still allows
             for collecting of data. Naturally, we need to collect the data in order
@@ -1368,8 +1363,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         files = self.save_data(working_dir)
 
         params = {
-            "kwargs": {"subset": False, "predictorCategorization": None},
-            "include_tables": include_tables,
+            "kwargs": {"subset": False, "predictorCategorization": None}
         }
 
         with open(f"{working_dir}/params.yaml", "w") as f:
