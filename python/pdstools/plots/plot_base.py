@@ -1350,7 +1350,7 @@ class Plots:
             f"{by}_count": "Model count",
             "Percentage_without_responses": "Percentage without responses",
             "ResponseCount_sum": "Response Count sum",
-            "SuccessRate_mean": "(%) Success Rate mean",
+            "SuccessRate_mean": "Success Rate mean (%)", # can't change that w/o also changing in the plots class
             "Performance_weighted": "Performance weighted mean",
             "Positives_sum": "Positives sum",
         }
@@ -1361,7 +1361,7 @@ class Plots:
             .sort(levels)
             .fill_null("Missing")
             .with_columns(pl.col("Performance weighted mean") * 100)
-            .with_columns(pl.col("(%) Success Rate mean") * 100)
+            .with_columns(pl.col("Success Rate mean (%)") * 100)
             .fill_nan(pl.lit(50))
             .fill_nan(0)
             .collect()
