@@ -13,7 +13,6 @@ import pytest
 def sample():
     return datasets.CDHSample()
 
-
 def testHealthCheckRunsWithoutErrors(sample):
     sample.generateHealthCheck(verbose=True)
 
