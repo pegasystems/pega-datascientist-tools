@@ -118,7 +118,7 @@ report_utils_cleanup_cache <- function(folder = report_utils_results_folder, kee
   }
 
   hashFiles <- list.files(path=folder,
-                               pattern = ".*[.]hash$", full.names = T)
+                          pattern = ".*[.]hash$", full.names = T)
   hashFileReferences <- gsub("(.*)[.]hash$", "\\1", hashFiles)
   hashFileReferencesExist <- sapply(hashFileReferences, file.exists)
   orphanedHashFiles <- hashFiles[!hashFileReferencesExist]
@@ -192,35 +192,35 @@ run_r_healthcheck <- function(customer, dm, quiet = T)
   r_health_check_hash <- digest::digest(readLines(report_utils_healthcheck_notebook_R), "sha256")
 
   report_utils_run_report(customer,
-             dm,
-             target_filename = paste0(customer, ' - ADM Health Check - classic.html'),
-             target_generator_hash = r_health_check_hash,
-             renderer = function(filenameModelData,
-                                 filenamePredictorData,
-                                 title,
-                                 subtitle,
-                                 destinationfile)
-             {
-               # parameters dumped so they can be copy/pasted into the notebook directly
-               if (!quiet) cat("  modelfile:", paste0('"', file.path(report_utils_intermediates_folder, filenameModelData), '"'), fill=T)
-               if (!quiet) cat("  predictordatafile:", paste0('"', file.path(report_utils_intermediates_folder, filenamePredictorData), '"'), fill=T)
+                          dm,
+                          target_filename = paste0(customer, ' - ADM Health Check - classic.html'),
+                          target_generator_hash = r_health_check_hash,
+                          renderer = function(filenameModelData,
+                                              filenamePredictorData,
+                                              title,
+                                              subtitle,
+                                              destinationfile)
+                          {
+                            # parameters dumped so they can be copy/pasted into the notebook directly
+                            if (!quiet) cat("  modelfile:", paste0('"', file.path(report_utils_intermediates_folder, filenameModelData), '"'), fill=T)
+                            if (!quiet) cat("  predictordatafile:", paste0('"', file.path(report_utils_intermediates_folder, filenamePredictorData), '"'), fill=T)
 
-               rmarkdown::render(
-                 report_utils_healthcheck_notebook_R,
-                 params = list(
-                   "modelfile" = file.path(report_utils_intermediates_folder, filenameModelData),
-                   "predictordatafile" = file.path(report_utils_intermediates_folder, filenamePredictorData),
-                   "title" = title,
-                   "subtitle" = subtitle
-                 ),
-                 output_dir = report_utils_results_folder,
-                 output_file = destinationfile,
-                 quiet = quiet,
-                 intermediates_dir = report_utils_intermediates_folder,
-                 knit_root_dir = report_utils_intermediates_folder
-               )
-             },
-             quiet = quiet
+                            rmarkdown::render(
+                              report_utils_healthcheck_notebook_R,
+                              params = list(
+                                "modelfile" = file.path(report_utils_intermediates_folder, filenameModelData),
+                                "predictordatafile" = file.path(report_utils_intermediates_folder, filenamePredictorData),
+                                "title" = title,
+                                "subtitle" = subtitle
+                              ),
+                              output_dir = report_utils_results_folder,
+                              output_file = destinationfile,
+                              quiet = quiet,
+                              intermediates_dir = report_utils_intermediates_folder,
+                              knit_root_dir = report_utils_intermediates_folder
+                            )
+                          },
+                          quiet = quiet
   )
 }
 
@@ -229,59 +229,59 @@ run_python_healthcheck <- function(customer, dm, quiet = T)
   python_health_check_hash <- digest::digest(readLines(report_utils_healthcheck_notebook_python), "sha256")
 
   report_utils_run_report(customer,
-             dm,
-             target_filename = paste0(customer, ' - ADM Health Check - new.html'),
-             target_generator_hash = python_health_check_hash,
-             renderer = function(filenameModelData,
-                                 filenamePredictorData,
-                                 title,
-                                 subtitle,
-                                 destinationfile)
-             {
-               # parameters dumped so they can be copy/pasted into the notebook directly
-               if (!quiet) cat("datafolder =", paste0('"', path.expand(report_utils_intermediates_folder), '"'), fill=T)
-               if (!quiet) cat("modelfilename =", paste0('"', filenameModelData, '"'), fill=T)
-               if (!quiet) cat("predictorfilename =", paste0('"', filenamePredictorData, '"'), fill=T)
+                          dm,
+                          target_filename = paste0(customer, ' - ADM Health Check - new.html'),
+                          target_generator_hash = python_health_check_hash,
+                          renderer = function(filenameModelData,
+                                              filenamePredictorData,
+                                              title,
+                                              subtitle,
+                                              destinationfile)
+                          {
+                            # parameters dumped so they can be copy/pasted into the notebook directly
+                            if (!quiet) cat("datafolder =", paste0('"', path.expand(report_utils_intermediates_folder), '"'), fill=T)
+                            if (!quiet) cat("modelfilename =", paste0('"', filenameModelData, '"'), fill=T)
+                            if (!quiet) cat("predictorfilename =", paste0('"', filenamePredictorData, '"'), fill=T)
 
-               # using output name results in loss of JS/CSS files so sticking to default name then copying.
+                            # using output name results in loss of JS/CSS files so sticking to default name then copying.
 
-               if (quiet) {
-                 quarto::quarto_render(
-                   report_utils_healthcheck_notebook_python,
-                   execute_params = list(
-                     "include_tables" = "True",
-                     "datafolder" = path.expand(report_utils_intermediates_folder),
-                     "modelfilename" = filenameModelData,
-                     "predictorfilename" = filenamePredictorData,
-                     "title" = title,
-                     "subtitle" = subtitle
-                   ),
-                   quiet = quiet,
-                   pandoc_args = "--quiet"
-                 )
-               } else {
-                 quarto::quarto_render(
-                   report_utils_healthcheck_notebook_python,
-                   execute_params = list(
-                     "include_tables" = "True",
-                     "datafolder" = path.expand(report_utils_intermediates_folder),
-                     "modelfilename" = filenameModelData,
-                     "predictorfilename" = filenamePredictorData,
-                     "title" = title,
-                     "subtitle" = subtitle
-                   ),
-                   quiet = quiet
-                 )
-               }
+                            if (quiet) {
+                              quarto::quarto_render(
+                                report_utils_healthcheck_notebook_python,
+                                execute_params = list(
+                                  "include_tables" = "True",
+                                  "datafolder" = path.expand(report_utils_intermediates_folder),
+                                  "modelfilename" = filenameModelData,
+                                  "predictorfilename" = filenamePredictorData,
+                                  "title" = title,
+                                  "subtitle" = subtitle
+                                ),
+                                quiet = quiet,
+                                pandoc_args = "--quiet"
+                              )
+                            } else {
+                              quarto::quarto_render(
+                                report_utils_healthcheck_notebook_python,
+                                execute_params = list(
+                                  "include_tables" = "True",
+                                  "datafolder" = path.expand(report_utils_intermediates_folder),
+                                  "modelfilename" = filenameModelData,
+                                  "predictorfilename" = filenamePredictorData,
+                                  "title" = title,
+                                  "subtitle" = subtitle
+                                ),
+                                quiet = quiet
+                              )
+                            }
 
-               # TODO check status??
-               file.copy(paste0(sub('\\..[^\\.]*$', '', report_utils_healthcheck_notebook_python), ".html"),
-                         file.path(report_utils_results_folder, destinationfile),
-                         overwrite = TRUE,
-                         copy.date = TRUE
-               )
-             },
-             quiet = quiet
+                            # TODO check status??
+                            file.copy(paste0(sub('\\..[^\\.]*$', '', report_utils_healthcheck_notebook_python), ".html"),
+                                      file.path(report_utils_results_folder, destinationfile),
+                                      overwrite = TRUE,
+                                      copy.date = TRUE
+                            )
+                          },
+                          quiet = quiet
   )
 }
 
@@ -312,50 +312,51 @@ run_r_model_reports <-function(customer, dm,
 
   for (n in seq_along(modelids)) {
     id <- modelids[n]
-    modelName <- make.names(paste(sapply(unique(dm$modeldata[ModelID == id,
-                                                             c("ConfigurationName",
-                                                               "Direction",
-                                                               "Channel",
-                                                               "Issue",
-                                                               "Group",
-                                                               "Name",
-                                                               "Treatment")]), as.character),
-                                  collapse = "_"))
+    modelName <- make.names(
+      paste(sapply(unique(dm$modeldata[ModelID == id,
+                                       intersect(c("ConfigurationName",
+                                                   "Direction",
+                                                   "Channel",
+                                                   "Issue",
+                                                   "Group",
+                                                   "Name",
+                                                   "Treatment"), names(dm$modeldata)), with=F]), as.character),
+            collapse = "_"))
 
     cat("Model:", modelName, n, "of", length(modelids), fill = T)
 
     report_utils_run_report(customer,
-               dm,
-               target_filename = paste0(customer, " ", modelName, " - classic", ".html"),
-               target_generator_hash = r_model_report_hash,
-               renderer = function(filenameModelData,
-                                   filenamePredictorData,
-                                   title,
-                                   subtitle,
-                                   destinationfile) {
-                 # parameters dumped so they can be copy/pasted into the notebook directly
-                 if (!quiet) cat("  predictordatafile:", paste0('"', file.path(report_utils_intermediates_folder, filenamePredictorData), '"'), fill=T)
-                 if (!quiet) cat("  modelid:", paste0('"', id, '"'), fill=T)
+                            dm,
+                            target_filename = paste0(customer, " ", modelName, " - classic", ".html"),
+                            target_generator_hash = r_model_report_hash,
+                            renderer = function(filenameModelData,
+                                                filenamePredictorData,
+                                                title,
+                                                subtitle,
+                                                destinationfile) {
+                              # parameters dumped so they can be copy/pasted into the notebook directly
+                              if (!quiet) cat("  predictordatafile:", paste0('"', file.path(report_utils_intermediates_folder, filenamePredictorData), '"'), fill=T)
+                              if (!quiet) cat("  modelid:", paste0('"', id, '"'), fill=T)
 
-                 rmarkdown::render(
-                   report_utils_offlinemodelreport_notebook_R,
-                   params = list(
-                     "predictordatafile" = file.path(report_utils_intermediates_folder, filenamePredictorData),
-                     "modeldescription" = modelName,
-                     "modelid" = id
-                   ),
-                   output_dir = report_utils_results_folder,
-                   output_file = destinationfile,
-                   quiet = quiet,
-                   intermediates_dir = report_utils_intermediates_folder,
-                   knit_root_dir = report_utils_intermediates_folder
-                 )
-               },
-               quiet = quiet
-              )
+                              rmarkdown::render(
+                                report_utils_offlinemodelreport_notebook_R,
+                                params = list(
+                                  "predictordatafile" = file.path(report_utils_intermediates_folder, filenamePredictorData),
+                                  "modeldescription" = modelName,
+                                  "modelid" = id
+                                ),
+                                output_dir = report_utils_results_folder,
+                                output_file = destinationfile,
+                                quiet = quiet,
+                                intermediates_dir = report_utils_intermediates_folder,
+                                knit_root_dir = report_utils_intermediates_folder
+                              )
+                            },
+                            quiet = quiet
+    )
   }
 
-  return(paste("Created", length(modelids), "R  off-line model reports for", customer))
+  return(paste("Created", length(modelids), "R off-line model reports for", customer))
 }
 
 run_python_model_reports <-function(customer, dm,
@@ -370,76 +371,77 @@ run_python_model_reports <-function(customer, dm,
 
   for (n in seq_along(modelids)) {
     id <- modelids[n]
-    modelName <- make.names(paste(sapply(unique(dm$modeldata[ModelID == id,
-                                                             c("ConfigurationName",
-                                                               "Direction",
-                                                               "Channel",
-                                                               "Issue",
-                                                               "Group",
-                                                               "Name",
-                                                               "Treatment")]), as.character),
-                                  collapse = "_"))
+    modelName <- make.names(
+      paste(sapply(unique(dm$modeldata[ModelID == id,
+                                       intersect(c("ConfigurationName",
+                                                   "Direction",
+                                                   "Channel",
+                                                   "Issue",
+                                                   "Group",
+                                                   "Name",
+                                                   "Treatment"), names(dm$modeldata)), with=F]), as.character),
+            collapse = "_"))
 
     cat("Model:", modelName, n, "of", length(modelids), fill = T)
 
     report_utils_run_report(customer,
-               dm,
-               target_filename = paste0(customer, " ", modelName, " - new", ".html"),
-               target_generator_hash = python_model_report_hash,
-               renderer = function(filenameModelData,
-                                   filenamePredictorData,
-                                   title,
-                                   subtitle,
-                                   destinationfile)
-               {
-                 # parameters dumped so they can be copy/pasted into the notebook directly
-                 if (!quiet) cat("datafolder =", paste0('"', path.expand(report_utils_intermediates_folder), '"'), fill=T)
-                 if (!quiet) cat("modelfilename =", paste0('"', filenameModelData, '"'), fill=T)
-                 if (!quiet) cat("predictorfilename =", paste0('"', filenamePredictorData, '"'), fill=T)
-                 if (!quiet) cat("modelid =", paste0('"', id, '"'), fill=T)
+                            dm,
+                            target_filename = paste0(customer, " ", modelName, " - new", ".html"),
+                            target_generator_hash = python_model_report_hash,
+                            renderer = function(filenameModelData,
+                                                filenamePredictorData,
+                                                title,
+                                                subtitle,
+                                                destinationfile)
+                            {
+                              # parameters dumped so they can be copy/pasted into the notebook directly
+                              if (!quiet) cat("datafolder =", paste0('"', path.expand(report_utils_intermediates_folder), '"'), fill=T)
+                              if (!quiet) cat("modelfilename =", paste0('"', filenameModelData, '"'), fill=T)
+                              if (!quiet) cat("predictorfilename =", paste0('"', filenamePredictorData, '"'), fill=T)
+                              if (!quiet) cat("modelid =", paste0('"', id, '"'), fill=T)
 
-                 # using output name results in loss of JS/CSS files so sticking to default name then copying.
+                              # using output name results in loss of JS/CSS files so sticking to default name then copying.
 
-                 if (quiet) {
-                   quarto::quarto_render(
-                     report_utils_offlinemodelreport_notebook_python,
-                     execute_params = list(
-                       "datafolder" = path.expand(report_utils_intermediates_folder),
-                       "modelfilename" = filenameModelData,
-                       "predictorfilename" = filenamePredictorData,
-                       "modelid" = id,
-                       "title" = title,
-                       "subtitle" = subtitle
-                     ),
-                     quiet = quiet,
-                     pandoc_args = "--quiet"
-                   )
-                 } else {
-                   quarto::quarto_render(
-                     report_utils_offlinemodelreport_notebook_python,
-                     execute_params = list(
-                       "datafolder" = path.expand(report_utils_intermediates_folder),
-                       "modelfilename" = filenameModelData,
-                       "predictorfilename" = filenamePredictorData,
-                       "modelid" = id,
-                       "title" = title,
-                       "subtitle" = subtitle
-                     ),
-                     quiet = quiet
-                   )
-                 }
+                              if (quiet) {
+                                quarto::quarto_render(
+                                  report_utils_offlinemodelreport_notebook_python,
+                                  execute_params = list(
+                                    "datafolder" = path.expand(report_utils_intermediates_folder),
+                                    "modelfilename" = filenameModelData,
+                                    "predictorfilename" = filenamePredictorData,
+                                    "modelid" = id,
+                                    "title" = title,
+                                    "subtitle" = subtitle
+                                  ),
+                                  quiet = quiet,
+                                  pandoc_args = "--quiet"
+                                )
+                              } else {
+                                quarto::quarto_render(
+                                  report_utils_offlinemodelreport_notebook_python,
+                                  execute_params = list(
+                                    "datafolder" = path.expand(report_utils_intermediates_folder),
+                                    "modelfilename" = filenameModelData,
+                                    "predictorfilename" = filenamePredictorData,
+                                    "modelid" = id,
+                                    "title" = title,
+                                    "subtitle" = subtitle
+                                  ),
+                                  quiet = quiet
+                                )
+                              }
 
-                 # TODO check status??
-                 file.copy(paste0(sub('\\..[^\\.]*$', '', report_utils_offlinemodelreport_notebook_python), ".html"),
-                           file.path(report_utils_results_folder, destinationfile),
-                           overwrite = TRUE,
-                           copy.date = TRUE
-                 )
+                              # TODO check status??
+                              file.copy(paste0(sub('\\..[^\\.]*$', '', report_utils_offlinemodelreport_notebook_python), ".html"),
+                                        file.path(report_utils_results_folder, destinationfile),
+                                        overwrite = TRUE,
+                                        copy.date = TRUE
+                              )
 
-                 if (!quiet) cat("Created", file.path(report_utils_results_folder, destinationfile), fill=T)
-               },
-               quiet = quiet
-               )
+                              if (!quiet) cat("Created", file.path(report_utils_results_folder, destinationfile), fill=T)
+                            },
+                            quiet = quiet
+    )
   }
 
   return(paste("Created", length(modelids), "python off-line model reports for", customer))
