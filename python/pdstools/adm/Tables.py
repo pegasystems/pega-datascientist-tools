@@ -2,6 +2,8 @@ from . import ADMDatamart
 import polars as pl
 from functools import cached_property
 
+# TODO: this whole class can go away
+
 standardNBADNames = [
     "Assisted_Click_Through_Rate",
     "CallCenter_Click_Through_Rate",
@@ -18,7 +20,6 @@ standardNBADNames = [
     "SMS_Click_Through_Rate",
     "Web_Click_Through_Rate",
 ]
-
 
 class Tables:
     @cached_property
@@ -133,7 +134,7 @@ class Tables:
 
     @cached_property
     def zero_positives(self):
-        return self._zero_response.filter(pl.col("Positives") == 0).collect()
+        return self._zero_response.filter(pl.col("Positives") == 0).filter(pl.col("ResponseCount") > 0).collect()
 
     @cached_property
     def _last_counts(self):

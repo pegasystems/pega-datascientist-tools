@@ -16,13 +16,23 @@ format:
     toc: true
     toc-title: Table of Contents
     theme:
-      light: flatly
-      dark: darkly
+        light: flatly
+    fontsize: smaller
 jupyter: python3
 ---
 
 ```{python}
+#| label: Imports
+#| code-fold: true
+#| code-summary: Python imports
+#| output: false
+
 import sys
+import os.path
+from pathlib import Path
+import re
+import subprocess
+import datetime
 
 from pdstools import datasets, ADMDatamart
 from pdstools.utils.cdh_utils import zRatio, lift
@@ -30,7 +40,6 @@ import polars as pl
 from IPython.display import display, Markdown
 from tabulate import tabulate
 from itables import show
-import os.path
 import plotly.express as px
 ```
 
@@ -42,40 +51,64 @@ import plotly.express as px
 datafolder = ""
 modelfilename = ""
 predictorfilename = ""
-model_id = ""
-predictordetails_activeonly = True
+modelid = ""
 
-# TODO title and subtitle not currently used but should be if given
+predictordetails_activeonly = True
 
 title = "Demo Dataset" # pass in customer name here
 subtitle = "" # typically used to pass in a date range or other qualification of the data source
 
 ```
 
-
 ```{python}
 # Predictor data for one model ID
 if datafolder == "":
   datamart = datasets.CDHSample()
-  model_id = "bd70a915-697a-5d43-ab2c-53b0557c85a0"
+  modelid = "bd70a915-697a-5d43-ab2c-53b0557c85a0"
 else:
   datamart = ADMDatamart(datafolder, model_filename=modelfilename, predictor_filename=predictorfilename, extract_keys=True)
 
 # TODO below seems silly, can probably filter in the constructor arguments
-datamart.modelData = datamart.modelData.filter(pl.col("ModelID") == model_id)
-datamart.predictorData = datamart.predictorData.filter(pl.col("ModelID") == model_id)
+datamart.modelData = datamart.modelData.filter(pl.col("ModelID") == modelid)
+datamart.predictorData = datamart.predictorData.filter(pl.col("ModelID") == modelid)
 
 # TODO ensure this is only one predictor snapshot, just in case? although it would be 
 # neat to show predictor evolution, if available
+
+def columnExists(df, col):
+    return(col in df.columns and df.schema[col] != pl.Null)    
+
+# Simple way to make sure Treatment is set and not null
+if columnExists(datamart.modelData, "Treatment"):
+    datamart.modelData = datamart.modelData.with_columns(
+        pl.col("Treatment").fill_null("-")
+    )
+else:
+    datamart.modelData = datamart.modelData.with_columns(
+        pl.lit("-").alias("Treatment")
+    )
+
 ```
 
 ```{python}
-# TODO to make generic make sure these context keys really exist, do intersect with names in the model data
-# TODO use .format instead of concat
-
-channel_name = datamart.modelData.select(pl.concat_str(["Direction", "Channel"], separator="/")).unique().collect().item()
-model_name_in_context = datamart.modelData.select(pl.concat_str(["Issue", "Group", "Name", "Treatment"], separator="/")).unique().collect().item()
-model_name = datamart.modelData.select(pl.concat_str(["Name", "Treatment"], separator="/")).unique().collect().item()
+channel_name = (
+    datamart.last(strategy='lazy')
+    .filter(pl.col("ModelID") == modelid)
+    .select(pl.format("{}/{}", "Direction", "Channel"))
+    .unique().collect().item(0, 0)
+)
+model_name_in_context = (
+    datamart.last(strategy='lazy')
+    .filter(pl.col("ModelID") == modelid)
+    .select(pl.format("{}/{}/{}/{}", "Issue", "Group", "Name", "Treatment"))
+    .unique().collect().item(0, 0)
+)
+model_name = (
+    datamart.last(strategy='lazy')
+    .filter(pl.col("ModelID") == modelid)
+    .select(pl.format("{}/{}", "Name", "Treatment"))
+    .unique().collect().item(0, 0)
+)
 
 display(
     Markdown(
@@ -88,7 +121,7 @@ display(
 
 | Channel | ID |
 |:-----|------:|
-| {channel_name} | {model_id} |
+| {channel_name} | {modelid} |
 
 """
     )
@@ -96,7 +129,7 @@ display(
 ```
 
 ```{python}
-fig = datamart.plotScoreDistribution(modelids = [model_id])
+fig = datamart.plotScoreDistribution(modelids = [modelid])
 
 # Customize some of the default styling of the plot
 
@@ -119,7 +152,7 @@ or Box. It is preferable to view them from a browser.
 
 ```{python}
 classifier = (
-    datamart.predictorData
+    datamart.last("predictorData", strategy='lazy')
     .filter(pl.col("EntryType")=="Classifier")
     .sort("BinIndex")
 )
@@ -313,11 +346,11 @@ negatives is not available.
 ```{python}
 # TODO this assumes we have the latest snapshot, see above
 if predictordetails_activeonly:
-    predictors = datamart.predictorData.filter(pl.col("EntryType") == "Active").select(
+    predictors = datamart.last("predictorData", strategy='lazy').filter(pl.col("EntryType") == "Active").select(
         pl.col("PredictorName").unique().sort()
     )
 else:
-    predictors = datamart.predictorData.filter(pl.col("EntryType") != "Classifier").select(
+    predictors = datamart.last("predictorData", strategy='lazy').filter(pl.col("EntryType") != "Classifier").select(
         pl.col("PredictorName").unique().sort()
     )
 ```
@@ -344,19 +377,20 @@ def show_single_predictor(pred):
     display(Markdown(f"## {pred}"))
 
     predictor_data = (
-        datamart.predictorData
+        datamart.last("predictorData", strategy='lazy')
         .filter(pl.col("PredictorName") == pred)
         .sort("BinIndex")
     )
 
     base_propensity = (
-        predictor_data
+        datamart.last("predictorData", strategy='lazy')
         .select(pl.last("Positives")/pl.last("ResponseCount"))
         .collect()
         .item()
     )
 
-    predictor_properties = (predictor_data
+    predictor_properties = (
+        datamart.last("predictorData", strategy='lazy')
         .select(
             pl.last("Type"),
             pl.last("Performance").round(4).alias("Univariate Performance"),
@@ -375,7 +409,7 @@ def show_single_predictor(pred):
 
     show(predictor_properties.collect().to_pandas())
 
-    fig = datamart.plotPredictorBinning(modelids=[model_id], predictors=[pred])
+    fig = datamart.plotPredictorBinning(modelids=[modelid], predictors=[pred])
 
     # Customize some of the default styling of the plot
 
@@ -470,4 +504,47 @@ for pred in predictors.collect().to_series(0):
 ```
 
 
+# Credits
+
+```{python}
+# unfortunately no way to get the quarto source file name, so that is hardcoded
+quarto_source = 'pega-datascientist-tools/python/pdstools/reports/ModelReport.qmd'
+
+def get_cmd_output(args):
+    result = subprocess.run(args, stdout=subprocess.PIPE).stdout.decode('utf-8').split('\n')
+    return(result)
+
+def get_version_only(versionstr):
+    return(re.sub('[^.\d]','',versionstr))
+
+def get_pip_package_version(pck):
+    package_info = get_cmd_output(['pip', 'show', pck])
+    package_version = package_info[1]
+    return(get_version_only(package_version))
+
+quarto_version = get_version_only(get_cmd_output(['quarto', '--version'])[0])
+pandoc_version = get_version_only(get_cmd_output(["pandoc", "--version"])[0])
+python_version = get_version_only(get_cmd_output([sys.executable, '--version'])[0])
+timestamp_str = datetime.datetime.now().strftime("%d %b %Y %H:%M:%S")
+
+display(
+    Markdown(
+        f"""
+
+| Tool | Version |
+|-----|------|
+| Notebook | {quarto_source} |
+| Quarto | {quarto_version} |
+| Pandoc | {pandoc_version} |
+| PDS Tools | {get_pip_package_version('pdstools')} |
+| Polars | {get_pip_package_version('polars')} |
+| Jupyter Notebook format | {get_pip_package_version('nbformat')} (nbformat)|
+| Python | {python_version} |
+| Created at | {timestamp_str} |
+
+"""))
+
+```
+
+For more information please see the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools).
 
