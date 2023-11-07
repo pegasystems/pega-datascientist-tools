@@ -69,7 +69,7 @@ class PegaDefaultTables:
         pyRelativeBinResponseCount = pl.Float32
         pyBinResponseCountPercentage = pl.Float32
         pySnapshotTime = pl.Datetime
-        pyBinIndex = pl.UInt8
+        pyBinIndex = pl.UInt16
         pyLift = pl.Float64
         pyZRatio = pl.Float64
         pyEntryType = pl.Categorical

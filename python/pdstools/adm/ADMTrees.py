@@ -1046,8 +1046,8 @@ class MultiTrees:
                 to_plot = tree.computeCategorizationOverTime(predictorCategorization)[0]
             outdf.append(
                 pl.DataFrame(to_plot).with_columns(
-                    SnapshotTime=pl.lit(timestamp).str.strptime(
-                        pl.Date, fmt="%Y-%m-%d %X"
+                    SnapshotTime=pl.lit(timestamp).str.to_date(
+                        format="%Y-%m-%d %X"
                     )
                 )
             )
