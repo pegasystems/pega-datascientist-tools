@@ -21,6 +21,7 @@ standardNBADNames = [
     "Web_Click_Through_Rate",
 ]
 
+
 class Tables:
     @cached_property
     def _by(self):
@@ -44,17 +45,9 @@ class Tables:
     def AvailableTables(self):
         df = pl.DataFrame(
             {
-                "model_overview": [1, 0],
-                "predictors_per_configuration": [1, 1],
-                "bad_predictors": [1, 1],
-                "zero_response": [1, 0],
-                "zero_positives": [1, 0],
-                "reach": [1, 0],
-                "minimum_performance": [1, 1],
-                "appendix": [1, 0],
-                "predictor_summary": [1, 1],
-                "model_summary_table": [1, 0],
-                "modeldata_last_snapshot": [1, 1],
+                "modeldata_last_snapshot": [1, 0],
+                "predictor_last_snapshot": [1, 1],
+                "predictorbinning": [1, 1],
             }
         )
         df = df.transpose().with_columns(pl.Series(df.columns))
@@ -137,7 +130,11 @@ class Tables:
 
     @cached_property
     def zero_positives(self):
-        return self._zero_response.filter(pl.col("Positives") == 0).filter(pl.col("ResponseCount") > 0).collect()
+        return (
+            self._zero_response.filter(pl.col("Positives") == 0)
+            .filter(pl.col("ResponseCount") > 0)
+            .collect()
+        )
 
     @cached_property
     def _last_counts(self):
@@ -258,29 +255,34 @@ class Tables:
 
     @cached_property
     def modeldata_last_snapshot(self):
-        table = "combinedData" if hasattr(self, "combinedData") else "modelData"
-        last_snapshot = self.last(table=table).filter(
+        modeldata_last_snapshot = self.last(table="modelData")
+
+        return modeldata_last_snapshot
+
+    @cached_property
+    def predictor_last_snapshot(self):
+        predictor_summary = (
+            self.last(table="predictorData")
+            .filter(pl.col("PredictorName") != "Classifier")
+            .unique(subset=["ModelID", "PredictorName"])
+            .join(
+                self.last("modelData")
+                .select(["Configuration", "Channel", "ModelID"])
+                .unique(),
+                on="ModelID",
+                how="left",
+            )
+            .group_by("Configuration", "Channel", "PredictorName")
+            .agg(
+                Performance=weighted_average_polars("Performance", "ResponseCount"),
+                ResponseCount=pl.sum("ResponseCount"),
+            )
+        )
+
+        return predictor_summary
+
+    @cached_property
+    def predictorbinning(self):
+        return self.last(table="combinedData").filter(
             pl.col("PredictorName") != "Classifier"
         )
-        if table == "combinedData":
-            last_snapshot = (
-                last_snapshot.group_by(
-                    self.modelData.columns + ["PredictorName", "PredictorCategory"]
-                )
-                .agg(
-                    BinCount=pl.max("BinIndex"),
-                    MissingBinCount=pl.col("BinResponseCount")
-                    .where(pl.col("BinSymbol") == "MISSING")
-                    .sum()
-                    .alias("MissingCount"),
-                    PredictorResponseCount=pl.sum("BinResponseCount"),
-                )
-                .with_columns(
-                    MissingBinPercent=(
-                        pl.col("MissingBinCount")
-                        / pl.col("PredictorResponseCount").fill_null(0)
-                    )
-                )
-            )
-
-        return last_snapshot

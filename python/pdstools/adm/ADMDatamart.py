@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Literal, NoReturn, Optional, Tuple, Union
 
 import polars as pl
 import yaml
+import glob
 
 from ..plots.plot_base import Plots
 from ..plots.plots_plotly import ADMVisualisations as plotly_plot
@@ -713,7 +714,7 @@ class ADMDatamart(Plots, Tables):
                     if isinstance(item, pl.Expr):
                         col_diff = set(item.meta.root_names()) - set(df.columns)
                         if len(col_diff) == 0:
-                            return df.filter(item)
+                            df = df.filter(item)
                         else:
                             raise pl.ColumnNotFoundError(col_diff)
                     else:
@@ -1259,72 +1260,20 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         )
         return self.processTables()
 
-    def generateHealthCheck(
+    def generateReport(
         self,
         name: Optional[str] = None,
+        modelid: Optional[str] = "",
         output_location: Path = Path("."),
         working_dir: Path = Path("."),
         delete_temp_files=True,
         output_type="html",
-        include_tables=True,
         allow_collect=True,
-        *,
-        modelData_only: bool = False,
+        cached_data=False,
+        predictorCategorization=None,
+        del_cache=True,
         **kwargs,
     ):
-        """Manually generates a Health Check
-
-        The recommended way to run the Health Check is through the Streamlit app,
-        which you get to by running `pdstools run` in your terminal/command line.
-        However, it's also possible to directly run the Health Check from the
-        ADMDatamart class, providing a little bit more flexibility.
-
-        Internally, this method uses :meth:`.save_data` to save the model and
-        predictor files to disk, which Quarto then picks up to generate.
-
-        By running this method directly, you have control over the exact
-        filters you want to use. Simply use the top-level :attr:`.query`
-        argument to filter the ADMDatamart class to the desired level.
-
-        This method also propagates the predictorCategorization used by the ADMDatamart
-        class into the Health Check. Simply set the `predictorCategorization` to a
-        supported function and this will be reflected in the Health Check:
-        see :meth:`pdstools.utils.cdh_utils.defaultPredictorCategorization`.
-
-        Parameters
-        ----------
-        name : Optional[str]
-            The name of the Health Check file
-        output_location : str, default = '.'
-            The output location of the generated file
-        working_dir : str, default = '.'
-            The directory in which to create the health check
-        delete_temp_files : bool, default = True
-            Whether to delete the temporary files used  while generating the file
-            If false, these files stay in working_dir
-        output_type: : str, default = 'html'
-            Which type of export to create. Currently, html is best supported.
-        include_tables : bool, default = True
-            Whether to include the embedded tables directly in the file
-            If false, you can always get the tables directly by calling
-            :meth:`.exportTables`
-        allow_collect : bool, default = True
-            An override for the `lazy` memory_strategy. If set to True, still allows
-            for collecting of data. Naturally, we need to collect the data in order
-            to cache it to disk for the health check, so if set to False
-            with a `lazy` memory_strategy, you won't be able to generate.
-        Keyword arguments
-        -----------------
-        modelData_only: bool, default = False
-            If set to True, calls model-based Health Check files. Can be used if
-            predictor binning data is missing
-
-        Returns
-        -------
-        str:
-            The full path to the generated Health Check file.
-        """
-
         def delete_temp_files(working_dir, files, del_log=True):
             temp_files = files + (
                 "params.yaml",
@@ -1341,35 +1290,52 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 except:
                     pass
 
+        if modelid == "":
+            healthcheck_file = "HealthCheck.qmd"
+            report = "HealthCheck"
+        else:
+            healthcheck_file = "ModelReport.qmd"
+            report = "ModelReport"
         working_dir, output_location = Path(working_dir), Path(output_location)
 
-        from pdstools import __reports__
-
         verbose = kwargs.get("verbose", self.verbose)
-        if modelData_only:
-            healthcheck_file = "HealthCheckModel.qmd"
-            if self.modelData is None:
-                raise AssertionError("Needs model data.")
-        else:
-            healthcheck_file = "HealthCheck.qmd"
-            if self.modelData is None or self.predictorData is None:
-                raise AssertionError("Needs both model and predictor data.")
+
         if self.import_strategy == "lazy" and not allow_collect:
-            raise NotEagerError("Generating healthcheck")
+            raise NotEagerError(f"Generating {report}")
         if not os.path.exists(working_dir):
             os.mkdir(working_dir)
 
+        from pdstools import __reports__
+
         shutil.copy(__reports__ / healthcheck_file, working_dir)
         if name is not None:
-            output_filename = f"HealthCheck_{name.replace(' ', '_')}.{output_type}"
+            output_filename = (
+                f"{report}_{name.replace(' ', '_')}_{modelid}.{output_type}"
+            )
         else:
-            output_filename = f"ADM_HealthCheck.{output_type}"
+            output_filename = f"{report}_{modelid}.{output_type}"
 
-        files = self.save_data(working_dir)
+        if not cached_data:
+            files = self.save_data(working_dir)
+        else:
+            modeldata_files = glob.glob(f"{working_dir}/cached_modelData*")
+            predictordata_files = glob.glob(f"{working_dir}/cached_predictorData*")
+            if modeldata_files:
+                modeldata_cache = modeldata_files[0]
+            else:
+                raise FileNotFoundError("No cached model data found.")
+            if predictordata_files:
+                predictordata_cache = predictordata_files[0]
+            else:
+                predictordata_cache = None
+            files = (modeldata_cache, predictordata_cache)
 
         params = {
-            "kwargs": {"subset": False, "predictorCategorization": None},
-            "include_tables": include_tables,
+            "kwargs": {
+                "subset": False,
+                "predictorCategorization": predictorCategorization,
+                "modelid": modelid,
+            },
         }
 
         with open(f"{working_dir}/params.yaml", "w") as f:
@@ -1394,6 +1360,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 bashCommand.split(), stdout=stdout, stderr=stderr, cwd=working_dir
             )
             process.communicate()
+
         if not os.path.exists(working_dir / output_filename):
             msg = "Error when generating healthcheck."
             if not verbose and not kwargs.get("output_to_file", False):
@@ -1401,6 +1368,16 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             if delete_temp_files:
                 delete_temp_files(working_dir, files, del_log=False)
             raise ValueError(msg)
+
+        # Check if output_location directory exists, if not create it.
+        if not os.path.exists(output_location):
+            try:
+                os.makedirs(output_location)
+            except OSError as e:
+                raise OSError(
+                    "Creation of the directory %s failed. Please provide a valid path."
+                    % output_location
+                ) from e
 
         filename = f"{output_location}/{output_filename}"
 
@@ -1414,6 +1391,9 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             shutil.move(f"{working_dir}/{output_filename}", filename)
 
         if delete_temp_files:
+            files = (
+                () if del_cache else files
+            )  # don't del cached data if it is not the last report.
             delete_temp_files(working_dir, files)
 
         return filename

@@ -24,7 +24,6 @@ def cachedDatamart(*args, **kwargs):
 
 def import_datamart(**opts):
     st.session_state["params"] = {}
-    st.session_state["modelhc"] = False
     st.write("### Data import")
 
     source = st.selectbox(
@@ -75,7 +74,6 @@ def fromUploadedFile(**opts):
                 st.session_state["dm"] = cachedDatamart(
                     model_df=model_file, predictor_filename=None, **opts
                 )
-                st.session_state["modelhc"] = True
             except Exception as e:
                 st.write("Oh oh.", e)
 
@@ -149,8 +147,6 @@ def fromFilePath(**opts):
                     import_strategy=import_strategy,
                     **opts,
                 )
-                st.session_state["modelhc"] = True
-
         else:
             st.session_state["dm"] = cachedDatamart(
                 path=dir,
@@ -159,6 +155,19 @@ def fromFilePath(**opts):
                 import_strategy=import_strategy,
                 **opts,
             )
+
+
+def model_selection_df(df: pl.LazyFrame):
+    df = (
+        df.select("ModelID", "Configuration", "Channel", "Name")
+        .unique()
+        .with_columns(pl.lit(False).alias("Generate Report"))
+        .sort("Name")
+        .collect()
+        .to_pandas()[["Generate Report", "ModelID", "Configuration", "Channel", "Name"]]
+    )
+
+    return df
 
 
 def filter_dataframe(

@@ -128,7 +128,8 @@ elif len(datafolder) > 0 or len(modelfilename) > 0 or len(predictorfilename) > 0
     datamart = ADMDatamart(
         path = "." if len(datafolder) == 0 else datafolder, 
         model_filename = "" if len(modelfilename)==0 else modelfilename, 
-        predictor_filename = "" if len(predictorfilename)==0 else predictorfilename)
+        predictor_filename = "" if len(predictorfilename)==0 else predictorfilename,
+        include_cols="pyFeatureImportance").fillMissing()
 else: 
     # fall back to sample data
     datamart = datasets.CDHSample()

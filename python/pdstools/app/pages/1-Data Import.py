@@ -10,11 +10,11 @@ in the expanding section below."""
 )
 
 opts = {}
-with st.expander("Configure advanced options", expanded=False):
+with st.expander("Configure advanced options", expanded=True):
     col1, col2 = st.columns([4, 7])
     with col1:
         opts["extract_keys"] = st.checkbox(
-            "Extract additional keys",
+            "Extract Treatments",
             True,
             help="""By default, ADM has a few "Context Keys" it uses to 
             distinguish between models, such as Issue, Group, Channel, or Name. 
