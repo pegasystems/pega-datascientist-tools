@@ -4,7 +4,7 @@ title-block-banner: true
 author: "Pega data scientist tools"
 date: today
 subtitle: > 
-  Details of one particular ADM model
+  Details of one ADM model instance
 execute:
   echo: false
 format:
@@ -17,7 +17,7 @@ format:
     toc-title: Table of Contents
     theme:
         light: flatly
-    fontsize: smaller
+    fontsize: small
 jupyter: python3
 ---
 
@@ -41,6 +41,28 @@ from IPython.display import display, Markdown
 from tabulate import tabulate
 from itables import show
 import plotly.express as px
+
+# Convenience wrapper functions
+
+def quarto_print(text):
+    display(Markdown(text))
+
+def quarto_callout_info(info):
+    quarto_print(
+"""
+::: {.callout-note}
+%s
+:::
+""" % info)
+
+def quarto_callout_important(info):
+    quarto_print(
+"""
+::: {.callout-important}
+%s
+:::
+""" % info)
+
 ```
 
 ```{python}
@@ -64,7 +86,7 @@ subtitle = "" # typically used to pass in a date range or other qualification of
 # Predictor data for one model ID
 if datafolder == "":
   datamart = datasets.CDHSample()
-  modelid = "bd70a915-697a-5d43-ab2c-53b0557c85a0"
+  modelid = "c3f445b2-6037-5560-9f16-71a7259d2c2c"
 else:
   datamart = ADMDatamart(datafolder, model_filename=modelfilename, predictor_filename=predictorfilename, extract_keys=True)
 
@@ -110,8 +132,7 @@ model_name = (
     .unique().collect().item(0, 0)
 )
 
-display(
-    Markdown(
+quarto_print(
         f"""
 # {title}
 
@@ -124,7 +145,6 @@ display(
 | {channel_name} | {modelid} |
 
 """
-    )
 )
 ```
 
@@ -162,12 +182,10 @@ auc_roc = round(classifier
     .collect()
     .item(), 4)
 
-display(
-    Markdown(
+quarto_print(
         f"""
 The model performance is **{auc_roc}** measured as AUC-ROC. This number is calculated from the “active” bins of the Classifier.
 """
-    )
 )
 
 ```
@@ -202,7 +220,9 @@ $\frac{0.5+positives}{1+positives+negatives}$ so new models initially return a
 propensity of 0.5. This helps to address the cold start when introducing new
 actions.
 
-TODO: the Python version has no notion of unreachable bins (yet), when it has we should grey out the binning rows that fall outside of the active range
+::: {.callout-warning}
+The Python version has no notion of unreachable bins (yet), when it has we should grey out the binning rows that fall outside of the active range
+:::
 
 ```{python}
 #| tbl-cap: Score Distribution
@@ -252,6 +272,8 @@ TODO: unfortunately the Python version has no notion of unreachable bins (yet) w
 
 ```{python}
 # TODO perhaps this should move into the pdstools plot functions "plotCumulativeGains"
+# however it is so trivial, not really sure it should be. See also the other gains charts
+# in the health check.
 fig = px.area(
     human_friendly_scoredistribution, 
     x="Cum. Total (%)", y="Cum. Positives (%)", 
@@ -261,8 +283,8 @@ fig.add_shape(
     type='line', line=dict(dash='dash'),
     x0=0, x1=100, y0=0, y1=100
 )
-fig.update_yaxes(scaleanchor="x", scaleratio=1, constrain='domain', title=dict(text="% of Positive Responders"))
-fig.update_xaxes(constrain='domain', title=dict(text="% of Population"))
+fig.update_yaxes(scaleanchor="x", scaleratio=1, constrain='domain', title="% of Positive Responders")
+fig.update_xaxes(constrain='domain', title="% of Population")
 fig.show()
 ```
 
@@ -273,8 +295,8 @@ fig = px.area(
     x="Cum. Total (%)", y="Lift (%)", 
     title='Lift',
     template="pega")
-fig.update_yaxes(scaleanchor="x", scaleratio=0.01, constrain='domain', title=dict(text="Propensity Lift"))
-fig.update_xaxes(constrain='domain', title=dict(text="% of Population"))
+fig.update_yaxes(scaleanchor="x", scaleratio=0.01, constrain='domain', title="Propensity Lift")
+fig.update_xaxes(constrain='domain', title="% of Population")
 fig.show()
 ```
 
@@ -344,15 +366,45 @@ For Adaptive Gradient Boosting models ("AGB") the number of positives and
 negatives is not available.
 
 ```{python}
-# TODO this assumes we have the latest snapshot, see above
-if predictordetails_activeonly:
-    predictors = datamart.last("predictorData", strategy='lazy').filter(pl.col("EntryType") == "Active").select(
-        pl.col("PredictorName").unique().sort()
+# TODO predictor groups missing https://github.com/pegasystems/pega-datascientist-tools/issues/127
+# once this is fixed we can include the group index and group
+# the overview by correlation group, and list the correlated preds in the
+# summaries
+
+predictors_summary_info = (
+    datamart.last("predictorData", strategy='lazy')
+    .group_by("PredictorName")
+    .agg(
+        pl.last("EntryType").alias("Status"),
+        pl.last("Type"),
+        pl.last("Performance").alias("Univariate Performance"),
+        pl.max("BinIndex").alias("Bins"),
+        (pl.col("BinResponseCount").where(pl.col("BinType") == "MISSING").sum() * 100 / pl.sum("BinResponseCount")).alias("Missing %"),
+        (pl.col("BinResponseCount").where(pl.col("BinType") == "RESIDUAL").sum() * 100 / pl.sum("BinResponseCount")).alias("Residual %"),
+        pl.last("Positives"),
+        pl.last("ResponseCount").alias("Responses")
     )
-else:
-    predictors = datamart.last("predictorData", strategy='lazy').filter(pl.col("EntryType") != "Classifier").select(
-        pl.col("PredictorName").unique().sort()
-    )
+    .rename({"PredictorName": "Predictor"})
+    .sort("Univariate Performance", descending=True) 
+)
+
+def shadeInactive(s):
+    if s.Status == "Inactive":
+        return ['color: grey'] * len(s)
+    else:
+        return [''] * len(s)
+
+display(
+    predictors_summary_info
+    .filter(pl.col("Status") != "Classifier").collect().to_pandas().style
+    .set_caption("Predictor Overview")
+    .hide(axis="index")
+    .hide(["Positives", "Responses"], axis="columns")
+    .format(precision=4, subset=["Univariate Performance"])
+    .format(precision=2, subset=["Missing %", "Residual %"])
+    .format(precision=0, subset=["Positives", "Responses"])
+    .apply(shadeInactive, axis=1)
+)
 ```
 
 # Binning of the Predictors
@@ -360,13 +412,11 @@ else:
 The predictors are listed in the same order as in the summary above.
 
 ```{python}
-display(
-    Markdown(
+quarto_print(
         f"""
 Here we show **{'only the active' if predictordetails_activeonly else 'all'}**
 predictors. This can be configured via a parameter to this report.
 """
-    )
 )
 ```
 
@@ -374,42 +424,41 @@ predictors. This can be configured via a parameter to this report.
 #| output: asis
 
 def show_single_predictor(pred):
-    display(Markdown(f"## {pred}"))
+    quarto_print(f"## {pred}")
 
-    predictor_data = (
+    predictor_binning_data = (
         datamart.last("predictorData", strategy='lazy')
         .filter(pl.col("PredictorName") == pred)
         .sort("BinIndex")
     )
 
+    predictor_properties = (
+        predictors_summary_info
+        .filter(pl.col("Predictor") == pred)
+    )
+
     base_propensity = (
-        datamart.last("predictorData", strategy='lazy')
-        .select(pl.last("Positives")/pl.last("ResponseCount"))
+        predictor_properties
+        .select(pl.col("Positives")/pl.col("Responses"))
         .collect()
         .item()
     )
 
-    predictor_properties = (
-        datamart.last("predictorData", strategy='lazy')
-        .select(
-            pl.last("Type"),
-            pl.last("Performance").round(4).alias("Univariate Performance"),
-            pl.last("EntryType").alias("Status"),
-            pl.format("{}%", ((pl.col("BinResponseCount").where(pl.col("BinType") == "MISSING").sum()) * 100 / pl.last("ResponseCount")).round(2)).alias("Missing"),
-            # Residual aka Symbolic Overflow only applies to symbolics. Interestingly
-            # there almost always is a residual bin. We don't know exactly how many
-            # items are in that bin unfortunately, and there is no exact way to derive.
-            pl.format("{}%", ((pl.col("BinResponseCount").where(pl.col("BinType") == "RESIDUAL").sum()) * 100 / pl.last("ResponseCount")).round(2)).alias("Residual"),
+    # Predictor summary
 
-            # # TODO predictor groups missing https://github.com/pegasystems/pega-datascientist-tools/issues/127
-            # display(Markdown(f"| Predictor Group | TODO |"))
-            # display(Markdown(f"| Correlated Predictors | TODO |"))
-        )
+    display(
+        predictor_properties.collect().to_pandas().style
+        .hide(axis="index")
+        .format(precision=4, subset=["Univariate Performance"])
+        .format(precision=2, subset=["Missing %", "Residual %"])
+        .format(precision=0, subset=["Positives", "Responses"])
     )
 
-    show(predictor_properties.collect().to_pandas())
+    # Predictor binning
 
-    fig = datamart.plotPredictorBinning(modelids=[modelid], predictors=[pred])
+    fig = datamart.plotPredictorBinning(
+        modelids=[modelid], 
+        predictors=[pred])
 
     # Customize some of the default styling of the plot
 
@@ -431,7 +480,7 @@ def show_single_predictor(pred):
     # TODO move below "Philip Mann" plot into a plot function (plotBinningLift)
 
     pm_plot_binning_table = (
-        predictor_data
+        predictor_binning_data
         .select(
             pl.col(["BinSymbol", "BinPositives", "BinIndex"]), 
             (lift(pl.col("BinPositives"), pl.col("BinNegatives")) - 1.0)
@@ -476,7 +525,7 @@ def show_single_predictor(pred):
     # Table with binning details
 
     human_friendly_binning_table = (
-        predictor_data
+        predictor_binning_data
         .select(
             pl.col("BinIndex").alias("Index"),
             pl.col("BinSymbol").alias("Bin"),
@@ -489,24 +538,28 @@ def show_single_predictor(pred):
         .collect()
     )
 
-    display(Markdown(
+    quarto_print(
         tabulate([[f[i] for f in human_friendly_binning_table] for i in range(human_friendly_binning_table.shape[0])],
-        headers = human_friendly_binning_table.columns))
+        headers = human_friendly_binning_table.columns)
     )
 
-    
+    quarto_print("   ")
+    quarto_print("___") # renders as horizontal line
 
-    display(Markdown("   "))
-    display(Markdown("___"))
+if predictordetails_activeonly:
+    status_filter = pl.col("Status") == "Active"
+else:
+    status_filter = pl.col("Status") != "Classifier"
 
-for pred in predictors.collect().to_series(0):
+for pred in predictors_summary_info.filter(status_filter).select('Predictor').collect().to_series(0):
     show_single_predictor(pred)
 ```
-
 
 # Credits
 
 ```{python}
+#| echo: false
+
 # unfortunately no way to get the quarto source file name, so that is hardcoded
 quarto_source = 'pega-datascientist-tools/python/pdstools/reports/ModelReport.qmd'
 
@@ -519,17 +572,17 @@ def get_version_only(versionstr):
 
 def get_pip_package_version(pck):
     package_info = get_cmd_output(['pip', 'show', pck])
-    package_version = package_info[1]
+    if len(package_info) <= 1:
+        package_version = f"WARNING: {pck} not installed"
+    else:
+        package_version = package_info[1]
     return(get_version_only(package_version))
 
 quarto_version = get_version_only(get_cmd_output(['quarto', '--version'])[0])
 pandoc_version = get_version_only(get_cmd_output(["pandoc", "--version"])[0])
-python_version = get_version_only(get_cmd_output([sys.executable, '--version'])[0])
 timestamp_str = datetime.datetime.now().strftime("%d %b %Y %H:%M:%S")
 
-display(
-    Markdown(
-        f"""
+quarto_print(f"""
 
 | Tool | Version |
 |-----|------|
@@ -537,14 +590,21 @@ display(
 | Quarto | {quarto_version} |
 | Pandoc | {pandoc_version} |
 | PDS Tools | {get_pip_package_version('pdstools')} |
-| Polars | {get_pip_package_version('polars')} |
-| Jupyter Notebook format | {get_pip_package_version('nbformat')} (nbformat)|
-| Python | {python_version} |
+| Jupyter Notebook format (nbformat) | {get_pip_package_version('nbformat')} |
 | Created at | {timestamp_str} |
 
-"""))
+""")
 
 ```
 
-For more information please see the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools).
+Detailed version info for **pdstools**:
 
+```{python}
+#| echo: false
+
+from pdstools import show_versions
+
+show_versions()
+```
+
+For more information please see the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools).

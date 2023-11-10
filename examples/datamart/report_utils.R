@@ -52,6 +52,8 @@ report_utils_cached_dm_filenames <- function(customer)
 }
 
 # Hash file associated with given file
+# TODO consider making this a hidden file again, make sure the reverse function
+# exists so cleanup works properly
 report_utils_hashfilename <- function(f) {
   paste0(f, ".hash")
   # file.path(dirname(targetfiles), report_utils_hashfilename(targetfiles))
@@ -100,7 +102,19 @@ report_utils_is_target_current <- function(targetfiles, expectedhash, quiet) {
   return(TRUE)
 }
 
-# Drop old HTML files and orphaned hash files
+# write DM to cached arrow files
+report_utils_write_cached_files <- function(dm, model_filename, preds_filename)
+{
+  # write cached data
+  write_ipc_file(dm$modeldata, model_filename, compression = "uncompressed")
+  if (is.null(dm$predictordata)) {
+    file.create(preds_filename) # create empty, dummy file
+  } else {
+    write_ipc_file(dm$predictordata, preds_filename, compression = "uncompressed")
+  }
+}
+
+# Drop old HTML files and orphaned hash files (that have no reference)
 report_utils_cleanup_cache <- function(folder = report_utils_results_folder, keep_days = 7)
 {
   is_obsolete <- function(f, before = now() - days(keep_days)) {
@@ -119,11 +133,11 @@ report_utils_cleanup_cache <- function(folder = report_utils_results_folder, kee
 
   hashFiles <- list.files(path=folder,
                           pattern = ".*[.]hash$", full.names = T)
-  hashFileReferences <- gsub("(.*)[.]hash$", "\\1", hashFiles)
+  hashFileReferences <- gsub("(.*)[.]hash$", "\\1", hashFiles) # reverse of report_utils_hashfilename
   hashFileReferencesExist <- sapply(hashFileReferences, file.exists)
   orphanedHashFiles <- hashFiles[!hashFileReferencesExist]
 
-  cat("Removing", length(orphanedHashFiles), "obsolete hash files from", folder, fill = T)
+  cat("Removing", length(orphanedHashFiles), "orphaned hash files from", folder, fill = T)
 
   if (length(orphanedHashFiles) > 0) {
     file.remove(orphanedHashFiles)
@@ -140,6 +154,12 @@ report_utils_run_report <- function(customer, dm, target_filename, target_genera
 {
   destinationFullPath <- file.path(report_utils_results_folder, target_filename)
   cachedDMFilesFullName <- file.path(report_utils_intermediates_folder, report_utils_cached_dm_filenames(customer))
+
+  # make sure cached source exist, otherwise re-create from dm data
+  if (!all(sapply(cachedDMFilesFullName, file.exists))) {
+    cat("Writing to arrow cache", dirname(cachedDMFilesFullName[1]), fill=T)
+    report_utils_write_cached_files(dm, cachedDMFilesFullName[1], cachedDMFilesFullName[2])
+  }
 
   # check if generator script has changed
   if (report_utils_is_target_current(destinationFullPath, target_generator_hash, quiet = quiet)) {
@@ -179,9 +199,11 @@ report_utils_run_report <- function(customer, dm, target_filename, target_genera
     # writer renderer hash
     report_utils_write_hashfiles(destinationFullPath, target_generator_hash)
   } else {
-    ok <- Sys.setFileTime(normalizePath(destinationFullPath), lubridate::now())
+    # Touch target
+    Sys.setFileTime(normalizePath(destinationFullPath), lubridate::now())
+    Sys.setFileTime(report_utils_hashfilename(normalizePath(destinationFullPath)), lubridate::now())
 
-    cat("Skipped re-generation of", target_filename, paste0("(", ok, ")"), fill = T)
+    cat("Skipped re-generation of", target_filename, fill = T)
   }
 
   return(target_filename)
@@ -464,15 +486,9 @@ read_adm_datamartdata <- function(customer, block, quiet = T)
 
     dm <- eval(block)
 
-    # write cached data
-    write_ipc_file(dm$modeldata, cachedDMFilesFullName[1], compression = "uncompressed")
-    if (is.null(dm$predictordata)) {
-      file.create(cachedDMFilesFullName[2]) # create empty, dummy file
-    } else {
-      write_ipc_file(dm$predictordata, cachedDMFilesFullName[2], compression = "uncompressed")
-    }
-
+    report_utils_write_cached_files(dm, cachedDMFilesFullName[1], cachedDMFilesFullName[2])
     report_utils_write_hashfiles(cachedDMFilesFullName, codeHash)
+
   } else {
     has_predictordata <- file.size(cachedDMFilesFullName[2]) > 0
     if (has_predictordata) {
