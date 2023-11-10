@@ -661,6 +661,8 @@ def LogOdds(
     )
 
 
+# TODO: reconsider this. Feature importance now stored in datamart
+# perhaps we should not bother to calculate it ourselves.
 def featureImportance(over=["PredictorName", "ModelID"]):
     varImp = weighted_average_polars(
         LogOdds(
@@ -672,7 +674,82 @@ def featureImportance(over=["PredictorName", "ModelID"]):
         varImp = varImp.over(over)
     return varImp
 
+def gains_table(df, value: str, index = None, by: str = None):
+    """Calculates cumulative gains from any data frame.
 
+    The cumulative gains are the cumulative values expressed
+    as a percentage vs the size of the population, also expressed
+    as a percentage.
+
+    Parameters
+    ----------
+    df: pl.DataFrame
+        The (Polars) dataframe with the raw values
+    value: str
+        The name of the field with the values (plotted on y-axis)
+    index: str = None
+        Optional name of the field for the x-axis. If not passed in
+        all records are used and weighted equally.
+    by: str = None
+        Grouping field(s), can also be None
+
+    Returns
+    -------
+    pl.DataFrame
+        A (Polars) dataframe with cum_x and cum_y columns and optionally
+        the grouping column(s). Values for cum_x and cum_y are relative
+        so expressed as values 0-1.
+
+    Examples
+    --------
+    >>> df.group_by(['ModelID', 'PredictorName']).agg([lift()]).explode()
+    """
+
+    if isinstance(by, list):
+        by = by[0]
+    
+    # TODO sort always, by value or value/index. Centralize.
+    # TODO maybe the group by and over can also be made common?
+
+    sortExpr = pl.col(value) if index is None else pl.col(value) / pl.col(index)
+    if by is not None:
+        sortExpr = [by] + [sortExpr]
+
+    indexExpr = (pl.int_range(1, pl.count() + 1)/ pl.count()) if index is None else (pl.cumsum(index) / pl.sum(index))
+    
+    if by is None:
+        gains_df = pl.concat(
+            [
+                pl.DataFrame(data = {"cum_x" : [0.0], "cum_y" : [0.0]}).lazy(),
+                df.lazy()
+                .sort(sortExpr, descending=True)
+                .select(
+                    indexExpr.cast(pl.Float64).alias("cum_x"),
+                    (pl.cumsum(value) / pl.sum(value)).cast(pl.Float64).alias("cum_y")
+                )
+            ]
+        )
+    else:
+        gains_df = (
+            df.lazy()
+            .sort(sortExpr, descending=True)
+            .select(
+                [by] +
+                [indexExpr.over(by).cast(pl.Float64).alias("cum_x"),
+                (pl.cumsum(value) / pl.sum(value)).over(by).cast(pl.Float64).alias("cum_y")]
+            )
+        )
+        # Add entry for the (0,0) point
+        gains_df = pl.concat(
+            [
+                gains_df.group_by(by).agg(cum_x = pl.lit(0.0), cum_y = pl.lit(0.0)),
+                gains_df
+            ]
+        ).sort([by]+["cum_x"])
+
+    return gains_df.collect()
+
+# TODO: perhaps the color / plot utils should move into a separate file
 def legend_color_order(fig):
     """Orders legend colors alphabetically in order to provide pega color
     consistency among different categories"""
