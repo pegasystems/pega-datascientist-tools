@@ -43,6 +43,7 @@ Functions
    pdstools.utils.cdh_utils.lift
    pdstools.utils.cdh_utils.LogOdds
    pdstools.utils.cdh_utils.featureImportance
+   pdstools.utils.cdh_utils.gains_table
    pdstools.utils.cdh_utils.legend_color_order
    pdstools.utils.cdh_utils.sync_reports
 
@@ -298,6 +299,34 @@ Functions
 
 
 .. py:function:: featureImportance(over=['PredictorName', 'ModelID'])
+
+
+.. py:function:: gains_table(df, value: str, index=None, by: str = None)
+
+   Calculates cumulative gains from any data frame.
+
+   The cumulative gains are the cumulative values expressed
+   as a percentage vs the size of the population, also expressed
+   as a percentage.
+
+   :param df: The (Polars) dataframe with the raw values
+   :type df: pl.DataFrame
+   :param value: The name of the field with the values (plotted on y-axis)
+   :type value: str
+   :param index: Optional name of the field for the x-axis. If not passed in
+                 all records are used and weighted equally.
+   :type index: str = None
+   :param by: Grouping field(s), can also be None
+   :type by: str = None
+
+   :returns: A (Polars) dataframe with cum_x and cum_y columns and optionally
+             the grouping column(s). Values for cum_x and cum_y are relative
+             so expressed as values 0-1.
+   :rtype: pl.DataFrame
+
+   .. rubric:: Examples
+
+   >>> df.group_by(['ModelID', 'PredictorName']).agg([lift()]).explode()
 
 
 .. py:function:: legend_color_order(fig)
