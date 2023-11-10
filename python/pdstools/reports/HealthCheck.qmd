@@ -15,7 +15,7 @@ format:
     toc-title: Table of Contents
     theme:
         light: flatly
-    fontsize: smaller
+    fontsize: small
 jupyter: python3
 ---
 ```{python}
@@ -1369,6 +1369,8 @@ cdh_utils.legend_color_order(fig).show()
 
 :::
 
+
+
 ## Models with largest number of responses (positive or negative)
 
 Zooming in into the models that drive most of the responses.
@@ -1657,6 +1659,8 @@ TODO: Implement like in the R version
 # Credits
 
 ```{python}
+#| echo: false
+
 # unfortunately no way to get the quarto source file name, so that is hardcoded
 quarto_source = 'pega-datascientist-tools/python/pdstools/reports/HealthCheck.qmd'
 
@@ -1669,12 +1673,14 @@ def get_version_only(versionstr):
 
 def get_pip_package_version(pck):
     package_info = get_cmd_output(['pip', 'show', pck])
-    package_version = package_info[1]
+    if len(package_info) <= 1:
+        package_version = f"WARNING: {pck} not installed"
+    else:
+        package_version = package_info[1]
     return(get_version_only(package_version))
 
 quarto_version = get_version_only(get_cmd_output(['quarto', '--version'])[0])
 pandoc_version = get_version_only(get_cmd_output(["pandoc", "--version"])[0])
-python_version = get_version_only(get_cmd_output([sys.executable, '--version'])[0])
 timestamp_str = datetime.datetime.now().strftime("%d %b %Y %H:%M:%S")
 
 quarto_print(f"""
@@ -1685,13 +1691,21 @@ quarto_print(f"""
 | Quarto | {quarto_version} |
 | Pandoc | {pandoc_version} |
 | PDS Tools | {get_pip_package_version('pdstools')} |
-| Polars | {get_pip_package_version('polars')} |
-| Jupyter Notebook format | {get_pip_package_version('nbformat')} (nbformat)|
-| Python | {python_version} |
+| Jupyter Notebook format (nbformat) | {get_pip_package_version('nbformat')} |
 | Created at | {timestamp_str} |
 
 """)
 
+```
+
+Detailed version info for **pdstools**:
+
+```{python}
+#| echo: false
+
+from pdstools import show_versions
+
+show_versions()
 ```
 
 For more information please see the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools).
