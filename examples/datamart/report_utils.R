@@ -8,6 +8,8 @@ library(lubridate)
 
 # Sets a few global variables for the run_report functions. Call this first. Acts
 # like a constructor in a proper language.
+# TODO: keep global setting under just one list object. Perhaps even the
+# various mapping functions (file <--> hash, report type --> filename).
 init_report_utils <- function(pdstool_root_folder, results_folder, intermediates_folder = results_folder)
 {
   report_utils_results_folder <<- results_folder
