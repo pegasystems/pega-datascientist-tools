@@ -765,7 +765,7 @@ propensity, smaller means lower propensity.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.utils.cdh_utils.gains_table">
-<span class="sig-name descname"><span class="pre">gains_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.cdh_utils.gains_table" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">gains_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.cdh_utils.gains_table" title="Link to this definition">#</a></dt>
 <dd><p>Calculates cumulative gains from any data frame.</p>
 <p>The cumulative gains are the cumulative values expressed
 as a percentage vs the size of the population, also expressed
@@ -775,9 +775,9 @@ as a percentage.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>df</strong> (<em>pl.DataFrame</em>) – The (Polars) dataframe with the raw values</p></li>
 <li><p><strong>value</strong> (<em>str</em>) – The name of the field with the values (plotted on y-axis)</p></li>
-<li><p><strong>index</strong> (<em>str = None</em>) – Optional name of the field for the x-axis. If not passed in
+<li><p><strong>None</strong> (<em>by =</em>) – Optional name of the field for the x-axis. If not passed in
 all records are used and weighted equally.</p></li>
-<li><p><strong>by</strong> (<em>str = None</em>) – Grouping field(s), can also be None</p></li>
+<li><p><strong>None</strong> – Grouping field(s), can also be None</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -790,7 +790,7 @@ so expressed as values 0-1.</p>
 </dd>
 </dl>
 <p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">df</span><span class="o">.</span><span class="n">group_by</span><span class="p">([</span><span class="s1">&#39;ModelID&#39;</span><span class="p">,</span> <span class="s1">&#39;PredictorName&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">agg</span><span class="p">([</span><span class="n">lift</span><span class="p">()])</span><span class="o">.</span><span class="n">explode</span><span class="p">()</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">gains_data</span> <span class="o">=</span> <span class="n">gains_table</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s1">&#39;ResponseCount&#39;</span><span class="p">,</span> <span class="n">by</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Channel&#39;</span><span class="p">,</span><span class="s1">&#39;Direction])</span>
 </pre></div>
 </div>
 </dd></dl>
