@@ -19,7 +19,7 @@ def testHealthCheckRunsWithoutErrors(sample):
 
 
 def testAdditionalTables(sample):
-    sample.exportTables(predictorbinning=True)
+    sample.exportTables(predictorBinning=True)
     os.remove("Tables.xlsx")
 
 
@@ -40,7 +40,7 @@ def testHealthCheckModelRunsWithoutErrors(sample_without_predictorbinning):
 
 def testAdditionalTablesModel(sample_without_predictorbinning):
     sample_without_predictorbinning.exportTables(
-        file="ModelTables.xlsx", predictorbinning=True
+        file="ModelTables.xlsx", predictorBinning=True
     )
     os.remove("ModelTables.xlsx")
 
