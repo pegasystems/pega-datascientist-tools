@@ -274,6 +274,7 @@ TODO: unfortunately the Python version has no notion of unreachable bins (yet) w
 # TODO perhaps this should move into the pdstools plot functions "plotCumulativeGains"
 # however it is so trivial, not really sure it should be. See also the other gains charts
 # in the health check.
+# TODO in HC there now is a beter way to plot gains, use that when it has progressed into PDS tools
 fig = px.area(
     human_friendly_scoredistribution, 
     x="Cum. Total (%)", y="Cum. Positives (%)", 

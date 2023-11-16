@@ -93,10 +93,16 @@ predictorfilename = ""
 
 tables_max_rows = 200 # max number of rows for embedded tables
 barchart_max_bars = 20 # max number of bars showing in bar charts
-responsecount_analysis_threshold = 100 # TODO use everywhere instead of hardcoded value
+responsecount_analysis_threshold = 100 # min number of responses for response count analysis
 
-globalQuery = None # TODO not used?
+# globalQuery = None # TODO not used?
+```
 
+```{python}
+#| echo: false
+
+responsecount_analysis_query = pl.col("ResponseCount") > responsecount_analysis_threshold
+predictor_analysis_query = pl.col('ResponseCount') > 200
 ```
 
 ```{python}
@@ -528,7 +534,8 @@ fig = datamart.plotTreeMap(
     levels=subsetToExistingColumns(["Configuration",'Channel', 'Direction', 'Issue', 'Group', "Name", "Treatment"]), 
     colorscale=pega_template.success,
     title='All Action Success Rates',
-    query=pl.col("ResponseCount")>responsecount_analysis_threshold) 
+    query=responsecount_analysis_query
+) 
 
 fig = (
     fig.update_coloraxes(showscale=False)
@@ -550,14 +557,13 @@ Showing how the overall channel success rates evolved over the time that the dat
 facet = "Configuration"
 
 # TODO check the color scheme used - pds tools to supply color schemes for channel dimension, for predictor categorization, etc etc
-response_threshold_query = pl.col("ResponseCount") > responsecount_analysis_threshold # this whole query may be something global
 
 fig = datamart.plotOverTime(
     'SuccessRate', 
     by="Channel/Direction", 
     # TODO this function does not have a proper title argument
     facets=facet, 
-    facet_col_wrap=2, query=response_threshold_query)
+    facet_col_wrap=2, query=responsecount_analysis_query)
 
 # TODO this counting of # facets and determining the height can be shared
 unique_count = (
@@ -575,8 +581,8 @@ fig = (
     .update_layout(autosize=True, height=height)
     .for_each_annotation(lambda a: a.update(text=a.text.replace(f"{facet}=", ""))))
 
-# TODO title stuff doesnt need to be here if std plot supports it
-fig.update_layout(title=f"Trend of Success Rates per Channel<br><sup>Query: {response_threshold_query}</sup>")
+# TODO title stuff doesnt need to be here if std plot supports it properly
+fig.update_layout(title=f"Trend of Success Rates per Channel<br><sup>Query: {responsecount_analysis_query}</sup>")
 
 fig.show()
 ```
@@ -879,7 +885,6 @@ univariate predictor performance.
 # TODO: Uses feature importance if available in the datamart
 # drop our own calculations of feature importance. Would be nice to
 # be able to toggle in the graph (with a tab)
-# TODO see if the > 200 check actually works 
 # TODO see why the categorization does not work
 # TODO consistent coloring for predictor categories
 
@@ -896,7 +901,7 @@ if datamart.predictorData is not None:
         separate=True, 
         active_only=False,
         to_plot="Performance",
-        query=pl.col('ResponseCount') > 200
+        query=predictor_analysis_query
     )
     if not isinstance(figs, list):
         figs = [figs]
@@ -904,6 +909,7 @@ if datamart.predictorData is not None:
         fig.update_traces(width=0.3)
         fig.update_layout(font=dict(size=10), height=700, yaxis_title="")
         fig.layout.xaxis.tickformat = ".d"
+        # TODO fix title see https://github.com/pegasystems/pega-datascientist-tools/issues/167
 
         fig.show()
 else:
@@ -1260,12 +1266,13 @@ df = (
     .group_by(by)
     .agg(
         [
+            pl.n_unique("ModelID").alias("Unique Models"),
             (pl.col("Positives") >= 200).sum().alias("Mature Models"),
-            (pl.col("ResponseCount")==0).sum().alias("Empty Models"),
-            (pl.col("Positives")==0).sum().alias("Models w/o Positives"),
-            ((pl.col("Positives") > 0) & (pl.col("Positives") < 200 )).sum().alias("Immature Models"),
             (pl.col("Performance")==0.5).sum().alias("Models w/o Performance"),
-            (pl.col("ResponseCount")!=0).sum().alias("Number of non-empty Models")
+            ((pl.col("Positives") > 0) & (pl.col("Positives") < 200 )).sum().alias("Immature Models"),
+            (pl.col("Positives")==0).sum().alias("Models w/o Positives"),
+            (pl.col("ResponseCount")==0).sum().alias("Empty Models"),
+            # (pl.col("ResponseCount")!=0).sum().alias("Number of non-empty Models")
         ]
     )
     .sort(["Channel","Direction","SnapshotTime"], descending=True)
@@ -1282,12 +1289,13 @@ fig = px.line(df_pd,
     title="Immature and Empty Models over Time",
     template="pega",
     facet_col_wrap=facet_col_wrap,
-    color_discrete_sequence=px.colors.qualitative.D3
-    )
+    color_discrete_sequence= px.colors.sequential.Turbo
+)
 fig.for_each_annotation(
     lambda a: a.update(text=a.text.replace(f"{facet}=", ""))
 )
 fig.for_each_xaxis(lambda xaxis: xaxis.update(title=""))
+fig.update_layout(legend_title_text='Model Maturity')
 
 unique_count = len(fig.layout["annotations"])
 height = 200 + (math.ceil( unique_count / facet_col_wrap) * 250)
@@ -1331,45 +1339,169 @@ If this line strongly deviates from the diagonal it means that relatively few mo
 
 In the left-hand plot we look at all responses, which really means that we are looking at “impressions” mostly. The right-hand plot looks at just the positives. Typically, the positives are driven more strongly by the models so often you see more skewness in that one.
 
-However very skewed results may be caused by prioritization elements like levers and weights and can be a reason to check in with business and verify that this is expected.
+Very skewed results may be caused by prioritization elements like levers and weights and can be a reason to check in with business and verify that this is expected.
 
 ::: {.callout-tip title="Guidance"}
-- Area under this curve should be > 0.5 and perhaps more towards 1 - most of the responses driven by relatively few actions
+- Area under this curve should be > 0.5 but not too close to 1, which means that most of the responses are driven by relatively few actions, but not too extreme
 :::
-
 
 ::: {layout-ncol=2}
+
 ```{python}
-#| output: asis
+# df = datamart.last()
+# value = 'ResponseCount'
+# index = None
+# by=['Channel']
 
-fig = datamart.plotResponseGain()
+# sortExpr = pl.col(value) if index is None else pl.col(value) / pl.col(index)
+# if by is not None:
+#     by_as_list = by if isinstance(by,list) else [by]
+#     sortExpr = by_as_list + [sortExpr]
 
-fig.update_layout(title="Cumulative Responses", height=300, width=300)
-fig.add_shape(type="line", x0=0, y0=0, x1=1, y1=1, line=dict(color="grey", dash="dash"))
-fig.update_yaxes(scaleanchor="x", scaleratio=1)
+# indexExpr = (pl.int_range(1, pl.count() + 1)/ pl.count()) if index is None else (pl.cumsum(index) / pl.sum(index))
 
-cdh_utils.legend_color_order(fig).show()
+# gains_df = (
+#     df.lazy()
+#     .filter(pl.col(value) != 0)
+#     .sort(sortExpr, descending=True)
+#     .select(
+#         by_as_list +
+#         [indexExpr.over(by).cast(pl.Float64).alias("cum_x"),
+#         (pl.cumsum(value) / pl.sum(value)).over(by).cast(pl.Float64).alias("cum_y")]
+#     )
+# )
+# # Add entry for the (0,0) point
+# gains_df = pl.concat(
+#     [
+#         gains_df.group_by(by).agg(cum_x = pl.lit(0.0), cum_y = pl.lit(0.0)),
+#         gains_df
+#     ]
+# ).sort(by_as_list+["cum_x"])
+
+# gains_df.filter(pl.col("Channel")=="Web").collect()
+
+
 ```
 
 ```{python}
-#| output: asis
+# fig = px.line(
+#     gains_df.collect(), 
+#     x="cum_x", y="cum_y", 
+#     color=gains_df.select(pl.concat_str(by_as_list,separator="/").alias("By")).collect()['By']
+# )
 
-# TODO: The gains for cum positives is not doing what it is supposed
-# to do. Make gains plot more generic gains - accept a DF with any x/y values
-# run a cumulative and show percentages
-# TODO: Instead of just channel should be channel + direction as usual
+# fig.show()
+```
 
-fig = datamart.plotResponseGain(query=pl.col("Positives") > 0)
+```{python}
+# TODO move gains_table to PDS tools utils
+# TODO a corresponding GINI calculation would be nice
 
-fig.update_layout(title="Cumulative Positives", height=300, width=300)
-fig.add_shape(type="line", x0=0, y0=0, x1=1, y1=1, line=dict(color="grey", dash="dash"))
-fig.update_yaxes(scaleanchor="x", scaleratio=1)
+def gains_table(df, value: str, index = None, by = None):
+    sortExpr = pl.col(value) if index is None else pl.col(value) / pl.col(index)
+    indexExpr = (pl.int_range(1, pl.count() + 1)/ pl.count()) if index is None else (pl.cumsum(index) / pl.sum(index))
+    
+    if by is None:
+        gains_df = pl.concat(
+            [
+                pl.DataFrame(data = {"cum_x" : [0.0], "cum_y" : [0.0]}).lazy(),
+                df.lazy()
+                .sort(sortExpr, descending=True)
+                .select(
+                    indexExpr.cast(pl.Float64).alias("cum_x"),
+                    (pl.cumsum(value) / pl.sum(value)).cast(pl.Float64).alias("cum_y")
+                )
+            ]
+        )
+    else:
+        by_as_list = by if isinstance(by,list) else [by]
+        sortExpr = by_as_list + [sortExpr]
+        gains_df = (
+            df.lazy()
+            .sort(sortExpr, descending=True)
+            .select(
+                by_as_list +
+                [indexExpr.over(by).cast(pl.Float64).alias("cum_x"),
+                (pl.cumsum(value) / pl.sum(value)).over(by).cast(pl.Float64).alias("cum_y")]
+            )
+        )
+        # Add entry for the (0,0) point
+        gains_df = pl.concat(
+            [
+                gains_df.group_by(by).agg(cum_x = pl.lit(0.0), cum_y = pl.lit(0.0)),
+                gains_df
+            ]
+        ).sort(by_as_list+["cum_x"])
 
-cdh_utils.legend_color_order(fig).show()
+    return gains_df.collect()
+
+# TODO move plot code to PDS tools plots
+
+def plot_gains(df, value: str, index = None, by = None):
+    gains_data = gains_table(df, value, index, by)
+
+    if by is None:
+        fig = px.area(
+            gains_data, 
+            x="cum_x", y="cum_y", 
+            title='Gains',
+            template="pega")
+    else:
+        by_as_list = by if isinstance(by,list) else [by]
+        fig = px.line(
+            gains_data, 
+            x="cum_x", y="cum_y", 
+            color=gains_data.select(pl.concat_str(by_as_list,separator="/").alias("By"))['By'],
+            title='Gains',
+            template="pega")
+        fig = fig.update_layout(legend_title="/".join(by_as_list))
+
+    fig.add_shape(
+        type='line', line=dict(color='grey', dash='dash'),
+        x0=0, x1=1, y0=0, y1=1
+    )
+    fig = (
+        fig.update_yaxes(scaleanchor="x", scaleratio=1)
+        .update_yaxes(constrain='domain', title="% of Responders")
+        .update_xaxes(tickformat=",.0%")
+        .update_yaxes(tickformat=",.0%")
+        .update_xaxes(constrain='domain', title="% of Population")
+    )
+
+    return fig
+
+fig = plot_gains(datamart.last(), 'ResponseCount', by=['Channel','Direction']) 
+fig = (
+    fig.update_layout(title="Cumulative Responses")
+    .update_yaxes(title="% of Responses")
+    .update_xaxes(title="Percentage of Models")
+)
+
+# .update_layout(legend=dict(
+#     orientation="h",
+#     yanchor="bottom",
+#     y=1.02,
+#     xanchor="right",
+#     x=1
+# ))
+# cdh_utils.legend_color_order(fig).show() # why?
+
+fig.show()
+
+```
+
+```{python}
+fig = plot_gains(datamart.last(), "Positives", by=['Channel','Direction']) 
+fig = (
+    fig.update_layout(title="Cumulative Positives")
+    .update_yaxes(title="% of Positives")
+    .update_xaxes(title="Percentage of Models")
+)
+
+fig.show()
 ```
 
 :::
-
 
 
 ## Models with largest number of responses (positive or negative)

@@ -57,12 +57,15 @@ class Plots:
                 "plotPredictorPerformance": [1, 1, 0],
                 "plotPredictorPerformanceHeatmap": [1, 1, 0],
                 "plotImpactInfluence": [1, 1, 0],
-                "plotResponseGain": [1, 0, 0],
-                "plotModelsByPositives": [1, 0, 0],
+                "plotResponseGain": [1, 0, 0], # TODO: drop this see impl below
+                "plotModelsByPositives": [1, 0, 0], # TODO: drop this see impl below
                 "plotTreeMap": [1, 0, 0],
             }
         )
         df = df.transpose().with_columns(pl.Series(df.columns))
+        # TODO: multiple snapshot of what? If making this generic also support
+        # when there are multiple snapshots of predictor data. But not sure this
+        # level of genericity is needed.
         df.columns = ["modelData", "predictorData", "Multiple snapshots", "Type"]
         return df.select(["Type", "modelData", "predictorData", "Multiple snapshots"])
 
@@ -1168,6 +1171,8 @@ class Plots:
             **kwargs,
         )
 
+    # TODO: drop this in favor of a more generic plotGains function
+    # see the HealthCheck quarto for an implementation.
     def plotResponseGain(
         self,
         by: str = "Channel",
@@ -1231,6 +1236,8 @@ class Plots:
 
         return self.facettedPlot(facets, plotly().ResponseGain, df=df, by=by, **kwargs)
 
+    # TODO: drop this in favor of a more generic plotGains function
+    # see the HealthCheck quarto for an implementation.
     def plotModelsByPositives(
         self,
         by: str = "Channel",
