@@ -1,14 +1,17 @@
+import os
+import zipfile
+import io
 import streamlit as st
-from typing import Optional
+from typing import Optional, List, Tuple
 import polars as pl
 from pathlib import Path
+from datetime import datetime
 from . import cdh_utils
 from ..adm.ADMDatamart import ADMDatamart
 from ..utils import datasets
 from ..utils.types import any_frame
 import plotly.express as px
 from .. import pega_io
-import regex
 
 
 @st.cache_resource
@@ -206,11 +209,9 @@ def filter_dataframe(
                 ]
             if len(st.session_state[f"categories_{column}"]) < 200:
                 options = st.session_state[f"categories_{column}"]
-                previously_selected = st.session_state[f"selected_{column}"]
                 selected = right.multiselect(
                     f"Values for {column}",
                     options,
-                    default=previously_selected,
                     key=f"selected_{column}",
                 )
                 if selected != st.session_state[f"categories_{column}"]:
@@ -316,6 +317,43 @@ def configure_predictor_categorization():
 @st.cache
 def convert_df(df):
     return df.write_csv().encode("utf-8")
+
+
+def process_files(file_paths: List[str], file_name: str) -> Tuple[bytes, str]:
+    """
+    Processes a list of file paths. If there's only one file, returns the file's content as bytes
+    and the provided file name. If there are multiple files, creates a zip file containing all the files
+    and returns the zip file's data as bytes and the generated zip file name.
+
+    Parameters
+    ----------
+    file_paths : List[str]
+        A list of file paths to process.
+    file_name : str
+        The file name to use when returning the file or zip file's name.
+
+    Returns
+    -------
+    (bytes, str)
+        The content of the single file as bytes and the file name if there's only one file,
+        or the zip file's data as bytes and the zip file's name if there are multiple files.
+    """
+    if len(file_paths) == 1:
+        with open(file_paths[0], "rb") as file:
+            return file.read(), file_name
+    elif len(file_paths) > 1:
+        in_memory_zip = io.BytesIO()
+        with zipfile.ZipFile(in_memory_zip, "w") as zipf:
+            for file_path in file_paths:
+                zipf.write(
+                    file_path,
+                    os.path.basename(file_path),
+                    compress_type=zipfile.ZIP_DEFLATED,
+                )
+        time = datetime.now().strftime("%Y%m%dT%H%M%S.%f")[:-3]
+        file_name = f"ModelReports_{time}.zip"
+        in_memory_zip.seek(0)
+        return in_memory_zip.read(), file_name
 
 
 # def newPredictorCategorizationFunc():

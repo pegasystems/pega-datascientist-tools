@@ -13,12 +13,13 @@ import pytest
 def sample():
     return datasets.CDHSample()
 
+
 def testHealthCheckRunsWithoutErrors(sample):
     sample.generateHealthCheck(verbose=True)
 
 
 def testAdditionalTables(sample):
-    sample.exportTables()
+    sample.exportTables(predictorbinning=True)
     os.remove("Tables.xlsx")
 
 
@@ -38,7 +39,9 @@ def testHealthCheckModelRunsWithoutErrors(sample_without_predictorbinning):
 
 
 def testAdditionalTablesModel(sample_without_predictorbinning):
-    sample_without_predictorbinning.exportTables(file="ModelTables.xlsx")
+    sample_without_predictorbinning.exportTables(
+        file="ModelTables.xlsx", predictorbinning=True
+    )
     os.remove("ModelTables.xlsx")
 
 

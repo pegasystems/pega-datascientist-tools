@@ -63,6 +63,12 @@ class Tables:
             df = df.filter(pl.col("predictorData") == 0)
         return df.get_column("Tables").to_list()
 
+    @property
+    def ApplicableTablesNoPredictorBinning(self):
+        applicable_tables = self.ApplicableTables
+        applicable_tables.remove("predictorbinning")
+        return applicable_tables
+
     @cached_property
     def model_overview(self):
         return (
@@ -261,22 +267,53 @@ class Tables:
 
     @cached_property
     def predictor_last_snapshot(self):
+        model_identifiers = ["Configuration"] + self.context_keys
+
         predictor_summary = (
             self.last(table="predictorData")
             .filter(pl.col("PredictorName") != "Classifier")
-            .unique(subset=["ModelID", "PredictorName"])
             .join(
-                self.last("modelData")
-                .select(["Configuration", "Channel", "ModelID"])
-                .unique(),
+                self.last("modelData").select(["ModelID"] + model_identifiers).unique(),
                 on="ModelID",
                 how="left",
             )
-            .group_by("Configuration", "Channel", "PredictorName")
+            .group_by(
+                model_identifiers + ["ModelID", "PredictorName"]
+            )  # Going to model-predictor level removing bins
             .agg(
-                Performance=weighted_average_polars("Performance", "ResponseCount"),
-                ResponseCount=pl.sum("ResponseCount"),
+                pl.first("Type"),
+                pl.first("Performance"),
+                pl.count("BinIndex").alias("Bins"),
+                pl.col("BinResponseCount")
+                .where(pl.col("BinType") == "MISSING")
+                .sum()
+                .alias("Missing"),
+                pl.col("BinResponseCount")
+                .where(pl.col("BinType") == "RESIDUAL")
+                .sum()
+                .alias("Residual"),
+                pl.first("Positives"),
+                pl.first("ResponseCount"),
             )
+            .group_by(
+                model_identifiers + ["PredictorName"]
+            )  # Going to contextkeys-predictor level removing model
+            .agg(
+                pl.first("Type"),
+                weighted_average_polars("Performance", "ResponseCount"),
+                weighted_average_polars("Bins", "ResponseCount"),
+                ((pl.sum("Missing") / pl.sum("ResponseCount")) * 100).alias(
+                    "Missing %"
+                ),
+                ((pl.sum("Residual") / pl.sum("ResponseCount")) * 100).alias(
+                    "Residual %"
+                ),
+                pl.sum("Positives"),
+                pl.sum("ResponseCount").alias("Responses"),
+            )
+            .fill_null(0)
+            .fill_nan(0)
+            .with_columns(pl.col("Bins").cast(pl.Int16))
         )
 
         return predictor_summary
