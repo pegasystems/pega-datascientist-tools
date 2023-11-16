@@ -15,7 +15,7 @@ def sample():
 
 
 def testHealthCheckRunsWithoutErrors(sample):
-    sample.generateHealthCheck(verbose=True)
+    sample.generateReport(verbose=True)
 
 
 def testAdditionalTables(sample):
@@ -33,7 +33,7 @@ def sample_without_predictorbinning():
 
 
 def testHealthCheckModelRunsWithoutErrors(sample_without_predictorbinning):
-    sample_without_predictorbinning.generateHealthCheck(
+    sample_without_predictorbinning.generateReport(
         verbose=True, modelData_only=True
     )
 
