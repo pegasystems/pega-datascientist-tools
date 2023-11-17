@@ -134,7 +134,7 @@ def setupAzureOpenAI(
             f"Exception: {e}. \nAre you sure you've installed Azure CLI & ran `az login`?"
         )
 
-    if int(openai.version.VERSION.split(".")[0]) >= 1:
+    if int(openai.version.VERSION.split(".")[0]) < 1:
         os.environ["OPENAI_API_KEY"] = openai.api_key = access_token.token
         os.environ["OPENAI_API_BASE"] = openai.api_base = api_base
         os.environ["OPENAI_API_VERSION"] = openai.api_version = api_version
