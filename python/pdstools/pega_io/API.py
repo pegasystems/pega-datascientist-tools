@@ -64,7 +64,8 @@ def setupAzureOpenAI(
         "2023-07-01-preview",
         "2023-09-15-preview",
         "2023-10-01-preview",
-    ] = "2023-10-01-preview",
+        "2023-12-01-preview"
+    ] = "2023-12-01-preview",
 ):
     """Convenience function to automagically setup Azure AD-based authentication
     for the Azure OpenAI service. Mostly meant as an internal tool within Pega,
