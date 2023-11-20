@@ -73,20 +73,22 @@ with health_check:
 
         st.title("Create Excel Tables")
         st.write(
-            "If you want to analyze the data yourself in excel, you can convert your data into excel format."
+            "If you prefer conducting a custom analysis in Excel, you can easily transform your data into Excel format."
         )
         include_binning = st.checkbox(
             "Include Binning",
             False,
             help="Including binning data may cause issues due to the size of the full data!",
         )
+        if include_binning and st.session_state["dm"].predictorData is None:
+            st.warning("Please upload Predictor Snapshot to include binning!")
         if st.button("Create Tables"):
             with st.spinner("Creating Tables..."):
-                tablename = Path(outfile).name.rsplit(".", 1)[0] + "_Tables.xlsx"
+                tablename = "ADMSnapshots.xlsx"
                 tables = (
                     st.session_state["dm"]
                     .applyGlobalQuery(st.session_state.get("filters", None))
-                    .exportTables(tablename, predictorBinning=include_binning)
+                    .exportTables(tablename)
                 )
                 st.session_state["run"][st.session_state["runID"]]["tables"] = tablename
                 st.session_state["run"][st.session_state["runID"]]["tablefile"] = open(
@@ -116,7 +118,7 @@ with health_check:
             if os.path.isfile(file_path):
                 os.remove(file_path)
 
-if hasattr(st.session_state["dm"], "predictorData"):
+if st.session_state["dm"].predictorData is not None:
     with model_report:
         try:
             if "working_dir" not in locals():
@@ -124,20 +126,23 @@ if hasattr(st.session_state["dm"], "predictorData"):
             if "model_selection_df" not in st.session_state:
                 if "filters" in st.session_state:
                     st.session_state["model_selection_df"] = model_selection_df(
-                        st.session_state["dm"]._apply_query(
+                        df=st.session_state["dm"]._apply_query(
                             st.session_state["dm"].combinedData,
                             st.session_state["filters"],
-                        )
+                        ),
+                        context_keys=st.session_state["dm"].context_keys,
                     )
                 else:
                     st.session_state["model_selection_df"] = model_selection_df(
-                        st.session_state["dm"].combinedData
+                        df=st.session_state["dm"].combinedData,
+                        context_keys=st.session_state["dm"].context_keys,
                     )
 
             st.write("Please choose the models for which you wish to generate a report")
             edited_df = st.data_editor(
                 st.session_state["model_selection_df"],
-                disabled=["Configuration", "Channel", "Name"],
+                disabled=st.session_state["dm"].context_keys + ["Name"],
+                use_container_width=True,
             )
             st.session_state["predictordetails_activeonly"] = st.checkbox(
                 label="Show only active predictors",
@@ -225,7 +230,7 @@ if hasattr(st.session_state["dm"], "predictorData"):
                 if os.path.isfile(file_path):
                     os.remove(file_path)
 else:
-    st.warning(
-        "Please supply the predictor binning snapshot to enable the generation of model reports.",
+    st.info(
+        "You can generate individual model reports if you provide Predictor Snapshot in 'Data Import' stage.",
         icon="ℹ️",
     )

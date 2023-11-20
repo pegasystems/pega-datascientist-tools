@@ -33,9 +33,7 @@ def sample_without_predictorbinning():
 
 
 def testHealthCheckModelRunsWithoutErrors(sample_without_predictorbinning):
-    sample_without_predictorbinning.generateReport(
-        verbose=True, modelData_only=True
-    )
+    sample_without_predictorbinning.generateReport(verbose=True, modelData_only=True)
 
 
 def testAdditionalTablesModel(sample_without_predictorbinning):

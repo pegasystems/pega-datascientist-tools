@@ -22,10 +22,10 @@ jupyter: python3
 ---
 
 ```{python}
-#| label: Imports
-#| code-fold: true
-#| code-summary: Python imports
-#| output: false
+# | label: Imports
+# | code-fold: true
+# | code-summary: Python imports
+# | output: false
 
 import sys
 import os.path
@@ -44,29 +44,37 @@ import plotly.express as px
 
 # Convenience wrapper functions
 
+
 def quarto_print(text):
     display(Markdown(text))
 
+
 def quarto_callout_info(info):
     quarto_print(
-"""
+        """
 ::: {.callout-note}
 %s
 :::
-""" % info)
+"""
+        % info
+    )
+
 
 def quarto_callout_important(info):
     quarto_print(
-"""
+        """
 ::: {.callout-important}
 %s
 :::
-""" % info)
+"""
+        % info
+    )
+
 
 ```
 
 ```{python}
-#| tags: [parameters]
+# | tags: [parameters]
 
 # These parameters are overwritten when called externally
 
@@ -77,28 +85,44 @@ modelid = ""
 
 predictordetails_activeonly = True
 
-title = "Demo Dataset" # pass in customer name here
-subtitle = "" # typically used to pass in a date range or other qualification of the data source
+title = "Demo Dataset"  # pass in customer name here
+subtitle = ""  # typically used to pass in a date range or other qualification of the data source
+
+kwargs = dict()
+
 
 ```
 
 ```{python}
 # Predictor data for one model ID
-if datafolder == "":
-  datamart = datasets.CDHSample()
-  modelid = "c3f445b2-6037-5560-9f16-71a7259d2c2c"
+if len(kwargs) > 0:
+    # streamlit call
+    modelid = kwargs["modelid"]
+    datamart = ADMDatamart(
+        **kwargs, include_cols="pyFeatureImportance", query=pl.col("ModelID") == modelid
+    ).fillMissing()
+elif len(datafolder) > 0 or len(modelfilename) > 0 or len(predictorfilename) > 0:
+    # command line call
+    datamart = ADMDatamart(
+        datafolder,
+        model_filename=modelfilename,
+        predictor_filename=predictorfilename,
+        extract_keys=True,
+        include_cols="pyFeatureImportance",
+        query=pl.col("ModelID") == modelid,
+    ).fillMissing()
 else:
-  datamart = ADMDatamart(datafolder, model_filename=modelfilename, predictor_filename=predictorfilename, extract_keys=True)
+    # fall back to sample data
+    modelid = "bd70a915-697a-5d43-ab2c-53b0557c85a0"
+    datamart = datasets.CDHSample(query=pl.col("ModelID") == modelid)
 
-# TODO below seems silly, can probably filter in the constructor arguments
-datamart.modelData = datamart.modelData.filter(pl.col("ModelID") == modelid)
-datamart.predictorData = datamart.predictorData.filter(pl.col("ModelID") == modelid)
-
-# TODO ensure this is only one predictor snapshot, just in case? although it would be 
+# TODO ensure this is only one predictor snapshot, just in case? although it would be
 # neat to show predictor evolution, if available
 
+
 def columnExists(df, col):
-    return(col in df.columns and df.schema[col] != pl.Null)    
+    return col in df.columns and df.schema[col] != pl.Null
+
 
 # Simple way to make sure Treatment is set and not null
 if columnExists(datamart.modelData, "Treatment"):
@@ -106,34 +130,38 @@ if columnExists(datamart.modelData, "Treatment"):
         pl.col("Treatment").fill_null("-")
     )
 else:
-    datamart.modelData = datamart.modelData.with_columns(
-        pl.lit("-").alias("Treatment")
-    )
+    datamart.modelData = datamart.modelData.with_columns(pl.lit("-").alias("Treatment"))
 
 ```
 
 ```{python}
 channel_name = (
-    datamart.last(strategy='lazy')
+    datamart.last(strategy="lazy")
     .filter(pl.col("ModelID") == modelid)
     .select(pl.format("{}/{}", "Direction", "Channel"))
-    .unique().collect().item(0, 0)
+    .unique()
+    .collect()
+    .item(0, 0)
 )
 model_name_in_context = (
-    datamart.last(strategy='lazy')
+    datamart.last(strategy="lazy")
     .filter(pl.col("ModelID") == modelid)
     .select(pl.format("{}/{}/{}/{}", "Issue", "Group", "Name", "Treatment"))
-    .unique().collect().item(0, 0)
+    .unique()
+    .collect()
+    .item(0, 0)
 )
 model_name = (
-    datamart.last(strategy='lazy')
+    datamart.last(strategy="lazy")
     .filter(pl.col("ModelID") == modelid)
     .select(pl.format("{}/{}", "Name", "Treatment"))
-    .unique().collect().item(0, 0)
+    .unique()
+    .collect()
+    .item(0, 0)
 )
 
 quarto_print(
-        f"""
+    f"""
 # {title}
 
 {subtitle}
@@ -149,15 +177,17 @@ quarto_print(
 ```
 
 ```{python}
-fig = datamart.plotScoreDistribution(modelids = [modelid])
+fig = datamart.plotScoreDistribution(modelids=[modelid])
 
 # Customize some of the default styling of the plot
 
-fig.update_layout(title=f"Classifier Score Distribution<br>{model_name}", xaxis_title="")
-fig.data[0].opacity=0.5
-fig.data[1].line.color="#EF8B08"
-fig.data[1].line.width=3
-fig.data[1].marker.color="black"
+fig.update_layout(
+    title=f"Classifier Score Distribution<br>{model_name}", xaxis_title=""
+)
+fig.data[0].opacity = 0.5
+fig.data[1].line.color = "#EF8B08"
+fig.data[1].line.width = 3
+fig.data[1].marker.color = "black"
 
 fig.show()
 ```
@@ -172,18 +202,15 @@ or Box. It is preferable to view them from a browser.
 
 ```{python}
 classifier = (
-    datamart.last("predictorData", strategy='lazy')
-    .filter(pl.col("EntryType")=="Classifier")
+    datamart.last("predictorData", strategy="lazy")
+    .filter(pl.col("EntryType") == "Classifier")
     .sort("BinIndex")
 )
 
-auc_roc = round(classifier
-    .select(pl.last('Performance'))
-    .collect()
-    .item(), 4)
+auc_roc = round(classifier.select(pl.last("Performance")).collect().item(), 4)
 
 quarto_print(
-        f"""
+    f"""
 The model performance is **{auc_roc}** measured as AUC-ROC. This number is calculated from the “active” bins of the Classifier.
 """
 )
@@ -195,13 +222,15 @@ The classifier maps the model scores (average of the log odds of the active pred
 See the [ADM Explained](https://pegasystems.github.io/pega-datascientist-tools/Python/articles/ADMExplained.html) article for more information on how ADM exactly works.
 
 ```{python}
-#| output: asis
+# | output: asis
 
 classifier_properties = classifier.select(
     pl.last("ResponseCount").alias("Responses"),
     pl.last("Positives"),
-    pl.format("{}%", (pl.last("Positives")*100/pl.last("ResponseCount")).round(3)).alias("Base Propensity"),
-    pl.format("{}", pl.last("Performance").round(4)).alias("Performance")
+    pl.format(
+        "{}%", (pl.last("Positives") * 100 / pl.last("ResponseCount")).round(3)
+    ).alias("Base Propensity"),
+    pl.format("{}", pl.last("Performance").round(4)).alias("Performance"),
 )
 
 show(classifier_properties.collect().to_pandas())
@@ -225,24 +254,35 @@ The Python version has no notion of unreachable bins (yet), when it has we shoul
 :::
 
 ```{python}
-#| tbl-cap: Score Distribution
+# | tbl-cap: Score Distribution
 
-human_friendly_scoredistribution = (classifier
-    .select(
+human_friendly_scoredistribution = (
+    classifier.select(
         pl.col("BinIndex").alias("Index"),
         pl.col("BinSymbol").alias("Bin"),
         pl.col("BinResponseCount").alias("Responses"),
         pl.col("BinPositives").alias("Positives"),
-
-        (100 * (pl.col("BinPositives").cumsum(reverse=True)) / pl.sum("BinPositives")).round(2).alias("Cum. Positives (%)"),
-        (100 * (pl.col("BinResponseCount").cumsum(reverse=True)) / pl.sum("BinResponseCount")).round(2).alias("Cum. Total (%)"),
-        (100*pl.col("BinPropensity")).round(3).alias("Propensity (%)"),
-
-        zRatio(pl.col("BinPositives"), pl.col("BinNegatives")).round(3).alias("Z Ratio"),
-
-        (lift(pl.col("BinPositives"), pl.col("BinNegatives")) * 100).round(2).alias("Lift (%)"),
-
-        (pl.col("BinAdjustedPropensity") * 100).round(3).alias("Adjusted Propensity (%)"))
+        (100 * (pl.col("BinPositives").cumsum(reverse=True)) / pl.sum("BinPositives"))
+        .round(2)
+        .alias("Cum. Positives (%)"),
+        (
+            100
+            * (pl.col("BinResponseCount").cumsum(reverse=True))
+            / pl.sum("BinResponseCount")
+        )
+        .round(2)
+        .alias("Cum. Total (%)"),
+        (100 * pl.col("BinPropensity")).round(3).alias("Propensity (%)"),
+        zRatio(pl.col("BinPositives"), pl.col("BinNegatives"))
+        .round(3)
+        .alias("Z Ratio"),
+        (lift(pl.col("BinPositives"), pl.col("BinNegatives")) * 100)
+        .round(2)
+        .alias("Lift (%)"),
+        (pl.col("BinAdjustedPropensity") * 100)
+        .round(3)
+        .alias("Adjusted Propensity (%)"),
+    )
 ).collect()
 
 # Convert to a list of lists, use tabulate to print to ascii art
@@ -252,8 +292,14 @@ human_friendly_scoredistribution = (classifier
 # cells, rows, columns is not easily done
 
 Markdown(
-    tabulate([[f[i] for f in human_friendly_scoredistribution] for i in range(human_friendly_scoredistribution.shape[0])],
-    headers = human_friendly_scoredistribution.columns))
+    tabulate(
+        [
+            [f[i] for f in human_friendly_scoredistribution]
+            for i in range(human_friendly_scoredistribution.shape[0])
+        ],
+        headers=human_friendly_scoredistribution.columns,
+    )
+)
 
 ```
 
@@ -276,28 +322,33 @@ TODO: unfortunately the Python version has no notion of unreachable bins (yet) w
 # in the health check.
 # TODO in HC there now is a beter way to plot gains, use that when it has progressed into PDS tools
 fig = px.area(
-    human_friendly_scoredistribution, 
-    x="Cum. Total (%)", y="Cum. Positives (%)", 
-    title='Cumulative Gains',
-    template="pega")
-fig.add_shape(
-    type='line', line=dict(dash='dash'),
-    x0=0, x1=100, y0=0, y1=100
+    human_friendly_scoredistribution,
+    x="Cum. Total (%)",
+    y="Cum. Positives (%)",
+    title="Cumulative Gains",
+    template="pega",
 )
-fig.update_yaxes(scaleanchor="x", scaleratio=1, constrain='domain', title="% of Positive Responders")
-fig.update_xaxes(constrain='domain', title="% of Population")
+fig.add_shape(type="line", line=dict(dash="dash"), x0=0, x1=100, y0=0, y1=100)
+fig.update_yaxes(
+    scaleanchor="x", scaleratio=1, constrain="domain", title="% of Positive Responders"
+)
+fig.update_xaxes(constrain="domain", title="% of Population")
 fig.show()
 ```
 
 ```{python}
 # TODO perhaps this should move into the pdstools plot functions "plotCumulativeLift"
 fig = px.area(
-    human_friendly_scoredistribution, 
-    x="Cum. Total (%)", y="Lift (%)", 
-    title='Lift',
-    template="pega")
-fig.update_yaxes(scaleanchor="x", scaleratio=0.01, constrain='domain', title="Propensity Lift")
-fig.update_xaxes(constrain='domain', title="% of Population")
+    human_friendly_scoredistribution,
+    x="Cum. Total (%)",
+    y="Lift (%)",
+    title="Lift",
+    template="pega",
+)
+fig.update_yaxes(
+    scaleanchor="x", scaleratio=0.01, constrain="domain", title="Propensity Lift"
+)
+fig.update_xaxes(constrain="domain", title="% of Population")
 fig.show()
 ```
 
@@ -311,18 +362,22 @@ But maybe .data[0] gives the trace
 
 
 ```{python}
-fig = datamart.plotOverTime('weighted_performance')
+fig = datamart.plotOverTime("weighted_performance")
 
-fig.update_layout(title="Model Performance Trend", yaxis_title="ROC-AUC", xaxis_title = "")
+fig.update_layout(
+    title="Model Performance Trend", yaxis_title="ROC-AUC", xaxis_title=""
+)
 fig.update_layout(showlegend=False)
 
 fig.show()
 ```
 
 ```{python}
-fig = datamart.plotOverTime('SuccessRate')
+fig = datamart.plotOverTime("SuccessRate")
 
-fig.update_layout(title="Success Rate Trend", yaxis_title="Success Rate", xaxis_title = "")
+fig.update_layout(
+    title="Success Rate Trend", yaxis_title="Success Rate", xaxis_title=""
+)
 fig.update_layout(showlegend=False)
 fig.update_yaxes(rangemode="tozero")
 
@@ -337,21 +392,22 @@ to the text before the first dot. This can be customized when reading the data
 for a particular customer.
 
 ```{python}
-#| error: true
+# | error: true
 
 # TODO facets are meaningless but plotPredictorCategoryPerformance fails when
 # not giving any
 
-fig = datamart.plotPredictorCategoryPerformance(facets='Channel')
+fig = datamart.plotPredictorCategoryPerformance(facets="Channel")
 
 fig.update_layout(
-    title="Predictor Performance per Category", 
-    yaxis_title="", 
+    title="Predictor Performance per Category",
+    yaxis_title="",
     showlegend=False,
     height=300,
-    width=500)
+    width=500,
+)
 
-fig.show() 
+fig.show()
 ```
 
 # Predictor Overview
@@ -373,32 +429,43 @@ negatives is not available.
 # summaries
 
 predictors_summary_info = (
-    datamart.last("predictorData", strategy='lazy')
+    datamart.last("predictorData", strategy="lazy")
     .group_by("PredictorName")
     .agg(
         pl.last("EntryType").alias("Status"),
         pl.last("Type"),
         pl.last("Performance").alias("Univariate Performance"),
         pl.max("BinIndex").alias("Bins"),
-        (pl.col("BinResponseCount").where(pl.col("BinType") == "MISSING").sum() * 100 / pl.sum("BinResponseCount")).alias("Missing %"),
-        (pl.col("BinResponseCount").where(pl.col("BinType") == "RESIDUAL").sum() * 100 / pl.sum("BinResponseCount")).alias("Residual %"),
+        (
+            pl.col("BinResponseCount").where(pl.col("BinType") == "MISSING").sum()
+            * 100
+            / pl.sum("BinResponseCount")
+        ).alias("Missing %"),
+        (
+            pl.col("BinResponseCount").where(pl.col("BinType") == "RESIDUAL").sum()
+            * 100
+            / pl.sum("BinResponseCount")
+        ).alias("Residual %"),
         pl.last("Positives"),
-        pl.last("ResponseCount").alias("Responses")
+        pl.last("ResponseCount").alias("Responses"),
     )
     .rename({"PredictorName": "Predictor"})
-    .sort("Univariate Performance", descending=True) 
+    .sort("Univariate Performance", descending=True)
 )
+
 
 def shadeInactive(s):
     if s.Status == "Inactive":
-        return ['color: grey'] * len(s)
+        return ["color: grey"] * len(s)
     else:
-        return [''] * len(s)
+        return [""] * len(s)
+
 
 display(
-    predictors_summary_info
-    .filter(pl.col("Status") != "Classifier").collect().to_pandas().style
-    .set_caption("Predictor Overview")
+    predictors_summary_info.filter(pl.col("Status") != "Classifier")
+    .collect()
+    .to_pandas()
+    .style.set_caption("Predictor Overview")
     .hide(axis="index")
     .hide(["Positives", "Responses"], axis="columns")
     .format(precision=4, subset=["Univariate Performance"])
@@ -414,7 +481,7 @@ The predictors are listed in the same order as in the summary above.
 
 ```{python}
 quarto_print(
-        f"""
+    f"""
 Here we show **{'only the active' if predictordetails_activeonly else 'all'}**
 predictors. This can be configured via a parameter to this report.
 """
@@ -422,25 +489,22 @@ predictors. This can be configured via a parameter to this report.
 ```
 
 ```{python}
-#| output: asis
+# | output: asis
+
 
 def show_single_predictor(pred):
     quarto_print(f"## {pred}")
 
     predictor_binning_data = (
-        datamart.last("predictorData", strategy='lazy')
+        datamart.last("predictorData", strategy="lazy")
         .filter(pl.col("PredictorName") == pred)
         .sort("BinIndex")
     )
 
-    predictor_properties = (
-        predictors_summary_info
-        .filter(pl.col("Predictor") == pred)
-    )
+    predictor_properties = predictors_summary_info.filter(pl.col("Predictor") == pred)
 
     base_propensity = (
-        predictor_properties
-        .select(pl.col("Positives")/pl.col("Responses"))
+        predictor_properties.select(pl.col("Positives") / pl.col("Responses"))
         .collect()
         .item()
     )
@@ -448,8 +512,9 @@ def show_single_predictor(pred):
     # Predictor summary
 
     display(
-        predictor_properties.collect().to_pandas().style
-        .hide(axis="index")
+        predictor_properties.collect()
+        .to_pandas()
+        .style.hide(axis="index")
         .format(precision=4, subset=["Univariate Performance"])
         .format(precision=2, subset=["Missing %", "Residual %"])
         .format(precision=0, subset=["Positives", "Responses"])
@@ -457,21 +522,19 @@ def show_single_predictor(pred):
 
     # Predictor binning
 
-    fig = datamart.plotPredictorBinning(
-        modelids=[modelid], 
-        predictors=[pred])
+    fig = datamart.plotPredictorBinning(modelids=[modelid], predictors=[pred])
 
     # Customize some of the default styling of the plot
 
     fig.update_layout(title="Predictor Binning", xaxis_title="")
     # fig.layout.yaxis2.tickformat = ",.3%"
-    fig.data[0].opacity=0.5
-    fig.data[1].line.color="#EF8B08"
-    fig.data[1].line.width=3
-    fig.data[1].marker.color="black"
+    fig.data[0].opacity = 0.5
+    fig.data[1].line.color = "#EF8B08"
+    fig.data[1].line.width = 3
+    fig.data[1].marker.color = "black"
 
     # Add line for base propensity, TODO consider putting back in the library
-    fig.add_hline(y=base_propensity, line_dash="dash", line_color="grey", yref='y2')
+    fig.add_hline(y=base_propensity, line_dash="dash", line_color="grey", yref="y2")
     # fig.update_xaxes(type='category') # prevent plotly from trying to guess
 
     fig.update_layout(width=700, height=300)
@@ -481,42 +544,51 @@ def show_single_predictor(pred):
     # TODO move below "Philip Mann" plot into a plot function (plotBinningLift)
 
     pm_plot_binning_table = (
-        predictor_binning_data
-        .select(
-            pl.col(["BinSymbol", "BinPositives", "BinIndex"]), 
-            (lift(pl.col("BinPositives"), pl.col("BinNegatives")) - 1.0)
+        predictor_binning_data.select(
+            pl.col(["BinSymbol", "BinPositives", "BinIndex"]),
+            (lift(pl.col("BinPositives"), pl.col("BinNegatives")) - 1.0),
         )
         .with_columns(
-            pl.when((pl.col("Lift") >= 0.0) & (pl.col("BinPositives") > 5)).then(pl.lit('pos'))
-            .when((pl.col("Lift") >= 0.0) & (pl.col("BinPositives") <= 5)).then(pl.lit('pos_shaded'))
-            .when((pl.col("Lift") < 0.0) & (pl.col("BinPositives") > 5)).then(pl.lit('neg'))
-            .otherwise(pl.lit('neg_shaded'))
-            .alias("Direction"))
+            pl.when((pl.col("Lift") >= 0.0) & (pl.col("BinPositives") > 5))
+            .then(pl.lit("pos"))
+            .when((pl.col("Lift") >= 0.0) & (pl.col("BinPositives") <= 5))
+            .then(pl.lit("pos_shaded"))
+            .when((pl.col("Lift") < 0.0) & (pl.col("BinPositives") > 5))
+            .then(pl.lit("neg"))
+            .otherwise(pl.lit("neg_shaded"))
+            .alias("Direction")
+        )
         .sort("BinIndex")
         .collect()
     )
 
     fig = px.bar(
-        x=pm_plot_binning_table['Lift'],
-        y=pm_plot_binning_table['BinSymbol'], 
-        color=pm_plot_binning_table['Direction'],
-        color_discrete_map = {
-            'neg': '#A01503', 
-            'pos': '#5F9F37',
-            'neg_shaded' : '#DAA9AB',
-            'pos_shaded' : '#C5D9B7'},
-        orientation='h',
-        template='pega'
+        x=pm_plot_binning_table["Lift"],
+        y=pm_plot_binning_table["BinSymbol"],
+        color=pm_plot_binning_table["Direction"],
+        color_discrete_map={
+            "neg": "#A01503",
+            "pos": "#5F9F37",
+            "neg_shaded": "#DAA9AB",
+            "pos_shaded": "#C5D9B7",
+        },
+        orientation="h",
+        template="pega",
     )
-    fig.update_yaxes(type='category')
+    fig.update_yaxes(type="category")
     fig.layout.xaxis.tickformat = ",.2%"
     fig.add_vline(x=0, line_color="black")
     fig.update_layout(
-        yaxis = dict(autorange="reversed"),
-        title="Propensity Lift", xaxis_title="", yaxis_title="")
+        yaxis=dict(autorange="reversed"),
+        title="Propensity Lift",
+        xaxis_title="",
+        yaxis_title="",
+    )
     # Not convinced why we need below. It should respect the binindex order but w/o this it doesnt always.
     # Stijn: I think, if there's no missing bin, it tries to cast to numeric and tries to do magic with sorting. If there's a missing bin, then casting to numeric will fail and it will just keep the order
-    fig.update_yaxes(categoryorder='array', categoryarray=pm_plot_binning_table['BinSymbol'])
+    fig.update_yaxes(
+        categoryorder="array", categoryarray=pm_plot_binning_table["BinSymbol"]
+    )
     # TODO: when there are many bins not all are always shown, figure out how to fix
     # see nbins argument? https://plotly.com/python/histograms/#choosing-the-number-of-bins
 
@@ -525,65 +597,83 @@ def show_single_predictor(pred):
 
     # Table with binning details
 
-    human_friendly_binning_table = (
-        predictor_binning_data
-        .select(
-            pl.col("BinIndex").alias("Index"),
-            pl.col("BinSymbol").alias("Bin"),
-            pl.col("BinResponseCount").alias("Responses"),
-            pl.col("BinPositives").alias("Positives"),
-            zRatio(pl.col("BinPositives"), pl.col("BinNegatives")).round(3).alias("Z Ratio"),
-            (lift(pl.col("BinPositives"), pl.col("BinNegatives")) * 100).round(2).alias("Lift (%)"),
-            (pl.col("BinPropensity") * 100).round(3).alias("Propensity (%)")
-        )
-        .collect()
-    )
+    human_friendly_binning_table = predictor_binning_data.select(
+        pl.col("BinIndex").alias("Index"),
+        pl.col("BinSymbol").alias("Bin"),
+        pl.col("BinResponseCount").alias("Responses"),
+        pl.col("BinPositives").alias("Positives"),
+        zRatio(pl.col("BinPositives"), pl.col("BinNegatives"))
+        .round(3)
+        .alias("Z Ratio"),
+        (lift(pl.col("BinPositives"), pl.col("BinNegatives")) * 100)
+        .round(2)
+        .alias("Lift (%)"),
+        (pl.col("BinPropensity") * 100).round(3).alias("Propensity (%)"),
+    ).collect()
 
     quarto_print(
-        tabulate([[f[i] for f in human_friendly_binning_table] for i in range(human_friendly_binning_table.shape[0])],
-        headers = human_friendly_binning_table.columns)
+        tabulate(
+            [
+                [f[i] for f in human_friendly_binning_table]
+                for i in range(human_friendly_binning_table.shape[0])
+            ],
+            headers=human_friendly_binning_table.columns,
+        )
     )
 
     quarto_print("   ")
-    quarto_print("___") # renders as horizontal line
+    quarto_print("___")  # renders as horizontal line
+
 
 if predictordetails_activeonly:
     status_filter = pl.col("Status") == "Active"
 else:
     status_filter = pl.col("Status") != "Classifier"
 
-for pred in predictors_summary_info.filter(status_filter).select('Predictor').collect().to_series(0):
+for pred in (
+    predictors_summary_info.filter(status_filter)
+    .select("Predictor")
+    .collect()
+    .to_series(0)
+):
     show_single_predictor(pred)
 ```
 
 # Credits
 
 ```{python}
-#| echo: false
+# | echo: false
 
 # unfortunately no way to get the quarto source file name, so that is hardcoded
-quarto_source = 'pega-datascientist-tools/python/pdstools/reports/ModelReport.qmd'
+quarto_source = "pega-datascientist-tools/python/pdstools/reports/ModelReport.qmd"
+
 
 def get_cmd_output(args):
-    result = subprocess.run(args, stdout=subprocess.PIPE).stdout.decode('utf-8').split('\n')
-    return(result)
+    result = (
+        subprocess.run(args, stdout=subprocess.PIPE).stdout.decode("utf-8").split("\n")
+    )
+    return result
+
 
 def get_version_only(versionstr):
-    return(re.sub('[^.\d]','',versionstr))
+    return re.sub("[^.\d]", "", versionstr)
+
 
 def get_pip_package_version(pck):
-    package_info = get_cmd_output(['pip', 'show', pck])
+    package_info = get_cmd_output(["pip", "show", pck])
     if len(package_info) <= 1:
         package_version = f"WARNING: {pck} not installed"
     else:
         package_version = package_info[1]
-    return(get_version_only(package_version))
+    return get_version_only(package_version)
 
-quarto_version = get_version_only(get_cmd_output(['quarto', '--version'])[0])
+
+quarto_version = get_version_only(get_cmd_output(["quarto", "--version"])[0])
 pandoc_version = get_version_only(get_cmd_output(["pandoc", "--version"])[0])
 timestamp_str = datetime.datetime.now().strftime("%d %b %Y %H:%M:%S")
 
-quarto_print(f"""
+quarto_print(
+    f"""
 
 | Tool | Version |
 |-----|------|
@@ -594,14 +684,15 @@ quarto_print(f"""
 | Jupyter Notebook format (nbformat) | {get_pip_package_version('nbformat')} |
 | Created at | {timestamp_str} |
 
-""")
+"""
+)
 
 ```
 
 Detailed version info for **pdstools**:
 
 ```{python}
-#| echo: false
+# | echo: false
 
 from pdstools import show_versions
 

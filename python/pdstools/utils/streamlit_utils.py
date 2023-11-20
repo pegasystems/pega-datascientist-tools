@@ -160,14 +160,14 @@ def fromFilePath(**opts):
             )
 
 
-def model_selection_df(df: pl.LazyFrame):
+def model_selection_df(df: pl.LazyFrame, context_keys: list):
     df = (
-        df.select("ModelID", "Configuration", "Channel", "Name")
+        df.select(["ModelID", "Configuration"] + context_keys + ["Name"])
         .unique()
-        .with_columns(pl.lit(False).alias("Generate Report"))
         .sort("Name")
+        .select(pl.lit(False).alias("Generate Report"), pl.all())
         .collect()
-        .to_pandas()[["Generate Report", "ModelID", "Configuration", "Channel", "Name"]]
+        .to_pandas()
     )
 
     return df

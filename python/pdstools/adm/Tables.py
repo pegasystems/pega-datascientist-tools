@@ -66,7 +66,8 @@ class Tables:
     @property
     def ApplicableTablesNoPredictorBinning(self):
         applicable_tables = self.ApplicableTables
-        applicable_tables.remove("predictorbinning")
+        if "predictorbinning" in applicable_tables:
+            applicable_tables.remove("predictorbinning")
         return applicable_tables
 
     @cached_property
