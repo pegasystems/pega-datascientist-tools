@@ -339,6 +339,7 @@ def process_files(file_paths: List[str], file_name: str) -> Tuple[bytes, str]:
         or the zip file's data as bytes and the zip file's name if there are multiple files.
     """
     if len(file_paths) == 1:
+        file_name = file_name.split("/")[-1] if "/" in file_name else file_name
         with open(file_paths[0], "rb") as file:
             return file.read(), file_name
     elif len(file_paths) > 1:

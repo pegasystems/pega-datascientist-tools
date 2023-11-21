@@ -1258,7 +1258,6 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
     def generateReport(
         self,
         name: Optional[str] = None,
-        output_location: Path = Path("."),
         working_dir: Path = Path("."),
         *,
         modelid: Optional[str] = "",
@@ -1277,8 +1276,6 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         ----------
         name : Optional[str], default = None
             The name of the report.
-        output_location : Path, default = Path(".")
-            The location where the report will be saved.
         working_dir : Path, default = Path(".")
             The working directory. Cached files will be written here.
         *
@@ -1325,9 +1322,31 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
 
         def get_output_filename(name, report, modelid, output_type):
             if name is not None:
-                return f"{report}{name}{modelid}.{output_type}"
+                name = name.replace(" ", "_")
+            if report == "ModelReport":
+                if modelid is not None:
+                    if name is not None:
+                        return f"{report}_{name}_{modelid}.{output_type}"
+                    else:
+                        return f"{report}_{modelid}.{output_type}"
+                else:
+                    raise ValueError("ModelID cannot be None for a ModelReport.")
+            elif report == "HealthCheck":
+                if name is not None:
+                    return f"{report}_{name}.{output_type}"
+                else:
+                    return f"{report}.{output_type}"
             else:
-                return f"{report}{modelid}.{output_type}"
+                raise ValueError("Invalid report type.")
+
+        def check_output_file(working_dir, output_filename, verbose, delete_temp_files):
+            if not os.path.exists(working_dir / output_filename):
+                msg = "Error when generating healthcheck."
+                if not verbose and not kwargs.get("output_to_file", False):
+                    msg += "Set 'verbose' to True to see the full output"
+                if delete_temp_files:
+                    _delete_temp_files(working_dir)
+                raise ValueError(msg)
 
         def get_files(working_dir, cached_data):
             if not cached_data:
@@ -1376,44 +1395,8 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 )
                 process.communicate()
 
-        def check_output_file(
-            working_dir, output_filename, verbose, delete_temp_files, files
-        ):
-            if not os.path.exists(working_dir / output_filename):
-                msg = "Error when generating healthcheck."
-                if not verbose and not kwargs.get("output_to_file", False):
-                    msg += "Set 'verbose' to True to see the full output"
-                if delete_temp_files:
-                    _delete_temp_files(working_dir)
-                raise ValueError(msg)
-
-        def check_output_location(output_location):
-            if not os.path.exists(output_location):
-                try:
-                    os.makedirs(output_location)
-                except OSError as e:
-                    raise OSError(
-                        "Creation of the directory %s failed. Please provide a valid path."
-                        % output_location
-                    ) from e
-
-        def get_filename(output_location, output_filename):
-            return f"{output_location}/{output_filename}"
-
-        def move_file_if_needed(working_dir, output_location, output_filename):
-            if output_location != working_dir:
-                filename = get_filename(output_location, output_filename)
-                if os.path.isfile(filename):
-                    counter = 1
-                    filename, ext = output_filename.rsplit(".", 1)
-                    while os.path.isfile(f"{filename} ({counter}).{ext}"):
-                        counter += 1
-                    filename = f"{filename} ({counter}).{ext}"
-                shutil.move(f"{working_dir}/{output_filename}", filename)
-
         # Main function logic
         healthcheck_file, report = get_report_files(modelid)
-        working_dir, output_location = Path(working_dir), Path(output_location)
         verbose = kwargs.get("verbose", self.verbose)
 
         if self.import_strategy == "lazy" and not allow_collect:
@@ -1433,16 +1416,11 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
 
         bashCommand = f"quarto render {healthcheck_file} --to {output_type} --output {output_filename} --execute-params params.yaml"
         run_bash_command(bashCommand, working_dir, **kwargs)
-        check_output_file(
-            working_dir, output_filename, verbose, delete_temp_files, files
-        )
-        check_output_location(output_location)
-        filename = get_filename(output_location, output_filename)
-        move_file_if_needed(working_dir, output_location, output_filename)
+        check_output_file(working_dir, output_filename, verbose, delete_temp_files)
         if delete_temp_files:
             _delete_temp_files(working_dir, files)
 
-        return filename
+        return f"{working_dir}/{output_filename}"
 
     def exportTables(self, file: Path = "Tables.xlsx", predictorBinning=False):
         """Exports all tables from `pdstools.adm.Tables` into one Excel file.

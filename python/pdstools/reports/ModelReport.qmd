@@ -137,7 +137,6 @@ else:
 ```{python}
 channel_name = (
     datamart.last(strategy="lazy")
-    .filter(pl.col("ModelID") == modelid)
     .select(pl.format("{}/{}", "Direction", "Channel"))
     .unique()
     .collect()
@@ -145,7 +144,6 @@ channel_name = (
 )
 model_name_in_context = (
     datamart.last(strategy="lazy")
-    .filter(pl.col("ModelID") == modelid)
     .select(pl.format("{}/{}/{}/{}", "Issue", "Group", "Name", "Treatment"))
     .unique()
     .collect()
@@ -153,7 +151,6 @@ model_name_in_context = (
 )
 model_name = (
     datamart.last(strategy="lazy")
-    .filter(pl.col("ModelID") == modelid)
     .select(pl.format("{}/{}", "Name", "Treatment"))
     .unique()
     .collect()

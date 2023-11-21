@@ -46,7 +46,6 @@ with health_check:
                         name=name,
                         output_type=output_type,
                         working_dir=working_dir,
-                        output_location=working_dir,
                         delete_temp_files=delete_temp_files,
                         output_to_file=True,
                         verbose=True,
@@ -173,14 +172,8 @@ if st.session_state["dm"].predictorData is not None:
                             outfile = (
                                 st.session_state["dm"]
                                 .applyGlobalQuery(st.session_state.get("filters", None))
-                                .applyGlobalQuery(
-                                    pl.col("ModelID").is_in(
-                                        st.session_state["selected_models"]
-                                    )
-                                )
                                 .generateReport(
                                     name="",
-                                    output_location=working_dir,
                                     working_dir=working_dir,
                                     modelid=modelid,
                                     delete_temp_files=del_cache,
@@ -213,9 +206,11 @@ if st.session_state["dm"].predictorData is not None:
                             file_name=st.session_state["model_report_name"],
                         )
                         st.balloons()
+                        st.session_state["data_is_cached"] = False
         except Exception as e:
             st.error(f"""An error occured: {e}""")
             traceback_str = traceback.format_exc()
+            st.session_state["data_is_cached"] = False
             with open(working_dir / "log.txt", "a") as f:
                 f.write(traceback_str)
             with open(working_dir / "log.txt", "rb") as f:
