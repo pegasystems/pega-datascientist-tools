@@ -13,7 +13,13 @@ def _readClientCredentialFile(credentialFile):  # pragma: no cover
         return outputdict
 
 
-def getToken(credentialFile: str, verify: bool = True, **kwargs):  # pragma: no cover
+def get_URL(credentialFile: str):
+    """Returns the URL of the Infinity instance in the credential file"""
+    url = _readClientCredentialFile(credentialFile)["Authorization endpoint"]
+    return url.rsplit("/prweb")[0]
+
+
+def get_token(credentialFile: str, verify: bool = True, **kwargs):  # pragma: no cover
     """Get API credentials to a Pega Platform instance.
 
     After setting up OAuth2 authentication in Dev Studio, you should
@@ -37,12 +43,15 @@ def getToken(credentialFile: str, verify: bool = True, **kwargs):  # pragma: no 
         to customize this (to a different port, etc).
     """
     creds = _readClientCredentialFile(credentialFile)
-    return requests.post(
+    response = requests.post(
         url=kwargs.get("URL", creds["Access token endpoint"]),
         data={"grant_type": "client_credentials"},
         auth=(creds["Client ID"], creds["Client Secret"]),
         verify=verify,
-    ).json()["access_token"]
+    ).json()
+    if "errors" in response:
+        raise ConnectionRefusedError(f"Error when connecting to infinity: {e}")
+    return response["access_token"]
 
 
 def setupAzureOpenAI(
@@ -54,7 +63,9 @@ def setupAzureOpenAI(
         "2023-06-01-preview",
         "2023-07-01-preview",
         "2023-09-15-preview",
-    ] = "2023-09-15-preview",
+        "2023-10-01-preview",
+        "2023-12-01-preview"
+    ] = "2023-12-01-preview",
 ):
     """Convenience function to automagically setup Azure AD-based authentication
     for the Azure OpenAI service. Mostly meant as an internal tool within Pega,
@@ -123,12 +134,14 @@ def setupAzureOpenAI(
         raise Exception(
             f"Exception: {e}. \nAre you sure you've installed Azure CLI & ran `az login`?"
         )
-    openai.api_key = access_token.token
-    openai.api_base = api_base
-    openai.api_version = api_version
-    openai.api_type = "azure_ad"
 
-    os.environ["OPENAI_API_KEY"] = access_token.token
-    os.environ["OPENAI_API_BASE"] = api_base
-    os.environ["OPENAI_API_VERSION"] = api_version
-    os.environ["OPENAI_API_TYPE"] = "azure_ad"
+    if int(openai.version.VERSION.split(".")[0]) < 1:
+        os.environ["OPENAI_API_KEY"] = openai.api_key = access_token.token
+        os.environ["OPENAI_API_BASE"] = openai.api_base = api_base
+        os.environ["OPENAI_API_VERSION"] = openai.api_version = api_version
+        os.environ["OPENAI_API_TYPE"] = "azure_ad"
+
+    else:
+        os.environ["AZURE_OPENAI_AD_TOKEN"] = access_token.token
+        os.environ["AZURE_OPENAI_ENDPOINT"] = api_base
+        os.environ["OPENAI_API_VERSION"] = api_version
