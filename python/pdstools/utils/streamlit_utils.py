@@ -240,13 +240,13 @@ def filter_dataframe(
                 )
             else:
                 user_min = min_col.number_input(
-                    label=f"Min value for {column}",
+                    label=f"Min value for {column} (Min:{_min})",
                     min_value=_min,
                     max_value=_max,
                     value=_min,
                 )
                 user_max = max_col.number_input(
-                    label=f"Max value for {column}",
+                    label=f"Max value for {column} (Max:{_max})",
                     min_value=_min,
                     max_value=_max,
                     value=_max,
