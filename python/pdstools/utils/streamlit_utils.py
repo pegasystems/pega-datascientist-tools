@@ -228,16 +228,30 @@ def filter_dataframe(
                     queries.append(pl.col(column).str.contains(user_text_input))
 
         elif df.schema[column] in pl.NUMERIC_DTYPES:
+            min_col, max_col = right.columns((1, 1))
             _min = float(df.select(pl.min(column)).collect().item())
             _max = float(df.select(pl.max(column)).collect().item())
-            step = (_max - _min) / 100
-            user_num_input = right.slider(
-                f"Values for {column}",
-                min_value=_min,
-                max_value=_max,
-                value=(_min, _max),
-                step=step,
-            )
+            if _max - _min <= 200:
+                user_num_input = right.slider(
+                    f"Values for {column}",
+                    min_value=_min,
+                    max_value=_max,
+                    value=(_min, _max),
+                )
+            else:
+                user_min = min_col.number_input(
+                    label=f"Min value for {column}",
+                    min_value=_min,
+                    max_value=_max,
+                    value=_min,
+                )
+                user_max = max_col.number_input(
+                    label=f"Max value for {column}",
+                    min_value=_min,
+                    max_value=_max,
+                    value=_max,
+                )
+                user_num_input = [user_min, user_max]
             if user_num_input[0] != _min or user_num_input[1] != _max:
                 queries.append(pl.col(column).is_between(*user_num_input))
         elif df.schema[column] in pl.TEMPORAL_DTYPES:
