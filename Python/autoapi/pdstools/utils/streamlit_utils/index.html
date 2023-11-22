@@ -244,7 +244,9 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../Health-Check/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">Health</span> <span class="pre">Check</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../1Data-Import/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">1-Data</span> <span class="pre">Import</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../2Data-Filters/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">2-Data</span> <span class="pre">Filters</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../3-Reports/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">3-</span> <span class="pre">Reports</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -305,11 +307,23 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.streamlit_utils.fromFilePath" title="pdstools.utils.streamlit_utils.fromFilePath"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fromFilePath</span></code></a>(**opts)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.streamlit_utils.filter_dataframe" title="pdstools.utils.streamlit_utils.filter_dataframe"><code class="xref py py-obj docutils literal notranslate"><span class="pre">filter_dataframe</span></code></a>(→ polars.LazyFrame)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.streamlit_utils.model_selection_df" title="pdstools.utils.streamlit_utils.model_selection_df"><code class="xref py py-obj docutils literal notranslate"><span class="pre">model_selection_df</span></code></a>(df, context_keys)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.streamlit_utils.filter_dataframe" title="pdstools.utils.streamlit_utils.filter_dataframe"><code class="xref py py-obj docutils literal notranslate"><span class="pre">filter_dataframe</span></code></a>(→ polars.LazyFrame)</p></td>
 <td><p>Adds a UI on top of a dataframe to let viewers filter columns</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.streamlit_utils.model_and_row_counts" title="pdstools.utils.streamlit_utils.model_and_row_counts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">model_and_row_counts</span></code></a>(df)</p></td>
+<td><p>Returns unique model id count and row count from a dataframe</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.streamlit_utils.configure_predictor_categorization" title="pdstools.utils.streamlit_utils.configure_predictor_categorization"><code class="xref py py-obj docutils literal notranslate"><span class="pre">configure_predictor_categorization</span></code></a>()</p></td>
 <td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.streamlit_utils.convert_df" title="pdstools.utils.streamlit_utils.convert_df"><code class="xref py py-obj docutils literal notranslate"><span class="pre">convert_df</span></code></a>(df)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.streamlit_utils.process_files" title="pdstools.utils.streamlit_utils.process_files"><code class="xref py py-obj docutils literal notranslate"><span class="pre">process_files</span></code></a>(→ Tuple[bytes, str])</p></td>
+<td><p>Processes a list of file paths. If there's only one file, returns the file's content as bytes</p></td>
 </tr>
 </tbody>
 </table>
@@ -340,8 +354,21 @@
 <dd></dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.streamlit_utils.model_selection_df">
+<span class="sig-name descname"><span class="pre">model_selection_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.streamlit_utils.model_selection_df" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>polars.LazyFrame</em>) – </p></li>
+<li><p><strong>context_keys</strong> (<em>list</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="pdstools.utils.streamlit_utils.filter_dataframe">
-<span class="sig-name descname"><span class="pre">filter_dataframe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.utils.streamlit_utils.filter_dataframe" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">filter_dataframe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">queries</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.utils.streamlit_utils.filter_dataframe" title="Link to this definition">#</a></dt>
 <dd><p>Adds a UI on top of a dataframe to let viewers filter columns</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -360,9 +387,55 @@
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.streamlit_utils.model_and_row_counts">
+<span class="sig-name descname"><span class="pre">model_and_row_counts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pdstools.utils.types.any_frame</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.streamlit_utils.model_and_row_counts" title="Link to this definition">#</a></dt>
+<dd><p>Returns unique model id count and row count from a dataframe</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>Union</em><em>[</em><em>pl.DataFrame</em><em>, </em><em>pl.LazyFrame</em><em>]</em>) – The input dataframe</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>unique model count
+row count</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[int, int]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="pdstools.utils.streamlit_utils.configure_predictor_categorization">
 <span class="sig-name descname"><span class="pre">configure_predictor_categorization</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.streamlit_utils.configure_predictor_categorization" title="Link to this definition">#</a></dt>
 <dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.streamlit_utils.convert_df">
+<span class="sig-name descname"><span class="pre">convert_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.streamlit_utils.convert_df" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.streamlit_utils.process_files">
+<span class="sig-name descname"><span class="pre">process_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_paths</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">bytes</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.utils.streamlit_utils.process_files" title="Link to this definition">#</a></dt>
+<dd><p>Processes a list of file paths. If there’s only one file, returns the file’s content as bytes
+and the provided file name. If there are multiple files, creates a zip file containing all the files
+and returns the zip file’s data as bytes and the generated zip file name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_paths</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – A list of file paths to process.</p></li>
+<li><p><strong>file_name</strong> (<em>str</em>) – The file name to use when returning the file or zip file’s name.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The content of the single file as bytes and the file name if there’s only one file,
+or the zip file’s data as bytes and the zip file’s name if there are multiple files.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(bytes, str)</p>
+</dd>
+</dl>
+</dd></dl>
 
 </section>
 </section>
@@ -438,8 +511,12 @@
 <li><a class="reference internal" href="#pdstools.utils.streamlit_utils.import_datamart"><code class="docutils literal notranslate"><span class="pre">import_datamart()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.streamlit_utils.fromUploadedFile"><code class="docutils literal notranslate"><span class="pre">fromUploadedFile()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.streamlit_utils.fromFilePath"><code class="docutils literal notranslate"><span class="pre">fromFilePath()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.streamlit_utils.model_selection_df"><code class="docutils literal notranslate"><span class="pre">model_selection_df()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.streamlit_utils.filter_dataframe"><code class="docutils literal notranslate"><span class="pre">filter_dataframe()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.streamlit_utils.model_and_row_counts"><code class="docutils literal notranslate"><span class="pre">model_and_row_counts()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.streamlit_utils.configure_predictor_categorization"><code class="docutils literal notranslate"><span class="pre">configure_predictor_categorization()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.streamlit_utils.convert_df"><code class="docutils literal notranslate"><span class="pre">convert_df()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.streamlit_utils.process_files"><code class="docutils literal notranslate"><span class="pre">process_files()</span></code></a></li>
 </ul>
 </li>
 </ul>

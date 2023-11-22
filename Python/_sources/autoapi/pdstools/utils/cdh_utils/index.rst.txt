@@ -37,8 +37,8 @@ Functions
    pdstools.utils.cdh_utils._polarsCapitalize
    pdstools.utils.cdh_utils.fromPRPCDateTime
    pdstools.utils.cdh_utils.toPRPCDateTime
-   pdstools.utils.cdh_utils.weighed_average_polars
-   pdstools.utils.cdh_utils.weighed_performance_polars
+   pdstools.utils.cdh_utils.weighted_average_polars
+   pdstools.utils.cdh_utils.weighted_performance_polars
    pdstools.utils.cdh_utils.zRatio
    pdstools.utils.cdh_utils.lift
    pdstools.utils.cdh_utils.LogOdds
@@ -247,10 +247,10 @@ Functions
              * *Examples* -- >>> toPRPCDateTime(datetime.datetime.now())
 
 
-.. py:function:: weighed_average_polars(vals: Union[str, polars.Expr], weights: Union[str, polars.Expr]) -> polars.Expr
+.. py:function:: weighted_average_polars(vals: Union[str, polars.Expr], weights: Union[str, polars.Expr]) -> polars.Expr
 
 
-.. py:function:: weighed_performance_polars() -> polars.Expr
+.. py:function:: weighted_performance_polars() -> polars.Expr
 
    Polars function to return a weighted performance
 

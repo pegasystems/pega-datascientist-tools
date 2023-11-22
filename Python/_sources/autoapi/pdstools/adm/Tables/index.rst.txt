@@ -39,37 +39,19 @@ Attributes
    .. py:property:: ApplicableTables
 
 
-   .. py:property:: _zero_response
+   .. py:property:: ApplicableTablesNoPredictorBinning
 
 
    .. py:method:: _by()
 
 
-   .. py:method:: model_overview()
+   .. py:method:: modeldata_last_snapshot()
 
 
-   .. py:method:: predictors_per_configuration()
+   .. py:method:: predictor_last_snapshot()
 
 
-   .. py:method:: bad_predictors()
-
-
-   .. py:method:: zero_response()
-
-
-   .. py:method:: zero_positives()
-
-
-   .. py:method:: _last_counts()
-
-
-   .. py:method:: reach()
-
-
-   .. py:method:: minimum_performance()
-
-
-   .. py:method:: appendix()
+   .. py:method:: predictorbinning()
 
 
 

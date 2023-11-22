@@ -1,0 +1,18 @@
+:py:mod:`1-Data Import`
+=======================
+
+.. py:module:: 1-Data Import
+
+
+Module Contents
+---------------
+
+.. py:data:: opts
+
+   
+
+.. py:data:: default_keys
+   :value: ['Channel', 'Direction', 'Issue', 'Group']
+
+   
+

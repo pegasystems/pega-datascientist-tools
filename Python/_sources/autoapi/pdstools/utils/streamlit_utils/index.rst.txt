@@ -18,8 +18,12 @@ Functions
    pdstools.utils.streamlit_utils.import_datamart
    pdstools.utils.streamlit_utils.fromUploadedFile
    pdstools.utils.streamlit_utils.fromFilePath
+   pdstools.utils.streamlit_utils.model_selection_df
    pdstools.utils.streamlit_utils.filter_dataframe
+   pdstools.utils.streamlit_utils.model_and_row_counts
    pdstools.utils.streamlit_utils.configure_predictor_categorization
+   pdstools.utils.streamlit_utils.convert_df
+   pdstools.utils.streamlit_utils.process_files
 
 
 
@@ -38,7 +42,10 @@ Functions
 .. py:function:: fromFilePath(**opts)
 
 
-.. py:function:: filter_dataframe(df: polars.LazyFrame, schema: Optional[dict] = None) -> polars.LazyFrame
+.. py:function:: model_selection_df(df: polars.LazyFrame, context_keys: list)
+
+
+.. py:function:: filter_dataframe(df: polars.LazyFrame, schema: Optional[dict] = None, queries=[]) -> polars.LazyFrame
 
    Adds a UI on top of a dataframe to let viewers filter columns
 
@@ -49,6 +56,37 @@ Functions
    :rtype: pl.LazyFrame
 
 
+.. py:function:: model_and_row_counts(df: pdstools.utils.types.any_frame)
+
+   Returns unique model id count and row count from a dataframe
+
+   :param df: The input dataframe
+   :type df: Union[pl.DataFrame, pl.LazyFrame]
+
+   :returns: unique model count
+             row count
+   :rtype: Tuple[int, int]
+
+
 .. py:function:: configure_predictor_categorization()
+
+
+.. py:function:: convert_df(df)
+
+
+.. py:function:: process_files(file_paths: List[str], file_name: str) -> Tuple[bytes, str]
+
+   Processes a list of file paths. If there's only one file, returns the file's content as bytes
+   and the provided file name. If there are multiple files, creates a zip file containing all the files
+   and returns the zip file's data as bytes and the generated zip file name.
+
+   :param file_paths: A list of file paths to process.
+   :type file_paths: List[str]
+   :param file_name: The file name to use when returning the file or zip file's name.
+   :type file_name: str
+
+   :returns: The content of the single file as bytes and the file name if there's only one file,
+             or the zip file's data as bytes and the zip file's name if there are multiple files.
+   :rtype: (bytes, str)
 
 

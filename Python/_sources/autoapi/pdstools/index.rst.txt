@@ -118,10 +118,6 @@ Attributes
                           extract_keys can expand that cell to also show these values.
                           To extract these extra keys, set extract_keys to True.
    :kwtype extract_keys: bool, default = False
-   :keyword predictorCategorization: A Polars expression to determine the 'category' of a predictor.
-                                     If None, uses PredictorCategory that is already there.
-                                     See: :meth:`pdstools.utils.cdh_utils.defaultPredictorCategorization`
-   :kwtype predictorCategorization: pl.Expr, default = :meth:`cdh_utils.defaultPredictorCategorization`
    :keyword verbose: Whether to print out information during importing
    :kwtype verbose: bool, default = False
    :keyword \*\*reading_opts: Additional parameters used while reading.
@@ -563,62 +559,42 @@ Attributes
       with "NA" string
 
 
-   .. py:method:: generateHealthCheck(name: Optional[str] = None, output_location: pathlib.Path = Path('.'), working_dir: pathlib.Path = Path('.'), delete_temp_files=True, output_type='html', include_tables=True, allow_collect=True, *, modelData_only: bool = False, **kwargs)
+   .. py:method:: generateReport(name: Optional[str] = None, working_dir: pathlib.Path = Path('.'), *, modelid: Optional[str] = '', delete_temp_files: bool = True, output_type: str = 'html', allow_collect: bool = True, cached_data: bool = False, predictordetails_activeonly: bool = False, **kwargs)
 
-      Manually generates a Health Check
+      Generates a report based on the provided parameters. If modelid is provided, a model report will be generated.
+      If not, an overall HealthCheck report will be generated.
 
-      The recommended way to run the Health Check is through the Streamlit app,
-      which you get to by running `pdstools run` in your terminal/command line.
-      However, it's also possible to directly run the Health Check from the
-      ADMDatamart class, providing a little bit more flexibility.
+      :param name: The name of the report.
+      :type name: Optional[str], default = None
+      :param working_dir: The working directory. Cached files will be written here.
+      :type working_dir: Path, default = Path(".")
+      :param \*:
 
-      Internally, this method uses :meth:`.save_data` to save the model and
-      predictor files to disk, which Quarto then picks up to generate.
-
-      By running this method directly, you have control over the exact
-      filters you want to use. Simply use the top-level :attr:`.query`
-      argument to filter the ADMDatamart class to the desired level.
-
-      This method also propagates the predictorCategorization used by the ADMDatamart
-      class into the Health Check. Simply set the `predictorCategorization` to a
-      supported function and this will be reflected in the Health Check:
-      see :meth:`pdstools.utils.cdh_utils.defaultPredictorCategorization`.
-
-      :param name: The name of the Health Check file
-      :type name: Optional[str]
-      :param output_location: The output location of the generated file
-      :type output_location: str, default = '.'
-      :param working_dir: The directory in which to create the health check
-      :type working_dir: str, default = '.'
-      :param delete_temp_files: Whether to delete the temporary files used  while generating the file
-                                If false, these files stay in working_dir
-      :type delete_temp_files: bool, default = True
-      :param output_type: Which type of export to create. Currently, html is best supported.
-      :type output_type: : str, default = 'html'
-      :param include_tables: Whether to include the embedded tables directly in the file
-                             If false, you can always get the tables directly by calling
-                             :meth:`.exportTables`
-      :type include_tables: bool, default = True
-      :param allow_collect: An override for the `lazy` memory_strategy. If set to True, still allows
-                            for collecting of data. Naturally, we need to collect the data in order
-                            to cache it to disk for the health check, so if set to False
-                            with a `lazy` memory_strategy, you won't be able to generate.
-      :type allow_collect: bool, default = True
-
-      :keyword modelData_only: If set to True, calls model-based Health Check files. Can be used if
-                               predictor binning data is missing
-      :kwtype modelData_only: bool, default = False
-
-      :returns: The full path to the generated Health Check file.
-      :rtype: str
+      :keyword modelid: The model id,
+      :kwtype modelid: Optional[str], default = ""
+      :keyword delete_temp_files: Whether to delete temporary files.
+      :kwtype delete_temp_files: bool, default = True
+      :keyword output_type: The type of the output file.
+      :kwtype output_type: str, default = "html"
+      :keyword allow_collect: Whether to allow collection of data.
+      :kwtype allow_collect: bool, default = True
+      :keyword cached_data: Whether to use cached data.
+      :kwtype cached_data: bool, default = False
+      :keyword del_cache: Whether to delete cache.
+      :kwtype del_cache: bool, default = True
+      :keyword predictordetails_activeonly: Whether to only include active predictor details.
+      :kwtype predictordetails_activeonly: bool, default = False
+      :keyword \*\*kwargs: Additional keyword arguments.
 
 
-   .. py:method:: exportTables(file: pathlib.Path = 'Tables.xlsx')
+   .. py:method:: exportTables(file: pathlib.Path = 'Tables.xlsx', predictorBinning=False)
 
       Exports all tables from `pdstools.adm.Tables` into one Excel file.
 
       :param file: The file name of the exported Excel file
       :type file: Path, default = 'Tables.xlsx'
+      :param predictorBinning: If False, the 'predictorbinning' table will not be created
+      :type predictorBinning: bool, default = True
 
 
 

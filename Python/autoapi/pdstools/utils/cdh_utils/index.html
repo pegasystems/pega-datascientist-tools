@@ -244,7 +244,9 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../Health-Check/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">Health</span> <span class="pre">Check</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../1Data-Import/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">1-Data</span> <span class="pre">Import</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../2Data-Filters/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">2-Data</span> <span class="pre">Filters</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../3-Reports/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">3-</span> <span class="pre">Reports</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -341,10 +343,10 @@ of data analysis, reporting and monitoring.</p>
 <tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.toPRPCDateTime" title="pdstools.utils.cdh_utils.toPRPCDateTime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">toPRPCDateTime</span></code></a>(→ str)</p></td>
 <td><p>Convert to a Pega date-time string</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.weighed_average_polars" title="pdstools.utils.cdh_utils.weighed_average_polars"><code class="xref py py-obj docutils literal notranslate"><span class="pre">weighed_average_polars</span></code></a>(→ polars.Expr)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.weighted_average_polars" title="pdstools.utils.cdh_utils.weighted_average_polars"><code class="xref py py-obj docutils literal notranslate"><span class="pre">weighted_average_polars</span></code></a>(→ polars.Expr)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.weighed_performance_polars" title="pdstools.utils.cdh_utils.weighed_performance_polars"><code class="xref py py-obj docutils literal notranslate"><span class="pre">weighed_performance_polars</span></code></a>(→ polars.Expr)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.weighted_performance_polars" title="pdstools.utils.cdh_utils.weighted_performance_polars"><code class="xref py py-obj docutils literal notranslate"><span class="pre">weighted_performance_polars</span></code></a>(→ polars.Expr)</p></td>
 <td><p>Polars function to return a weighted performance</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.cdh_utils.zRatio" title="pdstools.utils.cdh_utils.zRatio"><code class="xref py py-obj docutils literal notranslate"><span class="pre">zRatio</span></code></a>(, negCol)</p></td>
@@ -676,8 +678,8 @@ False it will return in datetime type</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.weighed_average_polars">
-<span class="sig-name descname"><span class="pre">weighed_average_polars</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.Expr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.Expr</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.weighed_average_polars" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.weighted_average_polars">
+<span class="sig-name descname"><span class="pre">weighted_average_polars</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.Expr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.Expr</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.weighted_average_polars" title="Link to this definition">#</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -692,8 +694,8 @@ False it will return in datetime type</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.weighed_performance_polars">
-<span class="sig-name descname"><span class="pre">weighed_performance_polars</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.weighed_performance_polars" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py" id="pdstools.utils.cdh_utils.weighted_performance_polars">
+<span class="sig-name descname"><span class="pre">weighted_performance_polars</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.utils.cdh_utils.weighted_performance_polars" title="Link to this definition">#</a></dt>
 <dd><p>Polars function to return a weighted performance</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -903,8 +905,8 @@ will prompt you to update them.</p>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils._polarsCapitalize"><code class="docutils literal notranslate"><span class="pre">_polarsCapitalize()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.fromPRPCDateTime"><code class="docutils literal notranslate"><span class="pre">fromPRPCDateTime()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.toPRPCDateTime"><code class="docutils literal notranslate"><span class="pre">toPRPCDateTime()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.utils.cdh_utils.weighed_average_polars"><code class="docutils literal notranslate"><span class="pre">weighed_average_polars()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.utils.cdh_utils.weighed_performance_polars"><code class="docutils literal notranslate"><span class="pre">weighed_performance_polars()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.weighted_average_polars"><code class="docutils literal notranslate"><span class="pre">weighted_average_polars()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.cdh_utils.weighted_performance_polars"><code class="docutils literal notranslate"><span class="pre">weighted_performance_polars()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.zRatio"><code class="docutils literal notranslate"><span class="pre">zRatio()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.lift"><code class="docutils literal notranslate"><span class="pre">lift()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.cdh_utils.LogOdds"><code class="docutils literal notranslate"><span class="pre">LogOdds()</span></code></a></li>
