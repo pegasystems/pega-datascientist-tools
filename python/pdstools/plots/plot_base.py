@@ -2,8 +2,8 @@ from typing import Optional, Union, Dict, List, Any
 import polars as pl
 from .plots_plotly import ADMVisualisations as plotly
 from ..utils.cdh_utils import (
-    weighed_performance_polars,
-    weighed_average_polars,
+    weighted_performance_polars,
+    weighted_average_polars,
 )
 from ..utils.errors import NotApplicableError
 from ..utils.types import any_frame
@@ -119,7 +119,7 @@ class Plots:
         if facets:
             df = df.join(
                 df.group_by(facets + ["PredictorName"])
-                .agg(weighed_average_polars(to_plot, "ResponseCountBin"))
+                .agg(weighted_average_polars(to_plot, "ResponseCountBin"))
                 .filter(pl.col(to_plot).is_not_nan())
                 .group_by(*facets)
                 .agg(
@@ -134,7 +134,7 @@ class Plots:
         else:
             df = df.join(
                 df.group_by("PredictorName")
-                .agg(weighed_average_polars(to_plot, "ResponseCountBin"))
+                .agg(weighted_average_polars(to_plot, "ResponseCountBin"))
                 .filter(pl.col(to_plot).is_not_nan())
                 .sort(to_plot, descending=True)
                 .head(top_n)
@@ -487,10 +487,10 @@ class Plots:
                 df.group_by_dynamic("SnapshotTime", every=every, by=group_by)
                 .agg(
                     [
-                        weighed_average_polars("SuccessRate", "ResponseCount").alias(
+                        weighted_average_polars("SuccessRate", "ResponseCount").alias(
                             "SuccessRate"
                         ),
-                        weighed_performance_polars().alias("weighted_performance"),
+                        weighted_performance_polars().alias("weighted_performance"),
                     ]
                 )
                 .with_columns(pl.col("weighted_performance") * 100)
@@ -966,7 +966,7 @@ class Plots:
         df = (
             df.group_by(facets + ["ModelID", "PredictorCategory"])
             .agg(
-                weighed_average_polars("PerformanceBin", "ResponseCountBin").alias(
+                weighted_average_polars("PerformanceBin", "ResponseCountBin").alias(
                     "PerformanceBin"
                 )
             )
@@ -1065,7 +1065,9 @@ class Plots:
             .with_columns((pl.col("PerformanceBin") - 0.5) * 2)
             .group_by(by, "PredictorCategory")
             .agg(
-                Performance=weighed_average_polars("PerformanceBin", "BinResponseCount")
+                Performance=weighted_average_polars(
+                    "PerformanceBin", "BinResponseCount"
+                )
             )
             .with_columns(
                 Contribution=(

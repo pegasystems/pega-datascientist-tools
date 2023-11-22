@@ -1,10 +1,15 @@
+import os
+import zipfile
+import io
 import streamlit as st
-from typing import Optional
+from typing import Optional, List, Tuple
 import polars as pl
 from pathlib import Path
+from datetime import datetime
 from . import cdh_utils
 from ..adm.ADMDatamart import ADMDatamart
 from ..utils import datasets
+from ..utils.types import any_frame
 import plotly.express as px
 from .. import pega_io
 
@@ -22,7 +27,6 @@ def cachedDatamart(*args, **kwargs):
 
 def import_datamart(**opts):
     st.session_state["params"] = {}
-    st.session_state["modelhc"] = False
     st.write("### Data import")
 
     source = st.selectbox(
@@ -60,18 +64,19 @@ def fromUploadedFile(**opts):
         except Exception as e:
             st.write("Oh oh.", e)
     elif model_file is not None and predictor_file is None:
-        st.warning("""Please also upload the Predictor Binning file. 
+        st.warning(
+            """Please also upload the Predictor Binning file. 
                 If you don't have access to a predictor binning file
                 and want to run the Health Check only on the model snapshot, check the
                 checkbox below.
-                """)
+                """
+        )
         model_analysis = st.checkbox("Only run model-based Health Check")
         if model_analysis:
             try:
                 st.session_state["dm"] = cachedDatamart(
                     model_df=model_file, predictor_filename=None, **opts
                 )
-                st.session_state["modelhc"] = True
             except Exception as e:
                 st.write("Oh oh.", e)
 
@@ -145,8 +150,6 @@ def fromFilePath(**opts):
                     import_strategy=import_strategy,
                     **opts,
                 )
-                st.session_state["modelhc"] = True
-
         else:
             st.session_state["dm"] = cachedDatamart(
                 path=dir,
@@ -157,7 +160,22 @@ def fromFilePath(**opts):
             )
 
 
-def filter_dataframe(df: pl.LazyFrame, schema: Optional[dict] = None) -> pl.LazyFrame:
+def model_selection_df(df: pl.LazyFrame, context_keys: list):
+    df = (
+        df.select(["ModelID", "Configuration"] + context_keys + ["Name"])
+        .unique()
+        .sort("Name")
+        .select(pl.lit(False).alias("Generate Report"), pl.all())
+        .collect()
+        .to_pandas()
+    )
+
+    return df
+
+
+def filter_dataframe(
+    df: pl.LazyFrame, schema: Optional[dict] = None, queries=[]
+) -> pl.LazyFrame:
     """
     Adds a UI on top of a dataframe to let viewers filter columns
 
@@ -172,45 +190,35 @@ def filter_dataframe(df: pl.LazyFrame, schema: Optional[dict] = None) -> pl.Lazy
         The filtered LazyFrame
 
     """
-
-    queries = []
-
     to_filter_columns = st.multiselect(
         "Filter dataframe on", df.columns, key="multiselect"
     )
-    if "uniques" not in st.session_state:
-        st.session_state["uniques"] = {}
-        st.session_state["selected"] = {}
     for column in to_filter_columns:
         left, right = st.columns((1, 20))
         left.write("## ↳")
 
         # Treat columns with < 20 unique values as categorical
         if (df.schema[column] == pl.Categorical) or (df.schema[column] == pl.Utf8):
-            if column not in st.session_state.uniques.keys():
-                st.session_state.uniques[column] = (
+            if f"categories_{column}" not in st.session_state.keys():
+                st.session_state[f"categories_{column}"] = (
                     df.select(pl.col(column).unique()).collect().to_series().to_list()
                 )
-            if column not in st.session_state.selected.keys():
-                st.session_state.selected[column] = st.session_state.uniques[column]
-            if len(st.session_state.uniques[column]) < 20:
-                options = st.session_state.uniques[column]
-                previously_selected = st.session_state["selected"][column]
+            if f"selected_{column}" not in st.session_state.keys():
+                st.session_state[f"selected_{column}"] = st.session_state[
+                    f"categories_{column}"
+                ]
+            if len(st.session_state[f"categories_{column}"]) < 200:
+                options = st.session_state[f"categories_{column}"]
                 selected = right.multiselect(
                     f"Values for {column}",
                     options,
-                    default=previously_selected,
-                    key=f"{column}",
+                    key=f"selected_{column}",
                 )
-                st.session_state["selected"][column] = selected
-                if (
-                    st.session_state["selected"][column]
-                    != st.session_state.uniques[column]
-                ):
+                if selected != st.session_state[f"categories_{column}"]:
                     queries.append(
                         pl.col(column)
                         .cast(pl.Utf8)
-                        .is_in(st.session_state["selected"][column])
+                        .is_in(st.session_state[f"selected_{column}"])
                     )
             else:
                 user_text_input = right.text_input(
@@ -220,16 +228,30 @@ def filter_dataframe(df: pl.LazyFrame, schema: Optional[dict] = None) -> pl.Lazy
                     queries.append(pl.col(column).str.contains(user_text_input))
 
         elif df.schema[column] in pl.NUMERIC_DTYPES:
+            min_col, max_col = right.columns((1, 1))
             _min = float(df.select(pl.min(column)).collect().item())
             _max = float(df.select(pl.max(column)).collect().item())
-            step = (_max - _min) / 100
-            user_num_input = right.slider(
-                f"Values for {column}",
-                min_value=_min,
-                max_value=_max,
-                value=(_min, _max),
-                step=step,
-            )
+            if _max - _min <= 200:
+                user_num_input = right.slider(
+                    f"Values for {column}",
+                    min_value=_min,
+                    max_value=_max,
+                    value=(_min, _max),
+                )
+            else:
+                user_min = min_col.number_input(
+                    label=f"Min value for {column} (Min:{_min})",
+                    min_value=_min,
+                    max_value=_max,
+                    value=_min,
+                )
+                user_max = max_col.number_input(
+                    label=f"Max value for {column} (Max:{_max})",
+                    min_value=_min,
+                    max_value=_max,
+                    value=_max,
+                )
+                user_num_input = [user_min, user_max]
             if user_num_input[0] != _min or user_num_input[1] != _max:
                 queries.append(pl.col(column).is_between(*user_num_input))
         elif df.schema[column] in pl.TEMPORAL_DTYPES:
@@ -246,6 +268,35 @@ def filter_dataframe(df: pl.LazyFrame, schema: Optional[dict] = None) -> pl.Lazy
     return queries
 
 
+def model_and_row_counts(df: any_frame):
+    """
+    Returns unique model id count and row count from a dataframe
+
+    Parameters
+    ----------
+    df: Union[pl.DataFrame, pl.LazyFrame]
+        The input dataframe
+
+    Returns
+    -------
+    Tuple[int, int]
+        unique model count
+        row count
+    """
+    if isinstance(df, pl.DataFrame):
+        df = df.lazy()
+
+    counts = df.select(
+        unique_model_id_count=pl.approx_n_unique("ModelID"),
+        row_count=pl.count("ModelID"),
+    ).collect()
+
+    unique_model_id_count = counts.get_column("unique_model_id_count")[0]
+    row_count = counts.get_column("row_count")[0]
+
+    return unique_model_id_count, row_count
+
+
 def configure_predictor_categorization():
     df = st.session_state["dm"].combinedData
     if len(st.session_state["filters"]) > 0:
@@ -256,7 +307,7 @@ def configure_predictor_categorization():
         .with_columns((pl.col("PerformanceBin") - 0.5) * 2)
         .group_by("PredictorCategory")
         .agg(
-            Performance=cdh_utils.weighed_average_polars(
+            Performance=cdh_utils.weighted_average_polars(
                 "PerformanceBin", "BinResponseCount"
             )
         )
@@ -275,6 +326,49 @@ def configure_predictor_categorization():
         title="Contribution of different sources",
     )
     st.plotly_chart(fig)
+
+
+@st.cache
+def convert_df(df):
+    return df.write_csv().encode("utf-8")
+
+
+def process_files(file_paths: List[str], file_name: str) -> Tuple[bytes, str]:
+    """
+    Processes a list of file paths. If there's only one file, returns the file's content as bytes
+    and the provided file name. If there are multiple files, creates a zip file containing all the files
+    and returns the zip file's data as bytes and the generated zip file name.
+
+    Parameters
+    ----------
+    file_paths : List[str]
+        A list of file paths to process.
+    file_name : str
+        The file name to use when returning the file or zip file's name.
+
+    Returns
+    -------
+    (bytes, str)
+        The content of the single file as bytes and the file name if there's only one file,
+        or the zip file's data as bytes and the zip file's name if there are multiple files.
+    """
+    if len(file_paths) == 1:
+        file_name = file_name.split("/")[-1] if "/" in file_name else file_name
+        with open(file_paths[0], "rb") as file:
+            return file.read(), file_name
+    elif len(file_paths) > 1:
+        in_memory_zip = io.BytesIO()
+        with zipfile.ZipFile(in_memory_zip, "w") as zipf:
+            for file_path in file_paths:
+                zipf.write(
+                    file_path,
+                    os.path.basename(file_path),
+                    compress_type=zipfile.ZIP_DEFLATED,
+                )
+        time = datetime.now().strftime("%Y%m%dT%H%M%S.%f")[:-3]
+        file_name = f"ModelReports_{time}.zip"
+        in_memory_zip.seek(0)
+        return in_memory_zip.read(), file_name
 
 
 # def newPredictorCategorizationFunc():

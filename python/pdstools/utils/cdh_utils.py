@@ -556,7 +556,7 @@ def toPRPCDateTime(dt: datetime.datetime) -> str:
     return dt.strftime("%Y%m%dT%H%M%S.%f")[:-3] + dt.strftime(" GMT%z")
 
 
-def weighed_average_polars(
+def weighted_average_polars(
     vals: Union[str, pl.Expr], weights: Union[str, pl.Expr]
 ) -> pl.Expr:
     if isinstance(vals, str):
@@ -566,9 +566,9 @@ def weighed_average_polars(
     return ((vals * weights).sum()) / weights.sum()
 
 
-def weighed_performance_polars() -> pl.Expr:
+def weighted_performance_polars() -> pl.Expr:
     """Polars function to return a weighted performance"""
-    return weighed_average_polars("Performance", "ResponseCount")
+    return weighted_average_polars("Performance", "ResponseCount")
 
 
 def zRatio(
@@ -664,7 +664,7 @@ def LogOdds(
 # TODO: reconsider this. Feature importance now stored in datamart
 # perhaps we should not bother to calculate it ourselves.
 def featureImportance(over=["PredictorName", "ModelID"]):
-    varImp = weighed_average_polars(
+    varImp = weighted_average_polars(
         LogOdds(
             pl.col("BinPositives"), pl.col("BinResponseCount") - pl.col("BinPositives")
         ),

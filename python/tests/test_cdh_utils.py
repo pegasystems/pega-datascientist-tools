@@ -133,7 +133,9 @@ def test_toPRPCDateTime():
         == "20180316T134127.847 GMT-0456"
     )
     assert (
-        cdh_utils.toPRPCDateTime(datetime.datetime(2018, 3, 16, 13, 41, 27, 847000))[:-3]
+        cdh_utils.toPRPCDateTime(datetime.datetime(2018, 3, 16, 13, 41, 27, 847000))[
+            :-3
+        ]
         == "20180316T134127.847 GMT+0000"[:-3]
     )
 
@@ -149,7 +151,7 @@ def test_weighted_average_polars():
     output = (
         input.group_by("Channel")
         .agg(
-            cdh_utils.weighed_average_polars("SuccessRate", "ResponseCount").alias(
+            cdh_utils.weighted_average_polars("SuccessRate", "ResponseCount").alias(
                 "SuccessRate_weighted"
             ),
         )
@@ -165,7 +167,7 @@ def test_weighted_average_polars():
     output = (
         input.filter(pl.col("Channel") == "SMS")
         .with_columns(
-            cdh_utils.weighed_average_polars(
+            cdh_utils.weighted_average_polars(
                 vals="SuccessRate", weights="ResponseCount"
             ).alias("weighted_average")
         )
@@ -184,7 +186,7 @@ def test_weighted_average_polars():
     assert output.frame_equal(expected_output)
 
 
-def test_weighed_performance_polars():
+def test_weighted_performance_polars():
     input = pl.DataFrame(
         {
             "Performance": [0.5, 0.8, 0.75, 0.5],  # 0.6, 0.6
@@ -195,7 +197,7 @@ def test_weighed_performance_polars():
 
     output = (
         input.group_by("Channel")
-        .agg(cdh_utils.weighed_performance_polars())
+        .agg(cdh_utils.weighted_performance_polars())
         .sort("Channel")
     )
 

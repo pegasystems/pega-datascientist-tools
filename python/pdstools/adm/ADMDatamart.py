@@ -4,13 +4,13 @@ import logging
 import os
 import shutil
 import subprocess
-from datetime import datetime, timedelta
 from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict, List, Literal, NoReturn, Optional, Tuple, Union
 
 import polars as pl
 import yaml
+import glob
 
 from ..plots.plot_base import Plots
 from ..plots.plots_plotly import ADMVisualisations as plotly_plot
@@ -66,10 +66,6 @@ class ADMDatamart(Plots, Tables):
         Extra keys, particularly pyTreatment, are hidden within the pyName column.
         extract_keys can expand that cell to also show these values.
         To extract these extra keys, set extract_keys to True.
-    predictorCategorization : pl.Expr, default = :meth:`cdh_utils.defaultPredictorCategorization`
-        A Polars expression to determine the 'category' of a predictor.
-        If None, uses PredictorCategory that is already there.
-        See: :meth:`pdstools.utils.cdh_utils.defaultPredictorCategorization`
     verbose : bool, default = False
         Whether to print out information during importing
     **reading_opts
@@ -713,7 +709,7 @@ class ADMDatamart(Plots, Tables):
                     if isinstance(item, pl.Expr):
                         col_diff = set(item.meta.root_names()) - set(df.columns)
                         if len(col_diff) == 0:
-                            return df.filter(item)
+                            df = df.filter(item)
                         else:
                             raise pl.ColumnNotFoundError(col_diff)
                     else:
@@ -970,19 +966,19 @@ class ADMDatamart(Plots, Tables):
                     .sum()
                     .alias("Count_without_responses"),
                     (
-                        cdh_utils.weighed_performance_polars().alias(
-                            "Performance_weighted"
-                        )
+                        cdh_utils.weighted_performance_polars()
+                        .alias("Performance_weighted")
+                        .fill_nan(0.5)
                     ),
-                    cdh_utils.weighed_average_polars(
-                        "SuccessRate", "ResponseCount"
-                    ).alias("SuccessRate_weighted"),
+                    cdh_utils.weighted_average_polars("SuccessRate", "ResponseCount")
+                    .fill_nan(0.0)
+                    .alias("SuccessRate_weighted"),
                 ],
             )
             .with_columns(
-                (pl.col("Count_without_responses") / pl.col(f"{by}_count")).alias(
-                    "Percentage_without_responses"
-                )
+                (pl.col("Count_without_responses") / pl.col(f"{by}_count"))
+                .alias("Percentage_without_responses")
+                .fill_nan(0.0)
             )
         )
 
@@ -1029,16 +1025,16 @@ class ADMDatamart(Plots, Tables):
                 df.unique(subset=[by], keep="first")
                 .group_by(by)
                 .agg(
-                    cdh_utils.weighed_average_polars("PerformanceBin", "ResponseCount")
+                    cdh_utils.weighted_average_polars("PerformanceBin", "ResponseCount")
                 )
                 .sort("PerformanceBin", descending=True)
                 .head(top_n)
                 .select(by)
             )
-            df = top_n_xaxis.join(df, on=by, how="left") 
+            df = top_n_xaxis.join(df, on=by, how="left")
         if by not in ["ModelID", "Name"]:
             df = df.group_by([by, "PredictorName"]).agg(
-                cdh_utils.weighed_average_polars("PerformanceBin", "ResponseCount")
+                cdh_utils.weighted_average_polars("PerformanceBin", "ResponseCount")
             )
         df = (
             df.collect()
@@ -1259,178 +1255,195 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         )
         return self.processTables()
 
-    def generateHealthCheck(
+    def generateReport(
         self,
         name: Optional[str] = None,
-        output_location: Path = Path("."),
         working_dir: Path = Path("."),
-        delete_temp_files=True,
-        output_type="html",
-        include_tables=True,
-        allow_collect=True,
         *,
-        modelData_only: bool = False,
+        modelid: Optional[str] = "",
+        delete_temp_files: bool = True,
+        output_type: str = "html",
+        allow_collect: bool = True,
+        cached_data: bool = False,
+        predictordetails_activeonly: bool = False,
         **kwargs,
     ):
-        """Manually generates a Health Check
-
-        The recommended way to run the Health Check is through the Streamlit app,
-        which you get to by running `pdstools run` in your terminal/command line.
-        However, it's also possible to directly run the Health Check from the
-        ADMDatamart class, providing a little bit more flexibility.
-
-        Internally, this method uses :meth:`.save_data` to save the model and
-        predictor files to disk, which Quarto then picks up to generate.
-
-        By running this method directly, you have control over the exact
-        filters you want to use. Simply use the top-level :attr:`.query`
-        argument to filter the ADMDatamart class to the desired level.
-
-        This method also propagates the predictorCategorization used by the ADMDatamart
-        class into the Health Check. Simply set the `predictorCategorization` to a
-        supported function and this will be reflected in the Health Check:
-        see :meth:`pdstools.utils.cdh_utils.defaultPredictorCategorization`.
+        """
+        Generates a report based on the provided parameters. If modelid is provided, a model report will be generated.
+        If not, an overall HealthCheck report will be generated.
 
         Parameters
         ----------
-        name : Optional[str]
-            The name of the Health Check file
-        output_location : str, default = '.'
-            The output location of the generated file
-        working_dir : str, default = '.'
-            The directory in which to create the health check
-        delete_temp_files : bool, default = True
-            Whether to delete the temporary files used  while generating the file
-            If false, these files stay in working_dir
-        output_type: : str, default = 'html'
-            Which type of export to create. Currently, html is best supported.
-        include_tables : bool, default = True
-            Whether to include the embedded tables directly in the file
-            If false, you can always get the tables directly by calling
-            :meth:`.exportTables`
-        allow_collect : bool, default = True
-            An override for the `lazy` memory_strategy. If set to True, still allows
-            for collecting of data. Naturally, we need to collect the data in order
-            to cache it to disk for the health check, so if set to False
-            with a `lazy` memory_strategy, you won't be able to generate.
-        Keyword arguments
+        name : Optional[str], default = None
+            The name of the report.
+        working_dir : Path, default = Path(".")
+            The working directory. Cached files will be written here.
+        *
+        Keyword Arguments
         -----------------
-        modelData_only: bool, default = False
-            If set to True, calls model-based Health Check files. Can be used if
-            predictor binning data is missing
-
-        Returns
-        -------
-        str:
-            The full path to the generated Health Check file.
+        modelid : Optional[str], default = ""
+            The model id,
+        delete_temp_files : bool, default = True
+            Whether to delete temporary files.
+        output_type : str, default = "html"
+            The type of the output file.
+        allow_collect : bool, default = True
+            Whether to allow collection of data.
+        cached_data : bool, default = False
+            Whether to use cached data.
+        del_cache : bool, default = True
+            Whether to delete cache.
+        predictordetails_activeonly : bool, default = False
+            Whether to only include active predictor details.
+        **kwargs
+            Additional keyword arguments.
         """
 
-        def delete_temp_files(working_dir, files, del_log=True):
-            temp_files = files + (
-                "params.yaml",
-                "HealthCheck.qmd",
-                "HealthCheck.ipynb",
-                "HealthCheckModel.qmd",
-                "HealthCheckModel.ipynb",
-            )
+        # Define helper functions
+        def _delete_temp_files(working_dir, del_log=False):
+            extensions = [".yaml", ".qmd", ".ipynb", ".arrow"]
+            for ext in extensions:
+                for f in glob.glob(f"{working_dir}/*{ext}"):
+                    try:
+                        os.remove(f)
+                    except:
+                        pass
             if del_log:
-                temp_files += tuple(["log.txt"])
-            for f in temp_files:
                 try:
-                    os.remove(f"{working_dir}/{f}")
+                    os.remove(f"{working_dir}/log.txt")
                 except:
                     pass
 
-        working_dir, output_location = Path(working_dir), Path(output_location)
+        def get_report_files(modelid):
+            if modelid == "":
+                return "HealthCheck.qmd", "HealthCheck"
+            else:
+                return "ModelReport.qmd", "ModelReport"
 
-        from pdstools import __reports__
+        def get_output_filename(name, report, modelid, output_type):
+            if name is not None:
+                name = name.replace(" ", "_")
+            if report == "ModelReport":
+                if modelid is not None:
+                    if name is not None:
+                        return f"{report}_{name}_{modelid}.{output_type}"
+                    else:
+                        return f"{report}_{modelid}.{output_type}"
+                else:
+                    raise ValueError("ModelID cannot be None for a ModelReport.")
+            elif report == "HealthCheck":
+                if name is not None:
+                    return f"{report}_{name}.{output_type}"
+                else:
+                    return f"{report}.{output_type}"
+            else:
+                raise ValueError("Invalid report type.")
 
+        def check_output_file(working_dir, output_filename, verbose, delete_temp_files):
+            if not os.path.exists(working_dir / output_filename):
+                msg = "Error when generating healthcheck."
+                if not verbose and not kwargs.get("output_to_file", False):
+                    msg += "Set 'verbose' to True to see the full output"
+                if delete_temp_files:
+                    _delete_temp_files(working_dir)
+                raise ValueError(msg)
+
+        def get_files(working_dir, cached_data):
+            if not cached_data:
+                return self.save_data(working_dir)
+            else:
+                modeldata_files = glob.glob(f"{working_dir}/cached_modelData*")
+                predictordata_files = glob.glob(f"{working_dir}/cached_predictorData*")
+                if modeldata_files:
+                    modeldata_cache = modeldata_files[0]
+                else:
+                    raise FileNotFoundError("No cached model data found.")
+                if predictordata_files:
+                    predictordata_cache = predictordata_files[0]
+                else:
+                    predictordata_cache = None
+                return modeldata_cache, predictordata_cache
+
+        def get_params(modelid, predictordetails_activeonly):
+            return {
+                "kwargs": {
+                    "subset": False,
+                    "modelid": modelid,
+                    "predictordetails_activeonly": predictordetails_activeonly,
+                },
+            }
+
+        def run_bash_command(bashCommand, working_dir, **kwargs):
+            if not kwargs.get("verbose", self.verbose):
+                stdout, stderr = subprocess.DEVNULL, None
+            else:
+                print("Set verbose=False to hide output.")
+                print("Running:", bashCommand)
+                stdout, stderr = subprocess.PIPE, subprocess.STDOUT
+            if kwargs.get("output_to_file", False):
+                with open(f"{working_dir}/log.txt", "w") as outfile:
+                    process = subprocess.Popen(
+                        bashCommand.split(),
+                        stdout=outfile,
+                        stderr=stderr,
+                        cwd=working_dir,
+                    )
+                    process.communicate()
+            else:
+                process = subprocess.Popen(
+                    bashCommand.split(), stdout=stdout, stderr=stderr, cwd=working_dir
+                )
+                process.communicate()
+
+        # Main function logic
+        healthcheck_file, report = get_report_files(modelid)
         verbose = kwargs.get("verbose", self.verbose)
-        if modelData_only:
-            healthcheck_file = "HealthCheckModel.qmd"
-            if self.modelData is None:
-                raise AssertionError("Needs model data.")
-        else:
-            healthcheck_file = "HealthCheck.qmd"
-            if self.modelData is None or self.predictorData is None:
-                raise AssertionError("Needs both model and predictor data.")
+
         if self.import_strategy == "lazy" and not allow_collect:
-            raise NotEagerError("Generating healthcheck")
+            raise NotEagerError(f"Generating {report}")
         if not os.path.exists(working_dir):
             os.mkdir(working_dir)
 
+        from pdstools import __reports__
+
         shutil.copy(__reports__ / healthcheck_file, working_dir)
-        if name is not None:
-            output_filename = f"HealthCheck_{name.replace(' ', '_')}.{output_type}"
-        else:
-            output_filename = f"ADM_HealthCheck.{output_type}"
-
-        files = self.save_data(working_dir)
-
-        params = {
-            "kwargs": {"subset": False, "predictorCategorization": None},
-            "include_tables": include_tables,
-        }
+        output_filename = get_output_filename(name, report, modelid, output_type)
+        files = get_files(working_dir, cached_data)
+        params = get_params(modelid, predictordetails_activeonly)
 
         with open(f"{working_dir}/params.yaml", "w") as f:
             yaml.dump(params, f)
 
         bashCommand = f"quarto render {healthcheck_file} --to {output_type} --output {output_filename} --execute-params params.yaml"
-        if not verbose:
-            stdout, stderr = subprocess.DEVNULL, None
-        else:
-            print("Set verbose=False to hide output.")
-            print("Running:", bashCommand)
-            stdout, stderr = subprocess.PIPE, subprocess.STDOUT
-        if kwargs.get("output_to_file", False):
-            with open(f"{working_dir}/log.txt", "w") as outfile:
-                process = subprocess.Popen(
-                    bashCommand.split(), stdout=outfile, stderr=stderr, cwd=working_dir
-                )
-                process.communicate()
-
-        else:
-            process = subprocess.Popen(
-                bashCommand.split(), stdout=stdout, stderr=stderr, cwd=working_dir
-            )
-            process.communicate()
-        if not os.path.exists(working_dir / output_filename):
-            msg = "Error when generating healthcheck."
-            if not verbose and not kwargs.get("output_to_file", False):
-                msg += "Set 'verbose' to True to see the full output"
-            if delete_temp_files:
-                delete_temp_files(working_dir, files, del_log=False)
-            raise ValueError(msg)
-
-        filename = f"{output_location}/{output_filename}"
-
-        if output_location != working_dir:
-            if os.path.isfile(filename):
-                counter = 1
-                filename, ext = output_filename.rsplit(".", 1)
-                while os.path.isfile(f"{filename} ({counter}).{ext}"):
-                    counter += 1
-                filename = f"{filename} ({counter}).{ext}"
-            shutil.move(f"{working_dir}/{output_filename}", filename)
-
+        run_bash_command(bashCommand, working_dir, **kwargs)
+        check_output_file(working_dir, output_filename, verbose, delete_temp_files)
         if delete_temp_files:
-            delete_temp_files(working_dir, files)
+            _delete_temp_files(working_dir, files)
 
-        return filename
+        return f"{working_dir}/{output_filename}"
 
-    def exportTables(self, file: Path = "Tables.xlsx"):
+    def exportTables(self, file: Path = "Tables.xlsx", predictorBinning=False):
         """Exports all tables from `pdstools.adm.Tables` into one Excel file.
 
         Parameters
         ----------
         file: Path, default = 'Tables.xlsx'
             The file name of the exported Excel file
+        predictorBinning: bool, default = True
+            If False, the 'predictorbinning' table will not be created
 
         """
         from xlsxwriter import Workbook
 
-        tabs = {tab: getattr(self, tab) for tab in self.ApplicableTables}
-        with Workbook(file) as wb:
+        if predictorBinning:
+            tabs = {tab: getattr(self, tab) for tab in self.ApplicableTables}
+        else:
+            tabs = {
+                tab: getattr(self, tab)
+                for tab in self.ApplicableTablesNoPredictorBinning
+            }
+
+        with Workbook(file, {"nan_inf_to_errors": True}) as wb:
             for tab, data in tabs.items():
                 data = data.with_columns(
                     pl.col(pl.List(pl.Categorical), pl.List(pl.Utf8))
