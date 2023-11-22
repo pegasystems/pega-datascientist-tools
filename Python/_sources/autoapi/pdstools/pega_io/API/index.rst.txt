@@ -14,7 +14,8 @@ Functions
 .. autoapisummary::
 
    pdstools.pega_io.API._readClientCredentialFile
-   pdstools.pega_io.API.getToken
+   pdstools.pega_io.API.get_URL
+   pdstools.pega_io.API.get_token
    pdstools.pega_io.API.setupAzureOpenAI
 
 
@@ -22,7 +23,12 @@ Functions
 .. py:function:: _readClientCredentialFile(credentialFile)
 
 
-.. py:function:: getToken(credentialFile: str, verify: bool = True, **kwargs)
+.. py:function:: get_URL(credentialFile: str)
+
+   Returns the URL of the Infinity instance in the credential file
+
+
+.. py:function:: get_token(credentialFile: str, verify: bool = True, **kwargs)
 
    Get API credentials to a Pega Platform instance.
 
@@ -43,7 +49,7 @@ Functions
    :kwtype url: str
 
 
-.. py:function:: setupAzureOpenAI(api_base: str = 'https://aze-openai-01.openai.azure.com/', api_version: Literal[2022-12-01, 2023-03-15-preview, 2023-05-15, 2023-06-01-preview, 2023-07-01-preview, 2023-09-15-preview] = '2023-09-15-preview')
+.. py:function:: setupAzureOpenAI(api_base: str = 'https://aze-openai-01.openai.azure.com/', api_version: Literal[2022-12-01, 2023-03-15-preview, 2023-05-15, 2023-06-01-preview, 2023-07-01-preview, 2023-09-15-preview, 2023-10-01-preview, 2023-12-01-preview] = '2023-12-01-preview')
 
    Convenience function to automagically setup Azure AD-based authentication
    for the Azure OpenAI service. Mostly meant as an internal tool within Pega,

@@ -315,34 +315,37 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.pega_io._readClientCredentialFile" title="pdstools.pega_io._readClientCredentialFile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_readClientCredentialFile</span></code></a>(credentialFile)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.pega_io.getToken" title="pdstools.pega_io.getToken"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getToken</span></code></a>(credentialFile[, verify])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.pega_io.get_URL" title="pdstools.pega_io.get_URL"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_URL</span></code></a>(credentialFile)</p></td>
+<td><p>Returns the URL of the Infinity instance in the credential file</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.pega_io.get_token" title="pdstools.pega_io.get_token"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_token</span></code></a>(credentialFile[, verify])</p></td>
 <td><p>Get API credentials to a Pega Platform instance.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.pega_io.setupAzureOpenAI" title="pdstools.pega_io.setupAzureOpenAI"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setupAzureOpenAI</span></code></a>(api_base, api_version, ...)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.pega_io.setupAzureOpenAI" title="pdstools.pega_io.setupAzureOpenAI"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setupAzureOpenAI</span></code></a>(api_base, api_version, ...)</p></td>
 <td><p>Convenience function to automagically setup Azure AD-based authentication</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.pega_io.fromPRPCDateTime" title="pdstools.pega_io.fromPRPCDateTime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fromPRPCDateTime</span></code></a>(→ Union[datetime.datetime, str])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.pega_io.fromPRPCDateTime" title="pdstools.pega_io.fromPRPCDateTime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fromPRPCDateTime</span></code></a>(→ Union[datetime.datetime, str])</p></td>
 <td><p>Convert from a Pega date-time string.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.pega_io.readDSExport" title="pdstools.pega_io.readDSExport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readDSExport</span></code></a>(→ polars.LazyFrame)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.pega_io.readDSExport" title="pdstools.pega_io.readDSExport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readDSExport</span></code></a>(→ polars.LazyFrame)</p></td>
 <td><p>Read a Pega dataset export file.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.pega_io.import_file" title="pdstools.pega_io.import_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">import_file</span></code></a>(→ polars.LazyFrame)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.pega_io.import_file" title="pdstools.pega_io.import_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">import_file</span></code></a>(→ polars.LazyFrame)</p></td>
 <td><p>Imports a file using Polars</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.pega_io.readZippedFile" title="pdstools.pega_io.readZippedFile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readZippedFile</span></code></a>(→ io.BytesIO)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.pega_io.readZippedFile" title="pdstools.pega_io.readZippedFile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readZippedFile</span></code></a>(→ io.BytesIO)</p></td>
 <td><p>Read a zipped NDJSON file.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.pega_io.readMultiZip" title="pdstools.pega_io.readMultiZip"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readMultiZip</span></code></a>(files[, zip_type, verbose])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.pega_io.readMultiZip" title="pdstools.pega_io.readMultiZip"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readMultiZip</span></code></a>(files[, zip_type, verbose])</p></td>
 <td><p>Reads multiple zipped ndjson files, and concats them to one Polars dataframe.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.pega_io.get_latest_file" title="pdstools.pega_io.get_latest_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_latest_file</span></code></a>(→ str)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.pega_io.get_latest_file" title="pdstools.pega_io.get_latest_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_latest_file</span></code></a>(→ str)</p></td>
 <td><p>Convenience method to find the latest model snapshot.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.pega_io.getMatches" title="pdstools.pega_io.getMatches"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getMatches</span></code></a>(files_dir, target)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.pega_io.getMatches" title="pdstools.pega_io.getMatches"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getMatches</span></code></a>(files_dir, target)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.pega_io.cache_to_file" title="pdstools.pega_io.cache_to_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cache_to_file</span></code></a>(→ str)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.pega_io.cache_to_file" title="pdstools.pega_io.cache_to_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cache_to_file</span></code></a>(→ str)</p></td>
 <td><p>Very simple convenience function to cache data.</p></td>
 </tr>
 </tbody>
@@ -354,8 +357,19 @@
 <dd></dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="pdstools.pega_io.getToken">
-<span class="sig-name descname"><span class="pre">getToken</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">credentialFile</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verify</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.pega_io.getToken" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py" id="pdstools.pega_io.get_URL">
+<span class="sig-name descname"><span class="pre">get_URL</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">credentialFile</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.pega_io.get_URL" title="Link to this definition">#</a></dt>
+<dd><p>Returns the URL of the Infinity instance in the credential file</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>credentialFile</strong> (<em>str</em>) – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.pega_io.get_token">
+<span class="sig-name descname"><span class="pre">get_token</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">credentialFile</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verify</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.pega_io.get_token" title="Link to this definition">#</a></dt>
 <dd><p>Get API credentials to a Pega Platform instance.</p>
 <p>After setting up OAuth2 authentication in Dev Studio, you should
 be able to download a credential file. Simply point this method to that file,
@@ -379,7 +393,7 @@ to customize this (to a different port, etc).</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.pega_io.setupAzureOpenAI">
-<span class="sig-name descname"><span class="pre">setupAzureOpenAI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">api_base:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'https://aze-openai-01.openai.azure.com/'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_version:</span> <span class="pre">Literal[2022-12-01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">2023-03-15-preview</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">2023-05-15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">2023-06-01-preview</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">2023-07-01-preview</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">2023-09-15-preview]</span> <span class="pre">=</span> <span class="pre">'2023-09-15-preview'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.pega_io.setupAzureOpenAI" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">setupAzureOpenAI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">api_base:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'https://aze-openai-01.openai.azure.com/'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_version:</span> <span class="pre">Literal[2022-12-01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">2023-03-15-preview</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">2023-05-15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">2023-06-01-preview</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">2023-07-01-preview</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">2023-09-15-preview</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">2023-10-01-preview</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">2023-12-01-preview]</span> <span class="pre">=</span> <span class="pre">'2023-12-01-preview'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.pega_io.setupAzureOpenAI" title="Link to this definition">#</a></dt>
 <dd><p>Convenience function to automagically setup Azure AD-based authentication
 for the Azure OpenAI service. Mostly meant as an internal tool within Pega,
 but can of course also be used beyond.</p>
@@ -798,7 +812,8 @@ Typically, this is the top-level folder in the bucket.</p></li>
 <li><a class="reference internal" href="#classes">Classes</a></li>
 <li><a class="reference internal" href="#functions">Functions</a><ul>
 <li><a class="reference internal" href="#pdstools.pega_io._readClientCredentialFile"><code class="docutils literal notranslate"><span class="pre">_readClientCredentialFile()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.pega_io.getToken"><code class="docutils literal notranslate"><span class="pre">getToken()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.get_URL"><code class="docutils literal notranslate"><span class="pre">get_URL()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.get_token"><code class="docutils literal notranslate"><span class="pre">get_token()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.pega_io.setupAzureOpenAI"><code class="docutils literal notranslate"><span class="pre">setupAzureOpenAI()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.pega_io.fromPRPCDateTime"><code class="docutils literal notranslate"><span class="pre">fromPRPCDateTime()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.pega_io.readDSExport"><code class="docutils literal notranslate"><span class="pre">readDSExport()</span></code></a></li>
