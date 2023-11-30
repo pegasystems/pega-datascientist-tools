@@ -68,6 +68,7 @@ with health_check:
                 file_name=Path(
                     st.session_state["run"][st.session_state["runID"]]["name"]
                 ).name,
+                key="HealthCheckDownload",
             )
 
         st.title("Create Excel Tables")
@@ -98,6 +99,7 @@ with health_check:
                 label="Download additional tables",
                 data=st.session_state["run"][st.session_state["runID"]]["tablefile"],
                 file_name=st.session_state["run"][st.session_state["runID"]]["tables"],
+                key="TablesDownload",
             )
 
     except Exception as e:
@@ -110,6 +112,7 @@ with health_check:
                 label="Download error log",
                 data=f,
                 file_name="errorlog.txt",
+                key="ErrorLogDownload",
             )
 
         for filename in os.listdir(working_dir):
@@ -204,6 +207,7 @@ if st.session_state["dm"].predictorData is not None:
                             label="Download Model Reports",
                             data=st.session_state["model_report_files"],
                             file_name=st.session_state["model_report_name"],
+                            key="ModelReportDownload",
                         )
                         st.balloons()
                         st.session_state["data_is_cached"] = False
@@ -218,6 +222,7 @@ if st.session_state["dm"].predictorData is not None:
                     label="Download error log",
                     data=f,
                     file_name="errorlog.txt",
+                    key="ErrorLogDownload"
                 )
 
             for filename in os.listdir(working_dir):
