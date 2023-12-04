@@ -299,7 +299,10 @@ def cdhsample_predictors():
 def test_import_models_only(cdhsample_models):
     assert cdhsample_models.shape == (20, 23)
     output = ADMDatamart(
-        model_df=cdhsample_models, predictor_filename=None, verbose=True
+        model_df=cdhsample_models,
+        predictor_filename=None,
+        verbose=True,
+        context_keys=["Channel", "Issue", "Group"],
     )
     assert output.modelData is not None
     assert output.modelData.shape == (20, 13)
@@ -324,6 +327,7 @@ def test_init_both(cdhsample_models, cdhsample_predictors):
         predictor_df=cdhsample_predictors.lazy(),
         model_filename=None,
         predictor_filename=None,
+        context_keys=["Channel", "Issue", "Group"],
     )
     assert output.modelData is not None
     assert output.modelData.shape == (20, 13)

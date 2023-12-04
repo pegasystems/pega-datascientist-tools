@@ -128,7 +128,6 @@ class ADMDatamart(Plots, Tables):
         self.verbose = verbose
         self.query = query
         self.predictorCategorization = predictorCategorization
-        self.context_keys = context_keys
 
         self.modelData, self.predictorData = self.import_data(
             path,
@@ -142,14 +141,15 @@ class ADMDatamart(Plots, Tables):
             extract_keys=extract_keys,
             **reading_opts,
         )
+        if self.modelData is not None:
+            missing_context_keys = [
+                key for key in self.context_keys if key not in self.modelData.columns
+            ]
+            if missing_context_keys:
+                self.modelData = self.modelData.with_columns(
+                    *[pl.lit("NA").alias(key) for key in missing_context_keys]
+                )
 
-        missing_context_keys = [
-            key for key in context_keys if key not in self.modelData
-        ]
-        if missing_context_keys:
-            self.modelData = self.modelData.with_columns(
-                *[pl.lit("NA").alias(key) for key in missing_context_keys]
-            )
         self.plotting_engine = plotting_engine
         super().__init__()
 
