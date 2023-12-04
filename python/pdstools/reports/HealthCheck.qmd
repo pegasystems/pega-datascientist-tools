@@ -79,10 +79,9 @@ def quarto_callout_no_predictor_data_warning(extra=""):
     quarto_callout_important(f"Predictor Data is not available. {extra}")
 
 
-#
-#
-#
-#
+```
+
+```{python}
 # | tags: [parameters]
 # | echo: false
 
@@ -143,10 +142,10 @@ quarto_print(
 # Initialize the class after the parameters have been overwritten.
 
 if len(kwargs) > 0:
-    # streamlit call
+    # Calling through function (in streamlit or in a notebook)
     datamart = ADMDatamart(**kwargs, include_cols="pyFeatureImportance").fillMissing()
 elif len(datafolder) > 0 or len(modelfilename) > 0 or len(predictorfilename) > 0:
-    # command line call
+    # Run through this qmd file
     datamart = ADMDatamart(
         path="." if len(datafolder) == 0 else datafolder,
         model_filename="" if len(modelfilename) == 0 else modelfilename,
