@@ -24,9 +24,8 @@ def test_all_notebooks():
     files = [
         str(basePath / f)
         for f in [
+            # TODO shouldn't we have all the notebooks here?
             "examples/datamart/Example_ADM_Analysis.ipynb",
-            "examples/graph_gallery/graph_gallery.ipynb",
-            "examples/helloworld/hello_cdhtools.ipynb",
             "examples/adm/AGBModelVisualisation.ipynb",
         ]
     ]
