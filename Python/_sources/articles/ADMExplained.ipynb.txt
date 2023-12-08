@@ -11,7 +11,7 @@
                 "\n",
                 "__2023-03-15__\n",
                 "\n",
-                "This notebook shows exactly how all the values in an adm model report\n",
+                "This notebook shows exactly how all the values in an ADM model report\n",
                 "are calculated. It also shows how the propensity is calculated for a\n",
                 "particular customer.\n",
                 "\n",
