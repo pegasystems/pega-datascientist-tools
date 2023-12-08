@@ -5,6 +5,7 @@ library(pdstools)
 library(arrow)
 library(jsonlite)
 library(lubridate)
+library(R.utils)
 
 # Sets a few global variables for the run_report functions. Call this first. Acts
 # like a constructor in a proper language.
@@ -117,34 +118,51 @@ report_utils_write_cached_files <- function(dm, model_filename, preds_filename)
 }
 
 # Drop old HTML files and orphaned hash files (that have no reference)
-report_utils_cleanup_cache <- function(folder = report_utils_results_folder, keep_days = 7)
+report_utils_cleanup_helper <- function(folder, keep_days, file_pattern, is_obsolete)
 {
-  is_obsolete <- function(f, before = now() - days(keep_days)) {
-    fileModificationTime(f) < before
+  generated_files <- list.files(folder,
+                                pattern=file_pattern,
+                                full.names = TRUE, recursive = FALSE)
+  obsolete_files <- c()
+  if (length(generated_files) > 0) {
+    obsolete_files <- generated_files[sapply(generated_files, is_obsolete)]
   }
 
-  obsolete_files <- sapply(list.files(folder, pattern=".*[.]html$", full.names = TRUE, recursive = FALSE), is_obsolete)
-  obsolete_files <- obsolete_files[obsolete_files]
+  # print(obsolete_files)
 
-  print(names(obsolete_files))
-  cat("Removing", length(obsolete_files), "obsolete HTML files from", folder, fill = T)
-
+  cat("Removing", length(obsolete_files), "obsolete", file_pattern, "files from", folder, fill = T)
   if (length(obsolete_files) > 0) {
-    file.remove(names(obsolete_files))
-  }
-
-  hashFiles <- list.files(path=folder,
-                          pattern = ".*[.]hash$", full.names = T)
-  hashFileReferences <- gsub("(.*)[.]hash$", "\\1", hashFiles) # reverse of report_utils_hashfilename
-  hashFileReferencesExist <- sapply(hashFileReferences, file.exists)
-  orphanedHashFiles <- hashFiles[!hashFileReferencesExist]
-
-  cat("Removing", length(orphanedHashFiles), "orphaned hash files from", folder, fill = T)
-
-  if (length(orphanedHashFiles) > 0) {
-    file.remove(orphanedHashFiles)
+    file.remove(obsolete_files)
   }
 }
+
+report_utils_cleanup_cache <- function(folder = report_utils_results_folder, keep_days = 7)
+{
+  is_too_old <- function(f, before = now() - days(keep_days)) {
+    return(fileModificationTime(f) < before)
+  }
+
+  has_no_reference <- function(f) {
+    hashFileReference <- gsub("(.*)[.]hash$", "\\1", f) # reverse of report_utils_hashfilename
+    return(!file.exists(hashFileReference))
+  }
+
+  report_utils_cleanup_helper(folder, keep_days, ".*[.]html$", is_too_old)
+  report_utils_cleanup_helper(folder, keep_days, ".*[.]hash$", has_no_reference)
+
+  # Do it for the report subfolders as well
+  sapply(list.files(folder, pattern = ".*Generated Model Reports$", full.names = T, include.dirs = T),
+         function(d) {
+           report_utils_cleanup_helper(d, keep_days, ".*[.]html$", is_too_old)
+
+           report_utils_cleanup_helper(d, keep_days, ".*[.]hash$", has_no_reference)
+         }
+  )
+
+  return()
+}
+
+
 
 # Change time of a file
 # TODO maybe this is overly sensitive on onedrive folders
@@ -152,9 +170,8 @@ fileModificationTime <- function(f) { as.POSIXct(file.info(f)$mtime) }
 
 # Generic markdown/quarto call that will check hashes and dates to prevent
 # unnecessary re-creation
-report_utils_run_report <- function(customer, dm, target_filename, target_generator_hash, renderer, quiet)
+report_utils_run_report <- function(customer, dm, target_fullfilename, target_generator_hash, renderer, quiet)
 {
-  destinationFullPath <- file.path(report_utils_results_folder, target_filename)
   cachedDMFilesFullName <- file.path(report_utils_intermediates_folder, report_utils_cached_dm_filenames(customer))
 
   # make sure cached source exist, otherwise re-create from dm data
@@ -164,15 +181,15 @@ report_utils_run_report <- function(customer, dm, target_filename, target_genera
   }
 
   # check if generator script has changed
-  if (report_utils_is_target_current(destinationFullPath, target_generator_hash, quiet = quiet)) {
-    if (!quiet) cat("Modification date", target_filename, ":", fileModificationTime(destinationFullPath), fill=T)
+  if (report_utils_is_target_current(target_fullfilename, target_generator_hash, quiet = quiet)) {
+    if (!quiet) cat("Modification date", basename(target_fullfilename), ":", fileModificationTime(target_fullfilename), fill=T)
     if (!quiet) cat("Modification date DM data", report_utils_cached_dm_filenames(customer), ":", fileModificationTime(cachedDMFilesFullName), fill=T)
 
     # or if source files are newer
-    if (is.na(fileModificationTime(destinationFullPath)) | any(is.na(fileModificationTime(cachedDMFilesFullName))) |
-        any(fileModificationTime(cachedDMFilesFullName) > fileModificationTime(destinationFullPath))) {
+    if (is.na(fileModificationTime(target_fullfilename)) | any(is.na(fileModificationTime(cachedDMFilesFullName))) |
+        any(fileModificationTime(cachedDMFilesFullName) > fileModificationTime(target_fullfilename))) {
 
-      cat(target_filename, "out of date wrt source files", fill = TRUE)
+      cat(target_fullfilename, "out of date wrt source files", fill = TRUE)
 
       doRegenerate <- TRUE
     } else {
@@ -183,7 +200,7 @@ report_utils_run_report <- function(customer, dm, target_filename, target_genera
   }
 
   if (doRegenerate) {
-    cat("Creating", target_filename, fill = TRUE)
+    cat("Creating", basename(target_fullfilename), fill = TRUE)
 
     title <- paste0(customer, ' - Adaptive Models')
     subtitle <- paste(unique(c(
@@ -196,19 +213,19 @@ report_utils_run_report <- function(customer, dm, target_filename, target_genera
              ifelse(!is.null(dm$predictordata), basename(cachedDMFilesFullName[2]), ""),
              title,
              subtitle,
-             target_filename)
+             target_fullfilename)
 
     # writer renderer hash
-    report_utils_write_hashfiles(destinationFullPath, target_generator_hash)
+    report_utils_write_hashfiles(target_fullfilename, target_generator_hash)
   } else {
     # Touch target
-    Sys.setFileTime(normalizePath(destinationFullPath), lubridate::now())
-    Sys.setFileTime(report_utils_hashfilename(normalizePath(destinationFullPath)), lubridate::now())
+    Sys.setFileTime(normalizePath(target_fullfilename), lubridate::now())
+    Sys.setFileTime(report_utils_hashfilename(normalizePath(target_fullfilename)), lubridate::now())
 
-    cat("Skipped re-generation of", target_filename, fill = T)
+    cat("Skipped re-generation of", basename(target_fullfilename), fill = T)
   }
 
-  return(target_filename)
+  return(basename(target_fullfilename))
 }
 
 run_r_healthcheck <- function(customer, dm, quiet = T)
@@ -217,7 +234,8 @@ run_r_healthcheck <- function(customer, dm, quiet = T)
 
   report_utils_run_report(customer,
                           dm,
-                          target_filename = paste0(customer, ' - ADM Health Check - classic.html'),
+                          target_fullfilename = file.path(report_utils_results_folder,
+                                                          paste0(customer, ' - ADM Health Check - classic.html')),
                           target_generator_hash = r_health_check_hash,
                           renderer = function(filenameModelData,
                                               filenamePredictorData,
@@ -229,6 +247,7 @@ run_r_healthcheck <- function(customer, dm, quiet = T)
                             if (!quiet) cat("  modelfile:", paste0('"', file.path(report_utils_intermediates_folder, filenameModelData), '"'), fill=T)
                             if (!quiet) cat("  predictordatafile:", paste0('"', file.path(report_utils_intermediates_folder, filenamePredictorData), '"'), fill=T)
 
+                            R.utils::mkdirs(dirname(destinationfile))
                             rmarkdown::render(
                               report_utils_healthcheck_notebook_R,
                               params = list(
@@ -237,8 +256,8 @@ run_r_healthcheck <- function(customer, dm, quiet = T)
                                 "title" = title,
                                 "subtitle" = subtitle
                               ),
-                              output_dir = report_utils_results_folder,
-                              output_file = destinationfile,
+                              output_dir = dirname(destinationfile),
+                              output_file = basename(destinationfile),
                               quiet = quiet,
                               intermediates_dir = report_utils_intermediates_folder,
                               knit_root_dir = report_utils_intermediates_folder
@@ -254,7 +273,8 @@ run_python_healthcheck <- function(customer, dm, quiet = T)
 
   report_utils_run_report(customer,
                           dm,
-                          target_filename = paste0(customer, ' - ADM Health Check - new.html'),
+                          target_fullfilename = file.path(report_utils_results_folder,
+                                                          paste0(customer, ' - ADM Health Check - new.html')),
                           target_generator_hash = python_health_check_hash,
                           renderer = function(filenameModelData,
                                               filenamePredictorData,
@@ -299,8 +319,9 @@ run_python_healthcheck <- function(customer, dm, quiet = T)
                             }
 
                             # TODO check status??
+                            R.utils::mkdirs(dirname(destinationfile))
                             file.copy(paste0(sub('\\..[^\\.]*$', '', report_utils_healthcheck_notebook_python), ".html"),
-                                      file.path(report_utils_results_folder, destinationfile),
+                                      destinationfile,
                                       overwrite = TRUE,
                                       copy.date = TRUE
                             )
@@ -351,7 +372,9 @@ run_r_model_reports <-function(customer, dm,
 
     report_utils_run_report(customer,
                             dm,
-                            target_filename = paste0(customer, " ", modelName, " - classic", ".html"),
+                            target_fullfilename = file.path(report_utils_results_folder,
+                                                            paste(customer, "Generated Model Reports", sep = " - "),
+                                                            paste0(customer, " ", modelName, " - classic", ".html")),
                             target_generator_hash = r_model_report_hash,
                             renderer = function(filenameModelData,
                                                 filenamePredictorData,
@@ -362,6 +385,7 @@ run_r_model_reports <-function(customer, dm,
                               if (!quiet) cat("  predictordatafile:", paste0('"', file.path(report_utils_intermediates_folder, filenamePredictorData), '"'), fill=T)
                               if (!quiet) cat("  modelid:", paste0('"', id, '"'), fill=T)
 
+                              R.utils::mkdirs(dirname(destinationfile))
                               rmarkdown::render(
                                 report_utils_offlinemodelreport_notebook_R,
                                 params = list(
@@ -369,8 +393,8 @@ run_r_model_reports <-function(customer, dm,
                                   "modeldescription" = modelName,
                                   "modelid" = id
                                 ),
-                                output_dir = report_utils_results_folder,
-                                output_file = destinationfile,
+                                output_dir = dirname(destinationfile),
+                                output_file = basename(destinationfile),
                                 quiet = quiet,
                                 intermediates_dir = report_utils_intermediates_folder,
                                 knit_root_dir = report_utils_intermediates_folder
@@ -410,7 +434,9 @@ run_python_model_reports <-function(customer, dm,
 
     report_utils_run_report(customer,
                             dm,
-                            target_filename = paste0(customer, " ", modelName, " - new", ".html"),
+                            target_fullfilename = file.path(report_utils_results_folder,
+                                                            paste(customer, "Generated Model Reports", sep = " - "),
+                                                            paste0(customer, " ", modelName, " - new", ".html")),
                             target_generator_hash = python_model_report_hash,
                             renderer = function(filenameModelData,
                                                 filenamePredictorData,
@@ -456,13 +482,14 @@ run_python_model_reports <-function(customer, dm,
                               }
 
                               # TODO check status??
+                              R.utils::mkdirs(dirname(destinationfile))
                               file.copy(paste0(sub('\\..[^\\.]*$', '', report_utils_offlinemodelreport_notebook_python), ".html"),
-                                        file.path(report_utils_results_folder, destinationfile),
+                                        destinationfile,
                                         overwrite = TRUE,
                                         copy.date = TRUE
                               )
 
-                              if (!quiet) cat("Created", file.path(report_utils_results_folder, destinationfile), fill=T)
+                              if (!quiet) cat("Created", destinationfile, fill=T)
                             },
                             quiet = quiet
     )
