@@ -16,7 +16,7 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "# Analyzing ADM Decision Trees\n",
+    "# Analyzing ADM AGB models\n",
     "\n",
     "With the introduction of ADM Gradient Boosting, we now support tree-based models in ADM as an alternative to the traditional Bayesian approach. In prediction studio, there is some information on the predictors, the model performance et cetera. However, it is also possible to export the trees themselves to analyze them further. This example demonstrates some of the info you can extract yourself, including a visualisation of the actual trees - which also allows you to check the exact 'path' a prediction used through each individual tree. \n",
     "\n",
