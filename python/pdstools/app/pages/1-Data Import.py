@@ -31,3 +31,6 @@ with st.expander("Configure advanced options", expanded=True):
         )
 
 streamlit_utils.import_datamart(**opts)
+for key in st.session_state.keys():
+    if key not in ["dm", "params"]:
+        del st.session_state[key]
