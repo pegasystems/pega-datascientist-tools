@@ -478,12 +478,7 @@ class Plots:
             multi_snapshot=multi_snapshot,
             include_cols=[by],
         )
-        df = df.collect()
-        ## Fill with a dummy date if snapshot is null
-        if df.select("SnapshotTime").null_count().row(0)[0] == df.height:
-            df = df.with_columns(
-                pl.lit(datetime(2000, 1, 1)).alias("SnapshotTime")
-            ).lazy()
+        df = df.sort(by="SnapshotTime")
 
         group_by = [by]
         if len(facets) > 0 and facets[0] is not None:
