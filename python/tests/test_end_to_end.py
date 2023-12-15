@@ -45,7 +45,7 @@ def test_end_to_end():
     }
     assert set(datamart.modelData.columns) == modelcols
 
-    assert datamart.predictorData.shape == (70735, 18)
+    assert datamart.predictorData.shape == (70735, 19)
     predcols = {
         "ModelID",
         "Positives",
@@ -64,17 +64,18 @@ def test_end_to_end():
         "BinPropensity",
         "BinAdjustedPropensity",
         "Contents",
-        "PredictorCategory"
+        "PredictorCategory",
+        "GroupIndex"
     }
     assert set(datamart.predictorData.columns) == predcols
 
-    assert datamart.combinedData.shape == (4576, 32)
+    assert datamart.combinedData.shape == (4576, 33)
     assert set(datamart.combinedData.columns) == modelcols.union(predcols).union(
         {"PerformanceBin", "PositivesBin", "ResponseCountBin", "SnapshotTimeBin"}
     )
 
     assert datamart.last().shape == (68, 15)
-    assert datamart.last("predictorData").shape == (4576, 18)
+    assert datamart.last("predictorData").shape == (4576, 19)
     assert datamart.modelData.schema["SnapshotTime"] == pl.Datetime
 
     assert datamart.context_keys == ["Channel", "Direction", "Issue", "Group"]
@@ -89,6 +90,7 @@ def test_end_to_end():
         "EntryType",
         "BinNegatives",
         "Contents",
+        "GroupIndex"
     }
 
     assert datamart.missing_preds == {
@@ -132,6 +134,7 @@ def test_end_to_end():
         "BinResponseCount",
         "PredictorName",
         "Contents",
+        "GroupIndex"
     }
 
     assert isinstance(datamart.plotPerformanceSuccessRateBubbleChart(), Figure)
