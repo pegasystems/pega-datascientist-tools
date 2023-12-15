@@ -11,8 +11,3 @@ Module Contents
 
    
 
-.. py:data:: default_keys
-   :value: ['Channel', 'Direction', 'Issue', 'Group']
-
-   
-

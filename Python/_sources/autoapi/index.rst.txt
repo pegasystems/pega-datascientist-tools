@@ -7,8 +7,8 @@ This page contains auto-generated API reference documentation [#f1]_.
    :titlesonly:
 
    /autoapi/pdstools/index
-   /autoapi/3-Reports/index
    /autoapi/2Data-Filters/index
+   /autoapi/3-Reports/index
    /autoapi/1Data-Import/index
 
 .. [#f1] Created with `sphinx-autoapi <https://github.com/readthedocs/sphinx-autoapi>`_
