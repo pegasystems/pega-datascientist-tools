@@ -1,4 +1,5 @@
 from typing import Optional, Union, Dict, List, Any
+from datetime import datetime
 import polars as pl
 from .plots_plotly import ADMVisualisations as plotly
 from ..utils.cdh_utils import (
@@ -57,8 +58,8 @@ class Plots:
                 "plotPredictorPerformance": [1, 1, 0],
                 "plotPredictorPerformanceHeatmap": [1, 1, 0],
                 "plotImpactInfluence": [1, 1, 0],
-                "plotResponseGain": [1, 0, 0], # TODO: drop this see impl below
-                "plotModelsByPositives": [1, 0, 0], # TODO: drop this see impl below
+                "plotResponseGain": [1, 0, 0],  # TODO: drop this see impl below
+                "plotModelsByPositives": [1, 0, 0],  # TODO: drop this see impl below
                 "plotTreeMap": [1, 0, 0],
             }
         )
@@ -477,7 +478,12 @@ class Plots:
             multi_snapshot=multi_snapshot,
             include_cols=[by],
         )
-        df = df.sort(by="SnapshotTime")
+        df = df.collect()
+        ## Fill with a dummy date if snapshot is null
+        if df.select("SnapshotTime").null_count().row(0)[0] == df.height:
+            df = df.with_columns(
+                pl.lit(datetime(2000, 1, 1)).alias("SnapshotTime")
+            ).lazy()
 
         group_by = [by]
         if len(facets) > 0 and facets[0] is not None:
