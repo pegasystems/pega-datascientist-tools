@@ -454,6 +454,7 @@ class ADMDatamart(Plots, Tables):
             "BinResponseCount",
             "Type",
             "Contents",
+            "GroupIndex",
         }  # NOTE: these default names are already capitalized properly, with py/px/pz removed.
 
         rename = {i: "Name" for i in df.columns if i.lower() == "modelname"}

@@ -118,6 +118,7 @@ def test_import_utils_with_importing(test):
         "PredictorName",
         "Treatment",
         "Type",
+        "GroupIndex"
     }
 
 
@@ -148,7 +149,7 @@ def test_import_utils(test, data):
         timestamp_fmt="%Y-%m-%d %H:%M:%S",
         typesetting_table="ADMModelSnapshot",
     )
-    assert len(missing) == 19
+    assert len(missing) == 20
     assert isinstance(output, pl.LazyFrame)
     output = output.collect()
     assert output.shape == (3, 3)
@@ -345,7 +346,7 @@ def test_filter_also_filters_predictorData():
         context_keys=["Issue", "Group", "Channel", "Direction"],
         verbose=True,
         query=pl.col("Channel") == "Email",
-    ).predictorData.shape == (18742, 18)
+    ).predictorData.shape == (18742, 19)
 
 
 def test_lazy_strategy():
