@@ -101,6 +101,7 @@ if len(kwargs) > 0:
     datamart = ADMDatamart(
         **kwargs, include_cols="pyFeatureImportance", query=pl.col("ModelID") == modelid
     ).fillMissing()
+    predictordetails_activeonly = kwargs["predictordetails_activeonly"]
 elif len(datafolder) > 0 or len(modelfilename) > 0 or len(predictorfilename) > 0:
     # command line call
     datamart = ADMDatamart(
