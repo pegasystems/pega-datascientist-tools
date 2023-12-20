@@ -110,7 +110,7 @@ class ValueFinder:
         self.StageOrder = (
             pl.DataFrame(
                 {"pyStage": self.NBADStages},
-                schema={"pyStage": pl.Categorical("physical")},
+                schema={"pyStage": pl.Enum(self.NBADStages)},
             )
             .select(pl.col("pyStage"))
             .lazy()
