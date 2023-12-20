@@ -150,6 +150,7 @@ elif len(datafolder) > 0 or len(modelfilename) > 0 or len(predictorfilename) > 0
         path="." if len(datafolder) == 0 else datafolder,
         model_filename="" if len(modelfilename) == 0 else modelfilename,
         predictor_filename="" if len(predictorfilename) == 0 else predictorfilename,
+        extract_keys=True,
         include_cols="pyFeatureImportance",
     ).fillMissing()
 else:
@@ -1575,7 +1576,7 @@ Very skewed results may be caused by prioritization elements like levers and wei
 #     by_as_list = by if isinstance(by,list) else [by]
 #     sortExpr = by_as_list + [sortExpr]
 
-# indexExpr = (pl.int_range(1, pl.count() + 1)/ pl.count()) if index is None else (pl.cumsum(index) / pl.sum(index))
+# indexExpr = (pl.int_range(1, pl.count() + 1)/ pl.count()) if index is None else (pl.cum_sum(index) / pl.sum(index))
 
 # gains_df = (
 #     df.lazy()
@@ -1584,7 +1585,7 @@ Very skewed results may be caused by prioritization elements like levers and wei
 #     .select(
 #         by_as_list +
 #         [indexExpr.over(by).cast(pl.Float64).alias("cum_x"),
-#         (pl.cumsum(value) / pl.sum(value)).over(by).cast(pl.Float64).alias("cum_y")]
+#         (pl.cum_sum(value) / pl.sum(value)).over(by).cast(pl.Float64).alias("cum_y")]
 #     )
 # )
 # # Add entry for the (0,0) point
@@ -1620,7 +1621,7 @@ def gains_table(df, value: str, index=None, by=None):
     indexExpr = (
         (pl.int_range(1, pl.count() + 1) / pl.count())
         if index is None
-        else (pl.cumsum(index) / pl.sum(index))
+        else (pl.cum_sum(index) / pl.sum(index))
     )
 
     if by is None:
@@ -1631,7 +1632,7 @@ def gains_table(df, value: str, index=None, by=None):
                 .sort(sortExpr, descending=True)
                 .select(
                     indexExpr.cast(pl.Float64).alias("cum_x"),
-                    (pl.cumsum(value) / pl.sum(value)).cast(pl.Float64).alias("cum_y"),
+                    (pl.cum_sum(value) / pl.sum(value)).cast(pl.Float64).alias("cum_y"),
                 ),
             ]
         )
@@ -1645,7 +1646,7 @@ def gains_table(df, value: str, index=None, by=None):
                 by_as_list
                 + [
                     indexExpr.over(by).cast(pl.Float64).alias("cum_x"),
-                    (pl.cumsum(value) / pl.sum(value))
+                    (pl.cum_sum(value) / pl.sum(value))
                     .over(by)
                     .cast(pl.Float64)
                     .alias("cum_y"),

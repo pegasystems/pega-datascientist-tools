@@ -794,7 +794,7 @@ class ADMDatamart(Plots, Tables):
             .group_by(by)
             .agg(pl.col("Modeldata").last())
             .collect()
-            .with_columns(pl.col("Modeldata").apply(lambda v: _getType(v)))
+            .with_columns(pl.col("Modeldata").map_elements(lambda v: _getType(v)))
             .to_dicts()
         )
         return {key: value for key, value in [i.values() for i in types]}
@@ -1082,7 +1082,7 @@ class ADMDatamart(Plots, Tables):
             .sort([by, "ResponseCount"], descending=True)
             .with_columns(
                 [
-                    (pl.cumsum("ResponseCount") / pl.sum("ResponseCount"))
+                    (pl.cum_sum("ResponseCount") / pl.sum("ResponseCount"))
                     .over(by)
                     .alias("TotalResponseFraction"),
                     ((pl.col(by).cumcount() + 1) / pl.count("ResponseCount"))
@@ -1121,7 +1121,7 @@ class ADMDatamart(Plots, Tables):
         return (
             modelsByPositives.join(
                 modelsByPositives["Positives"].cut(
-                    bins=list(range(0, 210, 10)),
+                    breaks=list(range(0, 210, 10)),
                     series=False,
                     category_label="PositivesBin",
                 ),
@@ -1447,7 +1447,9 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 for tab in self.ApplicableTablesNoPredictorBinning
             }
 
-        with Workbook(file, {"nan_inf_to_errors": True}) as wb:
+        with Workbook(
+            file, options={"nan_inf_to_errors": True, "remove_timezone": True}
+        ) as wb:
             for tab, data in tabs.items():
                 data = data.with_columns(
                     pl.col(pl.List(pl.Categorical), pl.List(pl.Utf8))

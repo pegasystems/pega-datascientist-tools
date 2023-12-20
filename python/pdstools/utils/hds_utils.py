@@ -308,9 +308,7 @@ class DataAnonymization:
 
         for col in df_.columns:
             try:
-                df_.get_column(col).map_dict({"": None}, default=pl.first()).cast(
-                    pl.Float64
-                )
+                df_.get_column(col).replace("", None).cast(pl.Float64)
                 types[col] = "numeric"
             except:
                 types[col] = "symbolic"
@@ -476,7 +474,7 @@ class DataAnonymization:
                 pl.when(
                     (pl.col(cols).is_not_null())
                     & (pl.col(cols).cast(pl.Utf8) != pl.lit(""))
-                    & (pl.col(cols).cast(pl.Utf8).is_in(["true", "false"]).is_not())
+                    & (pl.col(cols).cast(pl.Utf8).is_in(["true", "false"]).not_())
                 )
                 .then(hasher)
                 .otherwise(pl.col(cols))
@@ -495,9 +493,7 @@ class DataAnonymization:
             ).alias(col)
 
         df = self.df.with_columns(
-            pl.col(self.numeric_predictors_to_mask)
-            .map_dict({"": None}, default=pl.first())
-            .cast(pl.Float64)
+            pl.col(self.numeric_predictors_to_mask).replace("", None).cast(pl.Float64)
         ).with_columns(
             [
                 to_hash(

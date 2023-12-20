@@ -54,7 +54,7 @@ class ADMTrees:
             pl.col("SnapshotTime")
             .dt.round("1s")
             .cast(pl.Utf8)
-            .str.rstrip(".000000000"),
+            .str.strip_chars_end(".000000000"),
             pl.col("Modeldata").str.decode("base64"),
             pl.col("Configuration").cast(pl.Utf8),
         )
@@ -290,7 +290,9 @@ class ADMTreesModel:
                         self.model = self.trees["model"]["booster"]["trees"]
                     except Exception as e3:
                         try:
-                            self.model = self.trees["model"]["model"]["booster"]["trees"]
+                            self.model = self.trees["model"]["model"]["booster"][
+                                "trees"
+                            ]
                         except Exception as e4:
                             raise (e1, e2, e3, e4)
 
@@ -473,7 +475,9 @@ class ADMTreesModel:
             list(zip(total_split_list, total_gains_list)), schema=["split", "gains"]
         )
         gainsPerSplit = gainsPerSplit.with_columns(
-            predictor=pl.col("split").map_elements(lambda x: self.parseSplitValues(x)[0])
+            predictor=pl.col("split").map_elements(
+                lambda x: self.parseSplitValues(x)[0]
+            )
         )
         return splitsPerTree, gainsPerTree, gainsPerSplit
 
@@ -498,7 +502,7 @@ class ADMTreesModel:
                     .alias("values"),
                 ]
             )
-            .with_columns(n=pl.col("gains").list.lengths())
+            .with_columns(n=pl.col("gains").list.len())
         )
 
     def getSplitsRecursively(
@@ -1046,9 +1050,7 @@ class MultiTrees:
                 to_plot = tree.computeCategorizationOverTime(predictorCategorization)[0]
             outdf.append(
                 pl.DataFrame(to_plot).with_columns(
-                    SnapshotTime=pl.lit(timestamp).str.to_date(
-                        format="%Y-%m-%d %X"
-                    )
+                    SnapshotTime=pl.lit(timestamp).str.to_date(format="%Y-%m-%d %X")
                 )
             )
 

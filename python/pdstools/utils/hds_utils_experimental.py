@@ -185,7 +185,7 @@ class DataAnonymization2:
             try:
                 ser = df.get_column(col)
                 try:
-                    ser = ser.map_dict({"": None}, default=pl.first())
+                    ser = ser.replace("", None)
                 except Exception as e:
                     pass
                 ser.cast(pl.Float64)
@@ -324,11 +324,7 @@ class DataAnonymization2:
 
     def calculateNumericRanges(self, verbose=False):
         def minMaxFrame(df, columns_to_check):
-            col = (
-                pl.col(columns_to_check)
-                .map_dict({"": None}, default=pl.first())
-                .cast(pl.Float64)
-            )
+            col = pl.col(columns_to_check).replace("", None).cast(pl.Float64)
             return df.select(
                 col.min().suffix("_min"),
                 col.max().suffix("_max"),
@@ -543,7 +539,7 @@ class DataAnonymization2:
                 pl.when(
                     (pl.col(cols).is_not_null())
                     & (pl.col(cols).cast(pl.Utf8) != pl.lit(""))
-                    & (pl.col(cols).cast(pl.Utf8).is_in(["true", "false"]).is_not())
+                    & (pl.col(cols).cast(pl.Utf8).is_in(["true", "false"]).not_())
                 )
                 .then(hasher)
                 .otherwise(pl.col(cols))
@@ -565,9 +561,7 @@ class DataAnonymization2:
 
         try:
             df = df.with_columns(
-                pl.col(numerics_in_file)
-                .map_dict({"": None}, default=pl.first())
-                .cast(pl.Float64)
+                pl.col(numerics_in_file).replace("", None).cast(pl.Float64)
             ).with_columns(
                 [
                     to_hash(

@@ -7,9 +7,9 @@ def _readClientCredentialFile(credentialFile):  # pragma: no cover
     with open(credentialFile) as f:
         for idx, line in enumerate(f.readlines()):
             if (idx % 2) == 0:
-                key = line.rstrip("\n")
+                key = line.strip_chars_end("\n")
             else:
-                outputdict[key] = line.rstrip("\n")
+                outputdict[key] = line.strip_chars_end("\n")
         return outputdict
 
 
@@ -50,7 +50,7 @@ def get_token(credentialFile: str, verify: bool = True, **kwargs):  # pragma: no
         verify=verify,
     ).json()
     if "errors" in response:
-        raise ConnectionRefusedError(f"Error when connecting to infinity: {e}")
+        raise ConnectionRefusedError(f"Error when connecting to infinity: {response}")
     return response["access_token"]
 
 
@@ -64,7 +64,7 @@ def setupAzureOpenAI(
         "2023-07-01-preview",
         "2023-09-15-preview",
         "2023-10-01-preview",
-        "2023-12-01-preview"
+        "2023-12-01-preview",
     ] = "2023-12-01-preview",
 ):
     """Convenience function to automagically setup Azure AD-based authentication
