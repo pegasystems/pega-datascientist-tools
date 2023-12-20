@@ -37,7 +37,7 @@ fixDatamartFieldTypes <- function(dt)
   SnapshotTime <- NULL # Trick to silence R CMD Check warnings
 
   # some fields notoriously returned as char but are numeric
-  for (fld in c("Performance", "Positives", "Negatives", "BinLowerBound", "BinUpperBound")) {
+  for (fld in c("Performance", "Positives", "Negatives", "BinLowerBound", "BinUpperBound", "GroupIndex")) {
     if (fld %in% names(dt)) {
       if (!is.numeric(dt[[fld]])) dt[[fld]] <- as.numeric(as.character(dt[[fld]]))
     }
