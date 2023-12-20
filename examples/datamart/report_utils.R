@@ -49,8 +49,8 @@ report_utils_cached_dm_filenames <- function(customer)
   unspace <- function(c) { gsub(" ", "_", c, fixed = T) }
 
   return(c(
-    "modeldata" = paste0(unspace(customer), "_ModelSnapshots", ".arrow"),
-    "predictordata" = paste0(unspace(customer), "_PredictorSnapshots", ".arrow")
+    "modeldata" = paste0(unspace(customer), "_ModelSnapshots", ".parquet"),
+    "predictordata" = paste0(unspace(customer), "_PredictorSnapshots", ".parquet")
   ))
 }
 
@@ -105,15 +105,15 @@ report_utils_is_target_current <- function(targetfiles, expectedhash, quiet) {
   return(TRUE)
 }
 
-# write DM to cached arrow files
+# write DM to cached parquet files
 report_utils_write_cached_files <- function(dm, model_filename, preds_filename)
 {
   # write cached data
-  write_ipc_file(dm$modeldata, model_filename, compression = "uncompressed")
+  arrow::write_parquet(dm$modeldata, model_filename, compression = "uncompressed")
   if (is.null(dm$predictordata)) {
     file.create(preds_filename) # create empty, dummy file
   } else {
-    write_ipc_file(dm$predictordata, preds_filename, compression = "uncompressed")
+    arrow::write_parquet(dm$predictordata, preds_filename, compression = "uncompressed")
   }
 }
 
@@ -176,7 +176,7 @@ report_utils_run_report <- function(customer, dm, target_fullfilename, target_ge
 
   # make sure cached source exist, otherwise re-create from dm data
   if (!all(sapply(cachedDMFilesFullName, file.exists))) {
-    cat("Writing to arrow cache", dirname(cachedDMFilesFullName[1]), fill=T)
+    cat("Writing to parquet cache", dirname(cachedDMFilesFullName[1]), fill=T)
     report_utils_write_cached_files(dm, cachedDMFilesFullName[1], cachedDMFilesFullName[2])
   }
 
@@ -506,7 +506,7 @@ read_adm_datamartdata <- function(customer, block, quiet = T)
   # Hash of the code block to actually read the data - R specific trick, not portable
   codeHash <- digest::digest(substitute(block), "sha256")
 
-  # Target files with the datamart cached in arrow files
+  # Target files with the datamart cached in parquet files
   cachedDMFilesFullName <- file.path(report_utils_intermediates_folder, report_utils_cached_dm_filenames(customer))
 
   # Only do full read if necessary
