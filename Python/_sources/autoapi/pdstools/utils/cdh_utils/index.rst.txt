@@ -107,6 +107,21 @@ Functions
 
 .. py:function:: getTypeMapping(df, definition, verbose=False, **timestamp_opts)
 
+   This function is used to convert the data types of columns in a DataFrame to a desired types.
+   The desired types are defined in a `PegaDefaultTables` class.
+
+   :param df: The DataFrame whose columns' data types need to be converted.
+   :type df: pl.LazyFrame
+   :param definition: A `PegaDefaultTables` object that contains the desired data types for the columns.
+   :type definition: PegaDefaultTables
+   :param verbose: If True, the function will print a message when a column is not in the default table schema.
+   :type verbose: bool
+   :param timestamp_opts: Additional arguments for timestamp parsing.
+   :type timestamp_opts: str
+
+   :returns: A list with polars expressions for casting data types.
+   :rtype: List
+
 
 .. py:function:: set_types(df, table='infer', verbose=False, **timestamp_opts)
 
