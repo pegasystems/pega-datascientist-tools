@@ -11,6 +11,7 @@ import polars as pl
 import re
 import numpy as np
 import datetime
+import warnings
 from .types import any_frame
 from .errors import NotEagerError
 from .table_definitions import PegaDefaultTables
@@ -43,7 +44,7 @@ def defaultPredictorCategorization(
         x = pl.col(x)
     x = x.cast(pl.Utf8) if not isinstance(x, pl.Utf8) else x
     return (
-        pl.when(x.str.split(".").list.lengths() > 1)
+        pl.when(x.str.split(".").list.len() > 1)
         .then(x.str.split(".").list.get(0))
         .otherwise(pl.lit("Primary"))
     ).alias("PredictorCategory")
@@ -83,7 +84,7 @@ def _extract_keys(
 
     series = (
         df.select(
-            safeName().str.json_extract(),
+            safeName().str.json_decode(),
         )
         .unnest("tempName")
         .lazy()
@@ -143,6 +144,27 @@ def parsePegaDateTimeFormats(
 
 
 def getTypeMapping(df, definition, verbose=False, **timestamp_opts):
+    """
+    This function is used to convert the data types of columns in a DataFrame to a desired types.
+    The desired types are defined in a `PegaDefaultTables` class.
+
+    Parameters
+    ----------
+    df : pl.LazyFrame
+        The DataFrame whose columns' data types need to be converted.
+    definition : PegaDefaultTables
+        A `PegaDefaultTables` object that contains the desired data types for the columns.
+    verbose : bool
+        If True, the function will print a message when a column is not in the default table schema.
+    timestamp_opts : str
+        Additional arguments for timestamp parsing.
+
+    Returns
+    -------
+    List
+        A list with polars expressions for casting data types.
+    """
+
     def getMapping(columns, reverse=False):
         if not reverse:
             return dict(zip(columns, _capitalize(columns)))
@@ -153,18 +175,27 @@ def getTypeMapping(df, definition, verbose=False, **timestamp_opts):
     typed = getMapping(
         [col for col in dir(definition) if not col.startswith("__")], reverse=True
     )
+
     types = []
     for col, renamedCol in named.items():
         try:
             new_type = getattr(definition, typed[renamedCol])
-            if df.schema[col].base_type() != new_type:
-                if new_type == pl.Datetime and df.schema[col] != pl.Date:
+            original_type = df.schema[col].base_type()
+            if original_type == pl.Null:
+                if verbose:
+                    warnings.warn(f"Warning: {col} column is Null data type.")
+            elif original_type != new_type:
+                if original_type == pl.Categorical and new_type in pl.NUMERIC_DTYPES:
+                    types.append(pl.col(col).cast(pl.Utf8).cast(new_type))
+                elif new_type == pl.Datetime and original_type != pl.Date:
                     types.append(parsePegaDateTimeFormats(col, **timestamp_opts))
                 else:
                     types.append(pl.col(col).cast(new_type))
         except:
             if verbose:
-                print(f"Column {col} not in default table schema, can't set type.")
+                warnings.warn(
+                    f"Column {col} not in default table schema, can't set type."
+                )
     return types
 
 
@@ -615,13 +646,14 @@ def zRatio(
 
     return zRatioimpl(*getFracs(posCol, negCol), posCol.sum(), negCol.sum())
 
+
 def lift(
     posCol: pl.Expr = pl.col("BinPositives"), negCol: pl.Expr = pl.col("BinNegatives")
 ) -> pl.Expr:
     """Calculates the Lift for predictor bins.
 
-    The Lift is the ratio of the propensity in a particular bin over the average 
-    propensity. So a value of 1 is the average, larger than 1 means higher 
+    The Lift is the ratio of the propensity in a particular bin over the average
+    propensity. So a value of 1 is the average, larger than 1 means higher
     propensity, smaller means lower propensity.
 
     Parameters
@@ -641,10 +673,13 @@ def lift(
             # TODO not sure how polars (mis)behaves when there are no positives at all
             # I would hope for a NaN but base python doesn't do that. Polars perhaps.
             # Stijn: It does have proper None value support, may work like you say
-            binPos * (totalPos + totalNeg) / ((binPos + binNeg) * totalPos)
+            binPos
+            * (totalPos + totalNeg)
+            / ((binPos + binNeg) * totalPos)
         ).alias("Lift")
 
     return liftImpl(posCol, negCol, posCol.sum(), negCol.sum())
+
 
 def LogOdds(
     Positives=pl.col("Positives"),
@@ -674,7 +709,8 @@ def featureImportance(over=["PredictorName", "ModelID"]):
         varImp = varImp.over(over)
     return varImp
 
-def gains_table(df, value: str, index = None, by = None):
+
+def gains_table(df, value: str, index=None, by=None):
     """Calculates cumulative gains from any data frame.
 
     The cumulative gains are the cumulative values expressed
@@ -706,41 +742,48 @@ def gains_table(df, value: str, index = None, by = None):
     """
 
     sortExpr = pl.col(value) if index is None else pl.col(value) / pl.col(index)
-    indexExpr = (pl.int_range(1, pl.count() + 1)/ pl.count()) if index is None else (pl.cumsum(index) / pl.sum(index))
-    
+    indexExpr = (
+        (pl.int_range(1, pl.count() + 1) / pl.count())
+        if index is None
+        else (pl.cum_sum(index) / pl.sum(index))
+    )
+
     if by is None:
         gains_df = pl.concat(
             [
-                pl.DataFrame(data = {"cum_x" : [0.0], "cum_y" : [0.0]}).lazy(),
+                pl.DataFrame(data={"cum_x": [0.0], "cum_y": [0.0]}).lazy(),
                 df.lazy()
                 .sort(sortExpr, descending=True)
                 .select(
                     indexExpr.cast(pl.Float64).alias("cum_x"),
-                    (pl.cumsum(value) / pl.sum(value)).cast(pl.Float64).alias("cum_y")
-                )
+                    (pl.cum_sum(value) / pl.sum(value)).cast(pl.Float64).alias("cum_y"),
+                ),
             ]
         )
     else:
-        by_as_list = by if isinstance(by,list) else [by]
+        by_as_list = by if isinstance(by, list) else [by]
         sortExpr = by_as_list + [sortExpr]
         gains_df = (
             df.lazy()
             .sort(sortExpr, descending=True)
             .select(
-                by_as_list +
-                [indexExpr.over(by).cast(pl.Float64).alias("cum_x"),
-                (pl.cumsum(value) / pl.sum(value)).over(by).cast(pl.Float64).alias("cum_y")]
+                by_as_list
+                + [
+                    indexExpr.over(by).cast(pl.Float64).alias("cum_x"),
+                    (pl.cum_sum(value) / pl.sum(value))
+                    .over(by)
+                    .cast(pl.Float64)
+                    .alias("cum_y"),
+                ]
             )
         )
         # Add entry for the (0,0) point
         gains_df = pl.concat(
-            [
-                gains_df.group_by(by).agg(cum_x = pl.lit(0.0), cum_y = pl.lit(0.0)),
-                gains_df
-            ]
-        ).sort(by_as_list+["cum_x"])
+            [gains_df.group_by(by).agg(cum_x=pl.lit(0.0), cum_y=pl.lit(0.0)), gains_df]
+        ).sort(by_as_list + ["cum_x"])
 
     return gains_df.collect()
+
 
 # TODO: perhaps the color / plot utils should move into a separate file
 def legend_color_order(fig):

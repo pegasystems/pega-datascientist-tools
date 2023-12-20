@@ -777,7 +777,9 @@ class Plots:
         """Plots a bar chart of the performance of the predictors
 
         By default, this plot shows the performance over all models
-        Use the querying functionality to drill down into a more specific subset
+        Use the querying functionality to drill down into a more specific subset.
+        Picks top n predictors with highest weighted average Performance accross
+        models and then sorts the predictors according to the median value.
 
         Parameters
         ----------

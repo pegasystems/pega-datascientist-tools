@@ -109,9 +109,10 @@ class ValueFinder:
         self.NBADStages = ["Eligibility", "Applicability", "Suitability", "Arbitration"]
         self.StageOrder = (
             pl.DataFrame(
-                {"pyStage": self.NBADStages}, schema={"pyStage": pl.Categorical}
+                {"pyStage": self.NBADStages},
+                schema={"pyStage": pl.Categorical("physical")},
             )
-            .select(pl.col("pyStage").cat.set_ordering("physical"))
+            .select(pl.col("pyStage"))
             .lazy()
         )  # This pre-fills the stringcache to make the ordering of stages correct
         self.maxPropPerCustomer = self.df.group_by(["CustomerID", "pyStage"]).agg(
@@ -690,7 +691,7 @@ class ValueFinder:
             .explode(level)
             .unnest(level)
             .sort("pyStage")
-            .rename({level: "Name", "counts": "Count", "pyStage": "Stage"})
+            .rename({level: "Name", "count": "Count", "pyStage": "Stage"})
             .collect()
         )
         if return_df:

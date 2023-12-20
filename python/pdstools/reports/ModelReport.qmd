@@ -260,12 +260,12 @@ human_friendly_scoredistribution = (
         pl.col("BinSymbol").alias("Bin"),
         pl.col("BinResponseCount").alias("Responses"),
         pl.col("BinPositives").alias("Positives"),
-        (100 * (pl.col("BinPositives").cumsum(reverse=True)) / pl.sum("BinPositives"))
+        (100 * (pl.col("BinPositives").cum_sum(reverse=True)) / pl.sum("BinPositives"))
         .round(2)
         .alias("Cum. Positives (%)"),
         (
             100
-            * (pl.col("BinResponseCount").cumsum(reverse=True))
+            * (pl.col("BinResponseCount").cum_sum(reverse=True))
             / pl.sum("BinResponseCount")
         )
         .round(2)

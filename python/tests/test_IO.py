@@ -141,17 +141,17 @@ def polars_checks(df):
 
 def test_lazyframe_returns_itself(test_data):
     input = test_data
-    assert pega_io.readDSExport(input).collect().frame_equal(input.collect())
+    assert pega_io.readDSExport(input).collect().equals(input.collect())
 
 
 def test_dataframe_returns_itself(test_data):
     input = test_data
-    assert pega_io.readDSExport(input.collect()).collect().frame_equal(input.collect())
+    assert pega_io.readDSExport(input.collect()).collect().equals(input.collect())
 
 
 def test_pandasdataframe_returns_lazyframe(test_data):
     input = test_data.collect().to_pandas()
-    assert pega_io.readDSExport(input).collect().frame_equal(test_data.collect())
+    assert pega_io.readDSExport(input).collect().equals(test_data.collect())
 
 
 def test_import_parquet(test_data):
@@ -254,7 +254,7 @@ def test_cache_to_file():
     assert (
         pega_io.readDSExport(input_df)
         .collect()
-        .frame_equal(pega_io.readDSExport(cached_path).collect())
+        .equals(pega_io.readDSExport(cached_path).collect())
     )
 
     # test for cache_type="ipc"
@@ -265,7 +265,7 @@ def test_cache_to_file():
     assert (
         pega_io.readDSExport(input_df)
         .collect()
-        .frame_equal(pega_io.readDSExport(cached_path_arrow).collect())
+        .equals(pega_io.readDSExport(cached_path_arrow).collect())
     )
     # test for cache_type="parquet"
     cached_path_parquet = pega_io.cache_to_file(
@@ -275,7 +275,7 @@ def test_cache_to_file():
     assert (
         pega_io.readDSExport(input_df)
         .collect()
-        .frame_equal(pega_io.readDSExport(cached_path_parquet).collect())
+        .equals(pega_io.readDSExport(cached_path_parquet).collect())
     )
     for file in [cached_path_parquet, cached_path_arrow]:
         os.remove(file)

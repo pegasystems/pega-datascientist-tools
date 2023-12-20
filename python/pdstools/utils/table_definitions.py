@@ -1,5 +1,6 @@
 import polars as pl
 
+
 class PegaDefaultTables:
     class ADMModelSnapshot:
         pxApplication = pl.Categorical
@@ -74,10 +75,10 @@ class PegaDefaultTables:
         pyZRatio = pl.Float64
         pyEntryType = pl.Categorical
         pyExtension = pl.Utf8
-        pyGroupIndex = pl.UInt16
+        pyGroupIndex = pl.UInt32
         pyCorrelationPredictor = pl.Float32
 
-    class pyValueFinder():
+    class pyValueFinder:
         pyDirection = pl.Categorical
         pySubjectType = pl.Categorical
         ModelPositives = pl.UInt32

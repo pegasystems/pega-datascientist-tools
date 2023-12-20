@@ -134,13 +134,13 @@ def plot_daily_cumulative_accept_rate(df, pos, neg, **kwargs):
     _df, rollup, hue = get_accept_rate_time(df, pos, neg, "Date", **kwargs)
 
     if "hue" in kwargs.keys():
-        _df["Total_cum"] = _df.group_by(hue)["Total"].apply(lambda x: x.cumsum())
-        _df["Accepted_cum"] = _df.group_by(hue)["Accepted"].apply(lambda x: x.cumsum())
+        _df["Total_cum"] = _df.group_by(hue)["Total"].map_elements(lambda x: x.cum_sum())
+        _df["Accepted_cum"] = _df.group_by(hue)["Accepted"].map_elements(lambda x: x.cum_sum())
         _df["hue"] = _df[hue].agg("__".join, axis=1)
         kwargs["hue"] = "hue"
     else:
-        _df["Total_cum"] = _df["Total"].cumsum()
-        _df["Accepted_cum"] = _df["Accepted"].cumsum()
+        _df["Total_cum"] = _df["Total"].cum_sum()
+        _df["Accepted_cum"] = _df["Accepted"].cum_sum()
     _df["Cumulative Accept Rate (%)"] = _df["Accepted_cum"] * 100 / _df["Total_cum"]
 
     if "allTime" in kwargs.keys():

@@ -43,5 +43,9 @@ def testAdditionalTablesModel(sample_without_predictorbinning):
     os.remove("ModelTables.xlsx")
 
 
+def modelReportRuns(sample):
+    sample.generateReport(modelid="bd70a915-697a-5d43-ab2c-53b0557c85a0")
+
+
 def remove_healthCheck():
     os.remove("ADM_HealthCheck.html")
