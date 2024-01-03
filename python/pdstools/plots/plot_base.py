@@ -1,9 +1,10 @@
 from typing import Optional, Union, Dict, List, Any
+from datetime import datetime
 import polars as pl
 from .plots_plotly import ADMVisualisations as plotly
 from ..utils.cdh_utils import (
-    weighed_performance_polars,
-    weighed_average_polars,
+    weighted_performance_polars,
+    weighted_average_polars,
 )
 from ..utils.errors import NotApplicableError
 from ..utils.types import any_frame
@@ -57,12 +58,15 @@ class Plots:
                 "plotPredictorPerformance": [1, 1, 0],
                 "plotPredictorPerformanceHeatmap": [1, 1, 0],
                 "plotImpactInfluence": [1, 1, 0],
-                "plotResponseGain": [1, 0, 0],
-                "plotModelsByPositives": [1, 0, 0],
+                "plotResponseGain": [1, 0, 0],  # TODO: drop this see impl below
+                "plotModelsByPositives": [1, 0, 0],  # TODO: drop this see impl below
                 "plotTreeMap": [1, 0, 0],
             }
         )
         df = df.transpose().with_columns(pl.Series(df.columns))
+        # TODO: multiple snapshot of what? If making this generic also support
+        # when there are multiple snapshots of predictor data. But not sure this
+        # level of genericity is needed.
         df.columns = ["modelData", "predictorData", "Multiple snapshots", "Type"]
         return df.select(["Type", "modelData", "predictorData", "Multiple snapshots"])
 
@@ -116,7 +120,7 @@ class Plots:
         if facets:
             df = df.join(
                 df.group_by(facets + ["PredictorName"])
-                .agg(weighed_average_polars(to_plot, "ResponseCountBin"))
+                .agg(weighted_average_polars(to_plot, "ResponseCountBin"))
                 .filter(pl.col(to_plot).is_not_nan())
                 .group_by(*facets)
                 .agg(
@@ -131,7 +135,7 @@ class Plots:
         else:
             df = df.join(
                 df.group_by("PredictorName")
-                .agg(weighed_average_polars(to_plot, "ResponseCountBin"))
+                .agg(weighted_average_polars(to_plot, "ResponseCountBin"))
                 .filter(pl.col(to_plot).is_not_nan())
                 .sort(to_plot, descending=True)
                 .head(top_n)
@@ -484,10 +488,10 @@ class Plots:
                 df.group_by_dynamic("SnapshotTime", every=every, by=group_by)
                 .agg(
                     [
-                        weighed_average_polars("SuccessRate", "ResponseCount").alias(
+                        weighted_average_polars("SuccessRate", "ResponseCount").alias(
                             "SuccessRate"
                         ),
-                        weighed_performance_polars().alias("weighted_performance"),
+                        weighted_performance_polars().alias("weighted_performance"),
                     ]
                 )
                 .with_columns(pl.col("weighted_performance") * 100)
@@ -773,7 +777,9 @@ class Plots:
         """Plots a bar chart of the performance of the predictors
 
         By default, this plot shows the performance over all models
-        Use the querying functionality to drill down into a more specific subset
+        Use the querying functionality to drill down into a more specific subset.
+        Picks top n predictors with highest weighted average Performance accross
+        models and then sorts the predictors according to the median value.
 
         Parameters
         ----------
@@ -963,7 +969,7 @@ class Plots:
         df = (
             df.group_by(facets + ["ModelID", "PredictorCategory"])
             .agg(
-                weighed_average_polars("PerformanceBin", "ResponseCountBin").alias(
+                weighted_average_polars("PerformanceBin", "ResponseCountBin").alias(
                     "PerformanceBin"
                 )
             )
@@ -1062,7 +1068,9 @@ class Plots:
             .with_columns((pl.col("PerformanceBin") - 0.5) * 2)
             .group_by(by, "PredictorCategory")
             .agg(
-                Performance=weighed_average_polars("PerformanceBin", "BinResponseCount")
+                Performance=weighted_average_polars(
+                    "PerformanceBin", "BinResponseCount"
+                )
             )
             .with_columns(
                 Contribution=(
@@ -1166,6 +1174,8 @@ class Plots:
             **kwargs,
         )
 
+    # TODO: drop this in favor of a more generic plotGains function
+    # see the HealthCheck quarto for an implementation.
     def plotResponseGain(
         self,
         by: str = "Channel",
@@ -1229,6 +1239,8 @@ class Plots:
 
         return self.facettedPlot(facets, plotly().ResponseGain, df=df, by=by, **kwargs)
 
+    # TODO: drop this in favor of a more generic plotGains function
+    # see the HealthCheck quarto for an implementation.
     def plotModelsByPositives(
         self,
         by: str = "Channel",

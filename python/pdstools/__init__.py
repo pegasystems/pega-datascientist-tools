@@ -4,14 +4,14 @@ __version__ = "3.3.0"
 
 from polars import enable_string_cache
 
-enable_string_cache(True)
+enable_string_cache()
 
 import sys
 from pathlib import Path
 
 from .adm.ADMDatamart import ADMDatamart
 from .adm.ADMTrees import ADMTrees, MultiTrees
-from .pega_io import getToken, readDSExport
+from .pega_io import get_token, readDSExport
 from .pega_io import File, API, S3
 from .pega_io.API import setupAzureOpenAI
 from .utils import cdh_utils, datasets, errors, hds_utils

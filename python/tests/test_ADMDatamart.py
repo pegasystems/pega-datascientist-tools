@@ -118,6 +118,7 @@ def test_import_utils_with_importing(test):
         "PredictorName",
         "Treatment",
         "Type",
+        "GroupIndex"
     }
 
 
@@ -148,7 +149,7 @@ def test_import_utils(test, data):
         timestamp_fmt="%Y-%m-%d %H:%M:%S",
         typesetting_table="ADMModelSnapshot",
     )
-    assert len(missing) == 19
+    assert len(missing) == 20
     assert isinstance(output, pl.LazyFrame)
     output = output.collect()
     assert output.shape == (3, 3)
@@ -299,7 +300,10 @@ def cdhsample_predictors():
 def test_import_models_only(cdhsample_models):
     assert cdhsample_models.shape == (20, 23)
     output = ADMDatamart(
-        model_df=cdhsample_models, predictor_filename=None, verbose=True
+        model_df=cdhsample_models,
+        predictor_filename=None,
+        verbose=True,
+        context_keys=["Channel", "Issue", "Group"],
     )
     assert output.modelData is not None
     assert output.modelData.shape == (20, 13)
@@ -324,6 +328,7 @@ def test_init_both(cdhsample_models, cdhsample_predictors):
         predictor_df=cdhsample_predictors.lazy(),
         model_filename=None,
         predictor_filename=None,
+        context_keys=["Channel", "Issue", "Group"],
     )
     assert output.modelData is not None
     assert output.modelData.shape == (20, 13)
@@ -341,7 +346,7 @@ def test_filter_also_filters_predictorData():
         context_keys=["Issue", "Group", "Channel", "Direction"],
         verbose=True,
         query=pl.col("Channel") == "Email",
-    ).predictorData.shape == (18742, 18)
+    ).predictorData.shape == (18742, 19)
 
 
 def test_lazy_strategy():

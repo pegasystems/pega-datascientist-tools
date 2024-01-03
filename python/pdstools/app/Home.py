@@ -10,6 +10,8 @@ st.set_page_config(
 """
 # Welcome to the pdstools app!
 
-We will be building out this app more in the coming while, 
-so be sure to regularly run a `pip install --upgrade pdstools`!
+This app helps you analyze ADMDatamart data by allowing you to generate a Health Check document with visuals as well as excel
+export for self exploration of the data. 
+
+To be up to date with changes in the app, make sure to regularly run a `pip install --upgrade pdstools`!
 """

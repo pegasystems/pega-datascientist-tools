@@ -23,7 +23,7 @@ class Sample:
 
         func = partial(sample_it, n=n)
         return (
-            self._ldf.with_columns(pl.first().map(func).alias("_sample"))
+            self._ldf.with_columns(pl.first().map_batches(func).alias("_sample"))
             .filter(pl.col("_sample"))
             .drop("_sample")
         )

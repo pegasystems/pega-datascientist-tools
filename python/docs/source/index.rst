@@ -3,27 +3,39 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to pdstools's Python documentation!
+Welcome to the PDS Tools Python documentation
 ===========================================
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Getting Started
+
+   Installation <https://github.com/pegasystems/pega-datascientist-tools/wiki#installation>
+   Getting Started <https://github.com/pegasystems/pega-datascientist-tools/wiki>   
+   ADM Health Check <https://github.com/pegasystems/pega-datascientist-tools/wiki/ADM-Health-Check>   
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Examples
+
+   articles/Example_ADM_Analysis
+   articles/AGBModelVisualisation
+   articles/vf_analysis
+   articles/Example_Data_Anonymization
 
 .. toctree::
    :maxdepth: 1
    :caption: Articles
 
-   articles/graph_gallery
-   tutorial_notebooks
-   examples
-   Articles
+   articles/thompsonsampling
+   articles/ADMExplained
 
 .. toctree::
    :maxdepth: 1
-   :caption: Links
+   :caption: Reference Information
 
-   Installation <https://github.com/pegasystems/pega-datascientist-tools/wiki#getting-started-with-the-python-tools>
-   Getting Started <https://github.com/pegasystems/pega-datascientist-tools/wiki#using-the-python-tools>   
-   Changelog <https://github.com/pegasystems/pega-datascientist-tools/releases>
-   GitHub Repository <https://github.com/pegasystems/pega-datascientist-tools>
-   R Documentation <https://pegasystems.github.io/pega-datascientist-tools/R/index.html>
+   reference
+* :ref:`genindex`
 
 .. toctree::
    :maxdepth: 1
