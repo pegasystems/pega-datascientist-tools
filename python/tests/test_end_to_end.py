@@ -3,6 +3,7 @@ Testing the functionality of some end-to-end scenarios
 """
 import sys
 import pathlib
+
 basePath = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(f"{str(basePath)}/python")
 import polars as pl
@@ -20,7 +21,7 @@ class Shape:
     """
 
     def __new__(cls, ldf: pl.LazyFrame):
-        return (ldf.select(pl.first().count()).collect().item(), len(ldf.columns))
+        return (ldf.select(pl.first().len()).collect().item(), len(ldf.columns))
 
 
 def test_end_to_end():
@@ -65,7 +66,7 @@ def test_end_to_end():
         "BinAdjustedPropensity",
         "Contents",
         "PredictorCategory",
-        "GroupIndex"
+        "GroupIndex",
     }
     assert set(datamart.predictorData.columns) == predcols
 
@@ -90,7 +91,7 @@ def test_end_to_end():
         "EntryType",
         "BinNegatives",
         "Contents",
-        "GroupIndex"
+        "GroupIndex",
     }
 
     assert datamart.missing_preds == {
@@ -134,7 +135,7 @@ def test_end_to_end():
         "BinResponseCount",
         "PredictorName",
         "Contents",
-        "GroupIndex"
+        "GroupIndex",
     }
 
     assert isinstance(datamart.plotPerformanceSuccessRateBubbleChart(), Figure)

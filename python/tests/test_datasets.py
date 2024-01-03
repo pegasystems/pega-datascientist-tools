@@ -19,7 +19,7 @@ class Shape:
     """
 
     def __new__(cls, ldf: pl.LazyFrame):
-        return (ldf.select(pl.first().count()).collect().item(), len(ldf.columns))
+        return (ldf.select(pl.first().len()).collect().item(), len(ldf.columns))
 
 
 def test_import_CDHSample():
