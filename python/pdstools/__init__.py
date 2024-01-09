@@ -11,6 +11,7 @@ from pathlib import Path
 
 from .adm.ADMDatamart import ADMDatamart
 from .adm.ADMTrees import ADMTrees, MultiTrees
+from .adm.BinAggregator import BinAggregator
 from .pega_io import get_token, readDSExport
 from .pega_io import File, API, S3
 from .pega_io.API import setupAzureOpenAI
