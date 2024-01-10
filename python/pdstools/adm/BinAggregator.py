@@ -4,6 +4,7 @@ import plotly.express as px
 from plotly.graph_objects import Figure
 
 from pdstools import ADMDatamart
+
 # from IPython.display import display # for better display in notebooks rather than print of dataframes
 
 
@@ -21,11 +22,11 @@ class BinAggregator:
 
     def roll_up(
         self,
-        predictors: str | list,
+        predictors: str | list[str],
         n: int = 10,
         distribution: str = "lin",
-        boundaries: float | list = None,
-        symbols: str | list = None,
+        boundaries: float | list[float] = None,
+        symbols: str | list[str] = None,
         minimum: float = None,
         maximum: float = None,
         aggregation: str = None,
@@ -35,43 +36,43 @@ class BinAggregator:
     ) -> pl.DataFrame | Figure:
         """Roll up a predictor across all the models defined when creating the class.
 
-        Predictors can be both numeric and symbolic (also called 'categorical'). You 
-        can aggregate the same predictor across different sets of models by specifying 
+        Predictors can be both numeric and symbolic (also called 'categorical'). You
+        can aggregate the same predictor across different sets of models by specifying
         a column name in the aggregation argument.
 
         Parameters
         ----------
-        predictors : str | list
+        predictors : str | list[str]
             Name of the predictor to roll up. Multiple predictors can be passed in as
             a list.
         n : int, optional
-            Number of bins (intervals or symbols) to generate, by default 10. Any 
-            custom intervals or symbols specified with the 'musthave' argument will 
+            Number of bins (intervals or symbols) to generate, by default 10. Any
+            custom intervals or symbols specified with the 'musthave' argument will
             count towards this number as well. For symbolic predictors can be None,
             which means unlimited.
         distribution : str, optional
-            For numeric predictors: the way the intervals are constructed. By default 
+            For numeric predictors: the way the intervals are constructed. By default
             "lin" for an evenly-spaced distribution, can be set to "log" for a long
             tailed distribution (for fields like income).
-        boundaries : float | list, optional
-            For numeric predictors: one value, or a list of the numeric values to 
-            include as interval boundaries. They will be used at the front of the 
+        boundaries : float | list[float], optional
+            For numeric predictors: one value, or a list of the numeric values to
+            include as interval boundaries. They will be used at the front of the
             automatically created intervals. By default None, all intervals are
             created automatically.
-        symbols : str | list, optional
-            For symbolic predictors, any symbol(s) that 
+        symbols : str | list[str], optional
+            For symbolic predictors, any symbol(s) that
             must be included in the symbol list in the generated binning. By default None.
         minimum : float, optional
-            Minimum value for numeric predictors, by default None. When None the 
+            Minimum value for numeric predictors, by default None. When None the
             minimum is taken from the binning data of the models.
         maximum : float, optional
-            Maximum value for numeric predictors, by default None. When None the 
+            Maximum value for numeric predictors, by default None. When None the
             maximum is taken from the binning data of the models.
         aggregation : str, optional
-            Optional column name in the data to aggregate over, creating separate 
+            Optional column name in the data to aggregate over, creating separate
             aggregations for each of the different values. By default None.
         as_numeric : bool, optional
-            Optional override for the type of the predictor, so to be able to 
+            Optional override for the type of the predictor, so to be able to
             override in the (exceptional) situation that a predictor with the same
             name is numeric in some and symbolic in some other models. By default None
             which means the type is taken from the first predictor in the data.
@@ -84,7 +85,7 @@ class BinAggregator:
         -------
         pl.DataFrame | Figure
             By default returns a nicely formatted plot. When 'return_df' is set
-            to True, it returns the actual binning with the lift aggregated over 
+            to True, it returns the actual binning with the lift aggregated over
             all the models, optionally per predictor and per set of models.
         """
         if not isinstance(predictors, list):
@@ -188,7 +189,9 @@ class BinAggregator:
         if return_df:
             return pl.concat(all_binnings, how="vertical_relaxed")
         else:
-            return self.plot_lift_binning(pl.concat(all_binnings, how="vertical_relaxed"))
+            return self.plot_lift_binning(
+                pl.concat(all_binnings, how="vertical_relaxed")
+            )
 
     def accumulate_num_binnings(
         self, predictor, modelids, target_binning, verbose=False
@@ -232,8 +235,8 @@ class BinAggregator:
     def create_symbol_list(
         self,
         predictor,
-        n_symbols = None,
-        musthave_symbols = [],
+        n_symbols,
+        musthave_symbols,
     ) -> list:
         symbol_frequency = (
             self.all_predictorbinning.filter(pl.col("Type") != "numeric")
@@ -255,7 +258,7 @@ class BinAggregator:
         ]
 
         if n_symbols is None:
-            return (musthave_symbols + ordered_symbols)
+            return musthave_symbols + ordered_symbols
         else:
             return (musthave_symbols + ordered_symbols)[slice(n_symbols)]
 
