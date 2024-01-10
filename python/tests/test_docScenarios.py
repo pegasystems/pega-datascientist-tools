@@ -2,52 +2,41 @@
 Testing that none of the docs examples produce errors.
 """
 
-
 import pytest
 import sys
 
 import pathlib
+import platform
+from testbook import testbook
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(f"{str(basePath)}/python")
-from pdstools import datasets
 
+@pytest.mark.parametrize(
+    "relative_filepath",
+    [
+        # TODO shouldn't we have all the notebooks here? like *.ipynb?
 
-@pytest.fixture
-def data():
-    return datasets.CDHSample()
+        "examples/datamart/Example_ADM_Analysis.ipynb",
+        "examples/adm/AGBModelVisualisation.ipynb",
+        # "examples/adm/ADMBinningInsights.ipynb",
+        # test_ExampleDataAnonymization
+    ],
+)
+def test_notebook(relative_filepath):
+    file = str(basePath / relative_filepath)
 
+    if platform.system() == "Windows":
+        pythonPath = "python"
+    else:
+        pythonPath = str(basePath / "python")
 
-def test_all_notebooks():
-    from testbook import testbook
+    with testbook(file) as tb:
+        tb.inject(
+            f"""
+        import sys
+        sys.path.append('{pythonPath}')"""
+        )
+        tb.execute()
 
-    files = [
-        str(basePath / f)
-        for f in [
-            # TODO shouldn't we have all the notebooks here?
-            "examples/datamart/Example_ADM_Analysis.ipynb",
-            "examples/adm/AGBModelVisualisation.ipynb",
-        ]
-    ]
-
-    def test_get_details(file):
-        import platform
-
-        if platform.system() == "Windows":
-            pythonPath = "python"
-        else:
-            pythonPath = str(basePath / "python")
-        with testbook(file) as tb:
-            tb.inject(
-                f"""
-            import sys
-            sys.path.append('{pythonPath}')"""
-            )
-            tb.execute()
-        return True
-
-    assert all(map(test_get_details, files))
-
-
-def test_ExampleDataAnonymization():
-    pass
+    assert True

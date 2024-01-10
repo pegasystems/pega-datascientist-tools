@@ -1,14 +1,17 @@
 from typing import Optional, Union, Dict, List, Any
-from datetime import datetime
+# from datetime import datetime
 import polars as pl
 from .plots_plotly import ADMVisualisations as plotly
 from ..utils.cdh_utils import (
     weighted_performance_polars,
     weighted_average_polars,
+    lift
 )
 from ..utils.errors import NotApplicableError
 from ..utils.types import any_frame
 import plotly.graph_objs as go
+import plotly.express as px
+from plotly.graph_objects import Figure
 
 
 class Plots:
@@ -44,6 +47,8 @@ class Plots:
                     .item()
                 )
 
+    # TODO reconsider those tables
+                
     @property
     def AvailableVisualisations(self):
         df = pl.DataFrame(
@@ -1516,3 +1521,115 @@ class Plots:
         return self.facettedPlot(
             facets, plotting_engine.PredictorCount, df=df, **kwargs
         )
+
+# "Philip Mann" plot with simple red/green lift bars relative to base propensity
+# TODO currently shared between ModelReport.qmd and BinAggregator.py and 
+# copied into plot_base - move over to that version once PDS tools version got bumped
+def plotBinningLift(
+    binning,
+    col_facet=None,
+    row_facet=None,
+    custom_data=["PredictorName", "BinSymbol"],
+    return_df=False,
+) -> Union[pl.DataFrame, Figure]:
+    if not isinstance(binning, pl.LazyFrame):
+        binning = binning.lazy()
+
+    # Add Lift column if not present
+    if "Lift" not in binning.columns:
+        binning = binning.with_columns(
+            (lift(pl.col("BinPositives"), pl.col("BinNegatives")) - 1.0).alias(
+                "Lift"
+            )
+        )
+
+    # Optionally a shading expression
+    if "BinPositives" in binning.columns:
+        shading_expr = pl.col("BinPositives") <= 5
+    else:
+        shading_expr = pl.lit(False)
+
+    pm_plot_binning_table = (
+        # binning.select(
+        #     pl.col(["PredictorName", "BinIndex", "BinSymbol", "BinPositives", "Lift"]),
+        #     # add back bin reponses now?
+        #     (lift(pl.col("BinPositives"), pl.col("BinNegatives")) - 1.0), # Pega starts lift at 0.0
+        # )
+        binning.with_columns(
+            pl.when((pl.col("Lift") >= 0.0) & shading_expr.not_())
+            .then(pl.lit("pos"))
+            .when((pl.col("Lift") >= 0.0) & shading_expr)
+            .then(pl.lit("pos_shaded"))
+            .when((pl.col("Lift") < 0.0) & shading_expr.not_())
+            .then(pl.lit("neg"))
+            .otherwise(pl.lit("neg_shaded"))
+            .alias("Direction"),
+        )
+        .sort(["PredictorName", "BinIndex"])
+        .collect()
+    )
+
+    # Abbreviate possibly very long bin labels
+    # TODO generalize this, use it in the standard bin plot as well
+    # and make sure the resulting labels are unique - with just the
+    # truncate they are not necessarily unique
+    pm_plot_binning_table = pm_plot_binning_table.with_columns(
+        pl.Series(
+            "BinSymbolAbbreviated",
+            [
+                (s[:25] + "...") if len(s) > 25 else s
+                for s in pm_plot_binning_table["BinSymbol"].to_list()
+            ],
+        )
+    )
+
+    fig = px.bar(
+        data_frame=pm_plot_binning_table,
+        x="Lift",
+        y="BinSymbolAbbreviated",
+        color="Direction",
+        color_discrete_map={
+            "neg": "#A01503",
+            "pos": "#5F9F37",
+            "neg_shaded": "#DAA9AB",
+            "pos_shaded": "#C5D9B7",
+        },
+        orientation="h",
+        template="pega",
+        custom_data=custom_data,
+        facet_col=col_facet,
+        facet_row=row_facet,
+        facet_col_wrap=3,  # will be ignored when there is a row facet
+    )
+    fig.update_traces(
+        hovertemplate="<br>".join(
+            ["<b>%{customdata[0]}</b>", "%{customdata[1]}", "<b>Lift: %{x:.2%}</b>"]
+        )
+    )
+    fig.add_vline(x=0, line_color="black")
+
+    fig.update_layout(
+        showlegend=False,
+        title="Propensity Lift",
+        hovermode="y",
+    )
+    fig.update_xaxes(title="", tickformat=",.2%")
+    fig.update_yaxes(
+        type="category",
+        categoryorder="array",
+        # abbreviate possibly lengthy symbol labels
+        categoryarray=pm_plot_binning_table["BinSymbolAbbreviated"],
+        automargin=True,
+        autorange="reversed",
+        title="",
+        dtick=1,  # show all bins
+        matches=None,  # allow independent y-labels if there are row facets
+    )
+    fig.for_each_annotation(
+        lambda a: a.update(text=a.text.split("=")[-1])
+    )  # split plotly facet label, show only right side
+
+    if return_df:
+        return pm_plot_binning_table
+    else:
+        return fig

@@ -117,7 +117,7 @@ class ADMDatamart(Plots, Tables):
         drop_cols: Optional[list] = None,
         include_cols: Optional[list] = None,
         context_keys: list = ["Channel", "Direction", "Issue", "Group"],
-        extract_keys: bool = False,
+        extract_keys: bool = False, # TODO: should be True by default, extract should be efficiently using Configuration
         predictorCategorization: pl.Expr = cdh_utils.defaultPredictorCategorization,
         plotting_engine: Union[str, Any] = "plotly",
         verbose: bool = False,
@@ -154,6 +154,8 @@ class ADMDatamart(Plots, Tables):
         super().__init__()
 
         self.processTables(self.query)
+
+    # TODO: Lets drop the configurable plotting engines, but isolate the plotly code
 
     @staticmethod
     def get_engine(plotting_engine):
