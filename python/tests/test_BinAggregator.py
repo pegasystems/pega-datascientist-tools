@@ -7,13 +7,13 @@ import sys
 import pytest
 
 import pathlib
-from pdstools import datasets
-from pdstools import BinAggregator
 from plotly.graph_objects import Figure
 import polars as pl
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(f"{str(basePath)}/python")
+from pdstools import datasets
+from pdstools import BinAggregator
 
 
 @pytest.fixture

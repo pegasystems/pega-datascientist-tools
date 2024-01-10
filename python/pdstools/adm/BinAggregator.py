@@ -2,7 +2,7 @@ import polars as pl
 import numpy as np
 import plotly.express as px
 from plotly.graph_objects import Figure
-from typing import Union, Optional
+from typing import Union, Optional, Literal
 
 from pdstools import ADMDatamart
 
@@ -23,11 +23,11 @@ class BinAggregator:
 
     def roll_up(
         self,
-        predictors: Union[str, list[str]],
+        predictors: Union[str, list],
         n: int = 10,
-        distribution: str = "lin",
-        boundaries: Optional[float | list[float]] = None,
-        symbols: Optional[str | list[str]] = None,
+        distribution: Literal["lin", "log"] = "lin",
+        boundaries: Optional[float | list] = None,
+        symbols: Optional[str | list] = None,
         minimum: Optional[float] = None,
         maximum: Optional[float] = None,
         aggregation: Optional[str] = None,
@@ -43,7 +43,7 @@ class BinAggregator:
 
         Parameters
         ----------
-        predictors : str | list[str]
+        predictors : str | list
             Name of the predictor to roll up. Multiple predictors can be passed in as
             a list.
         n : int, optional
@@ -55,12 +55,12 @@ class BinAggregator:
             For numeric predictors: the way the intervals are constructed. By default
             "lin" for an evenly-spaced distribution, can be set to "log" for a long
             tailed distribution (for fields like income).
-        boundaries : float | list[float], optional
+        boundaries : float | list, optional
             For numeric predictors: one value, or a list of the numeric values to
             include as interval boundaries. They will be used at the front of the
             automatically created intervals. By default None, all intervals are
             created automatically.
-        symbols : str | list[str], optional
+        symbols : str | list, optional
             For symbolic predictors, any symbol(s) that
             must be included in the symbol list in the generated binning. By default None.
         minimum : float, optional
@@ -238,7 +238,7 @@ class BinAggregator:
         predictor,
         n_symbols,
         musthave_symbols,
-    ) -> list[str]:
+    ) -> list:
         symbol_frequency = (
             self.all_predictorbinning.filter(pl.col("Type") != "numeric")
             .filter(pl.col("PredictorName") == predictor)

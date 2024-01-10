@@ -7,6 +7,7 @@ import sys
 import pytest
 import zipfile
 import polars as pl
+from polars.testing import assert_frame_equal
 import itertools
 from pandas.errors import UndefinedVariableError
 import pathlib
@@ -15,9 +16,7 @@ basePath = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(f"{str(basePath)}/python")
 from pdstools import ADMDatamart, cdh_utils
 from pdstools import errors
-from polars.testing import assert_frame_equal
-
-
+ 
 @pl.api.register_lazyframe_namespace("shape")
 class Shape:
     """Get the shape of a lazy dataframe.
