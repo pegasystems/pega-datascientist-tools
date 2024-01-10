@@ -3,19 +3,19 @@ Testing that none of the docs examples produce errors.
 """
 
 
-import pytest
+# import pytest
 import sys
 
 import pathlib
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(f"{str(basePath)}/python")
-from pdstools import datasets
+# from pdstools import datasets
 
 
-@pytest.fixture
-def data():
-    return datasets.CDHSample()
+# @pytest.fixture
+# def data():
+#     return datasets.CDHSample()
 
 
 def test_all_notebooks():
@@ -24,9 +24,10 @@ def test_all_notebooks():
     files = [
         str(basePath / f)
         for f in [
-            # TODO shouldn't we have all the notebooks here?
+            # TODO shouldn't we have all the notebooks here? like *.ipynb?
             "examples/datamart/Example_ADM_Analysis.ipynb",
             "examples/adm/AGBModelVisualisation.ipynb",
+            "examples/adm/ADMBinningInsights.ipynb",
         ]
     ]
 

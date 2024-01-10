@@ -2,6 +2,7 @@ import polars as pl
 import numpy as np
 import plotly.express as px
 from plotly.graph_objects import Figure
+from typing import Union, Optional
 
 from pdstools import ADMDatamart
 
@@ -22,15 +23,15 @@ class BinAggregator:
 
     def roll_up(
         self,
-        predictors: str | list[str],
+        predictors: Union[str, list[str]],
         n: int = 10,
         distribution: str = "lin",
-        boundaries: float | list[float] = None,
-        symbols: str | list[str] = None,
-        minimum: float = None,
-        maximum: float = None,
-        aggregation: str = None,
-        as_numeric: bool = None,
+        boundaries: Optional[float | list[float]] = None,
+        symbols: Optional[str | list[str]] = None,
+        minimum: Optional[float] = None,
+        maximum: Optional[float] = None,
+        aggregation: Optional[str] = None,
+        as_numeric: Optional[bool] = None,
         return_df: bool = False,
         verbose: bool = False,
     ) -> pl.DataFrame | Figure:
@@ -237,7 +238,7 @@ class BinAggregator:
         predictor,
         n_symbols,
         musthave_symbols,
-    ) -> list:
+    ) -> list[str]:
         symbol_frequency = (
             self.all_predictorbinning.filter(pl.col("Type") != "numeric")
             .filter(pl.col("PredictorName") == predictor)
@@ -479,9 +480,9 @@ class BinAggregator:
         predictor: str,
         n: int,
         distribution: str = "lin",
-        boundaries: list = None,
-        minimum: float = None,
-        maximum: float = None,
+        boundaries: Optional[list] = None,
+        minimum: Optional[float] = None,
+        maximum: Optional[float] = None,
     ) -> pl.DataFrame:
         # take min/max across all models
         bins_minmax = (
