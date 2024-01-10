@@ -26,15 +26,15 @@ class BinAggregator:
         predictors: Union[str, list],
         n: int = 10,
         distribution: Literal["lin", "log"] = "lin",
-        boundaries: Optional[float | list] = None,
-        symbols: Optional[str | list] = None,
+        boundaries: Optional[Union[float, list]] = None,
+        symbols: Optional[Union[str, list]] = None,
         minimum: Optional[float] = None,
         maximum: Optional[float] = None,
         aggregation: Optional[str] = None,
         as_numeric: Optional[bool] = None,
         return_df: bool = False,
         verbose: bool = False,
-    ) -> pl.DataFrame | Figure:
+    ) -> Union[pl.DataFrame, Figure]:
         """Roll up a predictor across all the models defined when creating the class.
 
         Predictors can be both numeric and symbolic (also called 'categorical'). You
