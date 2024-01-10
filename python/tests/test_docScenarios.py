@@ -11,13 +11,6 @@ from testbook import testbook
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(f"{str(basePath)}/python")
-# from pdstools import datasets
-
-
-# @pytest.fixture
-# def data():
-#     return datasets.CDHSample()
-
 
 @pytest.mark.parametrize(
     "relative_filepath",
@@ -30,7 +23,7 @@ sys.path.append(f"{str(basePath)}/python")
         # test_ExampleDataAnonymization
     ],
 )
-def test_get_details(relative_filepath):
+def test_notebook(relative_filepath):
     file = str(basePath / relative_filepath)
 
     if platform.system() == "Windows":
