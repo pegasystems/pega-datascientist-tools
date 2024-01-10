@@ -16,6 +16,14 @@ Classes
 
 
 
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   pdstools.plots.plot_base.plotBinningLift
+
+
 
 .. py:class:: Plots
 
@@ -544,5 +552,8 @@ Classes
 
    .. py:method:: plotPredictorCount(facets: Union[str, list], query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None, by: str = 'Type', **kwargs)
 
+
+
+.. py:function:: plotBinningLift(binning, col_facet=None, row_facet=None, custom_data=['PredictorName', 'BinSymbol'], return_df=False) -> Union[polars.DataFrame, plotly.graph_objects.Figure]
 
 

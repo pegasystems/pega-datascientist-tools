@@ -197,6 +197,7 @@
 <li class="toctree-l3 has-children"><a class="reference internal" href="adm/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of pdstools.adm</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="adm/ADMDatamart/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm.ADMDatamart</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="adm/ADMTrees/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm.ADMTrees</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="adm/BinAggregator/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm.BinAggregator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="adm/Tables/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm.Tables</span></code></a></li>
 </ul>
 </li>
@@ -291,6 +292,7 @@
 <li class="toctree-l1"><a class="reference internal" href="adm/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm</span></code></a><ul>
 <li class="toctree-l2"><a class="reference internal" href="adm/ADMDatamart/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm.ADMDatamart</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="adm/ADMTrees/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm.ADMTrees</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="adm/BinAggregator/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm.BinAggregator</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="adm/Tables/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm.Tables</span></code></a></li>
 </ul>
 </li>
@@ -356,19 +358,22 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.MultiTrees" title="pdstools.MultiTrees"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MultiTrees</span></code></a></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.Config" title="pdstools.Config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Config</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.BinAggregator" title="pdstools.BinAggregator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BinAggregator</span></code></a></p></td>
+<td><p>A class to generate rolled up insights from ADM predictor binning.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.Config" title="pdstools.Config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Config</span></code></a></p></td>
 <td><p>Configuration file for the data anonymizer.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.DataAnonymization" title="pdstools.DataAnonymization"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DataAnonymization</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.DataAnonymization" title="pdstools.DataAnonymization"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DataAnonymization</span></code></a></p></td>
 <td><p>Anonymize a historical dataset.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.PegaDefaultTables" title="pdstools.PegaDefaultTables"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PegaDefaultTables</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.PegaDefaultTables" title="pdstools.PegaDefaultTables"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PegaDefaultTables</span></code></a></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.ValueFinder" title="pdstools.ValueFinder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueFinder</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.ValueFinder" title="pdstools.ValueFinder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueFinder</span></code></a></p></td>
 <td><p>Class to analyze Value Finder datasets.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.Sample" title="pdstools.Sample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sample</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.Sample" title="pdstools.Sample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sample</span></code></a></p></td>
 <td><p></p></td>
 </tr>
 </tbody>
@@ -1221,6 +1226,207 @@ If not, an overall HealthCheck report will be generated.</p>
 <dt class="sig sig-object py" id="pdstools.MultiTrees.plotSplitsPerVariableType">
 <span class="sig-name descname"><span class="pre">plotSplitsPerVariableType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictorCategorization</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.MultiTrees.plotSplitsPerVariableType" title="Link to this definition">#</a></dt>
 <dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pdstools.BinAggregator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">BinAggregator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pdstools.ADMDatamart" title="pdstools.ADMDatamart"><span class="pre">pdstools.ADMDatamart</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.BinAggregator" title="Link to this definition">#</a></dt>
+<dd><p>A class to generate rolled up insights from ADM predictor binning.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dm</strong> (<a class="reference internal" href="#pdstools.ADMDatamart" title="pdstools.ADMDatamart"><em>pdstools.ADMDatamart</em></a>) – </p></li>
+<li><p><strong>query</strong> (<em>polars.Expr</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.BinAggregator.roll_up">
+<span class="sig-name descname"><span class="pre">roll_up</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictors</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distribution</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="pre">lin</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">log</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'lin'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundaries</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symbols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minimum</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maximum</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aggregation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">as_numeric</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">plotly.graph_objects.Figure</span></span></span><a class="headerlink" href="#pdstools.BinAggregator.roll_up" title="Link to this definition">#</a></dt>
+<dd><p>Roll up a predictor across all the models defined when creating the class.</p>
+<p>Predictors can be both numeric and symbolic (also called ‘categorical’). You
+can aggregate the same predictor across different sets of models by specifying
+a column name in the aggregation argument.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>predictors</strong> (<em>str</em><em> | </em><em>list</em>) – Name of the predictor to roll up. Multiple predictors can be passed in as
+a list.</p></li>
+<li><p><strong>n</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of bins (intervals or symbols) to generate, by default 10. Any
+custom intervals or symbols specified with the ‘musthave’ argument will
+count towards this number as well. For symbolic predictors can be None,
+which means unlimited.</p></li>
+<li><p><strong>distribution</strong> (<em>str</em><em>, </em><em>optional</em>) – For numeric predictors: the way the intervals are constructed. By default
+“lin” for an evenly-spaced distribution, can be set to “log” for a long
+tailed distribution (for fields like income).</p></li>
+<li><p><strong>boundaries</strong> (<em>float</em><em> | </em><em>list</em><em>, </em><em>optional</em>) – For numeric predictors: one value, or a list of the numeric values to
+include as interval boundaries. They will be used at the front of the
+automatically created intervals. By default None, all intervals are
+created automatically.</p></li>
+<li><p><strong>symbols</strong> (<em>str</em><em> | </em><em>list</em><em>, </em><em>optional</em>) – For symbolic predictors, any symbol(s) that
+must be included in the symbol list in the generated binning. By default None.</p></li>
+<li><p><strong>minimum</strong> (<em>float</em><em>, </em><em>optional</em>) – Minimum value for numeric predictors, by default None. When None the
+minimum is taken from the binning data of the models.</p></li>
+<li><p><strong>maximum</strong> (<em>float</em><em>, </em><em>optional</em>) – Maximum value for numeric predictors, by default None. When None the
+maximum is taken from the binning data of the models.</p></li>
+<li><p><strong>aggregation</strong> (<em>str</em><em>, </em><em>optional</em>) – Optional column name in the data to aggregate over, creating separate
+aggregations for each of the different values. By default None.</p></li>
+<li><p><strong>as_numeric</strong> (<em>bool</em><em>, </em><em>optional</em>) – Optional override for the type of the predictor, so to be able to
+override in the (exceptional) situation that a predictor with the same
+name is numeric in some and symbolic in some other models. By default None
+which means the type is taken from the first predictor in the data.</p></li>
+<li><p><strong>return_df</strong> (<em>bool</em><em>, </em><em>optional</em>) – Return the underlying binning instead of a plot.</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>optional</em>) – Show detailed debug information while executing, by default False</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>By default returns a nicely formatted plot. When ‘return_df’ is set
+to True, it returns the actual binning with the lift aggregated over
+all the models, optionally per predictor and per set of models.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pl.DataFrame | Figure</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.BinAggregator.accumulate_num_binnings">
+<span class="sig-name descname"><span class="pre">accumulate_num_binnings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modelids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_binning</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span></span></span><a class="headerlink" href="#pdstools.BinAggregator.accumulate_num_binnings" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>polars.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.BinAggregator.create_symbol_list">
+<span class="sig-name descname"><span class="pre">create_symbol_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_symbols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">musthave_symbols</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span></span></span><a class="headerlink" href="#pdstools.BinAggregator.create_symbol_list" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.BinAggregator.accumulate_sym_binnings">
+<span class="sig-name descname"><span class="pre">accumulate_sym_binnings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modelids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symbollist</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span></span></span><a class="headerlink" href="#pdstools.BinAggregator.accumulate_sym_binnings" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>polars.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.BinAggregator.normalize_all_binnings">
+<span class="sig-name descname"><span class="pre">normalize_all_binnings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">combined_dm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.BinAggregator.normalize_all_binnings" title="Link to this definition">#</a></dt>
+<dd><p>Prepare all predictor binning</p>
+<p>Fix up the boundaries for numeric bins and parse the bin labels
+into clean lists for symbolics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>combined_dm</strong> (<em>polars.LazyFrame</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>polars.LazyFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.BinAggregator.create_empty_numbinning">
+<span class="sig-name descname"><span class="pre">create_empty_numbinning</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distribution</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'lin'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundaries</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minimum</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maximum</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span></span></span><a class="headerlink" href="#pdstools.BinAggregator.create_empty_numbinning" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>predictor</strong> (<em>str</em>) – </p></li>
+<li><p><strong>n</strong> (<em>int</em>) – </p></li>
+<li><p><strong>distribution</strong> (<em>str</em>) – </p></li>
+<li><p><strong>boundaries</strong> (<em>Optional</em><em>[</em><em>list</em><em>]</em>) – </p></li>
+<li><p><strong>minimum</strong> (<em>Optional</em><em>[</em><em>float</em><em>]</em>) – </p></li>
+<li><p><strong>maximum</strong> (<em>Optional</em><em>[</em><em>float</em><em>]</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>polars.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.BinAggregator.get_source_numbinning">
+<span class="sig-name descname"><span class="pre">get_source_numbinning</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modelid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span></span></span><a class="headerlink" href="#pdstools.BinAggregator.get_source_numbinning" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>predictor</strong> (<em>str</em>) – </p></li>
+<li><p><strong>modelid</strong> (<em>str</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>polars.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.BinAggregator.combine_two_numbinnings">
+<span class="sig-name descname"><span class="pre">combine_two_numbinnings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span></span></span><a class="headerlink" href="#pdstools.BinAggregator.combine_two_numbinnings" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source</strong> (<em>polars.DataFrame</em>) – </p></li>
+<li><p><strong>target</strong> (<em>polars.DataFrame</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>polars.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.BinAggregator.plot_binning_attribution">
+<span class="sig-name descname"><span class="pre">plot_binning_attribution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">plotly.graph_objects.Figure</span></span></span><a class="headerlink" href="#pdstools.BinAggregator.plot_binning_attribution" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source</strong> (<em>polars.DataFrame</em>) – </p></li>
+<li><p><strong>target</strong> (<em>polars.DataFrame</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>plotly.graph_objects.Figure</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.BinAggregator.plotBinningLift">
+<span class="sig-name descname"><span class="pre">plotBinningLift</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">binning</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col_facet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row_facet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">custom_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['PredictorName',</span> <span class="pre">'BinSymbol']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_df</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">plotly.graph_objects.Figure</span></span></span><a class="headerlink" href="#pdstools.BinAggregator.plotBinningLift" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Union[polars.DataFrame, plotly.graph_objects.Figure]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.BinAggregator.plot_lift_binning">
+<span class="sig-name descname"><span class="pre">plot_lift_binning</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">binning</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">plotly.graph_objects.Figure</span></span></span><a class="headerlink" href="#pdstools.BinAggregator.plot_lift_binning" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>binning</strong> (<em>polars.DataFrame</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>plotly.graph_objects.Figure</p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -2446,6 +2652,20 @@ or based on the quantile of the propensity</p></li>
 <li><a class="reference internal" href="#pdstools.MultiTrees.__add__"><code class="docutils literal notranslate"><span class="pre">__add__()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.MultiTrees.computeOverTime"><code class="docutils literal notranslate"><span class="pre">computeOverTime()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.MultiTrees.plotSplitsPerVariableType"><code class="docutils literal notranslate"><span class="pre">plotSplitsPerVariableType()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pdstools.BinAggregator"><code class="docutils literal notranslate"><span class="pre">BinAggregator</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.BinAggregator.roll_up"><code class="docutils literal notranslate"><span class="pre">roll_up()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.BinAggregator.accumulate_num_binnings"><code class="docutils literal notranslate"><span class="pre">accumulate_num_binnings()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.BinAggregator.create_symbol_list"><code class="docutils literal notranslate"><span class="pre">create_symbol_list()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.BinAggregator.accumulate_sym_binnings"><code class="docutils literal notranslate"><span class="pre">accumulate_sym_binnings()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.BinAggregator.normalize_all_binnings"><code class="docutils literal notranslate"><span class="pre">normalize_all_binnings()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.BinAggregator.create_empty_numbinning"><code class="docutils literal notranslate"><span class="pre">create_empty_numbinning()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.BinAggregator.get_source_numbinning"><code class="docutils literal notranslate"><span class="pre">get_source_numbinning()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.BinAggregator.combine_two_numbinnings"><code class="docutils literal notranslate"><span class="pre">combine_two_numbinnings()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.BinAggregator.plot_binning_attribution"><code class="docutils literal notranslate"><span class="pre">plot_binning_attribution()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.BinAggregator.plotBinningLift"><code class="docutils literal notranslate"><span class="pre">plotBinningLift()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.BinAggregator.plot_lift_binning"><code class="docutils literal notranslate"><span class="pre">plot_lift_binning()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#pdstools.get_token"><code class="docutils literal notranslate"><span class="pre">get_token()</span></code></a></li>

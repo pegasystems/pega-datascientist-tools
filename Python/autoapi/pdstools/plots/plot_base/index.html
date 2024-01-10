@@ -197,6 +197,7 @@
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../adm/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of pdstools.adm</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../adm/ADMDatamart/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm.ADMDatamart</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../adm/ADMTrees/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm.ADMTrees</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/BinAggregator/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm.BinAggregator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../adm/Tables/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm.Tables</span></code></a></li>
 </ul>
 </li>
@@ -292,6 +293,18 @@
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.plots.plot_base.Plots" title="pdstools.plots.plot_base.Plots"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Plots</span></code></a></p></td>
 <td><p>Base plotting class</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="functions">
+<h3>Functions<a class="headerlink" href="#functions" title="Link to this heading">#</a></h3>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.plots.plot_base.plotBinningLift" title="pdstools.plots.plot_base.plotBinningLift"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plotBinningLift</span></code></a>(→ Union[polars.DataFrame, ...)</p></td>
+<td><p></p></td>
 </tr>
 </tbody>
 </table>
@@ -1054,6 +1067,16 @@ such as writing to html automatically or displaying figures while facetting.</p>
 
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.plots.plot_base.plotBinningLift">
+<span class="sig-name descname"><span class="pre">plotBinningLift</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">binning</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col_facet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row_facet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">custom_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['PredictorName',</span> <span class="pre">'BinSymbol']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_df</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">plotly.graph_objects.Figure</span></span></span><a class="headerlink" href="#pdstools.plots.plot_base.plotBinningLift" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Union[polars.DataFrame, plotly.graph_objects.Figure]</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 </section>
 </section>
@@ -1122,7 +1145,8 @@ such as writing to html automatically or displaying figures while facetting.</p>
             <ul>
 <li><a class="reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plots.plot_base</span></code></a><ul>
 <li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
-<li><a class="reference internal" href="#classes">Classes</a><ul>
+<li><a class="reference internal" href="#classes">Classes</a></li>
+<li><a class="reference internal" href="#functions">Functions</a><ul>
 <li><a class="reference internal" href="#pdstools.plots.plot_base.Plots"><code class="docutils literal notranslate"><span class="pre">Plots</span></code></a><ul>
 <li><a class="reference internal" href="#pdstools.plots.plot_base.Plots.hasModels"><code class="docutils literal notranslate"><span class="pre">hasModels</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.plots.plot_base.Plots.hasPredictorBinning"><code class="docutils literal notranslate"><span class="pre">hasPredictorBinning</span></code></a></li>
@@ -1151,6 +1175,7 @@ such as writing to html automatically or displaying figures while facetting.</p>
 <li><a class="reference internal" href="#pdstools.plots.plot_base.Plots.plotPredictorCount"><code class="docutils literal notranslate"><span class="pre">plotPredictorCount()</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#pdstools.plots.plot_base.plotBinningLift"><code class="docutils literal notranslate"><span class="pre">plotBinningLift()</span></code></a></li>
 </ul>
 </li>
 </ul>

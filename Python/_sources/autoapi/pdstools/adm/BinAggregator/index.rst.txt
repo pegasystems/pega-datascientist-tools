@@ -1,0 +1,113 @@
+:py:mod:`pdstools.adm.BinAggregator`
+====================================
+
+.. py:module:: pdstools.adm.BinAggregator
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   pdstools.adm.BinAggregator.BinAggregator
+
+
+
+
+.. py:class:: BinAggregator(dm: pdstools.ADMDatamart, query: polars.Expr = None)
+
+
+   A class to generate rolled up insights from ADM predictor binning.
+
+   .. py:method:: roll_up(predictors: Union[str, list], n: int = 10, distribution: Literal[lin, log] = 'lin', boundaries: Optional[Union[float, list]] = None, symbols: Optional[Union[str, list]] = None, minimum: Optional[float] = None, maximum: Optional[float] = None, aggregation: Optional[str] = None, as_numeric: Optional[bool] = None, return_df: bool = False, verbose: bool = False) -> Union[polars.DataFrame, plotly.graph_objects.Figure]
+
+      Roll up a predictor across all the models defined when creating the class.
+
+      Predictors can be both numeric and symbolic (also called 'categorical'). You
+      can aggregate the same predictor across different sets of models by specifying
+      a column name in the aggregation argument.
+
+      :param predictors: Name of the predictor to roll up. Multiple predictors can be passed in as
+                         a list.
+      :type predictors: str | list
+      :param n: Number of bins (intervals or symbols) to generate, by default 10. Any
+                custom intervals or symbols specified with the 'musthave' argument will
+                count towards this number as well. For symbolic predictors can be None,
+                which means unlimited.
+      :type n: int, optional
+      :param distribution: For numeric predictors: the way the intervals are constructed. By default
+                           "lin" for an evenly-spaced distribution, can be set to "log" for a long
+                           tailed distribution (for fields like income).
+      :type distribution: str, optional
+      :param boundaries: For numeric predictors: one value, or a list of the numeric values to
+                         include as interval boundaries. They will be used at the front of the
+                         automatically created intervals. By default None, all intervals are
+                         created automatically.
+      :type boundaries: float | list, optional
+      :param symbols: For symbolic predictors, any symbol(s) that
+                      must be included in the symbol list in the generated binning. By default None.
+      :type symbols: str | list, optional
+      :param minimum: Minimum value for numeric predictors, by default None. When None the
+                      minimum is taken from the binning data of the models.
+      :type minimum: float, optional
+      :param maximum: Maximum value for numeric predictors, by default None. When None the
+                      maximum is taken from the binning data of the models.
+      :type maximum: float, optional
+      :param aggregation: Optional column name in the data to aggregate over, creating separate
+                          aggregations for each of the different values. By default None.
+      :type aggregation: str, optional
+      :param as_numeric: Optional override for the type of the predictor, so to be able to
+                         override in the (exceptional) situation that a predictor with the same
+                         name is numeric in some and symbolic in some other models. By default None
+                         which means the type is taken from the first predictor in the data.
+      :type as_numeric: bool, optional
+      :param return_df: Return the underlying binning instead of a plot.
+      :type return_df: bool, optional
+      :param verbose: Show detailed debug information while executing, by default False
+      :type verbose: bool, optional
+
+      :returns: By default returns a nicely formatted plot. When 'return_df' is set
+                to True, it returns the actual binning with the lift aggregated over
+                all the models, optionally per predictor and per set of models.
+      :rtype: pl.DataFrame | Figure
+
+
+   .. py:method:: accumulate_num_binnings(predictor, modelids, target_binning, verbose=False) -> polars.DataFrame
+
+
+   .. py:method:: create_symbol_list(predictor, n_symbols, musthave_symbols) -> list
+
+
+   .. py:method:: accumulate_sym_binnings(predictor, modelids, symbollist, verbose=False) -> polars.DataFrame
+
+
+   .. py:method:: normalize_all_binnings(combined_dm: polars.LazyFrame) -> polars.LazyFrame
+
+      Prepare all predictor binning
+
+      Fix up the boundaries for numeric bins and parse the bin labels
+      into clean lists for symbolics.
+
+
+   .. py:method:: create_empty_numbinning(predictor: str, n: int, distribution: str = 'lin', boundaries: Optional[list] = None, minimum: Optional[float] = None, maximum: Optional[float] = None) -> polars.DataFrame
+
+
+   .. py:method:: get_source_numbinning(predictor: str, modelid: str) -> polars.DataFrame
+
+
+   .. py:method:: combine_two_numbinnings(source: polars.DataFrame, target: polars.DataFrame, verbose=False) -> polars.DataFrame
+
+
+   .. py:method:: plot_binning_attribution(source: polars.DataFrame, target: polars.DataFrame) -> plotly.graph_objects.Figure
+
+
+   .. py:method:: plotBinningLift(binning, col_facet=None, row_facet=None, custom_data=['PredictorName', 'BinSymbol'], return_df=False) -> Union[polars.DataFrame, plotly.graph_objects.Figure]
+
+
+   .. py:method:: plot_lift_binning(binning: polars.DataFrame) -> plotly.graph_objects.Figure
+
+
+

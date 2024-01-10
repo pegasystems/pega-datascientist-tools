@@ -2,32 +2,32 @@
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 345)">
 <title>polars_query</title>
 <polygon fill="white" stroke="transparent" points="-4,4 -4,-345 1098,-345 1098,4 -4,4"/>
-<!-- WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_4001761676684048746&quot;] [(0, 0)] -->
+<!-- WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_803995424463585308&quot;] [(0, 0)] -->
 <g id="node1" class="node">
-<title>WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_4001761676684048746&quot;] [(0, 0)]</title>
-<polygon fill="none" stroke="black" points="977.5,-341 116.5,-341 116.5,-305 977.5,-305 977.5,-341"/>
-<text text-anchor="middle" x="547" y="-319.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_4001761676684048746&quot;]</text>
+<title>WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_803995424463585308&quot;] [(0, 0)]</title>
+<polygon fill="none" stroke="black" points="973,-341 121,-341 121,-305 973,-305 973,-341"/>
+<text text-anchor="middle" x="547" y="-319.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_803995424463585308&quot;]</text>
 </g>
-<!-- WITH COLUMNS [&quot;Group&quot;,&quot;ResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Issue&quot;,&quot;Positives&quot;] [(0, 1)] -->
+<!-- WITH COLUMNS [&quot;ResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;Channel&quot;,&quot;Issue&quot;,&quot;Configuration&quot;,&quot;Direction&quot;,&quot;Positives&quot;,&quot;Group&quot;] [(0, 1)] -->
 <g id="node2" class="node">
-<title>WITH COLUMNS [&quot;Group&quot;,&quot;ResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Issue&quot;,&quot;Positives&quot;] [(0, 1)]</title>
+<title>WITH COLUMNS [&quot;ResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;Channel&quot;,&quot;Issue&quot;,&quot;Configuration&quot;,&quot;Direction&quot;,&quot;Positives&quot;,&quot;Group&quot;] [(0, 1)]</title>
 <polygon fill="none" stroke="black" points="984.5,-269 109.5,-269 109.5,-233 984.5,-233 984.5,-269"/>
-<text text-anchor="middle" x="547" y="-247.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;Group&quot;,&quot;ResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Issue&quot;,&quot;Positives&quot;]</text>
+<text text-anchor="middle" x="547" y="-247.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;ResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;Channel&quot;,&quot;Issue&quot;,&quot;Configuration&quot;,&quot;Direction&quot;,&quot;Positives&quot;,&quot;Group&quot;]</text>
 </g>
-<!-- WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_4001761676684048746&quot;] [(0, 0)]&#45;&#45;WITH COLUMNS [&quot;Group&quot;,&quot;ResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Issue&quot;,&quot;Positives&quot;] [(0, 1)] -->
+<!-- WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_803995424463585308&quot;] [(0, 0)]&#45;&#45;WITH COLUMNS [&quot;ResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;Channel&quot;,&quot;Issue&quot;,&quot;Configuration&quot;,&quot;Direction&quot;,&quot;Positives&quot;,&quot;Group&quot;] [(0, 1)] -->
 <g id="edge1" class="edge">
-<title>WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_4001761676684048746&quot;] [(0, 0)]--WITH COLUMNS [&quot;Group&quot;,&quot;ResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Issue&quot;,&quot;Positives&quot;] [(0, 1)]</title>
+<title>WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_803995424463585308&quot;] [(0, 0)]--WITH COLUMNS [&quot;ResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;Channel&quot;,&quot;Issue&quot;,&quot;Configuration&quot;,&quot;Direction&quot;,&quot;Positives&quot;,&quot;Group&quot;] [(0, 1)]</title>
 <path fill="none" stroke="black" d="M547,-304.7C547,-293.85 547,-279.92 547,-269.1"/>
 </g>
-<!-- FAST_PROJECT: [Name, Group, ResponseCount, SnapshotTime, Configuration, ModelID, Channel, Direction, Issue, Treatment, Performance, Positives] [(0, 2)] -->
+<!-- FAST_PROJECT: [ResponseCount, SnapshotTime, Channel, ModelID, Issue, Configuration, Direction, Positives, Group, Name, Treatment, Performance] [(0, 2)] -->
 <g id="node3" class="node">
-<title>FAST_PROJECT: [Name, Group, ResponseCount, SnapshotTime, Configuration, ModelID, Channel, Direction, Issue, Treatment, Performance, Positives] [(0, 2)]</title>
+<title>FAST_PROJECT: [ResponseCount, SnapshotTime, Channel, ModelID, Issue, Configuration, Direction, Positives, Group, Name, Treatment, Performance] [(0, 2)]</title>
 <polygon fill="none" stroke="black" points="1094,-197 0,-197 0,-161 1094,-161 1094,-197"/>
-<text text-anchor="middle" x="547" y="-175.3" font-family="Times,serif" font-size="14.00">FAST_PROJECT: [Name, Group, ResponseCount, SnapshotTime, Configuration, ModelID, Channel, Direction, Issue, Treatment, Performance, Positives]</text>
+<text text-anchor="middle" x="547" y="-175.3" font-family="Times,serif" font-size="14.00">FAST_PROJECT: [ResponseCount, SnapshotTime, Channel, ModelID, Issue, Configuration, Direction, Positives, Group, Name, Treatment, Performance]</text>
 </g>
-<!-- WITH COLUMNS [&quot;Group&quot;,&quot;ResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Issue&quot;,&quot;Positives&quot;] [(0, 1)]&#45;&#45;FAST_PROJECT: [Name, Group, ResponseCount, SnapshotTime, Configuration, ModelID, Channel, Direction, Issue, Treatment, Performance, Positives] [(0, 2)] -->
+<!-- WITH COLUMNS [&quot;ResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;Channel&quot;,&quot;Issue&quot;,&quot;Configuration&quot;,&quot;Direction&quot;,&quot;Positives&quot;,&quot;Group&quot;] [(0, 1)]&#45;&#45;FAST_PROJECT: [ResponseCount, SnapshotTime, Channel, ModelID, Issue, Configuration, Direction, Positives, Group, Name, Treatment, Performance] [(0, 2)] -->
 <g id="edge2" class="edge">
-<title>WITH COLUMNS [&quot;Group&quot;,&quot;ResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Channel&quot;,&quot;Direction&quot;,&quot;Issue&quot;,&quot;Positives&quot;] [(0, 1)]--FAST_PROJECT: [Name, Group, ResponseCount, SnapshotTime, Configuration, ModelID, Channel, Direction, Issue, Treatment, Performance, Positives] [(0, 2)]</title>
+<title>WITH COLUMNS [&quot;ResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;Channel&quot;,&quot;Issue&quot;,&quot;Configuration&quot;,&quot;Direction&quot;,&quot;Positives&quot;,&quot;Group&quot;] [(0, 1)]--FAST_PROJECT: [ResponseCount, SnapshotTime, Channel, ModelID, Issue, Configuration, Direction, Positives, Group, Name, Treatment, Performance] [(0, 2)]</title>
 <path fill="none" stroke="black" d="M547,-232.7C547,-221.85 547,-207.92 547,-197.1"/>
 </g>
 <!-- RENAME [(0, 3)] -->
@@ -36,9 +36,9 @@
 <polygon fill="none" stroke="black" points="589,-125 505,-125 505,-89 589,-89 589,-125"/>
 <text text-anchor="middle" x="547" y="-103.3" font-family="Times,serif" font-size="14.00">RENAME</text>
 </g>
-<!-- FAST_PROJECT: [Name, Group, ResponseCount, SnapshotTime, Configuration, ModelID, Channel, Direction, Issue, Treatment, Performance, Positives] [(0, 2)]&#45;&#45;RENAME [(0, 3)] -->
+<!-- FAST_PROJECT: [ResponseCount, SnapshotTime, Channel, ModelID, Issue, Configuration, Direction, Positives, Group, Name, Treatment, Performance] [(0, 2)]&#45;&#45;RENAME [(0, 3)] -->
 <g id="edge3" class="edge">
-<title>FAST_PROJECT: [Name, Group, ResponseCount, SnapshotTime, Configuration, ModelID, Channel, Direction, Issue, Treatment, Performance, Positives] [(0, 2)]--RENAME [(0, 3)]</title>
+<title>FAST_PROJECT: [ResponseCount, SnapshotTime, Channel, ModelID, Issue, Configuration, Direction, Positives, Group, Name, Treatment, Performance] [(0, 2)]--RENAME [(0, 3)]</title>
 <path fill="none" stroke="black" d="M547,-160.7C547,-149.85 547,-135.92 547,-125.1"/>
 </g>
 <!-- TABLE

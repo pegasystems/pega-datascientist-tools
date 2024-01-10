@@ -12,6 +12,7 @@ Submodules
 
    ADMDatamart/index.rst
    ADMTrees/index.rst
+   BinAggregator/index.rst
    Tables/index.rst
 
 
