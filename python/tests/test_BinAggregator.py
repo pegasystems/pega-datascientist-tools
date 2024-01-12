@@ -157,7 +157,81 @@ def test_combine_two_numbinnings(cdhsample_binaggregator):
     assert combined["BinCoverage"].to_list() == pytest.approx([1, 1, 1, 0.66667], 1e-5)
 
 
+def test_subsetting():
+    dm = datasets.CDHSample(subset=False)
+    ba = BinAggregator(dm, query=pl.col("Group").cast(pl.Utf8).str.contains("Loan"))
+    result = ba.roll_up("Customer.Age", n=6, aggregation="Group", return_df=True)
+    assert result.select(pl.col("Group").n_unique()).item() == 2
+
+
+def test_log(cdhsample_binaggregator):
+    binning = cdhsample_binaggregator.roll_up(
+        "Customer.NetWealth",
+        boundaries=[10000, 20000],
+        n=8,
+        minimum=10000,
+        maximum=50000,
+        distribution="log",
+        return_df=True,
+    )
+    assert binning["BinLowerBound"].to_list() == pytest.approx(
+        [
+            10000.0,
+            20000.0,
+            22797.045620951936,
+            25985.264452188192,
+            29619.362959451737,
+            33761.69843250776,
+            38483.348970335035,
+            43865.33310618707,
+        ],
+        1e-8,
+    )
+
+
+def test_plot_binning_attribution(cdhsample_binaggregator):
+    target = cdhsample_binaggregator.create_empty_numbinning(
+        "Customer.Age", 4, minimum=20, maximum=80
+    )
+    source = pl.DataFrame(
+        {
+            "ModelID": [1] * 3,
+            "PredictorName": ["Customer.Age"] * 3,
+            "BinIndex": [1, 2, 3],
+            "BinLowerBound": [10.0, 25.0, 50.0],
+            "BinUpperBound": [25.0, 50.0, 75.0],
+            # "BinSymbol" : ["20-25", "25-50", "50-75"],
+            "Lift": [0.4, -0.1, 2.0],
+            "BinResponses": [100, 1000, 400],
+        }
+    )
+
+    fig = cdhsample_binaggregator.plot_binning_attribution(source, target)
+    assert isinstance(fig, Figure)
+
+
+def test_plot_binning_lift(cdhsample_binaggregator):
+    assert isinstance(cdhsample_binaggregator.roll_up("Customer.Age"), Figure)
+
+    assert isinstance(
+        cdhsample_binaggregator.plot_lift_binning(
+            cdhsample_binaggregator.create_empty_numbinning(
+                "Customer.Age", 4, minimum=20, maximum=80
+            )
+        ),
+        Figure,
+    )
+
+
+@pytest.mark.skip(reason="no way of currently testing this")
+def test_verbose_mode(cdhsample_binaggregator, capsys):
+    cdhsample_binaggregator.roll_up(
+        ["Customer.Prefix", "Customer.Age"], n=6, aggregation="Group", verbose=True
+    )
+    captured = capsys.readouterr()
+    assert "Pivot table:" in captured
+
+
 # then test a roll up over Group
 
 # and a roll up over Group and two predictors
-

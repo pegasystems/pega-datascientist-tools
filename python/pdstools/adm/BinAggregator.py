@@ -208,9 +208,9 @@ class BinAggregator:
             if verbose:
                 print(source_binning)
 
-                fig = self.plot_binning_attribution(source_binning, target_binning)
-                fig.update_layout(title=f"{predictor}, model={id}")
-                fig.show()
+                # fig = self.plot_binning_attribution(source_binning, target_binning)
+                # fig.update_layout(title=f"{predictor}, model={id}")
+                # fig.show()
 
             target_binning = self.combine_two_numbinnings(
                 source_binning, target_binning, verbose=verbose
@@ -219,18 +219,19 @@ class BinAggregator:
             if verbose:
                 print(target_binning)
 
-                fig = self.plot_lift_binning(target_binning)
-                fig.update_layout(width=800, height=300, showlegend=False)
-                fig.show()
+                # fig = self.plot_lift_binning(target_binning)
+                # fig.update_layout(width=800, height=300, showlegend=False)
+                # fig.show()
 
         if verbose:
-            fig = self.plot_lift_binning(target_binning)
-            fig.update_layout(
-                width=800,
-                height=300,
-            )
-            fig.show()
             print(target_binning)
+            
+            # fig = self.plot_lift_binning(target_binning)
+            # fig.update_layout(
+            #     width=800,
+            #     height=300,
+            # )
+            # fig.show()
 
         return target_binning
 
