@@ -34,6 +34,7 @@ jobs:
           pip install pytest
           pip install papermill
           pip install XlsxWriter
+          pip install openpyxl
           pip install ipython 
           pip install ipykernel
           pip install itables
