@@ -68,6 +68,7 @@ jobs:
           pip install scipy
           pip install testbook
           pip install XlsxWriter
+          pip install openpyxl
           pip install ipython 
           pip install ipykernel
           ipython kernel install --name "python3" --user
