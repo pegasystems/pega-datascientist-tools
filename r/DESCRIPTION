@@ -14,8 +14,7 @@ RoxygenNote: 7.2.3
 Suggests:
   testthat ,
     knitr,
-    rmarkdown,
-    pROC
+    rmarkdown
 Imports:
     data.table,
     ggplot2,
@@ -35,6 +34,7 @@ Imports:
     kableExtra,
     stringi,
     base64enc,
+    pROC,
     gridExtra,
     Hmisc,
     DBI,
