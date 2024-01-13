@@ -31,15 +31,13 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest
+          pip install -r tests/test-requirements.txt
           pip install papermill
-          pip install XlsxWriter
-          pip install ipython 
-          pip install ipykernel
           pip install itables
           pip install jinja2
           ipython kernel install --name "python3" --user
           sudo apt-get install -y pandoc
+          
       - name: Install pdstools
         run: pip install .
 

@@ -1,4 +1,5 @@
 pandas
+tabulate
 plotly>=5.5.0
 requests
 pydot

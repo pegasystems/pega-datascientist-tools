@@ -2,25 +2,7 @@ import polars as pl
 from pdstools.utils.cdh_utils import weighted_average_polars
 from functools import cached_property
 
-# TODO: this whole class can go away
-
-standardNBADNames = [
-    "Assisted_Click_Through_Rate",
-    "CallCenter_Click_Through_Rate",
-    "CallCenterAcceptRateOutbound",
-    "Default_Inbound_Model",
-    "Default_Outbound_Model",
-    "Email_Click_Through_Rate",
-    "Mobile_Click_Through_Rate",
-    "OmniAdaptiveModel",
-    "Other_Inbound_Click_Through_Rate",
-    "Push_Click_Through_Rate",
-    "Retail_Click_Through_Rate",
-    "Retail_Click_Through_Rate_Outbound",
-    "SMS_Click_Through_Rate",
-    "Web_Click_Through_Rate",
-]
-
+# TODO: reconsier this whole class
 
 class Tables:
     @cached_property
@@ -46,7 +28,7 @@ class Tables:
         df = pl.DataFrame(
             {
                 "modeldata_last_snapshot": [1, 0],
-                "predictor_last_snapshot": [1, 1],
+                "predictor_last_snapshot": [1, 1], # TODO how is this used?
                 "predictorbinning": [1, 1],
             }
         )
@@ -76,6 +58,8 @@ class Tables:
 
         return modeldata_last_snapshot
 
+    # TODO does this summarization really belong here?
+    
     @cached_property
     def predictor_last_snapshot(self):
         model_identifiers = ["Configuration"] + self.context_keys

@@ -127,27 +127,27 @@ class ADMTreesModel:
         logging.info("Reading model...")
         self._read_model(file, **kwargs)
         if self.trees is None:
-            raise ValueError("Import unsuccesful.")
+            raise ValueError("Import unsuccessful.")
 
     def _read_model(self, file, **kwargs):
         def _import(file):
             logging.info("Trying regular import.")
             with open(file) as f:
                 file = json.load(f)
-            logging.info("Regular import succesful.")
+            logging.info("Regular import successful.")
 
             return file
 
         def read_url(file):
             logging.info("Trying to read from URL.")
             file = urllib.request.urlopen(file).read()
-            logging.info("Import from URL succesful.")
+            logging.info("Import from URL successful.")
             return file
 
         def decode_string(file):
             logging.info("Trying to decompress the string.")
             file = zlib.decompress(base64.b64decode(file))
-            logging.info("Decompressing string succesful.")
+            logging.info("Decompressing string successful.")
             return file
 
         decode = kwargs.pop("decode", False)

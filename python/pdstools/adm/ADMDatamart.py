@@ -117,7 +117,7 @@ class ADMDatamart(Plots, Tables):
         drop_cols: Optional[list] = None,
         include_cols: Optional[list] = None,
         context_keys: list = ["Channel", "Direction", "Issue", "Group"],
-        extract_keys: bool = False, # TODO: should be True by default, extract should be efficiently using Configuration
+        extract_keys: bool = False,  # TODO: should be True by default, extract should be efficiently using Configuration
         predictorCategorization: pl.Expr = cdh_utils.defaultPredictorCategorization,
         plotting_engine: Union[str, Any] = "plotly",
         verbose: bool = False,
@@ -397,13 +397,13 @@ class ADMDatamart(Plots, Tables):
             try:
                 df = self._apply_query(df, self.query)
                 if self.verbose:
-                    print(f"Query succesful for {name}.")
+                    print(f"Query successful for {name}.")
             except pl.ColumnNotFoundError:
                 if self.verbose:
                     print(
-                        f"""Query unsuccesful for {name}.
+                        f"""Query unsuccessful for {name}.
                 Maybe the filter you selected only applies to either model data or predictor data
-                and thus can't be succesful for the other one. That should be fine
+                and thus can't be successful for the other one. That should be fine
                 as the other table is likely queried correctly."""
                     )
         return df, cols, missing
@@ -1421,7 +1421,9 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             yaml.dump(params, f)
 
         bashCommand = f"quarto render {healthcheck_file} --to {output_type} --output {output_filename} --execute-params params.yaml"
+
         run_bash_command(bashCommand, working_dir, **kwargs)
+
         check_output_file(working_dir, output_filename, verbose, delete_temp_files)
         if delete_temp_files:
             _delete_temp_files(working_dir, files)
