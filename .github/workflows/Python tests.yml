@@ -64,13 +64,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r python/requirements.txt
-          pip install pytest-cov
-          pip install scipy
-          pip install testbook
-          pip install XlsxWriter
-          pip install openpyxl
-          pip install ipython 
-          pip install ipykernel
+          pip install -r python/tests/test-requirements.txt
           ipython kernel install --name "python3" --user
 
       - name: Run tests
