@@ -17,19 +17,6 @@ Classes
 
 
 
-Attributes
-~~~~~~~~~~
-
-.. autoapisummary::
-
-   pdstools.adm.Tables.standardNBADNames
-
-
-.. py:data:: standardNBADNames
-   :value: ['Assisted_Click_Through_Rate', 'CallCenter_Click_Through_Rate', 'CallCenterAcceptRateOutbound',...
-
-   
-
 .. py:class:: Tables
 
 
