@@ -28,18 +28,16 @@ def cachedDatamart(*args, **kwargs):
 def import_datamart(**opts):
     st.session_state["params"] = {}
     st.write("### Data import")
-    options = [
-        "Direct file path",
-        "Direct file upload",
-        "CDH Sample",
-        "Download from S3",
-    ]
     if os.getcwd() == "/workspaces/pega-datascientist-tools":
-        options.remove("Direct file upload")
         opts["codespaces"] = True
     source = st.selectbox(
         "Select data source",
-        options=options,
+        options=[
+            "Direct file path",
+            "Direct file upload",
+            "CDH Sample",
+            "Download from S3",
+        ],
     )
     if source == "CDH Sample":
         st.session_state["dm"] = cachedSample()
@@ -59,6 +57,10 @@ def fromUploadedFile(**opts):
         "Upload Predictor Binning snapshot",
         type=["json", "zip", "parquet", "csv", "arrow"],
     )
+    if opts.get("codespaces", False) and model_file is None and predictor_file is None:
+        st.warning(
+            "If you are running the app through Github Codespaces please use Direct file path option as explained [here](https://github.com/pegasystems/pega-datascientist-tools/wiki/ADM-Health-Check#what-are-the-steps-to-use-it)."
+        )
     if model_file and predictor_file:
         try:
             st.session_state["dm"] = cachedDatamart(
@@ -90,13 +92,14 @@ def fromFilePath(**opts):
     you can import the data simply by pointing the app to the directory
     where the original files are located, and we can find it automatically."""
     )
-    value = (
-        "/workspaces/pega-datascientist-tools" if opts.get("codespaces", False) else ""
+    placeholder = (
+        "/workspaces/pega-datascientist-tools"
+        if opts.get("codespaces", False)
+        else "/Users/Downloads"
     )
     dir = st.text_input(
         "The folder of the Model Snapshot and Predictor Binning files:",
-        placeholder="/Users/Downloads",
-        value=value,
+        placeholder=placeholder,
     )
     import_strategy = "eager" if opts["extract_keys"] else "lazy"
     if dir != "":
