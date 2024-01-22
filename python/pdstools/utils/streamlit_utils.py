@@ -59,7 +59,10 @@ def fromUploadedFile(**opts):
     )
     if opts.get("codespaces", False) and model_file is None and predictor_file is None:
         st.warning(
-            "If you are running the app through Github Codespaces please use Direct file path option as explained [here](https://github.com/pegasystems/pega-datascientist-tools/wiki/ADM-Health-Check#what-are-the-steps-to-use-it)."
+            """ Github Codespaces has a file size limit of 50MB for 'Direct Upload'. 
+            If you're using Github Codespaces and your files exceed this size limit, kindly opt for the 'Direct file path' method.
+            Detailed instructions can be found [here](https://github.com/pegasystems/pega-datascientist-tools/wiki/ADM-Health-Check#what-are-the-steps-to-use-it)
+            """
         )
     if model_file and predictor_file:
         try:
