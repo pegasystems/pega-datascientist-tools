@@ -28,15 +28,18 @@ def cachedDatamart(*args, **kwargs):
 def import_datamart(**opts):
     st.session_state["params"] = {}
     st.write("### Data import")
-
+    options = [
+        "Direct file path",
+        "Direct file upload",
+        "CDH Sample",
+        "Download from S3",
+    ]
+    if os.getcwd() == "/workspaces/pega-datascientist-tools":
+        options.remove("Direct file upload")
+        opts["codespaces"] = True
     source = st.selectbox(
         "Select data source",
-        options=[
-            "Direct file path",
-            "Direct file upload",
-            "CDH Sample",
-            "Download from S3",
-        ],
+        options=options,
     )
     if source == "CDH Sample":
         st.session_state["dm"] = cachedSample()
@@ -87,9 +90,13 @@ def fromFilePath(**opts):
     you can import the data simply by pointing the app to the directory
     where the original files are located, and we can find it automatically."""
     )
+    value = (
+        "/workspaces/pega-datascientist-tools" if opts.get("codespaces", False) else ""
+    )
     dir = st.text_input(
         "The folder of the Model Snapshot and Predictor Binning files:",
         placeholder="/Users/Downloads",
+        value=value,
     )
     import_strategy = "eager" if opts["extract_keys"] else "lazy"
     if dir != "":
