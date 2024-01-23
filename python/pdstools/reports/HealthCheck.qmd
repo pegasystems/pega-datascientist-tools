@@ -660,15 +660,17 @@ Showing how the overall channel success rates evolved over the time that the dat
 
 ```{python}
 facet = "Configuration"
+facet_col_wrap = 2
 
 # TODO check the color scheme used - pds tools to supply color schemes for channel dimension, for predictor categorization, etc etc
+# TODO: the faceting errors out when there are many configurations
 
 fig = datamart.plotOverTime(
     "SuccessRate",
     by="Channel/Direction",
     # TODO this function does not have a proper title argument
     facets=facet,
-    facet_col_wrap=2,
+    facet_col_wrap=facet_col_wrap,
     query=responsecount_analysis_query,
 )
 
@@ -682,7 +684,7 @@ unique_count = (
     .unique()
     .shape[0]
 )
-height = 200 + (math.ceil(unique_count / 2) * 250)
+height = 200 + (math.ceil(unique_count / facet_col_wrap) * 250)
 
 fig = (
     fig.update_yaxes(matches=None, title="", showticklabels=True)
@@ -822,9 +824,10 @@ The trend chart shows how model performance evolves over time. Note that ADM is 
 
 ```{python}
 facet = "Configuration"
-
+facet_col_wrap = 3
 fig = datamart.plotOverTime(
-    "weighted_performance", by="Channel/Direction", facets=facet, facet_col_wrap=2
+    # TODO: the faceting errors out when there are many configurations
+    "weighted_performance", by="Channel/Direction", facets=facet, facet_col_wrap=facet_col_wrap
 )
 
 # TODO below code is repeated, it just calculates the
@@ -838,7 +841,7 @@ unique_count = (
     .unique()
     .shape[0]
 )
-height = 200 + (math.ceil(unique_count / 2) * 250)
+height = 200 + (math.ceil(unique_count / facet_col_wrap) * 250)
 
 fig = (
     fig.update_layout(autosize=True, height=height, title="Trend of Model Performance")
@@ -1527,7 +1530,8 @@ fig.show()
 # TODO: make this daily so not continuously rising
 
 facets = "Configuration"
-facet_col_wrap = 2
+facet_col_wrap = 3
+# TODO: the faceting errors out when there are many configurations
 response_counts = datamart.plotOverTime(
     "ResponseCount",
     by="Channel/Direction",
@@ -1537,7 +1541,7 @@ response_counts = datamart.plotOverTime(
 )
 
 unique_count = datamart.modelData.select(facets).unique().collect().shape[0]
-height = 200 + (math.ceil(unique_count / 2) * 250)
+height = 200 + (math.ceil(unique_count / facet_col_wrap) * 250)
 response_counts.update_layout(autosize=True, height=height)
 response_counts.for_each_annotation(
     lambda a: a.update(text=a.text.replace(f"{facets}=", ""))

@@ -501,7 +501,7 @@ run_python_model_reports <-function(customer, dm,
 # read ADM data from cache or using given code block, write cached versions
 # back alongside a .hash file representing the hash of the code block (not the
 # data!)
-read_adm_datamartdata <- function(customer, block, quiet = T)
+read_adm_datamartdata <- function(customer, block, quiet = T, force = F)
 {
   # Hash of the code block to actually read the data - R specific trick, not portable
   codeHash <- digest::digest(substitute(block), "sha256")
@@ -510,7 +510,7 @@ read_adm_datamartdata <- function(customer, block, quiet = T)
   cachedDMFilesFullName <- file.path(report_utils_intermediates_folder, report_utils_cached_dm_filenames(customer))
 
   # Only do full read if necessary
-  if (!report_utils_is_target_current(cachedDMFilesFullName, codeHash, quiet = quiet)) {
+  if (!report_utils_is_target_current(cachedDMFilesFullName, codeHash, quiet = quiet) | force) {
     cat("Reading datamart data for", customer, "from sources", fill = TRUE)
 
     dm <- eval(block)
