@@ -26,12 +26,14 @@ params:
     # Full path to the source file which should be an export of the ADM model table
     # can be a plain CSV file, a zipped CSV, or the full path of a dataset export
     value: "../../data/pr_data_dm_admmart_mdl_fact.csv"
+
   predictordatafile:
     # Optional full path to ADM predictor binning table data. If given, the model 
     # overview will also contain predictor plots. Like the model file, there is 
     # different, you'll need to load, filter and re-write as CSV first.
     # flexibility in format: CSV, zipped CSV or dataset export. If you have something
     value: "../../data/pr_data_dm_admmart_pred.csv"
+
   modellist:
     # Facilitates automatic generation of individual model reports (calling the
     # off-line model report notebook). Optional. When given, is the name of a 
@@ -1354,7 +1356,7 @@ people apparenty click/accept/convert more often.
 
 channelz <- as.character((datamart$modeldata[Performance > 0.5,.N,by=Channel])[N>0]$Channel)
 
-sampledRates <- datamart$modeldata[ResponseCount > 0, .(SuccessRate = sample(SuccessRate, prob=ResponseCount, size=10000, replace=T)), 
+sampledRates <- datamart$modeldata[ResponseCount > 0, .(SuccessRate = as.double(sample(SuccessRate, prob=ResponseCount, size=10000, replace=T))), 
                                    by=c("Direction", "Channel", "ConfigurationName")]
 quantiles <- sampledRates[, .(p5 = quantile(SuccessRate, 0.05)), by=c("Channel", "Direction", "ConfigurationName")]
 
