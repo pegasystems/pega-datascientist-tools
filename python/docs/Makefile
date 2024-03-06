@@ -23,7 +23,7 @@ help:
 
 %: Makefile
 	mkdir -p source/articles
-	cp ../../examples/datamart/Example_ADM_Analysis.ipynb ../../examples/valuefinder/* ../../examples/adm/AGBModelVisualisation.ipynb ../../examples/hds/Example_Data_Anonymization.ipynb ../../examples/articles/*.ipynb source/articles
+	cp ../../examples/datamart/Example_ADM_Analysis.ipynb ../../examples/valuefinder/* ../../examples/adm/AGBModelVisualisation.ipynb ../../examples/adm/ADMBinningInsights.ipynb ../../examples/hds/Example_Data_Anonymization.ipynb ../../examples/articles/*.ipynb source/articles
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 	rm -rf source/articles/output
 	rm source/articles/*
