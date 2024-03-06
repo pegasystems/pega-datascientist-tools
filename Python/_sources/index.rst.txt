@@ -19,6 +19,7 @@ Welcome to the PDS Tools Python documentation
    :caption: Examples
 
    articles/Example_ADM_Analysis
+   articles/ADMBinningInsights
    articles/AGBModelVisualisation
    articles/vf_analysis
    articles/Example_Data_Anonymization
