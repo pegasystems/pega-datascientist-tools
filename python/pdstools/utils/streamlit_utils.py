@@ -28,7 +28,8 @@ def cachedDatamart(*args, **kwargs):
 def import_datamart(**opts):
     st.session_state["params"] = {}
     st.write("### Data import")
-
+    if os.getcwd() == "/workspaces/pega-datascientist-tools":
+        opts["codespaces"] = True
     source = st.selectbox(
         "Select data source",
         options=[
@@ -56,6 +57,13 @@ def fromUploadedFile(**opts):
         "Upload Predictor Binning snapshot",
         type=["json", "zip", "parquet", "csv", "arrow"],
     )
+    if opts.get("codespaces", False) and model_file is None and predictor_file is None:
+        st.warning(
+            """ Github Codespaces has a file size limit of 50MB for 'Direct Upload'. 
+            If you're using Github Codespaces and your files exceed this size limit, kindly opt for the 'Direct file path' method.
+            Detailed instructions can be found [here](https://github.com/pegasystems/pega-datascientist-tools/wiki/ADM-Health-Check#what-are-the-steps-to-use-it)
+            """
+        )
     if model_file and predictor_file:
         try:
             st.session_state["dm"] = cachedDatamart(
@@ -87,9 +95,14 @@ def fromFilePath(**opts):
     you can import the data simply by pointing the app to the directory
     where the original files are located, and we can find it automatically."""
     )
+    placeholder = (
+        "/workspaces/pega-datascientist-tools"
+        if opts.get("codespaces", False)
+        else "/Users/Downloads"
+    )
     dir = st.text_input(
         "The folder of the Model Snapshot and Predictor Binning files:",
-        placeholder="/Users/Downloads",
+        placeholder=placeholder,
     )
     import_strategy = "eager" if opts["extract_keys"] else "lazy"
     if dir != "":
