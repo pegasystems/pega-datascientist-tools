@@ -20,7 +20,9 @@
         }
     },
     "features": {
-        "ghcr.io/rocker-org/devcontainer-features/quarto-cli:1": {},
+        "ghcr.io/rocker-org/devcontainer-features/quarto-cli:1": {
+            "version": "v1.3.450"
+        },
         "ghcr.io/rocker-org/devcontainer-features/pandoc:1": {}
 
     }
