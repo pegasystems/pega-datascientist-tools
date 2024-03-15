@@ -48,7 +48,6 @@ import math
 
 # Convenience wrapper functions
 
-
 def quarto_print(text):
     display(Markdown(text))
 
@@ -1936,7 +1935,51 @@ fig.update_layout(
     yaxis_title="Percentage of Models",
 )
 
-fig = cdh_utils.legend_color_order(fig)
+# TODO remove this override and use cdhutils function again
+# when we've bumped up the pdstools version
+def legend_color_order(fig):
+    """Orders legend colors alphabetically in order to provide pega color
+    consistency among different categories"""
+
+    colorway = [
+        "#001F5F",  # dark blue
+        "#10A5AC",
+        "#F76923",  # orange
+        "#661D34",  # wine
+        "#86CAC6",  # mint
+        "#005154",  # forest
+        "#86CAC6",  # mint
+        "#5F67B9",  # violet
+        "#FFC836",  # yellow
+        "#E63690",  # pink
+        "#AC1361",  # berry
+        "#63666F",  # dark grey
+        "#A7A9B4",  # medium grey
+        "#D0D1DB",  # light grey
+    ]
+    colors = []
+    for trace in fig.data:
+        if trace.legendgroup is not None:
+            colors.append(trace.legendgroup)
+    colors.sort()
+
+    # https://github.com/pegasystems/pega-datascientist-tools/issues/201
+    if len(colors) >= len(colorway):
+        return fig
+
+    indexed_colors = {k: v for v, k in enumerate(colors)}
+    for trace in fig.data:
+        if trace.legendgroup is not None:
+            try:
+                trace.marker.color = colorway[indexed_colors[trace.legendgroup]]
+                trace.line.color = colorway[indexed_colors[trace.legendgroup]]
+            except AttributeError:  # pragma: no cover
+                pass
+
+    return fig
+
+# fig = cdh_utils.legend_color_order(fig)
+fig = legend_color_order(fig)
 
 fig.show()
 ```
