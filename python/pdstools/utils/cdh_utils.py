@@ -811,6 +811,11 @@ def legend_color_order(fig):
         if trace.legendgroup is not None:
             colors.append(trace.legendgroup)
     colors.sort()
+
+    # https://github.com/pegasystems/pega-datascientist-tools/issues/201
+    if len(colors) >= len(colorway):
+        return fig
+
     indexed_colors = {k: v for v, k in enumerate(colors)}
     for trace in fig.data:
         if trace.legendgroup is not None:
