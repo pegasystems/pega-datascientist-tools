@@ -1291,19 +1291,23 @@ cumAUCOverVolumeData <-
 cumAUCOverVolumeData[, TotalResponses := sum(ResponseCount), by=Channel]
 cumAUCOverVolumeData[, PerformanceBin := cut(Performance, breaks=15)]
 
-plt <- ggplot(cumAUCOverVolumeData[, list(N = sum(ResponseCount)/TotalResponses), 
-                                   by=c("PerformanceBin", "Direction", "Channel")], 
-              aes(PerformanceBin, N, color=Channel)) + 
-  #geom_col(position = position_dodge()) +
-  geom_smooth(aes(group=Channel), se = F, method = "loess") +
-  scale_color_Channel +
-  scale_y_continuous(name="Percentage of Responses", labels = scales::percent) +
-  xlab("Model Performance") +
-  theme(axis.text.x=element_text(angle=45, hjust=1)) +
-  facet_wrap(. ~ Direction) +
-  ggtitle("Distribution of Volume vs Model Performance", subtitle = "by Channel")
-
-ggplotly(plt)
+if (cumAUCOverVolumeData[, max(TotalResponses)] > 0) {
+  plt <- ggplot(cumAUCOverVolumeData[, list(N = sum(ResponseCount)/TotalResponses), 
+                                     by=c("PerformanceBin", "Direction", "Channel")], 
+                aes(PerformanceBin, N, color=Channel)) + 
+    #geom_col(position = position_dodge()) +
+    geom_smooth(aes(group=Channel), se = F, method = "loess") +
+    scale_color_Channel +
+    scale_y_continuous(name="Percentage of Responses", labels = scales::percent) +
+    xlab("Model Performance") +
+    theme(axis.text.x=element_text(angle=45, hjust=1)) +
+    facet_wrap(. ~ Direction) +
+    ggtitle("Distribution of Volume vs Model Performance", subtitle = "by Channel")
+  
+  ggplotly(plt)
+} else {
+  cat("No responses - plot unavailable.", fill=T)
+}
 ```
 
 ## Positives vs. Number of Models
