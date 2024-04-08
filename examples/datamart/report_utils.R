@@ -34,6 +34,7 @@ init_report_utils <- function(pdstool_root_folder, results_folder, intermediates
   if (!dir.exists(report_utils_intermediates_folder)) {
     dir.create(report_utils_intermediates_folder)
   }
+  report_utils_all_used_files <<- list()
 
   # Markdown/Quatro files for the reports
   report_utils_healthcheck_notebook_R <<- file.path(pdstool_root_folder, "examples/datamart/healthcheck.Rmd")
@@ -117,52 +118,12 @@ report_utils_write_cached_files <- function(dm, model_filename, preds_filename)
   }
 }
 
-# Drop old HTML files and orphaned hash files (that have no reference)
-report_utils_cleanup_helper <- function(folder, keep_days, file_pattern, is_obsolete)
+report_utils_cleanup_cache <- function(folder = report_utils_results_folder)
 {
-  generated_files <- list.files(folder,
-                                pattern=file_pattern,
-                                full.names = TRUE, recursive = FALSE)
-  obsolete_files <- c()
-  if (length(generated_files) > 0) {
-    obsolete_files <- generated_files[sapply(generated_files, is_obsolete)]
-  }
-
-  # print(obsolete_files)
-
-  cat("Removing", length(obsolete_files), "obsolete", file_pattern, "files from", folder, fill = T)
-  if (length(obsolete_files) > 0) {
-    file.remove(obsolete_files)
-  }
+  current_files <- list.files(folder, full.names = T, include.dirs = F, recursive = T)
+  used_files <- unlist(report_utils_all_used_files)
+  sapply(setdiff(current_files, used_files), file.remove)
 }
-
-report_utils_cleanup_cache <- function(folder = report_utils_results_folder, keep_days = 7)
-{
-  is_too_old <- function(f, before = now() - days(keep_days)) {
-    return(fileModificationTime(f) < before)
-  }
-
-  has_no_reference <- function(f) {
-    hashFileReference <- gsub("(.*)[.]hash$", "\\1", f) # reverse of report_utils_hashfilename
-    return(!file.exists(hashFileReference))
-  }
-
-  report_utils_cleanup_helper(folder, keep_days, ".*[.]html$", is_too_old)
-  report_utils_cleanup_helper(folder, keep_days, ".*[.]hash$", has_no_reference)
-
-  # Do it for the report subfolders as well
-  sapply(list.files(folder, pattern = ".*Generated Model Reports$", full.names = T, include.dirs = T),
-         function(d) {
-           report_utils_cleanup_helper(d, keep_days, ".*[.]html$", is_too_old)
-
-           report_utils_cleanup_helper(d, keep_days, ".*[.]hash$", has_no_reference)
-         }
-  )
-
-  return()
-}
-
-
 
 # Change time of a file
 # TODO maybe this is overly sensitive on onedrive folders
@@ -172,7 +133,16 @@ fileModificationTime <- function(f) { as.POSIXct(file.info(f)$mtime) }
 # unnecessary re-creation
 report_utils_run_report <- function(customer, dm, target_fullfilename, target_generator_hash, renderer, quiet)
 {
-  cachedDMFilesFullName <- file.path(report_utils_intermediates_folder, report_utils_cached_dm_filenames(customer))
+  cachedDMFilesFullName <- file.path(report_utils_intermediates_folder,
+                                     report_utils_cached_dm_filenames(customer))
+
+  # track dependencies just for the clean up
+  report_utils_all_used_files[[1 + length(report_utils_all_used_files)]] <<- normalizePath(cachedDMFilesFullName[1])
+  report_utils_all_used_files[[1 + length(report_utils_all_used_files)]] <<- normalizePath(cachedDMFilesFullName[2])
+  report_utils_all_used_files[[1 + length(report_utils_all_used_files)]] <<- normalizePath(report_utils_hashfilename(cachedDMFilesFullName[1]))
+  report_utils_all_used_files[[1 + length(report_utils_all_used_files)]] <<- normalizePath(report_utils_hashfilename(cachedDMFilesFullName[2]))
+  report_utils_all_used_files[[1 + length(report_utils_all_used_files)]] <<- normalizePath(target_fullfilename)
+  report_utils_all_used_files[[1 + length(report_utils_all_used_files)]] <<- normalizePath(report_utils_hashfilename(target_fullfilename))
 
   # make sure cached source exist, otherwise re-create from dm data
   if (!all(sapply(cachedDMFilesFullName, file.exists))) {
@@ -209,6 +179,7 @@ report_utils_run_report <- function(customer, dm, target_fullfilename, target_ge
     )), collapse = " - ")
 
     # call the renderer
+
     renderer(basename(cachedDMFilesFullName[1]),
              ifelse(!is.null(dm$predictordata), basename(cachedDMFilesFullName[2]), ""),
              title,
@@ -349,7 +320,8 @@ default_model_id_selection <- function(dm, subset = NULL)
     ) , by =
       c("ModelID")][order(-ClassifierBins)]
 
-  # Take best models
+  # Take best models, having many classifier bins and with the highest performance
+
   selected_models =
     merge(pred_data,
           model_data,

@@ -371,10 +371,17 @@ def highlight_context_not_defined(v):
     return "background-color: %s" % color
 
 display(
-    channel_overview.to_pandas()
-    .style.set_caption("Channel Overview")
+    channel_overview
+    .to_pandas().style
+    .set_caption("Channel Overview")
     .hide(axis="index")
-    .format(precision=0, na_rep="")
+    # .format(precision=0, na_rep="") # errors out with some value error sometimes, prob related to the list of configurations
+    .format(
+        {
+            "Responses": "{:.3g}",
+            "Positives": "{:.3g}"
+        }
+    )
     .applymap(highlight_context_not_defined, subset=["Channel", "Direction"])
     .applymap(highlight_response_counts, subset=["Responses", "Positives"])
     .applymap(highlight_too_many_configurations, subset=["Supported by Configurations"])
@@ -408,9 +415,8 @@ In the detailed analyses after the overviews, the following channels will be exc
     display(
         unused_channels
         .sort(["Channel", "Direction"])
-        .to_pandas()
-        .style
-        .hide()
+        .to_pandas().style
+        .hide(axis="index")
         .format(precision=0, na_rep="")
     )
 ```
@@ -788,7 +794,12 @@ display(
     .to_pandas(use_pyarrow_extension_array=True)
     .style.set_caption("Model Overview")
     .hide(axis="index")
-    .format(precision=2)
+    .format(
+        {
+            "Responses": "{:.3g}",
+            "Positives": "{:.3g}"
+        },
+        precision=2)
     .applymap(highlight_non_standard_channels, subset=["Channel"])
     .applymap(highlight_non_standard_configurations, subset=["Configuration"])
 )
