@@ -331,24 +331,49 @@ run_python_healthcheck <- function(customer, dm, quiet = T)
 }
 
 # Choose some "interesting" model IDs for individual model reports
-default_model_id_selection <- function(dm)
+default_model_id_selection <- function(dm, subset = NULL)
 {
-  ids <- unique(as.character(as.matrix(
-    filterLatestSnapshotOnly(dm$modeldata)[, .(
-      maxSuccessRate = ModelID[which.max(SuccessRate)],
-      maxPerformance = ModelID[which.max(Performance)],
-      maxPositives = ModelID[which.max(Positives)],
-      maxResponseCount = ModelID[which.max(ResponseCount)]
-    ), by = c("ConfigurationName", "Channel")] [, 3:6]
-  )))
+  if (is.null(subset)) {
+    model_data <-
+      filterLatestSnapshotOnly(dm$modeldata)[, .N, by = c("ModelID", "Channel", "ConfigurationName")]
+  } else {
+    model_data <-
+      filterLatestSnapshotOnly(dm$modeldata)[ModelID %in% subset, .N, by = c("ModelID", "Channel", "ConfigurationName")]
+  }
+
+  pred_data <-
+    filterLatestSnapshotOnly(dm$predictordata)[, .(
+      ClassifierBins = max(TotalBins[EntryType == "Classifier"]),
+      ActivePreds = sum(EntryType[BinIndex == 1] == "Active"),
+      Performance = max(Performance)
+    ) , by =
+      c("ModelID")][order(-ClassifierBins)]
+
+  # Take best models
+  selected_models =
+    merge(pred_data,
+          model_data,
+          by = "ModelID", all = T)[, .(ModelID = unique(c(ModelID[which.max(ClassifierBins)],
+                                                          ModelID[which.max(Performance)]))),
+                                   keyby = c("Channel", "ConfigurationName")]
+
+  ids <- unique(selected_models$ModelID)
 
   ids[!is.na(ids)]
 }
 
 run_r_model_reports <-function(customer, dm,
-                               modelids = unique(dm$modeldata$ModelID), # default_model_id_selection(dm)
-                               max = length(modelids), quiet = T)
+                               modelids = NULL,
+                               max = NULL,
+                               quiet = T)
 {
+  if (is.null(modelids)) {
+    modelids <- default_model_id_selection(dm)
+  }
+  if (is.null(max)) {
+    max = length(modelids)
+  }
+
   cachedDMFilesFullName <- file.path(report_utils_intermediates_folder, report_utils_cached_dm_filenames(customer))
   r_model_report_hash <- digest::digest(readLines(report_utils_offlinemodelreport_notebook_R), "sha256")
 
@@ -408,9 +433,17 @@ run_r_model_reports <-function(customer, dm,
 }
 
 run_python_model_reports <-function(customer, dm,
-                                    modelids = unique(dm$modeldata$ModelID), # default_model_id_selection(dm)
-                                    max = length(modelids), quiet = T)
+                                    modelids = NULL,
+                                    max = NULL,
+                                    quiet = T)
 {
+  if (is.null(modelids)) {
+    modelids <- default_model_id_selection(dm)
+  }
+  if (is.null(max)) {
+    max = length(modelids)
+  }
+
   cachedDMFilesFullName <- file.path(report_utils_intermediates_folder, report_utils_cached_dm_filenames(customer))
   python_model_report_hash <- digest::digest(readLines(report_utils_offlinemodelreport_notebook_python), "sha256")
 

@@ -28,8 +28,8 @@ params:
     value: "../../data/pr_data_dm_admmart_mdl_fact.csv"
 
   predictordatafile:
-    # Optional full path to ADM predictor binning table data. If given, the model 
-    # overview will also contain predictor plots. Like the model file, there is 
+    # Optional full path to ADM predictor binning table data. If given, the model
+    # overview will also contain predictor plots. Like the model file, there is
     # different, you'll need to load, filter and re-write as CSV first.
     # flexibility in format: CSV, zipped CSV or dataset export. If you have something
     value: "../../data/pr_data_dm_admmart_pred.csv"
