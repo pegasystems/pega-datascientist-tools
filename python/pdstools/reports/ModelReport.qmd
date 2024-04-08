@@ -1,7 +1,7 @@
 ---
 title: "ADM Standalone Model Report"
 title-block-banner: true
-author: "Pega data scientist tools"
+author: "Pega Data Scientist tools"
 date: today
 subtitle: > 
   Details of one ADM model instance
