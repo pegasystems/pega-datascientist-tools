@@ -33,7 +33,7 @@ params:
     # different, you'll need to load, filter and re-write as CSV first.
     # flexibility in format: CSV, zipped CSV or dataset export. If you have something
     value: "../../data/pr_data_dm_admmart_pred.csv"
-
+  
   modellist:
     # Facilitates automatic generation of individual model reports (calling the
     # off-line model report notebook). Optional. When given, is the name of a 
@@ -1360,25 +1360,29 @@ people apparenty click/accept/convert more often.
 
 channelz <- as.character((datamart$modeldata[Performance > 0.5,.N,by=Channel])[N>0]$Channel)
 
-sampledRates <- datamart$modeldata[ResponseCount > 0, .(SuccessRate = as.double(sample(SuccessRate, prob=ResponseCount, size=10000, replace=T))), 
-                                   by=c("Direction", "Channel", "ConfigurationName")]
-quantiles <- sampledRates[, .(p5 = quantile(SuccessRate, 0.05)), by=c("Channel", "Direction", "ConfigurationName")]
-
-plt <- ggplot(datamart$modeldata, aes(SuccessRate, color=ConfigurationName)) + 
-  geom_density() + 
-  facet_wrap(.~Channel+Direction) + 
-  ggtitle("Distribution of Success Rates", subtitle = "dashed line is 5th quantile") + 
-  scale_x_continuous(labels=scales::percent) +
-  geom_vline(data=quantiles, aes(xintercept=p5, color=ConfigurationName), linetype="dashed")
-print(plt)    
-    
-plt <- ggplot(sampledRates, aes(SuccessRate, color=ConfigurationName)) + 
-  geom_density() + 
-  facet_wrap(.~Channel+Direction) + 
-  ggtitle("Distribution of Sampled Success Rates", subtitle = "taking number of responses into account") +
-  scale_x_continuous(labels=scales::percent) +
-  geom_vline(data=quantiles, aes(xintercept=p5, color=ConfigurationName), linetype="dashed")
-print(plt)
+if (nrow(datamart$modeldata[ResponseCount > 0]) > 0) {
+  sampledRates <- datamart$modeldata[ResponseCount > 0, .(SuccessRate = as.double(sample(SuccessRate, prob=ResponseCount, size=10000, replace=T))), 
+                                     by=c("Direction", "Channel", "ConfigurationName")]
+  quantiles <- sampledRates[, .(p5 = quantile(SuccessRate, 0.05)), by=c("Channel", "Direction", "ConfigurationName")]
+  
+  plt <- ggplot(datamart$modeldata, aes(SuccessRate, color=ConfigurationName)) + 
+    geom_density() + 
+    facet_wrap(.~Channel+Direction) + 
+    ggtitle("Distribution of Success Rates", subtitle = "dashed line is 5th quantile") + 
+    scale_x_continuous(labels=scales::percent) +
+    geom_vline(data=quantiles, aes(xintercept=p5, color=ConfigurationName), linetype="dashed")
+  print(plt)    
+      
+  plt <- ggplot(sampledRates, aes(SuccessRate, color=ConfigurationName)) + 
+    geom_density() + 
+    facet_wrap(.~Channel+Direction) + 
+    ggtitle("Distribution of Sampled Success Rates", subtitle = "taking number of responses into account") +
+    scale_x_continuous(labels=scales::percent) +
+    geom_vline(data=quantiles, aes(xintercept=p5, color=ConfigurationName), linetype="dashed")
+  print(plt)
+} else {
+  cat("Success Rate distribution will only be available when there are any responses.", fill=T)
+}
 ```
 
 ## Propensity distribution from Binning
