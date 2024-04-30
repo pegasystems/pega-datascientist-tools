@@ -7,9 +7,9 @@ def _readClientCredentialFile(credentialFile):  # pragma: no cover
     with open(credentialFile) as f:
         for idx, line in enumerate(f.readlines()):
             if (idx % 2) == 0:
-                key = line.strip_chars("\n")
+                key = line.rstrip("\n")
             else:
-                outputdict[key] = line.strip_chars("\n")
+                outputdict[key] = line.rstrip("\n")
         return outputdict
 
 
