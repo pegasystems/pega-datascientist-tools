@@ -705,30 +705,32 @@ Showing how the overall channel success rates evolved over the time that the dat
 :::
 
 ```{python}
-facet = "Configuration"
-facet_cols = 2
+facets = "Configuration"
+unique_count = datamart.modelData.select(pl.concat_str(facets.split("/"), separator="/").n_unique()).collect().item()
+# TODO: the faceting errors out when there are many configurations and too few facet columns resulting in very small facet rows
+facet_cols = max(2, int(unique_count**0.5))
 
-# TODO check the color scheme used - pds tools to supply color schemes for channel dimension, for predictor categorization, etc etc
-# TODO: the faceting errors out when there are many configurations
+try:
+    fig = datamart.plotOverTime(
+        "SuccessRate",
+        by="Channel/Direction",
+        # TODO this function does not have a proper title argument
+        facets=facets,
+        facet_col_wrap=facet_cols,
+        query=responsecount_analysis_query,
+    )
 
-fig = datamart.plotOverTime(
-    "SuccessRate",
-    by="Channel/Direction",
-    # TODO this function does not have a proper title argument
-    facets=facet,
-    facet_col_wrap=facet_cols,
-    query=responsecount_analysis_query,
-)
+    fig = update_fig_facet_height(fig, facet_cols, 200, 250)
+    fig = (
+        fig.update_yaxes(matches=None, title="", showticklabels=True)
+        .update_xaxes(showticklabels=True, title="")
+        # TODO title stuff doesnt need to be here if std plot supports it properly
+        .update_layout(title=f"Trend of Success Rates per Channel<br><sup>Query: {responsecount_analysis_query}</sup>")
+    )
 
-fig = update_fig_facet_height(fig, facet_cols, 200, 250)
-fig = (
-    fig.update_yaxes(matches=None, title="", showticklabels=True)
-    .update_xaxes(showticklabels=True, title="")
-    # TODO title stuff doesnt need to be here if std plot supports it properly
-    .update_layout(title=f"Trend of Success Rates per Channel<br><sup>Query: {responsecount_analysis_query}</sup>")
-)
-
-fig.show()
+    fig.show()
+except ValueError as e:
+    print(f"Error {str(e)}\nPossibly too many facets: {unique_count} for {facet_cols} columns.")
 ```
 
 # Overview of Adaptive Models
@@ -939,16 +941,16 @@ datamart.modelData.select(pl.col("Configuration").n_unique()).collect()
 
 
 ```{python}
-facet = "Configuration"
-facet_cols = 2
-
-# if (math.ceil(unique_count / facet_col_wrap) > 15):
-#     facet_col_wrap = math.ceil(unique_count / 15)
+facets = "Configuration"
+unique_count = datamart.modelData.select(pl.concat_str(facets.split("/"), separator="/").n_unique()).collect().item()
+# TODO: the faceting errors out when there are many configurations and too few facet columns resulting in very small facet rows
+facet_cols = max(2, int(unique_count**0.5))
 
 try:
     fig = datamart.plotOverTime(
-        # TODO: the faceting errors out when there are many configurations
-        "weighted_performance", by="Channel/Direction", facets=facet, facet_col_wrap=facet_cols
+        "weighted_performance", by="Channel/Direction", 
+        facets=facets, 
+        facet_col_wrap=facet_cols
     )
     fig = update_fig_facet_height(fig, facet_cols, 200, 250)
     fig = (
@@ -959,7 +961,7 @@ try:
 
     fig.show()
 except ValueError as e:
-    print(f"Error {str(e)}\nPossibly too many facets: {unique_count}.")
+    print(f"Error {str(e)}\nPossibly too many facets: {unique_count} for {facet_cols} columns.")
 
 
 ```
@@ -1624,17 +1626,17 @@ fig.show()
 
 
 ```{python}
-# TODO: make this daily so not continuously rising
-
 facets = "Configuration"
-facet_col_wrap = 3
-# TODO: the faceting errors out when there are many configurations
+unique_count = datamart.modelData.select(pl.concat_str(facets.split("/"), separator="/").n_unique()).collect().item()
+# TODO: the faceting errors out when there are many configurations and too few facet columns resulting in very small facet rows
+facet_cols = max(2, int(unique_count**0.5))
+
 try:
     response_counts = datamart.plotOverTime(
         "ResponseCount",
         by="Channel/Direction",
         facets=facets,
-        facet_col_wrap=facet_col_wrap,
+        facet_col_wrap=facet_cols,
         mode="Cumulative",
     )
 
@@ -1644,7 +1646,7 @@ try:
 
     response_counts.show()
 except ValueError as e:
-    print(f"Error {str(e)}\nPossibly too many facets: {unique_count}.")
+    print(f"Error {str(e)}\nPossibly too many facets: {unique_count} for {facet_cols} columns.")
 ```
 
 # Which Models drive most of the Volume
