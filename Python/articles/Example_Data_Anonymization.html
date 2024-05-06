@@ -5,11 +5,11 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Thompson Sampling" href="thompsonsampling.html" /><link rel="prev" title="Value Finder analysis" href="vf_analysis.html" />
 
-    <link rel="shortcut icon" href="../_static/pegasystems-inc-vector-logo.svg"/><!-- Generated with Sphinx 7.2.6 and Furo 2024.01.29 -->
+    <link rel="shortcut icon" href="../_static/pegasystems-inc-vector-logo.svg"/><!-- Generated with Sphinx 7.3.7 and Furo 2024.04.27 -->
         <title>Data Anonymization - pdstools</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
-    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
-    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=eafc0fe6" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=437aa6ec" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=fd3f3429" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=36a5483c" />
@@ -117,6 +117,8 @@
 <label class="overlay toc-overlay" for="__toc">
   <div class="visually-hidden">Hide table of contents sidebar</div>
 </label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
 
 
 
@@ -283,9 +285,9 @@
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
         </div>
-        <article role="main">
+        <article role="main" id="furo-main-content">
           <section id="Data-Anonymization">
-<h1>Data Anonymization<a class="headerlink" href="#Data-Anonymization" title="Link to this heading">#</a></h1>
+<h1>Data Anonymization<a class="headerlink" href="#Data-Anonymization" title="Link to this heading">¶</a></h1>
 <p>In Pega CDH 8.5 and up, it’s now possible to record the historical data as seen by the Adaptive Models. See <a class="reference external" href="https://academy.pega.com/challenge/exporting-historical-data/v4">this academy challenge</a> for reference. This historical data can be further used to experiment with offline models, but also to fine-tune the OOTB Gradient Boosting model. However, sharing this information with Pega can be sensitive as it contains raw predictor data.</p>
 <p>To this end, we provide a simple and transparent script to fully anonimize this dataset.</p>
 <p>The DataAnonymization script is now part of pdstools, and you can import it directly as such.</p>
@@ -300,7 +302,7 @@
 </div>
 </div>
 <section id="Input-data">
-<h2>Input data<a class="headerlink" href="#Input-data" title="Link to this heading">#</a></h2>
+<h2>Input data<a class="headerlink" href="#Input-data" title="Link to this heading">¶</a></h2>
 <p>To demonstrate this process, we’re going to anonymise this toy example dataframe:</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
@@ -355,7 +357,7 @@
   white-space: pre-wrap;
 }
 </style>
-<small>shape: (7, 7)</small><table border="1" class="dataframe"><thead><tr><th>filename</th><th>PREDICTOR_1</th><th>PREDICTOR_2</th><th>PREDICTOR_3</th><th>Context_Name</th><th>IH_PREDICTOR_0</th><th>Decision_Outcome</th></tr><tr><td>str</td><td>f64</td><td>str</td><td>str</td><td>str</td><td>str</td><td>bool</td></tr></thead><tbody><tr><td>&quot;../../../../da…</td><td>0.983033</td><td>&quot;81701663760121…</td><td>&quot;17181442165297…</td><td>&quot;27836849224021…</td><td>&quot;17887856683503…</td><td>false</td></tr><tr><td>&quot;../../../../da…</td><td>0.144221</td><td>&quot;12094951921698…</td><td>&quot;18848308573589…</td><td>&quot;27836849224021…</td><td>&quot;58499450088185…</td><td>true</td></tr><tr><td>&quot;../../../../da…</td><td>0.679745</td><td>&quot;31518682012029…</td><td>&quot;15512005559854…</td><td>&quot;12258085065076…</td><td>&quot;17887856683503…</td><td>false</td></tr><tr><td>&quot;../../../../da…</td><td>1.0</td><td>&quot;12094951921698…</td><td>&quot;33215299827652…</td><td>&quot;95060435695362…</td><td>&quot;17887856683503…</td><td>false</td></tr><tr><td>&quot;../../../../da…</td><td>0.718982</td><td>&quot;81701663760121…</td><td>&quot;12042592091914…</td><td>&quot;95060435695362…</td><td>&quot;12483061181518…</td><td>true</td></tr><tr><td>&quot;../../../../da…</td><td>0.0</td><td>&quot;31518682012029…</td><td>&quot;11300891304573…</td><td>&quot;74067613040551…</td><td>null</td><td>false</td></tr><tr><td>&quot;../../../../da…</td><td>0.02333</td><td>&quot;31518682012029…</td><td>&quot;94335802046083…</td><td>&quot;95060435695362…</td><td>&quot;12483061181518…</td><td>false</td></tr></tbody></table></div></div>
+<small>shape: (7, 7)</small><table border="1" class="dataframe"><thead><tr><th>filename</th><th>PREDICTOR_1</th><th>PREDICTOR_2</th><th>PREDICTOR_3</th><th>Context_Name</th><th>IH_PREDICTOR_0</th><th>Decision_Outcome</th></tr><tr><td>str</td><td>f64</td><td>str</td><td>str</td><td>str</td><td>str</td><td>bool</td></tr></thead><tbody><tr><td>&quot;../../../../da…</td><td>0.983033</td><td>&quot;21209358239740…</td><td>&quot;46181512000595…</td><td>&quot;28477466700164…</td><td>&quot;12724293801229…</td><td>false</td></tr><tr><td>&quot;../../../../da…</td><td>0.144221</td><td>&quot;93011921793412…</td><td>&quot;14013650743584…</td><td>&quot;28477466700164…</td><td>&quot;14704814367988…</td><td>true</td></tr><tr><td>&quot;../../../../da…</td><td>0.679745</td><td>&quot;10987397888104…</td><td>&quot;85532152597147…</td><td>&quot;17834641723577…</td><td>&quot;12724293801229…</td><td>false</td></tr><tr><td>&quot;../../../../da…</td><td>1.0</td><td>&quot;17740482247854…</td><td>&quot;14013650743584…</td><td>&quot;30755678553941…</td><td>&quot;12724293801229…</td><td>false</td></tr><tr><td>&quot;../../../../da…</td><td>0.718982</td><td>&quot;49416424254604…</td><td>&quot;46181512000595…</td><td>&quot;30755678553941…</td><td>&quot;12549311079532…</td><td>true</td></tr><tr><td>&quot;../../../../da…</td><td>0.0</td><td>&quot;11983042900609…</td><td>&quot;85532152597147…</td><td>&quot;10766864644593…</td><td>null</td><td>false</td></tr><tr><td>&quot;../../../../da…</td><td>0.02333</td><td>&quot;12501325239003…</td><td>&quot;85532152597147…</td><td>&quot;30755678553941…</td><td>&quot;12549311079532…</td><td>false</td></tr></tbody></table></div></div>
 </div>
 <p>To trace back the columns to their original names, the class also contains a mapping, which does not have to be provided.</p>
 <div class="nbinput docutils container">
@@ -374,8 +376,8 @@
 <div class="highlight"><pre>
 {&#39;filename&#39;: &#39;filename&#39;,
  &#39;Customer_CLV&#39;: &#39;PREDICTOR_1&#39;,
- &#39;Customer_MaritalStatus&#39;: &#39;PREDICTOR_2&#39;,
- &#39;Customer_City&#39;: &#39;PREDICTOR_3&#39;,
+ &#39;Customer_City&#39;: &#39;PREDICTOR_2&#39;,
+ &#39;Customer_MaritalStatus&#39;: &#39;PREDICTOR_3&#39;,
  &#39;Context_Name&#39;: &#39;Context_Name&#39;,
  &#39;IH_Web_Inbound_Accepted_pxLastGroupID&#39;: &#39;IH_PREDICTOR_0&#39;,
  &#39;Decision_Outcome&#39;: &#39;Decision_Outcome&#39;}
@@ -383,7 +385,7 @@
 </div>
 </section>
 <section id="Configs">
-<h2>Configs<a class="headerlink" href="#Configs" title="Link to this heading">#</a></h2>
+<h2>Configs<a class="headerlink" href="#Configs" title="Link to this heading">¶</a></h2>
 <p>Each capability can optionally be turned off - see below for the full list of config options, and refer to the API reference for the full description.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
@@ -453,7 +455,7 @@
   white-space: pre-wrap;
 }
 </style>
-<small>shape: (7, 7)</small><table border="1" class="dataframe"><thead><tr><th>filename</th><th>PREDICTOR_1</th><th>PREDICTOR_2</th><th>PREDICTOR_3</th><th>Context_Name</th><th>IH_Web_Inbound_Accepted_pxLastGroupID</th><th>Decision_Outcome</th></tr><tr><td>str</td><td>f64</td><td>str</td><td>str</td><td>str</td><td>str</td><td>str</td></tr></thead><tbody><tr><td>&quot;../../../../da…</td><td>0.983033</td><td>&quot;11092292457853…</td><td>&quot;50341947693815…</td><td>&quot;FirstMortgage3…</td><td>&quot;48187139684324…</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.144221</td><td>&quot;44750233197729…</td><td>&quot;16182007178025…</td><td>&quot;FirstMortgage3…</td><td>&quot;18065876345323…</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.679745</td><td>&quot;11206293772999…</td><td>&quot;56415102783961…</td><td>&quot;MoneyMarketSav…</td><td>&quot;48187139684324…</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>1.0</td><td>&quot;44750233197729…</td><td>&quot;14777679553099…</td><td>&quot;BasicChecking&quot;</td><td>&quot;48187139684324…</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.718982</td><td>&quot;11092292457853…</td><td>&quot;17544931583175…</td><td>&quot;BasicChecking&quot;</td><td>&quot;16735609960521…</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.0</td><td>&quot;11206293772999…</td><td>&quot;23209049094547…</td><td>&quot;UPlusFinPerson…</td><td>null</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.02333</td><td>&quot;11206293772999…</td><td>&quot;13528634905035…</td><td>&quot;BasicChecking&quot;</td><td>&quot;16735609960521…</td><td>&quot;Rejected&quot;</td></tr></tbody></table></div></div>
+<small>shape: (7, 7)</small><table border="1" class="dataframe"><thead><tr><th>filename</th><th>PREDICTOR_1</th><th>PREDICTOR_2</th><th>PREDICTOR_3</th><th>Context_Name</th><th>IH_Web_Inbound_Accepted_pxLastGroupID</th><th>Decision_Outcome</th></tr><tr><td>str</td><td>f64</td><td>str</td><td>str</td><td>str</td><td>str</td><td>str</td></tr></thead><tbody><tr><td>&quot;../../../../da…</td><td>0.983033</td><td>&quot;85763273867348…</td><td>&quot;10083466760044…</td><td>&quot;FirstMortgage3…</td><td>&quot;17105498002303…</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.144221</td><td>&quot;35505825081081…</td><td>&quot;11668472835631…</td><td>&quot;FirstMortgage3…</td><td>&quot;64380982608184…</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.679745</td><td>&quot;14584267168892…</td><td>&quot;13980525220423…</td><td>&quot;MoneyMarketSav…</td><td>&quot;17105498002303…</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>1.0</td><td>&quot;53167053567232…</td><td>&quot;11668472835631…</td><td>&quot;BasicChecking&quot;</td><td>&quot;17105498002303…</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.718982</td><td>&quot;12375091005067…</td><td>&quot;10083466760044…</td><td>&quot;BasicChecking&quot;</td><td>&quot;16660927597664…</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.0</td><td>&quot;12723453319523…</td><td>&quot;13980525220423…</td><td>&quot;UPlusFinPerson…</td><td>null</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.02333</td><td>&quot;18049397082125…</td><td>&quot;13980525220423…</td><td>&quot;BasicChecking&quot;</td><td>&quot;16660927597664…</td><td>&quot;Rejected&quot;</td></tr></tbody></table></div></div>
 </div>
 <p>The configs can also be written and read as such:</p>
 <div class="nbinput nblast docutils container">
@@ -485,11 +487,11 @@
   white-space: pre-wrap;
 }
 </style>
-<small>shape: (7, 7)</small><table border="1" class="dataframe"><thead><tr><th>filename</th><th>PREDICTOR_1</th><th>PREDICTOR_2</th><th>PREDICTOR_3</th><th>Context_Name</th><th>IH_Web_Inbound_Accepted_pxLastGroupID</th><th>Decision_Outcome</th></tr><tr><td>str</td><td>f64</td><td>str</td><td>str</td><td>str</td><td>str</td><td>str</td></tr></thead><tbody><tr><td>&quot;../../../../da…</td><td>0.983033</td><td>&quot;21857111409190…</td><td>&quot;58501827839619…</td><td>&quot;FirstMortgage3…</td><td>&quot;96345335742264…</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.144221</td><td>&quot;15929699332520…</td><td>&quot;16411158005903…</td><td>&quot;FirstMortgage3…</td><td>&quot;21278487074756…</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.679745</td><td>&quot;93119567777356…</td><td>&quot;84785521362207…</td><td>&quot;MoneyMarketSav…</td><td>&quot;96345335742264…</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>1.0</td><td>&quot;15929699332520…</td><td>&quot;11291379350897…</td><td>&quot;BasicChecking&quot;</td><td>&quot;96345335742264…</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.718982</td><td>&quot;21857111409190…</td><td>&quot;13633485781360…</td><td>&quot;BasicChecking&quot;</td><td>&quot;16091929067385…</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.0</td><td>&quot;93119567777356…</td><td>&quot;10631640587607…</td><td>&quot;UPlusFinPerson…</td><td>null</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.02333</td><td>&quot;93119567777356…</td><td>&quot;71873878467237…</td><td>&quot;BasicChecking&quot;</td><td>&quot;16091929067385…</td><td>&quot;Rejected&quot;</td></tr></tbody></table></div></div>
+<small>shape: (7, 7)</small><table border="1" class="dataframe"><thead><tr><th>filename</th><th>PREDICTOR_1</th><th>PREDICTOR_2</th><th>PREDICTOR_3</th><th>Context_Name</th><th>IH_Web_Inbound_Accepted_pxLastGroupID</th><th>Decision_Outcome</th></tr><tr><td>str</td><td>f64</td><td>str</td><td>str</td><td>str</td><td>str</td><td>str</td></tr></thead><tbody><tr><td>&quot;../../../../da…</td><td>0.983033</td><td>&quot;16936646699392…</td><td>&quot;14630132741461…</td><td>&quot;FirstMortgage3…</td><td>&quot;57899048446866…</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.144221</td><td>&quot;23234019987168…</td><td>&quot;15549409961407…</td><td>&quot;FirstMortgage3…</td><td>&quot;11569888462450…</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.679745</td><td>&quot;11723650837036…</td><td>&quot;22364763783306…</td><td>&quot;MoneyMarketSav…</td><td>&quot;57899048446866…</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>1.0</td><td>&quot;10056137171724…</td><td>&quot;15549409961407…</td><td>&quot;BasicChecking&quot;</td><td>&quot;57899048446866…</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.718982</td><td>&quot;12886228061037…</td><td>&quot;14630132741461…</td><td>&quot;BasicChecking&quot;</td><td>&quot;17697903747526…</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.0</td><td>&quot;13172422145582…</td><td>&quot;22364763783306…</td><td>&quot;UPlusFinPerson…</td><td>null</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.02333</td><td>&quot;96050003098023…</td><td>&quot;22364763783306…</td><td>&quot;BasicChecking&quot;</td><td>&quot;17697903747526…</td><td>&quot;Rejected&quot;</td></tr></tbody></table></div></div>
 </div>
 </section>
 <section id="Exporting">
-<h2>Exporting<a class="headerlink" href="#Exporting" title="Link to this heading">#</a></h2>
+<h2>Exporting<a class="headerlink" href="#Exporting" title="Link to this heading">¶</a></h2>
 <p>Two functions export: - <code class="docutils literal notranslate"><span class="pre">create_mapping_file()</span></code> writes the mapping file of the predictor names - <code class="docutils literal notranslate"><span class="pre">write_to_output()</span></code> writes the processed dataframe to disk</p>
 <p>Write to output accepts the following extensions: <code class="docutils literal notranslate"><span class="pre">[&quot;ndjson&quot;,</span> <span class="pre">&quot;parquet&quot;,</span> <span class="pre">&quot;arrow&quot;,</span> <span class="pre">&quot;csv&quot;]</span></code></p>
 <div class="nbinput docutils container">
@@ -509,8 +511,8 @@
 <div class="highlight"><pre>
 filename=filename
 Customer_CLV=PREDICTOR_1
-Customer_MaritalStatus=PREDICTOR_2
-Customer_City=PREDICTOR_3
+Customer_City=PREDICTOR_2
+Customer_MaritalStatus=PREDICTOR_3
 Context_Name=Context_Name
 IH_Web_Inbound_Accepted_pxLastGroupID=IH_Web_Inbound_Accepted_pxLastGroupID
 Decision_Outcome=Decision_Outcome
@@ -545,7 +547,7 @@ Decision_Outcome=Decision_Outcome
   white-space: pre-wrap;
 }
 </style>
-<small>shape: (7, 6)</small><table border="1" class="dataframe"><thead><tr><th>PREDICTOR_1</th><th>PREDICTOR_2</th><th>PREDICTOR_3</th><th>Context_Name</th><th>IH_Web_Inbound_Accepted_pxLastGroupID</th><th>Decision_Outcome</th></tr><tr><td>f64</td><td>str</td><td>str</td><td>str</td><td>str</td><td>str</td></tr></thead><tbody><tr><td>0.983033</td><td>&quot;13686919398513…</td><td>&quot;72959366638869…</td><td>&quot;FirstMortgage3…</td><td>&quot;72566773098919…</td><td>&quot;Rejected&quot;</td></tr><tr><td>0.144221</td><td>&quot;86438975486424…</td><td>&quot;40668026573728…</td><td>&quot;FirstMortgage3…</td><td>&quot;66444887132843…</td><td>&quot;Accepted&quot;</td></tr><tr><td>0.679745</td><td>&quot;14309242750737…</td><td>&quot;91133572366819…</td><td>&quot;MoneyMarketSav…</td><td>&quot;72566773098919…</td><td>&quot;Rejected&quot;</td></tr><tr><td>1.0</td><td>&quot;86438975486424…</td><td>&quot;73109584135671…</td><td>&quot;BasicChecking&quot;</td><td>&quot;72566773098919…</td><td>&quot;Rejected&quot;</td></tr><tr><td>0.718982</td><td>&quot;13686919398513…</td><td>&quot;69253245190037…</td><td>&quot;BasicChecking&quot;</td><td>&quot;71536781826709…</td><td>&quot;Accepted&quot;</td></tr><tr><td>0.0</td><td>&quot;14309242750737…</td><td>&quot;62096544634083…</td><td>&quot;UPlusFinPerson…</td><td>null</td><td>&quot;Rejected&quot;</td></tr><tr><td>0.02333</td><td>&quot;14309242750737…</td><td>&quot;98349458799446…</td><td>&quot;BasicChecking&quot;</td><td>&quot;71536781826709…</td><td>&quot;Rejected&quot;</td></tr></tbody></table></div></div>
+<small>shape: (7, 6)</small><table border="1" class="dataframe"><thead><tr><th>PREDICTOR_1</th><th>PREDICTOR_2</th><th>PREDICTOR_3</th><th>Context_Name</th><th>IH_Web_Inbound_Accepted_pxLastGroupID</th><th>Decision_Outcome</th></tr><tr><td>f64</td><td>str</td><td>str</td><td>str</td><td>str</td><td>str</td></tr></thead><tbody><tr><td>0.983033</td><td>&quot;15825643450177…</td><td>&quot;18084898034716…</td><td>&quot;FirstMortgage3…</td><td>&quot;86384298334016…</td><td>&quot;Rejected&quot;</td></tr><tr><td>0.144221</td><td>&quot;55101795317837…</td><td>&quot;21464700689903…</td><td>&quot;FirstMortgage3…</td><td>&quot;65467184100202…</td><td>&quot;Accepted&quot;</td></tr><tr><td>0.679745</td><td>&quot;17867860379024…</td><td>&quot;55191797887425…</td><td>&quot;MoneyMarketSav…</td><td>&quot;86384298334016…</td><td>&quot;Rejected&quot;</td></tr><tr><td>1.0</td><td>&quot;42466269793261…</td><td>&quot;21464700689903…</td><td>&quot;BasicChecking&quot;</td><td>&quot;86384298334016…</td><td>&quot;Rejected&quot;</td></tr><tr><td>0.718982</td><td>&quot;16437281485374…</td><td>&quot;18084898034716…</td><td>&quot;BasicChecking&quot;</td><td>&quot;18030301493602…</td><td>&quot;Accepted&quot;</td></tr><tr><td>0.0</td><td>&quot;12099079633666…</td><td>&quot;55191797887425…</td><td>&quot;UPlusFinPerson…</td><td>null</td><td>&quot;Rejected&quot;</td></tr><tr><td>0.02333</td><td>&quot;25585533347943…</td><td>&quot;55191797887425…</td><td>&quot;BasicChecking&quot;</td><td>&quot;18030301493602…</td><td>&quot;Rejected&quot;</td></tr></tbody></table></div></div>
 </div>
 </section>
 </section>
@@ -628,9 +630,9 @@ Decision_Outcome=Decision_Outcome
     </aside>
   </div>
 </div><script src="../_static/documentation_options.js?v=b21de401"></script>
-    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="../_static/scripts/furo.js?v=32e29ea5"></script>
+    <script src="../_static/scripts/furo.js?v=4e2eecee"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../_static/copybutton.js?v=f281be69"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
