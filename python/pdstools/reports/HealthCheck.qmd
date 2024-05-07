@@ -1376,13 +1376,13 @@ if datamart.predictorData is not None:
         .group_by(gb_cols)
         .agg(
             pl.col("BinResponseCount")
-            .where(pl.col("BinSymbol") == "MISSING")
+            .filter(pl.col("BinSymbol") == "MISSING")
             .sum()
             .alias("MissingCount"),
-            pl.sum("BinResponseCount").alias("BinResponseCount"),
+            pl.sum("BinResponseCount").alias("PredictorResponseCount"),
         )
         .with_columns(
-            (pl.col("MissingCount") / pl.col("BinResponseCount")).alias(
+            (pl.col("MissingCount") / pl.col("PredictorResponseCount")).alias(
                 "Percentage without responses"
             )
         )
@@ -1391,6 +1391,7 @@ if datamart.predictorData is not None:
 
     hover_data = {
         "Percentage without responses": ":.2%",
+        "PredictorResponseCount": ":d"
     }
 
     fig = px.treemap(
@@ -1399,7 +1400,7 @@ if datamart.predictorData is not None:
         color="Percentage without responses",
         template="pega",
         hover_data=hover_data,
-        title="Missing Data in Adaptive Models",
+        title="Predictor Missing Data",
     )
 
     fig.layout.coloraxis.colorscale = pega_template.positive_negative
