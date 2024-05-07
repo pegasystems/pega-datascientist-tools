@@ -1346,10 +1346,12 @@ if datamart.predictorData is not None:
 
             fig.show()
 
-        except:
-            # TODO: add error message instead of typing "an error"
-            # should we even handle the exception here?
-            print(f"Plot was not drawn for {conf} because of an error")
+        except ValueError as e:
+            print(f'Plot was not drawn for {conf} because of an error:"{e}"')
+        except Exception as e:
+            print(
+                f'Plot was not drawn for {conf} because of an unexpected error: "{e}"'
+            )
 else:
     quarto_callout_no_predictor_data_warning()
 ```

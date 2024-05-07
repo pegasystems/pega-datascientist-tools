@@ -116,7 +116,12 @@ class ADMDatamart(Plots, Tables):
         subset: bool = True,
         drop_cols: Optional[list] = None,
         include_cols: Optional[list] = None,
-        context_keys: list = ["Channel", "Direction", "Issue", "Group"], # TODO Name/Treatment are normally also part of context
+        context_keys: list = [
+            "Channel",
+            "Direction",
+            "Issue",
+            "Group",
+        ],  # TODO Name/Treatment are normally also part of context
         extract_keys: bool = False,  # TODO: should be True by default, extract should be efficiently using Configuration
         predictorCategorization: pl.Expr = cdh_utils.defaultPredictorCategorization,
         plotting_engine: Union[str, Any] = "plotly",
@@ -1026,21 +1031,15 @@ class ADMDatamart(Plots, Tables):
         df = df.filter(pl.col("PredictorName") != "Classifier").with_columns(
             pl.col("PerformanceBin").fill_nan(0.5),
         )
-        if top_n > 0:
-            top_n_xaxis = (
-                df.unique(subset=[by], keep="first")
-                .group_by(by)
-                .agg(
-                    cdh_utils.weighted_average_polars("PerformanceBin", "ResponseCount")
-                )
-                .sort("PerformanceBin", descending=True)
-                .head(top_n)
-                .select(by)
-            )
-            df = top_n_xaxis.join(df, on=by, how="left")
         if by not in ["ModelID", "Name"]:
-            df = df.group_by([by, "PredictorName"]).agg(
-                cdh_utils.weighted_average_polars("PerformanceBin", "ResponseCount")
+            df = (
+                df.unique(subset=[by] + ["PredictorName"], keep="first")
+                .group_by([by, "PredictorName"])
+                .agg(
+                    cdh_utils.weighted_average_polars(
+                        "PerformanceBin", "ResponseCountBin"
+                    )
+                )
             )
         df = (
             df.collect()
