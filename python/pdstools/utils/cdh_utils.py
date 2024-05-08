@@ -20,7 +20,7 @@ import pytz
 
 
 def defaultPredictorCategorization(
-    x: Union[str, pl.Expr] = pl.col("PredictorName")
+    x: Union[str, pl.Expr] = pl.col("PredictorName"),
 ) -> pl.Expr:
     """Function to determine the 'category' of a predictor.
 
@@ -594,7 +594,10 @@ def weighted_average_polars(
         vals = pl.col(vals)
     if isinstance(weights, str):
         weights = pl.col(weights)
-    return ((vals * weights).sum()) / weights.sum()
+
+    return (
+        (vals * weights).filter(vals.is_not_nan() & weights.is_not_null()).sum()
+    ) / weights.sum()
 
 
 def weighted_performance_polars() -> pl.Expr:
@@ -673,9 +676,7 @@ def lift(
             # TODO not sure how polars (mis)behaves when there are no positives at all
             # I would hope for a NaN but base python doesn't do that. Polars perhaps.
             # Stijn: It does have proper None value support, may work like you say
-            binPos
-            * (totalPos + totalNeg)
-            / ((binPos + binNeg) * totalPos)
+            binPos * (totalPos + totalNeg) / ((binPos + binNeg) * totalPos)
         ).alias("Lift")
 
     return liftImpl(posCol, negCol, posCol.sum(), negCol.sum())

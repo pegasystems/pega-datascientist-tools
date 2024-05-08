@@ -15,6 +15,7 @@ from .adm.BinAggregator import BinAggregator
 from .pega_io import get_token, readDSExport
 from .pega_io import File, API, S3
 from .pega_io.API import setupAzureOpenAI
+from .prediction import Prediction
 from .utils import cdh_utils, datasets, errors, hds_utils
 from .utils.cdh_utils import defaultPredictorCategorization
 from .utils.show_versions import show_versions
