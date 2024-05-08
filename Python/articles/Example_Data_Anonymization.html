@@ -5,10 +5,10 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Thompson Sampling" href="thompsonsampling.html" /><link rel="prev" title="Value Finder analysis" href="vf_analysis.html" />
 
-    <link rel="shortcut icon" href="../_static/pegasystems-inc-vector-logo.svg"/><!-- Generated with Sphinx 7.3.7 and Furo 2024.04.27 -->
+    <link rel="shortcut icon" href="../_static/pegasystems-inc-vector-logo.svg"/><!-- Generated with Sphinx 7.3.7 and Furo 2024.05.06 -->
         <title>Data Anonymization - pdstools</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
-    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=437aa6ec" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=387cc868" />
     <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=fd3f3429" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css" />
@@ -74,7 +74,7 @@
   <symbol id="svg-sun" viewBox="0 0 24 24">
     <title>Light mode</title>
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
       <circle cx="12" cy="12" r="5"></circle>
       <line x1="12" y1="1" x2="12" y2="3"></line>
       <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -89,7 +89,7 @@
   <symbol id="svg-moon" viewBox="0 0 24 24">
     <title>Dark mode</title>
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
       <path stroke="none" d="M0 0h24v24H0z" fill="none" />
       <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
     </svg>
@@ -97,7 +97,7 @@
   <symbol id="svg-sun-half" viewBox="0 0 24 24">
     <title>Auto light/dark mode</title>
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
       <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
       <circle cx="12" cy="12" r="9" />
       <path d="M13 12h5" />
@@ -105,6 +105,60 @@
       <path d="M13 18h1" />
       <path d="M13 9h4" />
       <path d="M13 6h1" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" /
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
     </svg>
   </symbol>
 </svg>
@@ -137,7 +191,8 @@
       <div class="theme-toggle-container theme-toggle-header">
         <button class="theme-toggle">
           <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
-          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
           <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
@@ -229,8 +284,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/plots/plots_plotly/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plots.plots_plotly</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/prediction/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.prediction</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle navigation of pdstools.prediction</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/prediction/Prediction/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.prediction.Prediction</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../autoapi/pdstools/reports/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.reports</span></code></a></li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle navigation of pdstools.utils</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><div class="visually-hidden">Toggle navigation of pdstools.utils</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/cdh_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/datasets/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.datasets</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/errors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.errors</span></code></a></li>
@@ -244,7 +303,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/types/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.types</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/valuefinder/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.valuefinder</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><div class="visually-hidden">Toggle navigation of pdstools.valuefinder</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/valuefinder/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.valuefinder</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><div class="visually-hidden">Toggle navigation of pdstools.valuefinder</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/valuefinder/ValueFinder/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.valuefinder.ValueFinder</span></code></a></li>
 </ul>
 </li>
@@ -271,11 +330,17 @@
           <span>Back to top</span>
         </a>
         <div class="content-icon-container">
-          
+          <div class="view-this-page">
+  <a class="muted-link" href="../_sources/articles/Example_Data_Anonymization.ipynb.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
 <div class="theme-toggle-container theme-toggle-content">
             <button class="theme-toggle">
               <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
-              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
               <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
@@ -357,7 +422,7 @@
   white-space: pre-wrap;
 }
 </style>
-<small>shape: (7, 7)</small><table border="1" class="dataframe"><thead><tr><th>filename</th><th>PREDICTOR_1</th><th>PREDICTOR_2</th><th>PREDICTOR_3</th><th>Context_Name</th><th>IH_PREDICTOR_0</th><th>Decision_Outcome</th></tr><tr><td>str</td><td>f64</td><td>str</td><td>str</td><td>str</td><td>str</td><td>bool</td></tr></thead><tbody><tr><td>&quot;../../../../da…</td><td>0.983033</td><td>&quot;21209358239740…</td><td>&quot;46181512000595…</td><td>&quot;28477466700164…</td><td>&quot;12724293801229…</td><td>false</td></tr><tr><td>&quot;../../../../da…</td><td>0.144221</td><td>&quot;93011921793412…</td><td>&quot;14013650743584…</td><td>&quot;28477466700164…</td><td>&quot;14704814367988…</td><td>true</td></tr><tr><td>&quot;../../../../da…</td><td>0.679745</td><td>&quot;10987397888104…</td><td>&quot;85532152597147…</td><td>&quot;17834641723577…</td><td>&quot;12724293801229…</td><td>false</td></tr><tr><td>&quot;../../../../da…</td><td>1.0</td><td>&quot;17740482247854…</td><td>&quot;14013650743584…</td><td>&quot;30755678553941…</td><td>&quot;12724293801229…</td><td>false</td></tr><tr><td>&quot;../../../../da…</td><td>0.718982</td><td>&quot;49416424254604…</td><td>&quot;46181512000595…</td><td>&quot;30755678553941…</td><td>&quot;12549311079532…</td><td>true</td></tr><tr><td>&quot;../../../../da…</td><td>0.0</td><td>&quot;11983042900609…</td><td>&quot;85532152597147…</td><td>&quot;10766864644593…</td><td>null</td><td>false</td></tr><tr><td>&quot;../../../../da…</td><td>0.02333</td><td>&quot;12501325239003…</td><td>&quot;85532152597147…</td><td>&quot;30755678553941…</td><td>&quot;12549311079532…</td><td>false</td></tr></tbody></table></div></div>
+<small>shape: (7, 7)</small><table border="1" class="dataframe"><thead><tr><th>PREDICTOR_0</th><th>PREDICTOR_1</th><th>filename</th><th>PREDICTOR_3</th><th>Context_Name</th><th>IH_PREDICTOR_0</th><th>Decision_Outcome</th></tr><tr><td>str</td><td>str</td><td>str</td><td>f64</td><td>str</td><td>str</td><td>bool</td></tr></thead><tbody><tr><td>&quot;17786647240093…</td><td>&quot;94500947529846…</td><td>&quot;../../../../da…</td><td>0.983033</td><td>&quot;29109993339257…</td><td>&quot;15243962837121…</td><td>false</td></tr><tr><td>&quot;15382455723600…</td><td>&quot;10381943658215…</td><td>&quot;../../../../da…</td><td>0.144221</td><td>&quot;29109993339257…</td><td>&quot;17497416807240…</td><td>true</td></tr><tr><td>&quot;17842054492291…</td><td>&quot;83747384891371…</td><td>&quot;../../../../da…</td><td>0.679745</td><td>&quot;79120012676251…</td><td>&quot;15243962837121…</td><td>false</td></tr><tr><td>&quot;21231452742978…</td><td>&quot;10381943658215…</td><td>&quot;../../../../da…</td><td>1.0</td><td>&quot;38621737531313…</td><td>&quot;15243962837121…</td><td>false</td></tr><tr><td>&quot;14656804312813…</td><td>&quot;94500947529846…</td><td>&quot;../../../../da…</td><td>0.718982</td><td>&quot;38621737531313…</td><td>&quot;12289458308824…</td><td>true</td></tr><tr><td>&quot;30455791618413…</td><td>&quot;83747384891371…</td><td>&quot;../../../../da…</td><td>0.0</td><td>&quot;63126942124766…</td><td>null</td><td>false</td></tr><tr><td>&quot;16339131237175…</td><td>&quot;83747384891371…</td><td>&quot;../../../../da…</td><td>0.02333</td><td>&quot;38621737531313…</td><td>&quot;12289458308824…</td><td>false</td></tr></tbody></table></div></div>
 </div>
 <p>To trace back the columns to their original names, the class also contains a mapping, which does not have to be provided.</p>
 <div class="nbinput docutils container">
@@ -374,10 +439,10 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-{&#39;filename&#39;: &#39;filename&#39;,
- &#39;Customer_CLV&#39;: &#39;PREDICTOR_1&#39;,
- &#39;Customer_City&#39;: &#39;PREDICTOR_2&#39;,
- &#39;Customer_MaritalStatus&#39;: &#39;PREDICTOR_3&#39;,
+{&#39;Customer_City&#39;: &#39;PREDICTOR_0&#39;,
+ &#39;Customer_MaritalStatus&#39;: &#39;PREDICTOR_1&#39;,
+ &#39;filename&#39;: &#39;filename&#39;,
+ &#39;Customer_CLV&#39;: &#39;PREDICTOR_3&#39;,
  &#39;Context_Name&#39;: &#39;Context_Name&#39;,
  &#39;IH_Web_Inbound_Accepted_pxLastGroupID&#39;: &#39;IH_PREDICTOR_0&#39;,
  &#39;Decision_Outcome&#39;: &#39;Decision_Outcome&#39;}
@@ -455,7 +520,7 @@
   white-space: pre-wrap;
 }
 </style>
-<small>shape: (7, 7)</small><table border="1" class="dataframe"><thead><tr><th>filename</th><th>PREDICTOR_1</th><th>PREDICTOR_2</th><th>PREDICTOR_3</th><th>Context_Name</th><th>IH_Web_Inbound_Accepted_pxLastGroupID</th><th>Decision_Outcome</th></tr><tr><td>str</td><td>f64</td><td>str</td><td>str</td><td>str</td><td>str</td><td>str</td></tr></thead><tbody><tr><td>&quot;../../../../da…</td><td>0.983033</td><td>&quot;85763273867348…</td><td>&quot;10083466760044…</td><td>&quot;FirstMortgage3…</td><td>&quot;17105498002303…</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.144221</td><td>&quot;35505825081081…</td><td>&quot;11668472835631…</td><td>&quot;FirstMortgage3…</td><td>&quot;64380982608184…</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.679745</td><td>&quot;14584267168892…</td><td>&quot;13980525220423…</td><td>&quot;MoneyMarketSav…</td><td>&quot;17105498002303…</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>1.0</td><td>&quot;53167053567232…</td><td>&quot;11668472835631…</td><td>&quot;BasicChecking&quot;</td><td>&quot;17105498002303…</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.718982</td><td>&quot;12375091005067…</td><td>&quot;10083466760044…</td><td>&quot;BasicChecking&quot;</td><td>&quot;16660927597664…</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.0</td><td>&quot;12723453319523…</td><td>&quot;13980525220423…</td><td>&quot;UPlusFinPerson…</td><td>null</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.02333</td><td>&quot;18049397082125…</td><td>&quot;13980525220423…</td><td>&quot;BasicChecking&quot;</td><td>&quot;16660927597664…</td><td>&quot;Rejected&quot;</td></tr></tbody></table></div></div>
+<small>shape: (7, 7)</small><table border="1" class="dataframe"><thead><tr><th>PREDICTOR_0</th><th>PREDICTOR_1</th><th>filename</th><th>PREDICTOR_3</th><th>Context_Name</th><th>IH_Web_Inbound_Accepted_pxLastGroupID</th><th>Decision_Outcome</th></tr><tr><td>str</td><td>str</td><td>str</td><td>f64</td><td>str</td><td>str</td><td>str</td></tr></thead><tbody><tr><td>&quot;10631693341967…</td><td>&quot;54970406434014…</td><td>&quot;../../../../da…</td><td>0.983033</td><td>&quot;FirstMortgage3…</td><td>&quot;94563687120715…</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;46901877029977…</td><td>&quot;27176160284815…</td><td>&quot;../../../../da…</td><td>0.144221</td><td>&quot;FirstMortgage3…</td><td>&quot;12997444109085…</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;12694450859405…</td><td>&quot;16707424364841…</td><td>&quot;../../../../da…</td><td>0.679745</td><td>&quot;MoneyMarketSav…</td><td>&quot;94563687120715…</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;17364156545064…</td><td>&quot;27176160284815…</td><td>&quot;../../../../da…</td><td>1.0</td><td>&quot;BasicChecking&quot;</td><td>&quot;94563687120715…</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;89318631262210…</td><td>&quot;54970406434014…</td><td>&quot;../../../../da…</td><td>0.718982</td><td>&quot;BasicChecking&quot;</td><td>&quot;42535379802443…</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;45601714038841…</td><td>&quot;16707424364841…</td><td>&quot;../../../../da…</td><td>0.0</td><td>&quot;UPlusFinPerson…</td><td>null</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;11595060206435…</td><td>&quot;16707424364841…</td><td>&quot;../../../../da…</td><td>0.02333</td><td>&quot;BasicChecking&quot;</td><td>&quot;42535379802443…</td><td>&quot;Rejected&quot;</td></tr></tbody></table></div></div>
 </div>
 <p>The configs can also be written and read as such:</p>
 <div class="nbinput nblast docutils container">
@@ -487,7 +552,7 @@
   white-space: pre-wrap;
 }
 </style>
-<small>shape: (7, 7)</small><table border="1" class="dataframe"><thead><tr><th>filename</th><th>PREDICTOR_1</th><th>PREDICTOR_2</th><th>PREDICTOR_3</th><th>Context_Name</th><th>IH_Web_Inbound_Accepted_pxLastGroupID</th><th>Decision_Outcome</th></tr><tr><td>str</td><td>f64</td><td>str</td><td>str</td><td>str</td><td>str</td><td>str</td></tr></thead><tbody><tr><td>&quot;../../../../da…</td><td>0.983033</td><td>&quot;16936646699392…</td><td>&quot;14630132741461…</td><td>&quot;FirstMortgage3…</td><td>&quot;57899048446866…</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.144221</td><td>&quot;23234019987168…</td><td>&quot;15549409961407…</td><td>&quot;FirstMortgage3…</td><td>&quot;11569888462450…</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.679745</td><td>&quot;11723650837036…</td><td>&quot;22364763783306…</td><td>&quot;MoneyMarketSav…</td><td>&quot;57899048446866…</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>1.0</td><td>&quot;10056137171724…</td><td>&quot;15549409961407…</td><td>&quot;BasicChecking&quot;</td><td>&quot;57899048446866…</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.718982</td><td>&quot;12886228061037…</td><td>&quot;14630132741461…</td><td>&quot;BasicChecking&quot;</td><td>&quot;17697903747526…</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.0</td><td>&quot;13172422145582…</td><td>&quot;22364763783306…</td><td>&quot;UPlusFinPerson…</td><td>null</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;../../../../da…</td><td>0.02333</td><td>&quot;96050003098023…</td><td>&quot;22364763783306…</td><td>&quot;BasicChecking&quot;</td><td>&quot;17697903747526…</td><td>&quot;Rejected&quot;</td></tr></tbody></table></div></div>
+<small>shape: (7, 7)</small><table border="1" class="dataframe"><thead><tr><th>PREDICTOR_0</th><th>PREDICTOR_1</th><th>filename</th><th>PREDICTOR_3</th><th>Context_Name</th><th>IH_Web_Inbound_Accepted_pxLastGroupID</th><th>Decision_Outcome</th></tr><tr><td>str</td><td>str</td><td>str</td><td>f64</td><td>str</td><td>str</td><td>str</td></tr></thead><tbody><tr><td>&quot;18178322463443…</td><td>&quot;11540291368375…</td><td>&quot;../../../../da…</td><td>0.983033</td><td>&quot;FirstMortgage3…</td><td>&quot;58673201327109…</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;74307006442302…</td><td>&quot;15334034803640…</td><td>&quot;../../../../da…</td><td>0.144221</td><td>&quot;FirstMortgage3…</td><td>&quot;17403156545851…</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;11211069872420…</td><td>&quot;16841191183522…</td><td>&quot;../../../../da…</td><td>0.679745</td><td>&quot;MoneyMarketSav…</td><td>&quot;58673201327109…</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;10496711704977…</td><td>&quot;15334034803640…</td><td>&quot;../../../../da…</td><td>1.0</td><td>&quot;BasicChecking&quot;</td><td>&quot;58673201327109…</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;50468173471371…</td><td>&quot;11540291368375…</td><td>&quot;../../../../da…</td><td>0.718982</td><td>&quot;BasicChecking&quot;</td><td>&quot;39019879127268…</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;87303926616889…</td><td>&quot;16841191183522…</td><td>&quot;../../../../da…</td><td>0.0</td><td>&quot;UPlusFinPerson…</td><td>null</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;95501593358172…</td><td>&quot;16841191183522…</td><td>&quot;../../../../da…</td><td>0.02333</td><td>&quot;BasicChecking&quot;</td><td>&quot;39019879127268…</td><td>&quot;Rejected&quot;</td></tr></tbody></table></div></div>
 </div>
 </section>
 <section id="Exporting">
@@ -509,10 +574,10 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
+Customer_City=PREDICTOR_0
+Customer_MaritalStatus=PREDICTOR_1
 filename=filename
-Customer_CLV=PREDICTOR_1
-Customer_City=PREDICTOR_2
-Customer_MaritalStatus=PREDICTOR_3
+Customer_CLV=PREDICTOR_3
 Context_Name=Context_Name
 IH_Web_Inbound_Accepted_pxLastGroupID=IH_Web_Inbound_Accepted_pxLastGroupID
 Decision_Outcome=Decision_Outcome
@@ -547,7 +612,7 @@ Decision_Outcome=Decision_Outcome
   white-space: pre-wrap;
 }
 </style>
-<small>shape: (7, 6)</small><table border="1" class="dataframe"><thead><tr><th>PREDICTOR_1</th><th>PREDICTOR_2</th><th>PREDICTOR_3</th><th>Context_Name</th><th>IH_Web_Inbound_Accepted_pxLastGroupID</th><th>Decision_Outcome</th></tr><tr><td>f64</td><td>str</td><td>str</td><td>str</td><td>str</td><td>str</td></tr></thead><tbody><tr><td>0.983033</td><td>&quot;15825643450177…</td><td>&quot;18084898034716…</td><td>&quot;FirstMortgage3…</td><td>&quot;86384298334016…</td><td>&quot;Rejected&quot;</td></tr><tr><td>0.144221</td><td>&quot;55101795317837…</td><td>&quot;21464700689903…</td><td>&quot;FirstMortgage3…</td><td>&quot;65467184100202…</td><td>&quot;Accepted&quot;</td></tr><tr><td>0.679745</td><td>&quot;17867860379024…</td><td>&quot;55191797887425…</td><td>&quot;MoneyMarketSav…</td><td>&quot;86384298334016…</td><td>&quot;Rejected&quot;</td></tr><tr><td>1.0</td><td>&quot;42466269793261…</td><td>&quot;21464700689903…</td><td>&quot;BasicChecking&quot;</td><td>&quot;86384298334016…</td><td>&quot;Rejected&quot;</td></tr><tr><td>0.718982</td><td>&quot;16437281485374…</td><td>&quot;18084898034716…</td><td>&quot;BasicChecking&quot;</td><td>&quot;18030301493602…</td><td>&quot;Accepted&quot;</td></tr><tr><td>0.0</td><td>&quot;12099079633666…</td><td>&quot;55191797887425…</td><td>&quot;UPlusFinPerson…</td><td>null</td><td>&quot;Rejected&quot;</td></tr><tr><td>0.02333</td><td>&quot;25585533347943…</td><td>&quot;55191797887425…</td><td>&quot;BasicChecking&quot;</td><td>&quot;18030301493602…</td><td>&quot;Rejected&quot;</td></tr></tbody></table></div></div>
+<small>shape: (7, 6)</small><table border="1" class="dataframe"><thead><tr><th>PREDICTOR_0</th><th>PREDICTOR_1</th><th>PREDICTOR_3</th><th>Context_Name</th><th>IH_Web_Inbound_Accepted_pxLastGroupID</th><th>Decision_Outcome</th></tr><tr><td>str</td><td>str</td><td>f64</td><td>str</td><td>str</td><td>str</td></tr></thead><tbody><tr><td>&quot;86408357842341…</td><td>&quot;62127979447983…</td><td>0.983033</td><td>&quot;FirstMortgage3…</td><td>&quot;16954231447620…</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;58640175940687…</td><td>&quot;75446896320649…</td><td>0.144221</td><td>&quot;FirstMortgage3…</td><td>&quot;16760400260944…</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;14817193972399…</td><td>&quot;15645869057770…</td><td>0.679745</td><td>&quot;MoneyMarketSav…</td><td>&quot;16954231447620…</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;86320730062727…</td><td>&quot;75446896320649…</td><td>1.0</td><td>&quot;BasicChecking&quot;</td><td>&quot;16954231447620…</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;21314812625266…</td><td>&quot;62127979447983…</td><td>0.718982</td><td>&quot;BasicChecking&quot;</td><td>&quot;17719026435943…</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;15005592790114…</td><td>&quot;15645869057770…</td><td>0.0</td><td>&quot;UPlusFinPerson…</td><td>null</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;27618899013807…</td><td>&quot;15645869057770…</td><td>0.02333</td><td>&quot;BasicChecking&quot;</td><td>&quot;17719026435943…</td><td>&quot;Rejected&quot;</td></tr></tbody></table></div></div>
 </div>
 </section>
 </section>

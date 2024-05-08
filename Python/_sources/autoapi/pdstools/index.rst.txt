@@ -20,6 +20,7 @@ Subpackages
    ih/index.rst
    pega_io/index.rst
    plots/index.rst
+   prediction/index.rst
    reports/index.rst
    utils/index.rst
    valuefinder/index.rst
@@ -168,6 +169,34 @@ Attributes
    >>> Data =  ADMDatamart("Data/files",
                model_filename = "ModelData.csv",
                predictor_filename = "PredictorData.csv")
+
+   .. py:property:: is_available
+      :type: bool
+
+
+   .. py:attribute:: standardChannelGroups
+      :value: ['Web', 'Mobile', 'E-mail', 'Push', 'SMS', 'Retail', 'Call Center', 'IVR']
+
+      
+
+   .. py:attribute:: standardDirections
+      :value: ['Inbound', 'Outbound']
+
+      
+
+   .. py:attribute:: NBAD_configurations
+
+      
+
+   .. py:attribute:: standardNBADModelConfigurationList
+      :type: List[ADMDatamart.NBAD_configurations]
+      :value: [('Web_Click_Through_Rate', 'Web', 'Inbound', True, False), ('WebTreatmentClickModel', 'Web',...
+
+      
+
+   .. py:attribute:: NBAD_model_configurations
+
+      
 
    .. py:method:: get_engine(plotting_engine)
       :staticmethod:
@@ -558,6 +587,12 @@ Attributes
       - Fills SuccessRate, Performance and ResponseCount columns with 0
       - When context keys have empty string values, replaces them
       with "NA" string
+
+
+   .. py:method:: summary_by_channel(custom_channels: Dict[str, str] = None, keep_lists: bool = False)
+
+
+   .. py:method:: overall_summary(custom_channels: Dict[str, str] = None)
 
 
    .. py:method:: generateReport(name: Optional[str] = None, working_dir: pathlib.Path = Path('.'), *, modelid: Optional[str] = '', delete_temp_files: bool = True, output_type: str = 'html', allow_collect: bool = True, cached_data: bool = False, predictordetails_activeonly: bool = False, **kwargs)

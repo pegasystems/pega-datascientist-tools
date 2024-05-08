@@ -1,0 +1,67 @@
+:py:mod:`pdstools.prediction`
+=============================
+
+.. py:module:: pdstools.prediction
+
+
+Submodules
+----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+
+   Prediction/index.rst
+
+
+Package Contents
+----------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   pdstools.prediction.Prediction
+
+
+
+
+.. py:class:: Prediction(df: polars.LazyFrame)
+
+
+   .. py:property:: is_available
+      :type: bool
+
+
+   .. py:property:: is_valid
+      :type: bool
+
+
+   .. py:attribute:: predictions
+
+      
+
+   .. py:attribute:: validityExpr
+
+      
+
+   .. py:attribute:: NBAD_predictions
+
+      
+
+   .. py:attribute:: standardNBADPredictionsList
+      :type: List[Prediction.NBAD_predictions]
+      :value: [('PredictWebPropensity', 'Web', 'Inbound', True, False), ('PredictMobilePropensity', 'Mobile',...
+
+      
+
+   .. py:method:: getPredictionsChannelMapping(custom_predictions=[])
+
+
+   .. py:method:: summary_by_channel(custom_predictions: List[NBAD_predictions] = None) -> polars.LazyFrame
+
+
+   .. py:method:: overall_summary(custom_predictions: List[NBAD_predictions] = None) -> polars.LazyFrame
+
+
+
