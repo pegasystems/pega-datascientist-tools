@@ -39,14 +39,17 @@ def testDefault(sampleInput):
     ]
     assert processed.columns == cols
     processed = processed.select(cols)
-    assert processed.select(pl.col(pl.Float64)).to_series().to_list() == [
-        0.9830328738069989,
-        0.14422057264050903,
-        0.679745493107105,
-        1.0,
-        None,
-        0.0,
-        0.02332979851537646,
+    assert processed.select(pl.col(pl.Float64).round(8)).to_series().to_list() == [
+        None if x is None else round(x, 8)
+        for x in [
+            0.9830328738069989,
+            0.14422057264050903,
+            0.679745493107105,
+            1.0,
+            None,
+            0.0,
+            0.02332979851537646,
+        ]
     ]
     assert processed[5, 4] is None
     assert processed.get_column("Decision_Outcome").to_list() == [

@@ -2,7 +2,6 @@
 Testing the functionality of the ADMDatamart functions
 """
 
-
 import sys
 import pytest
 import zipfile
@@ -16,7 +15,8 @@ basePath = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(f"{str(basePath)}/python")
 from pdstools import ADMDatamart, cdh_utils
 from pdstools import errors
- 
+
+
 @pl.api.register_lazyframe_namespace("shape")
 class Shape:
     """Get the shape of a lazy dataframe.
@@ -117,7 +117,7 @@ def test_import_utils_with_importing(test):
         "PredictorName",
         "Treatment",
         "Type",
-        "GroupIndex"
+        "GroupIndex",
     }
 
 
@@ -467,3 +467,64 @@ def test_get_model_stats():
 def test_describe_models(test):
     test.describe_models()
     # TODO: make this a good test rather than test for no fail
+
+
+def test_available(test):
+    assert test.is_available
+
+
+def test_summary_by_channel_cols(test):
+    summary = test.summary_by_channel(keep_lists=False).collect()
+    assert summary.columns == [
+        "Channel",
+        "Direction",
+        "ChannelDirectionGroup",
+        "DateRange Min",
+        "DateRange Max",
+        "Positives",
+        "ResponseCount",
+        "Performance",
+        "Configuration",
+        "Total Number of Actions",
+        "Total Number of Treatments",
+        "Used Actions",
+        "Used Treatments",
+        "ChannelDirection",
+        "isValid",
+        "Issues",
+        "Groups",
+        "usesNBAD",
+        "usesNBADOnly",
+        "CTR",
+    ]
+    assert len(summary) == 3
+
+
+def test_overall_summary_cols(test):
+    summary = test.overall_summary().collect()
+    assert summary.columns == [
+        "DateRange Min",
+        "DateRange Max",
+        "Number of Valid Channels",
+        "Performance",
+        "Positives",
+        "ResponseCount",
+        'Minimum Performance',
+        'Channel with Minimum Performance',
+        "Issues",
+        "Groups",
+        "Total Number of Actions",
+        "Total Number of Treatments",
+        "Used Actions",
+        "Used Treatments",
+        "usesNBAD",
+        "usesNBADOnly",
+        "CTR",
+    ]
+    assert len(summary) == 1
+
+def test_overall_summary_n_valid_channels(test):
+    assert test.overall_summary().collect()["Number of Valid Channels"].item() == 3
+
+def test_overall_summary_positives(test):
+    assert test.overall_summary().collect()["Positives"].item() == 106720
