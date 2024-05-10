@@ -468,21 +468,18 @@ def test_gains_table():
         }
     )
     gains = cdh_utils.gains_table(df, "Positives", by="Dimension")
-    assert [round(val, 4) for val in gains.get_column("cum_x").to_list()] == [
-        round(val, 4)
-        for val in [
-            0.0,
-            0.2,
-            0.4,
-            0.6,
-            0.8,
-            1.0,
-            0.0,
-            0.25,
-            0.5,
-            0.75,
-            1.0,
-        ]
+    assert gains.get_column("cum_x").round(5).to_list() == [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0,
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0,
     ]
     assert gains.get_column("cum_y").round(5).to_list() == [
         0,
