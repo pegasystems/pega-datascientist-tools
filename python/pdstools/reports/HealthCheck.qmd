@@ -392,31 +392,32 @@ display(
 
 ```{python}
 quarto_print(
-f"""
+    f"""
 If there are any channels that have fewer than {channel_responses_threshold} responses in total or no positives at all, these will be excluded. However if no channels would be left, we don't do that.
 """
 )
 
 all_channels = channel_overview.select(["Channel", "Direction"]).unique()
 
-unused_channels = channel_overview.filter(
-    (pl.col("Responses") < channel_responses_threshold) | (pl.col("Positives") == 0)
-).select(
-    ["Channel", "Direction", "Responses", "Positives"]
-).unique()
+unused_channels = (
+    channel_overview.filter(
+        (pl.col("Responses") < channel_responses_threshold) | (pl.col("Positives") == 0)
+    )
+    .select(["Channel", "Direction", "Responses", "Positives"])
+    .unique()
+)
 
-if unused_channels.select(pl.count()).item() != all_channels.select(pl.count()).item():
+if (unused_channels.shape[0] > 0) & (unused_channels.shape[0] != all_channels.shape[0]):
     quarto_print(
-    """
+        """
 In the detailed analyses after the overviews, the following channels will be excluded:
     """
     )
 
     display(
-        unused_channels
-        .sort(["Channel", "Direction"])
-        .to_pandas().style
-        .hide(axis="index")
+        unused_channels.sort(["Channel", "Direction"])
+        .to_pandas()
+        .style.hide(axis="index")
         .format(precision=0, na_rep="")
     )
 ```
@@ -579,19 +580,15 @@ display(
 
 
 ```{python}
-if unused_channels.select(pl.count()).item() > 0:
-    if (
-        unused_channels.select(pl.count()).item()
-        != all_channels.select(pl.count()).item()
-    ):
-        reset_datamart(
-            ADMDatamart(
-                model_df=datamart.modelData.join(
-                    unused_channels.lazy(), on=["Channel", "Direction"], how="anti"
-                ),
-                predictor_df=datamart.predictorData,
-            )
+if (unused_channels.shape[0] > 0) & (unused_channels.shape[0] != all_channels.shape[0]):
+    reset_datamart(
+        ADMDatamart(
+            model_df=datamart.modelData.join(
+                unused_channels.lazy(), on=["Channel", "Direction"], how="anti"
+            ),
+            predictor_df=datamart.predictorData,
         )
+    )
 ```
 
 ```{python}
@@ -809,7 +806,7 @@ display(
 
 ```{python}
 quarto_print(
-f"""
+    f"""
 If there are any model configurations that have fewer than {channel_responses_threshold} responses in total or no positives at all, these will be excluded. However if no configurations would be left, we don't do that.
 """
 )
@@ -817,49 +814,51 @@ If there are any model configurations that have fewer than {channel_responses_th
 configuration_overview = (
     datamart.modelData
     # first, take max per model ID
-    .group_by("Configuration")
-    .agg(pl.max("ResponseCount").alias("Responses"), pl.max("Positives"))
+    .group_by("Configuration").agg(
+        pl.max("ResponseCount").alias("Responses"), pl.max("Positives")
+    )
 ).collect()
 
 all_configurations = configuration_overview.select(["Configuration"]).unique()
 
-unused_configurations = configuration_overview.filter(
-    (pl.col("Responses") < channel_responses_threshold) | (pl.col("Positives") == 0)
-).select(
-    ["Configuration", "Responses", "Positives"]
-).unique()
+unused_configurations = (
+    configuration_overview.filter(
+        (pl.col("Responses") < channel_responses_threshold) | (pl.col("Positives") == 0)
+    )
+    .select(["Configuration", "Responses", "Positives"])
+    .unique()
+)
 
-if unused_configurations.select(pl.count()).item() != all_configurations.select(pl.count()).item():
+if (unused_configurations.shape[0] > 0) & (
+    unused_configurations.shape[0] != all_configurations.shape[0]
+):
     quarto_print(
-    f"""
+        f"""
 In the detailed analyses after the model overview, the following configurations will be excluded:
     """
     )
 
     display(
-        unused_configurations
-        .sort(["Configuration"])
+        unused_configurations.sort(["Configuration"])
         .to_pandas()
-        .style
-        .hide()
+        .style.hide()
         .format(precision=0, na_rep="")
     )
 ```
 
 ```{python}
-if unused_configurations.select(pl.count()).item() > 0:
-    if (
-        unused_configurations.select(pl.count()).item()
-        != all_configurations.select(pl.count()).item()
-    ):
-        reset_datamart(
-            ADMDatamart(
-                model_df=datamart.modelData.join(
-                    unused_configurations.lazy(), on=["Configuration"], how="anti"
-                ),
-                predictor_df=datamart.predictorData,
-            )
+if (unused_configurations.shape[0] > 0) and (
+    (unused_configurations.shape[0] != all_configurations.shape[0])
+):
+
+    reset_datamart(
+        ADMDatamart(
+            model_df=datamart.modelData.join(
+                unused_configurations.lazy(), on=["Configuration"], how="anti"
+            ),
+            predictor_df=datamart.predictorData,
         )
+    )
 ```
 
 ## Model Performance 
@@ -1346,10 +1345,12 @@ if datamart.predictorData is not None:
 
             fig.show()
 
-        except:
-            # TODO: add error message instead of typing "an error"
-            # should we even handle the exception here?
-            print(f"Plot was not drawn for {conf} because of an error")
+        except ValueError as e:
+            print(f'Plot was not drawn for {conf} because of an error:"{e}"')
+        except Exception as e:
+            print(
+                f'Plot was not drawn for {conf} because of an unexpected error: "{e}"'
+            )
 else:
     quarto_callout_no_predictor_data_warning()
 ```
@@ -1374,13 +1375,13 @@ if datamart.predictorData is not None:
         .group_by(gb_cols)
         .agg(
             pl.col("BinResponseCount")
-            .where(pl.col("BinSymbol") == "MISSING")
+            .filter(pl.col("BinSymbol") == "MISSING")
             .sum()
             .alias("MissingCount"),
-            pl.sum("BinResponseCount").alias("BinResponseCount"),
+            pl.sum("BinResponseCount").alias("PredictorResponseCount"),
         )
         .with_columns(
-            (pl.col("MissingCount") / pl.col("BinResponseCount")).alias(
+            (pl.col("MissingCount") / pl.col("PredictorResponseCount")).alias(
                 "Percentage without responses"
             )
         )
@@ -1389,6 +1390,7 @@ if datamart.predictorData is not None:
 
     hover_data = {
         "Percentage without responses": ":.2%",
+        "PredictorResponseCount": ":d"
     }
 
     fig = px.treemap(
@@ -1397,7 +1399,7 @@ if datamart.predictorData is not None:
         color="Percentage without responses",
         template="pega",
         hover_data=hover_data,
-        title="Missing Data in Adaptive Models",
+        title="Predictor Missing Data",
     )
 
     fig.layout.coloraxis.colorscale = pega_template.positive_negative

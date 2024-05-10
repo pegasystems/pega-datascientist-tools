@@ -1,17 +1,16 @@
-from typing import Optional, Union, Dict, List, Any
+from typing import Any, Dict, List, Optional, Union
+
+import plotly.express as px
+import plotly.graph_objs as go
+
 # from datetime import datetime
 import polars as pl
-from .plots_plotly import ADMVisualisations as plotly
-from ..utils.cdh_utils import (
-    weighted_performance_polars,
-    weighted_average_polars,
-    lift
-)
+from plotly.graph_objects import Figure
+
+from ..utils.cdh_utils import lift, weighted_average_polars, weighted_performance_polars
 from ..utils.errors import NotApplicableError
 from ..utils.types import any_frame
-import plotly.graph_objs as go
-import plotly.express as px
-from plotly.graph_objects import Figure
+from .plots_plotly import ADMVisualisations as plotly
 
 
 class Plots:
@@ -1143,7 +1142,13 @@ class Plots:
             kwargs.get("plotting_engine", self.plotting_engine)
         )()
         table = "combinedData"
-        required_columns = {"PredictorName", "Name", "PerformanceBin"}
+        required_columns = {
+            "PredictorName",
+            "Name",
+            "PerformanceBin",
+            "Performance",
+            "ResponseCountBin",
+        }
         if by is not None:
             required_columns = required_columns.union(
                 set([col for col in by.split("/")] + ["ResponseCount"])
@@ -1158,6 +1163,9 @@ class Plots:
         )
 
         df, facet_col = self._generateFacets(df, by)
+        df = df.filter(pl.col("ResponseCount") > 0)
+        if df.collect().shape[0] == 0:
+            raise ValueError("Models do not have any responses")
         df = self.pivot_df(df, by=facet_col, top_n=top_n)
         df = df.with_columns(pl.all().exclude(facet_col) * 100)
 

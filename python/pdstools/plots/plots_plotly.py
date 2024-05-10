@@ -36,7 +36,7 @@ class ADMVisualisations:
         fig.layout.yaxis2.tickformat = ",.3%"
         fig.layout.yaxis2.zeroline = False
         fig.update_yaxes(showgrid=False)
-        fig.update_xaxes(type='category')
+        fig.update_xaxes(type="category")
 
         return fig
 
@@ -386,11 +386,7 @@ class ADMVisualisations:
             if facet is None
             else f"per {facet}"
         )
-        title_prefix = (
-            "Predictor Importance"
-            if to_plot == "FeatureImportance"
-            else f"Predictor {to_plot}"
-        )
+        title_prefix = "Predictor Importance" if to_plot == "FeatureImportance" else ""
         df = df.to_pandas(use_pyarrow_extension_array=True)
         if order:
             df[y] = df[y].astype("category")
