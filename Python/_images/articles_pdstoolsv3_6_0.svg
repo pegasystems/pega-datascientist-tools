@@ -2,21 +2,21 @@
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 273)">
 <title>polars_query</title>
 <polygon fill="white" stroke="transparent" points="-4,4 -4,-273 879,-273 879,4 -4,4"/>
-<!-- WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_18224049856250280062&quot;] [(0, 0)] -->
+<!-- WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_18008030140096078398&quot;] [(0, 0)] -->
 <g id="node1" class="node">
-<title>WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_18224049856250280062&quot;] [(0, 0)]</title>
+<title>WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_18008030140096078398&quot;] [(0, 0)]</title>
 <polygon fill="none" stroke="black" points="872.5,-269 2.5,-269 2.5,-233 872.5,-233 872.5,-269"/>
-<text text-anchor="middle" x="437.5" y="-247.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_18224049856250280062&quot;]</text>
+<text text-anchor="middle" x="437.5" y="-247.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_18008030140096078398&quot;]</text>
 </g>
-<!-- WITH COLUMNS [&quot;Direction&quot;,&quot;ResponseCount&quot;,&quot;Configuration&quot;,&quot;SnapshotTime&quot;,&quot;Group&quot;,&quot;Issue&quot;,&quot;Channel&quot;,&quot;Positives&quot;] [(0, 1)] -->
+<!-- WITH COLUMNS [&quot;Configuration&quot;,&quot;Channel&quot;,&quot;Group&quot;,&quot;Issue&quot;,&quot;ResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;Positives&quot;,&quot;Direction&quot;] [(0, 1)] -->
 <g id="node2" class="node">
-<title>WITH COLUMNS [&quot;Direction&quot;,&quot;ResponseCount&quot;,&quot;Configuration&quot;,&quot;SnapshotTime&quot;,&quot;Group&quot;,&quot;Issue&quot;,&quot;Channel&quot;,&quot;Positives&quot;] [(0, 1)]</title>
+<title>WITH COLUMNS [&quot;Configuration&quot;,&quot;Channel&quot;,&quot;Group&quot;,&quot;Issue&quot;,&quot;ResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;Positives&quot;,&quot;Direction&quot;] [(0, 1)]</title>
 <polygon fill="none" stroke="black" points="875,-197 0,-197 0,-161 875,-161 875,-197"/>
-<text text-anchor="middle" x="437.5" y="-175.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;Direction&quot;,&quot;ResponseCount&quot;,&quot;Configuration&quot;,&quot;SnapshotTime&quot;,&quot;Group&quot;,&quot;Issue&quot;,&quot;Channel&quot;,&quot;Positives&quot;]</text>
+<text text-anchor="middle" x="437.5" y="-175.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;Configuration&quot;,&quot;Channel&quot;,&quot;Group&quot;,&quot;Issue&quot;,&quot;ResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;Positives&quot;,&quot;Direction&quot;]</text>
 </g>
-<!-- WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_18224049856250280062&quot;] [(0, 0)]&#45;&#45;WITH COLUMNS [&quot;Direction&quot;,&quot;ResponseCount&quot;,&quot;Configuration&quot;,&quot;SnapshotTime&quot;,&quot;Group&quot;,&quot;Issue&quot;,&quot;Channel&quot;,&quot;Positives&quot;] [(0, 1)] -->
+<!-- WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_18008030140096078398&quot;] [(0, 0)]&#45;&#45;WITH COLUMNS [&quot;Configuration&quot;,&quot;Channel&quot;,&quot;Group&quot;,&quot;Issue&quot;,&quot;ResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;Positives&quot;,&quot;Direction&quot;] [(0, 1)] -->
 <g id="edge1" class="edge">
-<title>WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_18224049856250280062&quot;] [(0, 0)]--WITH COLUMNS [&quot;Direction&quot;,&quot;ResponseCount&quot;,&quot;Configuration&quot;,&quot;SnapshotTime&quot;,&quot;Group&quot;,&quot;Issue&quot;,&quot;Channel&quot;,&quot;Positives&quot;] [(0, 1)]</title>
+<title>WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_18008030140096078398&quot;] [(0, 0)]--WITH COLUMNS [&quot;Configuration&quot;,&quot;Channel&quot;,&quot;Group&quot;,&quot;Issue&quot;,&quot;ResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;Positives&quot;,&quot;Direction&quot;] [(0, 1)]</title>
 <path fill="none" stroke="black" d="M437.5,-232.7C437.5,-221.85 437.5,-207.92 437.5,-197.1"/>
 </g>
 <!-- RENAME [(0, 2)] -->
@@ -25,9 +25,9 @@
 <polygon fill="none" stroke="black" points="479.5,-125 395.5,-125 395.5,-89 479.5,-89 479.5,-125"/>
 <text text-anchor="middle" x="437.5" y="-103.3" font-family="Times,serif" font-size="14.00">RENAME</text>
 </g>
-<!-- WITH COLUMNS [&quot;Direction&quot;,&quot;ResponseCount&quot;,&quot;Configuration&quot;,&quot;SnapshotTime&quot;,&quot;Group&quot;,&quot;Issue&quot;,&quot;Channel&quot;,&quot;Positives&quot;] [(0, 1)]&#45;&#45;RENAME [(0, 2)] -->
+<!-- WITH COLUMNS [&quot;Configuration&quot;,&quot;Channel&quot;,&quot;Group&quot;,&quot;Issue&quot;,&quot;ResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;Positives&quot;,&quot;Direction&quot;] [(0, 1)]&#45;&#45;RENAME [(0, 2)] -->
 <g id="edge2" class="edge">
-<title>WITH COLUMNS [&quot;Direction&quot;,&quot;ResponseCount&quot;,&quot;Configuration&quot;,&quot;SnapshotTime&quot;,&quot;Group&quot;,&quot;Issue&quot;,&quot;Channel&quot;,&quot;Positives&quot;] [(0, 1)]--RENAME [(0, 2)]</title>
+<title>WITH COLUMNS [&quot;Configuration&quot;,&quot;Channel&quot;,&quot;Group&quot;,&quot;Issue&quot;,&quot;ResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;Positives&quot;,&quot;Direction&quot;] [(0, 1)]--RENAME [(0, 2)]</title>
 <path fill="none" stroke="black" d="M437.5,-160.7C437.5,-149.85 437.5,-135.92 437.5,-125.1"/>
 </g>
 <!-- TABLE
