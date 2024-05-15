@@ -1,24 +1,25 @@
 from __future__ import annotations
 
+import datetime
+import glob
 import logging
 import os
 import shutil
 import subprocess
+from collections import namedtuple
 from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict, List, Literal, NoReturn, Optional, Tuple, Union
-from collections import namedtuple
 
 import polars as pl
 import yaml
-import glob
 
+from .. import pega_io
 from ..plots.plot_base import Plots
 from ..plots.plots_plotly import ADMVisualisations as plotly_plot
 from ..utils import cdh_utils
 from ..utils.errors import NotEagerError
 from ..utils.types import any_frame
-from .. import pega_io
 from .ADMTrees import ADMTrees
 from .Tables import Tables
 
@@ -621,10 +622,11 @@ class ADMDatamart(Plots, Tables):
 
     @staticmethod
     def _last(df: any_frame) -> any_frame:
+        fill_date = datetime.datetime.fromtimestamp(0)
         """Method to retrieve only the last snapshot."""
         return df.filter(
-            pl.col("SnapshotTime").fill_null(1)
-            == pl.col("SnapshotTime").fill_null(1).max()
+            pl.col("SnapshotTime").fill_null(fill_date)
+            == pl.col("SnapshotTime").fill_null(fill_date).max()
         )
 
     @staticmethod
