@@ -91,7 +91,7 @@ def test_import_utils_with_importing(test):
     )
     assert isinstance(output, pl.LazyFrame)
     assert len(output.columns) == 10
-    assert output.select(pl.count()).collect().item() == 20
+    assert output.select(pl.len()).collect().item() == 20
     assert renamed == {
         "Channel",
         "Configuration",
@@ -115,6 +115,7 @@ def test_import_utils_with_importing(test):
         "Direction",
         "EntryType",
         "PredictorName",
+        "PredictorCategory",
         "Treatment",
         "Type",
         "GroupIndex",
@@ -148,7 +149,7 @@ def test_import_utils(test, data):
         timestamp_fmt="%Y-%m-%d %H:%M:%S",
         typesetting_table="ADMModelSnapshot",
     )
-    assert len(missing) == 20
+    assert len(missing) == 21
     assert isinstance(output, pl.LazyFrame)
     output = output.collect()
     assert output.shape == (3, 3)

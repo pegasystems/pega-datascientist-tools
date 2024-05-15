@@ -116,11 +116,11 @@ class ADMDatamart(Plots, Tables):
     ]
     standardDirections = ["Inbound", "Outbound"]
 
-    NBAD_configurations = namedtuple( 
+    NBAD_configurations = namedtuple(
         "Configurations",
         ["model_name", "channel", "direction", "standard", "multi_channel"],
-    ) 
-    standardNBADModelConfigurationList:List[NBAD_configurations] = [
+    )
+    standardNBADModelConfigurationList: List[NBAD_configurations] = [
         ("Web_Click_Through_Rate", "Web", "Inbound", True, False),
         ("WebTreatmentClickModel", "Web", "Inbound", True, False),
         ("Mobile_Click_Through_Rate", "Mobile", "Inbound", True, False),
@@ -177,7 +177,9 @@ class ADMDatamart(Plots, Tables):
         ],  # TODO Name/Treatment are normally also part of context
         extract_keys: bool = False,  # TODO: should be True by default, extract should be efficiently using Configuration
         predictorCategorization: pl.Expr = cdh_utils.defaultPredictorCategorization,
-        plotting_engine: Union[str, Any] = "plotly", # TODO drop this, no plot engine abstraction
+        plotting_engine: Union[
+            str, Any
+        ] = "plotly",  # TODO drop this, no plot engine abstraction
         verbose: bool = False,
         **reading_opts,
     ):
@@ -348,7 +350,11 @@ class ADMDatamart(Plots, Tables):
                     / (pl.col("BinResponseCount") + pl.lit(1))
                 ),
             )
-            if self.predictorCategorization is not None:
+
+            if (
+                self.predictorCategorization is not None
+                and "PredictorCategory" not in df2.columns
+            ):
                 if not isinstance(self.predictorCategorization, pl.Expr):
                     self.predictorCategorization = self.predictorCategorization()
                 df2 = df2.with_columns(PredictorCategory=self.predictorCategorization)
@@ -507,6 +513,7 @@ class ADMDatamart(Plots, Tables):
             "ResponseCount",
             "SnapshotTime",
             "PredictorName",
+            "PredictorCategory",
             "Performance",
             "EntryType",
             "PredictorName",
@@ -633,7 +640,7 @@ class ADMDatamart(Plots, Tables):
         return (
             pl.when(pl.col(col).min() == pl.col(col).max())
             .then(pl.max("SnapshotTime"))
-            .otherwise(pl.col("SnapshotTime").where(pl.col(col).diff() != 0).max())
+            .otherwise(pl.col("SnapshotTime").filter(pl.col(col).diff() != 0).max())
             .over("ModelID")
             .alias(f"Last_{col}")
         )
@@ -1317,7 +1324,9 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         )
         return self.processTables()
 
-    def summary_by_channel(self, custom_channels: Dict[str, str] = None, keep_lists: bool=False):
+    def summary_by_channel(
+        self, custom_channels: Dict[str, str] = None, keep_lists: bool = False
+    ):
         if not custom_channels:
             custom_channels = {}
 
@@ -1393,12 +1402,12 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             else pl.lit(0)
         )
         uniqueUsedTreatmentExpr = (
-            treatmentIdentifierExpr.where(pl.col("isUsedTreatment")).unique()
+            treatmentIdentifierExpr.filter(pl.col("isUsedTreatment")).unique()
             if "Treatment" in self.modelData.columns
             else pl.lit([])
         )
         uniqueUsedTreatmentCountExpr = (
-            treatmentIdentifierExpr.where(pl.col("isUsedTreatment")).n_unique()
+            treatmentIdentifierExpr.filter(pl.col("isUsedTreatment")).n_unique()
             if "Treatment" in self.modelData.columns
             else pl.lit(0)
         )
@@ -1465,7 +1474,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 actionIdentifierExpr.n_unique().alias("Total Number of Actions"),
                 uniqueTreatmentCountExpr.alias("Total Number of Treatments"),
                 # TODO use last update property instead
-                (actionIdentifierExpr.where(pl.col("isUsedAction")).n_unique()).alias(
+                (actionIdentifierExpr.filter(pl.col("isUsedAction")).n_unique()).alias(
                     "Used Actions"
                 ),
                 uniqueUsedTreatmentCountExpr.alias("Used Treatments"),
@@ -1474,7 +1483,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 AllGroups=pl.concat_str(["Issue", "Group"], separator="/").unique(),
                 AllActions=actionIdentifierExpr.unique(),
                 AllTreatments=uniqueTreatmentExpr,
-                AllUsedActions=actionIdentifierExpr.where(
+                AllUsedActions=actionIdentifierExpr.filter(
                     pl.col("isUsedAction")
                 ).unique(),
                 AllUsedTreatments=uniqueUsedTreatmentExpr,
@@ -1577,16 +1586,16 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             .select(
                 pl.col("DateRange Min").min(),
                 pl.col("DateRange Max").max(),
-                pl.count().alias("Number of Valid Channels"),
+                pl.len().alias("Number of Valid Channels"),
                 cdh_utils.weighted_performance_polars().alias("Performance"),
                 pl.col("Positives").sum(),
                 pl.col("ResponseCount").sum(),
                 pl.col("Performance")
-                .where((pl.col("Performance") == pl.col("Performance").min()))
+                .filter((pl.col("Performance") == pl.col("Performance").min()))
                 .first()
                 .alias("Minimum Performance"),
                 pl.col("ChannelDirection")
-                .where((pl.col("Performance") == pl.col("Performance").min()))
+                .filter((pl.col("Performance") == pl.col("Performance").min()))
                 .first()
                 .alias("Channel with Minimum Performance"),
                 pl.col("AllIssues").list.explode().n_unique().alias("Issues"),
@@ -1602,12 +1611,10 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 .alias("Used Actions"),
                 totalUsedTreatments.alias("Used Treatments"),
                 usesNBAD=pl.lit(usesNBAD),
-                usesNBADOnly=(pl.count() > 0) & pl.lit(usesNBAD and usesNBADOnly),
+                usesNBADOnly=(pl.len() > 0) & pl.lit(usesNBAD and usesNBADOnly),
             )
             .with_columns(CTR=(pl.col("Positives")) / (pl.col("ResponseCount")))
         )
-
-
 
     def generateReport(
         self,

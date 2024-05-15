@@ -53,6 +53,7 @@ def test_end_to_end():
         "ResponseCount",
         "SnapshotTime",
         "PredictorName",
+        "PredictorCategory",
         "Performance",
         "EntryType",
         "BinSymbol",
@@ -84,6 +85,7 @@ def test_end_to_end():
         "BinIndex",
         "Type",
         "PredictorName",
+        "PredictorCategory",
         "BinSymbol",
         "BinType",
         "BinPositives",
@@ -102,6 +104,7 @@ def test_end_to_end():
         "Name",
         "Configuration",
         "Treatment",
+        "PredictorCategory",
     }
 
     assert datamart.renamed_model == {
