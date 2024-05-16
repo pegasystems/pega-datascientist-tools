@@ -719,7 +719,7 @@ class BinAggregator:
         )
 
         fig = px.line(
-            boundaries_data,
+            boundaries_data.to_pandas(),
             x="boundary",
             y="binning",
             markers="both",

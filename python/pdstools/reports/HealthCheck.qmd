@@ -640,7 +640,7 @@ for col in hover_columns:
 facet = "Channel/Direction"
 facet_cols = 3
 fig = px.bar(
-    df,
+    df.to_pandas(use_pyarrow_extension_array=True),
     x="SuccessRate",
     y="ModelID",
     color="SuccessRate",
@@ -1775,7 +1775,7 @@ def plot_gains(df, value: str, index=None, by=None):
     else:
         by_as_list = by if isinstance(by, list) else [by]
         fig = px.line(
-            gains_data,
+            gains_data.to_pandas(use_pyarrow_extension_array=True),
             x="cum_x",
             y="cum_y",
             color=gains_data.select(
@@ -1985,7 +1985,7 @@ out = (
 )
 
 fig = px.bar(
-    out,
+    out.to_pandas(use_pyarrow_extension_array=True),
     x="PerformanceBin",
     y="Volume",
     color="Channel",
@@ -2172,7 +2172,7 @@ if datamart.predictorData is not None:
 
     out = out.sort(["Channel", "break_label"])
     fig = px.bar(
-        out,
+        out.to_pandas(use_pyarrow_extension_array=True),
         x=f"{to_plot}_range",
         y="Responses",
         color=color_col,
