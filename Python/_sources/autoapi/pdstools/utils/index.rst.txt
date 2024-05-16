@@ -10,6 +10,8 @@ Submodules
    :titlesonly:
    :maxdepth: 1
 
+   CDHLimits/index.rst
+   NBAD/index.rst
    cdh_utils/index.rst
    datasets/index.rst
    errors/index.rst

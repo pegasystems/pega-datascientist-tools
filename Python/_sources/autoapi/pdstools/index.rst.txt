@@ -184,16 +184,6 @@ Attributes
 
       
 
-   .. py:attribute:: NBAD_configurations
-
-      
-
-   .. py:attribute:: standardNBADModelConfigurationList
-      :type: List[ADMDatamart.NBAD_configurations]
-      :value: [('Web_Click_Through_Rate', 'Web', 'Inbound', True, False), ('WebTreatmentClickModel', 'Web',...
-
-      
-
    .. py:attribute:: NBAD_model_configurations
 
       

@@ -289,6 +289,8 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../reports/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.reports</span></code></a></li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><div class="visually-hidden">Toggle navigation of pdstools.utils</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/CDHLimits/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.CDHLimits</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/NBAD/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.NBAD</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../utils/cdh_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../utils/datasets/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.datasets</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../utils/errors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.errors</span></code></a></li>
@@ -403,27 +405,22 @@
 <span class="sig-name descname"><span class="pre">validityExpr</span></span><a class="headerlink" href="#pdstools.prediction.Prediction.Prediction.validityExpr" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.prediction.Prediction.Prediction.NBAD_predictions">
-<span class="sig-name descname"><span class="pre">NBAD_predictions</span></span><a class="headerlink" href="#pdstools.prediction.Prediction.Prediction.NBAD_predictions" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.prediction.Prediction.Prediction.standardNBADPredictionsList">
-<span class="sig-name descname"><span class="pre">standardNBADPredictionsList</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Prediction.NBAD_predictions</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[('PredictWebPropensity',</span> <span class="pre">'Web',</span> <span class="pre">'Inbound',</span> <span class="pre">True,</span> <span class="pre">False),</span> <span class="pre">('PredictMobilePropensity',</span> <span class="pre">'Mobile',...</span></em><a class="headerlink" href="#pdstools.prediction.Prediction.Prediction.standardNBADPredictionsList" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.prediction.Prediction.Prediction.getPredictionsChannelMapping">
-<span class="sig-name descname"><span class="pre">getPredictionsChannelMapping</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">custom_predictions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.prediction.Prediction.Prediction.getPredictionsChannelMapping" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="sig-name descname"><span class="pre">getPredictionsChannelMapping</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">custom_predictions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">List[NBAD.NBAD_prediction]</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span></span></span><a class="headerlink" href="#pdstools.prediction.Prediction.Prediction.getPredictionsChannelMapping" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>polars.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.prediction.Prediction.Prediction.summary_by_channel">
-<span class="sig-name descname"><span class="pre">summary_by_channel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">custom_predictions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">NBAD_predictions</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.prediction.Prediction.Prediction.summary_by_channel" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">summary_by_channel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">custom_predictions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">pdstools.utils.NBAD.NBAD_prediction</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.prediction.Prediction.Prediction.summary_by_channel" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>custom_predictions</strong> (<em>List</em><em>[</em><em>NBAD_predictions</em><em>]</em>)</p>
+<dd class="field-odd"><p><strong>custom_predictions</strong> (<em>List</em><em>[</em><em>pdstools.utils.NBAD.NBAD_prediction</em><em>]</em>)</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>polars.LazyFrame</p>
@@ -433,10 +430,10 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.prediction.Prediction.Prediction.overall_summary">
-<span class="sig-name descname"><span class="pre">overall_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">custom_predictions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">NBAD_predictions</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.prediction.Prediction.Prediction.overall_summary" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">overall_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">custom_predictions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">pdstools.utils.NBAD.NBAD_prediction</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.prediction.Prediction.Prediction.overall_summary" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>custom_predictions</strong> (<em>List</em><em>[</em><em>NBAD_predictions</em><em>]</em>)</p>
+<dd class="field-odd"><p><strong>custom_predictions</strong> (<em>List</em><em>[</em><em>pdstools.utils.NBAD.NBAD_prediction</em><em>]</em>)</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>polars.LazyFrame</p>
@@ -520,8 +517,6 @@
 <li><a class="reference internal" href="#pdstools.prediction.Prediction.Prediction.is_valid"><code class="docutils literal notranslate"><span class="pre">is_valid</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.prediction.Prediction.Prediction.predictions"><code class="docutils literal notranslate"><span class="pre">predictions</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.prediction.Prediction.Prediction.validityExpr"><code class="docutils literal notranslate"><span class="pre">validityExpr</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.prediction.Prediction.Prediction.NBAD_predictions"><code class="docutils literal notranslate"><span class="pre">NBAD_predictions</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.prediction.Prediction.Prediction.standardNBADPredictionsList"><code class="docutils literal notranslate"><span class="pre">standardNBADPredictionsList</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.prediction.Prediction.Prediction.getPredictionsChannelMapping"><code class="docutils literal notranslate"><span class="pre">getPredictionsChannelMapping()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.prediction.Prediction.Prediction.summary_by_channel"><code class="docutils literal notranslate"><span class="pre">summary_by_channel()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.prediction.Prediction.Prediction.overall_summary"><code class="docutils literal notranslate"><span class="pre">overall_summary()</span></code></a></li>

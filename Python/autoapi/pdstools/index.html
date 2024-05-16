@@ -289,6 +289,8 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="reports/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.reports</span></code></a></li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><div class="visually-hidden">Toggle navigation of pdstools.utils</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="utils/CDHLimits/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.CDHLimits</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="utils/NBAD/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.NBAD</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="utils/cdh_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="utils/datasets/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.datasets</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="utils/errors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.errors</span></code></a></li>
@@ -394,6 +396,8 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="reports/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.reports</span></code></a></li>
 <li class="toctree-l1"><a class="reference internal" href="utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils</span></code></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="utils/CDHLimits/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.CDHLimits</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils/NBAD/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.NBAD</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils/cdh_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils/datasets/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.datasets</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils/errors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.errors</span></code></a></li>
@@ -643,16 +647,6 @@ holds the merged data about the models and predictors</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="pdstools.ADMDatamart.standardDirections">
 <span class="sig-name descname"><span class="pre">standardDirections</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['Inbound',</span> <span class="pre">'Outbound']</span></em><a class="headerlink" href="#pdstools.ADMDatamart.standardDirections" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.ADMDatamart.NBAD_configurations">
-<span class="sig-name descname"><span class="pre">NBAD_configurations</span></span><a class="headerlink" href="#pdstools.ADMDatamart.NBAD_configurations" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.ADMDatamart.standardNBADModelConfigurationList">
-<span class="sig-name descname"><span class="pre">standardNBADModelConfigurationList</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">ADMDatamart.NBAD_configurations</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[('Web_Click_Through_Rate',</span> <span class="pre">'Web',</span> <span class="pre">'Inbound',</span> <span class="pre">True,</span> <span class="pre">False),</span> <span class="pre">('WebTreatmentClickModel',</span> <span class="pre">'Web',...</span></em><a class="headerlink" href="#pdstools.ADMDatamart.standardNBADModelConfigurationList" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -2742,8 +2736,6 @@ or based on the quantile of the propensity</p></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart.is_available"><code class="docutils literal notranslate"><span class="pre">is_available</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart.standardChannelGroups"><code class="docutils literal notranslate"><span class="pre">standardChannelGroups</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart.standardDirections"><code class="docutils literal notranslate"><span class="pre">standardDirections</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.ADMDatamart.NBAD_configurations"><code class="docutils literal notranslate"><span class="pre">NBAD_configurations</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.ADMDatamart.standardNBADModelConfigurationList"><code class="docutils literal notranslate"><span class="pre">standardNBADModelConfigurationList</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart.NBAD_model_configurations"><code class="docutils literal notranslate"><span class="pre">NBAD_model_configurations</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart.get_engine"><code class="docutils literal notranslate"><span class="pre">get_engine()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart.import_data"><code class="docutils literal notranslate"><span class="pre">import_data()</span></code></a></li>

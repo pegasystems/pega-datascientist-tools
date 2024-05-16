@@ -36,23 +36,13 @@ Classes
 
       
 
-   .. py:attribute:: NBAD_predictions
-
-      
-
-   .. py:attribute:: standardNBADPredictionsList
-      :type: List[Prediction.NBAD_predictions]
-      :value: [('PredictWebPropensity', 'Web', 'Inbound', True, False), ('PredictMobilePropensity', 'Mobile',...
-
-      
-
-   .. py:method:: getPredictionsChannelMapping(custom_predictions=[])
+   .. py:method:: getPredictionsChannelMapping(custom_predictions=List[NBAD.NBAD_prediction]) -> polars.DataFrame
 
 
-   .. py:method:: summary_by_channel(custom_predictions: List[NBAD_predictions] = None) -> polars.LazyFrame
+   .. py:method:: summary_by_channel(custom_predictions: List[pdstools.utils.NBAD.NBAD_prediction] = None) -> polars.LazyFrame
 
 
-   .. py:method:: overall_summary(custom_predictions: List[NBAD_predictions] = None) -> polars.LazyFrame
+   .. py:method:: overall_summary(custom_predictions: List[pdstools.utils.NBAD.NBAD_prediction] = None) -> polars.LazyFrame
 
 
 

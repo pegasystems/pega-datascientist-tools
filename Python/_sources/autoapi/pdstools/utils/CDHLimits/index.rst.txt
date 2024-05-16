@@ -1,0 +1,67 @@
+:py:mod:`pdstools.utils.CDHLimits`
+==================================
+
+.. py:module:: pdstools.utils.CDHLimits
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   pdstools.utils.CDHLimits.CDHLimits
+
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   pdstools.utils.CDHLimits.LimitStatus
+   pdstools.utils.CDHLimits.Metrics
+   pdstools.utils.CDHLimits.limits
+
+
+.. py:data:: LimitStatus
+
+   
+
+.. py:data:: Metrics
+
+   
+
+.. py:class:: CDHLimits
+
+
+   Bases: :py:obj:`object`
+
+   A singleton container for best practice limits for CDH.
+
+   .. py:attribute:: _instance
+
+      
+
+   .. py:attribute:: num_limit
+
+      
+
+   .. py:attribute:: lims
+
+      
+
+   .. py:method:: get_limits(metric: Metrics) -> Union[num_limit, None]
+
+
+   .. py:method:: check_limits(metric: Metrics, value: object) -> LimitStatus
+
+
+
+.. py:data:: limits
+
+   
+
