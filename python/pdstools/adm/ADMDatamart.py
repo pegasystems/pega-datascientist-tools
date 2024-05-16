@@ -7,7 +7,6 @@ import subprocess
 from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict, List, Literal, NoReturn, Optional, Tuple, Union
-from collections import namedtuple
 
 import polars as pl
 import yaml
@@ -15,7 +14,7 @@ import glob
 
 from ..plots.plot_base import Plots
 from ..plots.plots_plotly import ADMVisualisations as plotly_plot
-from ..utils import cdh_utils
+from ..utils import cdh_utils, NBAD
 from ..utils.errors import NotEagerError
 from ..utils.types import any_frame
 from .. import pega_io
@@ -116,74 +115,8 @@ class ADMDatamart(Plots, Tables):
     ]
     standardDirections = ["Inbound", "Outbound"]
 
-    NBAD_ModelConfiguration = namedtuple(
-        "Configurations",
-        ["model_name", "channel", "direction", "standard", "multi_channel"],
-    )
-    standardNBADModelConfigurationList: List[NBAD_ModelConfiguration] = [
-        NBAD_ModelConfiguration(
-            "Web_Click_Through_Rate", "Web", "Inbound", True, False
-        ),
-        NBAD_ModelConfiguration(
-            "WebTreatmentClickModel", "Web", "Inbound", True, False
-        ),
-        NBAD_ModelConfiguration(
-            "Mobile_Click_Through_Rate", "Mobile", "Inbound", True, False
-        ),
-        NBAD_ModelConfiguration(
-            "Email_Click_Through_Rate", "E-mail", "Outbound", True, False
-        ),
-        NBAD_ModelConfiguration(
-            "Push_Click_Through_Rate", "Push", "Outbound", True, False
-        ),
-        NBAD_ModelConfiguration(
-            "SMS_Click_Through_Rate", "SMS", "Outbound", True, False
-        ),
-        NBAD_ModelConfiguration(
-            "Retail_Click_Through_Rate", "Retail", "Inbound", True, False
-        ),
-        NBAD_ModelConfiguration(
-            "Retail_Click_Through_Rate_Outbound", "Retail", "Outbound", True, False
-        ),
-        NBAD_ModelConfiguration(
-            "CallCenter_Click_Through_Rate", "Call Center", "Inbound", True, False
-        ),
-        NBAD_ModelConfiguration(
-            "CallCenterAcceptRateOutbound", "Call Center", "Outbound", True, False
-        ),
-        NBAD_ModelConfiguration(
-            "Assisted_Click_Through_Rate",
-            "Assisted",
-            "Inbound",
-            True,
-            False,
-        ),  # withdrawn record
-        NBAD_ModelConfiguration(
-            "Assisted_Click_Through_Rate_Outbound",
-            "Assisted",
-            "Outbound",
-            True,
-            False,
-        ),  # withdrawn record
-        NBAD_ModelConfiguration(
-            "Default_Inbound_Model", "Default", "Inbound", True, False
-        ),
-        NBAD_ModelConfiguration(
-            "Default_Outbound_Model", "Default", "Outbound", True, False
-        ),
-        NBAD_ModelConfiguration(
-            "Default_Click_Through_Rate", "Other", "Inbound", True, False
-        ),
-        NBAD_ModelConfiguration(
-            "Other_Inbound_Click_Through_Rate", "Other", "Inbound", True, False
-        ),
-        NBAD_ModelConfiguration(
-            "OmniAdaptiveModel", "Multi-channel", "Multi-channel", True, True
-        ),
-    ]
-
     NBAD_model_configurations = [
-        x.model_name.upper() for x in standardNBADModelConfigurationList
+        x.model_name.upper() for x in NBAD.standardNBADModelConfigurations
     ]
 
     def __init__(
