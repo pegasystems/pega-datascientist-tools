@@ -116,44 +116,74 @@ class ADMDatamart(Plots, Tables):
     ]
     standardDirections = ["Inbound", "Outbound"]
 
-    NBAD_configurations = namedtuple( 
+    NBAD_ModelConfiguration = namedtuple(
         "Configurations",
         ["model_name", "channel", "direction", "standard", "multi_channel"],
-    ) 
-    standardNBADModelConfigurationList:List[NBAD_configurations] = [
-        ("Web_Click_Through_Rate", "Web", "Inbound", True, False),
-        ("WebTreatmentClickModel", "Web", "Inbound", True, False),
-        ("Mobile_Click_Through_Rate", "Mobile", "Inbound", True, False),
-        ("Email_Click_Through_Rate", "E-mail", "Outbound", True, False),
-        ("Push_Click_Through_Rate", "Push", "Outbound", True, False),
-        ("SMS_Click_Through_Rate", "SMS", "Outbound", True, False),
-        ("Retail_Click_Through_Rate", "Retail", "Inbound", True, False),
-        ("Retail_Click_Through_Rate_Outbound", "Retail", "Outbound", True, False),
-        ("CallCenter_Click_Through_Rate", "Call Center", "Inbound", True, False),
-        ("CallCenterAcceptRateOutbound", "Call Center", "Outbound", True, False),
-        (
+    )
+    standardNBADModelConfigurationList: List[NBAD_ModelConfiguration] = [
+        NBAD_ModelConfiguration(
+            "Web_Click_Through_Rate", "Web", "Inbound", True, False
+        ),
+        NBAD_ModelConfiguration(
+            "WebTreatmentClickModel", "Web", "Inbound", True, False
+        ),
+        NBAD_ModelConfiguration(
+            "Mobile_Click_Through_Rate", "Mobile", "Inbound", True, False
+        ),
+        NBAD_ModelConfiguration(
+            "Email_Click_Through_Rate", "E-mail", "Outbound", True, False
+        ),
+        NBAD_ModelConfiguration(
+            "Push_Click_Through_Rate", "Push", "Outbound", True, False
+        ),
+        NBAD_ModelConfiguration(
+            "SMS_Click_Through_Rate", "SMS", "Outbound", True, False
+        ),
+        NBAD_ModelConfiguration(
+            "Retail_Click_Through_Rate", "Retail", "Inbound", True, False
+        ),
+        NBAD_ModelConfiguration(
+            "Retail_Click_Through_Rate_Outbound", "Retail", "Outbound", True, False
+        ),
+        NBAD_ModelConfiguration(
+            "CallCenter_Click_Through_Rate", "Call Center", "Inbound", True, False
+        ),
+        NBAD_ModelConfiguration(
+            "CallCenterAcceptRateOutbound", "Call Center", "Outbound", True, False
+        ),
+        NBAD_ModelConfiguration(
             "Assisted_Click_Through_Rate",
             "Assisted",
             "Inbound",
             True,
             False,
         ),  # withdrawn record
-        (
+        NBAD_ModelConfiguration(
             "Assisted_Click_Through_Rate_Outbound",
             "Assisted",
             "Outbound",
             True,
             False,
         ),  # withdrawn record
-        ("Default_Inbound_Model", "Default", "Inbound", True, False),
-        ("Default_Outbound_Model", "Default", "Outbound", True, False),
-        ("Default_Click_Through_Rate", "Other", "Inbound", True, False),
-        ("Other_Inbound_Click_Through_Rate", "Other", "Inbound", True, False),
-        ("OmniAdaptiveModel", "Multi-channel", "Multi-channel", True, True),
+        NBAD_ModelConfiguration(
+            "Default_Inbound_Model", "Default", "Inbound", True, False
+        ),
+        NBAD_ModelConfiguration(
+            "Default_Outbound_Model", "Default", "Outbound", True, False
+        ),
+        NBAD_ModelConfiguration(
+            "Default_Click_Through_Rate", "Other", "Inbound", True, False
+        ),
+        NBAD_ModelConfiguration(
+            "Other_Inbound_Click_Through_Rate", "Other", "Inbound", True, False
+        ),
+        NBAD_ModelConfiguration(
+            "OmniAdaptiveModel", "Multi-channel", "Multi-channel", True, True
+        ),
     ]
 
     NBAD_model_configurations = [
-        x[0].upper() for x in standardNBADModelConfigurationList
+        x.model_name.upper() for x in standardNBADModelConfigurationList
     ]
 
     def __init__(
@@ -177,7 +207,9 @@ class ADMDatamart(Plots, Tables):
         ],  # TODO Name/Treatment are normally also part of context
         extract_keys: bool = False,  # TODO: should be True by default, extract should be efficiently using Configuration
         predictorCategorization: pl.Expr = cdh_utils.defaultPredictorCategorization,
-        plotting_engine: Union[str, Any] = "plotly", # TODO drop this, no plot engine abstraction
+        plotting_engine: Union[
+            str, Any
+        ] = "plotly",  # TODO drop this, no plot engine abstraction
         verbose: bool = False,
         **reading_opts,
     ):
@@ -1317,7 +1349,9 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         )
         return self.processTables()
 
-    def summary_by_channel(self, custom_channels: Dict[str, str] = None, keep_lists: bool=False):
+    def summary_by_channel(
+        self, custom_channels: Dict[str, str] = None, keep_lists: bool = False
+    ):
         if not custom_channels:
             custom_channels = {}
 
@@ -1606,8 +1640,6 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             )
             .with_columns(CTR=(pl.col("Positives")) / (pl.col("ResponseCount")))
         )
-
-
 
     def generateReport(
         self,
