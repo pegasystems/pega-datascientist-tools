@@ -437,19 +437,22 @@
 <tr class="row-even"><td><p><a class="reference internal" href="#pdstools.BinAggregator" title="pdstools.BinAggregator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BinAggregator</span></code></a></p></td>
 <td><p>A class to generate rolled up insights from ADM predictor binning.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.Config" title="pdstools.Config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Config</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.CDHLimits" title="pdstools.CDHLimits"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CDHLimits</span></code></a></p></td>
+<td><p>A singleton container for best practice limits for CDH.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.Config" title="pdstools.Config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Config</span></code></a></p></td>
 <td><p>Configuration file for the data anonymizer.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.DataAnonymization" title="pdstools.DataAnonymization"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DataAnonymization</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.DataAnonymization" title="pdstools.DataAnonymization"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DataAnonymization</span></code></a></p></td>
 <td><p>Anonymize a historical dataset.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.PegaDefaultTables" title="pdstools.PegaDefaultTables"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PegaDefaultTables</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.PegaDefaultTables" title="pdstools.PegaDefaultTables"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PegaDefaultTables</span></code></a></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.ValueFinder" title="pdstools.ValueFinder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueFinder</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.ValueFinder" title="pdstools.ValueFinder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueFinder</span></code></a></p></td>
 <td><p>Class to analyze Value Finder datasets.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.Sample" title="pdstools.Sample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sample</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.Sample" title="pdstools.Sample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sample</span></code></a></p></td>
 <td><p></p></td>
 </tr>
 </tbody>
@@ -1662,6 +1665,67 @@ Else, ask your system administrator for the correct url.</p></li>
 </dl>
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="pdstools.CDHLimits">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">CDHLimits</span></span><a class="headerlink" href="#pdstools.CDHLimits" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A singleton container for best practice limits for CDH.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.CDHLimits.LimitStatus">
+<span class="sig-name descname"><span class="pre">LimitStatus</span></span><a class="headerlink" href="#pdstools.CDHLimits.LimitStatus" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.CDHLimits.Metrics">
+<span class="sig-name descname"><span class="pre">Metrics</span></span><a class="headerlink" href="#pdstools.CDHLimits.Metrics" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.CDHLimits._instance">
+<span class="sig-name descname"><span class="pre">_instance</span></span><a class="headerlink" href="#pdstools.CDHLimits._instance" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.CDHLimits.num_limit">
+<span class="sig-name descname"><span class="pre">num_limit</span></span><a class="headerlink" href="#pdstools.CDHLimits.num_limit" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.CDHLimits.lims">
+<span class="sig-name descname"><span class="pre">lims</span></span><a class="headerlink" href="#pdstools.CDHLimits.lims" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.CDHLimits.get_limits">
+<span class="sig-name descname"><span class="pre">get_limits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metric</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Metrics</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">num_limit</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#pdstools.CDHLimits.get_limits" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>metric</strong> (<em>Metrics</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Union[num_limit, None]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.CDHLimits.check_limits">
+<span class="sig-name descname"><span class="pre">check_limits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metric</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">object</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">LimitStatus</span></span></span><a class="headerlink" href="#pdstools.CDHLimits.check_limits" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>metric</strong> (<em>Metrics</em>)</p></li>
+<li><p><strong>value</strong> (<em>object</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>LimitStatus</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.defaultPredictorCategorization">
 <span class="sig-name descname"><span class="pre">defaultPredictorCategorization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.Expr</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">pl.col('PredictorName')</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.defaultPredictorCategorization" title="Link to this definition">¶</a></dt>
@@ -2801,6 +2865,16 @@ or based on the quantile of the propensity</p></li>
 <li><a class="reference internal" href="#pdstools.get_token"><code class="docutils literal notranslate"><span class="pre">get_token()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.readDSExport"><code class="docutils literal notranslate"><span class="pre">readDSExport()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.setupAzureOpenAI"><code class="docutils literal notranslate"><span class="pre">setupAzureOpenAI()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.CDHLimits"><code class="docutils literal notranslate"><span class="pre">CDHLimits</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.CDHLimits.LimitStatus"><code class="docutils literal notranslate"><span class="pre">LimitStatus</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.CDHLimits.Metrics"><code class="docutils literal notranslate"><span class="pre">Metrics</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.CDHLimits._instance"><code class="docutils literal notranslate"><span class="pre">_instance</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.CDHLimits.num_limit"><code class="docutils literal notranslate"><span class="pre">num_limit</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.CDHLimits.lims"><code class="docutils literal notranslate"><span class="pre">lims</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.CDHLimits.get_limits"><code class="docutils literal notranslate"><span class="pre">get_limits()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.CDHLimits.check_limits"><code class="docutils literal notranslate"><span class="pre">check_limits()</span></code></a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#pdstools.defaultPredictorCategorization"><code class="docutils literal notranslate"><span class="pre">defaultPredictorCategorization()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.show_versions"><code class="docutils literal notranslate"><span class="pre">show_versions()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.CDHSample"><code class="docutils literal notranslate"><span class="pre">CDHSample()</span></code></a></li>

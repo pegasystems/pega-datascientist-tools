@@ -358,7 +358,7 @@
 <p>In Pega CDH 8.5 and up, it’s now possible to record the historical data as seen by the Adaptive Models. See <a class="reference external" href="https://academy.pega.com/challenge/exporting-historical-data/v4">this academy challenge</a> for reference. This historical data can be further used to experiment with offline models, but also to fine-tune the OOTB Gradient Boosting model. However, sharing this information with Pega can be sensitive as it contains raw predictor data.</p>
 <p>To this end, we provide a simple and transparent script to fully anonimize this dataset.</p>
 <p>The DataAnonymization script is now part of pdstools, and you can import it directly as such.</p>
-<div class="nbinput docutils container">
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
@@ -367,59 +367,6 @@
 <span class="kn">import</span> <span class="nn">polars</span> <span class="k">as</span> <span class="nn">pl</span>
 </pre></div>
 </div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">AttributeError</span>                            Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[2], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span> <span class="ansi-bold" style="color: rgb(0,0,255)">pdstools</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> ADMDatamart
-<span class="ansi-green-intense-fg ansi-bold">      2</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span> <span class="ansi-bold" style="color: rgb(0,0,255)">pdstools</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> Config, DataAnonymization
-<span class="ansi-green-intense-fg ansi-bold">      3</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> <span class="ansi-bold" style="color: rgb(0,0,255)">polars</span> <span class="ansi-bold" style="color: rgb(0,135,0)">as</span> <span class="ansi-bold" style="color: rgb(0,0,255)">pl</span>
-
-File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/__init__.py:18</span>
-<span class="ansi-green-intense-fg ansi-bold">     16</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span> <span class="ansi-bold" style="color: rgb(0,0,255)">.</span><span class="ansi-bold" style="color: rgb(0,0,255)">pega_io</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> File, API, S3
-<span class="ansi-green-intense-fg ansi-bold">     17</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span> <span class="ansi-bold" style="color: rgb(0,0,255)">.</span><span class="ansi-bold" style="color: rgb(0,0,255)">pega_io</span><span class="ansi-bold" style="color: rgb(0,0,255)">.</span><span class="ansi-bold" style="color: rgb(0,0,255)">API</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> setupAzureOpenAI
-<span class="ansi-green-fg">---&gt; 18</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span> <span class="ansi-bold" style="color: rgb(0,0,255)">.</span><span class="ansi-bold" style="color: rgb(0,0,255)">prediction</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> Prediction
-<span class="ansi-green-intense-fg ansi-bold">     19</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span> <span class="ansi-bold" style="color: rgb(0,0,255)">.</span><span class="ansi-bold" style="color: rgb(0,0,255)">utils</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> cdh_utils, datasets, errors, hds_utils
-<span class="ansi-green-intense-fg ansi-bold">     20</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span> <span class="ansi-bold" style="color: rgb(0,0,255)">.</span><span class="ansi-bold" style="color: rgb(0,0,255)">utils</span><span class="ansi-bold" style="color: rgb(0,0,255)">.</span><span class="ansi-bold" style="color: rgb(0,0,255)">cdh_utils</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> defaultPredictorCategorization
-
-File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/prediction/__init__.py:1</span>
-<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span> <span class="ansi-bold" style="color: rgb(0,0,255)">.</span><span class="ansi-bold" style="color: rgb(0,0,255)">Prediction</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> Prediction
-
-File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/prediction/Prediction.py:7</span>
-<span class="ansi-green-intense-fg ansi-bold">      2</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> <span class="ansi-bold" style="color: rgb(0,0,255)">polars</span> <span class="ansi-bold" style="color: rgb(0,135,0)">as</span> <span class="ansi-bold" style="color: rgb(0,0,255)">pl</span>
-<span class="ansi-green-intense-fg ansi-bold">      4</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span> <span class="ansi-bold" style="color: rgb(0,0,255)">.</span><span class="ansi-bold" style="color: rgb(0,0,255)">.</span><span class="ansi-bold" style="color: rgb(0,0,255)">utils</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> cdh_utils, NBAD
-<span class="ansi-green-fg">----&gt; 7</span> <span class="ansi-yellow-bg ansi-bold" style="color: rgb(0,135,0)">class</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg ansi-bold" style="color: rgb(0,0,255)">Prediction</span><span class="ansi-yellow-bg">:</span>
-<span class="ansi-green-intense-fg ansi-bold">      8</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">predictions</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg ansi-bold" style="color: rgb(0,135,0)">None</span>
-<span class="ansi-green-intense-fg ansi-bold">     10</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg" style="color: rgb(95,135,135)"># These are pretty strict conditions - many configurations appear not to satisfy these</span>
-<span class="ansi-green-intense-fg ansi-bold">     11</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg" style="color: rgb(95,135,135)"># perhaps the Total = Test + Control is no longer met when Impact Analyzer is around</span>
-
-File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/prediction/Prediction.py:30</span>, in <span class="ansi-cyan-fg">Prediction</span><span class="ansi-blue-fg">()</span>
-<span class="ansi-green-intense-fg ansi-bold">     10</span> <span style="color: rgb(95,135,135)"># These are pretty strict conditions - many configurations appear not to satisfy these</span>
-<span class="ansi-green-intense-fg ansi-bold">     11</span> <span style="color: rgb(95,135,135)"># perhaps the Total = Test + Control is no longer met when Impact Analyzer is around</span>
-<span class="ansi-green-intense-fg ansi-bold">     12</span> validityExpr <span style="color: rgb(98,98,98)">=</span> (
-<span class="ansi-green-intense-fg ansi-bold">     13</span>     (pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Positives</span><span style="color: rgb(175,0,0)">&#34;</span>) <span style="color: rgb(98,98,98)">&gt;</span> <span style="color: rgb(98,98,98)">0</span>)
-<span class="ansi-green-intense-fg ansi-bold">     14</span>     <span style="color: rgb(98,98,98)">&amp;</span> (pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Positives_Test</span><span style="color: rgb(175,0,0)">&#34;</span>) <span style="color: rgb(98,98,98)">&gt;</span> <span style="color: rgb(98,98,98)">0</span>)
-<span class="ansi-green-fg">   (...)</span>
-<span class="ansi-green-intense-fg ansi-bold">     26</span>     <span style="color: rgb(95,135,135)"># )</span>
-<span class="ansi-green-intense-fg ansi-bold">     27</span> )
-<span class="ansi-green-intense-fg ansi-bold">     29</span> <span class="ansi-bold" style="color: rgb(0,135,0)">def</span> <span style="color: rgb(0,0,255)">getPredictionsChannelMapping</span>(
-<span class="ansi-green-fg">---&gt; 30</span>     <span style="color: rgb(0,135,0)">self</span>, custom_predictions<span style="color: rgb(98,98,98)">=</span>List[<span class="ansi-yellow-bg">NBAD</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">NBAD_prediction</span>]
-<span class="ansi-green-intense-fg ansi-bold">     31</span> ) <span style="color: rgb(98,98,98)">-</span><span style="color: rgb(98,98,98)">&gt;</span> pl<span style="color: rgb(98,98,98)">.</span>DataFrame:
-<span class="ansi-green-intense-fg ansi-bold">     32</span>     all_mappings <span style="color: rgb(98,98,98)">=</span> NBAD<span style="color: rgb(98,98,98)">.</span>standardNBADPredictions <span style="color: rgb(98,98,98)">+</span> custom_predictions
-<span class="ansi-green-intense-fg ansi-bold">     33</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> pl<span style="color: rgb(98,98,98)">.</span>DataFrame(
-<span class="ansi-green-intense-fg ansi-bold">     34</span>         {
-<span class="ansi-green-intense-fg ansi-bold">     35</span>             <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Prediction</span><span style="color: rgb(175,0,0)">&#34;</span>: [x<span style="color: rgb(98,98,98)">.</span>model_name<span style="color: rgb(98,98,98)">.</span>upper() <span class="ansi-bold" style="color: rgb(0,135,0)">for</span> x <span class="ansi-bold" style="color: rgb(175,0,255)">in</span> all_mappings],
-<span class="ansi-green-fg">   (...)</span>
-<span class="ansi-green-intense-fg ansi-bold">     40</span>         }
-<span class="ansi-green-intense-fg ansi-bold">     41</span>     )
-
-<span class="ansi-red-fg">AttributeError</span>: module &#39;pdstools.utils.NBAD&#39; has no attribute &#39;NBAD_prediction&#39;
-</pre></div></div>
 </div>
 <section id="Input-data">
 <h2>Input data<a class="headerlink" href="#Input-data" title="Link to this heading">¶</a></h2>
@@ -433,39 +380,27 @@ File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascient
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[3], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">pl</span><span style="color: rgb(98,98,98)">.</span>read_ndjson(<span style="color: rgb(175,0,0)">&#39;</span><span style="color: rgb(175,0,0)">../../../../data/SampleHDS.json</span><span style="color: rgb(175,0,0)">&#39;</span>)
-
-<span class="ansi-red-fg">NameError</span>: name &#39;pl&#39; is not defined
-</pre></div></div>
+<div class="output_area rendered_html docutils container">
+<div><style>
+.dataframe > thead > tr,
+.dataframe > tbody > tr {
+  text-align: right;
+  white-space: pre-wrap;
+}
+</style>
+<small>shape: (7, 6)</small><table border="1" class="dataframe"><thead><tr><th>Context_Name</th><th>Customer_MaritalStatus</th><th>Customer_CLV</th><th>Customer_City</th><th>IH_Web_Inbound_Accepted_pxLastGroupID</th><th>Decision_Outcome</th></tr><tr><td>str</td><td>str</td><td>i64</td><td>str</td><td>str</td><td>str</td></tr></thead><tbody><tr><td>&quot;FirstMortgage30yr&quot;</td><td>&quot;Married&quot;</td><td>1460</td><td>&quot;Port Raoul&quot;</td><td>&quot;Account&quot;</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;FirstMortgage30yr&quot;</td><td>&quot;Unknown&quot;</td><td>669</td><td>&quot;Laurianneshire&quot;</td><td>&quot;AutoLoans&quot;</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;MoneyMarketSavingsAccount&quot;</td><td>&quot;No Resp+&quot;</td><td>1174</td><td>&quot;Jacobshaven&quot;</td><td>&quot;Account&quot;</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;BasicChecking&quot;</td><td>&quot;Unknown&quot;</td><td>1476</td><td>&quot;Lindton&quot;</td><td>&quot;Account&quot;</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;BasicChecking&quot;</td><td>&quot;Married&quot;</td><td>1211</td><td>&quot;South Jimmieshire&quot;</td><td>&quot;DepositAccounts&quot;</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;UPlusFinPersonal&quot;</td><td>&quot;No Resp+&quot;</td><td>533</td><td>&quot;Bergeville&quot;</td><td>null</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;BasicChecking&quot;</td><td>&quot;No Resp+&quot;</td><td>555</td><td>&quot;Willyville&quot;</td><td>&quot;DepositAccounts&quot;</td><td>&quot;Rejected&quot;</td></tr></tbody></table></div></div>
 </div>
 <p>As you can see, this dataset consists of regular predictors, IH predictors, context keys and the outcome column. Additionally, some columns are numeric, others are strings. Let’s first initialize the DataAnonymization class.</p>
-<div class="nbinput docutils container">
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">anon</span> <span class="o">=</span> <span class="n">DataAnonymization</span><span class="p">(</span><span class="n">hds_folder</span><span class="o">=</span><span class="s1">&#39;../../../../data/&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[4], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> anon <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">DataAnonymization</span>(hds_folder<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">&#39;</span><span style="color: rgb(175,0,0)">../../../../data/</span><span style="color: rgb(175,0,0)">&#39;</span>)
-
-<span class="ansi-red-fg">NameError</span>: name &#39;DataAnonymization&#39; is not defined
-</pre></div></div>
 </div>
 <p>By default, the class applies a set of anonymisation techniques: - Column names are remapped to a non-descriptive name - Categorical values are hashed with a random seed - Numerical values are normalized between 0 and 1 - Outcomes are mapped to a binary outcome.</p>
 <p>To apply these techniques, simply call <code class="docutils literal notranslate"><span class="pre">.process()</span></code>:</p>
@@ -478,17 +413,18 @@ Cell <span class="ansi-green-fg">In[4], line 1</span>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[5], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">anon</span><span style="color: rgb(98,98,98)">.</span>process()
-
-<span class="ansi-red-fg">NameError</span>: name &#39;anon&#39; is not defined
-</pre></div></div>
+<div class="output_area rendered_html docutils container">
+<div><style>
+.dataframe > thead > tr,
+.dataframe > tbody > tr {
+  text-align: right;
+  white-space: pre-wrap;
+}
+</style>
+<small>shape: (7, 7)</small><table border="1" class="dataframe"><thead><tr><th>PREDICTOR_0</th><th>PREDICTOR_1</th><th>PREDICTOR_2</th><th>filename</th><th>Context_Name</th><th>IH_PREDICTOR_0</th><th>Decision_Outcome</th></tr><tr><td>str</td><td>str</td><td>f64</td><td>str</td><td>str</td><td>str</td><td>bool</td></tr></thead><tbody><tr><td>&quot;15128386783610400428&quot;</td><td>&quot;14904047005973763827&quot;</td><td>1.0478e18</td><td>&quot;../../../../data/SampleHDS.jso…</td><td>&quot;431429164890461189&quot;</td><td>&quot;8350824916825971131&quot;</td><td>false</td></tr><tr><td>&quot;442276805140003574&quot;</td><td>&quot;2310988936302560128&quot;</td><td>1.1737e19</td><td>&quot;../../../../data/SampleHDS.jso…</td><td>&quot;431429164890461189&quot;</td><td>&quot;2393804384196280001&quot;</td><td>true</td></tr><tr><td>&quot;1798927304730299411&quot;</td><td>&quot;7460695131425925965&quot;</td><td>1.6409e19</td><td>&quot;../../../../data/SampleHDS.jso…</td><td>&quot;6927954986707063009&quot;</td><td>&quot;8350824916825971131&quot;</td><td>false</td></tr><tr><td>&quot;442276805140003574&quot;</td><td>&quot;18095773661977127584&quot;</td><td>1.3266e19</td><td>&quot;../../../../data/SampleHDS.jso…</td><td>&quot;3602085178320060768&quot;</td><td>&quot;8350824916825971131&quot;</td><td>false</td></tr><tr><td>&quot;15128386783610400428&quot;</td><td>&quot;18363049598776861194&quot;</td><td>3.3553e18</td><td>&quot;../../../../data/SampleHDS.jso…</td><td>&quot;3602085178320060768&quot;</td><td>&quot;18105090119304563582&quot;</td><td>true</td></tr><tr><td>&quot;1798927304730299411&quot;</td><td>&quot;16826739054097183027&quot;</td><td>1.2817e19</td><td>&quot;../../../../data/SampleHDS.jso…</td><td>&quot;16811186771056360201&quot;</td><td>null</td><td>false</td></tr><tr><td>&quot;1798927304730299411&quot;</td><td>&quot;1245122812748066701&quot;</td><td>1.3382e19</td><td>&quot;../../../../data/SampleHDS.jso…</td><td>&quot;3602085178320060768&quot;</td><td>&quot;18105090119304563582&quot;</td><td>false</td></tr></tbody></table></div></div>
 </div>
 <p>To trace back the columns to their original names, the class also contains a mapping, which does not have to be provided.</p>
 <div class="nbinput docutils container">
@@ -500,16 +436,18 @@ Cell <span class="ansi-green-fg">In[5], line 1</span>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[6], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">anon</span><span style="color: rgb(98,98,98)">.</span>column_mapping
-
-<span class="ansi-red-fg">NameError</span>: name &#39;anon&#39; is not defined
+{&#39;Customer_MaritalStatus&#39;: &#39;PREDICTOR_0&#39;,
+ &#39;Customer_City&#39;: &#39;PREDICTOR_1&#39;,
+ &#39;Customer_CLV&#39;: &#39;PREDICTOR_2&#39;,
+ &#39;filename&#39;: &#39;filename&#39;,
+ &#39;Context_Name&#39;: &#39;Context_Name&#39;,
+ &#39;IH_Web_Inbound_Accepted_pxLastGroupID&#39;: &#39;IH_PREDICTOR_0&#39;,
+ &#39;Decision_Outcome&#39;: &#39;Decision_Outcome&#39;}
 </pre></div></div>
 </div>
 </section>
@@ -525,16 +463,35 @@ Cell <span class="ansi-green-fg">In[6], line 1</span>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[7], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> <span style="color: rgb(0,135,0)">dict</span>(<span style="color: rgb(0,135,0)">zip</span>(<span class="ansi-yellow-bg">Config</span><span style="color: rgb(98,98,98)">.</span><span style="color: rgb(0,0,255)">__init__</span><span style="color: rgb(98,98,98)">.</span><span style="color: rgb(0,0,135)">__code__</span><span style="color: rgb(98,98,98)">.</span>co_varnames[<span style="color: rgb(98,98,98)">1</span>:], Config<span style="color: rgb(98,98,98)">.</span><span style="color: rgb(0,0,255)">__init__</span><span style="color: rgb(98,98,98)">.</span><span style="color: rgb(0,0,135)">__defaults__</span>))
-
-<span class="ansi-red-fg">NameError</span>: name &#39;Config&#39; is not defined
+{&#39;config_file&#39;: None,
+ &#39;hds_folder&#39;: &#39;.&#39;,
+ &#39;use_datamart&#39;: False,
+ &#39;datamart_folder&#39;: &#39;datamart&#39;,
+ &#39;output_format&#39;: &#39;ndjson&#39;,
+ &#39;output_folder&#39;: &#39;output&#39;,
+ &#39;mapping_file&#39;: &#39;mapping.map&#39;,
+ &#39;mask_predictor_names&#39;: True,
+ &#39;mask_context_key_names&#39;: False,
+ &#39;mask_ih_names&#39;: True,
+ &#39;mask_outcome_name&#39;: False,
+ &#39;mask_predictor_values&#39;: True,
+ &#39;mask_context_key_values&#39;: True,
+ &#39;mask_ih_values&#39;: True,
+ &#39;mask_outcome_values&#39;: True,
+ &#39;context_key_label&#39;: &#39;Context_*&#39;,
+ &#39;ih_label&#39;: &#39;IH_*&#39;,
+ &#39;outcome_column&#39;: &#39;Decision_Outcome&#39;,
+ &#39;positive_outcomes&#39;: [&#39;Accepted&#39;, &#39;Clicked&#39;],
+ &#39;negative_outcomes&#39;: [&#39;Rejected&#39;, &#39;Impression&#39;],
+ &#39;special_predictors&#39;: [&#39;Decision_DecisionTime&#39;,
+  &#39;Decision_OutcomeTime&#39;,
+  &#39;Decision_Rank&#39;],
+ &#39;sample_percentage_schema_inferencing&#39;: 0.01}
 </pre></div></div>
 </div>
 <p>It’s easy to change these parameters by just passing the keyword arguments. In the following example, we - Keep the IH predictor names - Keep the outcome values - Keep the context key values - Keep the context key predictor names</p>
@@ -554,46 +511,27 @@ Cell <span class="ansi-green-fg">In[7], line 1</span>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[8], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> anon <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">DataAnonymization</span>(
-<span class="ansi-green-intense-fg ansi-bold">      2</span>     hds_folder<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">../../../../data/</span><span style="color: rgb(175,0,0)">&#34;</span>,
-<span class="ansi-green-intense-fg ansi-bold">      3</span>     mask_ih_names<span style="color: rgb(98,98,98)">=</span><span class="ansi-bold" style="color: rgb(0,135,0)">False</span>,
-<span class="ansi-green-intense-fg ansi-bold">      4</span>     mask_outcome_values<span style="color: rgb(98,98,98)">=</span><span class="ansi-bold" style="color: rgb(0,135,0)">False</span>,
-<span class="ansi-green-intense-fg ansi-bold">      5</span>     mask_context_key_values<span style="color: rgb(98,98,98)">=</span><span class="ansi-bold" style="color: rgb(0,135,0)">False</span>,
-<span class="ansi-green-intense-fg ansi-bold">      6</span>     mask_context_key_names<span style="color: rgb(98,98,98)">=</span><span class="ansi-bold" style="color: rgb(0,135,0)">False</span>,
-<span class="ansi-green-intense-fg ansi-bold">      7</span> )
-<span class="ansi-green-intense-fg ansi-bold">      8</span> anon<span style="color: rgb(98,98,98)">.</span>process()
-
-<span class="ansi-red-fg">NameError</span>: name &#39;DataAnonymization&#39; is not defined
-</pre></div></div>
+<div class="output_area rendered_html docutils container">
+<div><style>
+.dataframe > thead > tr,
+.dataframe > tbody > tr {
+  text-align: right;
+  white-space: pre-wrap;
+}
+</style>
+<small>shape: (7, 7)</small><table border="1" class="dataframe"><thead><tr><th>PREDICTOR_0</th><th>PREDICTOR_1</th><th>PREDICTOR_2</th><th>filename</th><th>Context_Name</th><th>IH_Web_Inbound_Accepted_pxLastGroupID</th><th>Decision_Outcome</th></tr><tr><td>str</td><td>str</td><td>f64</td><td>str</td><td>str</td><td>str</td><td>str</td></tr></thead><tbody><tr><td>&quot;670557626058934808&quot;</td><td>&quot;10288292485256187716&quot;</td><td>1.3116e19</td><td>&quot;../../../../data/SampleHDS.jso…</td><td>&quot;FirstMortgage30yr&quot;</td><td>&quot;866140233526014703&quot;</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;5850558693346106391&quot;</td><td>&quot;16741978433881023045&quot;</td><td>6.3209e18</td><td>&quot;../../../../data/SampleHDS.jso…</td><td>&quot;FirstMortgage30yr&quot;</td><td>&quot;17089285705642195773&quot;</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;2315346365847169022&quot;</td><td>&quot;4702590790846564255&quot;</td><td>3.3727e18</td><td>&quot;../../../../data/SampleHDS.jso…</td><td>&quot;MoneyMarketSavingsAccount&quot;</td><td>&quot;866140233526014703&quot;</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;5850558693346106391&quot;</td><td>&quot;583273369182336875&quot;</td><td>1.0667e19</td><td>&quot;../../../../data/SampleHDS.jso…</td><td>&quot;BasicChecking&quot;</td><td>&quot;866140233526014703&quot;</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;670557626058934808&quot;</td><td>&quot;9039203270551688166&quot;</td><td>1.3752e19</td><td>&quot;../../../../data/SampleHDS.jso…</td><td>&quot;BasicChecking&quot;</td><td>&quot;8406541023126081662&quot;</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;2315346365847169022&quot;</td><td>&quot;921061475956714942&quot;</td><td>1.7741e19</td><td>&quot;../../../../data/SampleHDS.jso…</td><td>&quot;UPlusFinPersonal&quot;</td><td>null</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;2315346365847169022&quot;</td><td>&quot;6574963661835677873&quot;</td><td>2.1310e18</td><td>&quot;../../../../data/SampleHDS.jso…</td><td>&quot;BasicChecking&quot;</td><td>&quot;8406541023126081662&quot;</td><td>&quot;Rejected&quot;</td></tr></tbody></table></div></div>
 </div>
 <p>The configs can also be written and read as such:</p>
-<div class="nbinput docutils container">
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">anon</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">save_to_config_file</span><span class="p">(</span><span class="s1">&#39;config.json&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[9], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">anon</span><span style="color: rgb(98,98,98)">.</span>config<span style="color: rgb(98,98,98)">.</span>save_to_config_file(<span style="color: rgb(175,0,0)">&#39;</span><span style="color: rgb(175,0,0)">config.json</span><span style="color: rgb(175,0,0)">&#39;</span>)
-
-<span class="ansi-red-fg">NameError</span>: name &#39;anon&#39; is not defined
-</pre></div></div>
 </div>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
@@ -605,18 +543,18 @@ Cell <span class="ansi-green-fg">In[9], line 1</span>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[10], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> anon <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">DataAnonymization</span>(config<span style="color: rgb(98,98,98)">=</span>Config(config_file<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">&#39;</span><span style="color: rgb(175,0,0)">config.json</span><span style="color: rgb(175,0,0)">&#39;</span>))
-<span class="ansi-green-intense-fg ansi-bold">      2</span> anon<span style="color: rgb(98,98,98)">.</span>process()
-
-<span class="ansi-red-fg">NameError</span>: name &#39;DataAnonymization&#39; is not defined
-</pre></div></div>
+<div class="output_area rendered_html docutils container">
+<div><style>
+.dataframe > thead > tr,
+.dataframe > tbody > tr {
+  text-align: right;
+  white-space: pre-wrap;
+}
+</style>
+<small>shape: (7, 7)</small><table border="1" class="dataframe"><thead><tr><th>PREDICTOR_0</th><th>PREDICTOR_1</th><th>PREDICTOR_2</th><th>filename</th><th>Context_Name</th><th>IH_Web_Inbound_Accepted_pxLastGroupID</th><th>Decision_Outcome</th></tr><tr><td>str</td><td>str</td><td>f64</td><td>str</td><td>str</td><td>str</td><td>str</td></tr></thead><tbody><tr><td>&quot;5035724385132705446&quot;</td><td>&quot;14067819858754802416&quot;</td><td>6.3138e18</td><td>&quot;../../../../data/SampleHDS.jso…</td><td>&quot;FirstMortgage30yr&quot;</td><td>&quot;12216236272550620802&quot;</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;6897197347988935628&quot;</td><td>&quot;3104638465187387018&quot;</td><td>7.0165e18</td><td>&quot;../../../../data/SampleHDS.jso…</td><td>&quot;FirstMortgage30yr&quot;</td><td>&quot;9476720508035290013&quot;</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;13724484791412223870&quot;</td><td>&quot;9425241054616201105&quot;</td><td>1.1852e19</td><td>&quot;../../../../data/SampleHDS.jso…</td><td>&quot;MoneyMarketSavingsAccount&quot;</td><td>&quot;12216236272550620802&quot;</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;6897197347988935628&quot;</td><td>&quot;13767019686859962108&quot;</td><td>8.5816e18</td><td>&quot;../../../../data/SampleHDS.jso…</td><td>&quot;BasicChecking&quot;</td><td>&quot;12216236272550620802&quot;</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;5035724385132705446&quot;</td><td>&quot;17242243801687989858&quot;</td><td>1.6261e19</td><td>&quot;../../../../data/SampleHDS.jso…</td><td>&quot;BasicChecking&quot;</td><td>&quot;9499643244147099817&quot;</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;13724484791412223870&quot;</td><td>&quot;3081796772729088134&quot;</td><td>5.5363e18</td><td>&quot;../../../../data/SampleHDS.jso…</td><td>&quot;UPlusFinPersonal&quot;</td><td>null</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;13724484791412223870&quot;</td><td>&quot;4149622697983828247&quot;</td><td>1.0044e18</td><td>&quot;../../../../data/SampleHDS.jso…</td><td>&quot;BasicChecking&quot;</td><td>&quot;9499643244147099817&quot;</td><td>&quot;Rejected&quot;</td></tr></tbody></table></div></div>
 </div>
 </section>
 <section id="Exporting">
@@ -638,36 +576,23 @@ Cell <span class="ansi-green-fg">In[10], line 1</span>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[11], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">anon</span><span style="color: rgb(98,98,98)">.</span>create_mapping_file()
-<span class="ansi-green-intense-fg ansi-bold">      2</span> <span class="ansi-bold" style="color: rgb(0,135,0)">with</span> <span style="color: rgb(0,135,0)">open</span>(<span style="color: rgb(175,0,0)">&#39;</span><span style="color: rgb(175,0,0)">mapping.map</span><span style="color: rgb(175,0,0)">&#39;</span>) <span class="ansi-bold" style="color: rgb(0,135,0)">as</span> f:
-<span class="ansi-green-intense-fg ansi-bold">      3</span>     <span style="color: rgb(0,135,0)">print</span>(f<span style="color: rgb(98,98,98)">.</span>read())
+Customer_MaritalStatus=PREDICTOR_0
+Customer_City=PREDICTOR_1
+Customer_CLV=PREDICTOR_2
+filename=filename
+Context_Name=Context_Name
+IH_Web_Inbound_Accepted_pxLastGroupID=IH_Web_Inbound_Accepted_pxLastGroupID
+Decision_Outcome=Decision_Outcome
 
-<span class="ansi-red-fg">NameError</span>: name &#39;anon&#39; is not defined
 </pre></div></div>
 </div>
-<div class="nbinput docutils container">
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">anon</span><span class="o">.</span><span class="n">write_to_output</span><span class="p">(</span><span class="n">ext</span><span class="o">=</span><span class="s1">&#39;arrow&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[12], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">anon</span><span style="color: rgb(98,98,98)">.</span>write_to_output(ext<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">&#39;</span><span style="color: rgb(175,0,0)">arrow</span><span style="color: rgb(175,0,0)">&#39;</span>)
-
-<span class="ansi-red-fg">NameError</span>: name &#39;anon&#39; is not defined
-</pre></div></div>
 </div>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
@@ -678,17 +603,18 @@ Cell <span class="ansi-green-fg">In[12], line 1</span>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[13], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">pl</span><span style="color: rgb(98,98,98)">.</span>read_ipc(<span style="color: rgb(175,0,0)">&#39;</span><span style="color: rgb(175,0,0)">output/hds.arrow</span><span style="color: rgb(175,0,0)">&#39;</span>)
-
-<span class="ansi-red-fg">NameError</span>: name &#39;pl&#39; is not defined
-</pre></div></div>
+<div class="output_area rendered_html docutils container">
+<div><style>
+.dataframe > thead > tr,
+.dataframe > tbody > tr {
+  text-align: right;
+  white-space: pre-wrap;
+}
+</style>
+<small>shape: (7, 6)</small><table border="1" class="dataframe"><thead><tr><th>PREDICTOR_0</th><th>PREDICTOR_1</th><th>PREDICTOR_2</th><th>Context_Name</th><th>IH_Web_Inbound_Accepted_pxLastGroupID</th><th>Decision_Outcome</th></tr><tr><td>str</td><td>str</td><td>f64</td><td>str</td><td>str</td><td>str</td></tr></thead><tbody><tr><td>&quot;12594641850879923397&quot;</td><td>&quot;4950195631896481532&quot;</td><td>1.7733e18</td><td>&quot;FirstMortgage30yr&quot;</td><td>&quot;3398926481566838359&quot;</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;15279087386420065353&quot;</td><td>&quot;1004777359529882778&quot;</td><td>1.4916e18</td><td>&quot;FirstMortgage30yr&quot;</td><td>&quot;7524119428776917905&quot;</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;465129257510119162&quot;</td><td>&quot;11705309608503000751&quot;</td><td>1.7530e19</td><td>&quot;MoneyMarketSavingsAccount&quot;</td><td>&quot;3398926481566838359&quot;</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;15279087386420065353&quot;</td><td>&quot;12179228032171056613&quot;</td><td>4.7311e17</td><td>&quot;BasicChecking&quot;</td><td>&quot;3398926481566838359&quot;</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;12594641850879923397&quot;</td><td>&quot;12978907945199555118&quot;</td><td>5.4882e18</td><td>&quot;BasicChecking&quot;</td><td>&quot;17998643697575935178&quot;</td><td>&quot;Accepted&quot;</td></tr><tr><td>&quot;465129257510119162&quot;</td><td>&quot;14070306217976391586&quot;</td><td>1.7787e18</td><td>&quot;UPlusFinPersonal&quot;</td><td>null</td><td>&quot;Rejected&quot;</td></tr><tr><td>&quot;465129257510119162&quot;</td><td>&quot;1672023217033473558&quot;</td><td>1.8042e19</td><td>&quot;BasicChecking&quot;</td><td>&quot;17998643697575935178&quot;</td><td>&quot;Rejected&quot;</td></tr></tbody></table></div></div>
 </div>
 </section>
 </section>

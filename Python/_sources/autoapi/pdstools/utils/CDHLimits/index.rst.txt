@@ -22,18 +22,8 @@ Attributes
 
 .. autoapisummary::
 
-   pdstools.utils.CDHLimits.LimitStatus
-   pdstools.utils.CDHLimits.Metrics
    pdstools.utils.CDHLimits.limits
 
-
-.. py:data:: LimitStatus
-
-   
-
-.. py:data:: Metrics
-
-   
 
 .. py:class:: CDHLimits
 
@@ -41,6 +31,14 @@ Attributes
    Bases: :py:obj:`object`
 
    A singleton container for best practice limits for CDH.
+
+   .. py:attribute:: LimitStatus
+
+      
+
+   .. py:attribute:: Metrics
+
+      
 
    .. py:attribute:: _instance
 

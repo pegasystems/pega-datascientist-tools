@@ -36,13 +36,13 @@ Classes
 
       
 
-   .. py:method:: getPredictionsChannelMapping(custom_predictions=List[NBAD.NBAD_prediction]) -> polars.DataFrame
+   .. py:method:: getPredictionsChannelMapping(custom_predictions=List[NBAD.NBAD_Prediction]) -> polars.DataFrame
 
 
-   .. py:method:: summary_by_channel(custom_predictions: List[pdstools.utils.NBAD.NBAD_prediction] = None) -> polars.LazyFrame
+   .. py:method:: summary_by_channel(custom_predictions: List[pdstools.utils.NBAD.NBAD_Prediction] = None) -> polars.LazyFrame
 
 
-   .. py:method:: overall_summary(custom_predictions: List[pdstools.utils.NBAD.NBAD_prediction] = None) -> polars.LazyFrame
+   .. py:method:: overall_summary(custom_predictions: List[pdstools.utils.NBAD.NBAD_Prediction] = None) -> polars.LazyFrame
 
 
 

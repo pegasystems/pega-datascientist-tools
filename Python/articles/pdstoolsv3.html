@@ -374,56 +374,12 @@ changes, and most importantly: best practices.</p>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">AttributeError</span>                            Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[2], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span> <span class="ansi-bold" style="color: rgb(0,0,255)">pdstools</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> datasets, ADMDatamart
-<span class="ansi-green-intense-fg ansi-bold">      2</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> <span class="ansi-bold" style="color: rgb(0,0,255)">polars</span> <span class="ansi-bold" style="color: rgb(0,135,0)">as</span> <span class="ansi-bold" style="color: rgb(0,0,255)">pl</span>
-<span class="ansi-green-intense-fg ansi-bold">      3</span> dm <span style="color: rgb(98,98,98)">=</span> datasets<span style="color: rgb(98,98,98)">.</span>CDHSample(import_strategy<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">&#39;</span><span style="color: rgb(175,0,0)">lazy</span><span style="color: rgb(175,0,0)">&#39;</span>)
-
-File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/__init__.py:18</span>
-<span class="ansi-green-intense-fg ansi-bold">     16</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span> <span class="ansi-bold" style="color: rgb(0,0,255)">.</span><span class="ansi-bold" style="color: rgb(0,0,255)">pega_io</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> File, API, S3
-<span class="ansi-green-intense-fg ansi-bold">     17</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span> <span class="ansi-bold" style="color: rgb(0,0,255)">.</span><span class="ansi-bold" style="color: rgb(0,0,255)">pega_io</span><span class="ansi-bold" style="color: rgb(0,0,255)">.</span><span class="ansi-bold" style="color: rgb(0,0,255)">API</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> setupAzureOpenAI
-<span class="ansi-green-fg">---&gt; 18</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span> <span class="ansi-bold" style="color: rgb(0,0,255)">.</span><span class="ansi-bold" style="color: rgb(0,0,255)">prediction</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> Prediction
-<span class="ansi-green-intense-fg ansi-bold">     19</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span> <span class="ansi-bold" style="color: rgb(0,0,255)">.</span><span class="ansi-bold" style="color: rgb(0,0,255)">utils</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> cdh_utils, datasets, errors, hds_utils
-<span class="ansi-green-intense-fg ansi-bold">     20</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span> <span class="ansi-bold" style="color: rgb(0,0,255)">.</span><span class="ansi-bold" style="color: rgb(0,0,255)">utils</span><span class="ansi-bold" style="color: rgb(0,0,255)">.</span><span class="ansi-bold" style="color: rgb(0,0,255)">cdh_utils</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> defaultPredictorCategorization
-
-File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/prediction/__init__.py:1</span>
-<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span> <span class="ansi-bold" style="color: rgb(0,0,255)">.</span><span class="ansi-bold" style="color: rgb(0,0,255)">Prediction</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> Prediction
-
-File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/prediction/Prediction.py:7</span>
-<span class="ansi-green-intense-fg ansi-bold">      2</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> <span class="ansi-bold" style="color: rgb(0,0,255)">polars</span> <span class="ansi-bold" style="color: rgb(0,135,0)">as</span> <span class="ansi-bold" style="color: rgb(0,0,255)">pl</span>
-<span class="ansi-green-intense-fg ansi-bold">      4</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span> <span class="ansi-bold" style="color: rgb(0,0,255)">.</span><span class="ansi-bold" style="color: rgb(0,0,255)">.</span><span class="ansi-bold" style="color: rgb(0,0,255)">utils</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> cdh_utils, NBAD
-<span class="ansi-green-fg">----&gt; 7</span> <span class="ansi-yellow-bg ansi-bold" style="color: rgb(0,135,0)">class</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg ansi-bold" style="color: rgb(0,0,255)">Prediction</span><span class="ansi-yellow-bg">:</span>
-<span class="ansi-green-intense-fg ansi-bold">      8</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">predictions</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg ansi-bold" style="color: rgb(0,135,0)">None</span>
-<span class="ansi-green-intense-fg ansi-bold">     10</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg" style="color: rgb(95,135,135)"># These are pretty strict conditions - many configurations appear not to satisfy these</span>
-<span class="ansi-green-intense-fg ansi-bold">     11</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg" style="color: rgb(95,135,135)"># perhaps the Total = Test + Control is no longer met when Impact Analyzer is around</span>
-
-File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/prediction/Prediction.py:30</span>, in <span class="ansi-cyan-fg">Prediction</span><span class="ansi-blue-fg">()</span>
-<span class="ansi-green-intense-fg ansi-bold">     10</span> <span style="color: rgb(95,135,135)"># These are pretty strict conditions - many configurations appear not to satisfy these</span>
-<span class="ansi-green-intense-fg ansi-bold">     11</span> <span style="color: rgb(95,135,135)"># perhaps the Total = Test + Control is no longer met when Impact Analyzer is around</span>
-<span class="ansi-green-intense-fg ansi-bold">     12</span> validityExpr <span style="color: rgb(98,98,98)">=</span> (
-<span class="ansi-green-intense-fg ansi-bold">     13</span>     (pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Positives</span><span style="color: rgb(175,0,0)">&#34;</span>) <span style="color: rgb(98,98,98)">&gt;</span> <span style="color: rgb(98,98,98)">0</span>)
-<span class="ansi-green-intense-fg ansi-bold">     14</span>     <span style="color: rgb(98,98,98)">&amp;</span> (pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Positives_Test</span><span style="color: rgb(175,0,0)">&#34;</span>) <span style="color: rgb(98,98,98)">&gt;</span> <span style="color: rgb(98,98,98)">0</span>)
-<span class="ansi-green-fg">   (...)</span>
-<span class="ansi-green-intense-fg ansi-bold">     26</span>     <span style="color: rgb(95,135,135)"># )</span>
-<span class="ansi-green-intense-fg ansi-bold">     27</span> )
-<span class="ansi-green-intense-fg ansi-bold">     29</span> <span class="ansi-bold" style="color: rgb(0,135,0)">def</span> <span style="color: rgb(0,0,255)">getPredictionsChannelMapping</span>(
-<span class="ansi-green-fg">---&gt; 30</span>     <span style="color: rgb(0,135,0)">self</span>, custom_predictions<span style="color: rgb(98,98,98)">=</span>List[<span class="ansi-yellow-bg">NBAD</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">NBAD_prediction</span>]
-<span class="ansi-green-intense-fg ansi-bold">     31</span> ) <span style="color: rgb(98,98,98)">-</span><span style="color: rgb(98,98,98)">&gt;</span> pl<span style="color: rgb(98,98,98)">.</span>DataFrame:
-<span class="ansi-green-intense-fg ansi-bold">     32</span>     all_mappings <span style="color: rgb(98,98,98)">=</span> NBAD<span style="color: rgb(98,98,98)">.</span>standardNBADPredictions <span style="color: rgb(98,98,98)">+</span> custom_predictions
-<span class="ansi-green-intense-fg ansi-bold">     33</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> pl<span style="color: rgb(98,98,98)">.</span>DataFrame(
-<span class="ansi-green-intense-fg ansi-bold">     34</span>         {
-<span class="ansi-green-intense-fg ansi-bold">     35</span>             <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Prediction</span><span style="color: rgb(175,0,0)">&#34;</span>: [x<span style="color: rgb(98,98,98)">.</span>model_name<span style="color: rgb(98,98,98)">.</span>upper() <span class="ansi-bold" style="color: rgb(0,135,0)">for</span> x <span class="ansi-bold" style="color: rgb(175,0,255)">in</span> all_mappings],
-<span class="ansi-green-fg">   (...)</span>
-<span class="ansi-green-intense-fg ansi-bold">     40</span>         }
-<span class="ansi-green-intense-fg ansi-bold">     41</span>     )
-
-<span class="ansi-red-fg">AttributeError</span>: module &#39;pdstools.utils.NBAD&#39; has no attribute &#39;NBAD_prediction&#39;
+&lt;pdstools.adm.ADMDatamart.ADMDatamart at 0x7f5d29825150&gt;
 </pre></div></div>
 </div>
 <p>If you’ve used the previous version of pdstools, you’ve probably noticed nothing’s changed. You still get the same <code class="docutils literal notranslate"><span class="pre">ADMDatamart</span></code> object.</p>
@@ -437,17 +393,83 @@ File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascient
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[3], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">dm</span><span style="color: rgb(98,98,98)">.</span>modelData
-
-<span class="ansi-red-fg">NameError</span>: name &#39;dm&#39; is not defined
-</pre></div></div>
+<div class="output_area rendered_html docutils container">
+<h4>NAIVE QUERY PLAN</h4><p>run <b>LazyFrame.show_graph()</b> to see the optimized version</p><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.43.0 (0)
+ -->
+<!-- Title: polars_query Pages: 1 -->
+<svg width="883pt" height="349pt"
+ viewBox="0.00 0.00 883.00 349.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 345)">
+<title>polars_query</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-345 879,-345 879,4 -4,4"/>
+<!-- WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(0, 0)] -->
+<g id="node1" class="node">
+<title>WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(0, 0)]</title>
+<polygon fill="none" stroke="black" points="709.5,-341 165.5,-341 165.5,-305 709.5,-305 709.5,-341"/>
+<text text-anchor="middle" x="437.5" y="-319.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;]</text>
+</g>
+<!-- WITH COLUMNS [&quot;Group&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Direction&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Issue&quot;,&quot;Positives&quot;] [(0, 1)] -->
+<g id="node2" class="node">
+<title>WITH COLUMNS [&quot;Group&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Direction&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Issue&quot;,&quot;Positives&quot;] [(0, 1)]</title>
+<polygon fill="none" stroke="black" points="875,-269 0,-269 0,-233 875,-233 875,-269"/>
+<text text-anchor="middle" x="437.5" y="-247.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;Group&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Direction&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Issue&quot;,&quot;Positives&quot;]</text>
+</g>
+<!-- WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(0, 0)]&#45;&#45;WITH COLUMNS [&quot;Group&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Direction&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Issue&quot;,&quot;Positives&quot;] [(0, 1)] -->
+<g id="edge1" class="edge">
+<title>WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(0, 0)]&#45;&#45;WITH COLUMNS [&quot;Group&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Direction&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Issue&quot;,&quot;Positives&quot;] [(0, 1)]</title>
+<path fill="none" stroke="black" d="M437.5,-304.7C437.5,-293.85 437.5,-279.92 437.5,-269.1"/>
+</g>
+<!-- π 12/27 [(0, 2)] -->
+<g id="node3" class="node">
+<title>π 12/27 [(0, 2)]</title>
+<polygon fill="none" stroke="black" points="473,-197 402,-197 402,-161 473,-161 473,-197"/>
+<text text-anchor="middle" x="437.5" y="-175.3" font-family="Times,serif" font-size="14.00">π 12/27</text>
+</g>
+<!-- WITH COLUMNS [&quot;Group&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Direction&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Issue&quot;,&quot;Positives&quot;] [(0, 1)]&#45;&#45;π 12/27 [(0, 2)] -->
+<g id="edge2" class="edge">
+<title>WITH COLUMNS [&quot;Group&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Direction&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Issue&quot;,&quot;Positives&quot;] [(0, 1)]&#45;&#45;π 12/27 [(0, 2)]</title>
+<path fill="none" stroke="black" d="M437.5,-232.7C437.5,-221.85 437.5,-207.92 437.5,-197.1"/>
+</g>
+<!-- RENAME [(0, 3)] -->
+<g id="node4" class="node">
+<title>RENAME [(0, 3)]</title>
+<polygon fill="none" stroke="black" points="479.5,-125 395.5,-125 395.5,-89 479.5,-89 479.5,-125"/>
+<text text-anchor="middle" x="437.5" y="-103.3" font-family="Times,serif" font-size="14.00">RENAME</text>
+</g>
+<!-- π 12/27 [(0, 2)]&#45;&#45;RENAME [(0, 3)] -->
+<g id="edge3" class="edge">
+<title>π 12/27 [(0, 2)]&#45;&#45;RENAME [(0, 3)]</title>
+<path fill="none" stroke="black" d="M437.5,-160.7C437.5,-149.85 437.5,-135.92 437.5,-125.1"/>
+</g>
+<!-- TABLE
+π */27;
+σ &#45; [(0, 4)] -->
+<g id="node5" class="node">
+<title>TABLE
+π */27;
+σ &#45; [(0, 4)]</title>
+<polygon fill="none" stroke="black" points="470,-53 405,-53 405,0 470,0 470,-53"/>
+<text text-anchor="middle" x="437.5" y="-37.8" font-family="Times,serif" font-size="14.00">TABLE</text>
+<text text-anchor="middle" x="437.5" y="-22.8" font-family="Times,serif" font-size="14.00">π */27;</text>
+<text text-anchor="middle" x="437.5" y="-7.8" font-family="Times,serif" font-size="14.00">σ &#45;</text>
+</g>
+<!-- RENAME [(0, 3)]&#45;&#45;TABLE
+π */27;
+σ &#45; [(0, 4)] -->
+<g id="edge4" class="edge">
+<title>RENAME [(0, 3)]&#45;&#45;TABLE
+π */27;
+σ &#45; [(0, 4)]</title>
+<path fill="none" stroke="black" d="M437.5,-88.97C437.5,-78.51 437.5,-64.9 437.5,-53.16"/>
+</g>
+</g>
+</svg></div>
 </div>
 <p>Not a dataframe - but a <code class="docutils literal notranslate"><span class="pre">NAIVE</span> <span class="pre">QUERY</span> <span class="pre">PLAN</span></code>. It’s relatively intuitive, but you’d read this chart bottom-to-top:</p>
 <ul class="simple">
@@ -472,14 +494,7 @@ Cell <span class="ansi-green-fg">In[3], line 1</span>
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[4], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">dm</span><span style="color: rgb(98,98,98)">.</span>modelData<span style="color: rgb(98,98,98)">.</span>show_graph()
-
-<span class="ansi-red-fg">NameError</span>: name &#39;dm&#39; is not defined
-</pre></div></div>
+<img alt="../_images/articles_pdstoolsv3_6_0.svg" src="../_images/articles_pdstoolsv3_6_0.svg" /></div>
 </div>
 <p>At first glance; not a huge change. However, note at the bottom we import <span class="math notranslate nohighlight">\(\pi\)</span> <code class="docutils literal notranslate"><span class="pre">12/27;</span></code>: we filter right when reading the file, and only read in 12 columns! This can make a big difference, especially because one column (<code class="docutils literal notranslate"><span class="pre">&quot;pyModelData&quot;</span></code>) is very big.</p>
 <p>Thus far, the <span class="math notranslate nohighlight">\(\sigma\)</span> symbol has been <code class="docutils literal notranslate"><span class="pre">-</span></code>. We can also change that: the <span class="math notranslate nohighlight">\(\sigma\)</span> symbol shows you which filters it applies on the rows when it’s reading. For our example purpose, Let’s say we’re only interested in actions containing <code class="docutils literal notranslate"><span class="pre">Visa</span></code>. We can add that filter right to our execution plan!</p>
@@ -499,17 +514,7 @@ Cell <span class="ansi-green-fg">In[4], line 1</span>
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[5], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> dm <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">datasets</span><span style="color: rgb(98,98,98)">.</span>CDHSample(
-<span class="ansi-green-intense-fg ansi-bold">      2</span>     import_strategy<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">lazy</span><span style="color: rgb(175,0,0)">&#34;</span>, query<span style="color: rgb(98,98,98)">=</span>pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Name</span><span style="color: rgb(175,0,0)">&#34;</span>)<span style="color: rgb(98,98,98)">.</span>str<span style="color: rgb(98,98,98)">.</span>contains(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Visa</span><span style="color: rgb(175,0,0)">&#34;</span>)
-<span class="ansi-green-intense-fg ansi-bold">      3</span> )
-<span class="ansi-green-intense-fg ansi-bold">      4</span> dm<span style="color: rgb(98,98,98)">.</span>modelData<span style="color: rgb(98,98,98)">.</span>show_graph()
-
-<span class="ansi-red-fg">NameError</span>: name &#39;datasets&#39; is not defined
-</pre></div></div>
+<img alt="../_images/articles_pdstoolsv3_8_0.svg" src="../_images/articles_pdstoolsv3_8_0.svg" /></div>
 </div>
 <p>“Okay, but how do we actually get to the data?” - Simple! Just use <code class="docutils literal notranslate"><span class="pre">.collect()</span></code>.</p>
 <div class="nbinput docutils container">
@@ -521,17 +526,18 @@ Cell <span class="ansi-green-fg">In[5], line 1</span>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[6], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">dm</span><span style="color: rgb(98,98,98)">.</span>modelData<span style="color: rgb(98,98,98)">.</span>collect()
-
-<span class="ansi-red-fg">NameError</span>: name &#39;dm&#39; is not defined
-</pre></div></div>
+<div class="output_area rendered_html docutils container">
+<div><style>
+.dataframe > thead > tr,
+.dataframe > tbody > tr {
+  text-align: right;
+  white-space: pre-wrap;
+}
+</style>
+<small>shape: (22, 15)</small><table border="1" class="dataframe"><thead><tr><th>Group</th><th>Performance</th><th>Treatment</th><th>Channel</th><th>ResponseCount</th><th>Direction</th><th>Name</th><th>ModelID</th><th>SnapshotTime</th><th>Configuration</th><th>Issue</th><th>Positives</th><th>SuccessRate</th><th>Last_Positives</th><th>Last_ResponseCount</th></tr><tr><td>cat</td><td>f64</td><td>null</td><td>cat</td><td>f32</td><td>cat</td><td>str</td><td>str</td><td>datetime[ns]</td><td>cat</td><td>cat</td><td>f32</td><td>f32</td><td>datetime[ns]</td><td>datetime[ns]</td></tr></thead><tbody><tr><td>&quot;CreditCards&quot;</td><td>0.5</td><td>null</td><td>&quot;Web&quot;</td><td>72.0</td><td>&quot;Inbound&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;17571d69-f802-5122-9bfe-6f3f4e…</td><td>2021-06-01 08:23:26.789</td><td>&quot;OmniAdaptiveModel&quot;</td><td>&quot;Sales&quot;</td><td>1.0</td><td>0.013889</td><td>2021-06-01 13:23:26.789</td><td>2021-06-01 13:23:26.789</td></tr><tr><td>&quot;CreditCards&quot;</td><td>0.5</td><td>null</td><td>&quot;SMS&quot;</td><td>166.0</td><td>&quot;Outbound&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;1be7cd72-741b-5d68-b148-c1af01…</td><td>2021-06-01 08:23:26.789</td><td>&quot;OmniAdaptiveModel&quot;</td><td>&quot;Sales&quot;</td><td>4.0</td><td>0.024096</td><td>2021-06-01 13:23:26.789</td><td>2021-06-01 13:23:26.789</td></tr><tr><td>&quot;CreditCards&quot;</td><td>0.5</td><td>null</td><td>&quot;Web&quot;</td><td>161.0</td><td>&quot;Inbound&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;17571d69-f802-5122-9bfe-6f3f4e…</td><td>2021-06-01 08:27:55.789</td><td>&quot;OmniAdaptiveModel&quot;</td><td>&quot;Sales&quot;</td><td>3.0</td><td>0.018634</td><td>2021-06-01 13:23:26.789</td><td>2021-06-01 13:23:26.789</td></tr><tr><td>&quot;CreditCards&quot;</td><td>0.5</td><td>null</td><td>&quot;Web&quot;</td><td>161.0</td><td>&quot;Inbound&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;17571d69-f802-5122-9bfe-6f3f4e…</td><td>2021-06-01 09:03:01.789</td><td>&quot;OmniAdaptiveModel&quot;</td><td>&quot;Sales&quot;</td><td>3.0</td><td>0.018634</td><td>2021-06-01 13:23:26.789</td><td>2021-06-01 13:23:26.789</td></tr><tr><td>&quot;CreditCards&quot;</td><td>0.5</td><td>null</td><td>&quot;SMS&quot;</td><td>166.0</td><td>&quot;Outbound&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;1be7cd72-741b-5d68-b148-c1af01…</td><td>2021-06-01 09:03:01.789</td><td>&quot;OmniAdaptiveModel&quot;</td><td>&quot;Sales&quot;</td><td>4.0</td><td>0.024096</td><td>2021-06-01 13:23:26.789</td><td>2021-06-01 13:23:26.789</td></tr><tr><td>&hellip;</td><td>&hellip;</td><td>&hellip;</td><td>&hellip;</td><td>&hellip;</td><td>&hellip;</td><td>&hellip;</td><td>&hellip;</td><td>&hellip;</td><td>&hellip;</td><td>&hellip;</td><td>&hellip;</td><td>&hellip;</td><td>&hellip;</td><td>&hellip;</td></tr><tr><td>&quot;CreditCards&quot;</td><td>0.524312</td><td>null</td><td>&quot;SMS&quot;</td><td>674.0</td><td>&quot;Outbound&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;1be7cd72-741b-5d68-b148-c1af01…</td><td>2021-06-01 12:42:04.789</td><td>&quot;OmniAdaptiveModel&quot;</td><td>&quot;Sales&quot;</td><td>21.0</td><td>0.031157</td><td>2021-06-01 13:23:26.789</td><td>2021-06-01 13:23:26.789</td></tr><tr><td>&quot;CreditCards&quot;</td><td>0.535621</td><td>null</td><td>&quot;SMS&quot;</td><td>746.0</td><td>&quot;Outbound&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;1be7cd72-741b-5d68-b148-c1af01…</td><td>2021-06-01 12:45:20.789</td><td>&quot;OmniAdaptiveModel&quot;</td><td>&quot;Sales&quot;</td><td>24.0</td><td>0.032172</td><td>2021-06-01 13:23:26.789</td><td>2021-06-01 13:23:26.789</td></tr><tr><td>&quot;CreditCards&quot;</td><td>0.538104</td><td>null</td><td>&quot;Web&quot;</td><td>706.0</td><td>&quot;Inbound&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;17571d69-f802-5122-9bfe-6f3f4e…</td><td>2021-06-01 13:18:21.789</td><td>&quot;OmniAdaptiveModel&quot;</td><td>&quot;Sales&quot;</td><td>43.0</td><td>0.060907</td><td>2021-06-01 13:23:26.789</td><td>2021-06-01 13:23:26.789</td></tr><tr><td>&quot;CreditCards&quot;</td><td>0.531863</td><td>null</td><td>&quot;SMS&quot;</td><td>822.0</td><td>&quot;Outbound&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;1be7cd72-741b-5d68-b148-c1af01…</td><td>2021-06-01 13:23:26.789</td><td>&quot;OmniAdaptiveModel&quot;</td><td>&quot;Sales&quot;</td><td>27.0</td><td>0.032847</td><td>2021-06-01 13:23:26.789</td><td>2021-06-01 13:23:26.789</td></tr><tr><td>&quot;CreditCards&quot;</td><td>0.519586</td><td>null</td><td>&quot;Web&quot;</td><td>778.0</td><td>&quot;Inbound&quot;</td><td>&quot;VisaGold&quot;</td><td>&quot;17571d69-f802-5122-9bfe-6f3f4e…</td><td>2021-06-01 13:23:26.789</td><td>&quot;OmniAdaptiveModel&quot;</td><td>&quot;Sales&quot;</td><td>46.0</td><td>0.059126</td><td>2021-06-01 13:23:26.789</td><td>2021-06-01 13:23:26.789</td></tr></tbody></table></div></div>
 </div>
 <p>This table is very similar to Pandas tables, though there are some slight differences. The types are explicitly mentioned in the header, string values are in quotes, and long string values get cut off more agressively. Other than that, there’s no real change! And if you still want to use pandas, just call <code class="docutils literal notranslate"><span class="pre">.to_pandas()</span></code> :)</p>
 <div class="nbinput docutils container">
@@ -543,17 +549,445 @@ Cell <span class="ansi-green-fg">In[6], line 1</span>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[7], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">dm</span><span style="color: rgb(98,98,98)">.</span>modelData<span style="color: rgb(98,98,98)">.</span>collect()<span style="color: rgb(98,98,98)">.</span>to_pandas()
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
 
-<span class="ansi-red-fg">NameError</span>: name &#39;dm&#39; is not defined
-</pre></div></div>
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Group</th>
+      <th>Performance</th>
+      <th>Treatment</th>
+      <th>Channel</th>
+      <th>ResponseCount</th>
+      <th>Direction</th>
+      <th>Name</th>
+      <th>ModelID</th>
+      <th>SnapshotTime</th>
+      <th>Configuration</th>
+      <th>Issue</th>
+      <th>Positives</th>
+      <th>SuccessRate</th>
+      <th>Last_Positives</th>
+      <th>Last_ResponseCount</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>CreditCards</td>
+      <td>0.500000</td>
+      <td>None</td>
+      <td>Web</td>
+      <td>72.0</td>
+      <td>Inbound</td>
+      <td>VisaGold</td>
+      <td>17571d69-f802-5122-9bfe-6f3f4ef9073b</td>
+      <td>2021-06-01 08:23:26.789</td>
+      <td>OmniAdaptiveModel</td>
+      <td>Sales</td>
+      <td>1.0</td>
+      <td>0.013889</td>
+      <td>2021-06-01 13:23:26.789</td>
+      <td>2021-06-01 13:23:26.789</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>CreditCards</td>
+      <td>0.500000</td>
+      <td>None</td>
+      <td>SMS</td>
+      <td>166.0</td>
+      <td>Outbound</td>
+      <td>VisaGold</td>
+      <td>1be7cd72-741b-5d68-b148-c1af0142fd4a</td>
+      <td>2021-06-01 08:23:26.789</td>
+      <td>OmniAdaptiveModel</td>
+      <td>Sales</td>
+      <td>4.0</td>
+      <td>0.024096</td>
+      <td>2021-06-01 13:23:26.789</td>
+      <td>2021-06-01 13:23:26.789</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>CreditCards</td>
+      <td>0.500000</td>
+      <td>None</td>
+      <td>Web</td>
+      <td>161.0</td>
+      <td>Inbound</td>
+      <td>VisaGold</td>
+      <td>17571d69-f802-5122-9bfe-6f3f4ef9073b</td>
+      <td>2021-06-01 08:27:55.789</td>
+      <td>OmniAdaptiveModel</td>
+      <td>Sales</td>
+      <td>3.0</td>
+      <td>0.018634</td>
+      <td>2021-06-01 13:23:26.789</td>
+      <td>2021-06-01 13:23:26.789</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>CreditCards</td>
+      <td>0.500000</td>
+      <td>None</td>
+      <td>Web</td>
+      <td>161.0</td>
+      <td>Inbound</td>
+      <td>VisaGold</td>
+      <td>17571d69-f802-5122-9bfe-6f3f4ef9073b</td>
+      <td>2021-06-01 09:03:01.789</td>
+      <td>OmniAdaptiveModel</td>
+      <td>Sales</td>
+      <td>3.0</td>
+      <td>0.018634</td>
+      <td>2021-06-01 13:23:26.789</td>
+      <td>2021-06-01 13:23:26.789</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>CreditCards</td>
+      <td>0.500000</td>
+      <td>None</td>
+      <td>SMS</td>
+      <td>166.0</td>
+      <td>Outbound</td>
+      <td>VisaGold</td>
+      <td>1be7cd72-741b-5d68-b148-c1af0142fd4a</td>
+      <td>2021-06-01 09:03:01.789</td>
+      <td>OmniAdaptiveModel</td>
+      <td>Sales</td>
+      <td>4.0</td>
+      <td>0.024096</td>
+      <td>2021-06-01 13:23:26.789</td>
+      <td>2021-06-01 13:23:26.789</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>CreditCards</td>
+      <td>0.500000</td>
+      <td>None</td>
+      <td>SMS</td>
+      <td>271.0</td>
+      <td>Outbound</td>
+      <td>VisaGold</td>
+      <td>1be7cd72-741b-5d68-b148-c1af0142fd4a</td>
+      <td>2021-06-01 09:06:33.789</td>
+      <td>OmniAdaptiveModel</td>
+      <td>Sales</td>
+      <td>7.0</td>
+      <td>0.025830</td>
+      <td>2021-06-01 13:23:26.789</td>
+      <td>2021-06-01 13:23:26.789</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>CreditCards</td>
+      <td>0.554538</td>
+      <td>None</td>
+      <td>Web</td>
+      <td>233.0</td>
+      <td>Inbound</td>
+      <td>VisaGold</td>
+      <td>17571d69-f802-5122-9bfe-6f3f4ef9073b</td>
+      <td>2021-06-01 09:06:33.789</td>
+      <td>OmniAdaptiveModel</td>
+      <td>Sales</td>
+      <td>12.0</td>
+      <td>0.051502</td>
+      <td>2021-06-01 13:23:26.789</td>
+      <td>2021-06-01 13:23:26.789</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>CreditCards</td>
+      <td>0.554538</td>
+      <td>None</td>
+      <td>Web</td>
+      <td>233.0</td>
+      <td>Inbound</td>
+      <td>VisaGold</td>
+      <td>17571d69-f802-5122-9bfe-6f3f4ef9073b</td>
+      <td>2021-06-01 09:34:34.789</td>
+      <td>OmniAdaptiveModel</td>
+      <td>Sales</td>
+      <td>12.0</td>
+      <td>0.051502</td>
+      <td>2021-06-01 13:23:26.789</td>
+      <td>2021-06-01 13:23:26.789</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>CreditCards</td>
+      <td>0.500000</td>
+      <td>None</td>
+      <td>SMS</td>
+      <td>353.0</td>
+      <td>Outbound</td>
+      <td>VisaGold</td>
+      <td>1be7cd72-741b-5d68-b148-c1af0142fd4a</td>
+      <td>2021-06-01 09:43:16.789</td>
+      <td>OmniAdaptiveModel</td>
+      <td>Sales</td>
+      <td>8.0</td>
+      <td>0.022663</td>
+      <td>2021-06-01 13:23:26.789</td>
+      <td>2021-06-01 13:23:26.789</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>CreditCards</td>
+      <td>0.541487</td>
+      <td>None</td>
+      <td>Web</td>
+      <td>320.0</td>
+      <td>Inbound</td>
+      <td>VisaGold</td>
+      <td>17571d69-f802-5122-9bfe-6f3f4ef9073b</td>
+      <td>2021-06-01 09:43:16.789</td>
+      <td>OmniAdaptiveModel</td>
+      <td>Sales</td>
+      <td>19.0</td>
+      <td>0.059375</td>
+      <td>2021-06-01 13:23:26.789</td>
+      <td>2021-06-01 13:23:26.789</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>CreditCards</td>
+      <td>0.500000</td>
+      <td>None</td>
+      <td>SMS</td>
+      <td>437.0</td>
+      <td>Outbound</td>
+      <td>VisaGold</td>
+      <td>1be7cd72-741b-5d68-b148-c1af0142fd4a</td>
+      <td>2021-06-01 10:07:35.789</td>
+      <td>OmniAdaptiveModel</td>
+      <td>Sales</td>
+      <td>10.0</td>
+      <td>0.022883</td>
+      <td>2021-06-01 13:23:26.789</td>
+      <td>2021-06-01 13:23:26.789</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>CreditCards</td>
+      <td>0.557512</td>
+      <td>None</td>
+      <td>Web</td>
+      <td>391.0</td>
+      <td>Inbound</td>
+      <td>VisaGold</td>
+      <td>17571d69-f802-5122-9bfe-6f3f4ef9073b</td>
+      <td>2021-06-01 10:07:35.789</td>
+      <td>OmniAdaptiveModel</td>
+      <td>Sales</td>
+      <td>24.0</td>
+      <td>0.061381</td>
+      <td>2021-06-01 13:23:26.789</td>
+      <td>2021-06-01 13:23:26.789</td>
+    </tr>
+    <tr>
+      <th>12</th>
+      <td>CreditCards</td>
+      <td>0.531173</td>
+      <td>None</td>
+      <td>Web</td>
+      <td>470.0</td>
+      <td>Inbound</td>
+      <td>VisaGold</td>
+      <td>17571d69-f802-5122-9bfe-6f3f4ef9073b</td>
+      <td>2021-06-01 10:58:26.789</td>
+      <td>OmniAdaptiveModel</td>
+      <td>Sales</td>
+      <td>28.0</td>
+      <td>0.059574</td>
+      <td>2021-06-01 13:23:26.789</td>
+      <td>2021-06-01 13:23:26.789</td>
+    </tr>
+    <tr>
+      <th>13</th>
+      <td>CreditCards</td>
+      <td>0.551713</td>
+      <td>None</td>
+      <td>SMS</td>
+      <td>507.0</td>
+      <td>Outbound</td>
+      <td>VisaGold</td>
+      <td>1be7cd72-741b-5d68-b148-c1af0142fd4a</td>
+      <td>2021-06-01 10:58:26.789</td>
+      <td>OmniAdaptiveModel</td>
+      <td>Sales</td>
+      <td>17.0</td>
+      <td>0.033531</td>
+      <td>2021-06-01 13:23:26.789</td>
+      <td>2021-06-01 13:23:26.789</td>
+    </tr>
+    <tr>
+      <th>14</th>
+      <td>CreditCards</td>
+      <td>0.551713</td>
+      <td>None</td>
+      <td>SMS</td>
+      <td>507.0</td>
+      <td>Outbound</td>
+      <td>VisaGold</td>
+      <td>1be7cd72-741b-5d68-b148-c1af0142fd4a</td>
+      <td>2021-06-01 11:29:54.789</td>
+      <td>OmniAdaptiveModel</td>
+      <td>Sales</td>
+      <td>17.0</td>
+      <td>0.033531</td>
+      <td>2021-06-01 13:23:26.789</td>
+      <td>2021-06-01 13:23:26.789</td>
+    </tr>
+    <tr>
+      <th>15</th>
+      <td>CreditCards</td>
+      <td>0.524312</td>
+      <td>None</td>
+      <td>SMS</td>
+      <td>674.0</td>
+      <td>Outbound</td>
+      <td>VisaGold</td>
+      <td>1be7cd72-741b-5d68-b148-c1af0142fd4a</td>
+      <td>2021-06-01 12:15:05.789</td>
+      <td>OmniAdaptiveModel</td>
+      <td>Sales</td>
+      <td>21.0</td>
+      <td>0.031157</td>
+      <td>2021-06-01 13:23:26.789</td>
+      <td>2021-06-01 13:23:26.789</td>
+    </tr>
+    <tr>
+      <th>16</th>
+      <td>CreditCards</td>
+      <td>0.549843</td>
+      <td>None</td>
+      <td>Web</td>
+      <td>633.0</td>
+      <td>Inbound</td>
+      <td>VisaGold</td>
+      <td>17571d69-f802-5122-9bfe-6f3f4ef9073b</td>
+      <td>2021-06-01 12:15:05.789</td>
+      <td>OmniAdaptiveModel</td>
+      <td>Sales</td>
+      <td>39.0</td>
+      <td>0.061611</td>
+      <td>2021-06-01 13:23:26.789</td>
+      <td>2021-06-01 13:23:26.789</td>
+    </tr>
+    <tr>
+      <th>17</th>
+      <td>CreditCards</td>
+      <td>0.524312</td>
+      <td>None</td>
+      <td>SMS</td>
+      <td>674.0</td>
+      <td>Outbound</td>
+      <td>VisaGold</td>
+      <td>1be7cd72-741b-5d68-b148-c1af0142fd4a</td>
+      <td>2021-06-01 12:42:04.789</td>
+      <td>OmniAdaptiveModel</td>
+      <td>Sales</td>
+      <td>21.0</td>
+      <td>0.031157</td>
+      <td>2021-06-01 13:23:26.789</td>
+      <td>2021-06-01 13:23:26.789</td>
+    </tr>
+    <tr>
+      <th>18</th>
+      <td>CreditCards</td>
+      <td>0.535621</td>
+      <td>None</td>
+      <td>SMS</td>
+      <td>746.0</td>
+      <td>Outbound</td>
+      <td>VisaGold</td>
+      <td>1be7cd72-741b-5d68-b148-c1af0142fd4a</td>
+      <td>2021-06-01 12:45:20.789</td>
+      <td>OmniAdaptiveModel</td>
+      <td>Sales</td>
+      <td>24.0</td>
+      <td>0.032172</td>
+      <td>2021-06-01 13:23:26.789</td>
+      <td>2021-06-01 13:23:26.789</td>
+    </tr>
+    <tr>
+      <th>19</th>
+      <td>CreditCards</td>
+      <td>0.538104</td>
+      <td>None</td>
+      <td>Web</td>
+      <td>706.0</td>
+      <td>Inbound</td>
+      <td>VisaGold</td>
+      <td>17571d69-f802-5122-9bfe-6f3f4ef9073b</td>
+      <td>2021-06-01 13:18:21.789</td>
+      <td>OmniAdaptiveModel</td>
+      <td>Sales</td>
+      <td>43.0</td>
+      <td>0.060907</td>
+      <td>2021-06-01 13:23:26.789</td>
+      <td>2021-06-01 13:23:26.789</td>
+    </tr>
+    <tr>
+      <th>20</th>
+      <td>CreditCards</td>
+      <td>0.531863</td>
+      <td>None</td>
+      <td>SMS</td>
+      <td>822.0</td>
+      <td>Outbound</td>
+      <td>VisaGold</td>
+      <td>1be7cd72-741b-5d68-b148-c1af0142fd4a</td>
+      <td>2021-06-01 13:23:26.789</td>
+      <td>OmniAdaptiveModel</td>
+      <td>Sales</td>
+      <td>27.0</td>
+      <td>0.032847</td>
+      <td>2021-06-01 13:23:26.789</td>
+      <td>2021-06-01 13:23:26.789</td>
+    </tr>
+    <tr>
+      <th>21</th>
+      <td>CreditCards</td>
+      <td>0.519586</td>
+      <td>None</td>
+      <td>Web</td>
+      <td>778.0</td>
+      <td>Inbound</td>
+      <td>VisaGold</td>
+      <td>17571d69-f802-5122-9bfe-6f3f4ef9073b</td>
+      <td>2021-06-01 13:23:26.789</td>
+      <td>OmniAdaptiveModel</td>
+      <td>Sales</td>
+      <td>46.0</td>
+      <td>0.059126</td>
+      <td>2021-06-01 13:23:26.789</td>
+      <td>2021-06-01 13:23:26.789</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
 </div>
 <p>Now, we don’t just have modelData, there’s also information about predictors. This is under the <code class="docutils literal notranslate"><span class="pre">predictorData</span></code> attribute, and it works the same way. Thirdly, we add a attribute called <code class="docutils literal notranslate"><span class="pre">combinedData</span></code>. <code class="docutils literal notranslate"><span class="pre">combinedData</span></code> is technically just an inner join between the model data and the predictor data on the model ID. Therefore, the model ID’s we filter out of the models also propagate to the combined data. To give more insight into this join, we can now simply show the execution graph of it:</p>
 <div class="nbinput docutils container">
@@ -565,17 +999,355 @@ Cell <span class="ansi-green-fg">In[7], line 1</span>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[8], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">dm</span><span style="color: rgb(98,98,98)">.</span>combinedData
-
-<span class="ansi-red-fg">NameError</span>: name &#39;dm&#39; is not defined
-</pre></div></div>
+<div class="output_area rendered_html docutils container">
+<h4>NAIVE QUERY PLAN</h4><p>run <b>LazyFrame.show_graph()</b> to see the optimized version</p><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.43.0 (0)
+ -->
+<!-- Title: polars_query Pages: 1 -->
+<svg width="3015pt" height="832pt"
+ viewBox="0.00 0.00 3015.00 832.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 828)">
+<title>polars_query</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-828 3011,-828 3011,4 -4,4"/>
+<!-- JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left: [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(0, 0)] -->
+<g id="node1" class="node">
+<title>JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left: [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(0, 0)]</title>
+<polygon fill="none" stroke="black" points="1427.5,-824 1161.5,-824 1161.5,-771 1427.5,-771 1427.5,-824"/>
+<text text-anchor="middle" x="1294.5" y="-808.8" font-family="Times,serif" font-size="14.00">JOIN INNER</text>
+<text text-anchor="middle" x="1294.5" y="-793.8" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left: [col(&quot;ModelID&quot;)];</text>
+<text text-anchor="middle" x="1294.5" y="-778.8" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)]</text>
+</g>
+<!-- FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(100, 1)] -->
+<g id="node2" class="node">
+<title>FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(100, 1)]</title>
+<polygon fill="none" stroke="black" points="1286,-735 1001,-735 1001,-699 1286,-699 1286,-735"/>
+<text text-anchor="middle" x="1143.5" y="-713.3" font-family="Times,serif" font-size="14.00">FILTER BY (col(&quot;SnapshotTime&quot;).fill...</text>
+</g>
+<!-- JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left: [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(0, 0)]&#45;&#45;FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(100, 1)] -->
+<g id="edge1" class="edge">
+<title>JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left: [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(0, 0)]&#45;&#45;FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(100, 1)]</title>
+<path fill="none" stroke="black" d="M1245.06,-770.8C1222.52,-759.08 1196.46,-745.53 1176.38,-735.09"/>
+</g>
+<!-- FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(200, 1)] -->
+<g id="node10" class="node">
+<title>FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(200, 1)]</title>
+<polygon fill="none" stroke="black" points="1623,-735 1338,-735 1338,-699 1623,-699 1623,-735"/>
+<text text-anchor="middle" x="1480.5" y="-713.3" font-family="Times,serif" font-size="14.00">FILTER BY (col(&quot;SnapshotTime&quot;).fill...</text>
+</g>
+<!-- JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left: [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(0, 0)]&#45;&#45;FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(200, 1)] -->
+<g id="edge9" class="edge">
+<title>JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left: [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(0, 0)]&#45;&#45;FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(200, 1)]</title>
+<path fill="none" stroke="black" d="M1355.15,-770.9C1383.03,-759.14 1415.34,-745.5 1440.18,-735.02"/>
+</g>
+<!-- FILTER BY col(&quot;Name&quot;).str.contains(... [(100, 2)] -->
+<g id="node3" class="node">
+<title>FILTER BY col(&quot;Name&quot;).str.contains(... [(100, 2)]</title>
+<polygon fill="none" stroke="black" points="1220.5,-654.5 930.5,-654.5 930.5,-618.5 1220.5,-618.5 1220.5,-654.5"/>
+<text text-anchor="middle" x="1075.5" y="-632.8" font-family="Times,serif" font-size="14.00">FILTER BY col(&quot;Name&quot;).str.contains(...</text>
+</g>
+<!-- FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(100, 1)]&#45;&#45;FILTER BY col(&quot;Name&quot;).str.contains(... [(100, 2)] -->
+<g id="edge2" class="edge">
+<title>FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(100, 1)]&#45;&#45;FILTER BY col(&quot;Name&quot;).str.contains(... [(100, 2)]</title>
+<path fill="none" stroke="black" d="M1128.75,-698.97C1117.34,-685.8 1101.62,-667.66 1090.23,-654.5"/>
+</g>
+<!-- WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(100, 3)] -->
+<g id="node4" class="node">
+<title>WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(100, 3)]</title>
+<polygon fill="none" stroke="black" points="1241.5,-574 697.5,-574 697.5,-538 1241.5,-538 1241.5,-574"/>
+<text text-anchor="middle" x="969.5" y="-552.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;]</text>
+</g>
+<!-- FILTER BY col(&quot;Name&quot;).str.contains(... [(100, 2)]&#45;&#45;WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(100, 3)] -->
+<g id="edge3" class="edge">
+<title>FILTER BY col(&quot;Name&quot;).str.contains(... [(100, 2)]&#45;&#45;WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(100, 3)]</title>
+<path fill="none" stroke="black" d="M1052.5,-618.47C1034.72,-605.3 1010.22,-587.16 992.46,-574"/>
+</g>
+<!-- FILTER BY col(&quot;Name&quot;).str.contains(... [(100, 4)] -->
+<g id="node5" class="node">
+<title>FILTER BY col(&quot;Name&quot;).str.contains(... [(100, 4)]</title>
+<polygon fill="none" stroke="black" points="760.5,-502 470.5,-502 470.5,-466 760.5,-466 760.5,-502"/>
+<text text-anchor="middle" x="615.5" y="-480.3" font-family="Times,serif" font-size="14.00">FILTER BY col(&quot;Name&quot;).str.contains(...</text>
+</g>
+<!-- WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(100, 3)]&#45;&#45;FILTER BY col(&quot;Name&quot;).str.contains(... [(100, 4)] -->
+<g id="edge4" class="edge">
+<title>WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(100, 3)]&#45;&#45;FILTER BY col(&quot;Name&quot;).str.contains(... [(100, 4)]</title>
+<path fill="none" stroke="black" d="M883.35,-537.97C828.2,-527.06 756.9,-512.96 701.72,-502.05"/>
+</g>
+<!-- WITH COLUMNS [&quot;Group&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Direction&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Issue&quot;,&quot;Positives&quot;] [(100, 5)] -->
+<g id="node6" class="node">
+<title>WITH COLUMNS [&quot;Group&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Direction&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Issue&quot;,&quot;Positives&quot;] [(100, 5)]</title>
+<polygon fill="none" stroke="black" points="875,-430 0,-430 0,-394 875,-394 875,-430"/>
+<text text-anchor="middle" x="437.5" y="-408.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;Group&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Direction&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Issue&quot;,&quot;Positives&quot;]</text>
+</g>
+<!-- FILTER BY col(&quot;Name&quot;).str.contains(... [(100, 4)]&#45;&#45;WITH COLUMNS [&quot;Group&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Direction&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Issue&quot;,&quot;Positives&quot;] [(100, 5)] -->
+<g id="edge5" class="edge">
+<title>FILTER BY col(&quot;Name&quot;).str.contains(... [(100, 4)]&#45;&#45;WITH COLUMNS [&quot;Group&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Direction&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Issue&quot;,&quot;Positives&quot;] [(100, 5)]</title>
+<path fill="none" stroke="black" d="M571.96,-465.88C544.27,-454.99 508.56,-440.95 480.9,-430.07"/>
+</g>
+<!-- π 12/27 [(100, 6)] -->
+<g id="node7" class="node">
+<title>π 12/27 [(100, 6)]</title>
+<polygon fill="none" stroke="black" points="473,-358 402,-358 402,-322 473,-322 473,-358"/>
+<text text-anchor="middle" x="437.5" y="-336.3" font-family="Times,serif" font-size="14.00">π 12/27</text>
+</g>
+<!-- WITH COLUMNS [&quot;Group&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Direction&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Issue&quot;,&quot;Positives&quot;] [(100, 5)]&#45;&#45;π 12/27 [(100, 6)] -->
+<g id="edge6" class="edge">
+<title>WITH COLUMNS [&quot;Group&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Direction&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Issue&quot;,&quot;Positives&quot;] [(100, 5)]&#45;&#45;π 12/27 [(100, 6)]</title>
+<path fill="none" stroke="black" d="M437.5,-393.7C437.5,-382.85 437.5,-368.92 437.5,-358.1"/>
+</g>
+<!-- RENAME [(100, 7)] -->
+<g id="node8" class="node">
+<title>RENAME [(100, 7)]</title>
+<polygon fill="none" stroke="black" points="479.5,-286 395.5,-286 395.5,-250 479.5,-250 479.5,-286"/>
+<text text-anchor="middle" x="437.5" y="-264.3" font-family="Times,serif" font-size="14.00">RENAME</text>
+</g>
+<!-- π 12/27 [(100, 6)]&#45;&#45;RENAME [(100, 7)] -->
+<g id="edge7" class="edge">
+<title>π 12/27 [(100, 6)]&#45;&#45;RENAME [(100, 7)]</title>
+<path fill="none" stroke="black" d="M437.5,-321.7C437.5,-310.85 437.5,-296.92 437.5,-286.1"/>
+</g>
+<!-- TABLE
+π */27;
+σ &#45; [(100, 8)] -->
+<g id="node9" class="node">
+<title>TABLE
+π */27;
+σ &#45; [(100, 8)]</title>
+<polygon fill="none" stroke="black" points="470,-214 405,-214 405,-161 470,-161 470,-214"/>
+<text text-anchor="middle" x="437.5" y="-198.8" font-family="Times,serif" font-size="14.00">TABLE</text>
+<text text-anchor="middle" x="437.5" y="-183.8" font-family="Times,serif" font-size="14.00">π */27;</text>
+<text text-anchor="middle" x="437.5" y="-168.8" font-family="Times,serif" font-size="14.00">σ &#45;</text>
+</g>
+<!-- RENAME [(100, 7)]&#45;&#45;TABLE
+π */27;
+σ &#45; [(100, 8)] -->
+<g id="edge8" class="edge">
+<title>RENAME [(100, 7)]&#45;&#45;TABLE
+π */27;
+σ &#45; [(100, 8)]</title>
+<path fill="none" stroke="black" d="M437.5,-249.97C437.5,-239.51 437.5,-225.9 437.5,-214.16"/>
+</g>
+<!-- JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left: [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(200, 2)] -->
+<g id="node11" class="node">
+<title>JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left: [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(200, 2)]</title>
+<polygon fill="none" stroke="black" points="1719.5,-663 1453.5,-663 1453.5,-610 1719.5,-610 1719.5,-663"/>
+<text text-anchor="middle" x="1586.5" y="-647.8" font-family="Times,serif" font-size="14.00">JOIN INNER</text>
+<text text-anchor="middle" x="1586.5" y="-632.8" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left: [col(&quot;ModelID&quot;)];</text>
+<text text-anchor="middle" x="1586.5" y="-617.8" font-family="Times,serif" font-size="14.00"> &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)]</text>
+</g>
+<!-- FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(200, 1)]&#45;&#45;JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left: [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(200, 2)] -->
+<g id="edge10" class="edge">
+<title>FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(200, 1)]&#45;&#45;JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left: [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(200, 2)]</title>
+<path fill="none" stroke="black" d="M1503.5,-698.97C1517.63,-688.51 1535.99,-674.9 1551.86,-663.16"/>
+</g>
+<!-- WITH COLUMNS [&quot;PredictorCategory&quot;] [(300, 3)] -->
+<g id="node12" class="node">
+<title>WITH COLUMNS [&quot;PredictorCategory&quot;] [(300, 3)]</title>
+<polygon fill="none" stroke="black" points="1736.5,-574 1436.5,-574 1436.5,-538 1736.5,-538 1736.5,-574"/>
+<text text-anchor="middle" x="1586.5" y="-552.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;PredictorCategory&quot;]</text>
+</g>
+<!-- JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left: [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(200, 2)]&#45;&#45;WITH COLUMNS [&quot;PredictorCategory&quot;] [(300, 3)] -->
+<g id="edge11" class="edge">
+<title>JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left: [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(200, 2)]&#45;&#45;WITH COLUMNS [&quot;PredictorCategory&quot;] [(300, 3)]</title>
+<path fill="none" stroke="black" d="M1586.5,-609.8C1586.5,-598.17 1586.5,-584.74 1586.5,-574.33"/>
+</g>
+<!-- π 1/15 [(400, 3)] -->
+<g id="node18" class="node">
+<title>π 1/15 [(400, 3)]</title>
+<polygon fill="none" stroke="black" points="1911.5,-574 1849.5,-574 1849.5,-538 1911.5,-538 1911.5,-574"/>
+<text text-anchor="middle" x="1880.5" y="-552.3" font-family="Times,serif" font-size="14.00">π 1/15</text>
+</g>
+<!-- JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left: [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(200, 2)]&#45;&#45;π 1/15 [(400, 3)] -->
+<g id="edge17" class="edge">
+<title>JOIN INNER
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left: [col(&quot;ModelID&quot;)];
+ &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(200, 2)]&#45;&#45;π 1/15 [(400, 3)]</title>
+<path fill="none" stroke="black" d="M1682.36,-609.9C1740.17,-594.47 1810.04,-575.81 1849.46,-565.29"/>
+</g>
+<!-- WITH COLUMNS [&quot;BinPropensity&quot;,&quot;BinAdjustedPropensity&quot;] [(300, 4)] -->
+<g id="node13" class="node">
+<title>WITH COLUMNS [&quot;BinPropensity&quot;,&quot;BinAdjustedPropensity&quot;] [(300, 4)]</title>
+<polygon fill="none" stroke="black" points="1812.5,-502 1360.5,-502 1360.5,-466 1812.5,-466 1812.5,-502"/>
+<text text-anchor="middle" x="1586.5" y="-480.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;BinPropensity&quot;,&quot;BinAdjustedPropensity&quot;]</text>
+</g>
+<!-- WITH COLUMNS [&quot;PredictorCategory&quot;] [(300, 3)]&#45;&#45;WITH COLUMNS [&quot;BinPropensity&quot;,&quot;BinAdjustedPropensity&quot;] [(300, 4)] -->
+<g id="edge12" class="edge">
+<title>WITH COLUMNS [&quot;PredictorCategory&quot;] [(300, 3)]&#45;&#45;WITH COLUMNS [&quot;BinPropensity&quot;,&quot;BinAdjustedPropensity&quot;] [(300, 4)]</title>
+<path fill="none" stroke="black" d="M1586.5,-537.7C1586.5,-526.85 1586.5,-512.92 1586.5,-502.1"/>
+</g>
+<!-- WITH COLUMNS [&quot;BinIndex&quot;,&quot;BinType&quot;,&quot;EntryType&quot;,&quot;BinNegatives&quot;,&quot;Type&quot;,&quot;ResponseCount&quot;,&quot;PredictorName&quot;,&quot;BinResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;BinPositives&quot;,&quot;Positives&quot;,&quot;GroupIndex&quot;] [(300, 5)] -->
+<g id="node14" class="node">
+<title>WITH COLUMNS [&quot;BinIndex&quot;,&quot;BinType&quot;,&quot;EntryType&quot;,&quot;BinNegatives&quot;,&quot;Type&quot;,&quot;ResponseCount&quot;,&quot;PredictorName&quot;,&quot;BinResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;BinPositives&quot;,&quot;Positives&quot;,&quot;GroupIndex&quot;] [(300, 5)]</title>
+<polygon fill="none" stroke="black" points="2279.5,-430 893.5,-430 893.5,-394 2279.5,-394 2279.5,-430"/>
+<text text-anchor="middle" x="1586.5" y="-408.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;BinIndex&quot;,&quot;BinType&quot;,&quot;EntryType&quot;,&quot;BinNegatives&quot;,&quot;Type&quot;,&quot;ResponseCount&quot;,&quot;PredictorName&quot;,&quot;BinResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;BinPositives&quot;,&quot;Positives&quot;,&quot;GroupIndex&quot;]</text>
+</g>
+<!-- WITH COLUMNS [&quot;BinPropensity&quot;,&quot;BinAdjustedPropensity&quot;] [(300, 4)]&#45;&#45;WITH COLUMNS [&quot;BinIndex&quot;,&quot;BinType&quot;,&quot;EntryType&quot;,&quot;BinNegatives&quot;,&quot;Type&quot;,&quot;ResponseCount&quot;,&quot;PredictorName&quot;,&quot;BinResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;BinPositives&quot;,&quot;Positives&quot;,&quot;GroupIndex&quot;] [(300, 5)] -->
+<g id="edge13" class="edge">
+<title>WITH COLUMNS [&quot;BinPropensity&quot;,&quot;BinAdjustedPropensity&quot;] [(300, 4)]&#45;&#45;WITH COLUMNS [&quot;BinIndex&quot;,&quot;BinType&quot;,&quot;EntryType&quot;,&quot;BinNegatives&quot;,&quot;Type&quot;,&quot;ResponseCount&quot;,&quot;PredictorName&quot;,&quot;BinResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;BinPositives&quot;,&quot;Positives&quot;,&quot;GroupIndex&quot;] [(300, 5)]</title>
+<path fill="none" stroke="black" d="M1586.5,-465.7C1586.5,-454.85 1586.5,-440.92 1586.5,-430.1"/>
+</g>
+<!-- π 16/36 [(300, 6)] -->
+<g id="node15" class="node">
+<title>π 16/36 [(300, 6)]</title>
+<polygon fill="none" stroke="black" points="1622,-358 1551,-358 1551,-322 1622,-322 1622,-358"/>
+<text text-anchor="middle" x="1586.5" y="-336.3" font-family="Times,serif" font-size="14.00">π 16/36</text>
+</g>
+<!-- WITH COLUMNS [&quot;BinIndex&quot;,&quot;BinType&quot;,&quot;EntryType&quot;,&quot;BinNegatives&quot;,&quot;Type&quot;,&quot;ResponseCount&quot;,&quot;PredictorName&quot;,&quot;BinResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;BinPositives&quot;,&quot;Positives&quot;,&quot;GroupIndex&quot;] [(300, 5)]&#45;&#45;π 16/36 [(300, 6)] -->
+<g id="edge14" class="edge">
+<title>WITH COLUMNS [&quot;BinIndex&quot;,&quot;BinType&quot;,&quot;EntryType&quot;,&quot;BinNegatives&quot;,&quot;Type&quot;,&quot;ResponseCount&quot;,&quot;PredictorName&quot;,&quot;BinResponseCount&quot;,&quot;SnapshotTime&quot;,&quot;BinPositives&quot;,&quot;Positives&quot;,&quot;GroupIndex&quot;] [(300, 5)]&#45;&#45;π 16/36 [(300, 6)]</title>
+<path fill="none" stroke="black" d="M1586.5,-393.7C1586.5,-382.85 1586.5,-368.92 1586.5,-358.1"/>
+</g>
+<!-- RENAME [(300, 7)] -->
+<g id="node16" class="node">
+<title>RENAME [(300, 7)]</title>
+<polygon fill="none" stroke="black" points="1628.5,-286 1544.5,-286 1544.5,-250 1628.5,-250 1628.5,-286"/>
+<text text-anchor="middle" x="1586.5" y="-264.3" font-family="Times,serif" font-size="14.00">RENAME</text>
+</g>
+<!-- π 16/36 [(300, 6)]&#45;&#45;RENAME [(300, 7)] -->
+<g id="edge15" class="edge">
+<title>π 16/36 [(300, 6)]&#45;&#45;RENAME [(300, 7)]</title>
+<path fill="none" stroke="black" d="M1586.5,-321.7C1586.5,-310.85 1586.5,-296.92 1586.5,-286.1"/>
+</g>
+<!-- TABLE
+π */36;
+σ &#45; [(300, 8)] -->
+<g id="node17" class="node">
+<title>TABLE
+π */36;
+σ &#45; [(300, 8)]</title>
+<polygon fill="none" stroke="black" points="1619,-214 1554,-214 1554,-161 1619,-161 1619,-214"/>
+<text text-anchor="middle" x="1586.5" y="-198.8" font-family="Times,serif" font-size="14.00">TABLE</text>
+<text text-anchor="middle" x="1586.5" y="-183.8" font-family="Times,serif" font-size="14.00">π */36;</text>
+<text text-anchor="middle" x="1586.5" y="-168.8" font-family="Times,serif" font-size="14.00">σ &#45;</text>
+</g>
+<!-- RENAME [(300, 7)]&#45;&#45;TABLE
+π */36;
+σ &#45; [(300, 8)] -->
+<g id="edge16" class="edge">
+<title>RENAME [(300, 7)]&#45;&#45;TABLE
+π */36;
+σ &#45; [(300, 8)]</title>
+<path fill="none" stroke="black" d="M1586.5,-249.97C1586.5,-239.51 1586.5,-225.9 1586.5,-214.16"/>
+</g>
+<!-- FILTER BY col(&quot;Name&quot;).str.contains(... [(400, 4)] -->
+<g id="node19" class="node">
+<title>FILTER BY col(&quot;Name&quot;).str.contains(... [(400, 4)]</title>
+<polygon fill="none" stroke="black" points="2417.5,-502 2127.5,-502 2127.5,-466 2417.5,-466 2417.5,-502"/>
+<text text-anchor="middle" x="2272.5" y="-480.3" font-family="Times,serif" font-size="14.00">FILTER BY col(&quot;Name&quot;).str.contains(...</text>
+</g>
+<!-- π 1/15 [(400, 3)]&#45;&#45;FILTER BY col(&quot;Name&quot;).str.contains(... [(400, 4)] -->
+<g id="edge18" class="edge">
+<title>π 1/15 [(400, 3)]&#45;&#45;FILTER BY col(&quot;Name&quot;).str.contains(... [(400, 4)]</title>
+<path fill="none" stroke="black" d="M1911.59,-549.45C1968.27,-539.33 2090.53,-517.49 2177,-502.05"/>
+</g>
+<!-- WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(400, 5)] -->
+<g id="node20" class="node">
+<title>WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(400, 5)]</title>
+<polygon fill="none" stroke="black" points="2841.5,-430 2297.5,-430 2297.5,-394 2841.5,-394 2841.5,-430"/>
+<text text-anchor="middle" x="2569.5" y="-408.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;]</text>
+</g>
+<!-- FILTER BY col(&quot;Name&quot;).str.contains(... [(400, 4)]&#45;&#45;WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(400, 5)] -->
+<g id="edge19" class="edge">
+<title>FILTER BY col(&quot;Name&quot;).str.contains(... [(400, 4)]&#45;&#45;WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(400, 5)]</title>
+<path fill="none" stroke="black" d="M2344.77,-465.97C2391.05,-455.06 2450.87,-440.96 2497.16,-430.05"/>
+</g>
+<!-- FILTER BY col(&quot;Name&quot;).str.contains(... [(400, 6)] -->
+<g id="node21" class="node">
+<title>FILTER BY col(&quot;Name&quot;).str.contains(... [(400, 6)]</title>
+<polygon fill="none" stroke="black" points="2714.5,-358 2424.5,-358 2424.5,-322 2714.5,-322 2714.5,-358"/>
+<text text-anchor="middle" x="2569.5" y="-336.3" font-family="Times,serif" font-size="14.00">FILTER BY col(&quot;Name&quot;).str.contains(...</text>
+</g>
+<!-- WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(400, 5)]&#45;&#45;FILTER BY col(&quot;Name&quot;).str.contains(... [(400, 6)] -->
+<g id="edge20" class="edge">
+<title>WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;] [(400, 5)]&#45;&#45;FILTER BY col(&quot;Name&quot;).str.contains(... [(400, 6)]</title>
+<path fill="none" stroke="black" d="M2569.5,-393.7C2569.5,-382.85 2569.5,-368.92 2569.5,-358.1"/>
+</g>
+<!-- WITH COLUMNS [&quot;Group&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Direction&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Issue&quot;,&quot;Positives&quot;] [(400, 7)] -->
+<g id="node22" class="node">
+<title>WITH COLUMNS [&quot;Group&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Direction&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Issue&quot;,&quot;Positives&quot;] [(400, 7)]</title>
+<polygon fill="none" stroke="black" points="3007,-286 2132,-286 2132,-250 3007,-250 3007,-286"/>
+<text text-anchor="middle" x="2569.5" y="-264.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;Group&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Direction&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Issue&quot;,&quot;Positives&quot;]</text>
+</g>
+<!-- FILTER BY col(&quot;Name&quot;).str.contains(... [(400, 6)]&#45;&#45;WITH COLUMNS [&quot;Group&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Direction&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Issue&quot;,&quot;Positives&quot;] [(400, 7)] -->
+<g id="edge21" class="edge">
+<title>FILTER BY col(&quot;Name&quot;).str.contains(... [(400, 6)]&#45;&#45;WITH COLUMNS [&quot;Group&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Direction&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Issue&quot;,&quot;Positives&quot;] [(400, 7)]</title>
+<path fill="none" stroke="black" d="M2569.5,-321.7C2569.5,-310.85 2569.5,-296.92 2569.5,-286.1"/>
+</g>
+<!-- π 12/27 [(400, 8)] -->
+<g id="node23" class="node">
+<title>π 12/27 [(400, 8)]</title>
+<polygon fill="none" stroke="black" points="2605,-205.5 2534,-205.5 2534,-169.5 2605,-169.5 2605,-205.5"/>
+<text text-anchor="middle" x="2569.5" y="-183.8" font-family="Times,serif" font-size="14.00">π 12/27</text>
+</g>
+<!-- WITH COLUMNS [&quot;Group&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Direction&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Issue&quot;,&quot;Positives&quot;] [(400, 7)]&#45;&#45;π 12/27 [(400, 8)] -->
+<g id="edge22" class="edge">
+<title>WITH COLUMNS [&quot;Group&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Direction&quot;,&quot;SnapshotTime&quot;,&quot;Configuration&quot;,&quot;Issue&quot;,&quot;Positives&quot;] [(400, 7)]&#45;&#45;π 12/27 [(400, 8)]</title>
+<path fill="none" stroke="black" d="M2569.5,-249.97C2569.5,-236.8 2569.5,-218.66 2569.5,-205.5"/>
+</g>
+<!-- RENAME [(400, 9)] -->
+<g id="node24" class="node">
+<title>RENAME [(400, 9)]</title>
+<polygon fill="none" stroke="black" points="2611.5,-125 2527.5,-125 2527.5,-89 2611.5,-89 2611.5,-125"/>
+<text text-anchor="middle" x="2569.5" y="-103.3" font-family="Times,serif" font-size="14.00">RENAME</text>
+</g>
+<!-- π 12/27 [(400, 8)]&#45;&#45;RENAME [(400, 9)] -->
+<g id="edge23" class="edge">
+<title>π 12/27 [(400, 8)]&#45;&#45;RENAME [(400, 9)]</title>
+<path fill="none" stroke="black" d="M2569.5,-169.47C2569.5,-156.3 2569.5,-138.16 2569.5,-125"/>
+</g>
+<!-- TABLE
+π */27;
+σ &#45; [(400, 10)] -->
+<g id="node25" class="node">
+<title>TABLE
+π */27;
+σ &#45; [(400, 10)]</title>
+<polygon fill="none" stroke="black" points="2602,-53 2537,-53 2537,0 2602,0 2602,-53"/>
+<text text-anchor="middle" x="2569.5" y="-37.8" font-family="Times,serif" font-size="14.00">TABLE</text>
+<text text-anchor="middle" x="2569.5" y="-22.8" font-family="Times,serif" font-size="14.00">π */27;</text>
+<text text-anchor="middle" x="2569.5" y="-7.8" font-family="Times,serif" font-size="14.00">σ &#45;</text>
+</g>
+<!-- RENAME [(400, 9)]&#45;&#45;TABLE
+π */27;
+σ &#45; [(400, 10)] -->
+<g id="edge24" class="edge">
+<title>RENAME [(400, 9)]&#45;&#45;TABLE
+π */27;
+σ &#45; [(400, 10)]</title>
+<path fill="none" stroke="black" d="M2569.5,-88.97C2569.5,-78.51 2569.5,-64.9 2569.5,-53.16"/>
+</g>
+</g>
+</svg></div>
 </div>
 <p>While a beautiful graph, it is quite a lot to digest. The left side of the chart should look very familiar, as should the right side. The ‘middle’ part is new: this is the execution part for the predictor data. Here we only parse <code class="docutils literal notranslate"><span class="pre">Performance</span></code> to be a float, parse the timezones, and add [“BinPropensity”,”BinAdjustedPropensity”]. For both the model data and the predictor data we take the last snapshot only when combining them, which you can see right before the topmost inner join.</p>
 <p>Again, a sharp eye will notice quite some inefficiencies here. The newest issue is that we’re now importing <code class="docutils literal notranslate"><span class="pre">modelData</span></code> twice, once to filter out model IDs not being in the filter criteria, and another time to join with the table. But remember, we’re not in the optimized graph:</p>
@@ -593,16 +1365,40 @@ Cell <span class="ansi-green-fg">In[8], line 1</span>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 <span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+<span class="ansi-red-fg">InvalidOperationError</span>                     Traceback (most recent call last)
 Cell <span class="ansi-green-fg">In[9], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">dm</span><span style="color: rgb(98,98,98)">.</span>combinedData<span style="color: rgb(98,98,98)">.</span>show_graph()
+<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">dm</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">combinedData</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">show_graph</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">)</span>
 
-<span class="ansi-red-fg">NameError</span>: name &#39;dm&#39; is not defined
+File <span class="ansi-green-fg">/opt/hostedtoolcache/Python/3.11.9/x64/lib/python3.11/site-packages/polars/lazyframe/frame.py:1035</span>, in <span class="ansi-cyan-fg">LazyFrame.show_graph</span><span class="ansi-blue-fg">(self, optimized, show, output_path, raw_output, figsize, type_coercion, predicate_pushdown, projection_pushdown, simplify_expression, slice_pushdown, comm_subplan_elim, comm_subexpr_elim, streaming)</span>
+<span class="ansi-green-intense-fg ansi-bold">    975</span> <span style="color: rgb(175,0,0)">&#34;&#34;&#34;</span>
+<span class="ansi-green-intense-fg ansi-bold">    976</span> <span style="color: rgb(175,0,0)">Show a plot of the query plan.</span>
+<span class="ansi-green-intense-fg ansi-bold">    977</span>
+<span class="ansi-green-fg">   (...)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1021</span> <span style="color: rgb(175,0,0)">... ).show_graph()  # doctest: +SKIP</span>
+<span class="ansi-green-intense-fg ansi-bold">   1022</span> <span style="color: rgb(175,0,0)">&#34;&#34;&#34;</span>
+<span class="ansi-green-intense-fg ansi-bold">   1023</span> _ldf <span style="color: rgb(98,98,98)">=</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>_ldf<span style="color: rgb(98,98,98)">.</span>optimization_toggle(
+<span class="ansi-green-intense-fg ansi-bold">   1024</span>     type_coercion,
+<span class="ansi-green-intense-fg ansi-bold">   1025</span>     predicate_pushdown,
+<span class="ansi-green-fg">   (...)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1032</span>     _eager<span style="color: rgb(98,98,98)">=</span><span class="ansi-bold" style="color: rgb(0,135,0)">False</span>,
+<span class="ansi-green-intense-fg ansi-bold">   1033</span> )
+<span class="ansi-green-fg">-&gt; 1035</span> dot <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">_ldf</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">to_dot</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">optimized</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1037</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> raw_output:
+<span class="ansi-green-intense-fg ansi-bold">   1038</span>     <span style="color: rgb(95,135,135)"># we do not show a graph, nor save a graph to disk</span>
+<span class="ansi-green-intense-fg ansi-bold">   1039</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> dot
+
+<span class="ansi-red-fg">InvalidOperationError</span>: could not determine supertype of: [datetime[ns], dyn int]
+
+
+This error occurred with the following context stack:
+        [1] &#39;filter&#39; failed
+        [2] &#39;join left&#39; input failed to resolve
+
 </pre></div></div>
 </div>
 <p>Pretty neat. Not only do we not import modelData twice, we cache it at a certain point in the execution graph so we can <em>use</em> it twice. And we get all of this for free with Polars’ optimization engine! Also remember, at this point, we’ve not even read in any data yet! We can even do profiling on this execution graph, but that’s a challenge to figure out on your own :). We can easily show the gains in time using this method using our new <code class="docutils literal notranslate"><span class="pre">save_data</span></code> method though: this will save our data to
 disk in an efficient format, and gives us a fast way to benchmark.</p>
-<div class="nbinput docutils container">
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
@@ -614,24 +1410,6 @@ disk in an efficient format, and gives us a fast way to benchmark.</p>
 <span class="p">)</span><span class="o">.</span><span class="n">save_data</span><span class="p">()</span>
 <br/></pre></div>
 </div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[10], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> files_without_subset <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">datasets</span><span style="color: rgb(98,98,98)">.</span>CDHSample(
-<span class="ansi-green-intense-fg ansi-bold">      2</span>     import_strategy<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">lazy</span><span style="color: rgb(175,0,0)">&#34;</span>, subset<span style="color: rgb(98,98,98)">=</span><span class="ansi-bold" style="color: rgb(0,135,0)">False</span>
-<span class="ansi-green-intense-fg ansi-bold">      3</span> )<span style="color: rgb(98,98,98)">.</span>save_data()
-<span class="ansi-green-intense-fg ansi-bold">      4</span> files_with_subset <span style="color: rgb(98,98,98)">=</span> datasets<span style="color: rgb(98,98,98)">.</span>CDHSample(
-<span class="ansi-green-intense-fg ansi-bold">      5</span>     import_strategy<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">lazy</span><span style="color: rgb(175,0,0)">&#34;</span>, query<span style="color: rgb(98,98,98)">=</span>pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Name</span><span style="color: rgb(175,0,0)">&#34;</span>)<span style="color: rgb(98,98,98)">.</span>str<span style="color: rgb(98,98,98)">.</span>contains(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Visa</span><span style="color: rgb(175,0,0)">&#34;</span>)
-<span class="ansi-green-intense-fg ansi-bold">      6</span> )<span style="color: rgb(98,98,98)">.</span>save_data()
-
-<span class="ansi-red-fg">NameError</span>: name &#39;datasets&#39; is not defined
-</pre></div></div>
 </div>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
@@ -647,7 +1425,7 @@ Cell <span class="ansi-green-fg">In[10], line 1</span>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 <span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+<span class="ansi-red-fg">InvalidOperationError</span>                     Traceback (most recent call last)
 Cell <span class="ansi-green-fg">In[11], line 1</span>
 <span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">get_ipython</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">)</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">run_line_magic</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#39;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">timeit</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#39;</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">ADMDatamart(model_filename=files_without_subset[0], predictor_filename=files_without_subset[1], import_strategy=</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#39;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">lazy</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#39;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">).combinedData.collect()</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg">)</span>
 
@@ -676,7 +1454,18 @@ File <span class="ansi-green-fg">/opt/hostedtoolcache/Python/3.11.9/x64/lib/pyth
 
 File <span class="ansi-green-fg">&lt;magic-timeit&gt;:1</span>, in <span class="ansi-cyan-fg">inner</span><span class="ansi-blue-fg">(_it, _timer)</span>
 
-<span class="ansi-red-fg">NameError</span>: name &#39;ADMDatamart&#39; is not defined
+File <span class="ansi-green-fg">/opt/hostedtoolcache/Python/3.11.9/x64/lib/python3.11/site-packages/polars/lazyframe/frame.py:1816</span>, in <span class="ansi-cyan-fg">LazyFrame.collect</span><span class="ansi-blue-fg">(self, type_coercion, predicate_pushdown, projection_pushdown, simplify_expression, slice_pushdown, comm_subplan_elim, comm_subexpr_elim, no_optimization, streaming, background, _eager, **_kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1813</span> <span style="color: rgb(95,135,135)"># Only for testing purposes atm.</span>
+<span class="ansi-green-intense-fg ansi-bold">   1814</span> callback <span style="color: rgb(98,98,98)">=</span> _kwargs<span style="color: rgb(98,98,98)">.</span>get(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">post_opt_callback</span><span style="color: rgb(175,0,0)">&#34;</span>)
+<span class="ansi-green-fg">-&gt; 1816</span> <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> wrap_df(<span class="ansi-yellow-bg">ldf</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">collect</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">callback</span><span class="ansi-yellow-bg">)</span>)
+
+<span class="ansi-red-fg">InvalidOperationError</span>: could not determine supertype of: [datetime[ns], dyn int]
+
+
+This error occurred with the following context stack:
+        [1] &#39;filter&#39; failed
+        [2] &#39;join left&#39; input failed to resolve
+
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
@@ -693,7 +1482,7 @@ File <span class="ansi-green-fg">&lt;magic-timeit&gt;:1</span>, in <span class="
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 <span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+<span class="ansi-red-fg">InvalidOperationError</span>                     Traceback (most recent call last)
 Cell <span class="ansi-green-fg">In[12], line 1</span>
 <span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">get_ipython</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">)</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">run_line_magic</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#39;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">timeit</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#39;</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">ADMDatamart(model_filename=files_with_subset[0], predictor_filename=files_with_subset[1], import_strategy=</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#39;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">lazy</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#39;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">).combinedData.collect()</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg">)</span>
 
@@ -722,7 +1511,18 @@ File <span class="ansi-green-fg">/opt/hostedtoolcache/Python/3.11.9/x64/lib/pyth
 
 File <span class="ansi-green-fg">&lt;magic-timeit&gt;:1</span>, in <span class="ansi-cyan-fg">inner</span><span class="ansi-blue-fg">(_it, _timer)</span>
 
-<span class="ansi-red-fg">NameError</span>: name &#39;ADMDatamart&#39; is not defined
+File <span class="ansi-green-fg">/opt/hostedtoolcache/Python/3.11.9/x64/lib/python3.11/site-packages/polars/lazyframe/frame.py:1816</span>, in <span class="ansi-cyan-fg">LazyFrame.collect</span><span class="ansi-blue-fg">(self, type_coercion, predicate_pushdown, projection_pushdown, simplify_expression, slice_pushdown, comm_subplan_elim, comm_subexpr_elim, no_optimization, streaming, background, _eager, **_kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1813</span> <span style="color: rgb(95,135,135)"># Only for testing purposes atm.</span>
+<span class="ansi-green-intense-fg ansi-bold">   1814</span> callback <span style="color: rgb(98,98,98)">=</span> _kwargs<span style="color: rgb(98,98,98)">.</span>get(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">post_opt_callback</span><span style="color: rgb(175,0,0)">&#34;</span>)
+<span class="ansi-green-fg">-&gt; 1816</span> <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> wrap_df(<span class="ansi-yellow-bg">ldf</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">collect</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">callback</span><span class="ansi-yellow-bg">)</span>)
+
+<span class="ansi-red-fg">InvalidOperationError</span>: could not determine supertype of: [datetime[ns], dyn int]
+
+
+This error occurred with the following context stack:
+        [1] &#39;filter&#39; failed
+        [2] &#39;join left&#39; input failed to resolve
+
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
@@ -735,17 +1535,12 @@ File <span class="ansi-green-fg">&lt;magic-timeit&gt;:1</span>, in <span class="
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[13], line 2</span>
-<span class="ansi-green-intense-fg ansi-bold">      1</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span> <span class="ansi-bold" style="color: rgb(0,0,255)">os</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> remove
-<span class="ansi-green-fg">----&gt; 2</span> [remove(file) <span class="ansi-bold" style="color: rgb(0,135,0)">for</span> file <span class="ansi-bold" style="color: rgb(175,0,255)">in</span> [<span style="color: rgb(98,98,98)">*</span><span class="ansi-yellow-bg">files_with_subset</span>, <span style="color: rgb(98,98,98)">*</span>files_without_subset]]
-
-<span class="ansi-red-fg">NameError</span>: name &#39;files_with_subset&#39; is not defined
+[None, None, None, None]
 </pre></div></div>
 </div>
 <p>This +- 2x increase in speed will be even more significant as we increase the size of the data.</p>
@@ -769,13 +1564,57 @@ Cell <span class="ansi-green-fg">In[13], line 2</span>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 <span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+<span class="ansi-red-fg">InvalidOperationError</span>                     Traceback (most recent call last)
 Cell <span class="ansi-green-fg">In[14], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> modd <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">datasets</span><span style="color: rgb(98,98,98)">.</span>CDHSample()<span style="color: rgb(98,98,98)">.</span>modelData
+<span class="ansi-green-fg">----&gt; 1</span> modd <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">datasets</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">CDHSample</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">)</span><span style="color: rgb(98,98,98)">.</span>modelData
 <span class="ansi-green-intense-fg ansi-bold">      2</span> <span style="color: rgb(0,135,0)">print</span>(<span style="color: rgb(0,135,0)">type</span>(modd))
 <span class="ansi-green-intense-fg ansi-bold">      3</span> modd<span style="color: rgb(98,98,98)">.</span>show_graph()
 
-<span class="ansi-red-fg">NameError</span>: name &#39;datasets&#39; is not defined
+File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/utils/datasets.py:10</span>, in <span class="ansi-cyan-fg">CDHSample</span><span class="ansi-blue-fg">(plotting_engine, query, **kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">      8</span> models <span style="color: rgb(98,98,98)">=</span> <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip</span><span style="color: rgb(175,0,0)">&#34;</span>
+<span class="ansi-green-intense-fg ansi-bold">      9</span> predictors <span style="color: rgb(98,98,98)">=</span> <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip</span><span style="color: rgb(175,0,0)">&#34;</span>
+<span class="ansi-green-fg">---&gt; 10</span> <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> <span class="ansi-yellow-bg">ADMDatamart</span><span class="ansi-yellow-bg">(</span>
+<span class="ansi-green-intense-fg ansi-bold">     11</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">path</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">path</span><span class="ansi-yellow-bg">,</span>
+<span class="ansi-green-intense-fg ansi-bold">     12</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">model_filename</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">models</span><span class="ansi-yellow-bg">,</span>
+<span class="ansi-green-intense-fg ansi-bold">     13</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">predictor_filename</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">predictors</span><span class="ansi-yellow-bg">,</span>
+<span class="ansi-green-intense-fg ansi-bold">     14</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">plotting_engine</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">plotting_engine</span><span class="ansi-yellow-bg">,</span>
+<span class="ansi-green-intense-fg ansi-bold">     15</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">query</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">query</span><span class="ansi-yellow-bg">,</span>
+<span class="ansi-green-intense-fg ansi-bold">     16</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">*</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">*</span><span class="ansi-yellow-bg">kwargs</span><span class="ansi-yellow-bg">,</span>
+<span class="ansi-green-intense-fg ansi-bold">     17</span> <span class="ansi-yellow-bg">)</span>
+
+File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/adm/ADMDatamart.py:179</span>, in <span class="ansi-cyan-fg">ADMDatamart.__init__</span><span class="ansi-blue-fg">(self, path, import_strategy, model_filename, predictor_filename, model_df, predictor_df, query, subset, drop_cols, include_cols, context_keys, extract_keys, predictorCategorization, plotting_engine, verbose, **reading_opts)</span>
+<span class="ansi-green-intense-fg ansi-bold">    176</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>plotting_engine <span style="color: rgb(98,98,98)">=</span> plotting_engine
+<span class="ansi-green-intense-fg ansi-bold">    177</span> <span style="color: rgb(0,135,0)">super</span>()<span style="color: rgb(98,98,98)">.</span><span style="color: rgb(0,0,255)">__init__</span>()
+<span class="ansi-green-fg">--&gt; 179</span> <span class="ansi-yellow-bg" style="color: rgb(0,135,0)">self</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">processTables</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg" style="color: rgb(0,135,0)">self</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">query</span><span class="ansi-yellow-bg">)</span>
+
+File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/adm/ADMDatamart.py:670</span>, in <span class="ansi-cyan-fg">ADMDatamart.processTables</span><span class="ansi-blue-fg">(self, query)</span>
+<span class="ansi-green-intense-fg ansi-bold">    667</span>         <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>predictorData <span style="color: rgb(98,98,98)">=</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>predictorData<span style="color: rgb(98,98,98)">.</span>collect()<span style="color: rgb(98,98,98)">.</span>lazy()
+<span class="ansi-green-intense-fg ansi-bold">    669</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>predictorData <span class="ansi-bold" style="color: rgb(175,0,255)">is</span> <span class="ansi-bold" style="color: rgb(175,0,255)">not</span> <span class="ansi-bold" style="color: rgb(0,135,0)">None</span> <span class="ansi-bold" style="color: rgb(175,0,255)">and</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>modelData <span class="ansi-bold" style="color: rgb(175,0,255)">is</span> <span class="ansi-bold" style="color: rgb(175,0,255)">not</span> <span class="ansi-bold" style="color: rgb(0,135,0)">None</span>:
+<span class="ansi-green-fg">--&gt; 670</span>     <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>combinedData <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg" style="color: rgb(0,135,0)">self</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">_get_combined_data</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">strategy</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg" style="color: rgb(0,135,0)">self</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">import_strategy</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">    671</span> <span class="ansi-bold" style="color: rgb(0,135,0)">elif</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>verbose:
+<span class="ansi-green-intense-fg ansi-bold">    672</span>     <span style="color: rgb(0,135,0)">print</span>(
+<span class="ansi-green-intense-fg ansi-bold">    673</span>         <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Could not be combined. Do you have both model data and predictor data?</span><span style="color: rgb(175,0,0)">&#34;</span>
+<span class="ansi-green-intense-fg ansi-bold">    674</span>     )
+
+File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/adm/ADMDatamart.py:630</span>, in <span class="ansi-cyan-fg">ADMDatamart._get_combined_data</span><span class="ansi-blue-fg">(self, last, strategy)</span>
+<span class="ansi-green-intense-fg ansi-bold">    628</span> combined <span style="color: rgb(98,98,98)">=</span> models<span style="color: rgb(98,98,98)">.</span>join(preds, on<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">ModelID</span><span style="color: rgb(175,0,0)">&#34;</span>, how<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">inner</span><span style="color: rgb(175,0,0)">&#34;</span>, suffix<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Bin</span><span style="color: rgb(175,0,0)">&#34;</span>)
+<span class="ansi-green-intense-fg ansi-bold">    629</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> strategy <span style="color: rgb(98,98,98)">==</span> <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">eager</span><span style="color: rgb(175,0,0)">&#34;</span>:
+<span class="ansi-green-fg">--&gt; 630</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> <span class="ansi-yellow-bg">combined</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">collect</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">)</span><span style="color: rgb(98,98,98)">.</span>lazy()
+<span class="ansi-green-intense-fg ansi-bold">    631</span> <span class="ansi-bold" style="color: rgb(0,135,0)">else</span>:
+<span class="ansi-green-intense-fg ansi-bold">    632</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> combined
+
+File <span class="ansi-green-fg">/opt/hostedtoolcache/Python/3.11.9/x64/lib/python3.11/site-packages/polars/lazyframe/frame.py:1816</span>, in <span class="ansi-cyan-fg">LazyFrame.collect</span><span class="ansi-blue-fg">(self, type_coercion, predicate_pushdown, projection_pushdown, simplify_expression, slice_pushdown, comm_subplan_elim, comm_subexpr_elim, no_optimization, streaming, background, _eager, **_kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1813</span> <span style="color: rgb(95,135,135)"># Only for testing purposes atm.</span>
+<span class="ansi-green-intense-fg ansi-bold">   1814</span> callback <span style="color: rgb(98,98,98)">=</span> _kwargs<span style="color: rgb(98,98,98)">.</span>get(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">post_opt_callback</span><span style="color: rgb(175,0,0)">&#34;</span>)
+<span class="ansi-green-fg">-&gt; 1816</span> <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> wrap_df(<span class="ansi-yellow-bg">ldf</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">collect</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">callback</span><span class="ansi-yellow-bg">)</span>)
+
+<span class="ansi-red-fg">InvalidOperationError</span>: could not determine supertype of: [datetime[ns], dyn int]
+
+
+This error occurred with the following context stack:
+        [1] &#39;filter&#39; failed
+        [2] &#39;join left&#39; input failed to resolve
+
 </pre></div></div>
 </div>
 <p>The type of <code class="docutils literal notranslate"><span class="pre">modelData</span></code> is a <code class="docutils literal notranslate"><span class="pre">LazyFrame</span></code> (the representation of this being a query plan). <code class="docutils literal notranslate"><span class="pre">DataFrame</span></code> and <code class="docutils literal notranslate"><span class="pre">LazyFrame</span></code>s are not so different - <code class="docutils literal notranslate"><span class="pre">LazyFrame</span></code>s build up a query and want you to execute once it’s done, <code class="docutils literal notranslate"><span class="pre">DataFrame</span></code>s execute each command as you’re calling it. However, in <code class="docutils literal notranslate"><span class="pre">eager</span></code> mode, that execution graph is empty.</p>
@@ -818,14 +1657,58 @@ files, or even transform them to Arrow/IPC (fastest) or Parquet (most efficient)
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 <span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+<span class="ansi-red-fg">InvalidOperationError</span>                     Traceback (most recent call last)
 Cell <span class="ansi-green-fg">In[15], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> dm <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">datasets</span><span style="color: rgb(98,98,98)">.</span>CDHSample()
+<span class="ansi-green-fg">----&gt; 1</span> dm <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">datasets</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">CDHSample</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">)</span>
 <span class="ansi-green-intense-fg ansi-bold">      3</span> dm<span style="color: rgb(98,98,98)">.</span>plotPerformanceSuccessRateBubbleChart(
 <span class="ansi-green-intense-fg ansi-bold">      4</span>     query<span style="color: rgb(98,98,98)">=</span>pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Issue</span><span style="color: rgb(175,0,0)">&#34;</span>) <span style="color: rgb(98,98,98)">==</span> <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Sales</span><span style="color: rgb(175,0,0)">&#34;</span>, facets<span style="color: rgb(98,98,98)">=</span>[<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Channel</span><span style="color: rgb(175,0,0)">&#34;</span>]
 <span class="ansi-green-intense-fg ansi-bold">      5</span> )
 
-<span class="ansi-red-fg">NameError</span>: name &#39;datasets&#39; is not defined
+File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/utils/datasets.py:10</span>, in <span class="ansi-cyan-fg">CDHSample</span><span class="ansi-blue-fg">(plotting_engine, query, **kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">      8</span> models <span style="color: rgb(98,98,98)">=</span> <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip</span><span style="color: rgb(175,0,0)">&#34;</span>
+<span class="ansi-green-intense-fg ansi-bold">      9</span> predictors <span style="color: rgb(98,98,98)">=</span> <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip</span><span style="color: rgb(175,0,0)">&#34;</span>
+<span class="ansi-green-fg">---&gt; 10</span> <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> <span class="ansi-yellow-bg">ADMDatamart</span><span class="ansi-yellow-bg">(</span>
+<span class="ansi-green-intense-fg ansi-bold">     11</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">path</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">path</span><span class="ansi-yellow-bg">,</span>
+<span class="ansi-green-intense-fg ansi-bold">     12</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">model_filename</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">models</span><span class="ansi-yellow-bg">,</span>
+<span class="ansi-green-intense-fg ansi-bold">     13</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">predictor_filename</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">predictors</span><span class="ansi-yellow-bg">,</span>
+<span class="ansi-green-intense-fg ansi-bold">     14</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">plotting_engine</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">plotting_engine</span><span class="ansi-yellow-bg">,</span>
+<span class="ansi-green-intense-fg ansi-bold">     15</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">query</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">query</span><span class="ansi-yellow-bg">,</span>
+<span class="ansi-green-intense-fg ansi-bold">     16</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">*</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">*</span><span class="ansi-yellow-bg">kwargs</span><span class="ansi-yellow-bg">,</span>
+<span class="ansi-green-intense-fg ansi-bold">     17</span> <span class="ansi-yellow-bg">)</span>
+
+File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/adm/ADMDatamart.py:179</span>, in <span class="ansi-cyan-fg">ADMDatamart.__init__</span><span class="ansi-blue-fg">(self, path, import_strategy, model_filename, predictor_filename, model_df, predictor_df, query, subset, drop_cols, include_cols, context_keys, extract_keys, predictorCategorization, plotting_engine, verbose, **reading_opts)</span>
+<span class="ansi-green-intense-fg ansi-bold">    176</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>plotting_engine <span style="color: rgb(98,98,98)">=</span> plotting_engine
+<span class="ansi-green-intense-fg ansi-bold">    177</span> <span style="color: rgb(0,135,0)">super</span>()<span style="color: rgb(98,98,98)">.</span><span style="color: rgb(0,0,255)">__init__</span>()
+<span class="ansi-green-fg">--&gt; 179</span> <span class="ansi-yellow-bg" style="color: rgb(0,135,0)">self</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">processTables</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg" style="color: rgb(0,135,0)">self</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">query</span><span class="ansi-yellow-bg">)</span>
+
+File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/adm/ADMDatamart.py:670</span>, in <span class="ansi-cyan-fg">ADMDatamart.processTables</span><span class="ansi-blue-fg">(self, query)</span>
+<span class="ansi-green-intense-fg ansi-bold">    667</span>         <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>predictorData <span style="color: rgb(98,98,98)">=</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>predictorData<span style="color: rgb(98,98,98)">.</span>collect()<span style="color: rgb(98,98,98)">.</span>lazy()
+<span class="ansi-green-intense-fg ansi-bold">    669</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>predictorData <span class="ansi-bold" style="color: rgb(175,0,255)">is</span> <span class="ansi-bold" style="color: rgb(175,0,255)">not</span> <span class="ansi-bold" style="color: rgb(0,135,0)">None</span> <span class="ansi-bold" style="color: rgb(175,0,255)">and</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>modelData <span class="ansi-bold" style="color: rgb(175,0,255)">is</span> <span class="ansi-bold" style="color: rgb(175,0,255)">not</span> <span class="ansi-bold" style="color: rgb(0,135,0)">None</span>:
+<span class="ansi-green-fg">--&gt; 670</span>     <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>combinedData <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg" style="color: rgb(0,135,0)">self</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">_get_combined_data</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">strategy</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg" style="color: rgb(0,135,0)">self</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">import_strategy</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">    671</span> <span class="ansi-bold" style="color: rgb(0,135,0)">elif</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>verbose:
+<span class="ansi-green-intense-fg ansi-bold">    672</span>     <span style="color: rgb(0,135,0)">print</span>(
+<span class="ansi-green-intense-fg ansi-bold">    673</span>         <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Could not be combined. Do you have both model data and predictor data?</span><span style="color: rgb(175,0,0)">&#34;</span>
+<span class="ansi-green-intense-fg ansi-bold">    674</span>     )
+
+File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/adm/ADMDatamart.py:630</span>, in <span class="ansi-cyan-fg">ADMDatamart._get_combined_data</span><span class="ansi-blue-fg">(self, last, strategy)</span>
+<span class="ansi-green-intense-fg ansi-bold">    628</span> combined <span style="color: rgb(98,98,98)">=</span> models<span style="color: rgb(98,98,98)">.</span>join(preds, on<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">ModelID</span><span style="color: rgb(175,0,0)">&#34;</span>, how<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">inner</span><span style="color: rgb(175,0,0)">&#34;</span>, suffix<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Bin</span><span style="color: rgb(175,0,0)">&#34;</span>)
+<span class="ansi-green-intense-fg ansi-bold">    629</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> strategy <span style="color: rgb(98,98,98)">==</span> <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">eager</span><span style="color: rgb(175,0,0)">&#34;</span>:
+<span class="ansi-green-fg">--&gt; 630</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> <span class="ansi-yellow-bg">combined</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">collect</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">)</span><span style="color: rgb(98,98,98)">.</span>lazy()
+<span class="ansi-green-intense-fg ansi-bold">    631</span> <span class="ansi-bold" style="color: rgb(0,135,0)">else</span>:
+<span class="ansi-green-intense-fg ansi-bold">    632</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> combined
+
+File <span class="ansi-green-fg">/opt/hostedtoolcache/Python/3.11.9/x64/lib/python3.11/site-packages/polars/lazyframe/frame.py:1816</span>, in <span class="ansi-cyan-fg">LazyFrame.collect</span><span class="ansi-blue-fg">(self, type_coercion, predicate_pushdown, projection_pushdown, simplify_expression, slice_pushdown, comm_subplan_elim, comm_subexpr_elim, no_optimization, streaming, background, _eager, **_kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1813</span> <span style="color: rgb(95,135,135)"># Only for testing purposes atm.</span>
+<span class="ansi-green-intense-fg ansi-bold">   1814</span> callback <span style="color: rgb(98,98,98)">=</span> _kwargs<span style="color: rgb(98,98,98)">.</span>get(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">post_opt_callback</span><span style="color: rgb(175,0,0)">&#34;</span>)
+<span class="ansi-green-fg">-&gt; 1816</span> <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> wrap_df(<span class="ansi-yellow-bg">ldf</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">collect</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">callback</span><span class="ansi-yellow-bg">)</span>)
+
+<span class="ansi-red-fg">InvalidOperationError</span>: could not determine supertype of: [datetime[ns], dyn int]
+
+
+This error occurred with the following context stack:
+        [1] &#39;filter&#39; failed
+        [2] &#39;join left&#39; input failed to resolve
+
 </pre></div></div>
 </div>
 <p>However, if you want to <em>combine</em> queries, let’s say just looking at Sales/Web, the best way to do that is like this (also note the extra brackets between expressions):</p>
@@ -845,13 +1728,40 @@ Cell <span class="ansi-green-fg">In[15], line 1</span>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 <span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+<span class="ansi-red-fg">InvalidOperationError</span>                     Traceback (most recent call last)
 Cell <span class="ansi-green-fg">In[16], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">dm</span><span style="color: rgb(98,98,98)">.</span>plotPerformanceSuccessRateBubbleChart(
-<span class="ansi-green-intense-fg ansi-bold">      2</span>     query<span style="color: rgb(98,98,98)">=</span>(pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Issue</span><span style="color: rgb(175,0,0)">&#34;</span>) <span style="color: rgb(98,98,98)">==</span> <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Sales</span><span style="color: rgb(175,0,0)">&#34;</span>) <span style="color: rgb(98,98,98)">&amp;</span> (pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Channel</span><span style="color: rgb(175,0,0)">&#34;</span>) <span style="color: rgb(98,98,98)">==</span> <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Web</span><span style="color: rgb(175,0,0)">&#34;</span>)
-<span class="ansi-green-intense-fg ansi-bold">      3</span> )
+<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">dm</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">plotPerformanceSuccessRateBubbleChart</span><span class="ansi-yellow-bg">(</span>
+<span class="ansi-green-intense-fg ansi-bold">      2</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">query</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">pl</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">col</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">Issue</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg">)</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">==</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">Sales</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg">)</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">&amp;</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">pl</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">col</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">Channel</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg">)</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">==</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">Web</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">      3</span> <span class="ansi-yellow-bg">)</span>
 
-<span class="ansi-red-fg">NameError</span>: name &#39;dm&#39; is not defined
+File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/plots/plot_base.py:400</span>, in <span class="ansi-cyan-fg">Plots.plotPerformanceSuccessRateBubbleChart</span><span class="ansi-blue-fg">(self, last, add_bottom_left_text, query, facets, **kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">    390</span> df, facets <span style="color: rgb(98,98,98)">=</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>_subset_data(
+<span class="ansi-green-intense-fg ansi-bold">    391</span>     table<span style="color: rgb(98,98,98)">=</span>table,
+<span class="ansi-green-intense-fg ansi-bold">    392</span>     required_columns<span style="color: rgb(98,98,98)">=</span>required_columns,
+<span class="ansi-green-fg">   (...)</span>
+<span class="ansi-green-intense-fg ansi-bold">    395</span>     last<span style="color: rgb(98,98,98)">=</span>last,
+<span class="ansi-green-intense-fg ansi-bold">    396</span> )
+<span class="ansi-green-intense-fg ansi-bold">    397</span> df <span style="color: rgb(98,98,98)">=</span> df<span style="color: rgb(98,98,98)">.</span>with_columns(
+<span class="ansi-green-intense-fg ansi-bold">    398</span>     (pl<span style="color: rgb(98,98,98)">.</span>col([<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Performance</span><span style="color: rgb(175,0,0)">&#34;</span>]) <span style="color: rgb(98,98,98)">*</span> pl<span style="color: rgb(98,98,98)">.</span>lit(<span style="color: rgb(98,98,98)">100</span>))<span style="color: rgb(98,98,98)">.</span>round(kwargs<span style="color: rgb(98,98,98)">.</span>pop(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">round</span><span style="color: rgb(175,0,0)">&#34;</span>, <span style="color: rgb(98,98,98)">5</span>))
+<span class="ansi-green-intense-fg ansi-bold">    399</span> )
+<span class="ansi-green-fg">--&gt; 400</span> df <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">df</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">collect</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">    401</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> kwargs<span style="color: rgb(98,98,98)">.</span>pop(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">return_df</span><span style="color: rgb(175,0,0)">&#34;</span>, <span class="ansi-bold" style="color: rgb(0,135,0)">False</span>):
+<span class="ansi-green-intense-fg ansi-bold">    402</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> df
+
+File <span class="ansi-green-fg">/opt/hostedtoolcache/Python/3.11.9/x64/lib/python3.11/site-packages/polars/lazyframe/frame.py:1816</span>, in <span class="ansi-cyan-fg">LazyFrame.collect</span><span class="ansi-blue-fg">(self, type_coercion, predicate_pushdown, projection_pushdown, simplify_expression, slice_pushdown, comm_subplan_elim, comm_subexpr_elim, no_optimization, streaming, background, _eager, **_kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1813</span> <span style="color: rgb(95,135,135)"># Only for testing purposes atm.</span>
+<span class="ansi-green-intense-fg ansi-bold">   1814</span> callback <span style="color: rgb(98,98,98)">=</span> _kwargs<span style="color: rgb(98,98,98)">.</span>get(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">post_opt_callback</span><span style="color: rgb(175,0,0)">&#34;</span>)
+<span class="ansi-green-fg">-&gt; 1816</span> <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> wrap_df(<span class="ansi-yellow-bg">ldf</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">collect</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">callback</span><span class="ansi-yellow-bg">)</span>)
+
+<span class="ansi-red-fg">InvalidOperationError</span>: could not determine supertype of: [datetime[ns], dyn int]
+
+
+This error occurred with the following context stack:
+        [1] &#39;filter&#39; failed
+        [2] &#39;select&#39; input failed to resolve
+        [3] &#39;with_columns&#39; input failed to resolve
+        [4] &#39;with_columns&#39; input failed to resolve
+
 </pre></div></div>
 </div>
 <p>We can make use of string operations (hover to verify for yourself!):</p>
@@ -872,14 +1782,41 @@ Cell <span class="ansi-green-fg">In[16], line 1</span>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 <span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+<span class="ansi-red-fg">InvalidOperationError</span>                     Traceback (most recent call last)
 Cell <span class="ansi-green-fg">In[17], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">dm</span><span style="color: rgb(98,98,98)">.</span>plotPerformanceSuccessRateBubbleChart(
-<span class="ansi-green-intense-fg ansi-bold">      2</span>     query<span style="color: rgb(98,98,98)">=</span>(pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Name</span><span style="color: rgb(175,0,0)">&#34;</span>)<span style="color: rgb(98,98,98)">.</span>str<span style="color: rgb(98,98,98)">.</span>starts_with(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Premier</span><span style="color: rgb(175,0,0)">&#34;</span>))
-<span class="ansi-green-intense-fg ansi-bold">      3</span>     <span style="color: rgb(98,98,98)">|</span> (pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Name</span><span style="color: rgb(175,0,0)">&#34;</span>)<span style="color: rgb(98,98,98)">.</span>str<span style="color: rgb(98,98,98)">.</span>ends_with(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Gold</span><span style="color: rgb(175,0,0)">&#34;</span>))
-<span class="ansi-green-intense-fg ansi-bold">      4</span> )
+<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">dm</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">plotPerformanceSuccessRateBubbleChart</span><span class="ansi-yellow-bg">(</span>
+<span class="ansi-green-intense-fg ansi-bold">      2</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">query</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">pl</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">col</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">Name</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg">)</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">str</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">starts_with</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">Premier</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg">)</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">      3</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">|</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">pl</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">col</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">Name</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg">)</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">str</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">ends_with</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">Gold</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg">)</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">      4</span> <span class="ansi-yellow-bg">)</span>
 
-<span class="ansi-red-fg">NameError</span>: name &#39;dm&#39; is not defined
+File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/plots/plot_base.py:400</span>, in <span class="ansi-cyan-fg">Plots.plotPerformanceSuccessRateBubbleChart</span><span class="ansi-blue-fg">(self, last, add_bottom_left_text, query, facets, **kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">    390</span> df, facets <span style="color: rgb(98,98,98)">=</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>_subset_data(
+<span class="ansi-green-intense-fg ansi-bold">    391</span>     table<span style="color: rgb(98,98,98)">=</span>table,
+<span class="ansi-green-intense-fg ansi-bold">    392</span>     required_columns<span style="color: rgb(98,98,98)">=</span>required_columns,
+<span class="ansi-green-fg">   (...)</span>
+<span class="ansi-green-intense-fg ansi-bold">    395</span>     last<span style="color: rgb(98,98,98)">=</span>last,
+<span class="ansi-green-intense-fg ansi-bold">    396</span> )
+<span class="ansi-green-intense-fg ansi-bold">    397</span> df <span style="color: rgb(98,98,98)">=</span> df<span style="color: rgb(98,98,98)">.</span>with_columns(
+<span class="ansi-green-intense-fg ansi-bold">    398</span>     (pl<span style="color: rgb(98,98,98)">.</span>col([<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Performance</span><span style="color: rgb(175,0,0)">&#34;</span>]) <span style="color: rgb(98,98,98)">*</span> pl<span style="color: rgb(98,98,98)">.</span>lit(<span style="color: rgb(98,98,98)">100</span>))<span style="color: rgb(98,98,98)">.</span>round(kwargs<span style="color: rgb(98,98,98)">.</span>pop(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">round</span><span style="color: rgb(175,0,0)">&#34;</span>, <span style="color: rgb(98,98,98)">5</span>))
+<span class="ansi-green-intense-fg ansi-bold">    399</span> )
+<span class="ansi-green-fg">--&gt; 400</span> df <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">df</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">collect</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">    401</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> kwargs<span style="color: rgb(98,98,98)">.</span>pop(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">return_df</span><span style="color: rgb(175,0,0)">&#34;</span>, <span class="ansi-bold" style="color: rgb(0,135,0)">False</span>):
+<span class="ansi-green-intense-fg ansi-bold">    402</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> df
+
+File <span class="ansi-green-fg">/opt/hostedtoolcache/Python/3.11.9/x64/lib/python3.11/site-packages/polars/lazyframe/frame.py:1816</span>, in <span class="ansi-cyan-fg">LazyFrame.collect</span><span class="ansi-blue-fg">(self, type_coercion, predicate_pushdown, projection_pushdown, simplify_expression, slice_pushdown, comm_subplan_elim, comm_subexpr_elim, no_optimization, streaming, background, _eager, **_kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1813</span> <span style="color: rgb(95,135,135)"># Only for testing purposes atm.</span>
+<span class="ansi-green-intense-fg ansi-bold">   1814</span> callback <span style="color: rgb(98,98,98)">=</span> _kwargs<span style="color: rgb(98,98,98)">.</span>get(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">post_opt_callback</span><span style="color: rgb(175,0,0)">&#34;</span>)
+<span class="ansi-green-fg">-&gt; 1816</span> <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> wrap_df(<span class="ansi-yellow-bg">ldf</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">collect</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">callback</span><span class="ansi-yellow-bg">)</span>)
+
+<span class="ansi-red-fg">InvalidOperationError</span>: could not determine supertype of: [datetime[ns], dyn int]
+
+
+This error occurred with the following context stack:
+        [1] &#39;filter&#39; failed
+        [2] &#39;select&#39; input failed to resolve
+        [3] &#39;with_columns&#39; input failed to resolve
+        [4] &#39;with_columns&#39; input failed to resolve
+
 </pre></div></div>
 </div>
 <p>Since we have full access to Polar’s expressions, we can use a <a class="reference external" href="https://pola-rs.github.io/polars/py-polars/html/reference/expressions/index.html">very wide range of functions</a>, including windowing, folds, and slices.</p>
@@ -900,13 +1837,40 @@ Cell <span class="ansi-green-fg">In[17], line 1</span>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 <span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+<span class="ansi-red-fg">InvalidOperationError</span>                     Traceback (most recent call last)
 Cell <span class="ansi-green-fg">In[18], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">dm</span><span style="color: rgb(98,98,98)">.</span>plotPerformanceSuccessRateBubbleChart(
-<span class="ansi-green-intense-fg ansi-bold">      2</span>     query<span style="color: rgb(98,98,98)">=</span>(pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Performance</span><span style="color: rgb(175,0,0)">&#34;</span>) <span style="color: rgb(98,98,98)">==</span> pl<span style="color: rgb(98,98,98)">.</span>max(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Performance</span><span style="color: rgb(175,0,0)">&#34;</span>))<span style="color: rgb(98,98,98)">.</span>over(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Group</span><span style="color: rgb(175,0,0)">&#34;</span>)
-<span class="ansi-green-intense-fg ansi-bold">      3</span> )
+<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">dm</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">plotPerformanceSuccessRateBubbleChart</span><span class="ansi-yellow-bg">(</span>
+<span class="ansi-green-intense-fg ansi-bold">      2</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">query</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">pl</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">col</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">Performance</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg">)</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">==</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">pl</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">max</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">Performance</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg">)</span><span class="ansi-yellow-bg">)</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">over</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">Group</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">      3</span> <span class="ansi-yellow-bg">)</span>
 
-<span class="ansi-red-fg">NameError</span>: name &#39;dm&#39; is not defined
+File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/plots/plot_base.py:400</span>, in <span class="ansi-cyan-fg">Plots.plotPerformanceSuccessRateBubbleChart</span><span class="ansi-blue-fg">(self, last, add_bottom_left_text, query, facets, **kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">    390</span> df, facets <span style="color: rgb(98,98,98)">=</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>_subset_data(
+<span class="ansi-green-intense-fg ansi-bold">    391</span>     table<span style="color: rgb(98,98,98)">=</span>table,
+<span class="ansi-green-intense-fg ansi-bold">    392</span>     required_columns<span style="color: rgb(98,98,98)">=</span>required_columns,
+<span class="ansi-green-fg">   (...)</span>
+<span class="ansi-green-intense-fg ansi-bold">    395</span>     last<span style="color: rgb(98,98,98)">=</span>last,
+<span class="ansi-green-intense-fg ansi-bold">    396</span> )
+<span class="ansi-green-intense-fg ansi-bold">    397</span> df <span style="color: rgb(98,98,98)">=</span> df<span style="color: rgb(98,98,98)">.</span>with_columns(
+<span class="ansi-green-intense-fg ansi-bold">    398</span>     (pl<span style="color: rgb(98,98,98)">.</span>col([<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Performance</span><span style="color: rgb(175,0,0)">&#34;</span>]) <span style="color: rgb(98,98,98)">*</span> pl<span style="color: rgb(98,98,98)">.</span>lit(<span style="color: rgb(98,98,98)">100</span>))<span style="color: rgb(98,98,98)">.</span>round(kwargs<span style="color: rgb(98,98,98)">.</span>pop(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">round</span><span style="color: rgb(175,0,0)">&#34;</span>, <span style="color: rgb(98,98,98)">5</span>))
+<span class="ansi-green-intense-fg ansi-bold">    399</span> )
+<span class="ansi-green-fg">--&gt; 400</span> df <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">df</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">collect</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">    401</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> kwargs<span style="color: rgb(98,98,98)">.</span>pop(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">return_df</span><span style="color: rgb(175,0,0)">&#34;</span>, <span class="ansi-bold" style="color: rgb(0,135,0)">False</span>):
+<span class="ansi-green-intense-fg ansi-bold">    402</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> df
+
+File <span class="ansi-green-fg">/opt/hostedtoolcache/Python/3.11.9/x64/lib/python3.11/site-packages/polars/lazyframe/frame.py:1816</span>, in <span class="ansi-cyan-fg">LazyFrame.collect</span><span class="ansi-blue-fg">(self, type_coercion, predicate_pushdown, projection_pushdown, simplify_expression, slice_pushdown, comm_subplan_elim, comm_subexpr_elim, no_optimization, streaming, background, _eager, **_kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1813</span> <span style="color: rgb(95,135,135)"># Only for testing purposes atm.</span>
+<span class="ansi-green-intense-fg ansi-bold">   1814</span> callback <span style="color: rgb(98,98,98)">=</span> _kwargs<span style="color: rgb(98,98,98)">.</span>get(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">post_opt_callback</span><span style="color: rgb(175,0,0)">&#34;</span>)
+<span class="ansi-green-fg">-&gt; 1816</span> <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> wrap_df(<span class="ansi-yellow-bg">ldf</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">collect</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">callback</span><span class="ansi-yellow-bg">)</span>)
+
+<span class="ansi-red-fg">InvalidOperationError</span>: could not determine supertype of: [datetime[ns], dyn int]
+
+
+This error occurred with the following context stack:
+        [1] &#39;filter&#39; failed
+        [2] &#39;select&#39; input failed to resolve
+        [3] &#39;with_columns&#39; input failed to resolve
+        [4] &#39;with_columns&#39; input failed to resolve
+
 </pre></div></div>
 </div>
 <p>Or we can look at temporal filters, like only looking at the first snapshot:</p>
@@ -924,11 +1888,38 @@ Cell <span class="ansi-green-fg">In[18], line 1</span>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 <span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+<span class="ansi-red-fg">InvalidOperationError</span>                     Traceback (most recent call last)
 Cell <span class="ansi-green-fg">In[19], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">dm</span><span style="color: rgb(98,98,98)">.</span>plotPerformanceSuccessRateBubbleChart(query<span style="color: rgb(98,98,98)">=</span>pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#39;</span><span style="color: rgb(175,0,0)">SnapshotTime</span><span style="color: rgb(175,0,0)">&#39;</span>)<span style="color: rgb(98,98,98)">==</span>pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#39;</span><span style="color: rgb(175,0,0)">SnapshotTime</span><span style="color: rgb(175,0,0)">&#39;</span>)<span style="color: rgb(98,98,98)">.</span>min())
+<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">dm</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">plotPerformanceSuccessRateBubbleChart</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">query</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">pl</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">col</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#39;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">SnapshotTime</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#39;</span><span class="ansi-yellow-bg">)</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">==</span><span class="ansi-yellow-bg">pl</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">col</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#39;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">SnapshotTime</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#39;</span><span class="ansi-yellow-bg">)</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">min</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">)</span><span class="ansi-yellow-bg">)</span>
 
-<span class="ansi-red-fg">NameError</span>: name &#39;dm&#39; is not defined
+File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/plots/plot_base.py:400</span>, in <span class="ansi-cyan-fg">Plots.plotPerformanceSuccessRateBubbleChart</span><span class="ansi-blue-fg">(self, last, add_bottom_left_text, query, facets, **kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">    390</span> df, facets <span style="color: rgb(98,98,98)">=</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>_subset_data(
+<span class="ansi-green-intense-fg ansi-bold">    391</span>     table<span style="color: rgb(98,98,98)">=</span>table,
+<span class="ansi-green-intense-fg ansi-bold">    392</span>     required_columns<span style="color: rgb(98,98,98)">=</span>required_columns,
+<span class="ansi-green-fg">   (...)</span>
+<span class="ansi-green-intense-fg ansi-bold">    395</span>     last<span style="color: rgb(98,98,98)">=</span>last,
+<span class="ansi-green-intense-fg ansi-bold">    396</span> )
+<span class="ansi-green-intense-fg ansi-bold">    397</span> df <span style="color: rgb(98,98,98)">=</span> df<span style="color: rgb(98,98,98)">.</span>with_columns(
+<span class="ansi-green-intense-fg ansi-bold">    398</span>     (pl<span style="color: rgb(98,98,98)">.</span>col([<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Performance</span><span style="color: rgb(175,0,0)">&#34;</span>]) <span style="color: rgb(98,98,98)">*</span> pl<span style="color: rgb(98,98,98)">.</span>lit(<span style="color: rgb(98,98,98)">100</span>))<span style="color: rgb(98,98,98)">.</span>round(kwargs<span style="color: rgb(98,98,98)">.</span>pop(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">round</span><span style="color: rgb(175,0,0)">&#34;</span>, <span style="color: rgb(98,98,98)">5</span>))
+<span class="ansi-green-intense-fg ansi-bold">    399</span> )
+<span class="ansi-green-fg">--&gt; 400</span> df <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">df</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">collect</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">    401</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> kwargs<span style="color: rgb(98,98,98)">.</span>pop(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">return_df</span><span style="color: rgb(175,0,0)">&#34;</span>, <span class="ansi-bold" style="color: rgb(0,135,0)">False</span>):
+<span class="ansi-green-intense-fg ansi-bold">    402</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> df
+
+File <span class="ansi-green-fg">/opt/hostedtoolcache/Python/3.11.9/x64/lib/python3.11/site-packages/polars/lazyframe/frame.py:1816</span>, in <span class="ansi-cyan-fg">LazyFrame.collect</span><span class="ansi-blue-fg">(self, type_coercion, predicate_pushdown, projection_pushdown, simplify_expression, slice_pushdown, comm_subplan_elim, comm_subexpr_elim, no_optimization, streaming, background, _eager, **_kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1813</span> <span style="color: rgb(95,135,135)"># Only for testing purposes atm.</span>
+<span class="ansi-green-intense-fg ansi-bold">   1814</span> callback <span style="color: rgb(98,98,98)">=</span> _kwargs<span style="color: rgb(98,98,98)">.</span>get(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">post_opt_callback</span><span style="color: rgb(175,0,0)">&#34;</span>)
+<span class="ansi-green-fg">-&gt; 1816</span> <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> wrap_df(<span class="ansi-yellow-bg">ldf</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">collect</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">callback</span><span class="ansi-yellow-bg">)</span>)
+
+<span class="ansi-red-fg">InvalidOperationError</span>: could not determine supertype of: [datetime[ns], dyn int]
+
+
+This error occurred with the following context stack:
+        [1] &#39;filter&#39; failed
+        [2] &#39;select&#39; input failed to resolve
+        [3] &#39;with_columns&#39; input failed to resolve
+        [4] &#39;with_columns&#39; input failed to resolve
+
 </pre></div></div>
 </div>
 </section>

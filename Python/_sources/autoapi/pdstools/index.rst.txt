@@ -38,6 +38,7 @@ Classes
    pdstools.ADMTrees
    pdstools.MultiTrees
    pdstools.BinAggregator
+   pdstools.CDHLimits
    pdstools.Config
    pdstools.DataAnonymization
    pdstools.PegaDefaultTables
@@ -861,6 +862,40 @@ Attributes
    :param -----:
    :param >>> from pdstools import setupAzureOpenAI:
    :param >>> setupAzureOpenAI():
+
+
+.. py:class:: CDHLimits
+
+
+   Bases: :py:obj:`object`
+
+   A singleton container for best practice limits for CDH.
+
+   .. py:attribute:: LimitStatus
+
+      
+
+   .. py:attribute:: Metrics
+
+      
+
+   .. py:attribute:: _instance
+
+      
+
+   .. py:attribute:: num_limit
+
+      
+
+   .. py:attribute:: lims
+
+      
+
+   .. py:method:: get_limits(metric: Metrics) -> Union[num_limit, None]
+
+
+   .. py:method:: check_limits(metric: Metrics, value: object) -> LimitStatus
+
 
 
 .. py:function:: defaultPredictorCategorization(x: Union[str, polars.Expr] = pl.col('PredictorName')) -> polars.Expr
