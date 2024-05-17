@@ -1,7 +1,8 @@
 from typing import List
 import polars as pl
 
-from ..utils import cdh_utils, NBAD
+from ..utils import cdh_utils
+from ..utils import NBAD
 
 
 class Prediction:
@@ -27,7 +28,7 @@ class Prediction:
     )
 
     def getPredictionsChannelMapping(
-        self, custom_predictions=List[NBAD.NBAD_prediction]
+        self, custom_predictions=List[NBAD.NBAD_Prediction]
     ) -> pl.DataFrame:
         all_mappings = NBAD.standardNBADPredictions + custom_predictions
         return pl.DataFrame(
@@ -114,7 +115,7 @@ class Prediction:
 
     def summary_by_channel(
         self,
-        custom_predictions: List[NBAD.NBAD_prediction] = None,
+        custom_predictions: List[NBAD.NBAD_Prediction] = None,
     ) -> pl.LazyFrame:
         if not custom_predictions:
             custom_predictions = []
@@ -173,7 +174,7 @@ class Prediction:
         )
 
     def overall_summary(
-        self, custom_predictions: List[NBAD.NBAD_prediction] = None
+        self, custom_predictions: List[NBAD.NBAD_Prediction] = None
     ) -> pl.LazyFrame:
         return (
             self.summary_by_channel(custom_predictions)
