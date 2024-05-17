@@ -13,8 +13,7 @@ import pathlib
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(f"{str(basePath)}/python")
-from pdstools import Prediction, cdh_utils
-from pdstools import errors
+from pdstools import Prediction, cdh_utils, errors
 
 
 @pytest.fixture

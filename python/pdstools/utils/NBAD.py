@@ -1,14 +1,8 @@
 from collections import namedtuple
 from typing import List
 
-# TODO move out of ADMDatamart
-
-# TODO ADM DM currently not using the namedtuple types so temporarily redefined here...
-# perhaps put in separate NBAD class in utils
-
-
 NBAD_ModelConfiguration = namedtuple(
-    "Configurations",
+    "NBAD_ModelConfiguration",
     ["model_name", "channel", "direction", "standard", "multi_channel"],
 )
 standardNBADModelConfigurations: List[NBAD_ModelConfiguration] = [
@@ -63,9 +57,8 @@ standardNBADModelConfigurations: List[NBAD_ModelConfiguration] = [
     ),
 ]
 
-# Prediction name (case insensitive), channel, direction, is-standard (True here), is-multi channel
 NBAD_Prediction = namedtuple(
-    "Configurations",
+    "NBAD_Prediction",
     ["model_name", "channel", "direction", "standard", "multi_channel"],
 )
 standardNBADPredictions: List[NBAD_Prediction] = [
