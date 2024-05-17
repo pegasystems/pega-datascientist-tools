@@ -266,8 +266,6 @@ Classes
    .. py:method:: _last(df: pdstools.utils.types.any_frame) -> pdstools.utils.types.any_frame
       :staticmethod:
 
-      Method to retrieve only the last snapshot.
-
 
    .. py:method:: _last_timestamp(col: Literal[ResponseCount, Positives]) -> polars.Expr
       :staticmethod:

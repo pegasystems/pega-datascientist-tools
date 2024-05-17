@@ -370,7 +370,7 @@
 </div>
 </div>
 <p>For the example we pick one particular model over a channel. To explain the ADM model report, we use one of the active predictors as an example. Swap for any other predictor when using different data.</p>
-<div class="nbinput docutils container">
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
@@ -396,156 +396,312 @@
 </pre></div>
 </div>
 </div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">InvalidOperationError</span>                     Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[4], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> dm <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">datasets</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">CDHSample</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">subset</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg ansi-bold" style="color: rgb(0,135,0)">False</span><span class="ansi-yellow-bg">)</span>
-<span class="ansi-green-intense-fg ansi-bold">      3</span> model <span style="color: rgb(98,98,98)">=</span> dm<span style="color: rgb(98,98,98)">.</span>combinedData<span style="color: rgb(98,98,98)">.</span>filter(
-<span class="ansi-green-intense-fg ansi-bold">      4</span>     (pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Name</span><span style="color: rgb(175,0,0)">&#34;</span>) <span style="color: rgb(98,98,98)">==</span> model_name) <span style="color: rgb(98,98,98)">&amp;</span> (pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Channel</span><span style="color: rgb(175,0,0)">&#34;</span>) <span style="color: rgb(98,98,98)">==</span> channel)
-<span class="ansi-green-intense-fg ansi-bold">      5</span> )
-<span class="ansi-green-intense-fg ansi-bold">      7</span> modelpredictors <span style="color: rgb(98,98,98)">=</span> (
-<span class="ansi-green-intense-fg ansi-bold">      8</span>     dm<span style="color: rgb(98,98,98)">.</span>combinedData<span style="color: rgb(98,98,98)">.</span>join(
-<span class="ansi-green-intense-fg ansi-bold">      9</span>         model<span style="color: rgb(98,98,98)">.</span>select(pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">ModelID</span><span style="color: rgb(175,0,0)">&#34;</span>)<span style="color: rgb(98,98,98)">.</span>unique()), on<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">ModelID</span><span style="color: rgb(175,0,0)">&#34;</span>, how<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">inner</span><span style="color: rgb(175,0,0)">&#34;</span>
-<span class="ansi-green-fg">   (...)</span>
-<span class="ansi-green-intense-fg ansi-bold">     14</span>     <span style="color: rgb(98,98,98)">.</span>collect()
-<span class="ansi-green-intense-fg ansi-bold">     15</span> )
-
-File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/utils/datasets.py:10</span>, in <span class="ansi-cyan-fg">CDHSample</span><span class="ansi-blue-fg">(plotting_engine, query, **kwargs)</span>
-<span class="ansi-green-intense-fg ansi-bold">      8</span> models <span style="color: rgb(98,98,98)">=</span> <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip</span><span style="color: rgb(175,0,0)">&#34;</span>
-<span class="ansi-green-intense-fg ansi-bold">      9</span> predictors <span style="color: rgb(98,98,98)">=</span> <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip</span><span style="color: rgb(175,0,0)">&#34;</span>
-<span class="ansi-green-fg">---&gt; 10</span> <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> <span class="ansi-yellow-bg">ADMDatamart</span><span class="ansi-yellow-bg">(</span>
-<span class="ansi-green-intense-fg ansi-bold">     11</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">path</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">path</span><span class="ansi-yellow-bg">,</span>
-<span class="ansi-green-intense-fg ansi-bold">     12</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">model_filename</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">models</span><span class="ansi-yellow-bg">,</span>
-<span class="ansi-green-intense-fg ansi-bold">     13</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">predictor_filename</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">predictors</span><span class="ansi-yellow-bg">,</span>
-<span class="ansi-green-intense-fg ansi-bold">     14</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">plotting_engine</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">plotting_engine</span><span class="ansi-yellow-bg">,</span>
-<span class="ansi-green-intense-fg ansi-bold">     15</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">query</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">query</span><span class="ansi-yellow-bg">,</span>
-<span class="ansi-green-intense-fg ansi-bold">     16</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">*</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">*</span><span class="ansi-yellow-bg">kwargs</span><span class="ansi-yellow-bg">,</span>
-<span class="ansi-green-intense-fg ansi-bold">     17</span> <span class="ansi-yellow-bg">)</span>
-
-File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/adm/ADMDatamart.py:179</span>, in <span class="ansi-cyan-fg">ADMDatamart.__init__</span><span class="ansi-blue-fg">(self, path, import_strategy, model_filename, predictor_filename, model_df, predictor_df, query, subset, drop_cols, include_cols, context_keys, extract_keys, predictorCategorization, plotting_engine, verbose, **reading_opts)</span>
-<span class="ansi-green-intense-fg ansi-bold">    176</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>plotting_engine <span style="color: rgb(98,98,98)">=</span> plotting_engine
-<span class="ansi-green-intense-fg ansi-bold">    177</span> <span style="color: rgb(0,135,0)">super</span>()<span style="color: rgb(98,98,98)">.</span><span style="color: rgb(0,0,255)">__init__</span>()
-<span class="ansi-green-fg">--&gt; 179</span> <span class="ansi-yellow-bg" style="color: rgb(0,135,0)">self</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">processTables</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg" style="color: rgb(0,135,0)">self</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">query</span><span class="ansi-yellow-bg">)</span>
-
-File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/adm/ADMDatamart.py:670</span>, in <span class="ansi-cyan-fg">ADMDatamart.processTables</span><span class="ansi-blue-fg">(self, query)</span>
-<span class="ansi-green-intense-fg ansi-bold">    667</span>         <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>predictorData <span style="color: rgb(98,98,98)">=</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>predictorData<span style="color: rgb(98,98,98)">.</span>collect()<span style="color: rgb(98,98,98)">.</span>lazy()
-<span class="ansi-green-intense-fg ansi-bold">    669</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>predictorData <span class="ansi-bold" style="color: rgb(175,0,255)">is</span> <span class="ansi-bold" style="color: rgb(175,0,255)">not</span> <span class="ansi-bold" style="color: rgb(0,135,0)">None</span> <span class="ansi-bold" style="color: rgb(175,0,255)">and</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>modelData <span class="ansi-bold" style="color: rgb(175,0,255)">is</span> <span class="ansi-bold" style="color: rgb(175,0,255)">not</span> <span class="ansi-bold" style="color: rgb(0,135,0)">None</span>:
-<span class="ansi-green-fg">--&gt; 670</span>     <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>combinedData <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg" style="color: rgb(0,135,0)">self</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">_get_combined_data</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">strategy</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg" style="color: rgb(0,135,0)">self</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">import_strategy</span><span class="ansi-yellow-bg">)</span>
-<span class="ansi-green-intense-fg ansi-bold">    671</span> <span class="ansi-bold" style="color: rgb(0,135,0)">elif</span> <span style="color: rgb(0,135,0)">self</span><span style="color: rgb(98,98,98)">.</span>verbose:
-<span class="ansi-green-intense-fg ansi-bold">    672</span>     <span style="color: rgb(0,135,0)">print</span>(
-<span class="ansi-green-intense-fg ansi-bold">    673</span>         <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Could not be combined. Do you have both model data and predictor data?</span><span style="color: rgb(175,0,0)">&#34;</span>
-<span class="ansi-green-intense-fg ansi-bold">    674</span>     )
-
-File <span class="ansi-green-fg">~/work/pega-datascientist-tools/pega-datascientist-tools/python/docs/source/articles/../../../pdstools/adm/ADMDatamart.py:630</span>, in <span class="ansi-cyan-fg">ADMDatamart._get_combined_data</span><span class="ansi-blue-fg">(self, last, strategy)</span>
-<span class="ansi-green-intense-fg ansi-bold">    628</span> combined <span style="color: rgb(98,98,98)">=</span> models<span style="color: rgb(98,98,98)">.</span>join(preds, on<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">ModelID</span><span style="color: rgb(175,0,0)">&#34;</span>, how<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">inner</span><span style="color: rgb(175,0,0)">&#34;</span>, suffix<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Bin</span><span style="color: rgb(175,0,0)">&#34;</span>)
-<span class="ansi-green-intense-fg ansi-bold">    629</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> strategy <span style="color: rgb(98,98,98)">==</span> <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">eager</span><span style="color: rgb(175,0,0)">&#34;</span>:
-<span class="ansi-green-fg">--&gt; 630</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> <span class="ansi-yellow-bg">combined</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">collect</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">)</span><span style="color: rgb(98,98,98)">.</span>lazy()
-<span class="ansi-green-intense-fg ansi-bold">    631</span> <span class="ansi-bold" style="color: rgb(0,135,0)">else</span>:
-<span class="ansi-green-intense-fg ansi-bold">    632</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> combined
-
-File <span class="ansi-green-fg">/opt/hostedtoolcache/Python/3.11.9/x64/lib/python3.11/site-packages/polars/lazyframe/frame.py:1816</span>, in <span class="ansi-cyan-fg">LazyFrame.collect</span><span class="ansi-blue-fg">(self, type_coercion, predicate_pushdown, projection_pushdown, simplify_expression, slice_pushdown, comm_subplan_elim, comm_subexpr_elim, no_optimization, streaming, background, _eager, **_kwargs)</span>
-<span class="ansi-green-intense-fg ansi-bold">   1813</span> <span style="color: rgb(95,135,135)"># Only for testing purposes atm.</span>
-<span class="ansi-green-intense-fg ansi-bold">   1814</span> callback <span style="color: rgb(98,98,98)">=</span> _kwargs<span style="color: rgb(98,98,98)">.</span>get(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">post_opt_callback</span><span style="color: rgb(175,0,0)">&#34;</span>)
-<span class="ansi-green-fg">-&gt; 1816</span> <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> wrap_df(<span class="ansi-yellow-bg">ldf</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">collect</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">callback</span><span class="ansi-yellow-bg">)</span>)
-
-<span class="ansi-red-fg">InvalidOperationError</span>: could not determine supertype of: [datetime[ns], dyn int]
-
-
-This error occurred with the following context stack:
-        [1] &#39;filter&#39; failed
-        [2] &#39;join left&#39; input failed to resolve
-
-</pre></div></div>
-</div>
 <section id="Model-Overview">
 <h2>Model Overview<a class="headerlink" href="#Model-Overview" title="Link to this heading">¶</a></h2>
 <p>The selected model is shown below. Only the currently active predictors are used for the propensity calculation, so only showing those.</p>
 <div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[6], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> <span class="ansi-yellow-bg">modelpredictors</span><span style="color: rgb(98,98,98)">.</span>select(
-<span class="ansi-green-intense-fg ansi-bold">      2</span>     pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Action</span><span style="color: rgb(175,0,0)">&#34;</span>)<span style="color: rgb(98,98,98)">.</span>unique(),
-<span class="ansi-green-intense-fg ansi-bold">      3</span>     pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Channel</span><span style="color: rgb(175,0,0)">&#34;</span>)<span style="color: rgb(98,98,98)">.</span>unique(),
-<span class="ansi-green-intense-fg ansi-bold">      4</span>     pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Name</span><span style="color: rgb(175,0,0)">&#34;</span>)<span style="color: rgb(98,98,98)">.</span>unique(),
-<span class="ansi-green-intense-fg ansi-bold">      5</span>     pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">PredictorName</span><span style="color: rgb(175,0,0)">&#34;</span>)<span style="color: rgb(98,98,98)">.</span>unique()<span style="color: rgb(98,98,98)">.</span>sort()<span style="color: rgb(98,98,98)">.</span>implode()<span style="color: rgb(98,98,98)">.</span>alias(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Active Predictors</span><span style="color: rgb(175,0,0)">&#34;</span>),
-<span class="ansi-green-intense-fg ansi-bold">      6</span>     (pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Performance</span><span style="color: rgb(175,0,0)">&#34;</span>)<span style="color: rgb(98,98,98)">.</span>unique() <span style="color: rgb(98,98,98)">*</span> <span style="color: rgb(98,98,98)">100</span>)<span style="color: rgb(98,98,98)">.</span>alias(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Model Performance (AUC)</span><span style="color: rgb(175,0,0)">&#34;</span>),
-<span class="ansi-green-intense-fg ansi-bold">      7</span> )<span style="color: rgb(98,98,98)">.</span>to_pandas()<span style="color: rgb(98,98,98)">.</span>T<span style="color: rgb(98,98,98)">.</span>set_axis([<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Values</span><span style="color: rgb(175,0,0)">&#34;</span>], axis<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(98,98,98)">1</span>)
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
 
-<span class="ansi-red-fg">NameError</span>: name &#39;modelpredictors&#39; is not defined
-</pre></div></div>
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Values</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Action</th>
+      <td>Sales/AutoLoans</td>
+    </tr>
+    <tr>
+      <th>Channel</th>
+      <td>Web</td>
+    </tr>
+    <tr>
+      <th>Name</th>
+      <td>AutoNew84Months</td>
+    </tr>
+    <tr>
+      <th>Active Predictors</th>
+      <td>[Classifier, Customer.Age, Customer.AnnualIncome, Customer.BusinessSegment, Customer.CLV, Customer.CLV_VALUE, Customer.CreditScore, Customer.Date_of_Birth, Customer.Gender, Customer.MaritalStatus, Customer.NetWealth, Customer.NoOfDependents, Customer.Prefix, Customer.RelationshipStartDate, Customer.RiskCode, Customer.WinScore, Customer.pyCountry, IH.Email.Outbound.Accepted.pxLastGroupID, IH.Email.Outbound.Accepted.pxLastOutcomeTime.DaysSince, IH.Email.Outbound.Accepted.pyHistoricalOutcomeCount, IH.Email.Outbound.Churned.pyHistoricalOutcomeCount, IH.Email.Outbound.Loyal.pxLastOutcomeTime.DaysSince, IH.Email.Outbound.Rejected.pyHistoricalOutcomeCount, IH.SMS.Outbound.Accepted.pxLastGroupID, IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount, IH.SMS.Outbound.Churned.pxLastOutcomeTime.DaysSince, IH.SMS.Outbound.Loyal.pxLastOutcomeTime.DaysSince, IH.SMS.Outbound.Loyal.pyHistoricalOutcomeCount, IH.SMS.Outbound.Rejected.pxLastGroupID, IH.SMS.Outbound.Rejected.pyHistoricalOutcomeCount, IH.Web.Inbound.Accepted.pxLastGroupID, IH.Web.Inbound.Accepted.pyHistoricalOutcomeCount, IH.Web.Inbound.Loyal.pxLastGroupID, IH.Web.Inbound.Loyal.pyHistoricalOutcomeCount, IH.Web.Inbound.Rejected.pxLastGroupID, IH.Web.Inbound.Rejected.pyHistoricalOutcomeCount, Param.ExtGroupCreditcards]</td>
+    </tr>
+    <tr>
+      <th>Model Performance (AUC)</th>
+      <td>77.4901</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
 </div>
 </section>
 <section id="Binning-of-the-selected-Predictor">
 <h2>Binning of the selected Predictor<a class="headerlink" href="#Binning-of-the-selected-Predictor" title="Link to this heading">¶</a></h2>
 <p>The Model Report in Prediction Studio for this model will have a predictor binning plot like below.</p>
 <p>All numbers can be derived from just the number of positives and negatives in each bin that are stored in the ADM Data Mart. The next sections will show exactly how that is done.</p>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Value</th>
+    </tr>
+    <tr>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Predictor Name</th>
+      <td>Customer.NetWealth</td>
+    </tr>
+    <tr>
+      <th># Responses</th>
+      <td>1636</td>
+    </tr>
+    <tr>
+      <th># Bins</th>
+      <td>8</td>
+    </tr>
+    <tr>
+      <th>Predictor Performance(AUC)</th>
+      <td>72.2077</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<script type="text/javascript">
+window.PlotlyConfig = {MathJaxConfig: 'local'};
+if (window.MathJax && window.MathJax.Hub && window.MathJax.Hub.Config) {window.MathJax.Hub.Config({SVG: {font: "STIX-Web"}});}
+if (typeof require !== 'undefined') {
+require.undef("plotly");
+requirejs.config({
+    paths: {
+        'plotly': ['https://cdn.plot.ly/plotly-2.32.0.min']
+    }
+});
+require(['plotly'], function(Plotly) {
+    window._Plotly = Plotly;
+});
+}
+</script></div>
+</div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[7], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> display(<span class="ansi-yellow-bg">predictorbinning</span><span style="color: rgb(98,98,98)">.</span>group_by(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">PredictorName</span><span style="color: rgb(175,0,0)">&#34;</span>)<span style="color: rgb(98,98,98)">.</span>agg(
-<span class="ansi-green-intense-fg ansi-bold">      2</span>     pl<span style="color: rgb(98,98,98)">.</span>first(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">ResponseCount</span><span style="color: rgb(175,0,0)">&#34;</span>)<span style="color: rgb(98,98,98)">.</span>cast(pl<span style="color: rgb(98,98,98)">.</span>Int64)<span style="color: rgb(98,98,98)">.</span>alias(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)"># Responses</span><span style="color: rgb(175,0,0)">&#34;</span>),
-<span class="ansi-green-intense-fg ansi-bold">      3</span>     pl<span style="color: rgb(98,98,98)">.</span>n_unique(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">BinIndex</span><span style="color: rgb(175,0,0)">&#34;</span>)<span style="color: rgb(98,98,98)">.</span>alias(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)"># Bins</span><span style="color: rgb(175,0,0)">&#34;</span>),
-<span class="ansi-green-intense-fg ansi-bold">      4</span>     (pl<span style="color: rgb(98,98,98)">.</span>first(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">PerformanceBin</span><span style="color: rgb(175,0,0)">&#34;</span>) <span style="color: rgb(98,98,98)">*</span> <span style="color: rgb(98,98,98)">100</span>)<span style="color: rgb(98,98,98)">.</span>alias(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Predictor Performance(AUC)</span><span style="color: rgb(175,0,0)">&#34;</span>),
-<span class="ansi-green-intense-fg ansi-bold">      5</span> )<span style="color: rgb(98,98,98)">.</span>rename({<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">PredictorName</span><span style="color: rgb(175,0,0)">&#34;</span>: <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Predictor Name</span><span style="color: rgb(175,0,0)">&#34;</span>})<span style="color: rgb(98,98,98)">.</span>transpose(include_header<span style="color: rgb(98,98,98)">=</span><span class="ansi-bold" style="color: rgb(0,135,0)">True</span>)<span style="color: rgb(98,98,98)">.</span>rename(
-<span class="ansi-green-intense-fg ansi-bold">      6</span>     {<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">column</span><span style="color: rgb(175,0,0)">&#34;</span>: <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">&#34;</span>, <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">column_0</span><span style="color: rgb(175,0,0)">&#34;</span>: <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Value</span><span style="color: rgb(175,0,0)">&#34;</span>}
-<span class="ansi-green-intense-fg ansi-bold">      7</span> )<span style="color: rgb(98,98,98)">.</span>to_pandas()<span style="color: rgb(98,98,98)">.</span>set_index(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">&#34;</span>))
-<span class="ansi-green-intense-fg ansi-bold">      9</span> fig <span style="color: rgb(98,98,98)">=</span> dm<span style="color: rgb(98,98,98)">.</span>plotPredictorBinning(modelids<span style="color: rgb(98,98,98)">=</span>modelpredictors<span style="color: rgb(98,98,98)">.</span>get_column(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">ModelID</span><span style="color: rgb(175,0,0)">&#34;</span>)<span style="color: rgb(98,98,98)">.</span>unique()<span style="color: rgb(98,98,98)">.</span>to_list(),
-<span class="ansi-green-intense-fg ansi-bold">     10</span>                         predictors<span style="color: rgb(98,98,98)">=</span>[predictor_name])
-<span class="ansi-green-intense-fg ansi-bold">     11</span> fig<span style="color: rgb(98,98,98)">.</span>update_layout(width<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(98,98,98)">600</span>, height<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(98,98,98)">400</span>)
+<div class="output_area rendered_html docutils container">
+<div>                            <div id="14283d64-01c6-4727-afa7-77e472d4886a" class="plotly-graph-div" style="height:400px; width:600px;"></div>            <script type="text/javascript">                require(["plotly"], function(Plotly) {                    window.PLOTLYENV=window.PLOTLYENV || {};                                    if (document.getElementById("14283d64-01c6-4727-afa7-77e472d4886a")) {                    Plotly.newPlot(                        "14283d64-01c6-4727-afa7-77e472d4886a",                        [{"name":"Responses","x":["\u003c11684.56","[11684.56, 13732.56\u003e","[13732.56, 16845.52\u003e","[16845.52, 19139.28\u003e","[19139.28, 20286.16\u003e","[20286.16, 22743.76\u003e","[22743.76, 23890.64\u003e","\u003e=23890.64"],"y":[436.0,202.0,267.0,230.0,90.0,222.0,90.0,99.0],"type":"bar"},{"mode":"lines+markers","name":"Propensity","x":["\u003c11684.56","[11684.56, 13732.56\u003e","[13732.56, 16845.52\u003e","[16845.52, 19139.28\u003e","[19139.28, 20286.16\u003e","[20286.16, 22743.76\u003e","[22743.76, 23890.64\u003e","\u003e=23890.64"],"y":[0.029816513881087303,0.11881188303232193,0.06367041170597076,0.22173912823200226,0.07777778059244156,0.2387387454509735,0.14444445073604584,0.28282827138900757],"yaxis":"y2","type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"anchor":"y","domain":[0.0,0.94],"title":{"text":"Range"},"type":"category"},"yaxis":{"anchor":"x","domain":[0.0,1.0],"title":{"text":"Responses"},"showgrid":false},"yaxis2":{"anchor":"x","overlaying":"y","side":"right","title":{"text":"Propensity"},"tickformat":",.3%","zeroline":false,"showgrid":false},"title":{"text":"Model name: ('AutoNew84Months',)\u003cbr\u003e\u003csup\u003eModel ID: 68e1d164-81e3-5da0-816c-0bbc3c20ac6c\u003cbr\u003ePredictor name: Customer.NetWealth\u003c\u002fsup\u003e"},"width":600,"height":400},                        {"responsive": true}                    ).then(function(){
 
-<span class="ansi-red-fg">NameError</span>: name &#39;predictorbinning&#39; is not defined
-</pre></div></div>
+var gd = document.getElementById('14283d64-01c6-4727-afa7-77e472d4886a');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };                });            </script>        </div></div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[8], line 8</span>
-<span class="ansi-green-intense-fg ansi-bold">      4</span> sumNegatives <span style="color: rgb(98,98,98)">=</span> pl<span style="color: rgb(98,98,98)">.</span>sum(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">BinNegatives</span><span style="color: rgb(175,0,0)">&#34;</span>)
-<span class="ansi-green-intense-fg ansi-bold">      6</span> <span style="color: rgb(95,135,135)"># TODO: add totals for first 5 columns, base rate for 6 and 0,1, see R version</span>
-<span class="ansi-green-fg">----&gt; 8</span> binstats <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">predictorbinning</span><span style="color: rgb(98,98,98)">.</span>select(
-<span class="ansi-green-intense-fg ansi-bold">      9</span>     pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">BinSymbol</span><span style="color: rgb(175,0,0)">&#34;</span>)<span style="color: rgb(98,98,98)">.</span>alias(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Range/Symbol</span><span style="color: rgb(175,0,0)">&#34;</span>),
-<span class="ansi-green-intense-fg ansi-bold">     10</span>     ((BinPositives <span style="color: rgb(98,98,98)">+</span> BinNegatives) <span style="color: rgb(98,98,98)">/</span> (sumPositives <span style="color: rgb(98,98,98)">+</span> sumNegatives))
-<span class="ansi-green-intense-fg ansi-bold">     11</span>     <span style="color: rgb(98,98,98)">.</span>round(<span style="color: rgb(98,98,98)">3</span>)
-<span class="ansi-green-intense-fg ansi-bold">     12</span>     <span style="color: rgb(98,98,98)">.</span>alias(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Responses (</span><span style="color: rgb(175,0,0)">%</span><span style="color: rgb(175,0,0)">)</span><span style="color: rgb(175,0,0)">&#34;</span>),
-<span class="ansi-green-intense-fg ansi-bold">     13</span>     BinPositives<span style="color: rgb(98,98,98)">.</span>alias(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Positives</span><span style="color: rgb(175,0,0)">&#34;</span>),
-<span class="ansi-green-intense-fg ansi-bold">     14</span>     (BinPositives <span style="color: rgb(98,98,98)">/</span> sumPositives)<span style="color: rgb(98,98,98)">.</span>round(<span style="color: rgb(98,98,98)">3</span>)<span style="color: rgb(98,98,98)">.</span>alias(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Positives (</span><span style="color: rgb(175,0,0)">%</span><span style="color: rgb(175,0,0)">)</span><span style="color: rgb(175,0,0)">&#34;</span>),
-<span class="ansi-green-intense-fg ansi-bold">     15</span>     BinNegatives<span style="color: rgb(98,98,98)">.</span>alias(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Negatives</span><span style="color: rgb(175,0,0)">&#34;</span>),
-<span class="ansi-green-intense-fg ansi-bold">     16</span>     (BinNegatives <span style="color: rgb(98,98,98)">/</span> sumNegatives)<span style="color: rgb(98,98,98)">.</span>round(<span style="color: rgb(98,98,98)">3</span>)<span style="color: rgb(98,98,98)">.</span>alias(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Negatives (</span><span style="color: rgb(175,0,0)">%</span><span style="color: rgb(175,0,0)">)</span><span style="color: rgb(175,0,0)">&#34;</span>),
-<span class="ansi-green-intense-fg ansi-bold">     17</span>     (BinPositives <span style="color: rgb(98,98,98)">/</span> (BinPositives <span style="color: rgb(98,98,98)">+</span> BinNegatives))<span style="color: rgb(98,98,98)">.</span>round(<span style="color: rgb(98,98,98)">4</span>)<span style="color: rgb(98,98,98)">.</span>alias(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Propensity (</span><span style="color: rgb(175,0,0)">%</span><span style="color: rgb(175,0,0)">)</span><span style="color: rgb(175,0,0)">&#34;</span>),
-<span class="ansi-green-intense-fg ansi-bold">     18</span>     cdh_utils<span style="color: rgb(98,98,98)">.</span>zRatio(negCol<span style="color: rgb(98,98,98)">=</span>BinNegatives, posCol<span style="color: rgb(98,98,98)">=</span>BinPositives),
-<span class="ansi-green-intense-fg ansi-bold">     19</span>     (
-<span class="ansi-green-intense-fg ansi-bold">     20</span>         (BinPositives <span style="color: rgb(98,98,98)">/</span> (BinPositives <span style="color: rgb(98,98,98)">+</span> BinNegatives))
-<span class="ansi-green-intense-fg ansi-bold">     21</span>         <span style="color: rgb(98,98,98)">/</span> (sumPositives <span style="color: rgb(98,98,98)">/</span> (BinPositives <span style="color: rgb(98,98,98)">+</span> BinNegatives)<span style="color: rgb(98,98,98)">.</span>sum())
-<span class="ansi-green-intense-fg ansi-bold">     22</span>     )<span style="color: rgb(98,98,98)">.</span>alias(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Lift</span><span style="color: rgb(175,0,0)">&#34;</span>),
-<span class="ansi-green-intense-fg ansi-bold">     23</span> )
-<span class="ansi-green-intense-fg ansi-bold">     25</span> binstats<span style="color: rgb(98,98,98)">.</span>vstack(
-<span class="ansi-green-intense-fg ansi-bold">     26</span>     pl<span style="color: rgb(98,98,98)">.</span>DataFrame(<span style="color: rgb(0,135,0)">dict</span>(<span style="color: rgb(0,135,0)">zip</span>(
-<span class="ansi-green-intense-fg ansi-bold">     27</span>                 binstats<span style="color: rgb(98,98,98)">.</span>columns,
-<span class="ansi-green-fg">   (...)</span>
-<span class="ansi-green-intense-fg ansi-bold">     30</span>     schema<span style="color: rgb(98,98,98)">=</span>binstats<span style="color: rgb(98,98,98)">.</span>schema,
-<span class="ansi-green-intense-fg ansi-bold">     31</span>     ))<span style="color: rgb(98,98,98)">.</span>to_pandas()<span style="color: rgb(98,98,98)">.</span>set_index(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Range/Symbol</span><span style="color: rgb(175,0,0)">&#34;</span>)
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
 
-<span class="ansi-red-fg">NameError</span>: name &#39;predictorbinning&#39; is not defined
-</pre></div></div>
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Responses (%)</th>
+      <th>Positives</th>
+      <th>Positives (%)</th>
+      <th>Negatives</th>
+      <th>Negatives (%)</th>
+      <th>Propensity (%)</th>
+      <th>ZRatio</th>
+      <th>Lift</th>
+    </tr>
+    <tr>
+      <th>Range/Symbol</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>&lt;11684.56</th>
+      <td>0.267</td>
+      <td>13.0</td>
+      <td>0.063</td>
+      <td>423.0</td>
+      <td>0.296</td>
+      <td>0.0298</td>
+      <td>-11.186877</td>
+      <td>0.236795</td>
+    </tr>
+    <tr>
+      <th>[11684.56, 13732.56&gt;</th>
+      <td>0.123</td>
+      <td>24.0</td>
+      <td>0.117</td>
+      <td>178.0</td>
+      <td>0.124</td>
+      <td>0.1188</td>
+      <td>-0.332147</td>
+      <td>0.943574</td>
+    </tr>
+    <tr>
+      <th>[13732.56, 16845.52&gt;</th>
+      <td>0.163</td>
+      <td>17.0</td>
+      <td>0.083</td>
+      <td>250.0</td>
+      <td>0.175</td>
+      <td>0.0637</td>
+      <td>-4.264671</td>
+      <td>0.505654</td>
+    </tr>
+    <tr>
+      <th>[16845.52, 19139.28&gt;</th>
+      <td>0.141</td>
+      <td>51.0</td>
+      <td>0.248</td>
+      <td>179.0</td>
+      <td>0.125</td>
+      <td>0.2217</td>
+      <td>3.908162</td>
+      <td>1.760996</td>
+    </tr>
+    <tr>
+      <th>[19139.28, 20286.16&gt;</th>
+      <td>0.055</td>
+      <td>7.0</td>
+      <td>0.034</td>
+      <td>83.0</td>
+      <td>0.058</td>
+      <td>0.0778</td>
+      <td>-1.711776</td>
+      <td>0.617692</td>
+    </tr>
+    <tr>
+      <th>[20286.16, 22743.76&gt;</th>
+      <td>0.136</td>
+      <td>53.0</td>
+      <td>0.257</td>
+      <td>169.0</td>
+      <td>0.118</td>
+      <td>0.2387</td>
+      <td>4.397646</td>
+      <td>1.896003</td>
+    </tr>
+    <tr>
+      <th>[22743.76, 23890.64&gt;</th>
+      <td>0.055</td>
+      <td>13.0</td>
+      <td>0.063</td>
+      <td>77.0</td>
+      <td>0.054</td>
+      <td>0.1444</td>
+      <td>0.515565</td>
+      <td>1.147141</td>
+    </tr>
+    <tr>
+      <th>&gt;=23890.64</th>
+      <td>0.061</td>
+      <td>28.0</td>
+      <td>0.136</td>
+      <td>71.0</td>
+      <td>0.050</td>
+      <td>0.2828</td>
+      <td>3.512888</td>
+      <td>2.246151</td>
+    </tr>
+    <tr>
+      <th>Total</th>
+      <td>1.001</td>
+      <td>206.0</td>
+      <td>1.001</td>
+      <td>1430.0</td>
+      <td>1.000</td>
+      <td>1.1777</td>
+      <td>-5.161210</td>
+      <td>9.354007</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
 </div>
 </section>
 <section id="Bin-Statistics">
@@ -577,32 +733,111 @@ Cell <span class="ansi-green-fg">In[8], line 8</span>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[9], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> binningDerived <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">predictorbinning</span><span style="color: rgb(98,98,98)">.</span>select(
-<span class="ansi-green-intense-fg ansi-bold">      2</span>     pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">BinSymbol</span><span style="color: rgb(175,0,0)">&#34;</span>)<span style="color: rgb(98,98,98)">.</span>alias(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Range/Symbol</span><span style="color: rgb(175,0,0)">&#34;</span>),
-<span class="ansi-green-intense-fg ansi-bold">      3</span>     BinPositives<span style="color: rgb(98,98,98)">.</span>alias(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Positives</span><span style="color: rgb(175,0,0)">&#34;</span>),
-<span class="ansi-green-intense-fg ansi-bold">      4</span>     BinNegatives<span style="color: rgb(98,98,98)">.</span>alias(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Negatives</span><span style="color: rgb(175,0,0)">&#34;</span>),
-<span class="ansi-green-intense-fg ansi-bold">      5</span>     (((BinPositives <span style="color: rgb(98,98,98)">+</span> BinNegatives) <span style="color: rgb(98,98,98)">/</span> (sumPositives <span style="color: rgb(98,98,98)">+</span> sumNegatives)) <span style="color: rgb(98,98,98)">*</span> <span style="color: rgb(98,98,98)">100</span>)
-<span class="ansi-green-intense-fg ansi-bold">      6</span>     <span style="color: rgb(98,98,98)">.</span>round(<span style="color: rgb(98,98,98)">2</span>)
-<span class="ansi-green-intense-fg ansi-bold">      7</span>     <span style="color: rgb(98,98,98)">.</span>alias(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Responses </span><span style="color: rgb(175,0,0)">%</span><span style="color: rgb(175,0,0)">&#34;</span>),
-<span class="ansi-green-intense-fg ansi-bold">      8</span>     ((BinPositives <span style="color: rgb(98,98,98)">/</span> sumPositives) <span style="color: rgb(98,98,98)">*</span> <span style="color: rgb(98,98,98)">100</span>)<span style="color: rgb(98,98,98)">.</span>round(<span style="color: rgb(98,98,98)">2</span>)<span style="color: rgb(98,98,98)">.</span>alias(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Positives </span><span style="color: rgb(175,0,0)">%</span><span style="color: rgb(175,0,0)">&#34;</span>),
-<span class="ansi-green-intense-fg ansi-bold">      9</span>     ((BinNegatives <span style="color: rgb(98,98,98)">/</span> sumNegatives) <span style="color: rgb(98,98,98)">*</span> <span style="color: rgb(98,98,98)">100</span>)<span style="color: rgb(98,98,98)">.</span>round(<span style="color: rgb(98,98,98)">2</span>)<span style="color: rgb(98,98,98)">.</span>alias(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Negatives </span><span style="color: rgb(175,0,0)">%</span><span style="color: rgb(175,0,0)">&#34;</span>),
-<span class="ansi-green-intense-fg ansi-bold">     10</span>     (BinPositives <span style="color: rgb(98,98,98)">/</span> (BinPositives <span style="color: rgb(98,98,98)">+</span> BinNegatives))<span style="color: rgb(98,98,98)">.</span>round(<span style="color: rgb(98,98,98)">4</span>)<span style="color: rgb(98,98,98)">.</span>alias(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Propensity</span><span style="color: rgb(175,0,0)">&#34;</span>),
-<span class="ansi-green-intense-fg ansi-bold">     11</span> )
-<span class="ansi-green-intense-fg ansi-bold">     12</span> binningDerived<span style="color: rgb(98,98,98)">.</span>to_pandas(use_pyarrow_extension_array<span style="color: rgb(98,98,98)">=</span><span class="ansi-bold" style="color: rgb(0,135,0)">True</span>)<span style="color: rgb(98,98,98)">.</span>set_index(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Range/Symbol</span><span style="color: rgb(175,0,0)">&#34;</span>)<span style="color: rgb(98,98,98)">.</span>style<span style="color: rgb(98,98,98)">.</span>format(
-<span class="ansi-green-intense-fg ansi-bold">     13</span>     format_binning_derived
-<span class="ansi-green-intense-fg ansi-bold">     14</span> )<span style="color: rgb(98,98,98)">.</span>set_properties(
-<span class="ansi-green-intense-fg ansi-bold">     15</span>     color<span style="color: rgb(98,98,98)">=</span><span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">#0000FF</span><span style="color: rgb(175,0,0)">&#34;</span>, subset<span style="color: rgb(98,98,98)">=</span>[<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Responses </span><span style="color: rgb(175,0,0)">%</span><span style="color: rgb(175,0,0)">&#34;</span>, <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Positives </span><span style="color: rgb(175,0,0)">%</span><span style="color: rgb(175,0,0)">&#34;</span>, <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Negatives </span><span style="color: rgb(175,0,0)">%</span><span style="color: rgb(175,0,0)">&#34;</span>, <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Propensity</span><span style="color: rgb(175,0,0)">&#34;</span>]
-<span class="ansi-green-intense-fg ansi-bold">     16</span> )
-
-<span class="ansi-red-fg">NameError</span>: name &#39;predictorbinning&#39; is not defined
-</pre></div></div>
+<div class="output_area rendered_html docutils container">
+<style type="text/css">
+#T_4a2b3_row0_col2, #T_4a2b3_row0_col3, #T_4a2b3_row0_col4, #T_4a2b3_row0_col5, #T_4a2b3_row1_col2, #T_4a2b3_row1_col3, #T_4a2b3_row1_col4, #T_4a2b3_row1_col5, #T_4a2b3_row2_col2, #T_4a2b3_row2_col3, #T_4a2b3_row2_col4, #T_4a2b3_row2_col5, #T_4a2b3_row3_col2, #T_4a2b3_row3_col3, #T_4a2b3_row3_col4, #T_4a2b3_row3_col5, #T_4a2b3_row4_col2, #T_4a2b3_row4_col3, #T_4a2b3_row4_col4, #T_4a2b3_row4_col5, #T_4a2b3_row5_col2, #T_4a2b3_row5_col3, #T_4a2b3_row5_col4, #T_4a2b3_row5_col5, #T_4a2b3_row6_col2, #T_4a2b3_row6_col3, #T_4a2b3_row6_col4, #T_4a2b3_row6_col5, #T_4a2b3_row7_col2, #T_4a2b3_row7_col3, #T_4a2b3_row7_col4, #T_4a2b3_row7_col5 {
+  color: #0000FF;
+}
+</style>
+<table id="T_4a2b3">
+  <thead>
+    <tr>
+      <th class="blank level0" >&nbsp;</th>
+      <th id="T_4a2b3_level0_col0" class="col_heading level0 col0" >Positives</th>
+      <th id="T_4a2b3_level0_col1" class="col_heading level0 col1" >Negatives</th>
+      <th id="T_4a2b3_level0_col2" class="col_heading level0 col2" >Responses %</th>
+      <th id="T_4a2b3_level0_col3" class="col_heading level0 col3" >Positives %</th>
+      <th id="T_4a2b3_level0_col4" class="col_heading level0 col4" >Negatives %</th>
+      <th id="T_4a2b3_level0_col5" class="col_heading level0 col5" >Propensity</th>
+    </tr>
+    <tr>
+      <th class="index_name level0" >Range/Symbol</th>
+      <th class="blank col0" >&nbsp;</th>
+      <th class="blank col1" >&nbsp;</th>
+      <th class="blank col2" >&nbsp;</th>
+      <th class="blank col3" >&nbsp;</th>
+      <th class="blank col4" >&nbsp;</th>
+      <th class="blank col5" >&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th id="T_4a2b3_level0_row0" class="row_heading level0 row0" ><11684.56</th>
+      <td id="T_4a2b3_row0_col0" class="data row0 col0" >13</td>
+      <td id="T_4a2b3_row0_col1" class="data row0 col1" >423</td>
+      <td id="T_4a2b3_row0_col2" class="data row0 col2" >26.65</td>
+      <td id="T_4a2b3_row0_col3" class="data row0 col3" >6.31</td>
+      <td id="T_4a2b3_row0_col4" class="data row0 col4" >29.58</td>
+      <td id="T_4a2b3_row0_col5" class="data row0 col5" >0.0298</td>
+    </tr>
+    <tr>
+      <th id="T_4a2b3_level0_row1" class="row_heading level0 row1" >[11684.56, 13732.56></th>
+      <td id="T_4a2b3_row1_col0" class="data row1 col0" >24</td>
+      <td id="T_4a2b3_row1_col1" class="data row1 col1" >178</td>
+      <td id="T_4a2b3_row1_col2" class="data row1 col2" >12.35</td>
+      <td id="T_4a2b3_row1_col3" class="data row1 col3" >11.65</td>
+      <td id="T_4a2b3_row1_col4" class="data row1 col4" >12.45</td>
+      <td id="T_4a2b3_row1_col5" class="data row1 col5" >0.1188</td>
+    </tr>
+    <tr>
+      <th id="T_4a2b3_level0_row2" class="row_heading level0 row2" >[13732.56, 16845.52></th>
+      <td id="T_4a2b3_row2_col0" class="data row2 col0" >17</td>
+      <td id="T_4a2b3_row2_col1" class="data row2 col1" >250</td>
+      <td id="T_4a2b3_row2_col2" class="data row2 col2" >16.32</td>
+      <td id="T_4a2b3_row2_col3" class="data row2 col3" >8.25</td>
+      <td id="T_4a2b3_row2_col4" class="data row2 col4" >17.48</td>
+      <td id="T_4a2b3_row2_col5" class="data row2 col5" >0.0637</td>
+    </tr>
+    <tr>
+      <th id="T_4a2b3_level0_row3" class="row_heading level0 row3" >[16845.52, 19139.28></th>
+      <td id="T_4a2b3_row3_col0" class="data row3 col0" >51</td>
+      <td id="T_4a2b3_row3_col1" class="data row3 col1" >179</td>
+      <td id="T_4a2b3_row3_col2" class="data row3 col2" >14.06</td>
+      <td id="T_4a2b3_row3_col3" class="data row3 col3" >24.76</td>
+      <td id="T_4a2b3_row3_col4" class="data row3 col4" >12.52</td>
+      <td id="T_4a2b3_row3_col5" class="data row3 col5" >0.2217</td>
+    </tr>
+    <tr>
+      <th id="T_4a2b3_level0_row4" class="row_heading level0 row4" >[19139.28, 20286.16></th>
+      <td id="T_4a2b3_row4_col0" class="data row4 col0" >7</td>
+      <td id="T_4a2b3_row4_col1" class="data row4 col1" >83</td>
+      <td id="T_4a2b3_row4_col2" class="data row4 col2" >5.50</td>
+      <td id="T_4a2b3_row4_col3" class="data row4 col3" >3.40</td>
+      <td id="T_4a2b3_row4_col4" class="data row4 col4" >5.80</td>
+      <td id="T_4a2b3_row4_col5" class="data row4 col5" >0.0778</td>
+    </tr>
+    <tr>
+      <th id="T_4a2b3_level0_row5" class="row_heading level0 row5" >[20286.16, 22743.76></th>
+      <td id="T_4a2b3_row5_col0" class="data row5 col0" >53</td>
+      <td id="T_4a2b3_row5_col1" class="data row5 col1" >169</td>
+      <td id="T_4a2b3_row5_col2" class="data row5 col2" >13.57</td>
+      <td id="T_4a2b3_row5_col3" class="data row5 col3" >25.73</td>
+      <td id="T_4a2b3_row5_col4" class="data row5 col4" >11.82</td>
+      <td id="T_4a2b3_row5_col5" class="data row5 col5" >0.2387</td>
+    </tr>
+    <tr>
+      <th id="T_4a2b3_level0_row6" class="row_heading level0 row6" >[22743.76, 23890.64></th>
+      <td id="T_4a2b3_row6_col0" class="data row6 col0" >13</td>
+      <td id="T_4a2b3_row6_col1" class="data row6 col1" >77</td>
+      <td id="T_4a2b3_row6_col2" class="data row6 col2" >5.50</td>
+      <td id="T_4a2b3_row6_col3" class="data row6 col3" >6.31</td>
+      <td id="T_4a2b3_row6_col4" class="data row6 col4" >5.38</td>
+      <td id="T_4a2b3_row6_col5" class="data row6 col5" >0.1444</td>
+    </tr>
+    <tr>
+      <th id="T_4a2b3_level0_row7" class="row_heading level0 row7" >>=23890.64</th>
+      <td id="T_4a2b3_row7_col0" class="data row7 col0" >28</td>
+      <td id="T_4a2b3_row7_col1" class="data row7 col1" >71</td>
+      <td id="T_4a2b3_row7_col2" class="data row7 col2" >6.05</td>
+      <td id="T_4a2b3_row7_col3" class="data row7 col3" >13.59</td>
+      <td id="T_4a2b3_row7_col4" class="data row7 col4" >4.97</td>
+      <td id="T_4a2b3_row7_col5" class="data row7 col5" >0.2828</td>
+    </tr>
+  </tbody>
+</table></div>
 </div>
 </section>
 <section id="Lift">
@@ -631,29 +866,81 @@ Cell <span class="ansi-green-fg">In[9], line 1</span>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[10], line 5</span>
-<span class="ansi-green-intense-fg ansi-bold">      3</span> sumPositives <span style="color: rgb(98,98,98)">=</span> pl<span style="color: rgb(98,98,98)">.</span>sum(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Positives</span><span style="color: rgb(175,0,0)">&#34;</span>)
-<span class="ansi-green-intense-fg ansi-bold">      4</span> sumNegatives <span style="color: rgb(98,98,98)">=</span> pl<span style="color: rgb(98,98,98)">.</span>sum(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Negatives</span><span style="color: rgb(175,0,0)">&#34;</span>)
-<span class="ansi-green-fg">----&gt; 5</span> <span class="ansi-yellow-bg">binningDerived</span><span style="color: rgb(98,98,98)">.</span>select(
-<span class="ansi-green-intense-fg ansi-bold">      6</span>     <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Range/Symbol</span><span style="color: rgb(175,0,0)">&#34;</span>,
-<span class="ansi-green-intense-fg ansi-bold">      7</span>     <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Positives</span><span style="color: rgb(175,0,0)">&#34;</span>,
-<span class="ansi-green-intense-fg ansi-bold">      8</span>     <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Negatives</span><span style="color: rgb(175,0,0)">&#34;</span>,
-<span class="ansi-green-intense-fg ansi-bold">      9</span>     (
-<span class="ansi-green-intense-fg ansi-bold">     10</span>         (Positives <span style="color: rgb(98,98,98)">/</span> (Positives <span style="color: rgb(98,98,98)">+</span> Negatives))
-<span class="ansi-green-intense-fg ansi-bold">     11</span>         <span style="color: rgb(98,98,98)">/</span> (sumPositives <span style="color: rgb(98,98,98)">/</span> (Positives <span style="color: rgb(98,98,98)">+</span> Negatives)<span style="color: rgb(98,98,98)">.</span>sum())
-<span class="ansi-green-intense-fg ansi-bold">     12</span>     )<span style="color: rgb(98,98,98)">.</span>alias(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Lift</span><span style="color: rgb(175,0,0)">&#34;</span>),
-<span class="ansi-green-intense-fg ansi-bold">     13</span> )<span style="color: rgb(98,98,98)">.</span>to_pandas()<span style="color: rgb(98,98,98)">.</span>set_index(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Range/Symbol</span><span style="color: rgb(175,0,0)">&#34;</span>)<span style="color: rgb(98,98,98)">.</span>style<span style="color: rgb(98,98,98)">.</span>format(format_lift)<span style="color: rgb(98,98,98)">.</span>set_properties(
-<span class="ansi-green-intense-fg ansi-bold">     14</span>     <span style="color: rgb(98,98,98)">*</span><span style="color: rgb(98,98,98)">*</span>{<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">color</span><span style="color: rgb(175,0,0)">&#34;</span>: <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">blue</span><span style="color: rgb(175,0,0)">&#34;</span>}, subset<span style="color: rgb(98,98,98)">=</span>[<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Lift</span><span style="color: rgb(175,0,0)">&#34;</span>]
-<span class="ansi-green-intense-fg ansi-bold">     15</span> )
-
-<span class="ansi-red-fg">NameError</span>: name &#39;binningDerived&#39; is not defined
-</pre></div></div>
+<div class="output_area rendered_html docutils container">
+<style type="text/css">
+#T_315d9_row0_col2, #T_315d9_row1_col2, #T_315d9_row2_col2, #T_315d9_row3_col2, #T_315d9_row4_col2, #T_315d9_row5_col2, #T_315d9_row6_col2, #T_315d9_row7_col2 {
+  color: blue;
+}
+</style>
+<table id="T_315d9">
+  <thead>
+    <tr>
+      <th class="blank level0" >&nbsp;</th>
+      <th id="T_315d9_level0_col0" class="col_heading level0 col0" >Positives</th>
+      <th id="T_315d9_level0_col1" class="col_heading level0 col1" >Negatives</th>
+      <th id="T_315d9_level0_col2" class="col_heading level0 col2" >Lift</th>
+    </tr>
+    <tr>
+      <th class="index_name level0" >Range/Symbol</th>
+      <th class="blank col0" >&nbsp;</th>
+      <th class="blank col1" >&nbsp;</th>
+      <th class="blank col2" >&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th id="T_315d9_level0_row0" class="row_heading level0 row0" ><11684.56</th>
+      <td id="T_315d9_row0_col0" class="data row0 col0" >13</td>
+      <td id="T_315d9_row0_col1" class="data row0 col1" >423</td>
+      <td id="T_315d9_row0_col2" class="data row0 col2" >0.2368</td>
+    </tr>
+    <tr>
+      <th id="T_315d9_level0_row1" class="row_heading level0 row1" >[11684.56, 13732.56></th>
+      <td id="T_315d9_row1_col0" class="data row1 col0" >24</td>
+      <td id="T_315d9_row1_col1" class="data row1 col1" >178</td>
+      <td id="T_315d9_row1_col2" class="data row1 col2" >0.9436</td>
+    </tr>
+    <tr>
+      <th id="T_315d9_level0_row2" class="row_heading level0 row2" >[13732.56, 16845.52></th>
+      <td id="T_315d9_row2_col0" class="data row2 col0" >17</td>
+      <td id="T_315d9_row2_col1" class="data row2 col1" >250</td>
+      <td id="T_315d9_row2_col2" class="data row2 col2" >0.5057</td>
+    </tr>
+    <tr>
+      <th id="T_315d9_level0_row3" class="row_heading level0 row3" >[16845.52, 19139.28></th>
+      <td id="T_315d9_row3_col0" class="data row3 col0" >51</td>
+      <td id="T_315d9_row3_col1" class="data row3 col1" >179</td>
+      <td id="T_315d9_row3_col2" class="data row3 col2" >1.7610</td>
+    </tr>
+    <tr>
+      <th id="T_315d9_level0_row4" class="row_heading level0 row4" >[19139.28, 20286.16></th>
+      <td id="T_315d9_row4_col0" class="data row4 col0" >7</td>
+      <td id="T_315d9_row4_col1" class="data row4 col1" >83</td>
+      <td id="T_315d9_row4_col2" class="data row4 col2" >0.6177</td>
+    </tr>
+    <tr>
+      <th id="T_315d9_level0_row5" class="row_heading level0 row5" >[20286.16, 22743.76></th>
+      <td id="T_315d9_row5_col0" class="data row5 col0" >53</td>
+      <td id="T_315d9_row5_col1" class="data row5 col1" >169</td>
+      <td id="T_315d9_row5_col2" class="data row5 col2" >1.8960</td>
+    </tr>
+    <tr>
+      <th id="T_315d9_level0_row6" class="row_heading level0 row6" >[22743.76, 23890.64></th>
+      <td id="T_315d9_row6_col0" class="data row6 col0" >13</td>
+      <td id="T_315d9_row6_col1" class="data row6 col1" >77</td>
+      <td id="T_315d9_row6_col2" class="data row6 col2" >1.1471</td>
+    </tr>
+    <tr>
+      <th id="T_315d9_level0_row7" class="row_heading level0 row7" >>=23890.64</th>
+      <td id="T_315d9_row7_col0" class="data row7 col0" >28</td>
+      <td id="T_315d9_row7_col1" class="data row7 col1" >71</td>
+      <td id="T_315d9_row7_col2" class="data row7 col2" >2.2462</td>
+    </tr>
+  </tbody>
+</table></div>
 </div>
 </section>
 <section id="Z-Ratio">
@@ -702,30 +989,101 @@ Cell <span class="ansi-green-fg">In[10], line 5</span>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[11], line 24</span>
-<span class="ansi-green-intense-fg ansi-bold">     13</span>         <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> (
-<span class="ansi-green-intense-fg ansi-bold">     14</span>             (posFractionCol <span style="color: rgb(98,98,98)">-</span> negFractionCol)
-<span class="ansi-green-intense-fg ansi-bold">     15</span>             <span style="color: rgb(98,98,98)">/</span> (
-<span class="ansi-green-fg">   (...)</span>
-<span class="ansi-green-intense-fg ansi-bold">     18</span>             )<span style="color: rgb(98,98,98)">.</span>sqrt()
-<span class="ansi-green-intense-fg ansi-bold">     19</span>         )<span style="color: rgb(98,98,98)">.</span>alias(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">ZRatio</span><span style="color: rgb(175,0,0)">&#34;</span>)
-<span class="ansi-green-intense-fg ansi-bold">     21</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> zRatioimpl(<span style="color: rgb(98,98,98)">*</span>getFracs(posCol, negCol), posCol<span style="color: rgb(98,98,98)">.</span>sum(), negCol<span style="color: rgb(98,98,98)">.</span>sum())
-<span class="ansi-green-fg">---&gt; 24</span> <span class="ansi-yellow-bg">binningDerived</span><span style="color: rgb(98,98,98)">.</span>select(
-<span class="ansi-green-intense-fg ansi-bold">     25</span>     <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Range/Symbol</span><span style="color: rgb(175,0,0)">&#34;</span>, <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Positives</span><span style="color: rgb(175,0,0)">&#34;</span>, <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Negatives</span><span style="color: rgb(175,0,0)">&#34;</span>, <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Positives </span><span style="color: rgb(175,0,0)">%</span><span style="color: rgb(175,0,0)">&#34;</span>, <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Negatives </span><span style="color: rgb(175,0,0)">%</span><span style="color: rgb(175,0,0)">&#34;</span>
-<span class="ansi-green-intense-fg ansi-bold">     26</span> )<span style="color: rgb(98,98,98)">.</span>with_columns(zRatio(Positives, Negatives))<span style="color: rgb(98,98,98)">.</span>to_pandas()<span style="color: rgb(98,98,98)">.</span>set_index(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Range/Symbol</span><span style="color: rgb(175,0,0)">&#34;</span>)<span style="color: rgb(98,98,98)">.</span>style<span style="color: rgb(98,98,98)">.</span>format(
-<span class="ansi-green-intense-fg ansi-bold">     27</span>     format_z_ratio
-<span class="ansi-green-intense-fg ansi-bold">     28</span> )<span style="color: rgb(98,98,98)">.</span>set_properties(
-<span class="ansi-green-intense-fg ansi-bold">     29</span>     <span style="color: rgb(98,98,98)">*</span><span style="color: rgb(98,98,98)">*</span>{<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">color</span><span style="color: rgb(175,0,0)">&#34;</span>: <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">blue</span><span style="color: rgb(175,0,0)">&#34;</span>}, subset<span style="color: rgb(98,98,98)">=</span>[<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">ZRatio</span><span style="color: rgb(175,0,0)">&#34;</span>]
-<span class="ansi-green-intense-fg ansi-bold">     30</span> )
-
-<span class="ansi-red-fg">NameError</span>: name &#39;binningDerived&#39; is not defined
-</pre></div></div>
+<div class="output_area rendered_html docutils container">
+<style type="text/css">
+#T_a4994_row0_col4, #T_a4994_row1_col4, #T_a4994_row2_col4, #T_a4994_row3_col4, #T_a4994_row4_col4, #T_a4994_row5_col4, #T_a4994_row6_col4, #T_a4994_row7_col4 {
+  color: blue;
+}
+</style>
+<table id="T_a4994">
+  <thead>
+    <tr>
+      <th class="blank level0" >&nbsp;</th>
+      <th id="T_a4994_level0_col0" class="col_heading level0 col0" >Positives</th>
+      <th id="T_a4994_level0_col1" class="col_heading level0 col1" >Negatives</th>
+      <th id="T_a4994_level0_col2" class="col_heading level0 col2" >Positives %</th>
+      <th id="T_a4994_level0_col3" class="col_heading level0 col3" >Negatives %</th>
+      <th id="T_a4994_level0_col4" class="col_heading level0 col4" >ZRatio</th>
+    </tr>
+    <tr>
+      <th class="index_name level0" >Range/Symbol</th>
+      <th class="blank col0" >&nbsp;</th>
+      <th class="blank col1" >&nbsp;</th>
+      <th class="blank col2" >&nbsp;</th>
+      <th class="blank col3" >&nbsp;</th>
+      <th class="blank col4" >&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th id="T_a4994_level0_row0" class="row_heading level0 row0" ><11684.56</th>
+      <td id="T_a4994_row0_col0" class="data row0 col0" >13</td>
+      <td id="T_a4994_row0_col1" class="data row0 col1" >423</td>
+      <td id="T_a4994_row0_col2" class="data row0 col2" >6.31</td>
+      <td id="T_a4994_row0_col3" class="data row0 col3" >29.58</td>
+      <td id="T_a4994_row0_col4" class="data row0 col4" >-11.1869</td>
+    </tr>
+    <tr>
+      <th id="T_a4994_level0_row1" class="row_heading level0 row1" >[11684.56, 13732.56></th>
+      <td id="T_a4994_row1_col0" class="data row1 col0" >24</td>
+      <td id="T_a4994_row1_col1" class="data row1 col1" >178</td>
+      <td id="T_a4994_row1_col2" class="data row1 col2" >11.65</td>
+      <td id="T_a4994_row1_col3" class="data row1 col3" >12.45</td>
+      <td id="T_a4994_row1_col4" class="data row1 col4" >-0.3321</td>
+    </tr>
+    <tr>
+      <th id="T_a4994_level0_row2" class="row_heading level0 row2" >[13732.56, 16845.52></th>
+      <td id="T_a4994_row2_col0" class="data row2 col0" >17</td>
+      <td id="T_a4994_row2_col1" class="data row2 col1" >250</td>
+      <td id="T_a4994_row2_col2" class="data row2 col2" >8.25</td>
+      <td id="T_a4994_row2_col3" class="data row2 col3" >17.48</td>
+      <td id="T_a4994_row2_col4" class="data row2 col4" >-4.2647</td>
+    </tr>
+    <tr>
+      <th id="T_a4994_level0_row3" class="row_heading level0 row3" >[16845.52, 19139.28></th>
+      <td id="T_a4994_row3_col0" class="data row3 col0" >51</td>
+      <td id="T_a4994_row3_col1" class="data row3 col1" >179</td>
+      <td id="T_a4994_row3_col2" class="data row3 col2" >24.76</td>
+      <td id="T_a4994_row3_col3" class="data row3 col3" >12.52</td>
+      <td id="T_a4994_row3_col4" class="data row3 col4" >3.9082</td>
+    </tr>
+    <tr>
+      <th id="T_a4994_level0_row4" class="row_heading level0 row4" >[19139.28, 20286.16></th>
+      <td id="T_a4994_row4_col0" class="data row4 col0" >7</td>
+      <td id="T_a4994_row4_col1" class="data row4 col1" >83</td>
+      <td id="T_a4994_row4_col2" class="data row4 col2" >3.40</td>
+      <td id="T_a4994_row4_col3" class="data row4 col3" >5.80</td>
+      <td id="T_a4994_row4_col4" class="data row4 col4" >-1.7118</td>
+    </tr>
+    <tr>
+      <th id="T_a4994_level0_row5" class="row_heading level0 row5" >[20286.16, 22743.76></th>
+      <td id="T_a4994_row5_col0" class="data row5 col0" >53</td>
+      <td id="T_a4994_row5_col1" class="data row5 col1" >169</td>
+      <td id="T_a4994_row5_col2" class="data row5 col2" >25.73</td>
+      <td id="T_a4994_row5_col3" class="data row5 col3" >11.82</td>
+      <td id="T_a4994_row5_col4" class="data row5 col4" >4.3976</td>
+    </tr>
+    <tr>
+      <th id="T_a4994_level0_row6" class="row_heading level0 row6" >[22743.76, 23890.64></th>
+      <td id="T_a4994_row6_col0" class="data row6 col0" >13</td>
+      <td id="T_a4994_row6_col1" class="data row6 col1" >77</td>
+      <td id="T_a4994_row6_col2" class="data row6 col2" >6.31</td>
+      <td id="T_a4994_row6_col3" class="data row6 col3" >5.38</td>
+      <td id="T_a4994_row6_col4" class="data row6 col4" >0.5156</td>
+    </tr>
+    <tr>
+      <th id="T_a4994_level0_row7" class="row_heading level0 row7" >>=23890.64</th>
+      <td id="T_a4994_row7_col0" class="data row7 col0" >28</td>
+      <td id="T_a4994_row7_col1" class="data row7 col1" >71</td>
+      <td id="T_a4994_row7_col2" class="data row7 col2" >13.59</td>
+      <td id="T_a4994_row7_col3" class="data row7 col3" >4.97</td>
+      <td id="T_a4994_row7_col4" class="data row7 col4" >3.5129</td>
+    </tr>
+  </tbody>
+</table></div>
 </div>
 </section>
 </section>
@@ -772,17 +1130,32 @@ Cell <span class="ansi-green-fg">In[11], line 24</span>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[12], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> pos<span style="color: rgb(98,98,98)">=</span><span class="ansi-yellow-bg">binningDerived</span><span style="color: rgb(98,98,98)">.</span>get_column(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Positives</span><span style="color: rgb(175,0,0)">&#34;</span>)<span style="color: rgb(98,98,98)">.</span>to_numpy()
-<span class="ansi-green-intense-fg ansi-bold">      2</span> neg<span style="color: rgb(98,98,98)">=</span>binningDerived<span style="color: rgb(98,98,98)">.</span>get_column(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Negatives</span><span style="color: rgb(175,0,0)">&#34;</span>)<span style="color: rgb(98,98,98)">.</span>to_numpy()
-<span class="ansi-green-intense-fg ansi-bold">      3</span> probs<span style="color: rgb(98,98,98)">=</span>binningDerived<span style="color: rgb(98,98,98)">.</span>get_column(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Propensity</span><span style="color: rgb(175,0,0)">&#34;</span>)<span style="color: rgb(98,98,98)">.</span>to_numpy()
+<div class="output_area rendered_html docutils container">
+<div>                            <div id="e84a0e84-f87c-4ea1-9b3f-f766b916e14b" class="plotly-graph-div" style="height:700px; width:700px;"></div>            <script type="text/javascript">                require(["plotly"], function(Plotly) {                    window.PLOTLYENV=window.PLOTLYENV || {};                                    if (document.getElementById("e84a0e84-f87c-4ea1-9b3f-f766b916e14b")) {                    Plotly.newPlot(                        "e84a0e84-f87c-4ea1-9b3f-f766b916e14b",                        [{"hovertemplate":"Specificity=%{x}\u003cbr\u003eSensitivity=%{y}\u003cextra\u003e\u003c\u002fextra\u003e","legendgroup":"","line":{"color":"#1F77B4","dash":"solid"},"marker":{"symbol":"circle"},"mode":"lines","name":"","orientation":"v","showlegend":false,"x":[1.0,0.9368932023644447,0.8543689250946045,0.8203883469104767,0.7038834989070892,0.6407766938209534,0.39320385456085205,0.13592231273651123,0.0],"xaxis":"x","y":[0.0,0.2958042025566101,0.47062936425209045,0.5286713242530823,0.6531468629837036,0.7069929838180542,0.8321678042411804,0.9503496289253235,1.0],"yaxis":"y","type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"anchor":"y","domain":[0.0,1.0],"title":{"text":"Specificity"},"range":[1,0]},"yaxis":{"anchor":"x","domain":[0.0,1.0],"title":{"text":"Sensitivity"}},"legend":{"tracegroupgap":0},"title":{"text":"AUC = 0.722"},"height":700,"width":700,"shapes":[{"line":{"dash":"dash"},"type":"line","x0":1,"x1":0,"y0":0,"y1":1}]},                        {"responsive": true}                    ).then(function(){
 
-<span class="ansi-red-fg">NameError</span>: name &#39;binningDerived&#39; is not defined
-</pre></div></div>
+var gd = document.getElementById('e84a0e84-f87c-4ea1-9b3f-f766b916e14b');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };                });            </script>        </div></div>
 </div>
 </section>
 <section id="Naive-Bayes-and-Log-Odds">
@@ -830,23 +1203,111 @@ Cell <span class="ansi-green-fg">In[12], line 1</span>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[13], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> N <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">binningDerived</span><span style="color: rgb(98,98,98)">.</span>shape[<span style="color: rgb(98,98,98)">0</span>]
-<span class="ansi-green-intense-fg ansi-bold">      2</span> binningDerived<span style="color: rgb(98,98,98)">.</span>with_columns(
-<span class="ansi-green-intense-fg ansi-bold">      3</span>     LogOdds<span style="color: rgb(98,98,98)">=</span>(pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Positives </span><span style="color: rgb(175,0,0)">%</span><span style="color: rgb(175,0,0)">&#34;</span>) <span style="color: rgb(98,98,98)">/</span> pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Negatives </span><span style="color: rgb(175,0,0)">%</span><span style="color: rgb(175,0,0)">&#34;</span>))<span style="color: rgb(98,98,98)">.</span>log(),
-<span class="ansi-green-intense-fg ansi-bold">      4</span>     ModifiedLogOdds<span style="color: rgb(98,98,98)">=</span>(
-<span class="ansi-green-fg">   (...)</span>
-<span class="ansi-green-intense-fg ansi-bold">     11</span>     <span style="color: rgb(98,98,98)">*</span><span style="color: rgb(98,98,98)">*</span>{<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">color</span><span style="color: rgb(175,0,0)">&#34;</span>: <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">blue</span><span style="color: rgb(175,0,0)">&#34;</span>}, subset<span style="color: rgb(98,98,98)">=</span>[<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">LogOdds</span><span style="color: rgb(175,0,0)">&#34;</span>, <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">ModifiedLogOdds</span><span style="color: rgb(175,0,0)">&#34;</span>]
-<span class="ansi-green-intense-fg ansi-bold">     12</span> )
-
-<span class="ansi-red-fg">NameError</span>: name &#39;binningDerived&#39; is not defined
-</pre></div></div>
+<div class="output_area rendered_html docutils container">
+<style type="text/css">
+#T_4ab8e_row0_col4, #T_4ab8e_row0_col5, #T_4ab8e_row1_col4, #T_4ab8e_row1_col5, #T_4ab8e_row2_col4, #T_4ab8e_row2_col5, #T_4ab8e_row3_col4, #T_4ab8e_row3_col5, #T_4ab8e_row4_col4, #T_4ab8e_row4_col5, #T_4ab8e_row5_col4, #T_4ab8e_row5_col5, #T_4ab8e_row6_col4, #T_4ab8e_row6_col5, #T_4ab8e_row7_col4, #T_4ab8e_row7_col5 {
+  color: blue;
+}
+</style>
+<table id="T_4ab8e">
+  <thead>
+    <tr>
+      <th class="blank level0" >&nbsp;</th>
+      <th id="T_4ab8e_level0_col0" class="col_heading level0 col0" >Positives</th>
+      <th id="T_4ab8e_level0_col1" class="col_heading level0 col1" >Negatives</th>
+      <th id="T_4ab8e_level0_col2" class="col_heading level0 col2" >Positives %</th>
+      <th id="T_4ab8e_level0_col3" class="col_heading level0 col3" >Negatives %</th>
+      <th id="T_4ab8e_level0_col4" class="col_heading level0 col4" >LogOdds</th>
+      <th id="T_4ab8e_level0_col5" class="col_heading level0 col5" >ModifiedLogOdds</th>
+    </tr>
+    <tr>
+      <th class="index_name level0" >Range/Symbol</th>
+      <th class="blank col0" >&nbsp;</th>
+      <th class="blank col1" >&nbsp;</th>
+      <th class="blank col2" >&nbsp;</th>
+      <th class="blank col3" >&nbsp;</th>
+      <th class="blank col4" >&nbsp;</th>
+      <th class="blank col5" >&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th id="T_4ab8e_level0_row0" class="row_heading level0 row0" ><11684.56</th>
+      <td id="T_4ab8e_row0_col0" class="data row0 col0" >13</td>
+      <td id="T_4ab8e_row0_col1" class="data row0 col1" >423</td>
+      <td id="T_4ab8e_row0_col2" class="data row0 col2" >6.31</td>
+      <td id="T_4ab8e_row0_col3" class="data row0 col3" >29.580000</td>
+      <td id="T_4ab8e_row0_col4" class="data row0 col4" >-1.544963</td>
+      <td id="T_4ab8e_row0_col5" class="data row0 col5" >-1.5397</td>
+    </tr>
+    <tr>
+      <th id="T_4ab8e_level0_row1" class="row_heading level0 row1" >[11684.56, 13732.56></th>
+      <td id="T_4ab8e_row1_col0" class="data row1 col0" >24</td>
+      <td id="T_4ab8e_row1_col1" class="data row1 col1" >178</td>
+      <td id="T_4ab8e_row1_col2" class="data row1 col2" >11.65</td>
+      <td id="T_4ab8e_row1_col3" class="data row1 col3" >12.450000</td>
+      <td id="T_4ab8e_row1_col4" class="data row1 col4" >-0.066414</td>
+      <td id="T_4ab8e_row1_col5" class="data row1 col5" >-0.0658</td>
+    </tr>
+    <tr>
+      <th id="T_4ab8e_level0_row2" class="row_heading level0 row2" >[13732.56, 16845.52></th>
+      <td id="T_4ab8e_row2_col0" class="data row2 col0" >17</td>
+      <td id="T_4ab8e_row2_col1" class="data row2 col1" >250</td>
+      <td id="T_4ab8e_row2_col2" class="data row2 col2" >8.25</td>
+      <td id="T_4ab8e_row2_col3" class="data row2 col3" >17.480000</td>
+      <td id="T_4ab8e_row2_col4" class="data row2 col4" >-0.750844</td>
+      <td id="T_4ab8e_row2_col5" class="data row2 col5" >-0.7480</td>
+    </tr>
+    <tr>
+      <th id="T_4ab8e_level0_row3" class="row_heading level0 row3" >[16845.52, 19139.28></th>
+      <td id="T_4ab8e_row3_col0" class="data row3 col0" >51</td>
+      <td id="T_4ab8e_row3_col1" class="data row3 col1" >179</td>
+      <td id="T_4ab8e_row3_col2" class="data row3 col2" >24.76</td>
+      <td id="T_4ab8e_row3_col3" class="data row3 col3" >12.520000</td>
+      <td id="T_4ab8e_row3_col4" class="data row3 col4" >0.681902</td>
+      <td id="T_4ab8e_row3_col5" class="data row3 col5" >0.6796</td>
+    </tr>
+    <tr>
+      <th id="T_4ab8e_level0_row4" class="row_heading level0 row4" >[19139.28, 20286.16></th>
+      <td id="T_4ab8e_row4_col0" class="data row4 col0" >7</td>
+      <td id="T_4ab8e_row4_col1" class="data row4 col1" >83</td>
+      <td id="T_4ab8e_row4_col2" class="data row4 col2" >3.40</td>
+      <td id="T_4ab8e_row4_col3" class="data row4 col3" >5.800000</td>
+      <td id="T_4ab8e_row4_col4" class="data row4 col4" >-0.534083</td>
+      <td id="T_4ab8e_row4_col5" class="data row4 col5" >-0.5233</td>
+    </tr>
+    <tr>
+      <th id="T_4ab8e_level0_row5" class="row_heading level0 row5" >[20286.16, 22743.76></th>
+      <td id="T_4ab8e_row5_col0" class="data row5 col0" >53</td>
+      <td id="T_4ab8e_row5_col1" class="data row5 col1" >169</td>
+      <td id="T_4ab8e_row5_col2" class="data row5 col2" >25.73</td>
+      <td id="T_4ab8e_row5_col3" class="data row5 col3" >11.820000</td>
+      <td id="T_4ab8e_row5_col4" class="data row5 col4" >0.777865</td>
+      <td id="T_4ab8e_row5_col5" class="data row5 col5" >0.7754</td>
+    </tr>
+    <tr>
+      <th id="T_4ab8e_level0_row6" class="row_heading level0 row6" >[22743.76, 23890.64></th>
+      <td id="T_4ab8e_row6_col0" class="data row6 col0" >13</td>
+      <td id="T_4ab8e_row6_col1" class="data row6 col1" >77</td>
+      <td id="T_4ab8e_row6_col2" class="data row6 col2" >6.31</td>
+      <td id="T_4ab8e_row6_col3" class="data row6 col3" >5.380000</td>
+      <td id="T_4ab8e_row6_col4" class="data row6 col4" >0.159447</td>
+      <td id="T_4ab8e_row6_col5" class="data row6 col5" >0.1625</td>
+    </tr>
+    <tr>
+      <th id="T_4ab8e_level0_row7" class="row_heading level0 row7" >>=23890.64</th>
+      <td id="T_4ab8e_row7_col0" class="data row7 col0" >28</td>
+      <td id="T_4ab8e_row7_col1" class="data row7 col1" >71</td>
+      <td id="T_4ab8e_row7_col2" class="data row7 col2" >13.59</td>
+      <td id="T_4ab8e_row7_col3" class="data row7 col3" >4.970000</td>
+      <td id="T_4ab8e_row7_col4" class="data row7 col4" >1.005915</td>
+      <td id="T_4ab8e_row7_col5" class="data row7 col5" >1.0056</td>
+    </tr>
+  </tbody>
+</table></div>
 </div>
 </section>
 <section id="Propensity-mapping">
@@ -860,33 +1321,353 @@ Cell <span class="ansi-green-fg">In[13], line 1</span>
 </div>
 <p>Here, <span class="math notranslate nohighlight">\(TotalPositives\)</span> and <span class="math notranslate nohighlight">\(TotalNegatives\)</span> are the total number of positive and negative responses to the model.</p>
 <p>Below an example. From all the active predictors of the model we pick a value (in the middle for numerics, first symbol for symbolics) and show the (modified) log odds. The final score is calculated per the above formula, and this is the value that is mapped to a propensity value by the classifier (which is constructed using the <a class="reference external" href="https://en.wikipedia.org/wiki/Isotonic_regression">PAV(A)</a> algorithm).</p>
-<div class="nboutput nblast docutils container">
+<div class="nboutput docutils container">
 <div class="prompt empty docutils container">
 </div>
-<div class="output_area docutils container">
+<div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[14], line 5</span>
-<span class="ansi-green-intense-fg ansi-bold">      1</span> <span class="ansi-bold" style="color: rgb(0,135,0)">def</span> <span style="color: rgb(0,0,255)">middleBin</span>():
-<span class="ansi-green-intense-fg ansi-bold">      2</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">BinIndex</span><span style="color: rgb(175,0,0)">&#34;</span>) <span style="color: rgb(98,98,98)">==</span> (pl<span style="color: rgb(98,98,98)">.</span>max(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">BinIndex</span><span style="color: rgb(175,0,0)">&#34;</span>) <span style="color: rgb(98,98,98)">/</span> <span style="color: rgb(98,98,98)">2</span>)<span style="color: rgb(98,98,98)">.</span>floor()<span style="color: rgb(98,98,98)">.</span>cast(pl<span style="color: rgb(98,98,98)">.</span>UInt32)
-<span class="ansi-green-fg">----&gt; 5</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> <span class="ansi-bold" style="color: rgb(175,0,255)">not</span> <span class="ansi-yellow-bg" style="color: rgb(0,135,0)">all</span><span class="ansi-yellow-bg">(</span>
-<span class="ansi-green-intense-fg ansi-bold">      6</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">col</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg ansi-bold" style="color: rgb(175,0,255)">in</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">modelpredictors</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">columns</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg ansi-bold" style="color: rgb(0,135,0)">for</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">col</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg ansi-bold" style="color: rgb(175,0,255)">in</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">[</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">BinLowerBound</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">BinUpperBound</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg">]</span>
-<span class="ansi-green-intense-fg ansi-bold">      7</span> <span class="ansi-yellow-bg">)</span>:
-<span class="ansi-green-intense-fg ansi-bold">      9</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">def</span> <span style="color: rgb(0,0,255)">extract_numbers_in_contents</span>(s: <span style="color: rgb(0,135,0)">str</span>, index):
-<span class="ansi-green-intense-fg ansi-bold">     10</span>         numbers <span style="color: rgb(98,98,98)">=</span> re<span style="color: rgb(98,98,98)">.</span>findall(<span style="color: rgb(175,0,0)">r</span><span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">[-+]?</span><span style="color: rgb(175,0,0)">\</span><span style="color: rgb(175,0,0)">d*</span><span style="color: rgb(175,0,0)">\</span><span style="color: rgb(175,0,0)">.</span><span style="color: rgb(175,0,0)">\</span><span style="color: rgb(175,0,0)">d+|</span><span style="color: rgb(175,0,0)">\</span><span style="color: rgb(175,0,0)">d+</span><span style="color: rgb(175,0,0)">&#34;</span>, s)
+/tmp/ipykernel_3006/3077675025.py:49: DeprecationWarning:
 
-Cell <span class="ansi-green-fg">In[14], line 6</span>, in <span class="ansi-cyan-fg">&lt;genexpr&gt;</span><span class="ansi-blue-fg">(.0)</span>
-<span class="ansi-green-intense-fg ansi-bold">      1</span> <span class="ansi-bold" style="color: rgb(0,135,0)">def</span> <span style="color: rgb(0,0,255)">middleBin</span>():
-<span class="ansi-green-intense-fg ansi-bold">      2</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">BinIndex</span><span style="color: rgb(175,0,0)">&#34;</span>) <span style="color: rgb(98,98,98)">==</span> (pl<span style="color: rgb(98,98,98)">.</span>max(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">BinIndex</span><span style="color: rgb(175,0,0)">&#34;</span>) <span style="color: rgb(98,98,98)">/</span> <span style="color: rgb(98,98,98)">2</span>)<span style="color: rgb(98,98,98)">.</span>floor()<span style="color: rgb(98,98,98)">.</span>cast(pl<span style="color: rgb(98,98,98)">.</span>UInt32)
-<span class="ansi-green-intense-fg ansi-bold">      5</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> <span class="ansi-bold" style="color: rgb(175,0,255)">not</span> <span style="color: rgb(0,135,0)">all</span>(
-<span class="ansi-green-fg">----&gt; 6</span>     col <span class="ansi-bold" style="color: rgb(175,0,255)">in</span> <span class="ansi-yellow-bg">modelpredictors</span><span style="color: rgb(98,98,98)">.</span>columns <span class="ansi-bold" style="color: rgb(0,135,0)">for</span> col <span class="ansi-bold" style="color: rgb(175,0,255)">in</span> [<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">BinLowerBound</span><span style="color: rgb(175,0,0)">&#34;</span>, <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">BinUpperBound</span><span style="color: rgb(175,0,0)">&#34;</span>]
-<span class="ansi-green-intense-fg ansi-bold">      7</span> ):
-<span class="ansi-green-intense-fg ansi-bold">      9</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">def</span> <span style="color: rgb(0,0,255)">extract_numbers_in_contents</span>(s: <span style="color: rgb(0,135,0)">str</span>, index):
-<span class="ansi-green-intense-fg ansi-bold">     10</span>         numbers <span style="color: rgb(98,98,98)">=</span> re<span style="color: rgb(98,98,98)">.</span>findall(<span style="color: rgb(175,0,0)">r</span><span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">[-+]?</span><span style="color: rgb(175,0,0)">\</span><span style="color: rgb(175,0,0)">d*</span><span style="color: rgb(175,0,0)">\</span><span style="color: rgb(175,0,0)">.</span><span style="color: rgb(175,0,0)">\</span><span style="color: rgb(175,0,0)">d+|</span><span style="color: rgb(175,0,0)">\</span><span style="color: rgb(175,0,0)">d+</span><span style="color: rgb(175,0,0)">&#34;</span>, s)
+`where` is deprecated. Use `filter` instead.
 
-<span class="ansi-red-fg">NameError</span>: name &#39;modelpredictors&#39; is not defined
+/tmp/ipykernel_3006/3077675025.py:51: DeprecationWarning:
+
+`where` is deprecated. Use `filter` instead.
+
+/tmp/ipykernel_3006/3077675025.py:52: DeprecationWarning:
+
+`where` is deprecated. Use `filter` instead.
+
 </pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<style type="text/css">
+#T_f21d2_row0_col4, #T_f21d2_row1_col4, #T_f21d2_row2_col4, #T_f21d2_row3_col4, #T_f21d2_row4_col4, #T_f21d2_row5_col4, #T_f21d2_row6_col4, #T_f21d2_row7_col4, #T_f21d2_row8_col4, #T_f21d2_row9_col4, #T_f21d2_row10_col4, #T_f21d2_row11_col4, #T_f21d2_row12_col4, #T_f21d2_row13_col4, #T_f21d2_row14_col4, #T_f21d2_row15_col4, #T_f21d2_row16_col4, #T_f21d2_row17_col4, #T_f21d2_row18_col4, #T_f21d2_row19_col4, #T_f21d2_row20_col4, #T_f21d2_row21_col4, #T_f21d2_row22_col4, #T_f21d2_row23_col4, #T_f21d2_row24_col4, #T_f21d2_row25_col4, #T_f21d2_row26_col4, #T_f21d2_row27_col4, #T_f21d2_row28_col4, #T_f21d2_row29_col4, #T_f21d2_row30_col4, #T_f21d2_row31_col4, #T_f21d2_row32_col4, #T_f21d2_row33_col4, #T_f21d2_row34_col4, #T_f21d2_row35_col4, #T_f21d2_row36_col4 {
+  color: blue;
+}
+</style>
+<table id="T_f21d2">
+  <thead>
+    <tr>
+      <th class="blank level0" >&nbsp;</th>
+      <th id="T_f21d2_level0_col0" class="col_heading level0 col0" >Value</th>
+      <th id="T_f21d2_level0_col1" class="col_heading level0 col1" >Bin</th>
+      <th id="T_f21d2_level0_col2" class="col_heading level0 col2" >Positives</th>
+      <th id="T_f21d2_level0_col3" class="col_heading level0 col3" >Negatives</th>
+      <th id="T_f21d2_level0_col4" class="col_heading level0 col4" >LogOdds</th>
+    </tr>
+    <tr>
+      <th class="index_name level0" >PredictorName</th>
+      <th class="blank col0" >&nbsp;</th>
+      <th class="blank col1" >&nbsp;</th>
+      <th class="blank col2" >&nbsp;</th>
+      <th class="blank col3" >&nbsp;</th>
+      <th class="blank col4" >&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th id="T_f21d2_level0_row0" class="row_heading level0 row0" >Customer.Age</th>
+      <td id="T_f21d2_row0_col0" class="data row0 col0" >34.56</td>
+      <td id="T_f21d2_row0_col1" class="data row0 col1" >4.000000</td>
+      <td id="T_f21d2_row0_col2" class="data row0 col2" >9.000000</td>
+      <td id="T_f21d2_row0_col3" class="data row0 col3" >198.000000</td>
+      <td id="T_f21d2_row0_col4" class="data row0 col4" >-1.145923</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row1" class="row_heading level0 row1" >Customer.AnnualIncome</th>
+      <td id="T_f21d2_row1_col0" class="data row1 col0" >-24043.049</td>
+      <td id="T_f21d2_row1_col1" class="data row1 col1" >1.000000</td>
+      <td id="T_f21d2_row1_col2" class="data row1 col2" >74.000000</td>
+      <td id="T_f21d2_row1_col3" class="data row1 col3" >1166.000000</td>
+      <td id="T_f21d2_row1_col4" class="data row1 col4" >-0.819651</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row2" class="row_heading level0 row2" >Customer.BusinessSegment</th>
+      <td id="T_f21d2_row2_col0" class="data row2 col0" >middleSegmentPlus</td>
+      <td id="T_f21d2_row2_col1" class="data row2 col1" >1.000000</td>
+      <td id="T_f21d2_row2_col2" class="data row2 col2" >96.000000</td>
+      <td id="T_f21d2_row2_col3" class="data row2 col3" >970.000000</td>
+      <td id="T_f21d2_row2_col4" class="data row2 col4" >-0.376415</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row3" class="row_heading level0 row3" >Customer.CLV</th>
+      <td id="T_f21d2_row3_col0" class="data row3 col0" >NON-MISSING</td>
+      <td id="T_f21d2_row3_col1" class="data row3 col1" >1.000000</td>
+      <td id="T_f21d2_row3_col2" class="data row3 col2" >111.000000</td>
+      <td id="T_f21d2_row3_col3" class="data row3 col3" >570.000000</td>
+      <td id="T_f21d2_row3_col4" class="data row3 col4" >0.300922</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row4" class="row_heading level0 row4" >Customer.CLV_VALUE</th>
+      <td id="T_f21d2_row4_col0" class="data row4 col0" >1345.52</td>
+      <td id="T_f21d2_row4_col1" class="data row4 col1" >4.000000</td>
+      <td id="T_f21d2_row4_col2" class="data row4 col2" >31.000000</td>
+      <td id="T_f21d2_row4_col3" class="data row4 col3" >297.000000</td>
+      <td id="T_f21d2_row4_col4" class="data row4 col4" >-0.322731</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row5" class="row_heading level0 row5" >Customer.CreditScore</th>
+      <td id="T_f21d2_row5_col0" class="data row5 col0" >518.92</td>
+      <td id="T_f21d2_row5_col1" class="data row5 col1" >3.000000</td>
+      <td id="T_f21d2_row5_col2" class="data row5 col2" >33.000000</td>
+      <td id="T_f21d2_row5_col3" class="data row5 col3" >205.000000</td>
+      <td id="T_f21d2_row5_col4" class="data row5 col4" >0.110531</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row6" class="row_heading level0 row6" >Customer.Date_of_Birth</th>
+      <td id="T_f21d2_row6_col0" class="data row6 col0" >18773.504</td>
+      <td id="T_f21d2_row6_col1" class="data row6 col1" >5.000000</td>
+      <td id="T_f21d2_row6_col2" class="data row6 col2" >28.000000</td>
+      <td id="T_f21d2_row6_col3" class="data row6 col3" >152.000000</td>
+      <td id="T_f21d2_row6_col4" class="data row6 col4" >0.244642</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row7" class="row_heading level0 row7" >Customer.Gender</th>
+      <td id="T_f21d2_row7_col0" class="data row7 col0" >U</td>
+      <td id="T_f21d2_row7_col1" class="data row7 col1" >1.000000</td>
+      <td id="T_f21d2_row7_col2" class="data row7 col2" >52.000000</td>
+      <td id="T_f21d2_row7_col3" class="data row7 col3" >481.000000</td>
+      <td id="T_f21d2_row7_col4" class="data row7 col4" >-0.285516</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row8" class="row_heading level0 row8" >Customer.MaritalStatus</th>
+      <td id="T_f21d2_row8_col0" class="data row8 col0" >No Resp+</td>
+      <td id="T_f21d2_row8_col1" class="data row8 col1" >1.000000</td>
+      <td id="T_f21d2_row8_col2" class="data row8 col2" >67.000000</td>
+      <td id="T_f21d2_row8_col3" class="data row8 col3" >745.000000</td>
+      <td id="T_f21d2_row8_col4" class="data row8 col4" >-0.470766</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row9" class="row_heading level0 row9" >Customer.NetWealth</th>
+      <td id="T_f21d2_row9_col0" class="data row9 col0" >17992.398</td>
+      <td id="T_f21d2_row9_col1" class="data row9 col1" >4.000000</td>
+      <td id="T_f21d2_row9_col2" class="data row9 col2" >51.000000</td>
+      <td id="T_f21d2_row9_col3" class="data row9 col3" >179.000000</td>
+      <td id="T_f21d2_row9_col4" class="data row9 col4" >0.679600</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row10" class="row_heading level0 row10" >Customer.NoOfDependents</th>
+      <td id="T_f21d2_row10_col0" class="data row10 col0" >0.0</td>
+      <td id="T_f21d2_row10_col1" class="data row10 col1" >1.000000</td>
+      <td id="T_f21d2_row10_col2" class="data row10 col2" >111.000000</td>
+      <td id="T_f21d2_row10_col3" class="data row10 col3" >850.000000</td>
+      <td id="T_f21d2_row10_col4" class="data row10 col4" >-0.099690</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row11" class="row_heading level0 row11" >Customer.Prefix</th>
+      <td id="T_f21d2_row11_col0" class="data row11 col0" >Mrs.</td>
+      <td id="T_f21d2_row11_col1" class="data row11 col1" >1.000000</td>
+      <td id="T_f21d2_row11_col2" class="data row11 col2" >64.000000</td>
+      <td id="T_f21d2_row11_col3" class="data row11 col3" >552.000000</td>
+      <td id="T_f21d2_row11_col4" class="data row11 col4" >-0.216664</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row12" class="row_heading level0 row12" >Customer.RelationshipStartDate</th>
+      <td id="T_f21d2_row12_col0" class="data row12 col0" >1426.4596</td>
+      <td id="T_f21d2_row12_col1" class="data row12 col1" >4.000000</td>
+      <td id="T_f21d2_row12_col2" class="data row12 col2" >16.000000</td>
+      <td id="T_f21d2_row12_col3" class="data row12 col3" >117.000000</td>
+      <td id="T_f21d2_row12_col4" class="data row12 col4" >-0.050204</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row13" class="row_heading level0 row13" >Customer.RiskCode</th>
+      <td id="T_f21d2_row13_col0" class="data row13 col0" >R4</td>
+      <td id="T_f21d2_row13_col1" class="data row13 col1" >1.000000</td>
+      <td id="T_f21d2_row13_col2" class="data row13 col2" >36.000000</td>
+      <td id="T_f21d2_row13_col3" class="data row13 col3" >329.000000</td>
+      <td id="T_f21d2_row13_col4" class="data row13 col4" >-0.270925</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row14" class="row_heading level0 row14" >Customer.WinScore</th>
+      <td id="T_f21d2_row14_col0" class="data row14 col0" >66.600006</td>
+      <td id="T_f21d2_row14_col1" class="data row14 col1" >4.000000</td>
+      <td id="T_f21d2_row14_col2" class="data row14 col2" >39.000000</td>
+      <td id="T_f21d2_row14_col3" class="data row14 col3" >102.000000</td>
+      <td id="T_f21d2_row14_col4" class="data row14 col4" >0.973755</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row15" class="row_heading level0 row15" >Customer.pyCountry</th>
+      <td id="T_f21d2_row15_col0" class="data row15 col0" >USA</td>
+      <td id="T_f21d2_row15_col1" class="data row15 col1" >1.000000</td>
+      <td id="T_f21d2_row15_col2" class="data row15 col2" >99.000000</td>
+      <td id="T_f21d2_row15_col3" class="data row15 col3" >776.000000</td>
+      <td id="T_f21d2_row15_col4" class="data row15 col4" >-0.122691</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row16" class="row_heading level0 row16" >IH.Email.Outbound.Accepted.pxLastGroupID</th>
+      <td id="T_f21d2_row16_col0" class="data row16 col0" >HomeLoans</td>
+      <td id="T_f21d2_row16_col1" class="data row16 col1" >3.000000</td>
+      <td id="T_f21d2_row16_col2" class="data row16 col2" >25.000000</td>
+      <td id="T_f21d2_row16_col3" class="data row16 col3" >218.000000</td>
+      <td id="T_f21d2_row16_col4" class="data row16 col4" >-0.227166</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row17" class="row_heading level0 row17" >IH.Email.Outbound.Accepted.pxLastOutcomeTime.DaysSince</th>
+      <td id="T_f21d2_row17_col0" class="data row17 col0" >-55.88436</td>
+      <td id="T_f21d2_row17_col1" class="data row17 col1" >2.000000</td>
+      <td id="T_f21d2_row17_col2" class="data row17 col2" >145.000000</td>
+      <td id="T_f21d2_row17_col3" class="data row17 col3" >881.000000</td>
+      <td id="T_f21d2_row17_col4" class="data row17 col4" >0.130525</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row18" class="row_heading level0 row18" >IH.Email.Outbound.Accepted.pyHistoricalOutcomeCount</th>
+      <td id="T_f21d2_row18_col0" class="data row18 col0" >1.5</td>
+      <td id="T_f21d2_row18_col1" class="data row18 col1" >2.000000</td>
+      <td id="T_f21d2_row18_col2" class="data row18 col2" >30.000000</td>
+      <td id="T_f21d2_row18_col3" class="data row18 col3" >351.000000</td>
+      <td id="T_f21d2_row18_col4" class="data row18 col4" >-0.520104</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row19" class="row_heading level0 row19" >IH.Email.Outbound.Churned.pyHistoricalOutcomeCount</th>
+      <td id="T_f21d2_row19_col0" class="data row19 col0" >None</td>
+      <td id="T_f21d2_row19_col1" class="data row19 col1" >1.000000</td>
+      <td id="T_f21d2_row19_col2" class="data row19 col2" >143.000000</td>
+      <td id="T_f21d2_row19_col3" class="data row19 col3" >898.000000</td>
+      <td id="T_f21d2_row19_col4" class="data row19 col4" >0.101486</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row20" class="row_heading level0 row20" >IH.Email.Outbound.Loyal.pxLastOutcomeTime.DaysSince</th>
+      <td id="T_f21d2_row20_col0" class="data row20 col0" >None</td>
+      <td id="T_f21d2_row20_col1" class="data row20 col1" >1.000000</td>
+      <td id="T_f21d2_row20_col2" class="data row20 col2" >129.000000</td>
+      <td id="T_f21d2_row20_col3" class="data row20 col3" >1071.000000</td>
+      <td id="T_f21d2_row20_col4" class="data row20 col4" >-0.178813</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row21" class="row_heading level0 row21" >IH.Email.Outbound.Rejected.pyHistoricalOutcomeCount</th>
+      <td id="T_f21d2_row21_col0" class="data row21 col0" >83.16</td>
+      <td id="T_f21d2_row21_col1" class="data row21 col1" >3.000000</td>
+      <td id="T_f21d2_row21_col2" class="data row21 col2" >24.000000</td>
+      <td id="T_f21d2_row21_col3" class="data row21 col3" >218.000000</td>
+      <td id="T_f21d2_row21_col4" class="data row21 col4" >-0.267751</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row22" class="row_heading level0 row22" >IH.SMS.Outbound.Accepted.pxLastGroupID</th>
+      <td id="T_f21d2_row22_col0" class="data row22 col0" >Account</td>
+      <td id="T_f21d2_row22_col1" class="data row22 col1" >4.000000</td>
+      <td id="T_f21d2_row22_col2" class="data row22 col2" >45.000000</td>
+      <td id="T_f21d2_row22_col3" class="data row22 col3" >316.000000</td>
+      <td id="T_f21d2_row22_col4" class="data row22 col4" >-0.013291</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row23" class="row_heading level0 row23" >IH.SMS.Outbound.Accepted.pyHistoricalOutcomeCount</th>
+      <td id="T_f21d2_row23_col0" class="data row23 col0" >9.02</td>
+      <td id="T_f21d2_row23_col1" class="data row23 col1" >4.000000</td>
+      <td id="T_f21d2_row23_col2" class="data row23 col2" >6.000000</td>
+      <td id="T_f21d2_row23_col3" class="data row23 col3" >96.000000</td>
+      <td id="T_f21d2_row23_col4" class="data row23 col4" >-0.821986</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row24" class="row_heading level0 row24" >IH.SMS.Outbound.Churned.pxLastOutcomeTime.DaysSince</th>
+      <td id="T_f21d2_row24_col0" class="data row24 col0" >-20.5537</td>
+      <td id="T_f21d2_row24_col1" class="data row24 col1" >2.000000</td>
+      <td id="T_f21d2_row24_col2" class="data row24 col2" >9.000000</td>
+      <td id="T_f21d2_row24_col3" class="data row24 col3" >27.000000</td>
+      <td id="T_f21d2_row24_col4" class="data row24 col4" >0.849243</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row25" class="row_heading level0 row25" >IH.SMS.Outbound.Loyal.pxLastOutcomeTime.DaysSince</th>
+      <td id="T_f21d2_row25_col0" class="data row25 col0" >None</td>
+      <td id="T_f21d2_row25_col1" class="data row25 col1" >1.000000</td>
+      <td id="T_f21d2_row25_col2" class="data row25 col2" >165.000000</td>
+      <td id="T_f21d2_row25_col3" class="data row25 col3" >1240.000000</td>
+      <td id="T_f21d2_row25_col4" class="data row25 col4" >-0.079718</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row26" class="row_heading level0 row26" >IH.SMS.Outbound.Loyal.pyHistoricalOutcomeCount</th>
+      <td id="T_f21d2_row26_col0" class="data row26 col0" >None</td>
+      <td id="T_f21d2_row26_col1" class="data row26 col1" >1.000000</td>
+      <td id="T_f21d2_row26_col2" class="data row26 col2" >165.000000</td>
+      <td id="T_f21d2_row26_col3" class="data row26 col3" >1240.000000</td>
+      <td id="T_f21d2_row26_col4" class="data row26 col4" >-0.079718</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row27" class="row_heading level0 row27" >IH.SMS.Outbound.Rejected.pxLastGroupID</th>
+      <td id="T_f21d2_row27_col0" class="data row27 col0" >Account</td>
+      <td id="T_f21d2_row27_col1" class="data row27 col1" >2.000000</td>
+      <td id="T_f21d2_row27_col2" class="data row27 col2" >47.000000</td>
+      <td id="T_f21d2_row27_col3" class="data row27 col3" >357.000000</td>
+      <td id="T_f21d2_row27_col4" class="data row27 col4" >-0.090492</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row28" class="row_heading level0 row28" >IH.SMS.Outbound.Rejected.pyHistoricalOutcomeCount</th>
+      <td id="T_f21d2_row28_col0" class="data row28 col0" >102.72</td>
+      <td id="T_f21d2_row28_col1" class="data row28 col1" >4.000000</td>
+      <td id="T_f21d2_row28_col2" class="data row28 col2" >12.000000</td>
+      <td id="T_f21d2_row28_col3" class="data row28 col3" >117.000000</td>
+      <td id="T_f21d2_row28_col4" class="data row28 col4" >-0.335590</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row29" class="row_heading level0 row29" >IH.Web.Inbound.Accepted.pxLastGroupID</th>
+      <td id="T_f21d2_row29_col0" class="data row29 col0" >DepositAccounts</td>
+      <td id="T_f21d2_row29_col1" class="data row29 col1" >3.000000</td>
+      <td id="T_f21d2_row29_col2" class="data row29 col2" >53.000000</td>
+      <td id="T_f21d2_row29_col3" class="data row29 col3" >397.000000</td>
+      <td id="T_f21d2_row29_col4" class="data row29 col4" >-0.077902</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row30" class="row_heading level0 row30" >IH.Web.Inbound.Accepted.pyHistoricalOutcomeCount</th>
+      <td id="T_f21d2_row30_col0" class="data row30 col0" >11.04</td>
+      <td id="T_f21d2_row30_col1" class="data row30 col1" >5.000000</td>
+      <td id="T_f21d2_row30_col2" class="data row30 col2" >25.000000</td>
+      <td id="T_f21d2_row30_col3" class="data row30 col3" >164.000000</td>
+      <td id="T_f21d2_row30_col4" class="data row30 col4" >0.055802</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row31" class="row_heading level0 row31" >IH.Web.Inbound.Loyal.pxLastGroupID</th>
+      <td id="T_f21d2_row31_col0" class="data row31 col0" >MISSING</td>
+      <td id="T_f21d2_row31_col1" class="data row31 col1" >1.000000</td>
+      <td id="T_f21d2_row31_col2" class="data row31 col2" >100.000000</td>
+      <td id="T_f21d2_row31_col3" class="data row31 col3" >857.000000</td>
+      <td id="T_f21d2_row31_col4" class="data row31 col4" >-0.211919</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row32" class="row_heading level0 row32" >IH.Web.Inbound.Loyal.pyHistoricalOutcomeCount</th>
+      <td id="T_f21d2_row32_col0" class="data row32 col0" >4.52</td>
+      <td id="T_f21d2_row32_col1" class="data row32 col1" >3.000000</td>
+      <td id="T_f21d2_row32_col2" class="data row32 col2" >30.000000</td>
+      <td id="T_f21d2_row32_col3" class="data row32 col3" >212.000000</td>
+      <td id="T_f21d2_row32_col4" class="data row32 col4" >-0.017224</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row33" class="row_heading level0 row33" >IH.Web.Inbound.Rejected.pxLastGroupID</th>
+      <td id="T_f21d2_row33_col0" class="data row33 col0" >Account</td>
+      <td id="T_f21d2_row33_col1" class="data row33 col1" >2.000000</td>
+      <td id="T_f21d2_row33_col2" class="data row33 col2" >81.000000</td>
+      <td id="T_f21d2_row33_col3" class="data row33 col3" >546.000000</td>
+      <td id="T_f21d2_row33_col4" class="data row33 col4" >0.027864</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row34" class="row_heading level0 row34" >IH.Web.Inbound.Rejected.pyHistoricalOutcomeCount</th>
+      <td id="T_f21d2_row34_col0" class="data row34 col0" >111.08</td>
+      <td id="T_f21d2_row34_col1" class="data row34 col1" >4.000000</td>
+      <td id="T_f21d2_row34_col2" class="data row34 col2" >35.000000</td>
+      <td id="T_f21d2_row34_col3" class="data row34 col3" >306.000000</td>
+      <td id="T_f21d2_row34_col4" class="data row34 col4" >-0.231670</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row35" class="row_heading level0 row35" >Param.ExtGroupCreditcards</th>
+      <td id="T_f21d2_row35_col0" class="data row35 col0" >NON-MISSING</td>
+      <td id="T_f21d2_row35_col1" class="data row35 col1" >1.000000</td>
+      <td id="T_f21d2_row35_col2" class="data row35 col2" >136.000000</td>
+      <td id="T_f21d2_row35_col3" class="data row35 col3" >721.000000</td>
+      <td id="T_f21d2_row35_col4" class="data row35 col4" >0.268402</td>
+    </tr>
+    <tr>
+      <th id="T_f21d2_level0_row36" class="row_heading level0 row36" >Final Score</th>
+      <td id="T_f21d2_row36_col0" class="data row36 col0" >None</td>
+      <td id="T_f21d2_row36_col1" class="data row36 col1" >nan</td>
+      <td id="T_f21d2_row36_col2" class="data row36 col2" >nan</td>
+      <td id="T_f21d2_row36_col3" class="data row36 col3" >nan</td>
+      <td id="T_f21d2_row36_col4" class="data row36 col4" >-0.149329</td>
+    </tr>
+  </tbody>
+</table></div>
 </div>
 </section>
 </section>
@@ -895,45 +1676,274 @@ Cell <span class="ansi-green-fg">In[14], line 6</span>, in <span class="ansi-cya
 <p>The success rate is defined as <span class="math notranslate nohighlight">\(\frac{positives}{positives+negatives}\)</span> per bin.</p>
 <p>The adjusted propensity that is returned is a small modification (Laplace smoothing) to this and calculated as <span class="math notranslate nohighlight">\(\frac{0.5+positives}{1+positives+negatives}\)</span> so empty models return a propensity of 0.5.</p>
 <div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[15], line 3</span>
-<span class="ansi-green-intense-fg ansi-bold">      1</span> <span style="color: rgb(95,135,135)"># TODO see if we can port the &#34;getActiveRanges&#34; code to python so to highlight the classifier rows that are &#34;active&#34;</span>
-<span class="ansi-green-fg">----&gt; 3</span> <span class="ansi-yellow-bg">classifier</span><span style="color: rgb(98,98,98)">.</span>drop(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Responses</span><span style="color: rgb(175,0,0)">&#34;</span>)<span style="color: rgb(98,98,98)">.</span>to_pandas()<span style="color: rgb(98,98,98)">.</span>set_index(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Index</span><span style="color: rgb(175,0,0)">&#34;</span>)<span style="color: rgb(98,98,98)">.</span>style<span style="color: rgb(98,98,98)">.</span>format(format_classifier)<span style="color: rgb(98,98,98)">.</span>set_properties(
-<span class="ansi-green-intense-fg ansi-bold">      4</span>     <span style="color: rgb(98,98,98)">*</span><span style="color: rgb(98,98,98)">*</span>{<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">color</span><span style="color: rgb(175,0,0)">&#34;</span>: <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">blue</span><span style="color: rgb(175,0,0)">&#34;</span>}, subset<span style="color: rgb(98,98,98)">=</span>[<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Adjusted Propensity (</span><span style="color: rgb(175,0,0)">%</span><span style="color: rgb(175,0,0)">)</span><span style="color: rgb(175,0,0)">&#34;</span>]
-<span class="ansi-green-intense-fg ansi-bold">      5</span> )
-
-<span class="ansi-red-fg">NameError</span>: name &#39;classifier&#39; is not defined
-</pre></div></div>
+<div class="output_area rendered_html docutils container">
+<style type="text/css">
+#T_25150_row0_col5, #T_25150_row1_col5, #T_25150_row2_col5, #T_25150_row3_col5, #T_25150_row4_col5, #T_25150_row5_col5, #T_25150_row6_col5, #T_25150_row7_col5, #T_25150_row8_col5, #T_25150_row9_col5, #T_25150_row10_col5, #T_25150_row11_col5, #T_25150_row12_col5, #T_25150_row13_col5, #T_25150_row14_col5 {
+  color: blue;
+}
+</style>
+<table id="T_25150">
+  <thead>
+    <tr>
+      <th class="blank level0" >&nbsp;</th>
+      <th id="T_25150_level0_col0" class="col_heading level0 col0" >Bin</th>
+      <th id="T_25150_level0_col1" class="col_heading level0 col1" >Positives</th>
+      <th id="T_25150_level0_col2" class="col_heading level0 col2" >Negatives</th>
+      <th id="T_25150_level0_col3" class="col_heading level0 col3" >Cum. Total (%)</th>
+      <th id="T_25150_level0_col4" class="col_heading level0 col4" >Propensity (%)</th>
+      <th id="T_25150_level0_col5" class="col_heading level0 col5" >Adjusted Propensity (%)</th>
+      <th id="T_25150_level0_col6" class="col_heading level0 col6" >Cum Positives (%)</th>
+      <th id="T_25150_level0_col7" class="col_heading level0 col7" >ZRatio</th>
+      <th id="T_25150_level0_col8" class="col_heading level0 col8" >Lift(%)</th>
+    </tr>
+    <tr>
+      <th class="index_name level0" >Index</th>
+      <th class="blank col0" >&nbsp;</th>
+      <th class="blank col1" >&nbsp;</th>
+      <th class="blank col2" >&nbsp;</th>
+      <th class="blank col3" >&nbsp;</th>
+      <th class="blank col4" >&nbsp;</th>
+      <th class="blank col5" >&nbsp;</th>
+      <th class="blank col6" >&nbsp;</th>
+      <th class="blank col7" >&nbsp;</th>
+      <th class="blank col8" >&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th id="T_25150_level0_row0" class="row_heading level0 row0" >1</th>
+      <td id="T_25150_row0_col0" class="data row0 col0" ><-0.21</td>
+      <td id="T_25150_row0_col1" class="data row0 col1" >17</td>
+      <td id="T_25150_row0_col2" class="data row0 col2" >443</td>
+      <td id="T_25150_row0_col3" class="data row0 col3" >28.117361</td>
+      <td id="T_25150_row0_col4" class="data row0 col4" >3.695652</td>
+      <td id="T_25150_row0_col5" class="data row0 col5" >3.796095</td>
+      <td id="T_25150_row0_col6" class="data row0 col6" >8.252427</td>
+      <td id="T_25150_row0_col7" class="data row0 col7" >-9.994484</td>
+      <td id="T_25150_row0_col8" class="data row0 col8" >1.956662</td>
+    </tr>
+    <tr>
+      <th id="T_25150_level0_row1" class="row_heading level0 row1" >2</th>
+      <td id="T_25150_row1_col0" class="data row1 col0" >[-0.21, -0.185></td>
+      <td id="T_25150_row1_col1" class="data row1 col1" >8</td>
+      <td id="T_25150_row1_col2" class="data row1 col2" >133</td>
+      <td id="T_25150_row1_col3" class="data row1 col3" >36.735943</td>
+      <td id="T_25150_row1_col4" class="data row1 col4" >5.673759</td>
+      <td id="T_25150_row1_col5" class="data row1 col5" >5.985916</td>
+      <td id="T_25150_row1_col6" class="data row1 col6" >12.135922</td>
+      <td id="T_25150_row1_col7" class="data row1 col7" >-3.495416</td>
+      <td id="T_25150_row1_col8" class="data row1 col8" >3.003971</td>
+    </tr>
+    <tr>
+      <th id="T_25150_level0_row2" class="row_heading level0 row2" >3</th>
+      <td id="T_25150_row2_col0" class="data row2 col0" >[-0.185, -0.175></td>
+      <td id="T_25150_row2_col1" class="data row2 col1" >3</td>
+      <td id="T_25150_row2_col2" class="data row2 col2" >48</td>
+      <td id="T_25150_row2_col3" class="data row2 col3" >39.853302</td>
+      <td id="T_25150_row2_col4" class="data row2 col4" >5.882353</td>
+      <td id="T_25150_row2_col5" class="data row2 col5" >6.730770</td>
+      <td id="T_25150_row2_col6" class="data row2 col6" >13.592233</td>
+      <td id="T_25150_row2_col7" class="data row2 col7" >-1.977473</td>
+      <td id="T_25150_row2_col8" class="data row2 col8" >3.114411</td>
+    </tr>
+    <tr>
+      <th id="T_25150_level0_row3" class="row_heading level0 row3" >4</th>
+      <td id="T_25150_row3_col0" class="data row3 col0" >[-0.175, -0.105></td>
+      <td id="T_25150_row3_col1" class="data row3 col1" >28</td>
+      <td id="T_25150_row3_col2" class="data row3 col2" >370</td>
+      <td id="T_25150_row3_col3" class="data row3 col3" >64.180931</td>
+      <td id="T_25150_row3_col4" class="data row3 col4" >7.035176</td>
+      <td id="T_25150_row3_col5" class="data row3 col5" >7.142858</td>
+      <td id="T_25150_row3_col6" class="data row3 col6" >27.184465</td>
+      <td id="T_25150_row3_col7" class="data row3 col7" >-4.628075</td>
+      <td id="T_25150_row3_col8" class="data row3 col8" >3.724772</td>
+    </tr>
+    <tr>
+      <th id="T_25150_level0_row4" class="row_heading level0 row4" >5</th>
+      <td id="T_25150_row4_col0" class="data row4 col0" >[-0.105, -0.095></td>
+      <td id="T_25150_row4_col1" class="data row4 col1" >4</td>
+      <td id="T_25150_row4_col2" class="data row4 col2" >51</td>
+      <td id="T_25150_row4_col3" class="data row4 col3" >67.542793</td>
+      <td id="T_25150_row4_col4" class="data row4 col4" >7.272727</td>
+      <td id="T_25150_row4_col5" class="data row4 col5" >8.035714</td>
+      <td id="T_25150_row4_col6" class="data row4 col6" >29.126215</td>
+      <td id="T_25150_row4_col7" class="data row4 col7" >-1.505372</td>
+      <td id="T_25150_row4_col8" class="data row4 col8" >3.850544</td>
+    </tr>
+    <tr>
+      <th id="T_25150_level0_row5" class="row_heading level0 row5" >6</th>
+      <td id="T_25150_row5_col0" class="data row5 col0" >[-0.095, -0.09></td>
+      <td id="T_25150_row5_col1" class="data row5 col1" >2</td>
+      <td id="T_25150_row5_col2" class="data row5 col2" >19</td>
+      <td id="T_25150_row5_col3" class="data row5 col3" >68.826408</td>
+      <td id="T_25150_row5_col4" class="data row5 col4" >9.523809</td>
+      <td id="T_25150_row5_col5" class="data row5 col5" >11.363637</td>
+      <td id="T_25150_row5_col6" class="data row5 col6" >30.097088</td>
+      <td id="T_25150_row5_col7" class="data row5 col7" >-0.478811</td>
+      <td id="T_25150_row5_col8" class="data row5 col8" >5.042379</td>
+    </tr>
+    <tr>
+      <th id="T_25150_level0_row6" class="row_heading level0 row6" >7</th>
+      <td id="T_25150_row6_col0" class="data row6 col0" >[-0.09, -0.065></td>
+      <td id="T_25150_row6_col1" class="data row6 col1" >9</td>
+      <td id="T_25150_row6_col2" class="data row6 col2" >77</td>
+      <td id="T_25150_row6_col3" class="data row6 col3" >74.083130</td>
+      <td id="T_25150_row6_col4" class="data row6 col4" >10.465117</td>
+      <td id="T_25150_row6_col5" class="data row6 col5" >10.919540</td>
+      <td id="T_25150_row6_col6" class="data row6 col6" >34.466019</td>
+      <td id="T_25150_row6_col7" class="data row6 col7" >-0.657755</td>
+      <td id="T_25150_row6_col8" class="data row6 col8" >5.540754</td>
+    </tr>
+    <tr>
+      <th id="T_25150_level0_row7" class="row_heading level0 row7" >8</th>
+      <td id="T_25150_row7_col0" class="data row7 col0" >[-0.065, -0.02></td>
+      <td id="T_25150_row7_col1" class="data row7 col1" >30</td>
+      <td id="T_25150_row7_col2" class="data row7 col2" >154</td>
+      <td id="T_25150_row7_col3" class="data row7 col3" >85.330078</td>
+      <td id="T_25150_row7_col4" class="data row7 col4" >16.304348</td>
+      <td id="T_25150_row7_col5" class="data row7 col5" >16.486486</td>
+      <td id="T_25150_row7_col6" class="data row7 col6" >49.029125</td>
+      <td id="T_25150_row7_col7" class="data row7 col7" >1.464400</td>
+      <td id="T_25150_row7_col8" class="data row7 col8" >8.632335</td>
+    </tr>
+    <tr>
+      <th id="T_25150_level0_row8" class="row_heading level0 row8" >9</th>
+      <td id="T_25150_row8_col0" class="data row8 col0" >[-0.02, 0.03></td>
+      <td id="T_25150_row8_col1" class="data row8 col1" >37</td>
+      <td id="T_25150_row8_col2" class="data row8 col2" >65</td>
+      <td id="T_25150_row8_col3" class="data row8 col3" >91.564796</td>
+      <td id="T_25150_row8_col4" class="data row8 col4" >36.274509</td>
+      <td id="T_25150_row8_col5" class="data row8 col5" >36.407764</td>
+      <td id="T_25150_row8_col6" class="data row8 col6" >66.990295</td>
+      <td id="T_25150_row8_col7" class="data row8 col7" >4.913029</td>
+      <td id="T_25150_row8_col8" class="data row8 col8" >19.205532</td>
+    </tr>
+    <tr>
+      <th id="T_25150_level0_row9" class="row_heading level0 row9" >10</th>
+      <td id="T_25150_row9_col0" class="data row9 col0" >[0.03, 0.06></td>
+      <td id="T_25150_row9_col1" class="data row9 col1" >20</td>
+      <td id="T_25150_row9_col2" class="data row9 col2" >29</td>
+      <td id="T_25150_row9_col3" class="data row9 col3" >94.559906</td>
+      <td id="T_25150_row9_col4" class="data row9 col4" >40.816326</td>
+      <td id="T_25150_row9_col5" class="data row9 col5" >41.000000</td>
+      <td id="T_25150_row9_col6" class="data row9 col6" >76.699028</td>
+      <td id="T_25150_row9_col7" class="data row9 col7" >3.664015</td>
+      <td id="T_25150_row9_col8" class="data row9 col8" >21.610197</td>
+    </tr>
+    <tr>
+      <th id="T_25150_level0_row10" class="row_heading level0 row10" >11</th>
+      <td id="T_25150_row10_col0" class="data row10 col0" >[0.06, 0.12></td>
+      <td id="T_25150_row10_col1" class="data row10 col1" >30</td>
+      <td id="T_25150_row10_col2" class="data row10 col2" >33</td>
+      <td id="T_25150_row10_col3" class="data row10 col3" >98.410759</td>
+      <td id="T_25150_row10_col4" class="data row10 col4" >47.619049</td>
+      <td id="T_25150_row10_col5" class="data row10 col5" >47.656250</td>
+      <td id="T_25150_row10_col6" class="data row10 col6" >91.262138</td>
+      <td id="T_25150_row10_col7" class="data row10 col7" >4.922851</td>
+      <td id="T_25150_row10_col8" class="data row10 col8" >25.211897</td>
+    </tr>
+    <tr>
+      <th id="T_25150_level0_row11" class="row_heading level0 row11" >12</th>
+      <td id="T_25150_row11_col0" class="data row11 col0" >[0.12, 0.125></td>
+      <td id="T_25150_row11_col1" class="data row11 col1" >2</td>
+      <td id="T_25150_row11_col2" class="data row11 col2" >2</td>
+      <td id="T_25150_row11_col3" class="data row11 col3" >98.655258</td>
+      <td id="T_25150_row11_col4" class="data row11 col4" >50.000000</td>
+      <td id="T_25150_row11_col5" class="data row11 col5" >50.000000</td>
+      <td id="T_25150_row11_col6" class="data row11 col6" >92.233009</td>
+      <td id="T_25150_row11_col7" class="data row11 col7" >1.203876</td>
+      <td id="T_25150_row11_col8" class="data row11 col8" >26.472490</td>
+    </tr>
+    <tr>
+      <th id="T_25150_level0_row12" class="row_heading level0 row12" >13</th>
+      <td id="T_25150_row12_col0" class="data row12 col0" >[0.125, 0.13></td>
+      <td id="T_25150_row12_col1" class="data row12 col1" >4</td>
+      <td id="T_25150_row12_col2" class="data row12 col2" >2</td>
+      <td id="T_25150_row12_col3" class="data row12 col3" >99.022003</td>
+      <td id="T_25150_row12_col4" class="data row12 col4" >66.666672</td>
+      <td id="T_25150_row12_col5" class="data row12 col5" >64.285713</td>
+      <td id="T_25150_row12_col6" class="data row12 col6" >94.174759</td>
+      <td id="T_25150_row12_col7" class="data row12 col7" >1.864405</td>
+      <td id="T_25150_row12_col8" class="data row12 col8" >35.296654</td>
+    </tr>
+    <tr>
+      <th id="T_25150_level0_row13" class="row_heading level0 row13" >14</th>
+      <td id="T_25150_row13_col0" class="data row13 col0" >[0.13, 0.995></td>
+      <td id="T_25150_row13_col1" class="data row13 col1" >8</td>
+      <td id="T_25150_row13_col2" class="data row13 col2" >3</td>
+      <td id="T_25150_row13_col3" class="data row13 col3" >99.694382</td>
+      <td id="T_25150_row13_col4" class="data row13 col4" >72.727272</td>
+      <td id="T_25150_row13_col5" class="data row13 col5" >70.833328</td>
+      <td id="T_25150_row13_col6" class="data row13 col6" >98.058250</td>
+      <td id="T_25150_row13_col7" class="data row13 col7" >2.718192</td>
+      <td id="T_25150_row13_col8" class="data row13 col8" >38.505444</td>
+    </tr>
+    <tr>
+      <th id="T_25150_level0_row14" class="row_heading level0 row14" >15</th>
+      <td id="T_25150_row14_col0" class="data row14 col0" >>=0.995</td>
+      <td id="T_25150_row14_col1" class="data row14 col1" >4</td>
+      <td id="T_25150_row14_col2" class="data row14 col2" >1</td>
+      <td id="T_25150_row14_col3" class="data row14 col3" >100.000000</td>
+      <td id="T_25150_row14_col4" class="data row14 col4" >80.000000</td>
+      <td id="T_25150_row14_col5" class="data row14 col5" >75.000000</td>
+      <td id="T_25150_row14_col6" class="data row14 col6" >100.000000</td>
+      <td id="T_25150_row14_col7" class="data row14 col7" >1.941841</td>
+      <td id="T_25150_row14_col8" class="data row14 col8" >42.355988</td>
+    </tr>
+  </tbody>
+</table></div>
 </div>
 </section>
 <section id="Final-Propensity">
 <h2>Final Propensity<a class="headerlink" href="#Final-Propensity" title="Link to this heading">¶</a></h2>
 <p>Below the classifier mapping. On the x-axis the binned scores (log odds values), on the y-axis the Propensity. Note the returned propensities are following a slightly adjusted formula, see the table above. The bin that contains the calculated final score is highlighted.</p>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/tmp/ipykernel_3006/2151495297.py:3: DeprecationWarning:
+
+`where` is deprecated. Use `filter` instead.
+
+/tmp/ipykernel_3006/2151495297.py:25: DeprecationWarning:
+
+`where` is deprecated. Use `filter` instead.
+
+</pre></div></div>
+</div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[16], line 1</span>
-<span class="ansi-green-fg">----&gt; 1</span> score <span style="color: rgb(98,98,98)">=</span> <span class="ansi-yellow-bg">propensity_mapping</span><span style="color: rgb(98,98,98)">.</span>data<span style="color: rgb(98,98,98)">.</span>loc[<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Final Score</span><span style="color: rgb(175,0,0)">&#34;</span>, <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">LogOdds</span><span style="color: rgb(175,0,0)">&#34;</span>]
-<span class="ansi-green-intense-fg ansi-bold">      2</span> score_bin <span style="color: rgb(98,98,98)">=</span> modelpredictors<span style="color: rgb(98,98,98)">.</span>filter(pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">EntryType</span><span style="color: rgb(175,0,0)">&#34;</span>) <span style="color: rgb(98,98,98)">==</span> <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Classifier</span><span style="color: rgb(175,0,0)">&#34;</span>)<span style="color: rgb(98,98,98)">.</span>select(
-<span class="ansi-green-intense-fg ansi-bold">      3</span>     pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">BinSymbol</span><span style="color: rgb(175,0,0)">&#34;</span>)<span style="color: rgb(98,98,98)">.</span>where(
-<span class="ansi-green-intense-fg ansi-bold">      4</span>         pl<span style="color: rgb(98,98,98)">.</span>lit(score)<span style="color: rgb(98,98,98)">.</span>is_between(pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">BinLowerBound</span><span style="color: rgb(175,0,0)">&#34;</span>), pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">BinUpperBound</span><span style="color: rgb(175,0,0)">&#34;</span>))
-<span class="ansi-green-intense-fg ansi-bold">      5</span>     )
-<span class="ansi-green-intense-fg ansi-bold">      6</span> )[<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">BinSymbol</span><span style="color: rgb(175,0,0)">&#34;</span>][<span style="color: rgb(98,98,98)">0</span>]
-<span class="ansi-green-intense-fg ansi-bold">      7</span> score_responses <span style="color: rgb(98,98,98)">=</span> modelpredictors<span style="color: rgb(98,98,98)">.</span>filter(
-<span class="ansi-green-intense-fg ansi-bold">      8</span>     (pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">EntryType</span><span style="color: rgb(175,0,0)">&#34;</span>) <span style="color: rgb(98,98,98)">==</span> <span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">Classifier</span><span style="color: rgb(175,0,0)">&#34;</span>) <span style="color: rgb(98,98,98)">&amp;</span> (pl<span style="color: rgb(98,98,98)">.</span>col(<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">BinSymbol</span><span style="color: rgb(175,0,0)">&#34;</span>) <span style="color: rgb(98,98,98)">==</span> score_bin)
-<span class="ansi-green-intense-fg ansi-bold">      9</span> )[<span style="color: rgb(175,0,0)">&#34;</span><span style="color: rgb(175,0,0)">BinResponseCount</span><span style="color: rgb(175,0,0)">&#34;</span>][<span style="color: rgb(98,98,98)">0</span>]
+<div class="output_area rendered_html docutils container">
+<div>                            <div id="d075d559-79e1-4f35-8c2d-58a9e77ba053" class="plotly-graph-div" style="height:525px; width:100%;"></div>            <script type="text/javascript">                require(["plotly"], function(Plotly) {                    window.PLOTLYENV=window.PLOTLYENV || {};                                    if (document.getElementById("d075d559-79e1-4f35-8c2d-58a9e77ba053")) {                    Plotly.newPlot(                        "d075d559-79e1-4f35-8c2d-58a9e77ba053",                        [{"name":"Responses","x":["\u003c-0.21","[-0.21, -0.185\u003e","[-0.185, -0.175\u003e","[-0.175, -0.105\u003e","[-0.105, -0.095\u003e","[-0.095, -0.09\u003e","[-0.09, -0.065\u003e","[-0.065, -0.02\u003e","[-0.02, 0.03\u003e","[0.03, 0.06\u003e","[0.06, 0.12\u003e","[0.12, 0.125\u003e","[0.125, 0.13\u003e","[0.13, 0.995\u003e","\u003e=0.995"],"y":[460.0,141.0,51.0,398.0,55.0,21.0,86.0,184.0,102.0,49.0,63.0,4.0,6.0,11.0,5.0],"type":"bar","marker":{"color":["grey","grey","grey","#1f77b4","grey","grey","grey","grey","grey","grey","grey","grey","grey","grey","grey"]}},{"mode":"lines+markers","name":"Propensity","x":["\u003c-0.21","[-0.21, -0.185\u003e","[-0.185, -0.175\u003e","[-0.175, -0.105\u003e","[-0.105, -0.095\u003e","[-0.095, -0.09\u003e","[-0.09, -0.065\u003e","[-0.065, -0.02\u003e","[-0.02, 0.03\u003e","[0.03, 0.06\u003e","[0.06, 0.12\u003e","[0.12, 0.125\u003e","[0.125, 0.13\u003e","[0.13, 0.995\u003e","\u003e=0.995"],"y":[0.03695652261376381,0.05673758685588837,0.05882352963089943,0.07035175710916519,0.072727270424366,0.095238097012043,0.10465116053819656,0.16304348409175873,0.36274510622024536,0.40816327929496765,0.4761904776096344,0.5,0.6666666865348816,0.7272727489471436,0.800000011920929],"yaxis":"y2","type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"anchor":"y","domain":[0.0,0.94],"title":{"text":"Range"},"type":"category"},"yaxis":{"anchor":"x","domain":[0.0,1.0],"title":{"text":"Responses"},"showgrid":false},"yaxis2":{"anchor":"x","overlaying":"y","side":"right","title":{"text":"Propensity"},"tickformat":",.3%","zeroline":false,"showgrid":false},"title":{"text":"Propensity distribution"},"annotations":[{"bgcolor":"#FFFFFF","bordercolor":"#000000","opacity":0.7,"showarrow":false,"text":"Returned propensity: 7.14%","x":"[-0.175, -0.105\u003e","y":0.07142857551574706,"yref":"y2"}]},                        {"responsive": true}                    ).then(function(){
 
-<span class="ansi-red-fg">NameError</span>: name &#39;propensity_mapping&#39; is not defined
-</pre></div></div>
+var gd = document.getElementById('d075d559-79e1-4f35-8c2d-58a9e77ba053');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };                });            </script>        </div></div>
 </div>
 </section>
 </section>
