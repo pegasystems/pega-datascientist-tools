@@ -191,7 +191,7 @@ class ADMVisualisations:
             color = by
             hover_data = {by: ":.d", metric: metric_hovers[metric]}
         elif mode == "Cumulative":
-            df = df.sort("SnapshotTime")
+            df = df.sort("SnapshotTime").to_pandas(use_pyarrow_extension_array=False)
             x = "SnapshotTime"
             y = metric
             color = by

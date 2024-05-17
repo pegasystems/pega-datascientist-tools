@@ -1592,7 +1592,7 @@ def plotBinningLift(
     )
 
     fig = px.bar(
-        data_frame=pm_plot_binning_table,
+        data_frame=pm_plot_binning_table.to_pandas(use_pyarrow_extension_array=True),
         x="Lift",
         y="BinSymbolAbbreviated",
         color="Direction",

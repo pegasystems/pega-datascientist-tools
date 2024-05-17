@@ -113,9 +113,13 @@ class BinAggregator:
                     predictor=predictor,
                     n=n,
                     distribution=distribution,
-                    boundaries=[]
-                    if boundaries is None
-                    else (boundaries if isinstance(boundaries, list) else [boundaries]),
+                    boundaries=(
+                        []
+                        if boundaries is None
+                        else (
+                            boundaries if isinstance(boundaries, list) else [boundaries]
+                        )
+                    ),
                     minimum=minimum,
                     maximum=maximum,
                 )
@@ -125,9 +129,11 @@ class BinAggregator:
                 symbol_list = self.create_symbol_list(
                     predictor=predictor,
                     n_symbols=n,
-                    musthave_symbols=[]
-                    if symbols is None
-                    else (symbols if isinstance(symbols, list) else [symbols]),
+                    musthave_symbols=(
+                        []
+                        if symbols is None
+                        else (symbols if isinstance(symbols, list) else [symbols])
+                    ),
                 )
 
             if aggregation is None:
@@ -225,7 +231,7 @@ class BinAggregator:
 
         if verbose:
             print(target_binning)
-            
+
             # fig = self.plot_lift_binning(target_binning)
             # fig.update_layout(
             #     width=800,
@@ -713,7 +719,7 @@ class BinAggregator:
         )
 
         fig = px.line(
-            boundaries_data,
+            boundaries_data.to_pandas(),
             x="boundary",
             y="binning",
             markers="both",
@@ -755,7 +761,7 @@ class BinAggregator:
         return fig.update_xaxes(title="")
 
     # "Philip Mann" plot with simple red/green lift bars relative to base propensity
-    # TODO currently shared between ModelReport.qmd and BinAggregator.py and 
+    # TODO currently shared between ModelReport.qmd and BinAggregator.py and
     # copied into plot_base - move over to that version once PDS tools version got bumped
     def plotBinningLift(
         self,
@@ -817,7 +823,7 @@ class BinAggregator:
         )
 
         fig = px.bar(
-            data_frame=pm_plot_binning_table,
+            data_frame=pm_plot_binning_table.to_pandas(),
             x="Lift",
             y="BinSymbolAbbreviated",
             color="Direction",
@@ -906,10 +912,17 @@ class BinAggregator:
         )
 
         fig = self.plotBinningLift(
-            binning.with_columns((pl.col("BinCoverage") / pl.col("Models")).alias("RelativeBinCoverage")),
+            binning.with_columns(
+                (pl.col("BinCoverage") / pl.col("Models")).alias("RelativeBinCoverage")
+            ),
             col_facet=model_facet,
             row_facet=predictor_facet,
-            custom_data=["PredictorName", "BinSymbol", "RelativeBinCoverage", "BinResponses"],
+            custom_data=[
+                "PredictorName",
+                "BinSymbol",
+                "RelativeBinCoverage",
+                "BinResponses",
+            ],
         )
         fig.update_traces(
             hovertemplate="<br>".join(

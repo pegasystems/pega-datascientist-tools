@@ -490,7 +490,7 @@ predictors. This can be configured via a parameter to this report.
 
 ```{python}
 # "Philip Mann" plot with simple red/green lift bars relative to base propensity
-# TODO currently shared between ModelReport.qmd and BinAggregator.py and 
+# TODO currently shared between ModelReport.qmd and BinAggregator.py and
 # copied into plot_base - move over to that version once PDS tools version got bumped
 def plotBinningLift(
     binning,
@@ -505,9 +505,7 @@ def plotBinningLift(
     # Add Lift column if not present
     if "Lift" not in binning.columns:
         binning = binning.with_columns(
-            (lift(pl.col("BinPositives"), pl.col("BinNegatives")) - 1.0).alias(
-                "Lift"
-            )
+            (lift(pl.col("BinPositives"), pl.col("BinNegatives")) - 1.0).alias("Lift")
         )
 
     # Optionally a shading expression
@@ -551,7 +549,7 @@ def plotBinningLift(
     )
 
     fig = px.bar(
-        data_frame=pm_plot_binning_table,
+        data_frame=pm_plot_binning_table.to_pandas(use_pyarrow_extension_array=True),
         x="Lift",
         y="BinSymbolAbbreviated",
         color="Direction",

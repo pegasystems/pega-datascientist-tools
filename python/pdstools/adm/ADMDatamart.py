@@ -1,23 +1,25 @@
 from __future__ import annotations
 
+import datetime
+import glob
 import logging
 import os
 import shutil
 import subprocess
+from collections import namedtuple
 from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict, List, Literal, NoReturn, Optional, Tuple, Union
 
 import polars as pl
 import yaml
-import glob
 
+from .. import pega_io
 from ..plots.plot_base import Plots
 from ..plots.plots_plotly import ADMVisualisations as plotly_plot
 from ..utils import cdh_utils, NBAD
 from ..utils.errors import NotEagerError
 from ..utils.types import any_frame
-from .. import pega_io
 from .ADMTrees import ADMTrees
 from .Tables import Tables
 
@@ -313,7 +315,11 @@ class ADMDatamart(Plots, Tables):
                     / (pl.col("BinResponseCount") + pl.lit(1))
                 ),
             )
-            if self.predictorCategorization is not None:
+
+            if (
+                self.predictorCategorization is not None
+                and "PredictorCategory" not in df2.columns
+            ):
                 if not isinstance(self.predictorCategorization, pl.Expr):
                     self.predictorCategorization = self.predictorCategorization()
                 df2 = df2.with_columns(PredictorCategory=self.predictorCategorization)
@@ -472,6 +478,7 @@ class ADMDatamart(Plots, Tables):
             "ResponseCount",
             "SnapshotTime",
             "PredictorName",
+            "PredictorCategory",
             "Performance",
             "EntryType",
             "PredictorName",
@@ -579,10 +586,11 @@ class ADMDatamart(Plots, Tables):
 
     @staticmethod
     def _last(df: any_frame) -> any_frame:
+        fill_date = datetime.datetime.fromtimestamp(0)
         """Method to retrieve only the last snapshot."""
         return df.filter(
-            pl.col("SnapshotTime").fill_null(1)
-            == pl.col("SnapshotTime").fill_null(1).max()
+            pl.col("SnapshotTime").fill_null(fill_date)
+            == pl.col("SnapshotTime").fill_null(fill_date).max()
         )
 
     @staticmethod
@@ -598,7 +606,7 @@ class ADMDatamart(Plots, Tables):
         return (
             pl.when(pl.col(col).min() == pl.col(col).max())
             .then(pl.max("SnapshotTime"))
-            .otherwise(pl.col("SnapshotTime").where(pl.col(col).diff() != 0).max())
+            .otherwise(pl.col("SnapshotTime").filter(pl.col(col).diff() != 0).max())
             .over("ModelID")
             .alias(f"Last_{col}")
         )
@@ -1360,12 +1368,12 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             else pl.lit(0)
         )
         uniqueUsedTreatmentExpr = (
-            treatmentIdentifierExpr.where(pl.col("isUsedTreatment")).unique()
+            treatmentIdentifierExpr.filter(pl.col("isUsedTreatment")).unique()
             if "Treatment" in self.modelData.columns
             else pl.lit([])
         )
         uniqueUsedTreatmentCountExpr = (
-            treatmentIdentifierExpr.where(pl.col("isUsedTreatment")).n_unique()
+            treatmentIdentifierExpr.filter(pl.col("isUsedTreatment")).n_unique()
             if "Treatment" in self.modelData.columns
             else pl.lit(0)
         )
@@ -1432,7 +1440,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 actionIdentifierExpr.n_unique().alias("Total Number of Actions"),
                 uniqueTreatmentCountExpr.alias("Total Number of Treatments"),
                 # TODO use last update property instead
-                (actionIdentifierExpr.where(pl.col("isUsedAction")).n_unique()).alias(
+                (actionIdentifierExpr.filter(pl.col("isUsedAction")).n_unique()).alias(
                     "Used Actions"
                 ),
                 uniqueUsedTreatmentCountExpr.alias("Used Treatments"),
@@ -1441,7 +1449,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 AllGroups=pl.concat_str(["Issue", "Group"], separator="/").unique(),
                 AllActions=actionIdentifierExpr.unique(),
                 AllTreatments=uniqueTreatmentExpr,
-                AllUsedActions=actionIdentifierExpr.where(
+                AllUsedActions=actionIdentifierExpr.filter(
                     pl.col("isUsedAction")
                 ).unique(),
                 AllUsedTreatments=uniqueUsedTreatmentExpr,
@@ -1544,16 +1552,16 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             .select(
                 pl.col("DateRange Min").min(),
                 pl.col("DateRange Max").max(),
-                pl.count().alias("Number of Valid Channels"),
+                pl.len().alias("Number of Valid Channels"),
                 cdh_utils.weighted_performance_polars().alias("Performance"),
                 pl.col("Positives").sum(),
                 pl.col("ResponseCount").sum(),
                 pl.col("Performance")
-                .where((pl.col("Performance") == pl.col("Performance").min()))
+                .filter((pl.col("Performance") == pl.col("Performance").min()))
                 .first()
                 .alias("Minimum Performance"),
                 pl.col("ChannelDirection")
-                .where((pl.col("Performance") == pl.col("Performance").min()))
+                .filter((pl.col("Performance") == pl.col("Performance").min()))
                 .first()
                 .alias("Channel with Minimum Performance"),
                 pl.col("AllIssues").list.explode().n_unique().alias("Issues"),
@@ -1569,7 +1577,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 .alias("Used Actions"),
                 totalUsedTreatments.alias("Used Treatments"),
                 usesNBAD=pl.lit(usesNBAD),
-                usesNBADOnly=(pl.count() > 0) & pl.lit(usesNBAD and usesNBADOnly),
+                usesNBADOnly=(pl.len() > 0) & pl.lit(usesNBAD and usesNBADOnly),
             )
             .with_columns(CTR=(pl.col("Positives")) / (pl.col("ResponseCount")))
         )
