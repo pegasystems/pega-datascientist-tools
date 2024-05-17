@@ -17,7 +17,7 @@ import yaml
 from .. import pega_io
 from ..plots.plot_base import Plots
 from ..plots.plots_plotly import ADMVisualisations as plotly_plot
-from ..utils import cdh_utils
+from ..utils import cdh_utils, NBAD
 from ..utils.errors import NotEagerError
 from ..utils.types import any_frame
 from .ADMTrees import ADMTrees
@@ -117,44 +117,8 @@ class ADMDatamart(Plots, Tables):
     ]
     standardDirections = ["Inbound", "Outbound"]
 
-    NBAD_configurations = namedtuple(
-        "Configurations",
-        ["model_name", "channel", "direction", "standard", "multi_channel"],
-    )
-    standardNBADModelConfigurationList: List[NBAD_configurations] = [
-        ("Web_Click_Through_Rate", "Web", "Inbound", True, False),
-        ("WebTreatmentClickModel", "Web", "Inbound", True, False),
-        ("Mobile_Click_Through_Rate", "Mobile", "Inbound", True, False),
-        ("Email_Click_Through_Rate", "E-mail", "Outbound", True, False),
-        ("Push_Click_Through_Rate", "Push", "Outbound", True, False),
-        ("SMS_Click_Through_Rate", "SMS", "Outbound", True, False),
-        ("Retail_Click_Through_Rate", "Retail", "Inbound", True, False),
-        ("Retail_Click_Through_Rate_Outbound", "Retail", "Outbound", True, False),
-        ("CallCenter_Click_Through_Rate", "Call Center", "Inbound", True, False),
-        ("CallCenterAcceptRateOutbound", "Call Center", "Outbound", True, False),
-        (
-            "Assisted_Click_Through_Rate",
-            "Assisted",
-            "Inbound",
-            True,
-            False,
-        ),  # withdrawn record
-        (
-            "Assisted_Click_Through_Rate_Outbound",
-            "Assisted",
-            "Outbound",
-            True,
-            False,
-        ),  # withdrawn record
-        ("Default_Inbound_Model", "Default", "Inbound", True, False),
-        ("Default_Outbound_Model", "Default", "Outbound", True, False),
-        ("Default_Click_Through_Rate", "Other", "Inbound", True, False),
-        ("Other_Inbound_Click_Through_Rate", "Other", "Inbound", True, False),
-        ("OmniAdaptiveModel", "Multi-channel", "Multi-channel", True, True),
-    ]
-
     NBAD_model_configurations = [
-        x[0].upper() for x in standardNBADModelConfigurationList
+        x.model_name.upper() for x in NBAD.standardNBADModelConfigurations
     ]
 
     def __init__(

@@ -1,8 +1,7 @@
-from collections import namedtuple
 from typing import List
 import polars as pl
 
-from ..utils import cdh_utils
+from ..utils import cdh_utils, NBAD
 
 
 class Prediction:
@@ -27,43 +26,17 @@ class Prediction:
         # )
     )
 
-    # Prediction name (case insensitive), channel, direction, is-standard (True here), is-multi channel
-    NBAD_predictions = namedtuple( 
-        "Configurations",
-        ["model_name", "channel", "direction", "standard", "multi_channel"],
-    ) 
-    standardNBADPredictionsList:List[NBAD_predictions] = [
-        ("PredictWebPropensity", "Web", "Inbound", True, False),
-        ("PredictMobilePropensity", "Mobile", "Inbound", True, False),
-        ("PredictOutboundEmailPropensity", "E-mail", "Outbound", True, False),
-        ("PredictOutboundPushPropensity", "Push", "Outbound", True, False),
-        ("PredictOutboundSMSPropensity", "SMS", "Outbound", True, False),
-        ("PredictInboundRetailPropensity", "Retail", "Inbound", True, False),
-        ("PredictOutboundRetailPropensity", "Retail", "Outbound", True, False),
-        ("PredictInboundCallCenterPropensity", "Call Center", "Inbound", True, False),
-        ("PredictOutboundCallCenterPropensity", "Call Center", "Outbound", True, False),
-        ("PredictInboundDefaultPropensity", "Default", "Inbound", True, False),
-        ("PredictOutboundDefaultPropensity", "Default", "Outbound", True, False),
-        ("PredictInboundOtherPropensity", "Other", "Inbound", True, False),
-        ("PredictActionPropensity", "Multi-channel", "Multi-channel", True, True),
-        (
-            "PredictTreatmentPropensity",
-            "Multi-channel",
-            "Multi-channel",
-            True,
-            True,
-        ),  # no longer a prediction in 24.1 release
-    ]
-
-    def getPredictionsChannelMapping(self, custom_predictions=[]):
-        all_mappings = self.standardNBADPredictionsList + custom_predictions
+    def getPredictionsChannelMapping(
+        self, custom_predictions=List[NBAD.NBAD_prediction]
+    ) -> pl.DataFrame:
+        all_mappings = NBAD.standardNBADPredictions + custom_predictions
         return pl.DataFrame(
             {
-                "Prediction": [x[0].upper() for x in all_mappings],
-                "Channel": [x[1] for x in all_mappings],
-                "Direction": [x[2] for x in all_mappings],
-                "isStandardNBADPrediction": [x[3] for x in all_mappings],
-                "isMultiChannelPrediction": [x[4] for x in all_mappings],
+                "Prediction": [x.model_name.upper() for x in all_mappings],
+                "Channel": [x.channel for x in all_mappings],
+                "Direction": [x.direction for x in all_mappings],
+                "isStandardNBADPrediction": [x.standard for x in all_mappings],
+                "isMultiChannelPrediction": [x.multi_channel for x in all_mappings],
             }
         )
 
@@ -141,11 +114,11 @@ class Prediction:
 
     def summary_by_channel(
         self,
-        custom_predictions:List[NBAD_predictions]=None,
+        custom_predictions: List[NBAD.NBAD_prediction] = None,
     ) -> pl.LazyFrame:
         if not custom_predictions:
             custom_predictions = []
-        
+
         return (
             self.predictions.drop("Channel")
             .join(
@@ -199,7 +172,9 @@ class Prediction:
             .sort(["ModelName"])
         )
 
-    def overall_summary(self, custom_predictions:List[NBAD_predictions]=None) -> pl.LazyFrame:
+    def overall_summary(
+        self, custom_predictions: List[NBAD.NBAD_prediction] = None
+    ) -> pl.LazyFrame:
         return (
             self.summary_by_channel(custom_predictions)
             .filter(
