@@ -185,6 +185,34 @@ def test_weighted_average_polars():
 
     assert output.equals(expected_output)
 
+def test_overlap_lists_polars_simple():
+    input = pl.DataFrame(
+        {
+            "Actions" : [['a', 'b'], ['a', 'c', 'd']],
+            "Valid" : [True, True]
+        }
+    )
+
+    assert cdh_utils.overlap_lists_polars(input['Actions'], input['Valid']) == [0.5, 1.0/3]
+
+def test_overlap_lists_polars_more():
+    input = pl.DataFrame(
+        {
+            "Actions" : [['a', 'b'], ['b'], ['a', 'b'], ['a', 'c', 'd']],
+            "Valid" : [True, True, False, True],
+            "Valid2" : [True, True, True, True]
+        }
+    )
+
+    results = cdh_utils.overlap_lists_polars(input['Actions'], input['Valid'])
+    expected_results = [0.5, 0.5, float("nan"), 1.0/6]
+    for i in range(len(expected_results)):
+        assert (results[i] == expected_results[i]) or (np.isnan(results[i]) and np.isnan(expected_results[i]))
+
+    results = cdh_utils.overlap_lists_polars(input['Actions'], input['Valid2'])
+    expected_results = [2.0/3, 2.0/3, 2.0/3, 2.0/9]
+    for i in range(len(expected_results)):
+        assert (results[i] == expected_results[i]) or (np.isnan(results[i]) and np.isnan(expected_results[i]))
 
 def test_weighted_performance_polars():
     input = pl.DataFrame(
