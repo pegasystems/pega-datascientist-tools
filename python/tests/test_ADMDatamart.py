@@ -496,6 +496,7 @@ def test_summary_by_channel_cols(test):
         "Groups",
         "usesNBAD",
         "usesNBADOnly",
+        "OmniChannel Actions",
         "CTR",
     ]
     assert len(summary) == 3
@@ -520,6 +521,7 @@ def test_overall_summary_cols(test):
         "Used Treatments",
         "usesNBAD",
         "usesNBADOnly",
+        "OmniChannel Actions",
         "CTR",
     ]
     assert len(summary) == 1

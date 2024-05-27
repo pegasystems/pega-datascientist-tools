@@ -1378,7 +1378,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             else pl.lit(0)
         )
 
-        return (
+        channel_summary = (
             self.modelData.with_columns(
                 activeActionExpr.alias("isUsedAction"),
                 activeTreatmentExpr.alias("isUsedTreatment"),
@@ -1485,25 +1485,40 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 usesNBADOnly=pl.col("isNBADModelConfiguration").list.any()
                 & pl.col("isNBADModelConfiguration").list.all(),
             )
-            .with_columns(CTR=(pl.col("Positives")) / (pl.col("ResponseCount")))
-            .drop(
-                ["isNBADModelConfiguration"]
-                + (
-                    []
-                    if keep_lists
-                    else [
-                        "AllIssues",
-                        "AllGroups",
-                        "AllActions",
-                        "AllUsedActions",
-                        "AllTreatments",
-                        "AllUsedTreatments",
-                    ]
-                )
-            )
             .sort(
                 [
+                    # NB channel direction group isn't unique per se so make sure to have a fully defined order
                     "ChannelDirectionGroup",
+                    "Channel",
+                    "Direction",
+                ]
+            )
+        )
+
+        item_overlap_actions = channel_summary.select(
+            ["AllActions", "isValid"]
+        ).collect()
+
+        return channel_summary.with_columns(
+            pl.Series(
+                cdh_utils.overlap_lists_polars(
+                    item_overlap_actions["AllActions"],
+                    item_overlap_actions["isValid"],
+                )
+            ).alias("OmniChannel Actions"),
+            CTR=(pl.col("Positives")) / (pl.col("ResponseCount"))
+        ).drop(
+            ["isNBADModelConfiguration"]
+            + (
+                []
+                if keep_lists
+                else [
+                    "AllIssues",
+                    "AllGroups",
+                    "AllActions",
+                    "AllUsedActions",
+                    "AllTreatments",
+                    "AllUsedTreatments",
                 ]
             )
         )
@@ -1576,8 +1591,9 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 .n_unique()
                 .alias("Used Actions"),
                 totalUsedTreatments.alias("Used Treatments"),
-                usesNBAD=pl.lit(usesNBAD),
-                usesNBADOnly=(pl.len() > 0) & pl.lit(usesNBAD and usesNBADOnly),
+                pl.lit(usesNBAD).alias("usesNBAD"),
+                ((pl.len() > 0) & pl.lit(usesNBAD and usesNBADOnly)).alias("usesNBADOnly"),
+                pl.col("OmniChannel Actions").filter(pl.col.isValid).mean()
             )
             .with_columns(CTR=(pl.col("Positives")) / (pl.col("ResponseCount")))
         )
