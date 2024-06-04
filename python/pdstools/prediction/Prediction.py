@@ -6,11 +6,11 @@ from ..utils import NBAD
 
 
 class Prediction:
-    predictions = None
+    predictions: pl.LazyFrame
 
     # These are pretty strict conditions - many configurations appear not to satisfy these
     # perhaps the Total = Test + Control is no longer met when Impact Analyzer is around
-    validityExpr = (
+    prediction_validity_expr = (
         (pl.col("Positives") > 0)
         & (pl.col("Positives_Test") > 0)
         & (pl.col("Positives_Control") > 0)
@@ -28,7 +28,7 @@ class Prediction:
     )
 
     def getPredictionsChannelMapping(
-        self, custom_predictions : Optional[List[NBAD.NBAD_Prediction]] = None
+        self, custom_predictions: Optional[List[NBAD.NBAD_Prediction]] = None
     ) -> pl.DataFrame:
         if not custom_predictions:
             custom_predictions = []
@@ -42,6 +42,8 @@ class Prediction:
                 "isMultiChannelPrediction": [x.multi_channel for x in all_mappings],
             }
         )
+
+    # TODO group by SnapshotTime, do minimal aggregation
 
     def __init__(self, df: pl.LazyFrame):
         self.predictions = (
@@ -98,7 +100,7 @@ class Prediction:
             .with_columns(
                 CTR_Lift=(pl.col("CTR_Test") - pl.col("CTR_Control"))
                 / pl.col("CTR_Control"),
-                isValidPrediction=self.validityExpr,
+                isValidPrediction=self.prediction_validity_expr,
             )
             .sort(["ModelName"])
         )
@@ -112,8 +114,10 @@ class Prediction:
         return (
             self.is_available
             # or even stronger: pos = pos_test + pos_control
-            and self.predictions.select(self.validityExpr.all()).collect().item()
+            and self.predictions.select(self.prediction_validity_expr.all()).collect().item()
         )
+
+    # TODO give this an optional argument for grouping by
 
     def summary_by_channel(
         self,

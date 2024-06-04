@@ -9,6 +9,7 @@ execute:
   echo: false
 format:
   html:
+    page-layout: full
     code-fold: true
     embed-resources: true
     standalone: true
@@ -38,14 +39,12 @@ from pdstools import datasets, ADMDatamart
 from pdstools.utils.cdh_utils import zRatio, lift
 import polars as pl
 from IPython.display import display, Markdown
-from tabulate import tabulate
-from itables import show
+from great_tables import GT, style, md, html, loc
 import plotly.express as px
 from plotly.graph_objects import Figure
 from typing import Union, Optional, Literal 
 
 # Convenience wrapper functions
-
 
 def quarto_print(text):
     display(Markdown(text))
@@ -72,6 +71,11 @@ def quarto_callout_important(info):
         % info
     )
 
+def polars_col_exists(df, col):
+    return col in df.columns and df.schema[col] != pl.Null
+
+def polars_subset_to_existing_cols(cols):
+    return [col for col in cols if col in datamart_all_columns]
 
 ```
 
@@ -111,7 +115,7 @@ elif len(datafolder) > 0 or len(modelfilename) > 0 or len(predictorfilename) > 0
         model_filename=modelfilename,
         predictor_filename=predictorfilename,
         extract_keys=True,
-        include_cols="pyFeatureImportance",
+        include_cols=["pyFeatureImportance"],
         query=pl.col("ModelID") == modelid,
     ).fillMissing()
 else:
@@ -122,18 +126,19 @@ else:
 # TODO ensure this is only one predictor snapshot, just in case? although it would be
 # neat to show predictor evolution, if available
 
-
-def columnExists(df, col):
-    return col in df.columns and df.schema[col] != pl.Null
-
-
 # Simple way to make sure Treatment is set and not null
-if columnExists(datamart.modelData, "Treatment"):
+if polars_col_exists(datamart.modelData, "Treatment"):
     datamart.modelData = datamart.modelData.with_columns(
         pl.col("Treatment").fill_null("-")
     )
 else:
     datamart.modelData = datamart.modelData.with_columns(pl.lit("-").alias("Treatment"))
+
+if predictordetails_activeonly:
+    status_filter = pl.col("EntryType") == "Active"
+else:
+    status_filter = pl.col("EntryType") != "Classifier"
+
 
 ```
 
@@ -222,7 +227,6 @@ The classifier maps the model scores (average of the log odds of the active pred
 See the [ADM Explained](https://pegasystems.github.io/pega-datascientist-tools/Python/articles/ADMExplained.html) article for more information on how ADM exactly works.
 
 ```{python}
-# | output: asis
 
 classifier_properties = classifier.select(
     pl.last("ResponseCount").alias("Responses"),
@@ -233,7 +237,22 @@ classifier_properties = classifier.select(
     pl.format("{}", pl.last("Performance").round(4)).alias("Performance"),
 )
 
-show(classifier_properties.collect().to_pandas())
+GT(classifier.collect().select(
+    pl.last("ResponseCount"),
+    pl.last("Positives"),
+    (pl.last("Positives")/pl.last("ResponseCount")).alias("Base Propensity"),
+    pl.last("Performance")
+)).cols_label(
+    ResponseCount="Responses",).fmt_number(
+        decimals=0,
+        columns=["ResponseCount", "Positives"],
+    ).fmt_percent(
+        decimals=3, columns=["Base Propensity"]
+    ).fmt_number(
+        decimals=2,
+        scale_by=100,
+        columns=["Performance"],  
+    )
 ```
 
 
@@ -254,7 +273,6 @@ The Python version has no notion of unreachable bins (yet), when it has we shoul
 :::
 
 ```{python}
-# | tbl-cap: Score Distribution
 
 human_friendly_scoredistribution = (
     classifier.select(
@@ -285,21 +303,11 @@ human_friendly_scoredistribution = (
     )
 ).collect()
 
-# Convert to a list of lists, use tabulate to print to ascii art
-# the markdown to make it a nice table
-# Seems to look better than itables.show() but maybe I'm missing something
-# Neither of the two are as good as kable / kableExtra, highlighting of specific
-# cells, rows, columns is not easily done
+# TODO some of the formatting could be done in GT instead of in polars
 
-Markdown(
-    tabulate(
-        [
-            [f[i] for f in human_friendly_scoredistribution]
-            for i in range(human_friendly_scoredistribution.shape[0])
-        ],
-        headers=human_friendly_scoredistribution.columns,
-    )
-)
+gt = GT(human_friendly_scoredistribution).tab_options(table_font_size=8).tab_header(title="Score Distribution")
+
+display(gt)
 
 ```
 
@@ -356,12 +364,11 @@ fig.show()
 
 # Trend charts
 
-TODO see if we can put the various trend charts in tabs - although this seems to require go not express, then gain .data[0] probably gives the go objects
-
-But maybe .data[0] gives the trace
-
-
 ```{python}
+# TODO see if we can put the various trend charts in tabs - although this seems to require go not express, then gain .data[0] probably gives the go objects
+
+# But maybe .data[0] gives the trace
+
 fig = datamart.plotOverTime("weighted_performance")
 
 fig.update_layout(
@@ -422,56 +429,75 @@ predictors often have slightly lower counts.
 For Adaptive Gradient Boosting models ("AGB") the number of positives and
 negatives is not available.
 
+
+
 ```{python}
-# TODO predictor groups missing https://github.com/pegasystems/pega-datascientist-tools/issues/127
-# once this is fixed we can include the group index and group
-# the overview by correlation group, and list the correlated preds in the
-# summaries
+# TODO add a list of correlated predictors as a list, to show in the
+# single predictor view (not the overview, that already shows them with indentation)
+# See https://github.com/pegasystems/pega-datascientist-tools/issues/127
 
 predictors_summary_info = (
     datamart.last("predictorData", strategy="lazy")
-    .group_by("PredictorName")
+    .sort(["PredictorName", "BinIndex"])
+    .group_by("PredictorName", maintain_order=True,)
     .agg(
-        pl.last("EntryType").alias("Status"),
+        pl.last("ResponseCount").alias("Responses"),
+        pl.last("Positives"),
+        pl.last("EntryType"),
+        (pl.last("EntryType") == "Active").alias("isActive"),
+        pl.last("GroupIndex"),
         pl.last("Type"),
         pl.last("Performance").alias("Univariate Performance"),
         pl.max("BinIndex").alias("Bins"),
         (
-            pl.col("BinResponseCount").where(pl.col("BinType") == "MISSING").sum()
+            pl.col("BinResponseCount").filter(pl.col("BinType") == "MISSING").sum()
             * 100
             / pl.sum("BinResponseCount")
         ).alias("Missing %"),
         (
-            pl.col("BinResponseCount").where(pl.col("BinType") == "RESIDUAL").sum()
+            pl.col("BinResponseCount").filter(pl.col("BinType") == "RESIDUAL").sum()
             * 100
             / pl.sum("BinResponseCount")
         ).alias("Residual %"),
-        pl.last("Positives"),
-        pl.last("ResponseCount").alias("Responses"),
+        pl.col("BinResponseCount").cast(pl.String).alias("Binning")
     )
-    .rename({"PredictorName": "Predictor"})
-    .sort("Univariate Performance", descending=True)
+    .sort(["GroupIndex", "isActive", "Univariate Performance"], descending=[False, True, True])
+    .with_columns(
+        pl.col("isActive").any().over("GroupIndex").alias("AnyActiveInGroup")
+    )
+    .with_columns(
+        pl.when(pl.col("isActive").not_() & pl.col("AnyActiveInGroup")).then(pl.lit("&nbsp;&nbsp;&nbsp;&nbsp;")).otherwise(pl.lit("")).alias("Indentation")
+    )
+    .with_columns(
+        pl.col("Binning").list.join(" "),
+        pl.when(status_filter).then(pl.format("{} [{}](#{})", pl.col("Indentation"), pl.col("PredictorName"), pl.col("PredictorName").cast(pl.String).str.to_lowercase().str.replace_all(" ","-",literal=True))).otherwise(pl.format("{}{}", pl.col("Indentation"), pl.col("PredictorName"))).alias("PredictorLink"),
+    )
 )
 
 
-def shadeInactive(s):
-    if s.Status == "Inactive":
-        return ["color: grey"] * len(s)
-    else:
-        return [""] * len(s)
+# TODO we can easily color the predictors by Category
 
+gt = GT(predictors_summary_info.filter(pl.col("EntryType") != "Classifier").collect(), rowname_col="PredictorLink").tab_options(table_font_size=6).tab_header("Predictor Overview")
 
 display(
-    predictors_summary_info.filter(pl.col("Status") != "Classifier")
-    .collect()
-    .to_pandas()
-    .style.set_caption("Predictor Overview")
-    .hide(axis="index")
-    .hide(["Positives", "Responses"], axis="columns")
-    .format(precision=4, subset=["Univariate Performance"])
-    .format(precision=2, subset=["Missing %", "Residual %"])
-    .format(precision=0, subset=["Positives", "Responses"])
-    .apply(shadeInactive, axis=1)
+    gt
+    .cols_hide(["Positives", "Responses", "PredictorName", "isActive", "GroupIndex", "AnyActiveInGroup", "Indentation"])
+    .cols_label(EntryType="Status")
+    .fmt_number(
+        decimals=2,
+        scale_by=100.0,
+        columns=["Univariate Performance"],
+    )
+    .fmt_number(
+        decimals=2,
+        columns=["Missing %", "Residual %"],
+    )
+    .tab_style(
+        style=style.text(color="grey"),
+        locations=loc.body(rows=pl.col("isActive").not_()),
+    )
+    .fmt_nanoplot(columns="Binning", plot_type="bar")
+    .fmt_markdown(columns=["PredictorLink"])
 )
 ```
 
@@ -614,7 +640,7 @@ def show_single_predictor(pred):
         .sort("BinIndex")
     )
 
-    predictor_properties = predictors_summary_info.filter(pl.col("Predictor") == pred)
+    predictor_properties = predictors_summary_info.filter(pl.col("PredictorName") == pred)
 
     base_propensity = (
         predictor_properties.select(pl.col("Positives") / pl.col("Responses"))
@@ -625,12 +651,23 @@ def show_single_predictor(pred):
     # Predictor summary
 
     display(
-        predictor_properties.collect()
-        .to_pandas()
-        .style.hide(axis="index")
-        .format(precision=4, subset=["Univariate Performance"])
-        .format(precision=2, subset=["Missing %", "Residual %"])
-        .format(precision=0, subset=["Positives", "Responses"])
+        GT(predictor_properties.collect())
+        .tab_options(table_font_size=8)
+        .fmt_number(
+            decimals=2,
+            scale_by=100.0,
+            columns=["Univariate Performance"],
+        )
+        .fmt_number(
+            decimals=2,
+            columns=["Missing %", "Residual %"],
+        )
+        .fmt_number(
+            decimals=0,
+            columns=["Positives", "Responses"],
+        )
+        .cols_hide(["PredictorName", "isActive", "GroupIndex", "AnyActiveInGroup", "Indentation", "Binning", "PredictorLink"])
+        .cols_label(EntryType="Status")
     )
 
     # Predictor binning
@@ -650,13 +687,16 @@ def show_single_predictor(pred):
     fig.add_hline(y=base_propensity, line_dash="dash", line_color="grey", yref="y2")
     # fig.update_xaxes(type='category') # prevent plotly from trying to guess
 
-    fig.update_layout(width=700, height=300)
+    fig.update_layout(width=700, height=250)
     fig.show()
 
     # Alternative view in the binning Lift plot
 
+    quarto_print("   ")
+    quarto_print("___")  # renders as horizontal line
+
     fig = plotBinningLift(predictor_binning_data)
-    fig.update_layout(width=700, height=300)
+    fig.update_layout(width=700, height=250)
     fig.show()
 
     # Table with binning details
@@ -675,28 +715,19 @@ def show_single_predictor(pred):
         (pl.col("BinPropensity") * 100).round(3).alias("Propensity (%)"),
     ).collect()
 
-    quarto_print(
-        tabulate(
-            [
-                [f[i] for f in human_friendly_binning_table]
-                for i in range(human_friendly_binning_table.shape[0])
-            ],
-            headers=human_friendly_binning_table.columns,
-        )
+    display(
+        GT(human_friendly_binning_table)
+        .tab_options(table_font_size=8)
+        .fmt_nanoplot(columns="Z Ratio", plot_type="bar", autoscale=False)
     )
-
+    
     quarto_print("   ")
     quarto_print("___")  # renders as horizontal line
 
 
-if predictordetails_activeonly:
-    status_filter = pl.col("Status") == "Active"
-else:
-    status_filter = pl.col("Status") != "Classifier"
-
 for pred in (
     predictors_summary_info.filter(status_filter)
-    .select("Predictor")
+    .select("PredictorName")
     .collect()
     .to_series(0)
 ):
@@ -746,6 +777,7 @@ quarto_print(
 | Pandoc | {pandoc_version} |
 | PDS Tools | {get_pip_package_version('pdstools')} |
 | Jupyter Notebook format (nbformat) | {get_pip_package_version('nbformat')} |
+| Great Tables | {get_pip_package_version('great_tables')} |
 | Created at | {timestamp_str} |
 
 """

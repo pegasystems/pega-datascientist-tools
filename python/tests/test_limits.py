@@ -17,7 +17,7 @@ def test_limits():
     assert limits.check_limits(CDHLimits.Metrics.Configurations_per_Channel, 3) == CDHLimits.Status.Warning
     assert limits.check_limits(CDHLimits.Metrics.Number_of_Channels, 1) == CDHLimits.Status.Warning
     assert limits.check_limits(CDHLimits.Metrics.Number_of_Channels, 100) == CDHLimits.Status.Good
-    assert limits.check_limits(CDHLimits.Metrics.Model_Performance, 54) == CDHLimits.Status.Bad
+    assert limits.check_limits(CDHLimits.Metrics.Model_Performance, 54) == CDHLimits.Status.Warning
     assert limits.check_limits(CDHLimits.Metrics.Engagement_Lift, None) == CDHLimits.Status.Bad
     assert limits.check_limits(CDHLimits.Metrics.Engagement_Lift, float('nan')) == CDHLimits.Status.Bad
     assert limits.check_limits(CDHLimits.Metrics.Engagement_Lift, float("inf")) == CDHLimits.Status.Warning

@@ -27,7 +27,7 @@ def test_GenerateHealthCheck(sample):
     hc = sample.generateReport(verbose=True)
     assert hc == "./HealthCheck.html"
     assert pathlib.Path(hc).exists()
-    os.remove("HealthCheck.html")
+    pathlib.Path(hc).unlink()
     assert not pathlib.Path(hc).exists()
 
 def test_ExportTables(sample):
@@ -42,7 +42,7 @@ def test_ExportTables(sample):
     ]
     # TODO we could go further and check the size of the sheets
     # spreadsheet = read_excel(excel, sheet_name=None)
-    os.remove("Tables.xlsx")
+    pathlib.Path(excel).unlink()
     assert not pathlib.Path(excel).exists()
 
 def test_ExportTables_NoBinning(sample):
@@ -56,7 +56,7 @@ def test_ExportTables_NoBinning(sample):
     ]
     # TODO we could go further and check the size of the sheets
     # spreadsheet = read_excel(excel, sheet_name=None)
-    os.remove("Tables.xlsx")
+    pathlib.Path(excel).unlink()
     assert not pathlib.Path(excel).exists()
 
 def test_GenerateHealthCheck_ModelDataOnly(sample_without_predictorbinning):
@@ -65,7 +65,7 @@ def test_GenerateHealthCheck_ModelDataOnly(sample_without_predictorbinning):
     )
     assert hc == "./HealthCheck_MyOrg.html"
     assert pathlib.Path(hc).exists()
-    os.remove("HealthCheck_MyOrg.html")
+    pathlib.Path(hc).unlink()
     assert not pathlib.Path(hc).exists()
 
 
@@ -81,7 +81,7 @@ def test_ExportTables_ModelDataOnly(sample_without_predictorbinning):
     ]
     # TODO we could go further and check the size of the sheets
     # spreadsheet = read_excel(excel, sheet_name=None)
-    os.remove("ModelTables.xlsx")
+    pathlib.Path(excel).unlink()
 
 
 def test_GenerateModelReport(sample):
@@ -90,7 +90,7 @@ def test_GenerateModelReport(sample):
     )
     assert report == "./ModelReport_MyOrg_bd70a915-697a-5d43-ab2c-53b0557c85a0.html"
     assert pathlib.Path(report).exists()
-    os.remove(report)
+    pathlib.Path(report).unlink()
     assert not pathlib.Path(report).exists()
 
 def test_GenerateModelReport_Failing(sample_without_predictorbinning):

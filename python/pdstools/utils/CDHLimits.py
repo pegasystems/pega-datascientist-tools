@@ -40,6 +40,9 @@ class CDHLimits(object):
             "Model_Performance",
             "Engagement_Lift",
 
+            "Number_of_Responses",
+            "Number_of_Positive_Responses",
+
         ],
     )
 
@@ -82,9 +85,13 @@ class CDHLimits(object):
 
         Metrics.Number_of_Predictors: num_limit(10, 200, 700, 2000), # official limits are different
         Metrics.Number_of_Active_Predictors_per_Model: num_limit(2, 5, 100, None), # no official limits
-        Metrics.Model_Performance: num_limit(55, 60, 80, 90), # no official limits
+        Metrics.Model_Performance: num_limit(52, 55, 80, 90), # no official limits
         Metrics.Engagement_Lift: num_limit(0.0, 0.2, 2.0, None), # no official limits
         
+        # predictor/model related
+
+        Metrics.Number_of_Responses: num_limit(1.0, 200, None, None),
+        Metrics.Number_of_Positive_Responses: num_limit(1.0, 200, None, None),
     }
 
     def __new__(cls):
@@ -120,20 +127,3 @@ class CDHLimits(object):
 
         return self.Status.Unknown
 
-
-# if __name__ == "__main__":
-#     limits = CDHLimits()
-#     print(limits.get_limits(limits.Configurations_per_Channel))
-
-#     print(limits.check_limits(limits.Configurations_per_Channel, 2))
-#     print(limits.check_limits(limits.Number_of_Treatments_per_Channel_per_Action, 1))
-#     print(limits.check_limits(limits.Standard_NBAD_Direction_Names, "Anybound"))
-#     print(limits.check_limits(limits.Standard_NBAD_Channel_Names, "Web"))
-#     print(limits.check_limits(limits.Number_of_Predictors, 7))
-#     print(limits.check_limits(limits.Number_of_Predictors, 700))
-#     print(limits.check_limits(limits.Number_of_Predictors, 7000))
-#     print(limits.check_limits(limits.Number_of_Actions, 1))
-#     print(limits.check_limits(limits.Number_of_Actions, 100))
-#     print(limits.check_limits(limits.Number_of_Actions, 1000))
-#     print(limits.check_limits(limits.Number_of_Actions, 10000))
-#     print(limits.check_limits(limits.Number_of_Actions_per_Group, 50))
