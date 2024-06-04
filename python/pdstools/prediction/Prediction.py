@@ -43,6 +43,8 @@ class Prediction:
             }
         )
 
+    # TODO group by SnapshotTime, do minimal aggregation
+    
     def __init__(self, df: pl.LazyFrame):
         self.predictions = (
             df.group_by(
@@ -114,6 +116,8 @@ class Prediction:
             # or even stronger: pos = pos_test + pos_control
             and self.predictions.select(self.validityExpr.all()).collect().item()
         )
+    
+    # TODO give this an optional argument for grouping by
 
     def summary_by_channel(
         self,
