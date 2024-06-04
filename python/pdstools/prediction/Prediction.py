@@ -43,16 +43,9 @@ class Prediction:
             }
         )
 
-    # TODO group by SnapshotTime, do minimal aggregation
-
     def __init__(self, df: pl.LazyFrame):
         self.predictions = (
-            df.group_by(
-                [
-                    "Channel",
-                    "ModelName",
-                ]
-            )
+            df.group_by(["Channel", "ModelName", "SnapshotTime"])
             .agg(
                 pl.len(),
                 Class=pl.col("ModelClass").unique(),
@@ -86,6 +79,7 @@ class Prediction:
                     .sum()
                 )
                 * 100,
+                usesImpactAnalyzer=pl.col("ModelType").str.ends_with("_NBA").any(),
             )
             .with_columns(
                 Class=pl.col("Class")
@@ -100,7 +94,6 @@ class Prediction:
             .with_columns(
                 CTR_Lift=(pl.col("CTR_Test") - pl.col("CTR_Control"))
                 / pl.col("CTR_Control"),
-                isValidPrediction=self.prediction_validity_expr,
             )
             .sort(["ModelName"])
         )
@@ -114,7 +107,9 @@ class Prediction:
         return (
             self.is_available
             # or even stronger: pos = pos_test + pos_control
-            and self.predictions.select(self.prediction_validity_expr.all()).collect().item()
+            and self.predictions.select(self.prediction_validity_expr.all())
+            .collect()
+            .item()
         )
 
     # TODO give this an optional argument for grouping by
@@ -122,6 +117,7 @@ class Prediction:
     def summary_by_channel(
         self,
         custom_predictions: Optional[List[NBAD.NBAD_Prediction]] = None,
+        keep_trend_data: bool = False,
     ) -> pl.LazyFrame:
         if not custom_predictions:
             custom_predictions = []
@@ -159,8 +155,8 @@ class Prediction:
                     "Direction",
                     "isStandardNBADPrediction",
                     "isMultiChannelPrediction",
-                    "isValidPrediction",
                 ]
+                + (["SnapshotTime"] if keep_trend_data else [])
             )
             .agg(
                 cdh_utils.weighted_average_polars("CTR_Lift", "ResponseCount").alias(
@@ -174,9 +170,13 @@ class Prediction:
                 pl.col("Positives_Control").sum(),
                 pl.col("Negatives_Test").sum(),
                 pl.col("Negatives_Control").sum(),
+                pl.col("usesImpactAnalyzer").any(),
             )
-            .with_columns(CTR=(pl.col("Positives")) / (pl.col("ResponseCount")))
-            .sort(["ModelName"])
+            .with_columns(
+                CTR=(pl.col("Positives")) / (pl.col("ResponseCount")),
+                isValidPrediction=self.prediction_validity_expr,
+            )
+            .sort(["ModelName"] + (["SnapshotTime"] if keep_trend_data else []))
         )
 
     def overall_summary(
@@ -205,6 +205,7 @@ class Prediction:
                 .where((pl.col("Lift") == pl.col("Lift").min()) & (pl.col("Lift") < 0))
                 .first()
                 .alias("Minimum Negative Lift"),
+                pl.col("usesImpactAnalyzer").any(),
             )
             .with_columns(CTR=(pl.col("Positives")) / (pl.col("ResponseCount")))
         )
