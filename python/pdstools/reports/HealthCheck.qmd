@@ -7,6 +7,7 @@ subtitle: >
   Summary of all ADM Models
 format:
   html:
+    page-layout: full
     code-fold: true
     embed-resources: true
     standalone: true
@@ -21,7 +22,7 @@ jupyter: python3
 ```{python}
 # | label: Imports
 # | code-fold: true
-# | code-summary: Python imports
+# | code-summary: Python imports and utility function definitions
 # | output: false
 import logging, sys
 
@@ -33,20 +34,24 @@ import datetime
 from IPython.display import display, Markdown
 
 sys.path.append("..")
-from pdstools import datasets, ADMDatamart
-from pdstools import cdh_utils
-from pdstools import defaultPredictorCategorization
-from plotly.offline import iplot
-from itables import show, JavascriptFunction
+from pdstools import datasets, ADMDatamart, cdh_utils, CDHLimits, defaultPredictorCategorization
+from pdstools.utils import pega_template
+# from plotly.offline import iplot
+from itables import show, JavascriptFunction # Oh no JS and lets use show explicitly
+from great_tables import GT, style, md, html, loc
 import plotly.express as px
 import plotly.graph_objs as go
 import polars as pl
-import pandas as pd
+# import pandas as pd
 import numpy as np
-from pdstools.utils import pega_template
 import math
 
-# Convenience wrapper functions
+lims = CDHLimits()
+
+# Convenience wrapper functions for quarto, to create nice tables and for plotly charts
+
+# These are common in the different quarto files. TODO figure out how to 
+# properly share these through some helper module. Currently copy/pasted...
 
 def quarto_print(text):
     display(Markdown(text))
@@ -74,8 +79,13 @@ def quarto_callout_important(info):
 def quarto_callout_no_predictor_data_warning(extra=""):
     quarto_callout_important(f"Predictor Data is not available. {extra}")
 
+def polars_col_exists(df, col):
+    return col in df.columns and df.schema[col] != pl.Null
 
-def update_fig_facet_height(fig, n_cols = 2, base_height = 250, step_height = 270):
+def polars_subset_to_existing_cols(cols):
+    return [col for col in cols if col in datamart_all_columns]
+
+def fig_update_facet_height(fig, n_cols = 2, base_height = 250, step_height = 270):
     n_rows = math.ceil(len(fig.layout.annotations) / n_cols)
     height = base_height + (n_rows * step_height)
     return (
@@ -84,8 +94,134 @@ def update_fig_facet_height(fig, n_cols = 2, base_height = 250, step_height = 27
         .update_layout(autosize=True, height=height)
     )
 
+def fig_set_xaxis_modelperformance(fig, label="Model Performance"):
+    fig = (
+        fig.for_each_xaxis(
+            lambda xaxis: xaxis.update(showticklabels=True, visible=True)
+        )
+        .for_each_xaxis(
+            lambda xaxis: xaxis.update(
+                dict(tickmode="array", tickvals=[x for x in range(50, 110, 10)])
+            )
+        )
+        .update_xaxes(title=label, showticklabels=True, visible=True)
+    )
+    return fig
+
+
+
+# def highlight_non_standard_channels(v):
+#     if v not in set(standardNBADNames.values()):
+#         color = "orange"
+#     else:
+#         color = ""
+#     return "background-color: %s" % color
+
+# def highlight_non_standard_configurations(v):
+#     if v not in set(standardNBADNames.keys()):
+#         color = "orange"
+#     else:
+#         color = ""
+#     return "background-color: %s" % color
+
+
+# TODO pull from Limits class
+
+
+def table_style_predictor_count(gt, flds):
+    for col in flds:
+        gt = gt.tab_style(
+            style=style.fill(color="orange"),
+            locations=loc.body(
+                columns=col,
+                rows=(pl.col(col) < 200) | (pl.col(col) > 700) & (pl.col(col) > 0),
+            ),
+        ).tab_style(
+            style=style.fill(color="orangered"),
+            locations=loc.body(
+                columns=col,
+                rows=(pl.col(col) == 0),
+            ),
+        )
+    return gt
+
+def table_standard_formatting(source_table, title=""):
+    def table_style_std_metrics(gt, col_name, metric):
+        if col_name in source_table.columns:
+            status = list(map(lambda x: lims.check_limits(metric, x), source_table[col_name].to_list()))
+            error_rows = [s[0] for s in enumerate(status.copy()) if s[1] == CDHLimits.Status.Bad ]
+            warning_rows = [s[0] for s in enumerate(status.copy()) if s[1] == CDHLimits.Status.Warning ]
+            # info_rows = [s[0] for s in enumerate(status.copy()) if s[1] == CDHLimits.Status.Info ]
+            # "Good", "Bad", "Warning", "Unknown"
+            gt = gt.tab_style(
+                style=style.fill(color="orange"),
+                locations=loc.body(columns=col_name, rows=warning_rows),
+            ).tab_style(
+                style=style.fill(color="orangered"),
+                locations=loc.body(columns=col_name, rows=error_rows),
+            )
+        return gt
+
+    # TODO
+    # "ContextNotDefinedError" should be Bad in Channel and Direction
+    # table_style_response_count should be metrics in the limits class
+
+    def table_style_response_count(gt, flds):
+        for col in flds:
+            if col in source_table.columns:
+                gt = (
+                    gt.fmt_scientific(columns=col)
+                    .tab_style(
+                        style=style.fill(color="orangered"),
+                        locations=loc.body(
+                            columns=col,
+                            # CDHLimits.Metrics.Number_of_Responses.min
+                            rows=pl.col(col) < 1,
+                        ),
+                    )
+                    .tab_style(
+                        style=style.fill(color="orange"),
+                        locations=loc.body(
+                            columns=col,
+                            # CDHLimits.Metrics.Number_of_Responses.best_practice_min
+                            rows=(pl.col(col)) >= 1 & (pl.col(col) < 200),
+                        ),
+                    )
+                )
+        return gt
+
+    def table_style_configurations(gt, flds):
+        for col in flds:
+            if col in source_table.columns:
+                gt = (
+                    gt.tab_style(
+                        style=style.fill(color="yellow"),
+                        locations=loc.body(
+                            columns=col,
+                            rows=pl.col(col).cast(pl.String).str.count_matches(",", literal=True) > 1
+                        )
+                    )
+                )
+        return gt
+
+    gt = GT(source_table).tab_options(table_font_size=8).tab_header(title=title)
+    gt = table_style_std_metrics(gt, "Channel", CDHLimits.Metrics.Standard_NBAD_Channel_Names)
+    gt = table_style_std_metrics(gt, "Direction", CDHLimits.Metrics.Standard_NBAD_Direction_Names)
+    gt = table_style_response_count(gt, ["Positives", "ResponseCount"])
+    gt = table_style_std_metrics(gt, "Performance", CDHLimits.Metrics.Model_Performance)
+    gt = table_style_configurations(gt, ["Configuration"])
+    gt = table_style_std_metrics(gt, 'Total Number of Actions', CDHLimits.Metrics.Number_of_Actions)
+    gt = table_style_std_metrics(gt, 'Total Number of Treatments', CDHLimits.Metrics.Number_of_Treatments)
+    gt = table_style_std_metrics(gt, 'Used Actions', CDHLimits.Metrics.Number_of_Actions)
+    gt = table_style_std_metrics(gt, 'Used Treatments', CDHLimits.Metrics.Number_of_Treatments)
+    gt = table_style_std_metrics(gt, 'Issues', CDHLimits.Metrics.Number_of_Issues)
+    # gt = table_style_std_metrics(gt, 'Groups', CDHLimits.Metrics.Number_of_Groups)
+
+    return gt
 
 ```
+
+
 
 ```{python}
 # | tags: [parameters]
@@ -112,16 +248,11 @@ barchart_max_bars = 20  # max number of bars showing in bar charts
 responsecount_analysis_threshold = (
     100  # min number of responses for response count analysis
 )
-predictor_analysis_threshold = (
-    200  # min number of responses for predictor analysis
-)
-channel_responses_threshold = 10000
+predictor_analysis_threshold = 200  # min number of responses for predictor analysis
+# channel_responses_threshold = 10000
+configuration_responses_threshold = 10000
 
 # globalQuery = None # TODO not used?
-```
-
-```{python}
-# | echo: false
 
 responsecount_analysis_query = (
     pl.col("ResponseCount") > responsecount_analysis_threshold
@@ -131,6 +262,7 @@ predictor_analysis_query = pl.col("ResponseCount") > predictor_analysis_threshol
 
 ```{python}
 # | echo: false
+# | label: Title
 
 quarto_print(
     f"""
@@ -146,10 +278,9 @@ quarto_print(
 
 ```{python}
 # | tags: [initialization]
+# | label: Datamart Initialization
 # | code-fold: true
 # | code-summary: Initialization of the datamart class.
-
-# Initialize the class after the parameters have been overwritten.
 
 def reset_datamart(dm):
     global datamart
@@ -193,43 +324,6 @@ else:
     # fall back to sample data
     reset_datamart(datasets.CDHSample())
 
-def columnExists(df, col):
-    return col in df.columns and df.schema[col] != pl.Null
-
-def subsetToExistingColumns(cols):
-    return [col for col in cols if col in datamart_all_columns]
-
-standardNBADNames = {
-            "Web_Click_Through_Rate": "Web",
-            "WebTreatmentClickModel": "Web",
-            "Mobile_Click_Through_Rate": "Mobile",
-            "Email_Click_Through_Rate": "E-mail",
-            "Push_Click_Through_Rate": "Push",
-            "SMS_Click_Through_Rate": "SMS",
-            "Retail_Click_Through_Rate": "Retail",
-            "Retail_Click_Through_Rate_Outbound": "Retail",
-            "CallCenter_Click_Through_Rate": "Call Center",
-            "CallCenterAcceptRateOutbound": "Call Center",
-            "Assisted_Click_Through_Rate": "Assisted",  # withdrawn record
-            "Assisted_Click_Through_Rate_Outbound": "Assisted",  # withdrawn record
-            "Default_Inbound_Model": "Inbound (default)",
-            "Default_Outbound_Model": "Outbound (default)",
-            "Default_Click_Through_Rate": "Inbound (other)",
-            "Other_Inbound_Click_Through_Rate": "Inbound (other)",
-            "OmniAdaptiveModel": "Multi-channel",
-        }
-
-currentConfigurationNames = (
-    datamart.modelData.select(pl.col("Configuration"))
-    .unique()
-    .collect()
-    .to_series(0)
-    .to_list()
-)
-
-configurationNamesInStandardNBADModelNames = [
-    (c in standardNBADNames.keys()) for c in currentConfigurationNames
-]
 ```
 
 This document gives a global overview of the Adaptive models and predictors. It is generated from a Python markdown file in the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools). This is open-source software and comes without guarantees. Off-line reports for individual
@@ -239,32 +333,18 @@ We provide guidance and best practices where possible. However these are  generi
 
 
 ```{python}
+# | label: Global Bubble Chart
+
 # Start with a global bubble chart. Maybe later replace by
 # some ADM metrics, e.g. overall AUC, CTR, some other things.
 # TODO for the overall AUC chart would be nicer to color the
 # bubbles by channel/direction
 fig = datamart.plotPerformanceSuccessRateBubbleChart()
 
-
-def set_fig_xaxis_modelperformance(fig, label="Model Performance"):
-    fig = (
-        fig.for_each_xaxis(
-            lambda xaxis: xaxis.update(showticklabels=True, visible=True)
-        )
-        .for_each_xaxis(
-            lambda xaxis: xaxis.update(
-                dict(tickmode="array", tickvals=[x for x in range(50, 110, 10)])
-            )
-        )
-        .update_xaxes(title=label, showticklabels=True, visible=True)
-    )
-    return fig
-
-
 fig.layout.coloraxis.colorscale = pega_template.success
 
 fig = (
-    set_fig_xaxis_modelperformance(fig)
+    fig_set_xaxis_modelperformance(fig)
     .update_layout(
         autosize=True,
         height=400,
@@ -293,12 +373,78 @@ In a typical NBAD setup, channels are served by both one channel specific model 
 If a channel has two model configurations with a naming pattern like “Adm_12345678912”, this could indicate the usage of the (no longer recommended) “2-stage model” predictions for conversion modeling, generated by Prediction Studio.
 
 ```{python}
+# | label: Channel Overview
+
+channel_overview = (
+    datamart.summary_by_channel()
+    .with_columns(
+        NBAD=pl.when(pl.col("usesNBAD"))
+        .then(
+            pl.when(pl.col("usesNBADOnly"))
+            .then(pl.lit("Yes"))
+            .otherwise(pl.lit("With additional configurations"))
+        )
+        .otherwise(pl.lit("No"))
+    )
+    .collect()
+)
+
+formatted_channel_overview = (
+    table_standard_formatting(channel_overview, "Channel Overview")
+    .cols_hide(
+        [
+            "ChannelDirectionGroup",
+            "ChannelDirection",
+            "DateRange Min",
+            "DateRange Max",
+            "usesNBAD",
+            "usesNBADOnly",
+        ]
+    )
+    .cols_label(
+        CTR="Base Rate",
+        ResponseCount="Total Responses",
+        Configuration="Supported by Configurations",
+        Performance="Average Performance",
+        Positives="Total Positives",
+    )
+    .tab_spanner(
+        label=html("<b>ADM Models</b>"),
+        columns=["Positives", "ResponseCount", "Performance", "Configuration"],
+    )
+    .tab_spanner(
+        label=html("<b>NBAD Setup</b>"),
+        columns=[
+            "Total Number of Actions",
+            "Total Number of Treatments",
+            "Used Actions",
+            "Used Treatments",
+            "Issues",
+            "Groups",
+            "NBAD",
+            "OmniChannel Actions",
+        ],
+    )
+    .fmt_percent(decimals=0, columns=["OmniChannel Actions"])
+    .fmt_percent(decimals=2, columns=["CTR"])
+    .fmt_number(
+        decimals=2,
+        columns=["Performance"],
+    )
+)
+
+formatted_channel_overview
+```
+
+```{python}
+# | label: Framework Usage
+
 framework_usage = (
     "is being used"
-    if all(configurationNamesInStandardNBADModelNames)
+    if channel_overview.select(pl.col('usesNBAD').all()).item()
     else (
         "is being used with additional configurations"
-        if any(configurationNamesInStandardNBADModelNames)
+        if channel_overview.select(pl.col('usesNBAD').any()).item()
         else "is not being used"
     )
 )
@@ -320,108 +466,16 @@ configurations it seems that the framework **{framework_usage}**.
 
 In the table below we show the overall numbers per channel and direction. The numbers are not guaranteed to be correct: in the ADM data we only have aggregate numbers, we need to make some assumptions about the configurations, especially about having only one ADM model per configuration for an individual action or treatment. In some use cases these assumptions may not hold, so the ultimate truth about these numbers should come from data that tracks all interactions.
 
-```{python}
-channel_overview = (
-    datamart.modelData
-    # first, take max per model ID
-    .group_by(
-        ["Configuration", "ModelID"] + subsetToExistingColumns(["Channel", "Direction"])
-    )
-    .agg(pl.max("ResponseCount"), pl.max("Positives"))
-    # then, take sum of model max per configuration
-    .group_by(["Configuration"] + subsetToExistingColumns(["Channel", "Direction"]))
-    .agg(pl.sum("ResponseCount"), pl.sum("Positives"))
-    # finally, take the max of the configurations per channel
-    .group_by(subsetToExistingColumns(["Channel", "Direction"]))
-    .agg(
-        pl.max("ResponseCount").round().alias("Responses"),
-        pl.max("Positives").round(),
-        pl.format(
-            "{}%", ((pl.max("Positives") * 100 / pl.max("ResponseCount")).round(3))
-        ).alias("Base rate"),
-        pl.col("Configuration").unique().alias("Supported by Configurations"),
-    )
-    .sort(subsetToExistingColumns(["Channel", "Direction"]))
-    .collect()
-)
-
-# TODO precision 0 is okay EXCEPT for the avg groups per issue, one decimal would be preferable, figure out the subset argument of format to do this
-
-def highlight_response_counts(v):
-    if v == 0:
-        color = "orangered"
-    elif v < 200:
-        color = "orange"
-    else:
-        color = ""
-    return "background-color: %s" % color
-
-def highlight_too_many_configurations(v):
-    if len(v) > 2:
-        color = "orangered"
-    else:
-        color = ""
-    return "background-color: %s" % color
-
-def highlight_context_not_defined(v):
-    if v == "ContextNotDefinedError":
-        color = "orangered"
-    else:
-        color = ""
-    return "background-color: %s" % color
-
-display(
-    channel_overview
-    .to_pandas().style
-    .set_caption("Channel Overview")
-    .hide(axis="index")
-    # .format(precision=0, na_rep="") # errors out with some value error sometimes, prob related to the list of configurations
-    .format(
-        {
-            "Responses": "{:.3g}",
-            "Positives": "{:.3g}"
-        }
-    )
-    .applymap(highlight_context_not_defined, subset=["Channel", "Direction"])
-    .applymap(highlight_response_counts, subset=["Responses", "Positives"])
-    .applymap(highlight_too_many_configurations, subset=["Supported by Configurations"])
-)
-```
-
 ## Exclude unused Channels
 
+Channels with very few or no responses will be excluded from subsequent analyses.
+
 ```{python}
-quarto_print(
-    f"""
-If there are any channels that have fewer than {channel_responses_threshold} responses in total or no positives at all, these will be excluded. However if no channels would be left, we don't do that.
-"""
-)
+# | label: Unused Channels
 
-all_channels = channel_overview.select(["Channel", "Direction"]).unique()
-
-unused_channels = (
-    channel_overview.filter(
-        (pl.col("Responses") < channel_responses_threshold) | (pl.col("Positives") == 0)
-    )
-    .select(["Channel", "Direction", "Responses", "Positives"])
-    .unique()
-)
-
-if (unused_channels.shape[0] > 0) & (unused_channels.shape[0] != all_channels.shape[0]):
-    quarto_print(
-        """
-In the detailed analyses after the overviews, the following channels will be excluded:
-    """
-    )
-
-    display(
-        unused_channels.sort(["Channel", "Direction"])
-        .to_pandas()
-        .style.hide(axis="index")
-        .format(precision=0, na_rep="")
-    )
+unused_channels = channel_overview.filter(pl.col.isValid.not_()).select(["Channel", "Direction"])
+display(GT(unused_channels))
 ```
-
 
 
 # Overview of the Actions
@@ -433,10 +487,12 @@ Adaptive Models are created per treatment (at least in the default setup) and th
 The recommended Service and data health limits for Pega Customer Decision Hub on Pega Cloud are published in https://docs.pega.com/bundle/customer-decision-hub-241/page/customer-decision-hub/cdh-portal/cloud-service-health-limits.html.
 
 ```{python}
+# | label: Action Overview
+
 def nUniqueValues(fld):
     if not isinstance(fld, list):
         fld = [fld]
-    fld = subsetToExistingColumns(fld)
+    fld = polars_subset_to_existing_cols(fld)
     if len(fld) == 0:
         return 0
     return datamart.modelData.select(pl.col(fld)).drop_nulls().collect().n_unique()
@@ -445,10 +501,10 @@ def nUniqueValues(fld):
 def maxByHierarchy(fld, grouping):
     if not isinstance(fld, list):
         fld = [fld]
-    fld = subsetToExistingColumns(fld)
+    fld = polars_subset_to_existing_cols(fld)
     if len(fld) == 0:
         return 0
-    grouping = subsetToExistingColumns(grouping)
+    grouping = polars_subset_to_existing_cols(grouping)
     if len(grouping) == 0:
         return 0
     return (
@@ -465,10 +521,10 @@ def maxByHierarchy(fld, grouping):
 def avgByHierarchy(fld, grouping):
     if not isinstance(fld, list):
         fld = [fld]
-    fld = subsetToExistingColumns(fld)
+    fld = polars_subset_to_existing_cols(fld)
     if len(fld) == 0:
         return 0
-    grouping = subsetToExistingColumns(grouping)
+    grouping = polars_subset_to_existing_cols(grouping)
     if len(grouping) == 0:
         return 0
     return (
@@ -485,7 +541,7 @@ def avgByHierarchy(fld, grouping):
 def sampleValues(fld, n=6):
     if not isinstance(fld, list):
         fld = [fld]
-    fld = subsetToExistingColumns(fld)
+    fld = polars_subset_to_existing_cols(fld)
     if len(fld) == 0:
         return "-"
     return (
@@ -500,9 +556,7 @@ def sampleValues(fld, n=6):
         .to_list()[:n]
     )
 
-
-# pd yuk, todo make pl
-df = pd.DataFrame(
+df = pl.DataFrame(
     {
         "Item": [
             "Overall Number of Actions",
@@ -537,50 +591,59 @@ df = pd.DataFrame(
             "-",
             sampleValues(["Channel", "Direction"]),
         ],
-        "Best Practice": [1000, 100, 2500, 1000, 3, 5, 0, 5, 0],
-        "Cloud Service Limit": [
-            2500,
-            250,
-            5000,
-            2500,
-            10,
-            25,
-            float("inf"),
-            25,
-            float("inf"),
+        "Best Practice": [
+            lims.get_limits(CDHLimits.Metrics.Number_of_Actions).best_practice_min, 
+            lims.get_limits(CDHLimits.Metrics.Number_of_Actions_per_Group).best_practice_min, 
+            lims.get_limits(CDHLimits.Metrics.Number_of_Treatments).best_practice_min, 
+            lims.get_limits(CDHLimits.Metrics.Number_of_Treatments_per_Channel).best_practice_min, 
+            lims.get_limits(CDHLimits.Metrics.Number_of_Treatments_per_Channel_per_Action).best_practice_min, 
+            lims.get_limits(CDHLimits.Metrics.Number_of_Issues).best_practice_min, 
+            lims.get_limits(CDHLimits.Metrics.Number_of_Groups_per_Issue).best_practice_min, 
+            lims.get_limits(CDHLimits.Metrics.Number_of_Groups_per_Issue).best_practice_min, 
+            lims.get_limits(CDHLimits.Metrics.Number_of_Channels).best_practice_min, 
         ],
-    }
+        "Cloud Service Limit": [
+            lims.get_limits(CDHLimits.Metrics.Number_of_Actions).best_practice_max,
+            lims.get_limits(CDHLimits.Metrics.Number_of_Actions_per_Group).best_practice_max, 
+            lims.get_limits(CDHLimits.Metrics.Number_of_Treatments).best_practice_max, 
+            lims.get_limits(CDHLimits.Metrics.Number_of_Treatments_per_Channel).best_practice_max, 
+            lims.get_limits(CDHLimits.Metrics.Number_of_Treatments_per_Channel_per_Action).best_practice_max, 
+            lims.get_limits(CDHLimits.Metrics.Number_of_Issues).best_practice_max, 
+            lims.get_limits(CDHLimits.Metrics.Number_of_Groups_per_Issue).best_practice_max, 
+            lims.get_limits(CDHLimits.Metrics.Number_of_Groups_per_Issue).best_practice_max, 
+            lims.get_limits(CDHLimits.Metrics.Number_of_Channels).best_practice_max, 
+        ],
+    },
+    strict=False,
 )
 
 display(
-    df.style.set_caption("Action Overview")
-    .hide(axis="index")
-    .format(precision=0)
-    # TODO consider a styler function like not_in_between
-    .apply(
-        lambda x: [
-            "background-color: orange" if (df.iloc[i, 1] < df.iloc[i, 3]) else ""
-            for i, v in enumerate(x)
-        ],
-        axis=0,
-        subset=["Number"],
+    GT(df)
+    .tab_options(table_font_size=8)
+    .tab_header(
+        title="Action Overview",
     )
-    .apply(
-        lambda x: [
-            "background-color: orangered"
-            if (df.iloc[i, 1] > df.iloc[i, 4] or df.iloc[i, 1] == 0)
-            else ""
-            for i, v in enumerate(x)
-        ],
-        axis=0,
-        subset=["Number"],
+    .tab_style(
+        style=style.fill(color="orangered"),
+        locations=loc.body(
+            columns="Number",
+            rows=pl.col("Number") == 0,
+        ),
+    )
+    .tab_style(
+        style=style.fill(color="orange"),
+        locations=loc.body(
+            columns="Number",
+            rows=(pl.col("Number") > 0) & ((pl.col("Number") < pl.col("Best Practice")) | (pl.col("Number") > pl.col("Cloud Service Limit"))),
+        ),
     )
 )
 ```
 
 
 ```{python}
-if (unused_channels.shape[0] > 0) & (unused_channels.shape[0] != all_channels.shape[0]):
+# | label: Drop Unused Channels
+if unused_channels.shape[0] > 0:
     reset_datamart(
         ADMDatamart(
             model_df=datamart.modelData.join(
@@ -608,8 +671,10 @@ Just showing the top {barchart_max_bars} here and limiting to the propositions t
 
 
 ```{python}
+# | label: Success Rates by Channel
+
 facet = "Channel/Direction"
-hover_columns = subsetToExistingColumns(["Issue", "Group", "Name", "Treatment"])
+hover_columns = polars_subset_to_existing_cols(["Issue", "Group", "Name", "Treatment"])
 
 df = (
     last_data.lazy()
@@ -622,7 +687,7 @@ df = (
     .with_columns(
         pl.col("SuccessRate").round(4),
         pl.concat_str(
-            subsetToExistingColumns(["Name", "Treatment"]), separator="/"
+            polars_subset_to_existing_cols(["Name", "Treatment"]), separator="/"
         ).alias("Label"),
     )
     .sort(["Channel/Direction", "SuccessRate"], descending=True)
@@ -650,12 +715,12 @@ fig = px.bar(
     text="Label",
     title=(
         "Success Rates per Channel<br><sup>%s</sup>"
-        % "/".join(subsetToExistingColumns(["Name", "Treatment"]))
+        % "/".join(polars_subset_to_existing_cols(["Name", "Treatment"]))
     ),
     hover_data=hover_data,
 )
 
-fig = update_fig_facet_height(fig, facet_cols, 200, 250) # 200/250
+fig = fig_update_facet_height(fig, facet_cols, 200, 250) # 200/250
 
 fig = (
     fig
@@ -676,11 +741,12 @@ Showing the success rates of all actions in an interactive
 tree map. Green is higher, red are lower success rates.
 
 ```{python}
+# | label: Success Rates treemap
 
 fig = datamart.plotTreeMap(
     color_var="SuccessRate",
     group_by_col=None,
-    levels=subsetToExistingColumns(
+    levels=polars_subset_to_existing_cols(
         ["Configuration", "Channel", "Direction", "Issue", "Group", "Name", "Treatment"]
     ),
     colorscale=pega_template.success,
@@ -702,6 +768,7 @@ Showing how the overall channel success rates evolved over the time that the dat
 :::
 
 ```{python}
+# | label: Success Rates trend line
 facets = "Configuration"
 unique_count = datamart.modelData.select(pl.concat_str(facets.split("/"), separator="/").n_unique()).collect().item()
 # TODO: the faceting errors out when there are many configurations and too few facet columns resulting in very small facet rows
@@ -717,7 +784,7 @@ try:
         query=responsecount_analysis_query,
     )
 
-    fig = update_fig_facet_height(fig, facet_cols, 200, 250)
+    fig = fig_update_facet_height(fig, facet_cols, 200, 250)
     fig = (
         fig.update_yaxes(matches=None, title="", showticklabels=True)
         .update_xaxes(showticklabels=True, title="")
@@ -745,27 +812,28 @@ There are a total of **{n_unique_models}** Adaptive Models in the latest snapsho
 In the standard configuration there is one Adaptive model per treatment/action for a configuration.
 
 ```{python}
+# | label: Model Overview
 action_dim_agg = [pl.col("Name").n_unique().alias("Number of Actions")]
-if columnExists(last_data, "Treatment"):
+if polars_col_exists(last_data, "Treatment"):
     action_dim_agg += [pl.col("Treatment").n_unique().alias("Number of Treatments")]
 
 model_overview = (
     last_data.group_by(
-        ["Configuration"] + subsetToExistingColumns(["Channel", "Direction"])
+        ["Configuration"] + polars_subset_to_existing_cols(["Channel", "Direction"])
     )
     .agg(
         action_dim_agg + 
         [
             pl.col("ModelID").n_unique().alias("Number of Models"),
-            pl.max("ResponseCount").alias("Responses"),
+            pl.max("ResponseCount"),
             pl.max("Positives")
         ]
     )
     .with_columns(
         [
-            pl.col("Configuration")
-            .is_in(standardNBADNames.keys())
-            .alias("Standard in NBAD Framework"),
+            # pl.col("Configuration")
+            # .is_in(standardNBADNames.keys())
+            # .alias("Standard in NBAD Framework"),
             (pl.col("Number of Models") / pl.col("Number of Actions"))
             .round(2)
             .alias("Average number of Models per Action"),
@@ -774,40 +842,31 @@ model_overview = (
     .sort(["Configuration", "Channel", "Direction"])
 )
 
-def highlight_non_standard_channels(v):
-    if v not in set(standardNBADNames.values()):
-        color = "orange"
-    else:
-        color = ""
-    return "background-color: %s" % color
-
-def highlight_non_standard_configurations(v):
-    if v not in set(standardNBADNames.keys()):
-        color = "orange"
-    else:
-        color = ""
-    return "background-color: %s" % color
+# display(
+#     model_overview.head(tables_max_rows)
+#     .to_pandas(use_pyarrow_extension_array=True)
+#     .style.set_caption("Model Overview")
+#     .hide(axis="index")
+#     .format(
+#         {
+#             "Responses": "{:.3g}",
+#             "Positives": "{:.3g}"
+#         },
+#         precision=2)
+#     .applymap(highlight_non_standard_channels, subset=["Channel"])
+#     .applymap(highlight_non_standard_configurations, subset=["Configuration"])
+# )
 
 display(
-    model_overview.head(tables_max_rows)
-    .to_pandas(use_pyarrow_extension_array=True)
-    .style.set_caption("Model Overview")
-    .hide(axis="index")
-    .format(
-        {
-            "Responses": "{:.3g}",
-            "Positives": "{:.3g}"
-        },
-        precision=2)
-    .applymap(highlight_non_standard_channels, subset=["Channel"])
-    .applymap(highlight_non_standard_configurations, subset=["Configuration"])
+    table_standard_formatting(model_overview, "Model Overview")
 )
 ```
 
 ```{python}
+# | label: Configuration Overview
 quarto_print(
     f"""
-If there are any model configurations that have fewer than {channel_responses_threshold} responses in total or no positives at all, these will be excluded. However if no configurations would be left, we don't do that.
+If there are any model configurations that have fewer than {configuration_responses_threshold} responses in total or no positives at all, these will be excluded. However if no configurations would be left, we don't do that.
 """
 )
 
@@ -823,7 +882,7 @@ all_configurations = configuration_overview.select(["Configuration"]).unique()
 
 unused_configurations = (
     configuration_overview.filter(
-        (pl.col("Responses") < channel_responses_threshold) | (pl.col("Positives") == 0)
+        (pl.col("Responses") < configuration_responses_threshold) | (pl.col("Positives") == 0)
     )
     .select(["Configuration", "Responses", "Positives"])
     .unique()
@@ -847,6 +906,7 @@ In the detailed analyses after the model overview, the following configurations 
 ```
 
 ```{python}
+# | label: Drop Unused Configurations
 if (unused_configurations.shape[0] > 0) and (
     (unused_configurations.shape[0] != all_configurations.shape[0])
 ):
@@ -897,31 +957,36 @@ This “Bubble Chart” - similar to the standard ADM models overview in Pega Pr
 :::
 
 ```{python}
+# | label: Facetted Bubble charts
+
 facet_cols = 2
 facet = "Configuration/Channel/Direction"
 
-fig = datamart.plotPerformanceSuccessRateBubbleChart(
-    facets=facet, facet_col_wrap=facet_cols
-)
+try:
+    fig = datamart.plotPerformanceSuccessRateBubbleChart(
+        facets=facet, facet_col_wrap=facet_cols
+    )
 
-fig.layout.coloraxis.colorscale = pega_template.success
+    fig.layout.coloraxis.colorscale = pega_template.success
 
-fig = set_fig_xaxis_modelperformance(fig, label="")
-fig = update_fig_facet_height(fig)
+    fig = fig_set_xaxis_modelperformance(fig, label="")
+    fig = fig_update_facet_height(fig)
 
-fig = (
-    fig
-    .update_layout(title="All ADM Models", font=dict(size=10))
-    .for_each_annotation(lambda a: a.update(text="<br>".join(a.text.split("/", 1))))
-    .update_yaxes(tickformat=",.2%", title="")
-    .update_coloraxes(showscale=False)
-    # .update_coloraxes(
-    #     showscale=True,
-    #     colorbar_len=1 / math.ceil(len(fig.layout.annotations) / facet_cols),
-    # )
-)
+    fig = (
+        fig
+        .update_layout(title="All ADM Models", font=dict(size=10))
+        .for_each_annotation(lambda a: a.update(text="<br>".join(a.text.split("/", 1))))
+        .update_yaxes(tickformat=",.2%", title="")
+        .update_coloraxes(showscale=False)
+        # .update_coloraxes(
+        #     showscale=True,
+        #     colorbar_len=1 / math.ceil(len(fig.layout.annotations) / facet_cols),
+        # )
+    )
 
-fig.show()
+    fig.show()
+except ValueError as e:
+    print(f"Error {str(e)}\nPossibly no valid data.")
 ```
 
 On the x-axis Model Performance measured in AUC-ROC, on the y-axis the Success Rate of the models (#positives / #responses).
@@ -940,6 +1005,8 @@ datamart.modelData.select(pl.col("Configuration").n_unique()).collect()
 
 
 ```{python}
+# | label: Model Performance trend
+
 facets = "Configuration"
 unique_count = datamart.modelData.select(pl.concat_str(facets.split("/"), separator="/").n_unique()).collect().item()
 # TODO: the faceting errors out when there are many configurations and too few facet columns resulting in very small facet rows
@@ -951,7 +1018,7 @@ try:
         facets=facets, 
         facet_col_wrap=facet_cols
     )
-    fig = update_fig_facet_height(fig, facet_cols, 200, 250)
+    fig = fig_update_facet_height(fig, facet_cols, 200, 250)
     fig = (
         fig.update_layout(title="Trend of Model Performance")
         .update_yaxes(showticklabels=True, title="")
@@ -972,10 +1039,12 @@ Using an interactive treemap to visualize the performance. Red is lower performa
 It can be interesting to see which issues, groups or channels can be better predicted than others. Identifying categories of items for which the predictions are poor can help to drive the search for better predictors, for example.
 
 ```{python}
+# | label: Model Performance treemap
+
 fig = datamart.plotTreeMap(
     color_var="performance_weighted",
     group_by_col=None,
-    levels=subsetToExistingColumns(
+    levels=polars_subset_to_existing_cols(
         ["Configuration", "Channel", "Direction", "Issue", "Group", "Name", "Treatment"]
     ),
 )
@@ -1001,9 +1070,11 @@ If there are actions that have a much higher response count than the rest see wh
 
 
 ```{python}
+# | label: Response Counts treemap
+
 fig = datamart.plotTreeMap(
     color_var="responsecount",
-    levels=subsetToExistingColumns(
+    levels=polars_subset_to_existing_cols(
         ["Configuration", "Channel", "Direction", "Issue", "Group", "Name", "Treatment"]
     ),
     colorscale=pega_template.negative_positive,
@@ -1042,11 +1113,13 @@ This shows the total number of predictors per model configuration (this includes
 Note that the total number of predictors in the model data does not always equate the data from the more detailed view split by category below.
 
 ```{python}
+# | label: Predictors per Configuration
+
 if datamart.predictorData is not None:
     context_aggregations = []
-    if columnExists(datamart.combinedData, "Channel"):
+    if polars_col_exists(datamart.combinedData, "Channel"):
         context_aggregations += [pl.col("Channel").unique().alias("Used in (Channels)")]
-    if columnExists(datamart.combinedData, "Issue"):
+    if polars_col_exists(datamart.combinedData, "Issue"):
         context_aggregations += [pl.col("Issue").unique().alias("Used for (Issues)")]
 
     predictors_per_configuration = (
@@ -1060,26 +1133,12 @@ if datamart.predictorData is not None:
         .collect()
     )
 
-    display(
-        predictors_per_configuration.to_pandas()
-        .style.set_caption("Number of Predictors per Configuration")
-        .hide(axis="index")
-        # TODO: create a highlight_not_between function to make this cleaner
-        .highlight_between(
-            right=200,
-            inclusive="neither",
-            axis=1,
-            props="background-color:orange;",
-            subset="Predictor Count",
-        )
-        .highlight_between(
-            left=700,
-            inclusive="neither",
-            axis=1,
-            props="background-color:red;",
-            subset="Predictor Count",
-        )
+    gt = table_standard_formatting(
+        predictors_per_configuration, "Number of Predictors per Configuration"
     )
+    gt = table_style_predictor_count(gt, ["Predictor Count"])
+
+    display(gt)
 
 else:
     quarto_callout_no_predictor_data_warning()
@@ -1100,6 +1159,8 @@ The numbers here can differ from the totals above, these ones are leading.
 :::
 
 ```{python}
+# | label: Predictors with category per Configuration
+
 if datamart.predictorData is not None:
     predictors_per_category = (
         datamart.combinedData.filter(pl.col("EntryType") != "Classifier")
@@ -1116,18 +1177,19 @@ if datamart.predictorData is not None:
         .fill_null(0)
     )
 
-    display(
-        predictors_per_category.to_pandas()
-        .style.set_caption("Number of Predictors per Predictor Category")
-        .hide(axis="index")
-        .format(precision=0)
-        # TODO add highlighting
+    gt = table_standard_formatting(
+        predictors_per_category, "Number of Predictors per Predictor Category"
+    )
+    gt = table_style_predictor_count(
+        gt, [x for x in predictors_per_category.columns if not x in {"Configuration"}]
     )
 
+    display(gt)
 else:
     quarto_callout_no_predictor_data_warning()
 
 ```
+
 
 ## Predictor Importance across all models per configuration
 
@@ -1190,7 +1252,7 @@ if datamart.predictorData is not None:
     fig = datamart.plotPredictorCategoryPerformance(
         facets=facets, facet_col_wrap=facet_cols
     )
-    fig = update_fig_facet_height(fig, facet_cols, 200, 150)
+    fig = fig_update_facet_height(fig, facet_cols, 200, 150)
     fig.update_layout(font=dict(size=10))
     fig.for_each_annotation(lambda a: a.update(text="<br>".join(a.text.split("/"))))
 
@@ -1299,7 +1361,7 @@ if datamart.predictorData is not None:
     facets = ["Configuration"]
     facet_cols = 2
     fig = datamart.plotPredictorCount(facets=facets)
-    fig = update_fig_facet_height(fig, facet_cols, 250, 150)
+    fig = fig_update_facet_height(fig, facet_cols, 250, 150)
     fig.update_yaxes(categoryorder="array", automargin=True, dtick=1)
     fig.show()
 else:
@@ -1313,7 +1375,7 @@ A view of predictor performance across all propositions, ordered so that the bes
 Note that this view is really only useful when there is a limited number of actions.
 
 ```{python}
-index_cols = subsetToExistingColumns(["Issue", "Group", "Name", "Treatment"])
+index_cols = polars_subset_to_existing_cols(["Issue", "Group", "Name", "Treatment"])
 
 if datamart.predictorData is not None:
     unique_configurations = (
@@ -1363,7 +1425,7 @@ This TreeMap only shows the fields that have any missing values.
 
 ```{python}
 if datamart.predictorData is not None:
-    path = subsetToExistingColumns(
+    path = polars_subset_to_existing_cols(
         ["Configuration", "PredictorCategory", "PredictorName"]
     )
     gb_cols = path
@@ -1433,7 +1495,7 @@ These models have no responses at all: no positives but also no negatives. The m
 Often these represent actions that never made it into production and were only used to test out logic. But it could also be that the response mechanism is broken. It could for example be caused by outcome labels that are returned by the channel application not matching the configuration of the adaptive models.
 
 ```{python}
-empty_or_immature_overviews_cols = subsetToExistingColumns(
+empty_or_immature_overviews_cols = polars_subset_to_existing_cols(
     [
         "Configuration",
         "Channel",
@@ -1618,7 +1680,7 @@ fig = px.line(
 )
 fig.for_each_xaxis(lambda xaxis: xaxis.update(title=""))
 fig.update_layout(legend_title_text="Model Maturity")
-fig = update_fig_facet_height(fig, facet_cols, 200, 250)
+fig = fig_update_facet_height(fig, facet_cols, 200, 250)
 fig.update_layout(yaxis_title="Number of Models")
 
 fig.show()
@@ -1642,7 +1704,7 @@ try:
         mode="Cumulative",
     )
 
-    response_counts = update_fig_facet_height(response_counts, facet_cols, 200, 250)
+    response_counts = fig_update_facet_height(response_counts, facet_cols, 200, 250)
     response_counts.for_each_xaxis(lambda xaxis: xaxis.update(title=""))
     response_counts.update_layout(yaxis_title="Response Count")
 
@@ -1854,7 +1916,7 @@ Here we list the top {barchart_max_bars} models with the highest number of respo
 # code seems overly complex for what it is doing
 
 facet = "/".join(
-    subsetToExistingColumns(
+    polars_subset_to_existing_cols(
         ["Configuration", "Issue", "Group", "Name", "Channel", "Direction"]
     )
 )
@@ -2234,6 +2296,7 @@ quarto_print(
 | Pandoc | {pandoc_version} |
 | PDS Tools | {get_pip_package_version('pdstools')} |
 | Jupyter Notebook format (nbformat) | {get_pip_package_version('nbformat')} |
+| Great Tables | {get_pip_package_version('great_tables')} |
 | Created at | {timestamp_str} |
 
 """

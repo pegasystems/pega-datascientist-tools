@@ -8,3 +8,4 @@ polars~=0.20.0
 pyarrow
 pyyaml
 aioboto3>=11.0
+great_tables
