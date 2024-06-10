@@ -14,14 +14,27 @@ def main():
 def run(*args):
     from streamlit.web import cli as stcli
     import sys
-    from . import Home
+    import os
 
     print("Running app.")
     print(args)
-    filename = Home.__file__
-    sys.argv = ["streamlit", "run", filename]
-    if len(args) > 1:
-        sys.argv.extend(args[1:])
+    if len(args) > 1 and args[1] == "decision_analyzer":
+        filename = os.path.join(
+            os.path.dirname(__file__), "decision_analyzer", "Home.py"
+        )
+        sys.argv = [
+            "streamlit",
+            "run",
+            filename,
+            "--server.enableXsrfProtection",
+            "false",
+        ]
+
+    else:
+        filename = os.path.join(os.path.dirname(__file__), "health_check", "Home.py")
+        sys.argv = ["streamlit", "run", filename]
+    if len(args) > 2:
+        sys.argv.extend(args[2:])
     if "--server.maxUploadSize" not in sys.argv:
         sys.argv.extend(["--server.maxUploadSize", "2000"])
     sys.exit(stcli.main())
@@ -30,9 +43,9 @@ def run(*args):
 def help(*args):
     msg = (
         "Command line utility to run pdstools apps. ",
-        "Currently, only the health check is provided, ",
-        "but this will be expanded in the future. \n\n",
         "To run the healthcheck, enter the following command: \n",
         "`pdstools run`",
+        "To run the Decision Analyzer(Explainability Extract), enter the following command: \n",
+        "`pdstools run decision_analyzer`",
     )
     print("".join(msg))
