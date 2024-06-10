@@ -173,6 +173,14 @@ class Prediction:
                 pl.col("usesImpactAnalyzer").any(),
             )
             .with_columns(
+                ControlPercentage=100.0
+                * (pl.col("Positives_Control") + pl.col("Negatives_Control"))
+                / (
+                    pl.col("Positives_Test")
+                    + pl.col("Negatives_Test")
+                    + pl.col("Positives_Control")
+                    + pl.col("Negatives_Control")
+                ),
                 CTR=(pl.col("Positives")) / (pl.col("ResponseCount")),
                 isValidPrediction=self.prediction_validity_expr,
             )
@@ -206,6 +214,9 @@ class Prediction:
                 .first()
                 .alias("Minimum Negative Lift"),
                 pl.col("usesImpactAnalyzer").any(),
+                cdh_utils.weighted_average_polars(
+                    "ControlPercentage", "ResponseCount"
+                ).alias("ControlPercentage"),
             )
             .with_columns(CTR=(pl.col("Positives")) / (pl.col("ResponseCount")))
         )

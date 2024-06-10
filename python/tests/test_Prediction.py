@@ -81,6 +81,7 @@ def test_summary_by_channel_cols(test):
         "Negatives_Test",
         "Negatives_Control",
         "usesImpactAnalyzer",
+        "ControlPercentage",
         "CTR",
         "isValidPrediction",
     ]
@@ -104,6 +105,9 @@ def test_summary_by_channel_lift(test):
     summary = test.summary_by_channel().collect()
     assert [round(x, 5) for x in summary["Lift"].to_list()] == [0.88235, 0.83333]
 
+def test_summary_by_channel_controlpct(test):
+    summary = test.summary_by_channel().collect()
+    assert [round(x, 5) for x in summary["ControlPercentage"].to_list()] == [32.0, 31.42857]
 
 def test_summary_by_channel_trend(test):
     summary = test.summary_by_channel(keep_trend_data=True).collect()
@@ -126,6 +130,7 @@ def test_overall_summary_cols(test):
         "Channel with Minimum Negative Lift",
         "Minimum Negative Lift",
         "usesImpactAnalyzer",
+        "ControlPercentage",
         "CTR",
     ]
     assert len(summary) == 1
@@ -161,6 +166,9 @@ def test_overall_summary_min_lift(test):
 def test_overall_summary_ctr(test):
     assert round(test.overall_summary().collect()["CTR"].item(), 5) == 0.11111
 
+def test_overall_summary_controlpct(test):
+    summary = test.summary_by_channel().collect()
+    assert round(test.overall_summary().collect()["ControlPercentage"].item(), 5) == 31.85185
 
 def test_overall_summary_ia(test):
     assert test.overall_summary().collect().select(pl.col("usesImpactAnalyzer")).item()

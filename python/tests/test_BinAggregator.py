@@ -15,7 +15,6 @@ sys.path.append(f"{str(basePath)}/python")
 from pdstools import datasets
 from pdstools import BinAggregator
 
-
 @pytest.fixture
 def cdhsample_binaggregator():
     dm = datasets.CDHSample(subset=False)
