@@ -101,9 +101,6 @@ def read_gzips_with_zip_extension(path: str) -> pl.DataFrame:
     return pl.concat(dfs, rechunk=True)
 
 
-import streamlit as st
-
-
 def read_data(path):
     original_path = Path(path)  # save the original path
     extension = None  # Initialize extension to None

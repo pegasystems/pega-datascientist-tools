@@ -213,7 +213,6 @@ def find_lever_value(
     ranking_stages=["Arbitration"],
 ):
     """Binary search algorithm to find lever given a desired win percentage"""
-    # import streamlit as st
 
     def _calculate_action_win_percentage(decision_data, action, lever, win_rank):
         ranked_df = decision_data.reRank(
