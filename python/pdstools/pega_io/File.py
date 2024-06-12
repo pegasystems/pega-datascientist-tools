@@ -198,7 +198,12 @@ def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
                     file = pl.from_dicts(json.loads(f.read())["pxResults"]).lazy()
 
     elif extension == ".parquet":
-        file = pl.scan_parquet(file)
+        try:
+            file = pl.scan_parquet(file)
+        except TypeError:  # Polars can't read BytesIo
+            if isinstance(file, BytesIO):
+                file.seek(0)
+                file = pl.read_parquet(file).lazy()
 
     elif extension.casefold() in {".feather", ".ipc", ".arrow"}:
         if isinstance(file, BytesIO):

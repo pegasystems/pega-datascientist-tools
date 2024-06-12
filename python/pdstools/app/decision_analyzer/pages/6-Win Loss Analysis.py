@@ -149,7 +149,7 @@ if st.session_state.local_filters != []:
                     if (get_current_scope_index(scope_options) + 1) < len(scope_options)
                     else None
                 ),
-                "Actions",
+                "Decisions",
                 horizontal=True,
                 # models=models,
             ),
@@ -172,7 +172,7 @@ if st.session_state.local_filters != []:
                     if (get_current_scope_index(scope_options) + 1) < len(scope_options)
                     else None
                 ),
-                "Actions",
+                "Decisions",
                 horizontal=True,
             ),
             use_container_width=True,

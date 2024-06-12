@@ -259,34 +259,42 @@ def get_data_filters(
     return queries
 
 
+def _create_page(relative_path, name):
+    current_dir = os.path.dirname(__file__)
+    return Page(os.path.join(current_dir, relative_path), name)
+
+
 def get_pages(extract_type):
-    if extract_type == " explainability_extract":
+    if extract_type == "explainability_extract":
         pages = [
-            Page("Home.py", "Home"),
-            Page("pages/1-Global Filters.py", "Global Filters"),
-            Page("pages/2-Global Dashboard.py", "Global Dashboard"),
-            Page("pages/3-Action Distribution.py", "Action Distribution"),
-            Page("pages/5-Global Sensitivity.py", "Global Sensitivity"),
-            Page("pages/6-Win Loss Analysis.py", "Win Loss Analysis"),
-            Page("pages/7-Personalization Analysis.py", "Personalization Analysis"),
+            _create_page("Home.py", "Home"),
+            _create_page("pages/1-Global Filters.py", "Global Filters"),
+            _create_page("pages/2-Global Dashboard.py", "Global Dashboard"),
+            _create_page("pages/3-Action Distribution.py", "Action Distribution"),
+            _create_page("pages/5-Global Sensitivity.py", "Global Sensitivity"),
+            _create_page("pages/6-Win Loss Analysis.py", "Win Loss Analysis"),
+            _create_page(
+                "pages/7-Personalization Analysis.py", "Personalization Analysis"
+            ),
         ]
     elif extract_type == "decision_analyzer":
         pages = [
-            Page("Home.py", "Home"),
-            Page("pages/1-Global Filters.py", "Global Filters"),
-            Page("pages/2-Global Dashboard.py", "Global Dashboard"),
-            Page("pages/3-Action Distribution.py", "Action Distribution"),
-            Page("pages/4-Action Funnel.py", "Action Funnel"),
-            Page("pages/5-Global Sensitivity.py", "Global Sensitivity"),
-            Page("pages/6-Win Loss Analysis.py", "Win Loss Analysis"),
-            Page("pages/7-Personalization Analysis.py", "Personalization Analysis"),
+            _create_page("Home.py", "Home"),
+            _create_page("pages/1-Global Filters.py", "Global Filters"),
+            _create_page("pages/2-Global Dashboard.py", "Global Dashboard"),
+            _create_page("pages/3-Action Distribution.py", "Action Distribution"),
+            _create_page("pages/4-Action Funnel.py", "Action Funnel"),
+            _create_page("pages/5-Global Sensitivity.py", "Global Sensitivity"),
+            _create_page("pages/6-Win Loss Analysis.py", "Win Loss Analysis"),
+            _create_page(
+                "pages/7-Personalization Analysis.py", "Personalization Analysis"
+            ),
         ]
         # Page("pages/8-Offer Quality Analysis.py", "Offer Quality Analysis"),
         # Page("pages/9-Thresholding Analysis.py", "Thresholding Analysis"),
         # Page("pages/10-Business Value Analysis.py", "Business Value Analysis"),
         # Page("pages/11-Business Lever Analysis.py", "Business Lever Analysis"),
         # Page("pages/12-Impact Analysis.py", "Impact Analysis"),
-
     return pages
 
 

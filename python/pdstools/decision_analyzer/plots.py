@@ -13,8 +13,10 @@ class Plot:
     def __init__(self, decision_data):
         self._decision_data = decision_data
 
-    def plot_threshold_deciles(self, thresholding_name):
+    def plot_threshold_deciles(self, thresholding_name, return_df=False):
         df = self._decision_data.whatever_preprocessing
+        if return_df:
+            return df
 
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(go.Bar(x=df["Decile"], y=df["Count"], name="Impressions"))
@@ -61,8 +63,12 @@ class Plot:
         win_rank: int = 1,
         hide_priority=True,
         limit_xaxis_range=True,
+        return_df=False,
+        reference_group=None,
     ):
-        df = self._decision_data.get_sensitivity(win_rank)
+        df = self._decision_data.get_sensitivity(win_rank, reference_group)
+        if return_df:
+            return df
         n = (
             df.filter(pl.col("Factor") == "Priority")
             .select("Influence")
@@ -108,10 +114,11 @@ class Plot:
         return fig
 
     # @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-    def plot_global_winloss_distribution(self, level, win_rank):
+    def plot_global_winloss_distribution(self, level, win_rank, return_df=False):
         # level, cat = getScope(level)
         df = self._decision_data.get_win_loss_distribution_data(level, win_rank)
-
+        if return_df:
+            return df
         fig = px.bar(
             df.collect(),
             x="Percentage",
@@ -134,7 +141,7 @@ class Plot:
 
         return fig
 
-    def plot_propensity_vs_optionality(self, stage="Arbitration"):
+    def plot_propensity_vs_optionality(self, stage="Arbitration", return_df=False):
         plotData = (
             self._decision_data.get_optionality_data.filter(
                 pl.col("pxEngagementStage") == stage
@@ -142,6 +149,8 @@ class Plot:
             .collect()
             .to_pandas(use_pyarrow_extension_array=True)
         )
+        if return_df:
+            return pl.from_pandas(plotData)
 
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(
@@ -169,8 +178,10 @@ class Plot:
         fig.layout.yaxis2.showgrid = False
         return fig
 
-    def plot_action_variation(self, stage="Final"):
+    def plot_action_variation(self, stage="Final", return_df=False):
         df = self._decision_data.getActionVariationData(stage)
+        if return_df:
+            return df
         return (
             px.line(
                 df.collect(),
@@ -196,7 +207,7 @@ class Plot:
         )
 
     def plot_trend_chart(
-        self, stage: str, scope: str
+        self, stage: str, scope: str, return_df=False
     ) -> Tuple[go.Figure, Optional[str]]:
 
         df = self._decision_data.getDistributionData(
@@ -204,6 +215,9 @@ class Plot:
             scope,
             trend=True,
         ).collect()
+
+        if return_df:
+            return df.lazy()
 
         if df.select(pl.col("day").n_unique()).get_column("day")[0] > 1:
             fig = px.area(
@@ -240,9 +254,12 @@ class Plot:
         scope: str,
         NBADStages_Mapping: dict,
         additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
+        return_df=False,
         # models=[],  # trick to make streamlit caching work even if dataframe has filters applied
     ):
         df = self._decision_data.getFunnelData(scope, additional_filters)
+        if return_df:
+            return df
         fig = (
             px.funnel(
                 df.with_columns(
@@ -283,8 +300,11 @@ class Plot:
         top_n,
         AvailableNBADStages,
         additional_filters: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
+        return_df=False,
     ):
         df = self._decision_data.getFilterComponentData(top_n, additional_filters)
+        if return_df:
+            return df
         top_n_actions_dict = {}
         for stage in [x for x in stages if x != "Final"]:
             top_n_actions_dict[stage] = (
@@ -383,7 +403,9 @@ class Plot:
             fig = (
                 fig.update_xaxes(automargin=True, title=metric)
                 .update_yaxes(title="")
-                .update_layout(yaxis={"categoryorder": "total ascending"})
+                .update_layout(
+                    yaxis={"categoryorder": "total ascending"}, xaxis_title_text="Count"
+                )
             )
         else:
             fig = (
@@ -399,8 +421,11 @@ class Plot:
         self,
         reference: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
         sample_size=10000,
+        return_df=False,
     ) -> Tuple[go.Figure, Optional[str]]:
         df = self._decision_data.arbitration_stage
+        if return_df:
+            return df
         prio_factors = [
             "FinalPropensity",
             "Value",
@@ -458,9 +483,13 @@ class Plot:
         return fig, None
 
     def plot_rank_boxplot(
-        self, reference: Optional[Union[pl.Expr, List[pl.Expr]]] = None
+        self,
+        reference: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
+        return_df=False,
     ):
         df = self._decision_data.sample
+        if return_df:
+            return df
         ranks = (
             # TODO: generalize ["Arbitration", "Final"], consider using generic aggregation func
             apply_filter(df, reference)
@@ -471,8 +500,10 @@ class Plot:
         fig = px.box(ranks, x="pxRank", orientation="h", template="pega")
         return fig.update_layout(height=300, xaxis_title="Rank")
 
-    def plot_optionality_per_stage(self):
+    def plot_optionality_per_stage(self, return_df=False):
         df = self._decision_data.get_optionality_data
+        if return_df:
+            return df
         fig = px.box(
             df.with_columns(
                 # TODO perhaps the re-mapping of stage names can be done in plotly as well
@@ -505,9 +536,13 @@ class Plot:
 
         return fig
 
-    def plot_optionality_trend(self, df: pl.LazyFrame, NBADStages_Mapping):
+    def plot_optionality_trend(
+        self, df: pl.LazyFrame, NBADStages_Mapping, return_df=False
+    ):
         # Collect the data to inspect the unique days
         collected_df = df.collect()
+        if return_df:
+            return collected_df.lazy()
         unique_days = collected_df.select(pl.col("day").unique()).height
         warning = None
         if unique_days == 1:
@@ -551,7 +586,11 @@ class Plot:
 
 
 def plot_offer_quality_piecharts(
-    df: pl.LazyFrame, propensityTH, NBADStages_FilterView, NBADStages_Mapping
+    df: pl.LazyFrame,
+    propensityTH,
+    NBADStages_FilterView,
+    NBADStages_Mapping,
+    return_df=False,
 ):
     value_finder_names = [
         "atleast_one_relevant_action",
@@ -564,6 +603,8 @@ def plot_offer_quality_piecharts(
         .collect()
         .partition_by("pxEngagementStage", as_dict=True)
     )
+    if return_df:
+        return df
 
     fig = make_subplots(
         rows=1,
@@ -603,7 +644,7 @@ def plot_offer_quality_piecharts(
     return fig
 
 
-def getTrendChart(df: pl.LazyFrame, stage: str = "Final"):
+def getTrendChart(df: pl.LazyFrame, stage: str = "Final", return_df=False):
     value_finder_names = [
         "atleast_one_relevant_action",
         "only_irrelevant_actions",
@@ -615,6 +656,8 @@ def getTrendChart(df: pl.LazyFrame, stage: str = "Final"):
         .agg(pl.sum(value_finder_names))
         .collect()
     ).sort("day")
+    if return_df:
+        return df.lazy()
     trend_melted = (
         df.melt(
             id_vars=["day"],

@@ -791,9 +791,9 @@ class DecisionData:
         return {k: kpis[k].item() for k in kpis.columns}
 
     # TODO think about caching
-    def get_sensitivity(self, win_rank=1):
-        # if filters is None:
-        filters = pl.col("rank_PVCL") <= win_rank
+    def get_sensitivity(self, win_rank=1, filters=None):
+        if filters is None:
+            filters = pl.col("pxRank") <= win_rank
 
         global_sensitivity = (
             apply_filter(self.reRank(), filters)
@@ -887,9 +887,9 @@ class DecisionData:
                 how="inner",
             )
             .group_by(groupby_cols)
-            .agg(Actions=pl.count())
-            .sort("Actions", descending=True)
-            .filter(pl.col("Actions") > 0)
+            .agg(Decisions=pl.count())
+            .sort("Decisions", descending=True)
+            .filter(pl.col("Decisions") > 0)
             .head(top_k)
         )
         return winning_from
