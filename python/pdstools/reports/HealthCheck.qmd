@@ -2155,10 +2155,6 @@ The distribution of propensities returned by the models is yet a different angle
 
 Higher propensities clearly indicate the offers are more attractive - people apparenty click/accept/convert more often.
 
-## Success Rate Distribution
-
-TODO: implement like in the R version of the health check
-
 ## Propensity Distribution
 
 In a more emphathetic setup, you would expect that the distribution of the propensities leans towards the right-hand side: more volume to more attractive offers, although the relation is of course more complex, we are not just blindly pushing the offers with the highest success rates, but take a personalized approach.
@@ -2248,10 +2244,6 @@ else:
     quarto_callout_no_predictor_data_warning()
     
 ```
-
-## Propensity Thresholding
-
-TODO: Implement like in the R version
 
 # Credits
 
