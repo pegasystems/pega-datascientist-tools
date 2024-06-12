@@ -338,11 +338,15 @@ class BinAggregator:
             print("Pivot table with additional columns and residuals filled in:")
             print(symbins_pivot)
 
+        # melt the pivot back to long form, but now all symbols are present for all models
+        molten = symbins_pivot.melt(
+            id_vars="PredictorName", variable_name="Symbol", value_name="Lift"
+        )
+        if "Lift" not in molten.columns:
+            molten = molten.with_columns(Lift=pl.lit(0.0))
+
         aggregate_binning = (
-            # melt the pivot back to long form, but now all symbols are present for all models
-            symbins_pivot.melt(
-                id_vars="PredictorName", variable_name="Symbol", value_name="Lift"
-            )
+            molten
             # take the mean lift for each symbol
             .group_by(["PredictorName", "Symbol"])
             .agg(Lift=pl.mean("Lift"))
@@ -469,7 +473,11 @@ class BinAggregator:
                 # Number of different symbols in the list
                 pl.when(pl.col("isNumeric"))
                 .then(pl.lit(None))
-                .otherwise(pl.col("Symbol").map_elements(lambda x: len(x)))
+                .otherwise(
+                    pl.col("Symbol").map_elements(
+                        lambda x: len(x), return_dtype=pl.UInt32
+                    )
+                )
                 .alias("NSymbols")
             )
             .with_columns(
@@ -546,6 +554,10 @@ class BinAggregator:
             boundaries = boundaries + create_additional_intervals(
                 n, distribution, boundaries, minimum, maximum
             )
+
+        # Bit of a hack here but if minimum = maximum = 0 otherwise errors out with no binning
+        if len(boundaries) == 1:
+            boundaries = boundaries * 2
 
         boundaries = np.array(boundaries, dtype=np.float64)  # just for casting
 
