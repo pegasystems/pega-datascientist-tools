@@ -222,7 +222,7 @@ The model performance is **{auc_roc}** measured as AUC-ROC. This number is calcu
 
 ```
 
-The classifier maps the model scores (average of the log odds of the active predictors) to a propensity value. The “active” bins are the ones that can be reached from the current binning of the active predictors.
+The classifier maps the model scores (average of the log odds of the active predictors) to a propensity value. The “acti ve” bins are the ones that can be reached from the current binning of the active predictors.
 
 See the [ADM Explained](https://pegasystems.github.io/pega-datascientist-tools/Python/articles/ADMExplained.html) article for more information on how ADM exactly works.
 
