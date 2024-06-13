@@ -267,34 +267,34 @@ def _create_page(relative_path, name):
 def get_pages(extract_type):
     if extract_type == "explainability_extract":
         pages = [
-            _create_page("Home.py", "Home"),
-            _create_page("pages/1-Global Filters.py", "Global Filters"),
-            _create_page("pages/2-Global Dashboard.py", "Global Dashboard"),
-            _create_page("pages/3-Action Distribution.py", "Action Distribution"),
-            _create_page("pages/5-Global Sensitivity.py", "Global Sensitivity"),
-            _create_page("pages/6-Win Loss Analysis.py", "Win Loss Analysis"),
+            _create_page("home.py", "Home"),
+            _create_page("pages/1-global_filters.py", "Global Filters"),
+            _create_page("pages/2-global_dashboard.py", "Global Dashboard"),
+            _create_page("pages/3-action_distribution.py", "Action Distribution"),
+            _create_page("pages/5-global_sensitivity.py", "Global Sensitivity"),
+            _create_page("pages/6-win_loss_analysis.py", "Win Loss Analysis"),
             _create_page(
-                "pages/7-Personalization Analysis.py", "Personalization Analysis"
+                "pages/7-personalization_analysis.py", "Personalization Analysis"
             ),
         ]
     elif extract_type == "decision_analyzer":
         pages = [
             _create_page("Home.py", "Home"),
-            _create_page("pages/1-Global Filters.py", "Global Filters"),
-            _create_page("pages/2-Global Dashboard.py", "Global Dashboard"),
-            _create_page("pages/3-Action Distribution.py", "Action Distribution"),
-            _create_page("pages/4-Action Funnel.py", "Action Funnel"),
-            _create_page("pages/5-Global Sensitivity.py", "Global Sensitivity"),
-            _create_page("pages/6-Win Loss Analysis.py", "Win Loss Analysis"),
+            _create_page("pages/1-global_filters.py", "Global Filters"),
+            _create_page("pages/2-global_dashboard.py", "Global Dashboard"),
+            _create_page("pages/3-action_distribution.py", "Action Distribution"),
+            _create_page("pages/4-action_funnel.py", "Action Funnel"),
+            _create_page("pages/5-global_sensitivity.py", "Global Sensitivity"),
+            _create_page("pages/6-win_loss_analysis.py", "Win Loss Analysis"),
             _create_page(
-                "pages/7-Personalization Analysis.py", "Personalization Analysis"
+                "pages/7-personalization_analysis.py", "Personalization Analysis"
             ),
         ]
-        # Page("pages/8-Offer Quality Analysis.py", "Offer Quality Analysis"),
-        # Page("pages/9-Thresholding Analysis.py", "Thresholding Analysis"),
-        # Page("pages/10-Business Value Analysis.py", "Business Value Analysis"),
-        # Page("pages/11-Business Lever Analysis.py", "Business Lever Analysis"),
-        # Page("pages/12-Impact Analysis.py", "Impact Analysis"),
+        # Page("pages/8-offer_quality_analysis.py", "Offer Quality Analysis"),
+        # Page("pages/9-thresholding_analysis.py", "Thresholding Analysis"),
+        # Page("pages/10-business_value_analysis.py", "Business Value Analysis"),
+        # Page("pages/11-business_lever_analysis.py", "Business Lever Analysis"),
+        # Page("pages/12-impact_analysis.py", "Impact Analysis"),
     return pages
 
 

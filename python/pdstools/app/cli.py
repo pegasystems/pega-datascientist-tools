@@ -20,7 +20,7 @@ def run(*args):
     print(args)
     if len(args) > 1 and args[1] == "decision_analyzer":
         filename = os.path.join(
-            os.path.dirname(__file__), "decision_analyzer", "Home.py"
+            os.path.dirname(__file__), "decision_analyzer", "home.py"
         )
         sys.argv = [
             "streamlit",
@@ -31,7 +31,7 @@ def run(*args):
         ]
 
     else:
-        filename = os.path.join(os.path.dirname(__file__), "health_check", "Home.py")
+        filename = os.path.join(os.path.dirname(__file__), "health_check", "home.py")
         sys.argv = ["streamlit", "run", filename]
     if len(args) > 2:
         sys.argv.extend(args[2:])
