@@ -200,7 +200,7 @@ def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
     elif extension == ".parquet":
         try:
             file = pl.scan_parquet(file)
-        except TypeError:  # Polars can't read BytesIo
+        except:  # Polars can't read BytesIo
             if isinstance(file, BytesIO):
                 file.seek(0)
                 file = pl.read_parquet(file).lazy()
