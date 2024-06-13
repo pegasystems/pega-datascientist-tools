@@ -8,7 +8,7 @@ st.set_page_config(
     },
 )
 """
-# Welcome to the pdstools app!
+# Welcome to the Health Check app!
 
 This app helps you analyze ADMDatamart data by allowing you to generate a Health Check document with visuals as well as excel
 export for self exploration of the data. 

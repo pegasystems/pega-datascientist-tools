@@ -25,6 +25,8 @@ from .utils.hds_utils import Config, DataAnonymization
 from .utils.table_definitions import PegaDefaultTables
 from .valuefinder.ValueFinder import ValueFinder
 from .utils.polars_ext import *
+from .decision_analyzer import DecisionData
+
 
 if "streamlit" in sys.modules:
     from .utils import streamlit_utils
