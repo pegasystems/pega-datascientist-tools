@@ -1,301 +1,270 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="2312pt" height="904pt" viewBox="0.00 0.00 2312.00 904.00">
-<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 900)">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="11280pt" height="906pt" viewBox="0.00 0.00 11280.00 906.00">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 902)">
 <title>polars_query</title>
-<polygon fill="white" stroke="transparent" points="-4,4 -4,-900 2308,-900 2308,4 -4,4"/>
-<!-- JOIN INNER
- &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left [col(&quot;ModelID&quot;)];
- &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(0, 0)] -->
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-902 11276,-902 11276,4 -4,4"/>
+<!-- p1 -->
 <g id="node1" class="node">
-<title>JOIN INNER
-                    left [col(&quot;ModelID&quot;)];
-                    right: [col(&quot;ModelID&quot;)] [(0, 0)]</title>
-<polygon fill="none" stroke="black" points="826,-896 560,-896 560,-843 826,-843 826,-896"/>
-<text text-anchor="middle" x="693" y="-880.8" font-family="Times,serif" font-size="14.00">JOIN INNER</text>
-<text text-anchor="middle" x="693" y="-865.8" font-family="Times,serif" font-size="14.00">                    left [col(&quot;ModelID&quot;)];</text>
-<text text-anchor="middle" x="693" y="-850.8" font-family="Times,serif" font-size="14.00">                    right: [col(&quot;ModelID&quot;)]</text>
+<title>p1</title>
+<polygon fill="none" stroke="black" points="5403.5,-898 5227.5,-898 5227.5,-845 5403.5,-845 5403.5,-898"/>
+<text text-anchor="middle" x="5315.5" y="-882.8" font-family="Times,serif" font-size="14.00">JOIN INNER</text>
+<text text-anchor="middle" x="5315.5" y="-867.8" font-family="Times,serif" font-size="14.00">left: [col(&quot;ModelID&quot;)];</text>
+<text text-anchor="middle" x="5315.5" y="-852.8" font-family="Times,serif" font-size="14.00">right: [col(&quot;ModelID&quot;)]</text>
 </g>
-<!-- FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(100, 1)] -->
+<!-- p2 -->
 <g id="node2" class="node">
-<title>FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(100, 1)]</title>
-<polygon fill="none" stroke="black" points="689.5,-726.5 404.5,-726.5 404.5,-690.5 689.5,-690.5 689.5,-726.5"/>
-<text text-anchor="middle" x="547" y="-704.8" font-family="Times,serif" font-size="14.00">FILTER BY (col(&quot;SnapshotTime&quot;).fill...</text>
+<title>p2</title>
+<polygon fill="none" stroke="black" points="5633.5,-728.5 4151.5,-728.5 4151.5,-692.5 5633.5,-692.5 5633.5,-728.5"/>
+<text text-anchor="middle" x="4892.5" y="-706.8" font-family="Times,serif" font-size="14.00">FILTER BY [(col(&quot;SnapshotTime&quot;).cast(Datetime(Microseconds, None)).fill_null([1970-01-01 00:00:00])) == (col(&quot;SnapshotTime&quot;).cast(Datetime(Microseconds, None)).fill_null([1970-01-01 00:00:00]).max())]</text>
 </g>
-<!-- JOIN INNER
- &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left [col(&quot;ModelID&quot;)];
- &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(0, 0)]&#45;&#45;FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(100, 1)] -->
+<!-- p1&#45;&#45;p2 -->
 <g id="edge1" class="edge">
-<title>JOIN INNER
-                    left [col(&quot;ModelID&quot;)];
-                    right: [col(&quot;ModelID&quot;)] [(0, 0)]--FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(100, 1)]</title>
-<path fill="none" stroke="black" d="M669.54,-842.95C639.56,-810.3 588.45,-754.65 562.75,-726.65"/>
+<title>p1--p2</title>
+<path fill="none" stroke="black" d="M5227.37,-862.02C5139.59,-852.31 5011.97,-834.41 4969.5,-809 4937.11,-789.62 4913.02,-751.18 4901.02,-728.79"/>
 </g>
-<!-- FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(200, 1)] -->
+<!-- p9 -->
 <g id="node10" class="node">
-<title>FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(200, 1)]</title>
-<polygon fill="none" stroke="black" points="952.5,-807 667.5,-807 667.5,-771 952.5,-771 952.5,-807"/>
-<text text-anchor="middle" x="810" y="-785.3" font-family="Times,serif" font-size="14.00">FILTER BY (col(&quot;SnapshotTime&quot;).fill...</text>
+<title>p9</title>
+<polygon fill="none" stroke="black" points="6460.5,-809 4978.5,-809 4978.5,-773 6460.5,-773 6460.5,-809"/>
+<text text-anchor="middle" x="5719.5" y="-787.3" font-family="Times,serif" font-size="14.00">FILTER BY [(col(&quot;SnapshotTime&quot;).cast(Datetime(Microseconds, None)).fill_null([1970-01-01 00:00:00])) == (col(&quot;SnapshotTime&quot;).cast(Datetime(Microseconds, None)).fill_null([1970-01-01 00:00:00]).max())]</text>
 </g>
-<!-- JOIN INNER
- &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left [col(&quot;ModelID&quot;)];
- &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(0, 0)]&#45;&#45;FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(200, 1)] -->
+<!-- p1&#45;&#45;p9 -->
 <g id="edge9" class="edge">
-<title>JOIN INNER
-                    left [col(&quot;ModelID&quot;)];
-                    right: [col(&quot;ModelID&quot;)] [(0, 0)]--FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(200, 1)]</title>
-<path fill="none" stroke="black" d="M731.31,-842.8C748.77,-831.08 768.97,-817.53 784.53,-807.09"/>
+<title>p1--p9</title>
+<path fill="none" stroke="black" d="M5403.66,-853.37C5471.34,-840.22 5564.33,-822.15 5631.88,-809.03"/>
 </g>
-<!-- CACHE: 1times [(13284434179681377300, 13284434179681377300)] -->
+<!-- c0 -->
 <g id="node3" class="node">
-<title>CACHE: 1times [(13284434179681377300, 13284434179681377300)]</title>
-<polygon fill="none" stroke="black" points="611,-502 483,-502 483,-466 611,-466 611,-502"/>
-<text text-anchor="middle" x="547" y="-480.3" font-family="Times,serif" font-size="14.00">CACHE: 1times</text>
+<title>c0</title>
+<polygon fill="none" stroke="black" points="5001.5,-502 4869.5,-502 4869.5,-466 5001.5,-466 5001.5,-502"/>
+<text text-anchor="middle" x="4935.5" y="-480.3" font-family="Times,serif" font-size="14.00">CACHE: 1 times</text>
 </g>
-<!-- FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(100, 1)]&#45;&#45;CACHE: 1times [(13284434179681377300, 13284434179681377300)] -->
+<!-- p2&#45;&#45;c0 -->
 <g id="edge2" class="edge">
-<title>FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(100, 1)]--CACHE: 1times [(13284434179681377300, 13284434179681377300)]</title>
-<path fill="none" stroke="black" d="M547,-690.41C547,-648.99 547,-543.62 547,-502.15"/>
+<title>p2--c0</title>
+<path fill="none" stroke="black" d="M4892.63,-692.13C4893.27,-660.77 4896.44,-592.89 4911.5,-538 4914.92,-525.53 4920.92,-512.28 4926.07,-502.15"/>
 </g>
-<!-- FILTER BY col(&quot;Name&quot;).str.contains(... [(13284434179681377300, 13284434179681377301)] -->
+<!-- p3 -->
 <g id="node4" class="node">
-<title>FILTER BY col(&quot;Name&quot;).str.contains(... [(13284434179681377300, 13284434179681377301)]</title>
-<polygon fill="none" stroke="black" points="692,-430 402,-430 402,-394 692,-394 692,-430"/>
-<text text-anchor="middle" x="547" y="-408.3" font-family="Times,serif" font-size="14.00">FILTER BY col(&quot;Name&quot;).str.contains(...</text>
+<title>p3</title>
+<polygon fill="none" stroke="black" points="6532.5,-421.5 6154.5,-421.5 6154.5,-385.5 6532.5,-385.5 6532.5,-421.5"/>
+<text text-anchor="middle" x="6343.5" y="-399.8" font-family="Times,serif" font-size="14.00">FILTER BY col(&quot;Name&quot;).str.contains([String(Visa)])</text>
 </g>
-<!-- CACHE: 1times [(13284434179681377300, 13284434179681377300)]&#45;&#45;FILTER BY col(&quot;Name&quot;).str.contains(... [(13284434179681377300, 13284434179681377301)] -->
+<!-- c0&#45;&#45;p3 -->
 <g id="edge3" class="edge">
-<title>CACHE: 1times [(13284434179681377300, 13284434179681377300)]--FILTER BY col(&quot;Name&quot;).str.contains(... [(13284434179681377300, 13284434179681377301)]</title>
-<path fill="none" stroke="black" d="M541.08,-465.7C539.97,-454.85 539.97,-440.92 541.1,-430.1"/>
+<title>c0--p3</title>
+<path fill="none" stroke="black" d="M5001.52,-479.32C5206.22,-467.91 5835.53,-432.82 6154.29,-415.05"/>
 </g>
-<!-- CACHE: 1times [(13284434179681377300, 13284434179681377300)]&#45;&#45;FILTER BY col(&quot;Name&quot;).str.contains(... [(13284434179681377300, 13284434179681377301)] -->
-<g id="edge20" class="edge">
-<title>CACHE: 1times [(13284434179681377300, 13284434179681377300)]--FILTER BY col(&quot;Name&quot;).str.contains(... [(13284434179681377300, 13284434179681377301)]</title>
-<path fill="none" stroke="black" d="M552.92,-465.7C554.03,-454.85 554.03,-440.92 552.9,-430.1"/>
-</g>
-<!-- WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_15980793985863893521&quot;] [(13284434179681377300, 13284434179681377302)] -->
-<g id="node5" class="node">
-<title>WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_15980793985863893521&quot;] [(13284434179681377300, 13284434179681377302)]</title>
-<polygon fill="none" stroke="black" points="982,-358 112,-358 112,-322 982,-322 982,-358"/>
-<text text-anchor="middle" x="547" y="-336.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_15980793985863893521&quot;]</text>
-</g>
-<!-- FILTER BY col(&quot;Name&quot;).str.contains(... [(13284434179681377300, 13284434179681377301)]&#45;&#45;WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_15980793985863893521&quot;] [(13284434179681377300, 13284434179681377302)] -->
-<g id="edge4" class="edge">
-<title>FILTER BY col(&quot;Name&quot;).str.contains(... [(13284434179681377300, 13284434179681377301)]--WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_15980793985863893521&quot;] [(13284434179681377300, 13284434179681377302)]</title>
-<path fill="none" stroke="black" d="M541.08,-393.7C539.97,-382.85 539.97,-368.92 541.1,-358.1"/>
-</g>
-<!-- FILTER BY col(&quot;Name&quot;).str.contains(... [(13284434179681377300, 13284434179681377301)]&#45;&#45;WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_15980793985863893521&quot;] [(13284434179681377300, 13284434179681377302)] -->
-<g id="edge21" class="edge">
-<title>FILTER BY col(&quot;Name&quot;).str.contains(... [(13284434179681377300, 13284434179681377301)]--WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_15980793985863893521&quot;] [(13284434179681377300, 13284434179681377302)]</title>
-<path fill="none" stroke="black" d="M552.92,-393.7C554.03,-382.85 554.03,-368.92 552.9,-358.1"/>
-</g>
-<!-- WITH COLUMNS [&quot;Direction&quot;,&quot;Group&quot;,&quot;Issue&quot;,&quot;SnapshotTime&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Configuration&quot;,&quot;Positives&quot;] [(13284434179681377300, 13284434179681377303)] -->
-<g id="node6" class="node">
-<title>WITH COLUMNS [&quot;Direction&quot;,&quot;Group&quot;,&quot;Issue&quot;,&quot;SnapshotTime&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Configuration&quot;,&quot;Positives&quot;] [(13284434179681377300, 13284434179681377303)]</title>
-<polygon fill="none" stroke="black" points="984.5,-277.5 109.5,-277.5 109.5,-241.5 984.5,-241.5 984.5,-277.5"/>
-<text text-anchor="middle" x="547" y="-255.8" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;Direction&quot;,&quot;Group&quot;,&quot;Issue&quot;,&quot;SnapshotTime&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Configuration&quot;,&quot;Positives&quot;]</text>
-</g>
-<!-- WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_15980793985863893521&quot;] [(13284434179681377300, 13284434179681377302)]&#45;&#45;WITH COLUMNS [&quot;Direction&quot;,&quot;Group&quot;,&quot;Issue&quot;,&quot;SnapshotTime&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Configuration&quot;,&quot;Positives&quot;] [(13284434179681377300, 13284434179681377303)] -->
-<g id="edge5" class="edge">
-<title>WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_15980793985863893521&quot;] [(13284434179681377300, 13284434179681377302)]--WITH COLUMNS [&quot;Direction&quot;,&quot;Group&quot;,&quot;Issue&quot;,&quot;SnapshotTime&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Configuration&quot;,&quot;Positives&quot;] [(13284434179681377300, 13284434179681377303)]</title>
-<path fill="none" stroke="black" d="M541.32,-321.97C539.89,-308.8 539.89,-290.66 541.33,-277.5"/>
-</g>
-<!-- WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_15980793985863893521&quot;] [(13284434179681377300, 13284434179681377302)]&#45;&#45;WITH COLUMNS [&quot;Direction&quot;,&quot;Group&quot;,&quot;Issue&quot;,&quot;SnapshotTime&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Configuration&quot;,&quot;Positives&quot;] [(13284434179681377300, 13284434179681377303)] -->
-<g id="edge22" class="edge">
-<title>WITH COLUMNS [&quot;SuccessRate&quot;,&quot;Last_Positives&quot;,&quot;Last_ResponseCount&quot;,&quot;__POLARS_CSER_15980793985863893521&quot;] [(13284434179681377300, 13284434179681377302)]--WITH COLUMNS [&quot;Direction&quot;,&quot;Group&quot;,&quot;Issue&quot;,&quot;SnapshotTime&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Configuration&quot;,&quot;Positives&quot;] [(13284434179681377300, 13284434179681377303)]</title>
-<path fill="none" stroke="black" d="M552.68,-321.97C554.11,-308.8 554.11,-290.66 552.67,-277.5"/>
-</g>
-<!-- FAST_PROJECT: [ModelID, Direction, Group, Issue, SnapshotTime, Channel, Treatment, Name, ResponseCount, Configuration, Performance, Positives] [(13284434179681377300, 13284434179681377304)] -->
-<g id="node7" class="node">
-<title>FAST_PROJECT: [ModelID, Direction, Group, Issue, SnapshotTime, Channel, Treatment, Name, ResponseCount, Configuration, Performance, Positives] [(13284434179681377300, 13284434179681377304)]</title>
-<polygon fill="none" stroke="black" points="1094,-197 0,-197 0,-161 1094,-161 1094,-197"/>
-<text text-anchor="middle" x="547" y="-175.3" font-family="Times,serif" font-size="14.00">FAST_PROJECT: [ModelID, Direction, Group, Issue, SnapshotTime, Channel, Treatment, Name, ResponseCount, Configuration, Performance, Positives]</text>
-</g>
-<!-- WITH COLUMNS [&quot;Direction&quot;,&quot;Group&quot;,&quot;Issue&quot;,&quot;SnapshotTime&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Configuration&quot;,&quot;Positives&quot;] [(13284434179681377300, 13284434179681377303)]&#45;&#45;FAST_PROJECT: [ModelID, Direction, Group, Issue, SnapshotTime, Channel, Treatment, Name, ResponseCount, Configuration, Performance, Positives] [(13284434179681377300, 13284434179681377304)] -->
-<g id="edge6" class="edge">
-<title>WITH COLUMNS [&quot;Direction&quot;,&quot;Group&quot;,&quot;Issue&quot;,&quot;SnapshotTime&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Configuration&quot;,&quot;Positives&quot;] [(13284434179681377300, 13284434179681377303)]--FAST_PROJECT: [ModelID, Direction, Group, Issue, SnapshotTime, Channel, Treatment, Name, ResponseCount, Configuration, Performance, Positives] [(13284434179681377300, 13284434179681377304)]</title>
-<path fill="none" stroke="black" d="M541.32,-241.47C539.89,-228.3 539.89,-210.16 541.33,-197"/>
-</g>
-<!-- WITH COLUMNS [&quot;Direction&quot;,&quot;Group&quot;,&quot;Issue&quot;,&quot;SnapshotTime&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Configuration&quot;,&quot;Positives&quot;] [(13284434179681377300, 13284434179681377303)]&#45;&#45;FAST_PROJECT: [ModelID, Direction, Group, Issue, SnapshotTime, Channel, Treatment, Name, ResponseCount, Configuration, Performance, Positives] [(13284434179681377300, 13284434179681377304)] -->
-<g id="edge23" class="edge">
-<title>WITH COLUMNS [&quot;Direction&quot;,&quot;Group&quot;,&quot;Issue&quot;,&quot;SnapshotTime&quot;,&quot;Channel&quot;,&quot;ResponseCount&quot;,&quot;Configuration&quot;,&quot;Positives&quot;] [(13284434179681377300, 13284434179681377303)]--FAST_PROJECT: [ModelID, Direction, Group, Issue, SnapshotTime, Channel, Treatment, Name, ResponseCount, Configuration, Performance, Positives] [(13284434179681377300, 13284434179681377304)]</title>
-<path fill="none" stroke="black" d="M552.68,-241.47C554.11,-228.3 554.11,-210.16 552.67,-197"/>
-</g>
-<!-- RENAME [(13284434179681377300, 13284434179681377305)] -->
-<g id="node8" class="node">
-<title>RENAME [(13284434179681377300, 13284434179681377305)]</title>
-<polygon fill="none" stroke="black" points="589,-125 505,-125 505,-89 589,-89 589,-125"/>
-<text text-anchor="middle" x="547" y="-103.3" font-family="Times,serif" font-size="14.00">RENAME</text>
-</g>
-<!-- FAST_PROJECT: [ModelID, Direction, Group, Issue, SnapshotTime, Channel, Treatment, Name, ResponseCount, Configuration, Performance, Positives] [(13284434179681377300, 13284434179681377304)]&#45;&#45;RENAME [(13284434179681377300, 13284434179681377305)] -->
-<g id="edge7" class="edge">
-<title>FAST_PROJECT: [ModelID, Direction, Group, Issue, SnapshotTime, Channel, Treatment, Name, ResponseCount, Configuration, Performance, Positives] [(13284434179681377300, 13284434179681377304)]--RENAME [(13284434179681377300, 13284434179681377305)]</title>
-<path fill="none" stroke="black" d="M541.08,-160.7C539.97,-149.85 539.97,-135.92 541.1,-125.1"/>
-</g>
-<!-- FAST_PROJECT: [ModelID, Direction, Group, Issue, SnapshotTime, Channel, Treatment, Name, ResponseCount, Configuration, Performance, Positives] [(13284434179681377300, 13284434179681377304)]&#45;&#45;RENAME [(13284434179681377300, 13284434179681377305)] -->
-<g id="edge24" class="edge">
-<title>FAST_PROJECT: [ModelID, Direction, Group, Issue, SnapshotTime, Channel, Treatment, Name, ResponseCount, Configuration, Performance, Positives] [(13284434179681377300, 13284434179681377304)]--RENAME [(13284434179681377300, 13284434179681377305)]</title>
-<path fill="none" stroke="black" d="M552.92,-160.7C554.03,-149.85 554.03,-135.92 552.9,-125.1"/>
-</g>
-<!-- TABLE
-π 12/27;
-σ col(&quot;Name&quot;).str.contains(...; [(13284434179681377300, 13284434179681377306)] -->
-<g id="node9" class="node">
-<title>TABLE
-π 12/27;
-σ col(&quot;Name&quot;).str.contains(...; [(13284434179681377300, 13284434179681377306)]</title>
-<polygon fill="none" stroke="black" points="661,-53 433,-53 433,0 661,0 661,-53"/>
-<text text-anchor="middle" x="547" y="-37.8" font-family="Times,serif" font-size="14.00">TABLE</text>
-<text text-anchor="middle" x="547" y="-22.8" font-family="Times,serif" font-size="14.00">π 12/27;</text>
-<text text-anchor="middle" x="547" y="-7.8" font-family="Times,serif" font-size="14.00">σ col(&quot;Name&quot;).str.contains(...;</text>
-</g>
-<!-- RENAME [(13284434179681377300, 13284434179681377305)]&#45;&#45;TABLE
-π 12/27;
-σ col(&quot;Name&quot;).str.contains(...; [(13284434179681377300, 13284434179681377306)] -->
-<g id="edge8" class="edge">
-<title>RENAME [(13284434179681377300, 13284434179681377305)]--TABLE
-π 12/27;
-σ col(&quot;Name&quot;).str.contains(...; [(13284434179681377300, 13284434179681377306)]</title>
-<path fill="none" stroke="black" d="M541.32,-88.97C540.19,-78.51 539.95,-64.9 540.62,-53.16"/>
-</g>
-<!-- RENAME [(13284434179681377300, 13284434179681377305)]&#45;&#45;TABLE
-π 12/27;
-σ col(&quot;Name&quot;).str.contains(...; [(13284434179681377300, 13284434179681377306)] -->
-<g id="edge25" class="edge">
-<title>RENAME [(13284434179681377300, 13284434179681377305)]--TABLE
-π 12/27;
-σ col(&quot;Name&quot;).str.contains(...; [(13284434179681377300, 13284434179681377306)]</title>
-<path fill="none" stroke="black" d="M552.68,-88.97C553.81,-78.51 554.05,-64.9 553.38,-53.16"/>
-</g>
-<!-- JOIN INNER
- &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left [col(&quot;ModelID&quot;)];
- &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(200, 2)] -->
-<g id="node11" class="node">
-<title>JOIN INNER
-                    left [col(&quot;ModelID&quot;)];
-                    right: [col(&quot;ModelID&quot;)] [(200, 2)]</title>
-<polygon fill="none" stroke="black" points="974,-735 708,-735 708,-682 974,-682 974,-735"/>
-<text text-anchor="middle" x="841" y="-719.8" font-family="Times,serif" font-size="14.00">JOIN INNER</text>
-<text text-anchor="middle" x="841" y="-704.8" font-family="Times,serif" font-size="14.00">                    left [col(&quot;ModelID&quot;)];</text>
-<text text-anchor="middle" x="841" y="-689.8" font-family="Times,serif" font-size="14.00">                    right: [col(&quot;ModelID&quot;)]</text>
-</g>
-<!-- FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(200, 1)]&#45;&#45;JOIN INNER
- &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left [col(&quot;ModelID&quot;)];
- &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(200, 2)] -->
-<g id="edge10" class="edge">
-<title>FILTER BY (col(&quot;SnapshotTime&quot;).fill... [(200, 1)]--JOIN INNER
-                    left [col(&quot;ModelID&quot;)];
-                    right: [col(&quot;ModelID&quot;)] [(200, 2)]</title>
-<path fill="none" stroke="black" d="M816.73,-770.97C820.86,-760.51 826.23,-746.9 830.87,-735.16"/>
-</g>
-<!-- WITH COLUMNS [&quot;PredictorCategory&quot;,&quot;__POLARS_CSER_6795237234460346148&quot;] [(300, 3)] -->
-<g id="node12" class="node">
-<title>WITH COLUMNS [&quot;PredictorCategory&quot;,&quot;__POLARS_CSER_6795237234460346148&quot;] [(300, 3)]</title>
-<polygon fill="none" stroke="black" points="1512.5,-646 895.5,-646 895.5,-610 1512.5,-610 1512.5,-646"/>
-<text text-anchor="middle" x="1204" y="-624.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;PredictorCategory&quot;,&quot;__POLARS_CSER_6795237234460346148&quot;]</text>
-</g>
-<!-- JOIN INNER
- &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left [col(&quot;ModelID&quot;)];
- &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(200, 2)]&#45;&#45;WITH COLUMNS [&quot;PredictorCategory&quot;,&quot;__POLARS_CSER_6795237234460346148&quot;] [(300, 3)] -->
-<g id="edge11" class="edge">
-<title>JOIN INNER
-                    left [col(&quot;ModelID&quot;)];
-                    right: [col(&quot;ModelID&quot;)] [(200, 2)]--WITH COLUMNS [&quot;PredictorCategory&quot;,&quot;__POLARS_CSER_6795237234460346148&quot;] [(300, 3)]</title>
-<path fill="none" stroke="black" d="M959.11,-681.96C1013.54,-670.19 1076.67,-656.54 1125.19,-646.04"/>
-</g>
-<!-- π 1/1 [(400, 3)] -->
+<!-- p17 -->
 <g id="node18" class="node">
-<title>π 1/1 [(400, 3)]</title>
-<polygon fill="none" stroke="black" points="805,-646 751,-646 751,-610 805,-610 805,-646"/>
-<text text-anchor="middle" x="778" y="-624.3" font-family="Times,serif" font-size="14.00">π 1/1</text>
+<title>p17</title>
+<polygon fill="none" stroke="black" points="3709.5,-421.5 3331.5,-421.5 3331.5,-385.5 3709.5,-385.5 3709.5,-421.5"/>
+<text text-anchor="middle" x="3520.5" y="-399.8" font-family="Times,serif" font-size="14.00">FILTER BY col(&quot;Name&quot;).str.contains([String(Visa)])</text>
 </g>
-<!-- JOIN INNER
- &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;left [col(&quot;ModelID&quot;)];
- &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;right: [col(&quot;ModelID&quot;)] [(200, 2)]&#45;&#45;π 1/1 [(400, 3)] -->
-<g id="edge17" class="edge">
-<title>JOIN INNER
-                    left [col(&quot;ModelID&quot;)];
-                    right: [col(&quot;ModelID&quot;)] [(200, 2)]--π 1/1 [(400, 3)]</title>
-<path fill="none" stroke="black" d="M820.37,-681.8C811.04,-670.17 800.26,-656.74 791.91,-646.33"/>
-</g>
-<!-- WITH COLUMNS [&quot;BinPropensity&quot;,&quot;BinAdjustedPropensity&quot;] [(300, 4)] -->
-<g id="node13" class="node">
-<title>WITH COLUMNS [&quot;BinPropensity&quot;,&quot;BinAdjustedPropensity&quot;] [(300, 4)]</title>
-<polygon fill="none" stroke="black" points="1574,-574 1122,-574 1122,-538 1574,-538 1574,-574"/>
-<text text-anchor="middle" x="1348" y="-552.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;BinPropensity&quot;,&quot;BinAdjustedPropensity&quot;]</text>
-</g>
-<!-- WITH COLUMNS [&quot;PredictorCategory&quot;,&quot;__POLARS_CSER_6795237234460346148&quot;] [(300, 3)]&#45;&#45;WITH COLUMNS [&quot;BinPropensity&quot;,&quot;BinAdjustedPropensity&quot;] [(300, 4)] -->
-<g id="edge12" class="edge">
-<title>WITH COLUMNS [&quot;PredictorCategory&quot;,&quot;__POLARS_CSER_6795237234460346148&quot;] [(300, 3)]--WITH COLUMNS [&quot;BinPropensity&quot;,&quot;BinAdjustedPropensity&quot;] [(300, 4)]</title>
-<path fill="none" stroke="black" d="M1239.23,-609.88C1261.54,-599.03 1290.3,-585.05 1312.64,-574.19"/>
-</g>
-<!-- WITH COLUMNS [&quot;BinNegatives&quot;,&quot;GroupIndex&quot;,&quot;BinResponseCount&quot;,&quot;PredictorName&quot;,&quot;Type&quot;,&quot;SnapshotTime&quot;,&quot;BinPositives&quot;,&quot;Positives&quot;,&quot;ResponseCount&quot;,&quot;BinIndex&quot;,&quot;BinType&quot;,&quot;EntryType&quot;] [(300, 5)] -->
-<g id="node14" class="node">
-<title>WITH COLUMNS [&quot;BinNegatives&quot;,&quot;GroupIndex&quot;,&quot;BinResponseCount&quot;,&quot;PredictorName&quot;,&quot;Type&quot;,&quot;SnapshotTime&quot;,&quot;BinPositives&quot;,&quot;Positives&quot;,&quot;ResponseCount&quot;,&quot;BinIndex&quot;,&quot;BinType&quot;,&quot;EntryType&quot;] [(300, 5)]</title>
-<polygon fill="none" stroke="black" points="2107,-502 721,-502 721,-466 2107,-466 2107,-502"/>
-<text text-anchor="middle" x="1414" y="-480.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [&quot;BinNegatives&quot;,&quot;GroupIndex&quot;,&quot;BinResponseCount&quot;,&quot;PredictorName&quot;,&quot;Type&quot;,&quot;SnapshotTime&quot;,&quot;BinPositives&quot;,&quot;Positives&quot;,&quot;ResponseCount&quot;,&quot;BinIndex&quot;,&quot;BinType&quot;,&quot;EntryType&quot;]</text>
-</g>
-<!-- WITH COLUMNS [&quot;BinPropensity&quot;,&quot;BinAdjustedPropensity&quot;] [(300, 4)]&#45;&#45;WITH COLUMNS [&quot;BinNegatives&quot;,&quot;GroupIndex&quot;,&quot;BinResponseCount&quot;,&quot;PredictorName&quot;,&quot;Type&quot;,&quot;SnapshotTime&quot;,&quot;BinPositives&quot;,&quot;Positives&quot;,&quot;ResponseCount&quot;,&quot;BinIndex&quot;,&quot;BinType&quot;,&quot;EntryType&quot;] [(300, 5)] -->
-<g id="edge13" class="edge">
-<title>WITH COLUMNS [&quot;BinPropensity&quot;,&quot;BinAdjustedPropensity&quot;] [(300, 4)]--WITH COLUMNS [&quot;BinNegatives&quot;,&quot;GroupIndex&quot;,&quot;BinResponseCount&quot;,&quot;PredictorName&quot;,&quot;Type&quot;,&quot;SnapshotTime&quot;,&quot;BinPositives&quot;,&quot;Positives&quot;,&quot;ResponseCount&quot;,&quot;BinIndex&quot;,&quot;BinType&quot;,&quot;EntryType&quot;] [(300, 5)]</title>
-<path fill="none" stroke="black" d="M1364.31,-537.7C1374.54,-526.85 1387.68,-512.92 1397.87,-502.1"/>
-</g>
-<!-- FAST_PROJECT: [BinNegatives, ModelID, GroupIndex, BinResponseCount, PredictorName, Type, SnapshotTime, BinPositives, Contents, Positives, ResponseCount, BinIndex, BinType, Performance, BinSymbol, EntryType] [(300, 6)] -->
-<g id="node15" class="node">
-<title>FAST_PROJECT: [BinNegatives, ModelID, GroupIndex, BinResponseCount, PredictorName, Type, SnapshotTime, BinPositives, Contents, Positives, ResponseCount, BinIndex, BinType, Performance, BinSymbol, EntryType] [(300, 6)]</title>
-<polygon fill="none" stroke="black" points="2304,-430 710,-430 710,-394 2304,-394 2304,-430"/>
-<text text-anchor="middle" x="1507" y="-408.3" font-family="Times,serif" font-size="14.00">FAST_PROJECT: [BinNegatives, ModelID, GroupIndex, BinResponseCount, PredictorName, Type, SnapshotTime, BinPositives, Contents, Positives, ResponseCount, BinIndex, BinType, Performance, BinSymbol, EntryType]</text>
-</g>
-<!-- WITH COLUMNS [&quot;BinNegatives&quot;,&quot;GroupIndex&quot;,&quot;BinResponseCount&quot;,&quot;PredictorName&quot;,&quot;Type&quot;,&quot;SnapshotTime&quot;,&quot;BinPositives&quot;,&quot;Positives&quot;,&quot;ResponseCount&quot;,&quot;BinIndex&quot;,&quot;BinType&quot;,&quot;EntryType&quot;] [(300, 5)]&#45;&#45;FAST_PROJECT: [BinNegatives, ModelID, GroupIndex, BinResponseCount, PredictorName, Type, SnapshotTime, BinPositives, Contents, Positives, ResponseCount, BinIndex, BinType, Performance, BinSymbol, EntryType] [(300, 6)] -->
-<g id="edge14" class="edge">
-<title>WITH COLUMNS [&quot;BinNegatives&quot;,&quot;GroupIndex&quot;,&quot;BinResponseCount&quot;,&quot;PredictorName&quot;,&quot;Type&quot;,&quot;SnapshotTime&quot;,&quot;BinPositives&quot;,&quot;Positives&quot;,&quot;ResponseCount&quot;,&quot;BinIndex&quot;,&quot;BinType&quot;,&quot;EntryType&quot;] [(300, 5)]--FAST_PROJECT: [BinNegatives, ModelID, GroupIndex, BinResponseCount, PredictorName, Type, SnapshotTime, BinPositives, Contents, Positives, ResponseCount, BinIndex, BinType, Performance, BinSymbol, EntryType] [(300, 6)]</title>
-<path fill="none" stroke="black" d="M1436.99,-465.7C1451.4,-454.85 1469.91,-440.92 1484.28,-430.1"/>
-</g>
-<!-- RENAME [(300, 7)] -->
-<g id="node16" class="node">
-<title>RENAME [(300, 7)]</title>
-<polygon fill="none" stroke="black" points="1549,-358 1465,-358 1465,-322 1549,-322 1549,-358"/>
-<text text-anchor="middle" x="1507" y="-336.3" font-family="Times,serif" font-size="14.00">RENAME</text>
-</g>
-<!-- FAST_PROJECT: [BinNegatives, ModelID, GroupIndex, BinResponseCount, PredictorName, Type, SnapshotTime, BinPositives, Contents, Positives, ResponseCount, BinIndex, BinType, Performance, BinSymbol, EntryType] [(300, 6)]&#45;&#45;RENAME [(300, 7)] -->
-<g id="edge15" class="edge">
-<title>FAST_PROJECT: [BinNegatives, ModelID, GroupIndex, BinResponseCount, PredictorName, Type, SnapshotTime, BinPositives, Contents, Positives, ResponseCount, BinIndex, BinType, Performance, BinSymbol, EntryType] [(300, 6)]--RENAME [(300, 7)]</title>
-<path fill="none" stroke="black" d="M1507,-393.7C1507,-382.85 1507,-368.92 1507,-358.1"/>
-</g>
-<!-- TABLE
-π 16/36;
-σ &#45;; [(300, 8)] -->
-<g id="node17" class="node">
-<title>TABLE
-π 16/36;
-σ -; [(300, 8)]</title>
-<polygon fill="none" stroke="black" points="1544.5,-286 1469.5,-286 1469.5,-233 1544.5,-233 1544.5,-286"/>
-<text text-anchor="middle" x="1507" y="-270.8" font-family="Times,serif" font-size="14.00">TABLE</text>
-<text text-anchor="middle" x="1507" y="-255.8" font-family="Times,serif" font-size="14.00">π 16/36;</text>
-<text text-anchor="middle" x="1507" y="-240.8" font-family="Times,serif" font-size="14.00">σ -;</text>
-</g>
-<!-- RENAME [(300, 7)]&#45;&#45;TABLE
-π 16/36;
-σ &#45;; [(300, 8)] -->
-<g id="edge16" class="edge">
-<title>RENAME [(300, 7)]--TABLE
-π 16/36;
-σ -; [(300, 8)]</title>
-<path fill="none" stroke="black" d="M1507,-321.97C1507,-311.51 1507,-297.9 1507,-286.16"/>
-</g>
-<!-- FAST_PROJECT: [ModelID] [(400, 4)] -->
-<g id="node19" class="node">
-<title>FAST_PROJECT: [ModelID] [(400, 4)]</title>
-<polygon fill="none" stroke="black" points="818.5,-574 611.5,-574 611.5,-538 818.5,-538 818.5,-574"/>
-<text text-anchor="middle" x="715" y="-552.3" font-family="Times,serif" font-size="14.00">FAST_PROJECT: [ModelID]</text>
-</g>
-<!-- π 1/1 [(400, 3)]&#45;&#45;FAST_PROJECT: [ModelID] [(400, 4)] -->
+<!-- c0&#45;&#45;p17 -->
 <g id="edge18" class="edge">
-<title>π 1/1 [(400, 3)]--FAST_PROJECT: [ModelID] [(400, 4)]</title>
-<path fill="none" stroke="black" d="M762.43,-609.7C752.66,-598.85 740.13,-584.92 730.39,-574.1"/>
+<title>c0--p17</title>
+<path fill="none" stroke="black" d="M4869.15,-479.32C4663.23,-467.9 4029.73,-432.75 3709.7,-415"/>
 </g>
-<!-- FAST_PROJECT: [ModelID] [(400, 4)]&#45;&#45;CACHE: 1times [(13284434179681377300, 13284434179681377300)] -->
+<!-- p4 -->
+<g id="node5" class="node">
+<title>p4</title>
+<polygon fill="none" stroke="black" points="11272,-341 5645,-341 5645,-305 11272,-305 11272,-341"/>
+<text text-anchor="middle" x="8458.5" y="-319.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [when([(col(&quot;__POLARS_CSER_0xc56cde048394903c&quot;).is_not_nan()) | (col(&quot;__POLARS_CSER_0xc56cde048394903c&quot;).is_null())]).then(col(&quot;__POLARS_CSER_0xc56cde048394903c&quot;)).otherwise(0.0).alias(&quot;SuccessRate&quot;), when([(col(&quot;Positives&quot;).min()) == (col(&quot;Positives&quot;).max())]).then(col(&quot;SnapshotTime&quot;).max()).otherwise(col(&quot;SnapshotTime&quot;).filter([(col(&quot;Positives&quot;).diff()) != (0.0)]).max()).over([col(&quot;ModelID&quot;)]).alias(&quot;Last_Positives&quot;), when([(col(&quot;ResponseCount&quot;).min()) == (col(&quot;ResponseCount&quot;).max())]).then(col(&quot;SnapshotTime&quot;).max()).otherwise(col(&quot;SnapshotTime&quot;).filter([(col(&quot;ResponseCount&quot;).diff()) != (0.0)]).max()).over([col(&quot;ModelID&quot;)]).alias(&quot;Last_ResponseCount&quot;), [(col(&quot;Positives&quot;)) / (col(&quot;ResponseCount&quot;))].alias(&quot;__POLARS_CSER_0xc56cde048394903c&quot;)]</text>
+</g>
+<!-- p3&#45;&#45;p4 -->
+<g id="edge4" class="edge">
+<title>p3--p4</title>
+<path fill="none" stroke="black" d="M6532.59,-395.48C6860.23,-383.32 7542.26,-358.01 8000.32,-341.01"/>
+</g>
+<!-- p5 -->
+<g id="node6" class="node">
+<title>p5</title>
+<polygon fill="none" stroke="black" points="10863.5,-269 6053.5,-269 6053.5,-233 10863.5,-233 10863.5,-269"/>
+<text text-anchor="middle" x="8458.5" y="-247.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [col(&quot;ResponseCount&quot;).strict_cast(Float32), col(&quot;Configuration&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Direction&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Issue&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Channel&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Group&quot;).strict_cast(Categorical(None, Physical)), when([(col(&quot;SnapshotTime&quot;).str.slice([dyn int: 4, dyn int: 1])) == (String(-))]).then(col(&quot;SnapshotTime&quot;).str.strptime([String(raise)]).dt.cast_time_unit()).otherwise(col(&quot;SnapshotTime&quot;).str.strptime([String(raise)]).dt.replace_time_zone([String(raise)]).dt.cast_time_unit()).alias(&quot;SnapshotTime&quot;), col(&quot;Positives&quot;).strict_cast(Float32)]</text>
+</g>
+<!-- p4&#45;&#45;p5 -->
+<g id="edge5" class="edge">
+<title>p4--p5</title>
+<path fill="none" stroke="black" d="M8458.5,-304.7C8458.5,-293.85 8458.5,-279.92 8458.5,-269.1"/>
+</g>
+<!-- p6 -->
+<g id="node7" class="node">
+<title>p6</title>
+<polygon fill="none" stroke="black" points="8494,-197 8423,-197 8423,-161 8494,-161 8494,-197"/>
+<text text-anchor="middle" x="8458.5" y="-175.3" font-family="Times,serif" font-size="14.00">π 12/12</text>
+</g>
+<!-- p5&#45;&#45;p6 -->
+<g id="edge6" class="edge">
+<title>p5--p6</title>
+<path fill="none" stroke="black" d="M8458.5,-232.7C8458.5,-221.85 8458.5,-207.92 8458.5,-197.1"/>
+</g>
+<!-- p7 -->
+<g id="node8" class="node">
+<title>p7</title>
+<polygon fill="none" stroke="black" points="8500.5,-125 8416.5,-125 8416.5,-89 8500.5,-89 8500.5,-125"/>
+<text text-anchor="middle" x="8458.5" y="-103.3" font-family="Times,serif" font-size="14.00">RENAME</text>
+</g>
+<!-- p6&#45;&#45;p7 -->
+<g id="edge7" class="edge">
+<title>p6--p7</title>
+<path fill="none" stroke="black" d="M8458.5,-160.7C8458.5,-149.85 8458.5,-135.92 8458.5,-125.1"/>
+</g>
+<!-- p8 -->
+<g id="node9" class="node">
+<title>p8</title>
+<polygon fill="none" stroke="black" points="8614,-53 8303,-53 8303,0 8614,0 8614,-53"/>
+<text text-anchor="middle" x="8458.5" y="-37.8" font-family="Times,serif" font-size="14.00">TABLE</text>
+<text text-anchor="middle" x="8458.5" y="-22.8" font-family="Times,serif" font-size="14.00">π 12/27;</text>
+<text text-anchor="middle" x="8458.5" y="-7.8" font-family="Times,serif" font-size="14.00">σ col(&quot;Name&quot;).str.contains([String(Visa)])</text>
+</g>
+<!-- p7&#45;&#45;p8 -->
+<g id="edge8" class="edge">
+<title>p7--p8</title>
+<path fill="none" stroke="black" d="M8458.5,-88.97C8458.5,-78.51 8458.5,-64.9 8458.5,-53.16"/>
+</g>
+<!-- p10 -->
+<g id="node11" class="node">
+<title>p10</title>
+<polygon fill="none" stroke="black" points="5827.5,-737 5651.5,-737 5651.5,-684 5827.5,-684 5827.5,-737"/>
+<text text-anchor="middle" x="5739.5" y="-721.8" font-family="Times,serif" font-size="14.00">JOIN INNER</text>
+<text text-anchor="middle" x="5739.5" y="-706.8" font-family="Times,serif" font-size="14.00">left: [col(&quot;ModelID&quot;)];</text>
+<text text-anchor="middle" x="5739.5" y="-691.8" font-family="Times,serif" font-size="14.00">right: [col(&quot;ModelID&quot;)]</text>
+</g>
+<!-- p9&#45;&#45;p10 -->
+<g id="edge10" class="edge">
+<title>p9--p10</title>
+<path fill="none" stroke="black" d="M5723.84,-772.97C5726.51,-762.51 5729.97,-748.9 5732.96,-737.16"/>
+</g>
+<!-- p11 -->
+<g id="node12" class="node">
+<title>p11</title>
+<polygon fill="none" stroke="black" points="9535,-648 5882,-648 5882,-612 9535,-612 9535,-648"/>
+<text text-anchor="middle" x="7708.5" y="-626.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [[(col(&quot;BinPositives&quot;)) / (col(&quot;BinResponseCount&quot;))].alias(&quot;BinPropensity&quot;), [([(col(&quot;BinPositives&quot;)) + (0.5)]) / ([(col(&quot;BinResponseCount&quot;)) + (1.0)])].alias(&quot;BinAdjustedPropensity&quot;), when([(col(&quot;__POLARS_CSER_0xa1e012048a656653&quot;).list.length()) &gt; (1)]).then(col(&quot;__POLARS_CSER_0xa1e012048a656653&quot;).list.get([dyn int: 0])).otherwise(String(Primary)).alias(&quot;PredictorCategory&quot;), col(&quot;PredictorName&quot;).strict_cast(String).str.split([String(.)]).alias(&quot;__POLARS_CSER_0xa1e012048a656653&quot;)]</text>
+</g>
+<!-- p10&#45;&#45;p11 -->
+<g id="edge11" class="edge">
+<title>p10--p11</title>
+<path fill="none" stroke="black" d="M5827.61,-705.99C6078.42,-695.99 6808.63,-666.88 7281.96,-648.01"/>
+</g>
+<!-- p15 -->
+<g id="node16" class="node">
+<title>p15</title>
+<polygon fill="none" stroke="black" points="5291.5,-648 5237.5,-648 5237.5,-612 5291.5,-612 5291.5,-648"/>
+<text text-anchor="middle" x="5264.5" y="-626.3" font-family="Times,serif" font-size="14.00">π 1/1</text>
+</g>
+<!-- p10&#45;&#45;p15 -->
+<g id="edge15" class="edge">
+<title>p10--p15</title>
+<path fill="none" stroke="black" d="M5651.32,-685.85C5648.35,-685.2 5645.4,-684.58 5642.5,-684 5512.24,-657.84 5354.15,-640.15 5291.73,-633.7"/>
+</g>
+<!-- p12 -->
+<g id="node13" class="node">
+<title>p12</title>
+<polygon fill="none" stroke="black" points="10938.5,-575 5052.5,-575 5052.5,-539 10938.5,-539 10938.5,-575"/>
+<text text-anchor="middle" x="7995.5" y="-553.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [col(&quot;BinIndex&quot;).strict_cast(UInt16), col(&quot;ResponseCount&quot;).strict_cast(Float32), col(&quot;BinNegatives&quot;).strict_cast(Float32), when([(col(&quot;SnapshotTime&quot;).str.slice([dyn int: 4, dyn int: 1])) == (String(-))]).then(col(&quot;SnapshotTime&quot;).str.strptime([String(raise)]).dt.cast_time_unit()).otherwise(col(&quot;SnapshotTime&quot;).str.strptime([String(raise)]).dt.replace_time_zone([String(raise)]).dt.cast_time_unit()).alias(&quot;SnapshotTime&quot;), col(&quot;EntryType&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Type&quot;).strict_cast(Categorical(None, Physical)), col(&quot;PredictorName&quot;).strict_cast(Categorical(None, Physical)), col(&quot;BinResponseCount&quot;).strict_cast(Float32), col(&quot;BinPositives&quot;).strict_cast(Float32), col(&quot;GroupIndex&quot;).strict_cast(UInt32), col(&quot;Positives&quot;).strict_cast(Float32), col(&quot;BinType&quot;).strict_cast(Categorical(None, Physical))]</text>
+</g>
+<!-- p11&#45;&#45;p12 -->
+<g id="edge12" class="edge">
+<title>p11--p12</title>
+<path fill="none" stroke="black" d="M7777.24,-611.99C7822.35,-600.83 7881.13,-586.29 7926.32,-575.11"/>
+</g>
+<!-- p13 -->
+<g id="node14" class="node">
+<title>p13</title>
+<polygon fill="none" stroke="black" points="8037.5,-502 7953.5,-502 7953.5,-466 8037.5,-466 8037.5,-502"/>
+<text text-anchor="middle" x="7995.5" y="-480.3" font-family="Times,serif" font-size="14.00">RENAME</text>
+</g>
+<!-- p12&#45;&#45;p13 -->
+<g id="edge13" class="edge">
+<title>p12--p13</title>
+<path fill="none" stroke="black" d="M7995.5,-538.81C7995.5,-527.65 7995.5,-513.16 7995.5,-502.03"/>
+</g>
+<!-- p14 -->
+<g id="node15" class="node">
+<title>p14</title>
+<polygon fill="none" stroke="black" points="8033,-430 7958,-430 7958,-377 8033,-377 8033,-430"/>
+<text text-anchor="middle" x="7995.5" y="-414.8" font-family="Times,serif" font-size="14.00">TABLE</text>
+<text text-anchor="middle" x="7995.5" y="-399.8" font-family="Times,serif" font-size="14.00">π 16/36;</text>
+<text text-anchor="middle" x="7995.5" y="-384.8" font-family="Times,serif" font-size="14.00">σ None</text>
+</g>
+<!-- p13&#45;&#45;p14 -->
+<g id="edge14" class="edge">
+<title>p13--p14</title>
+<path fill="none" stroke="black" d="M7995.5,-465.97C7995.5,-455.51 7995.5,-441.9 7995.5,-430.16"/>
+</g>
+<!-- p16 -->
+<g id="node17" class="node">
+<title>p16</title>
+<polygon fill="none" stroke="black" points="5034,-576 4921,-576 4921,-538 5034,-538 5034,-576"/>
+<text text-anchor="middle" x="4977.5" y="-560.8" font-family="Times,serif" font-size="14.00">simple π 1/15</text>
+<text text-anchor="middle" x="4977.5" y="-545.8" font-family="Times,serif" font-size="14.00">[&quot;ModelID&quot;]</text>
+</g>
+<!-- p15&#45;&#45;p16 -->
+<g id="edge16" class="edge">
+<title>p15--p16</title>
+<path fill="none" stroke="black" d="M5237.21,-622.74C5195.42,-613.09 5113.06,-593.82 5043.5,-576 5040.51,-575.23 5037.44,-574.44 5034.35,-573.62"/>
+</g>
+<!-- p16&#45;&#45;c0 -->
+<g id="edge17" class="edge">
+<title>p16--c0</title>
+<path fill="none" stroke="black" d="M4966.68,-537.72C4960.17,-526.7 4951.93,-512.78 4945.56,-502"/>
+</g>
+<!-- p18 -->
+<g id="node19" class="node">
+<title>p18</title>
+<polygon fill="none" stroke="black" points="5627,-341 0,-341 0,-305 5627,-305 5627,-341"/>
+<text text-anchor="middle" x="2813.5" y="-319.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [when([(col(&quot;__POLARS_CSER_0xc56cde048394903c&quot;).is_not_nan()) | (col(&quot;__POLARS_CSER_0xc56cde048394903c&quot;).is_null())]).then(col(&quot;__POLARS_CSER_0xc56cde048394903c&quot;)).otherwise(0.0).alias(&quot;SuccessRate&quot;), when([(col(&quot;Positives&quot;).min()) == (col(&quot;Positives&quot;).max())]).then(col(&quot;SnapshotTime&quot;).max()).otherwise(col(&quot;SnapshotTime&quot;).filter([(col(&quot;Positives&quot;).diff()) != (0.0)]).max()).over([col(&quot;ModelID&quot;)]).alias(&quot;Last_Positives&quot;), when([(col(&quot;ResponseCount&quot;).min()) == (col(&quot;ResponseCount&quot;).max())]).then(col(&quot;SnapshotTime&quot;).max()).otherwise(col(&quot;SnapshotTime&quot;).filter([(col(&quot;ResponseCount&quot;).diff()) != (0.0)]).max()).over([col(&quot;ModelID&quot;)]).alias(&quot;Last_ResponseCount&quot;), [(col(&quot;Positives&quot;)) / (col(&quot;ResponseCount&quot;))].alias(&quot;__POLARS_CSER_0xc56cde048394903c&quot;)]</text>
+</g>
+<!-- p17&#45;&#45;p18 -->
 <g id="edge19" class="edge">
-<title>FAST_PROJECT: [ModelID] [(400, 4)]--CACHE: 1times [(13284434179681377300, 13284434179681377300)]</title>
-<path fill="none" stroke="black" d="M673.9,-537.88C647.77,-526.99 614.07,-512.95 587.96,-502.07"/>
+<title>p17--p18</title>
+<path fill="none" stroke="black" d="M3367.09,-385.47C3248.5,-372.3 3085.12,-354.16 2966.61,-341"/>
+</g>
+<!-- p19 -->
+<g id="node20" class="node">
+<title>p19</title>
+<polygon fill="none" stroke="black" points="5218.5,-269 408.5,-269 408.5,-233 5218.5,-233 5218.5,-269"/>
+<text text-anchor="middle" x="2813.5" y="-247.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [col(&quot;ResponseCount&quot;).strict_cast(Float32), col(&quot;Configuration&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Direction&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Issue&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Channel&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Group&quot;).strict_cast(Categorical(None, Physical)), when([(col(&quot;SnapshotTime&quot;).str.slice([dyn int: 4, dyn int: 1])) == (String(-))]).then(col(&quot;SnapshotTime&quot;).str.strptime([String(raise)]).dt.cast_time_unit()).otherwise(col(&quot;SnapshotTime&quot;).str.strptime([String(raise)]).dt.replace_time_zone([String(raise)]).dt.cast_time_unit()).alias(&quot;SnapshotTime&quot;), col(&quot;Positives&quot;).strict_cast(Float32)]</text>
+</g>
+<!-- p18&#45;&#45;p19 -->
+<g id="edge20" class="edge">
+<title>p18--p19</title>
+<path fill="none" stroke="black" d="M2813.5,-304.7C2813.5,-293.85 2813.5,-279.92 2813.5,-269.1"/>
+</g>
+<!-- p20 -->
+<g id="node21" class="node">
+<title>p20</title>
+<polygon fill="none" stroke="black" points="2849,-197 2778,-197 2778,-161 2849,-161 2849,-197"/>
+<text text-anchor="middle" x="2813.5" y="-175.3" font-family="Times,serif" font-size="14.00">π 12/12</text>
+</g>
+<!-- p19&#45;&#45;p20 -->
+<g id="edge21" class="edge">
+<title>p19--p20</title>
+<path fill="none" stroke="black" d="M2813.5,-232.7C2813.5,-221.85 2813.5,-207.92 2813.5,-197.1"/>
+</g>
+<!-- p21 -->
+<g id="node22" class="node">
+<title>p21</title>
+<polygon fill="none" stroke="black" points="2855.5,-125 2771.5,-125 2771.5,-89 2855.5,-89 2855.5,-125"/>
+<text text-anchor="middle" x="2813.5" y="-103.3" font-family="Times,serif" font-size="14.00">RENAME</text>
+</g>
+<!-- p20&#45;&#45;p21 -->
+<g id="edge22" class="edge">
+<title>p20--p21</title>
+<path fill="none" stroke="black" d="M2813.5,-160.7C2813.5,-149.85 2813.5,-135.92 2813.5,-125.1"/>
+</g>
+<!-- p22 -->
+<g id="node23" class="node">
+<title>p22</title>
+<polygon fill="none" stroke="black" points="2969,-53 2658,-53 2658,0 2969,0 2969,-53"/>
+<text text-anchor="middle" x="2813.5" y="-37.8" font-family="Times,serif" font-size="14.00">TABLE</text>
+<text text-anchor="middle" x="2813.5" y="-22.8" font-family="Times,serif" font-size="14.00">π 12/27;</text>
+<text text-anchor="middle" x="2813.5" y="-7.8" font-family="Times,serif" font-size="14.00">σ col(&quot;Name&quot;).str.contains([String(Visa)])</text>
+</g>
+<!-- p21&#45;&#45;p22 -->
+<g id="edge23" class="edge">
+<title>p21--p22</title>
+<path fill="none" stroke="black" d="M2813.5,-88.97C2813.5,-78.51 2813.5,-64.9 2813.5,-53.16"/>
 </g>
 </g>
 </svg>

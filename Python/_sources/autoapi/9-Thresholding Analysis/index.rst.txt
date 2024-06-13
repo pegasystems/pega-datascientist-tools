@@ -1,0 +1,28 @@
+9-Thresholding Analysis
+=======================
+
+.. py:module:: 9-Thresholding Analysis
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   9-Thresholding Analysis.thresholding_mapping
+   9-Thresholding Analysis.thresholding_on
+   9-Thresholding Analysis.threshold_deciles_data
+   9-Thresholding Analysis.xxx
+
+
+Module Contents
+---------------
+
+.. py:data:: thresholding_mapping
+
+.. py:data:: thresholding_on
+
+.. py:data:: threshold_deciles_data
+
+.. py:data:: xxx
+

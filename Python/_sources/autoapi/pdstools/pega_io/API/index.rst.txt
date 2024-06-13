@@ -1,15 +1,11 @@
-:py:mod:`pdstools.pega_io.API`
-==============================
+pdstools.pega_io.API
+====================
 
 .. py:module:: pdstools.pega_io.API
 
 
-Module Contents
----------------
-
-
 Functions
-~~~~~~~~~
+---------
 
 .. autoapisummary::
 
@@ -19,9 +15,10 @@ Functions
    pdstools.pega_io.API.setupAzureOpenAI
 
 
+Module Contents
+---------------
 
 .. py:function:: _readClientCredentialFile(credentialFile)
-
 
 .. py:function:: get_URL(credentialFile: str)
 
@@ -49,7 +46,7 @@ Functions
    :kwtype url: str
 
 
-.. py:function:: setupAzureOpenAI(api_base: str = 'https://aze-openai-01.openai.azure.com/', api_version: Literal[2022-12-01, 2023-03-15-preview, 2023-05-15, 2023-06-01-preview, 2023-07-01-preview, 2023-09-15-preview, 2023-10-01-preview, 2023-12-01-preview] = '2023-12-01-preview')
+.. py:function:: setupAzureOpenAI(api_base: str = 'https://aze-openai-01.openai.azure.com/', api_version: Literal['2022-12-01', '2023-03-15-preview', '2023-05-15', '2023-06-01-preview', '2023-07-01-preview', '2023-09-15-preview', '2023-10-01-preview', '2023-12-01-preview'] = '2023-12-01-preview')
 
    Convenience function to automagically setup Azure AD-based authentication
    for the Azure OpenAI service. Mostly meant as an internal tool within Pega,

@@ -1,0 +1,33 @@
+8-offer_quality_analysis
+========================
+
+.. py:module:: 8-offer_quality_analysis
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   8-offer_quality_analysis.defaultPercentile
+   8-offer_quality_analysis.scope_options
+   8-offer_quality_analysis.action_counts
+   8-offer_quality_analysis.vf
+   8-offer_quality_analysis.vf
+
+
+Module Contents
+---------------
+
+.. py:data:: defaultPercentile
+   :value: 0.05
+
+
+.. py:data:: scope_options
+
+.. py:data:: action_counts
+
+.. py:data:: vf
+
+.. py:data:: vf
+

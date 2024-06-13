@@ -1,26 +1,918 @@
-:py:mod:`pdstools.adm.ADMDatamart`
-==================================
+pdstools.adm.ADMDatamart
+========================
 
 .. py:module:: pdstools.adm.ADMDatamart
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.adm.ADMDatamart.any_frame
+
+
+Exceptions
+----------
+
+.. autoapisummary::
+
+   pdstools.adm.ADMDatamart.NotEagerError
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.adm.ADMDatamart.Plots
+   pdstools.adm.ADMDatamart.plotly_plot
+   pdstools.adm.ADMDatamart.ADMTrees
+   pdstools.adm.ADMDatamart.Tables
+   pdstools.adm.ADMDatamart.ADMDatamart
 
 
 Module Contents
 ---------------
 
-Classes
-~~~~~~~
+.. py:class:: Plots
 
-.. autoapisummary::
+   Base plotting class
 
-   pdstools.adm.ADMDatamart.ADMDatamart
+   .. attribute:: hasModels
+
+      A flag indicating whether the object has model data.
+
+      :type: bool
+
+   .. attribute:: hasPredictorBinning
+
+      A flag indicating whether the object has predictor data.
+
+      :type: bool
+
+   .. attribute:: hasCombined
+
+      A flag indicating whether the object has combined data.
+
+      :type: bool
+
+   .. attribute:: AvailableVisualisations
+
+      A dataframe with available visualizations and whether they require model data, predictor data, or multiple snapshots.
+
+      :type: pl.DataFrame
+
+   .. attribute:: import_strategy
+
+      Whether to import the file fully to memory, or scan the file
+      When data fits into memory, 'eager' is typically more efficient
+      However, when data does not fit, the lazy methods typically allow
+      you to still use the data.
+
+      :type: str
+
+
+   .. py:property:: AvailableVisualisations
+
+
+   .. py:property:: ApplicableVisualisations
+
+
+   .. py:method:: plotApplicable()
+
+
+   .. py:method:: top_n(df: polars.DataFrame, top_n: int, to_plot: str = 'PerformanceBin', facets: Optional[list] = None)
+      :staticmethod:
+
+
+      Subsets DataFrame to contain only top_n predictors.
+
+      :param df: Table to subset
+      :type df: pl.DataFrame
+      :param top_n: Number of top predictors
+      :type top_n: int
+      :param to_plot: Metric to use for comparing predictors
+      :type to_plot: str
+      :param facets: Subsets top_n predictors over facets. Seperate top predictors for each facet
+      :type facets: list
+
+      :returns: Subsetted dataframe
+      :rtype: pl.DataFrame
 
 
 
+   .. py:method:: _subset_data(table: str, required_columns: set, query: Union[str, Dict[str, list]] = None, multi_snapshot: bool = False, last: bool = False, facets: Union[str, list] = None, active_only: bool = False, include_cols: Optional[list] = None) -> Union[polars.DataFrame, List[str]]
 
-.. py:class:: ADMDatamart(path: Union[str, pathlib.Path] = Path('.'), import_strategy: Literal[eager, lazy] = 'eager', *, model_filename: Optional[str] = 'modelData', predictor_filename: Optional[str] = 'predictorData', model_df: Optional[pdstools.utils.types.any_frame] = None, predictor_df: Optional[pdstools.utils.types.any_frame] = None, query: Optional[Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]] = None, subset: bool = True, drop_cols: Optional[list] = None, include_cols: Optional[list] = None, context_keys: list = ['Channel', 'Direction', 'Issue', 'Group'], extract_keys: bool = False, predictorCategorization: polars.Expr = cdh_utils.defaultPredictorCategorization, plotting_engine: Union[str, Any] = 'plotly', verbose: bool = False, **reading_opts)
+      Retrieves and subsets the data and performs some assertion checks
 
+      :param table: Which table to retrieve from the ADMDatamart object
+                    (modelData, predictorData or combinedData)
+      :type table: str
+      :param required_columns: Which columns we want to use for the visualisation
+                               Asserts those columns are in the data, and returns only those columns for efficiency
+                               By default, the context keys are added as required columns.
+      :type required_columns: set
+      :param query: Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
+      :type query: Union[pl.Expr, str, Dict[str, list]], default = None
+      :param last: Whether to subset on just the last known value for each model ID/predictor/bin
+      :type last: bool, default = False
+      :param facets: Please refer to :meth:`._generateFacets`
+      :type facets: Union[str, list], deafult = None
+      :param active_only: Whether to subset on just the active predictors
+      :type active_only: bool, default = False
+      :param include_cols: Extra columns to include in the subsetting
+      :type include_cols: Optional[list]
+
+      :returns: The subsetted dataframe
+                Generated facet column name
+      :rtype: Union[pl.DataFrame, List[str]]
+
+
+
+   .. py:method:: _generateFacets(df: pdstools.utils.types.any_frame, facets: Union[str, List[str]] = None) -> list
+
+      Generates a list of facets based on the given dataframe and facet columns.
+
+      Given a string with column names combined with backslash, the function generates that column,
+      adds it to the dataframe and return the new dataframe together with the generated column's name
+
+      :param df: The input dataframe for which the facets are to be generated.
+      :type df: pl.DataFrame | pl.LazyFrame
+      :param facets: By which columns to facet the plots.
+                     If string, facets it by just that one column.
+                     If list, facets it by every element of the list.
+                     If a string contains a `/`, it will combine those columns as one facet.
+      :type facets: Union[str, list], default = None
+
+      :returns: * *DataFrame* -- The input dataframe with additional facet columns added.
+                * *Union[str, list], deafult = None* -- The generated facets
+
+      .. rubric:: Examples
+
+      >>> df, facets = _generateFacets(df, "Configuration")
+          Creates a plot for each Configuration
+      >>> df, facets = _generateFacets(df, ["Channel", "Direction"])
+          Creates a plot for each Channel and for each Direction as separate facets
+      >>> df, facets = _generateFacets(df, "Channel/Configuration")
+          Creates a plot for each combination of Channel and Configuration
+
+
+
+   .. py:method:: facettedPlot(facets: Optional[list], plotFunc: Any, partition: bool = False, *args, **kwargs)
+      :staticmethod:
+
+
+      Takes care of facetting the plots.
+
+      If `partition` is True, generates a new dataframe for each plot
+      If `partition` is False, simply gives the facet as the facet argument
+
+      In effect, this means that `facet = False` give a 'plotly-native' facet,
+      while `facet = True` gives a distinct plot for every facet.
+
+      :param facets: If there's no facet supplied, we just return the plot
+                     Else, we loop through each facet and create the plot
+      :type facets: Optional[list]
+      :param plotFunc: The original function to create the plot
+                       The plot is simply passed through to this function
+                       Along with all arguments
+      :type plotFunc: Any
+      :param partition: If True, generates a new dataframe for each plot
+                        If False, simply gives the facet as the facet argument
+      :type partition: bool, default=False
+      :param \*args: Any additional arguments, depending on the plotFunc
+
+      :keyword order: The order of categories, for each facet
+      :kwtype order: dict
+      :keyword \*\*kwargs: Any additional keyword arguments, depending on the plotFunc
+
+
+
+   .. py:method:: plotPerformanceSuccessRateBubbleChart(last: bool = True, add_bottom_left_text: bool = True, query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None, facets: Union[str, list] = None, **kwargs) -> plotly.graph_objs.FigureWidget
+
+      Creates bubble chart similar to ADM OOTB.
+
+      :param last: Whether to only look at the last snapshot (recommended)
+      :type last: bool, default = True
+      :param add_bottom_left_text: Whether to display how many models are in the bottom left of the chart
+                                   In other words, who have no performance and no success rate
+      :type add_bottom_left_text: bool, default = True
+      :param query: Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
+      :type query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+      :param facets: Please refer to :meth:`._generateFacets`
+      :type facets: Union[str, list], deafult = None
+
+      :keyword round: To how many digits to round the hover data
+      :kwtype round: int, default = 5
+      :keyword plotting_engine: 'plotly' or a custom plot class
+      :kwtype plotting_engine: str
+      :keyword return_df: If set to True, returns the dataframe instead of the plot
+                          Can be useful for debugging or replicating the plots
+      :kwtype return_df: bool
+
+      .. rubric:: Notes
+
+      See the docs for the plotly plots (plots_plotly.py)
+      to see further parameters for this plot.
+
+      :rtype: go.FigureWidget
+
+
+
+   .. py:method:: plotOverTime(metric: str = 'Performance', by: str = 'ModelID', every: int = '1d', query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None, facets: Union[str, list] = None, mode: str = 'Diff', **kwargs) -> plotly.graph_objs.FigureWidget
+
+      Plots a given metric over time
+
+      :param metric: The metric to plot over time. One of the following:
+                     {ResponseCount, Performance, SuccessRate, Positives, weighted_performance}
+      :type metric: str, default = Performance
+      :param by: What variable to group the data by
+                 One of {ModelID, Name}
+      :type by: str, default = ModelID
+      :param every: How often to consider the metrics
+      :type every: int, default = 1d
+      :param query: Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
+      :type query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+      :param facets: Please refer to :meth:`._generateFacets`
+      :type facets: Union[str, list], deafult = None
+      :param mode: The plotting mode. Should be one of the following:
+                   - 'Diff': Plot differences over a specified period.
+                   - 'Cumulative': Plot time series plot of the values as is.
+      :type mode: str, default = Diff
+
+      :keyword plotting_engine: 'plotly' or a custom plot class
+      :kwtype plotting_engine: str
+      :keyword return_df: If set to True, returns the dataframe instead of the plot
+                          Can be useful for debugging or replicating the plots
+      :kwtype return_df: bool
+
+      .. rubric:: Notes
+
+      See the docs for the plotly plots (plots_plotly.py)
+      to see further parameters for this plot.
+
+      :rtype: go.FigureWidget
+
+
+
+   .. py:method:: plotPropositionSuccessRates(metric: str = 'SuccessRate', by: str = 'Name', show_error: bool = True, top_n=0, query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None, facets: Union[str, list] = None, **kwargs) -> plotly.graph_objs.FigureWidget
+
+      Plots all latest proposition success rates
+
+      :param metric: Can be changed to plot a different metric
+      :type metric: str, default = SuccessRate
+      :param by: What variable to group the data by
+                 One of {ModelID, Name}
+      :type by: str, default = Name
+      :param show_error: Whether to show error bars in the bar plots
+      :type show_error: bool, default = True
+      :param top_n: The number of rows to include in the pivoted DataFrame. If set to 0, all rows are included.
+      :type top_n: int, default = 0
+      :param query: Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
+      :type query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+      :param facets: Please refer to :meth:`._generateFacets`
+      :type facets: Union[str, list], deafult = None
+
+      :keyword plotting_engine: 'plotly' or a custom plot class
+      :kwtype plotting_engine: str
+      :keyword return_df: If set to True, returns the dataframe instead of the plot
+                          Can be useful for debugging or replicating the plots
+      :kwtype return_df: bool
+
+      .. rubric:: Notes
+
+      See the docs for the plotly plots (plots_plotly.py)
+      to see further parameters for this plot.
+
+      :rtype: go.FigureWidget
+
+
+
+   .. py:method:: plotScoreDistribution(by: str = 'ModelID', *, show_zero_responses: bool = False, modelids: Optional[List] = None, query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None, show_each=False, **kwargs) -> plotly.graph_objs.FigureWidget
+
+      Plots the score distribution, similar to OOTB
+
+      :param by: What variable to group the data by
+                 One of {ModelID, Name}
+      :type by: str, default = Name
+
+      :keyword show_zero_responses: Whether to include bins with no responses at all
+      :kwtype show_zero_responses: bool, default = False
+      :keyword modelids: Models to plot for. If multiple ids are given,
+                         returns a list of Plots for each model
+      :kwtype modelids: Optional[List], default = None
+      :keyword query: Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
+      :kwtype query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+      :keyword show_each: Whether to show each file when multiple facets are used
+      :kwtype show_each: bool
+
+      :keyword plotting_engine: 'plotly' or a custom plot class
+      :kwtype plotting_engine: str
+      :keyword return_df: If set to True, returns the dataframe instead of the plot
+                          Can be useful for debugging or replicating the plots
+      :kwtype return_df: bool
+
+      .. rubric:: Notes
+
+      See the docs for the plotly plots (plots_plotly.py)
+      to see further parameters for this plot.
+
+      :rtype: go.FigureWidget
+
+
+
+   .. py:method:: plotPredictorBinning(predictors: list = None, modelids: list = None, show_each=False, query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None, **kwargs) -> plotly.graph_objs.FigureWidget
+
+      Plots the binning of given predictors
+
+      :param predictors: An optional list of predictors to plot the bins for
+                         Useful for plotting one or more variables over multiple models
+      :type predictors: list, default = None
+      :param modelids: An optional list of model ids to plot the predictors for
+      :type modelids: list, default = None
+      :param query: Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
+      :type query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+
+      :keyword plotting_engine: 'plotly' or a custom plot class
+      :kwtype plotting_engine: str
+      :keyword return_df: If set to True, returns the dataframe instead of the plot
+                          Can be useful for debugging or replicating the plots
+      :kwtype return_df: bool
+
+      .. rubric:: Notes
+
+      See the docs for the plotly plots (plots_plotly.py)
+      to see further parameters for this plot.
+
+      :rtype: go.FigureWidget
+
+
+
+   .. py:method:: plotPredictorPerformance(top_n: int = 0, active_only: bool = False, to_plot='Performance', query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None, facets: Union[str, list] = None, **kwargs) -> plotly.graph_objs.FigureWidget
+
+      Plots a bar chart of the performance of the predictors
+
+      By default, this plot shows the performance over all models
+      Use the querying functionality to drill down into a more specific subset.
+      Picks top n predictors with highest weighted average Performance accross
+      models and then sorts the predictors according to the median value.
+
+      :param top_n: How many of the top predictors to show in the plot
+      :type top_n: int, default = 0
+      :param active_only: Whether to only plot active predictors
+      :type active_only: bool, default = False
+      :param to_plot: Metric to compare predictors
+      :type to_plot: str, default = Performance
+      :param query: Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
+      :type query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+      :param facets: Please refer to :meth:`._generateFacets`
+      :type facets: Union[str, list], deafult = None
+
+      :keyword plotting_engine: 'plotly' or a custom plot class
+      :kwtype plotting_engine: str
+      :keyword return_df: If set to True, returns the dataframe instead of the plot
+                          Can be useful for debugging or replicating the plots
+      :kwtype return_df: bool
+
+      .. rubric:: Notes
+
+      See the docs for the plotly plots (plots_plotly.py)
+      to see further parameters for this plot.
+
+      :rtype: go.FigureWidget
+
+
+
+   .. py:method:: plotPredictorCategoryPerformance(active_only: bool = False, to_plot='Performance', query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None, facets: Union[str, list] = None, **kwargs) -> plotly.graph_objs.FigureWidget
+
+      Plots a bar chart of the performance of the predictor categories
+
+      By default, this plot shows the performance over all models
+      Use the querying functionality to drill down into a more specific subset
+
+      :param active_only: Whether to only plot active predictors
+      :type active_only: bool, default = False
+      :param to_plot: Metric to compare predictor categories
+      :type to_plot: str, default = Performance
+      :param query: Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
+      :type query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+      :param facets: Please refer to :meth:`._generateFacets`
+      :type facets: Union[str, list], deafult = None
+
+      :keyword plotting_engine: 'plotly' or a custom plot class
+      :kwtype plotting_engine: str
+      :keyword separate: If set to true, dataset is subsetted using the facet column, creating seperate
+                         plots
+      :kwtype separate: bool
+      :keyword return_df: If set to True, returns the dataframe instead of the plot
+                          Can be useful for debugging or replicating the plots
+      :kwtype return_df: bool
+
+      .. rubric:: Notes
+
+      See the docs for the plotly plots (plots_plotly.py)
+      to see further parameters for this plot.
+
+      :rtype: go.FigureWidget
+
+
+
+   .. py:method:: plotPredictorContribution(by: str = 'Configuration', query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None, **kwargs) -> plotly.graph_objs.FigureWidget
+
+      Plots the contribution of each predictor across a group
+
+      :param by: The column to group the bars with
+      :type by: str, default = Configuration
+      :param query: Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
+      :type query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+
+      :keyword predictorCategorization: An optional override for the predictor categorization function
+      :kwtype predictorCategorization: pl.Expr
+      :keyword plotting_engine: This chart is only supported in plotly
+      :kwtype plotting_engine: str
+      :keyword return_df: If set to True, returns the dataframe instead of the plot
+                          Can be useful for debugging or replicating the plots
+      :kwtype return_df: bool
+
+      .. rubric:: Notes
+
+      See the docs for the plotly plots (plots_plotly.py).
+      Plotly has an additional post_plot function defining some more actions,
+      such as writing to html automatically or displaying figures while facetting.
+
+      :rtype: go.FigureWidget
+
+
+
+   .. py:method:: plotPredictorPerformanceHeatmap(top_n: int = 20, by='Name', active_only: bool = False, query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None, facets: list = None, **kwargs) -> plotly.graph_objs.FigureWidget
+
+      Plots heatmap of the performance of the predictors
+
+      By default, this plot shows the performance over all models
+      Use the querying functionality to drill down into a more specific subset
+
+      :param top_n: How many of the top predictors to show in the plot
+      :type top_n: int, default = 0
+      :param by: The column to use at the x axis of the heatmap
+      :type by: str, default = Name
+      :param active_only: Whether to only plot active predictors
+      :type active_only: bool, default = False
+      :param query: Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
+      :type query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+      :param facets: Please refer to :meth:`._generateFacets`
+      :type facets: Union[str, list], deafult = None
+
+      :keyword plotting_engine: 'plotly' or a custom plot class
+      :kwtype plotting_engine: str
+      :keyword return_df: If set to True, returns the dataframe instead of the plot
+                          Can be useful for debugging or replicating the plots
+      :kwtype return_df: bool
+
+      .. rubric:: Notes
+
+      See the docs for the plotly plots (plots_plotly.py)
+      to see further parameters for this plot.
+
+      :rtype: go.FigureWidget
+
+
+
+   .. py:method:: plotResponseGain(by: str = 'Channel', query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None, facets=None, **kwargs) -> plotly.graph_objs.FigureWidget
+
+      Plots the cumulative response per model
+
+      :param by: The column by which to calculate response gain
+                 Default is Channel, to see the response/gain chart per channel
+      :type by: str, default = Channel
+      :param query: Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
+      :type query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+      :param facets: Please refer to :meth:`._generateFacets`
+      :type facets: Union[str, list], deafult = None
+
+      :keyword plotting_engine: This chart is only supported in plotly
+      :kwtype plotting_engine: str
+      :keyword return_df: If set to True, returns the dataframe instead of the plot
+                          Can be useful for debugging or replicating the plots
+      :kwtype return_df: bool
+
+      .. rubric:: Notes
+
+      See the docs for the plotly plots (plots_plotly.py).
+      Plotly has an additional post_plot function defining some more actions,
+      such as writing to html automatically or displaying figures while facetting.
+
+      :rtype: go.FigureWidget
+
+
+
+   .. py:method:: plotModelsByPositives(by: str = 'Channel', query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None, facets=None, **kwargs) -> plotly.graph_objs.FigureWidget
+
+      Plots the percentage of models vs the number of positive responses
+
+      :param by: The column to calculate the model percentage by
+      :type by: str, default = Channel
+      :param query: Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
+      :type query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+      :param facets: Please refer to :meth:`._generateFacets`
+      :type facets: Union[str, list], deafult = None
+
+      :keyword plotting_engine: This chart is only supported in plotly
+      :kwtype plotting_engine: str
+      :keyword return_df: If set to True, returns the dataframe instead of the plot
+                          Can be useful for debugging or replicating the plots
+      :kwtype return_df: bool
+
+      .. rubric:: Notes
+
+      See the docs for the plotly plots (plots_plotly.py).
+      Plotly has an additional post_plot function defining some more actions,
+      such as writing to html automatically or displaying figures while facetting.
+
+      :rtype: go.FigureWidget
+
+
+
+   .. py:method:: plotTreeMap(color_var: str = 'performance_weighted', by: str = 'ModelID', value_in_text: bool = True, midpoint: Optional[float] = None, query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None, **kwargs) -> plotly.graph_objs.FigureWidget
+
+      Plots a treemap to view performance over multiple context keys
+
+      :param color: The column to set as the color of the squares
+                    One out of:
+                    {responsecount, responsecount_log, positives,
+                    positives_log, percentage_without_responses,
+                    performance_weighted, successrate}
+      :type color: str, default = performance_weighted
+      :param by: The column to use as the size of the squares
+      :type by: str, default = Channel
+      :param value_in_text: Whether to print the values of the swuares in the squares
+      :type value_in_text: bool, default = True
+      :param midpoint: A parameter to assert more control over the color distribution
+                       Set near 0 to give lower values a 'higher' color
+                       Set near 1 to give higher values a 'lower' color
+                       Necessary for, for example, Success Rate, where rates lie very far apart
+                       If not supplied in such cases, there is no difference in the color
+                       between low values such as 0.001 and 0.1, so midpoint should be set low
+      :type midpoint: Optional[float]
+      :param query: Please refer to :meth:`pdstools.adm.ADMDatamart._apply_query`
+      :type query: Optional[Union[pl.Expr, str, Dict[str, list]]]
+      :param facets: Please refer to :meth:`._generateFacets`
+      :type facets: Union[str, list], deafult = None
+
+      :keyword colorscale: Give a list of hex values to override the default colors
+                           Should consist of three colors: 'low', 'neutral' and 'high'
+      :kwtype colorscale: list
+      :keyword plotting_engine: This chart is only supported in plotly
+      :kwtype plotting_engine: str
+      :keyword return_df: If set to True, returns the dataframe instead of the plot
+                          Can be useful for debugging or replicating the plots
+      :kwtype return_df: bool
+
+      .. rubric:: Notes
+
+      See the docs for the plotly plots (plots_plotly.py).
+      Plotly has an additional post_plot function defining some more actions,
+      such as writing to html automatically or displaying figures while facetting.
+
+      :rtype: go.FigureWidget
+
+
+
+   .. py:method:: plotPredictorCount(facets: Union[str, list], query: Optional[Union[polars.Expr, str, Dict[str, list]]] = None, by: str = 'Type', **kwargs)
+
+
+.. py:class:: plotly_plot
+
+   .. py:method:: distribution_graph(df, title)
+      :staticmethod:
+
+
+
+   .. py:method:: post_plot(fig, name, query=None, title=None, file_title=None, file_path='.', show_each=False, image_format=None, to_html=False, **kwargs)
+      :staticmethod:
+
+
+
+   .. py:method:: PerformanceSuccessRateBubbleChart(df, add_bottom_left_text=True, facet=None, context_keys=None, **kwargs)
+
+      Creates bubble chart similar to ADM OOTB reports
+
+      :param last: Whether to only include the last snapshot for each model
+      :type last: bool
+      :param add_bottom_left_text: Whether to subtitle text to indicate how many models are at 0,50
+      :type add_bottom_left_text: bool
+      :param to_html: Whether to write image to html, with title file_title at path file_path
+      :type to_html: bool
+      :param file_title: The title of the image when written to html
+      :type file_title: Optional[str]
+      :param file_path: The location the file will be written when written to html
+      :type file_path: Optional[str]
+      :param query: The query to supply to _apply_query
+                    If a string, uses the default Pandas query function
+                    Else, a dict of lists where the key is column name in the dataframe
+                    and the corresponding value is a list of values to keep in the dataframe
+      :type query: Union[str, dict]
+      :param show_each: Whether to show each file when multiple facets are used
+      :type show_each: bool
+      :param facets: Whether to create a chart for multiple facets or subsets.
+                     For example, if facets == 'Channel', a bubble plot is made for each channel
+                     Depending on show_each, every chart is either shown or not
+                     If more than one facet is visualised, they are returned in a list
+      :type facets: Optional[Union[list, str]]
+
+      :rtype: px.Figure
+
+
+
+   .. py:method:: OverTime(df, metric='Performance', by='ModelID', facet=None, mode='diff', **kwargs)
+
+      Shows metric of models over time
+
+      :param query: The query to supply to _apply_query
+                    If a string, uses the default Pandas query function
+                    Else, a dict of lists where the key is column name in the dataframe
+                    and the corresponding value is a list of values to keep in the dataframe
+      :type query: Union[str, dict]
+
+      :rtype: plt.figure
+
+
+
+   .. py:method:: PropositionSuccessRates(df, metric='SuccessRate', by='Name', show_error=True, facet=None, **kwargs)
+
+      Shows all latest proposition success rates
+
+      A bar plot to show the success rate of all latest model instances (propositions)
+      For reading simplicity, latest success rate is also annotated next to each bar
+
+      :param query: The query to supply to _apply_query
+                    If a string, uses the default Pandas query function
+                    Else, a dict of lists where the key is column name in the dataframe
+                    and the corresponding value is a list of values to keep in the dataframe
+      :type query: Union[str, dict]
+
+      :rtype: plt.figure
+
+
+
+   .. py:method:: ScoreDistribution(df, facet_val, **kwargs)
+
+      Show score distribution similar to ADM out-of-the-box report
+
+      Shows a score distribution graph per model. If certain models selected,
+      only those models will be shown.
+      the only difference between this graph and the one shown on ADM
+      report is that, here the raw number of responses are shown on left y-axis whereas in
+      ADM reports, the percentage of responses are shown
+
+      :param show_zero_responses: Whether to include bins with no responses at all
+      :type show_zero_responses: bool
+      :param query: The query to supply to _apply_query
+                    If a string, uses the default Pandas query function
+                    Else, a dict of lists where the key is column name in the dataframe
+                    and the corresponding value is a list of values to keep in the dataframe
+      :type query: Union[str, dict]
+
+      :rtype: plt.figure
+
+
+
+   .. py:method:: PredictorBinning(df, facet_val, **kwargs)
+
+      Show predictor graphs for a given model
+
+      For a given model (query) shows all its predictors' graphs. If certain predictors
+      selected, only those predictor graphs will be shown
+
+      :param predictors: List of predictors to show their graphs, optional
+      :type predictors: list
+      :param modelid: Model IDs to subset on, optional
+      :type modelid: str
+      :param query: The query to supply to _apply_query
+                    If a string, uses the default Pandas query function
+                    Else, a dict of lists where the key is column name in the dataframe
+                    and the corresponding value is a list of values to keep in the dataframe
+      :type query: Union[str, dict]
+      :param figsize: Size of graph
+      :type figsize: tuple
+
+      :rtype: plt.figure
+
+
+
+   .. py:method:: PredictorPerformance(df, facet=None, order=None, to_plot='Performance', y='PredictorName', **kwargs)
+
+      Shows a box plot of predictor performance
+
+      :param top_n: The number of top performing predictors to show
+                    If 0 (default), all predictors are shown
+      :type top_n: int
+      :param to_html: Whether to write image to html, with title file_title at path file_path
+      :type to_html: bool
+      :param file_title: The title of the image when written to html
+      :type file_title: Optional[str]
+      :param file_path: The location the file will be written when written to html
+      :type file_path: Optional[str]
+      :param query: The query to supply to _apply_query
+                    If a string, uses the default Pandas query function
+                    Else, a dict of lists where the key is column name in the dataframe
+                    and the corresponding value is a list of values to keep in the dataframe
+      :type query: Union[str, dict]
+      :param facets: Whether to create a chart for multiple facets or subsets.
+      :type facets: Optional[Union[list, str]]
+
+      :rtype: px.Figure
+
+
+
+   .. py:method:: _divide_context()
+
+      Divides the context keys if they are combined
+
+
+
+   .. py:method:: PredictorPerformanceHeatmap(df, facet=None, **kwargs)
+
+      Shows a heatmap plot of predictor performance across models
+
+      :param top_n: Whether to subset to a top number of predictors
+                    If 0 (default), all predictors are shown
+      :type top_n: int
+      :param to_html: Whether to write image to html, with title file_title at path file_path
+      :type to_html: bool
+      :param file_title: The title of the image when written to html
+      :type file_title: Optional[str]
+      :param file_path: The location the file will be written when written to html
+      :type file_path: Optional[str]
+      :param query: The query to supply to _apply_query
+                    If a string, uses the default Pandas query function
+                    Else, a dict of lists where the key is column name in the dataframe
+                    and the corresponding value is a list of values to keep in the dataframe
+      :type query: Union[str, dict]
+      :param show_each: Whether to show each file when multiple facets are used
+      :type show_each: bool
+      :param facets: Whether to create a chart for multiple facets or subsets.
+                     For example, if facets == 'Channel', a bubble plot is made for each channel
+                     Depending on show_each, every chart is either shown or not
+                     If more than one facet is visualised, they are returned in a list
+      :type facets: Optional[Union[list, str]]
+
+      :rtype: px.Figure
+
+
+
+   .. py:method:: ResponseGain(df, by='Channel', facet=None, **kwargs)
+
+      Plots the cumulative response per model, subsetted by 'by'
+
+      :param by: The column to calculate response gain by
+      :type by: str
+      :param to_html: Whether to write image to html, with title file_title at path file_path
+      :type to_html: bool
+      :param file_title: The title of the image when written to html
+      :type file_title: Optional[str]
+      :param file_path: The location the file will be written when written to html
+      :type file_path: Optional[str]
+      :param query: The query to supply to _apply_query
+                    If a string, uses the default Pandas query function
+                    Else, a dict of lists where the key is column name in the dataframe
+                    and the corresponding value is a list of values to keep in the dataframe
+      :type query: Union[str, dict]
+      :param show_each: Whether to show each file when multiple facets are used
+      :type show_each: bool
+      :param facets: Whether to create a chart for multiple facets or subsets.
+                     For example, if facets == 'Channel', a bubble plot is made for each channel
+                     Depending on show_each, every chart is either shown or not
+                     If more than one facet is visualised, they are returned in a list
+      :type facets: Optional[Union[list, str]]
+
+      :rtype: px.Figure
+
+
+
+   .. py:method:: ModelsByPositives(df, by='Channel', **kwargs)
+
+      Plots the percentage of models vs the number of positive responses
+
+      :param by: The column to calculate the model percentage by
+      :type by: str
+      :param to_html: Whether to write image to html, with title file_title at path file_path
+      :type to_html: bool
+      :param file_title: The title of the image when written to html
+      :type file_title: Optional[str]
+      :param file_path: The location the file will be written when written to html
+      :type file_path: Optional[str]
+      :param query: The query to supply to _apply_query
+                    If a string, uses the default Pandas query function
+                    Else, a dict of lists where the key is column name in the dataframe
+                    and the corresponding value is a list of values to keep in the dataframe
+      :type query: Union[str, dict]
+      :param show_each: Whether to show each file when multiple facets are used
+      :type show_each: bool
+      :param facets: Whether to create a chart for multiple facets or subsets.
+                     For example, if facets == 'Channel', a bubble plot is made for each channel
+                     Depending on show_each, every chart is either shown or not
+                     If more than one facet is visualised, they are returned in a list
+      :type facets: Optional[Union[list, str]]
+
+      :rtype: px.Figure
+
+
+
+   .. py:method:: TreeMap(df, color, values, title, reverse_scale, log, midpoint, format, context_keys, value_in_text=True, **kwargs)
+
+      Plots a treemap to view performance over multiple context keys
+
+      :param color: The column to set as the color of the squares
+                    One out of:
+                    {responsecount, responsecount_log, positives,
+                    positives_log, percentage_without_responses,
+                    performance_weighted, successrate}
+      :type color: str
+      :param by: The column to set as the size of the squares
+      :type by: str
+      :param value_in_text: Whether to print the values of the squares in the squares
+      :type value_in_text: str
+      :param midpoint: A parameter to assert more control over the color distribution
+                       Set near 0 to give lower values a 'higher' color
+                       Set near 1 to give higher values a 'lower' color
+                       Necessary for, for example, Success Rate, where rates lie very far apart
+                       If not supplied in such cases, there is no difference in the color
+                       between low values such as 0.001 and 0.1, so midpoint should be set low
+      :type midpoint: Optional[float]
+      :param to_html: Whether to write image to html, with title file_title at path file_path
+      :type to_html: bool
+      :param file_title: The title of the image when written to html
+      :type file_title: Optional[str]
+      :param file_path: The location the file will be written when written to html
+      :type file_path: Optional[str]
+      :param query: The query to supply to _apply_query
+                    If a string, uses the default Pandas query function
+                    Else, a dict of lists where the key is column name in the dataframe
+                    and the corresponding value is a list of values to keep in the dataframe
+      :type query: Union[str, dict]
+      :param show_each: Whether to show each file when multiple facets are used
+      :type show_each: bool
+      :param facets: Whether to create a chart for multiple facets or subsets.
+                     For example, if facets == 'Channel', a bubble plot is made for each channel
+                     Depending on show_each, every chart is either shown or not
+                     If more than one facet is visualised, they are returned in a list
+      :type facets: Optional[Union[list, str]]
+
+      :rtype: px.Figure
+
+
+
+   .. py:method:: PredictorCount(df, facet, **kwargs)
+
+
+   .. py:method:: PredictorContribution(df, by, **kwargs)
+
+
+.. py:exception:: NotEagerError(operationType=None, defaultmsg='This operation is only possible in eager mode.')
+
+   Bases: :py:obj:`ValueError`
+
+
+   Operation only possible in eager mode.
+
+
+.. py:data:: any_frame
+
+.. py:class:: ADMTrees
+
+   .. py:method:: getMultiTrees(file: polars.DataFrame, n_threads=1, verbose=True, **kwargs)
+      :staticmethod:
+
+
+
+.. py:class:: Tables
+
+   .. py:method:: _by()
+
+
+   .. py:property:: AvailableTables
+
+
+   .. py:property:: ApplicableTables
+
+
+   .. py:property:: ApplicableTablesNoPredictorBinning
+
+
+   .. py:method:: modeldata_last_snapshot()
+
+
+   .. py:method:: predictor_last_snapshot()
+
+
+   .. py:method:: predictorbinning()
+
+
+.. py:class:: ADMDatamart(path: Union[str, pathlib.Path] = Path('.'), import_strategy: Literal['eager', 'lazy'] = 'eager', *, model_filename: Optional[str] = 'modelData', predictor_filename: Optional[str] = 'predictorData', model_df: Optional[pdstools.utils.types.any_frame] = None, predictor_df: Optional[pdstools.utils.types.any_frame] = None, query: Optional[Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]] = None, subset: bool = True, drop_cols: Optional[list] = None, include_cols: Optional[list] = None, context_keys: list = ['Channel', 'Direction', 'Issue', 'Group'], extract_keys: bool = False, predictorCategorization: polars.Expr = cdh_utils.defaultPredictorCategorization, plotting_engine: Union[str, Any] = 'plotly', verbose: bool = False, **reading_opts)
 
    Bases: :py:obj:`pdstools.plots.plot_base.Plots`, :py:obj:`pdstools.adm.Tables.Tables`
+
 
    Main class for importing, preprocessing and structuring Pega ADM Datamart.
    Gets all available data, properly names and merges into one main dataframe.
@@ -111,31 +1003,29 @@ Classes
                model_filename = "ModelData.csv",
                predictor_filename = "PredictorData.csv")
 
-   .. py:property:: is_available
-      :type: bool
-
 
    .. py:attribute:: standardChannelGroups
       :value: ['Web', 'Mobile', 'E-mail', 'Push', 'SMS', 'Retail', 'Call Center', 'IVR']
 
-      
+
 
    .. py:attribute:: standardDirections
       :value: ['Inbound', 'Outbound']
 
-      
+
 
    .. py:attribute:: NBAD_model_configurations
 
-      
 
    .. py:method:: get_engine(plotting_engine)
       :staticmethod:
+
 
       Which engine to use for creating the plots.
 
       By supplying a custom class here, you can re-use the pdstools functions
       but create visualisations to your own specifications, in any library.
+
 
 
    .. py:method:: import_data(path: Optional[Union[str, pathlib.Path]] = Path('.'), *, model_filename: Optional[str] = 'modelData', predictor_filename: Optional[str] = 'predictorData', model_df: Optional[pdstools.utils.types.any_frame] = None, predictor_df: Optional[pdstools.utils.types.any_frame] = None, subset: bool = True, drop_cols: Optional[list] = None, include_cols: Optional[list] = None, extract_keys: bool = False, verbose: bool = False, **reading_opts) -> Tuple[Optional[polars.LazyFrame], Optional[polars.LazyFrame]]
@@ -177,6 +1067,12 @@ Classes
       :rtype: (polars.LazyFrame, polars.LazyFrame)
 
 
+
+   .. py:property:: is_available
+      :type: bool
+
+
+
    .. py:method:: _import_utils(name: Union[str, pdstools.utils.types.any_frame], path: Optional[str] = None, *, subset: bool = True, extract_keys: bool = False, drop_cols: Optional[list] = None, include_cols: Optional[list] = None, **reading_opts) -> Tuple[polars.LazyFrame, dict, dict]
 
       Handler function to interface to the cdh_utils methods
@@ -209,6 +1105,7 @@ Classes
       :rtype: (pl.LazyFrame, dict, dict)
 
 
+
    .. py:method:: _available_columns(df: polars.LazyFrame, include_cols: Optional[list] = None, drop_cols: Optional[list] = None) -> Tuple[set, set]
 
       Based on the default names for variables, rename available data to proper formatting
@@ -224,6 +1121,7 @@ Classes
                 The original and updated names for all renamed columns &
                 The variables that were not found in the table
       :rtype: Tuple[set, set]
+
 
 
    .. py:method:: _set_types(df: pdstools.utils.types.any_frame, table: str = 'infer', *, timestamp_fmt: str = None, strict_conversion: bool = True) -> pdstools.utils.types.any_frame
@@ -246,7 +1144,8 @@ Classes
       :rtype: Union[pl.DataFrame, pl.LazyFrame]
 
 
-   .. py:method:: last(table='modelData', strategy: Literal[eager, lazy] = 'eager') -> pdstools.utils.types.any_frame
+
+   .. py:method:: last(table='modelData', strategy: Literal['eager', 'lazy'] = 'eager') -> pdstools.utils.types.any_frame
 
       Convenience function to get the last values for a table
 
@@ -263,12 +1162,15 @@ Classes
       :rtype: Union[pl.DataFrame, pl.LazyFrame]
 
 
+
    .. py:method:: _last(df: pdstools.utils.types.any_frame) -> pdstools.utils.types.any_frame
       :staticmethod:
 
 
-   .. py:method:: _last_timestamp(col: Literal[ResponseCount, Positives]) -> polars.Expr
+
+   .. py:method:: _last_timestamp(col: Literal['ResponseCount', 'Positives']) -> polars.Expr
       :staticmethod:
+
 
       Add a column to indicate the last timestamp a column has changed.
 
@@ -276,7 +1178,8 @@ Classes
       :type col: Literal['ResponseCount', 'Positives']
 
 
-   .. py:method:: _get_combined_data(last=True, strategy: Literal[eager, lazy] = 'eager') -> pdstools.utils.types.any_frame
+
+   .. py:method:: _get_combined_data(last=True, strategy: Literal['eager', 'lazy'] = 'eager') -> pdstools.utils.types.any_frame
 
       Combines the model data and predictor data into one dataframe.
 
@@ -290,6 +1193,7 @@ Classes
 
       :returns: The combined dataframe
       :rtype: Union[pl.DataFrame, pl.LazyFrame]
+
 
 
    .. py:method:: processTables(query: Optional[Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]] = None) -> ADMDatamart
@@ -309,6 +1213,7 @@ Classes
       :type query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]], default = None
 
 
+
    .. py:method:: save_data(path: str = '.') -> Tuple[os.PathLike, os.PathLike]
 
       Cache modelData and predictorData to files.
@@ -318,6 +1223,7 @@ Classes
 
       :returns: The paths to the model and predictor data files
       :rtype: (os.PathLike, os.PathLike)
+
 
 
    .. py:method:: _apply_query(df: pdstools.utils.types.any_frame, query: Optional[Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]] = None) -> polars.LazyFrame
@@ -338,6 +1244,7 @@ Classes
       :rtype: pl.DataFrame
 
 
+
    .. py:method:: discover_modelTypes(df: polars.LazyFrame, by: str = 'Configuration', allow_collect=False) -> Dict
 
       Discovers the type of model embedded in the pyModelData column.
@@ -353,6 +1260,7 @@ Classes
       :param allow_collect: Set to True to allow discovering modelTypes, even if in lazy strategy.
                             It will fetch one modelData string per configuration.
       :type allow_collect: bool, default = False
+
 
 
    .. py:method:: get_AGB_models(last: bool = False, by: str = 'Configuration', n_threads: int = 1, query: Optional[Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]] = None, verbose: bool = True, **kwargs) -> Dict
@@ -378,8 +1286,10 @@ Classes
       :type verbose: bool, default = False
 
 
+
    .. py:method:: _create_sign_df(df: polars.LazyFrame, by: str = 'Name', *, what: str = 'ResponseCount', every: str = '1d', pivot: bool = True, mask: bool = True) -> polars.LazyFrame
       :staticmethod:
+
 
       Generates dataframe to show whether responses decreased/increased from day to day
 
@@ -406,6 +1316,7 @@ Classes
       :rtype: pd.LazyFrame
 
 
+
    .. py:method:: model_summary(by: str = 'ModelID', query: Optional[Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]] = None, **kwargs) -> polars.LazyFrame
 
       Convenience method to automatically generate a summary over models
@@ -421,6 +1332,7 @@ Classes
 
       :returns: group_by dataframe over all models
       :rtype: pl.LazyFrame
+
 
 
    .. py:method:: pivot_df(df: polars.LazyFrame, by: Union[str, list] = 'Name', *, allow_collect: bool = True, top_n: int = 0) -> polars.DataFrame
@@ -443,10 +1355,13 @@ Classes
       :rtype: pl.DataFrame
 
 
+
    .. py:method:: response_gain_df(df: pdstools.utils.types.any_frame, by: str = 'Channel') -> pdstools.utils.types.any_frame
       :staticmethod:
 
+
       Simple function to extract the response gain per model
+
 
 
    .. py:method:: models_by_positives_df(df: polars.LazyFrame, by: str = 'Channel', allow_collect=True) -> polars.LazyFrame
@@ -464,6 +1379,7 @@ Classes
 
       :returns: DataFrame with PositivesBin column and model count statistics
       :rtype: pl.LazyFrame
+
 
 
    .. py:method:: get_model_stats(last: bool = True) -> dict
@@ -486,9 +1402,11 @@ Classes
       :rtype: Dict
 
 
+
    .. py:method:: describe_models(**kwargs) -> NoReturn
 
       Convenience method to quickly summarize the models
+
 
 
    .. py:method:: applyGlobalQuery(query: Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]) -> ADMDatamart
@@ -508,6 +1426,7 @@ Classes
           The query to apply, see :meth:`._apply_query`
 
 
+
    .. py:method:: fillMissing() -> ADMDatamart
 
       Convenience method to fill missing values
@@ -516,6 +1435,7 @@ Classes
       - Fills SuccessRate, Performance and ResponseCount columns with 0
       - When context keys have empty string values, replaces them
       with "NA" string
+
 
 
    .. py:method:: summary_by_channel(custom_channels: Dict[str, str] = None, keep_lists: bool = False)
@@ -550,6 +1470,7 @@ Classes
       :keyword predictordetails_activeonly: Whether to only include active predictor details.
       :kwtype predictordetails_activeonly: bool, default = False
       :keyword \*\*kwargs: Additional keyword arguments.
+
 
 
    .. py:method:: exportTables(file: pathlib.Path = 'Tables.xlsx', predictorBinning=False)

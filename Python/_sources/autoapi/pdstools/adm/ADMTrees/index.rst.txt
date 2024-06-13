@@ -1,14 +1,11 @@
-:py:mod:`pdstools.adm.ADMTrees`
-===============================
+pdstools.adm.ADMTrees
+=====================
 
 .. py:module:: pdstools.adm.ADMTrees
 
 
-Module Contents
----------------
-
 Classes
-~~~~~~~
+-------
 
 .. autoapisummary::
 
@@ -17,10 +14,10 @@ Classes
    pdstools.adm.ADMTrees.MultiTrees
 
 
-
+Module Contents
+---------------
 
 .. py:class:: ADMTrees
-
 
    .. py:method:: getMultiTrees(file: polars.DataFrame, n_threads=1, verbose=True, **kwargs)
       :staticmethod:
@@ -28,7 +25,6 @@ Classes
 
 
 .. py:class:: ADMTreesModel(file: str, **kwargs)
-
 
    Functions for ADM Gradient boosting
 
@@ -116,6 +112,7 @@ Classes
    the values for each split is encoded. Using the 'save model'
    button, only that data is decompressed and decoded.
 
+
    .. py:method:: _read_model(file, **kwargs)
 
 
@@ -128,6 +125,7 @@ Classes
    .. py:method:: _depth(d: Dict) -> Dict
 
       Calculates the depth of the tree, used in TreeStats.
+
 
 
    .. py:method:: predictors()
@@ -168,8 +166,10 @@ Classes
                       The value on which to split
 
 
+
    .. py:method:: parseSplitValuesWithSpaces(value) -> Tuple[str, str, str]
       :staticmethod:
+
 
 
    .. py:method:: getPredictors() -> Dict
@@ -180,12 +180,14 @@ Classes
       Function to compute the gains of each split in each tree.
 
 
+
    .. py:method:: getGroupedGainsPerSplit() -> polars.DataFrame
 
       Function to get the gains per split, grouped by split.
 
       It adds some additional information, such as the possible values,
       the mean gains, and the number of times the split is performed.
+
 
 
    .. py:method:: getSplitsRecursively(tree: Dict, splits: List, gains: List) -> Tuple[List, List]
@@ -208,6 +210,7 @@ Classes
                 * *Each split, and its corresponding gain*
 
 
+
    .. py:method:: plotSplitsPerVariable(subset: Optional[Set] = None, show=True)
 
       Plots the splits for each variable in the tree.
@@ -220,14 +223,17 @@ Classes
       :rtype: plt.figure
 
 
+
    .. py:method:: getTreeStats() -> polars.DataFrame
 
       Generate a dataframe with useful stats for each tree
 
 
+
    .. py:method:: getAllValuesPerSplit() -> Dict
 
       Generate a dictionary with the possible values for each split
+
 
 
    .. py:method:: getNodesRecursively(tree: Dict, nodelist: Dict, counter: Dict, childs: List) -> Tuple[Dict, List]
@@ -250,10 +256,13 @@ Classes
                 * *The dictionary of nodes and the list of child nodes*
 
 
+
    .. py:method:: _fillChildNodeIDs(nodeinfo: Dict, childs: Dict) -> Dict
       :staticmethod:
 
+
       Utility function to add child info to nodes
+
 
 
    .. py:method:: getTreeRepresentation(tree_number: int) -> Dict
@@ -270,6 +279,7 @@ Classes
       :type returns: Dict
 
 
+
    .. py:method:: plotTree(tree_number: int, highlighted: Optional[Union[Dict, List]] = None, show=True) -> pydot.Graph
 
       Plots the chosen decision tree.
@@ -283,6 +293,7 @@ Classes
       :type highlighted: Optional[Dict, List]
 
       :rtype: pydot.Graph
+
 
 
    .. py:method:: getVisitedNodes(treeID: int, x: Dict, save_all: bool = False) -> Tuple[List, float, List]
@@ -302,6 +313,7 @@ Classes
       :rtype: List, float, List
 
 
+
    .. py:method:: getAllVisitedNodes(x: Dict) -> polars.DataFrame
 
       Loops through each tree, and records the scoring info
@@ -312,14 +324,17 @@ Classes
       :rtype: pl.DataFrame
 
 
+
    .. py:method:: score(x: Dict) -> float
 
       Computes the score for a given x
 
 
+
    .. py:method:: plotContributionPerTree(x: Dict, show=True)
 
       Plots the contribution of each tree towards the final propensity.
+
 
 
    .. py:method:: predictorCategorization(x: str, context_keys=None)
@@ -331,34 +346,28 @@ Classes
    .. py:method:: plotSplitsPerVariableType(predictorCategorization=None, **kwargs)
 
 
-
 .. py:class:: MultiTrees
 
-
-   .. py:property:: first
-
-
-   .. py:property:: last
-
-
    .. py:attribute:: trees
-      :type: dict
+      :type:  dict
 
-      
 
    .. py:attribute:: model_name
-      :type: str
+      :type:  str
+      :value: None
 
-      
+
 
    .. py:attribute:: context_keys
-      :type: list
+      :type:  list
+      :value: None
 
-      
+
 
    .. py:method:: __repr__()
 
       Return repr(self).
+
 
 
    .. py:method:: __getitem__(index)
@@ -370,10 +379,15 @@ Classes
    .. py:method:: __add__(other)
 
 
+   .. py:property:: first
+
+
+   .. py:property:: last
+
+
    .. py:method:: computeOverTime(predictorCategorization=None)
 
 
    .. py:method:: plotSplitsPerVariableType(predictorCategorization=None, **kwargs)
-
 
 

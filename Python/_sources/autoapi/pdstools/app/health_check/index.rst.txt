@@ -1,0 +1,24 @@
+pdstools.app.health_check
+=========================
+
+.. py:module:: pdstools.app.health_check
+
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/pdstools/app/health_check/pages/index
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/pdstools/app/health_check/Home/index
+
+

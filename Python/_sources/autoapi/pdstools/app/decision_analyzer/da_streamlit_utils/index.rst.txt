@@ -1,0 +1,102 @@
+pdstools.app.decision_analyzer.da_streamlit_utils
+=================================================
+
+.. py:module:: pdstools.app.decision_analyzer.da_streamlit_utils
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.app.decision_analyzer.da_streamlit_utils.polars_lazyframe_hashing
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.app.decision_analyzer.da_streamlit_utils.get_da_data_path
+   pdstools.app.decision_analyzer.da_streamlit_utils.read_data
+   pdstools.app.decision_analyzer.da_streamlit_utils.read_nested_zip_files
+   pdstools.app.decision_analyzer.da_streamlit_utils.ensure_data
+   pdstools.app.decision_analyzer.da_streamlit_utils.ensure_getFilterComponentData
+   pdstools.app.decision_analyzer.da_streamlit_utils.get_current_index
+   pdstools.app.decision_analyzer.da_streamlit_utils.get_current_stage_index
+   pdstools.app.decision_analyzer.da_streamlit_utils.get_current_scope_index
+   pdstools.app.decision_analyzer.da_streamlit_utils.show_filtered_counts
+   pdstools.app.decision_analyzer.da_streamlit_utils._clean_unselected_filters
+   pdstools.app.decision_analyzer.da_streamlit_utils.get_data_filters
+   pdstools.app.decision_analyzer.da_streamlit_utils._create_page
+   pdstools.app.decision_analyzer.da_streamlit_utils.get_pages
+   pdstools.app.decision_analyzer.da_streamlit_utils.get_options
+   pdstools.app.decision_analyzer.da_streamlit_utils.handle_sample_data
+   pdstools.app.decision_analyzer.da_streamlit_utils.handle_file_upload
+   pdstools.app.decision_analyzer.da_streamlit_utils.handle_direct_file_path
+
+
+Module Contents
+---------------
+
+.. py:function:: get_da_data_path()
+
+.. py:function:: read_data(path)
+
+.. py:function:: read_nested_zip_files(file_buffer) -> polars.DataFrame
+
+   Reads a zip file buffer (uploaded from Streamlit) that contains .zip files,
+   which are in fact gzipped ndjson files. Extracts, reads, and concatenates
+   them into a single Polars DataFrame.
+
+   :param file_buffer: The uploaded zip file buffer from Streamlit.
+   :type file_buffer: UploadedFile
+
+   :returns: A concatenated Polars DataFrame containing the data from all gzipped ndjson files.
+   :rtype: pl.DataFrame
+
+
+.. py:function:: ensure_data()
+
+.. py:function:: ensure_getFilterComponentData()
+
+.. py:data:: polars_lazyframe_hashing
+
+.. py:function:: get_current_index(options, session_state_key, default=0)
+
+.. py:function:: get_current_stage_index(options)
+
+   Picks up the last stage from session state if it is set and it is applicable to
+   current visual. Otherwise, picks the first option in the list
+
+
+.. py:function:: get_current_scope_index(options)
+
+   Picks up the last scope from session state if it is set and it is applicable to
+   current visual. Otherwise, picks the first option in the list
+
+
+.. py:function:: show_filtered_counts(statsBefore, statsAfter)
+
+.. py:function:: _clean_unselected_filters(to_filter_columns, filter_type)
+
+.. py:function:: get_data_filters(df: polars.LazyFrame, columns=[], queries=[], filter_type='local') -> List[polars.Expr]
+
+   Adds a UI on top of a dataframe to let viewers filter columns
+
+   :param df: Original dataframe
+   :type df: pl.DataFrame
+
+
+.. py:function:: _create_page(relative_path, name)
+
+.. py:function:: get_pages(extract_type)
+
+.. py:function:: get_options()
+
+.. py:function:: handle_sample_data(is_ec2)
+
+.. py:function:: handle_file_upload()
+
+.. py:function:: handle_direct_file_path()
+

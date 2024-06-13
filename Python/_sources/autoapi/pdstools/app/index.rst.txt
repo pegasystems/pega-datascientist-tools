@@ -1,25 +1,25 @@
-:py:mod:`pdstools.app`
-======================
+pdstools.app
+============
 
 .. py:module:: pdstools.app
 
 
 Subpackages
 -----------
-.. toctree::
-   :titlesonly:
-   :maxdepth: 3
 
-   pages/index.rst
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/pdstools/app/decision_analyzer/index
+   /autoapi/pdstools/app/health_check/index
 
 
 Submodules
 ----------
+
 .. toctree::
-   :titlesonly:
    :maxdepth: 1
 
-   Home/index.rst
-   cli/index.rst
+   /autoapi/pdstools/app/cli/index
 
 

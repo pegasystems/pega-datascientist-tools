@@ -1,15 +1,11 @@
-:py:mod:`pdstools.ih.legacy_IH`
-===============================
+pdstools.ih.legacy_IH
+=====================
 
 .. py:module:: pdstools.ih.legacy_IH
 
 
-Module Contents
----------------
-
-
 Functions
-~~~~~~~~~
+---------
 
 .. autoapisummary::
 
@@ -33,58 +29,42 @@ Functions
    pdstools.ih.legacy_IH.plot_share_delta_graph
 
 
+Module Contents
+---------------
 
 .. py:function:: initial_prep(df, referenceTime='pxOutcomeTime')
 
-
 .. py:function:: detect_outlier(df, col)
-
 
 .. py:function:: get_all_times_inds(df)
 
-
 .. py:function:: get_total_outcome(df, outcome, rollup)
-
 
 .. py:function:: get_accept_rate(df, pos, neg, rollup)
 
-
 .. py:function:: get_accept_rate_time(df, pos, neg, level, **kwargs)
-
 
 .. py:function:: plot_daily_accept_rate(df, pos, neg, **kwargs)
 
-
 .. py:function:: plot_weekly_accept_rate(df, pos, neg, **kwargs)
-
 
 .. py:function:: plot_daily_cumulative_accept_rate(df, pos, neg, **kwargs)
 
-
 .. py:function:: get_daily_graph(df, x, y, **kwargs)
-
 
 .. py:function:: plot_outcome_count_time(df, outcome, time, **kwargs)
 
-
 .. py:function:: get_allDays_df(_df, inds_df, hue)
-
 
 .. py:function:: get_total_outcome_share_per_level(df, outcome, level)
 
-
 .. py:function:: plot_outcome_share_graph(df, outcome, level, hue=None)
-
 
 .. py:function:: get_outcome_share_time(df, outcome, level, time='daily')
 
-
 .. py:function:: select_date_range_lookback(df, lookback=3)
-
 
 .. py:function:: get_delta_df(df, outcome, level, dates)
 
-
 .. py:function:: plot_share_delta_graph(df, outcome, level, dates)
-
 

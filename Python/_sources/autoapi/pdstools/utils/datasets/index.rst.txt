@@ -1,15 +1,21 @@
-:py:mod:`pdstools.utils.datasets`
-=================================
+pdstools.utils.datasets
+=======================
 
 .. py:module:: pdstools.utils.datasets
 
 
-Module Contents
----------------
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.utils.datasets.ADMDatamart
+   pdstools.utils.datasets.ADMTrees
+   pdstools.utils.datasets.ValueFinder
 
 
 Functions
-~~~~~~~~~
+---------
 
 .. autoapisummary::
 
@@ -18,13 +24,783 @@ Functions
    pdstools.utils.datasets.SampleValueFinder
 
 
+Module Contents
+---------------
+
+.. py:class:: ADMDatamart(path: Union[str, pathlib.Path] = Path('.'), import_strategy: Literal['eager', 'lazy'] = 'eager', *, model_filename: Optional[str] = 'modelData', predictor_filename: Optional[str] = 'predictorData', model_df: Optional[pdstools.utils.types.any_frame] = None, predictor_df: Optional[pdstools.utils.types.any_frame] = None, query: Optional[Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]] = None, subset: bool = True, drop_cols: Optional[list] = None, include_cols: Optional[list] = None, context_keys: list = ['Channel', 'Direction', 'Issue', 'Group'], extract_keys: bool = False, predictorCategorization: polars.Expr = cdh_utils.defaultPredictorCategorization, plotting_engine: Union[str, Any] = 'plotly', verbose: bool = False, **reading_opts)
+
+   Bases: :py:obj:`pdstools.plots.plot_base.Plots`, :py:obj:`pdstools.adm.Tables.Tables`
+
+
+   Main class for importing, preprocessing and structuring Pega ADM Datamart.
+   Gets all available data, properly names and merges into one main dataframe.
+
+   It's also possible to import directly from S3. Please refer to
+   :meth:`pdstools.pega_io.S3.S3Data.get_ADMDatamart`.
+
+   :param path: The path of the data files
+   :type path: str, default = "."
+   :param import_strategy: Whether to import the file fully to memory, or scan the file
+                           When data fits into memory, 'eager' is typically more efficient
+                           However, when data does not fit, the lazy methods typically allow
+                           you to still use the data.
+   :type import_strategy: Literal['eager', 'lazy'], default = 'eager'
+
+   :keyword model_filename: The name, or extended filepath, towards the model file
+   :kwtype model_filename: Optional[str]
+   :keyword predictor_filename: The name, or extended filepath, towards the predictors file
+   :kwtype predictor_filename: Optional[str]
+   :keyword model_df: Optional override to supply a dataframe instead of a file
+   :kwtype model_df: Union[pl.DataFrame, pl.LazyFrame, pd.DataFrame]
+   :keyword predictor_df: Optional override to supply a dataframe instead of a file
+   :kwtype predictor_df: Union[pl.DataFrame, pl.LazyFrame, pd.DataFrame]
+   :keyword query: Please refer to :meth:`._apply_query`
+   :kwtype query: Union[pl.Expr, str, Dict[str, list]], default = None
+   :keyword plotting_engine: Please refer to :meth:`.get_engine`
+   :kwtype plotting_engine: str, default = "plotly"
+   :keyword subset: Whether to only keep a subset of columns for efficiency purposes
+                    Refer to :meth:`._available_columns` for the default list of columns.
+   :kwtype subset: bool, default = True
+   :keyword drop_cols: Columns to exclude from reading
+   :kwtype drop_cols: Optional[list]
+   :keyword include_cols: Additionial columns to include when reading
+   :kwtype include_cols: Optional[list]
+   :keyword context_keys: Which columns to use as context keys
+   :kwtype context_keys: list, default = ["Channel", "Direction", "Issue", "Group"]
+   :keyword extract_keys: Extra keys, particularly pyTreatment, are hidden within the pyName column.
+                          extract_keys can expand that cell to also show these values.
+                          To extract these extra keys, set extract_keys to True.
+   :kwtype extract_keys: bool, default = False
+   :keyword verbose: Whether to print out information during importing
+   :kwtype verbose: bool, default = False
+   :keyword \*\*reading_opts: Additional parameters used while reading.
+                              Refer to :meth:`pdstools.pega_io.File.import_file` for more info.
+
+   .. attribute:: modelData
+
+      If available, holds the preprocessed data about the models
+
+      :type: pl.LazyFrame
+
+   .. attribute:: predictorData
+
+      If available, holds the preprocessed data about the predictor binning
+
+      :type: pl.LazyFrame
+
+   .. attribute:: combinedData
+
+      If both modelData and predictorData are available,
+      holds the merged data about the models and predictors
+
+      :type: pl.LazyFrame
+
+   .. attribute:: import_strategy
+
+      See the `import_strategy` parameter
+
+   .. attribute:: query
+
+      See the `query` parameter
+
+   .. attribute:: context_keys
+
+      See the `context_keys` parameter
+
+   .. attribute:: verbose
+
+      See the `verbose` parameter
+
+   .. rubric:: Examples
+
+   >>> Data =  ADMDatamart("/CDHSample")
+   >>> Data =  ADMDatamart("Data/Adaptive Models & Predictors Export",
+               model_filename = "Data-Decision-ADM-ModelSnapshot_AdaptiveModelSnapshotRepo20201110T085543_GMT/data.json",
+               predictor_filename = "Data-Decision-ADM-PredictorBinningSnapshot_PredictorBinningSnapshotRepo20201110T084825_GMT/data.json")
+   >>> Data =  ADMDatamart("Data/files",
+               model_filename = "ModelData.csv",
+               predictor_filename = "PredictorData.csv")
+
+
+   .. py:attribute:: standardChannelGroups
+      :value: ['Web', 'Mobile', 'E-mail', 'Push', 'SMS', 'Retail', 'Call Center', 'IVR']
+
+
+
+   .. py:attribute:: standardDirections
+      :value: ['Inbound', 'Outbound']
+
+
+
+   .. py:attribute:: NBAD_model_configurations
+
+
+   .. py:method:: get_engine(plotting_engine)
+      :staticmethod:
+
+
+      Which engine to use for creating the plots.
+
+      By supplying a custom class here, you can re-use the pdstools functions
+      but create visualisations to your own specifications, in any library.
+
+
+
+   .. py:method:: import_data(path: Optional[Union[str, pathlib.Path]] = Path('.'), *, model_filename: Optional[str] = 'modelData', predictor_filename: Optional[str] = 'predictorData', model_df: Optional[pdstools.utils.types.any_frame] = None, predictor_df: Optional[pdstools.utils.types.any_frame] = None, subset: bool = True, drop_cols: Optional[list] = None, include_cols: Optional[list] = None, extract_keys: bool = False, verbose: bool = False, **reading_opts) -> Tuple[Optional[polars.LazyFrame], Optional[polars.LazyFrame]]
+
+      Method to import & format the relevant data.
+
+      The method first imports the model data, and then the predictor data.
+      If model_df or predictor_df is supplied, it will use those instead
+      If any filters are included in the the `query` argument of the ADMDatmart,
+      those will be applied to the modeldata, and the predictordata will be
+      filtered such that it only contains the modelids leftover after filtering.
+      After reading, some additional values (such as success rate) are
+      automatically computed.
+      Lastly, if there are missing columns from both datasets,
+      this will be printed to the user if verbose is True.
+
+      :param path: The path of the data files
+                   Default = current path ('.')
+      :type path: Path
+      :param subset: Whether to only select the renamed columns,
+                     set to False to keep all columns
+      :type subset: bool, default = True
+      :param model_df: Optional override to supply a dataframe instead of a file
+      :type model_df: pd.DataFrame
+      :param predictor_df: Optional override to supply a dataframe instead of a file
+      :type predictor_df: pd.DataFrame
+      :param drop_cols: Columns to exclude from reading
+      :type drop_cols: Optional[list]
+      :param include_cols: Additionial columns to include when reading
+      :type include_cols: Optional[list]
+      :param extract_keys: Extra keys, particularly pyTreatment, are hidden within the pyName column.
+                           extract_keys can expand that cell to also show these values.
+                           To extract these extra keys, set extract_keys to True.
+      :type extract_keys: bool, default = False
+      :param verbose: Whether to print out information during importing
+      :type verbose: bool, default = False
+
+      :returns: The model data and predictor binning data as LazyFrames
+      :rtype: (polars.LazyFrame, polars.LazyFrame)
+
+
+
+   .. py:property:: is_available
+      :type: bool
+
+
+
+   .. py:method:: _import_utils(name: Union[str, pdstools.utils.types.any_frame], path: Optional[str] = None, *, subset: bool = True, extract_keys: bool = False, drop_cols: Optional[list] = None, include_cols: Optional[list] = None, **reading_opts) -> Tuple[polars.LazyFrame, dict, dict]
+
+      Handler function to interface to the cdh_utils methods
+
+      :param name: One of {modelData, predictorData}
+                   or a dataframe
+      :type name: Union[str, pl.DataFrame]
+      :param path: The path of the data file
+      :type path: str, default = None
+
+      :keyword subset: Whether to only select the renamed columns,
+                       set to False to keep all columns
+      :kwtype subset: bool, default = True
+      :keyword drop_cols: Supply columns to drop from the dataframe
+      :kwtype drop_cols: list
+      :keyword include_cols: Supply columns to include with the dataframe
+      :kwtype include_cols: list
+      :keyword extract_keys: Treatments are typically hidden within the pyName column,
+                             extract_keys can expand that cell to also show these values.
+      :kwtype extract_keys: bool
+      :keyword Additional keyword arguments:
+      :keyword ----------------------------:
+      :keyword See :meth:`pdstools.pega_io.File.readDSExport`:
+
+      :returns:
+
+                - The requested dataframe,
+                - The renamed columns
+                - The columns missing in both dataframes)
+      :rtype: (pl.LazyFrame, dict, dict)
+
+
+
+   .. py:method:: _available_columns(df: polars.LazyFrame, include_cols: Optional[list] = None, drop_cols: Optional[list] = None) -> Tuple[set, set]
+
+      Based on the default names for variables, rename available data to proper formatting
+
+      :param df: Input dataframe
+      :type df: pl.LazyFrame
+      :param include_cols: Supply columns to include with the dataframe
+      :type include_cols: list
+      :param drop_cols: Supply columns to not import at all
+      :type drop_cols: list
+
+      :returns: The original dataframe, but renamed for the found columns &
+                The original and updated names for all renamed columns &
+                The variables that were not found in the table
+      :rtype: Tuple[set, set]
+
+
+
+   .. py:method:: _set_types(df: pdstools.utils.types.any_frame, table: str = 'infer', *, timestamp_fmt: str = None, strict_conversion: bool = True) -> pdstools.utils.types.any_frame
+
+      A method to change columns to their proper type
+
+      :param df: The input dataframe
+      :type df: Union[pl.DataFrame, pl.LazyFrame]
+      :param table: The table to set types for. Default is infer, in which case
+                    it infers the table type from the columns in it.
+      :type table: str
+
+      :keyword timestamp_fmt: The format of Date type columns
+      :kwtype timestamp_fmt: str
+      :keyword strict_conversion: Raises an error if timestamp conversion to given/default date format(timestamp_fmt) fails
+                                  See 'https://strftime.org/' for timestamp formats
+      :kwtype strict_conversion: bool
+
+      :returns: The input dataframe, but the proper typing applied
+      :rtype: Union[pl.DataFrame, pl.LazyFrame]
+
+
+
+   .. py:method:: last(table='modelData', strategy: Literal['eager', 'lazy'] = 'eager') -> pdstools.utils.types.any_frame
+
+      Convenience function to get the last values for a table
+
+      :param table: Which table to get the last values for
+                    One of {modelData, predictorData, combinedData}
+      :type table: str, default = modelData
+      :param strategy: Whether to import the file fully to memory, or scan the file
+                       When data fits into memory, 'eager' is typically more efficient
+                       However, when data does not fit, the lazy methods typically allow
+                       you to still use the data.
+      :type strategy: Literal['eager', 'lazy'], default = 'eager'
+
+      :returns: The last snapshot for each model
+      :rtype: Union[pl.DataFrame, pl.LazyFrame]
+
+
+
+   .. py:method:: _last(df: pdstools.utils.types.any_frame) -> pdstools.utils.types.any_frame
+      :staticmethod:
+
+
+
+   .. py:method:: _last_timestamp(col: Literal['ResponseCount', 'Positives']) -> polars.Expr
+      :staticmethod:
+
+
+      Add a column to indicate the last timestamp a column has changed.
+
+      :param col: The column to calculate the diff for
+      :type col: Literal['ResponseCount', 'Positives']
+
+
+
+   .. py:method:: _get_combined_data(last=True, strategy: Literal['eager', 'lazy'] = 'eager') -> pdstools.utils.types.any_frame
+
+      Combines the model data and predictor data into one dataframe.
+
+      :param last: Whether to only use the last snapshot for each table
+      :type last: bool, default=True
+      :param strategy: Whether to import the file fully to memory, or scan the file
+                       When data fits into memory, 'eager' is typically more efficient
+                       However, when data does not fit, the lazy methods typically allow
+                       you to still use the data.
+      :type strategy: Literal['eager', 'lazy'], default = 'eager'
+
+      :returns: The combined dataframe
+      :rtype: Union[pl.DataFrame, pl.LazyFrame]
+
+
+
+   .. py:method:: processTables(query: Optional[Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]] = None) -> ADMDatamart
+
+      Processes modelData, predictorData and combinedData tables.
+
+      Can take in a query, which it will apply to modelData
+      If a query is given, it joins predictorData to only retain the modelIDs
+      the modelData was filtered on. If both modelData and predictorData
+      are present, it joins them together into combinedData.
+
+      If memory_strategy is eager, which is the default, this method also
+      collects the tables and then sets them back to lazy.
+
+      :param query: An optional query to apply to the modelData table.
+                    See: :meth:`._apply_query`
+      :type query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]], default = None
+
+
+
+   .. py:method:: save_data(path: str = '.') -> Tuple[os.PathLike, os.PathLike]
+
+      Cache modelData and predictorData to files.
+
+      :param path: Where to place the files
+      :type path: str
+
+      :returns: The paths to the model and predictor data files
+      :rtype: (os.PathLike, os.PathLike)
+
+
+
+   .. py:method:: _apply_query(df: pdstools.utils.types.any_frame, query: Optional[Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]] = None) -> polars.LazyFrame
+
+      Given an input Polars dataframe, it filters the dataframe based on input query
+
+      :param df: The input dataframe
+      :type df: Union[pl.DataFrame, pl.LazyFrame]
+      :param query: If a Polars Expression, passes the expression into Polars' filter function.
+                    If a list of Polars Expressions, applies each of the expressions as filters.
+                    If a string, uses the Pandas query function (works only in eager mode,
+                    not recommended).
+                    Else, a dict of lists where the key is column name in the dataframe
+                    and the corresponding value is a list of values to keep in the dataframe
+      :type query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]]
+
+      :returns: Filtered Polars DataFrame
+      :rtype: pl.DataFrame
+
+
+
+   .. py:method:: discover_modelTypes(df: polars.LazyFrame, by: str = 'Configuration', allow_collect=False) -> Dict
+
+      Discovers the type of model embedded in the pyModelData column.
+
+      By default, we do a group_by Configuration, because a model rule can only
+      contain one type of model. Then, for each configuration, we look into the
+      pyModelData blob and find the _serialClass, returning it in a dict.
+
+      :param df: The dataframe to search for model types
+      :type df: pl.LazyFrame
+      :param by: The column to look for types in. Configuration is recommended.
+      :type by: str
+      :param allow_collect: Set to True to allow discovering modelTypes, even if in lazy strategy.
+                            It will fetch one modelData string per configuration.
+      :type allow_collect: bool, default = False
+
+
+
+   .. py:method:: get_AGB_models(last: bool = False, by: str = 'Configuration', n_threads: int = 1, query: Optional[Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]] = None, verbose: bool = True, **kwargs) -> Dict
+
+      Method to automatically extract AGB models.
+
+      Recommended to subset using the querying functionality
+      to cut down on execution time, because it checks for each
+      model ID. If you only have AGB models remaining after the query,
+      it will only return proper AGB models.
+
+      :param last: Whether to only look at the last snapshot for each model
+      :type last: bool, default = False
+      :param by: Which column to determine unique models with
+      :type by: str, default = 'Configuration'
+      :param n_threads: The number of threads to use for extracting the models.
+                        Since we use multithreading, setting this to a reasonable value
+                        helps speed up the import.
+      :type n_threads: int, default = 6
+      :param query: Please refer to :meth:`._apply_query`
+      :type query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]]
+      :param verbose: Whether to print out information while importing
+      :type verbose: bool, default = False
+
+
+
+   .. py:method:: _create_sign_df(df: polars.LazyFrame, by: str = 'Name', *, what: str = 'ResponseCount', every: str = '1d', pivot: bool = True, mask: bool = True) -> polars.LazyFrame
+      :staticmethod:
+
+
+      Generates dataframe to show whether responses decreased/increased from day to day
+
+      For a given dataframe where columns are dates and rows are model names(by parameter),
+      subtracts each day's value from the previous day's value per model. Then masks the data.
+      If increased (desired situtation), it will put 1 in the cell, if no change, it will
+      put 0, and if decreased it will put -1. This dataframe then could be used in the heatmap
+
+      :param df: This is typically pivoted ModelData
+      :type df: pd.DataFrame
+      :param by: Column to calculate the daily change for.
+      :type by: str, default = Name
+
+      :keyword what: Column that contains response counts
+      :kwtype what: str, default = ResponseCount
+      :keyword every: Interval of the change window
+      :kwtype every: str, default = 1d
+      :keyword pivot: Returns a pivotted table with signs as value if set to true
+      :kwtype pivot: bool, default = True
+      :keyword mask: Drops SnapshotTime and returns direction of change(sign).
+      :kwtype mask: bool, default = True
+
+      :returns: The dataframe with signs for increase or decrease in day to day
+      :rtype: pd.LazyFrame
+
+
+
+   .. py:method:: model_summary(by: str = 'ModelID', query: Optional[Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]] = None, **kwargs) -> polars.LazyFrame
+
+      Convenience method to automatically generate a summary over models
+
+      By default, it summarizes ResponseCount, Performance, SuccessRate & Positives by model ID.
+      It also adds weighted means for Performance and SuccessRate,
+      And adds the count of models without responses and the percentage.
+
+      :param by: By what column to summarize the models
+      :type by: str, default = ModelID
+      :param query: Please refer to :meth:`._apply_query`
+      :type query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]]
+
+      :returns: group_by dataframe over all models
+      :rtype: pl.LazyFrame
+
+
+
+   .. py:method:: pivot_df(df: polars.LazyFrame, by: Union[str, list] = 'Name', *, allow_collect: bool = True, top_n: int = 0) -> polars.DataFrame
+
+      Simple function to extract pivoted information
+
+      :param df: The input DataFrame.
+      :type df: pl.LazyFrame
+      :param by: The column(s) to pivot the DataFrame by.
+                 If a list is provided, only the first element is used.
+      :type by: Union[str, list], default = Name
+      :param allow_collect: Whether to allow eager computation.
+                            If set to False and the import strategy is "lazy", an error will be raised.
+      :type allow_collect: bool, default = True
+      :param top_n: The number of rows to include in the pivoted DataFrame.
+                    If set to 0, all rows are included.
+      :type top_n: int, optional (default=0)
+
+      :returns: The pivoted DataFrame.
+      :rtype: pl.DataFrame
+
+
+
+   .. py:method:: response_gain_df(df: pdstools.utils.types.any_frame, by: str = 'Channel') -> pdstools.utils.types.any_frame
+      :staticmethod:
+
+
+      Simple function to extract the response gain per model
+
+
+
+   .. py:method:: models_by_positives_df(df: polars.LazyFrame, by: str = 'Channel', allow_collect=True) -> polars.LazyFrame
+
+      Compute statistics on the dataframe by grouping it by a given column `by`
+      and computing the count of unique ModelIDs and cumulative percentage of unique
+      models for with regard to the number of positive answers.
+
+      :param df: The input DataFrame
+      :type df: pl.LazyFrame
+      :param by: The column name to group the DataFrame by, by default "Channel"
+      :type by: str, default = Channel
+      :param allow_collect: Whether to allow eager computation. If set to False and the import strategy is "lazy", an error will be raised.
+      :type allow_collect: bool, default = True
+
+      :returns: DataFrame with PositivesBin column and model count statistics
+      :rtype: pl.LazyFrame
+
+
+
+   .. py:method:: get_model_stats(last: bool = True) -> dict
+
+      Returns a dictionary containing various statistics for the model data.
+
+      :param last: Whether to compute statistics only on the last snapshot. Defaults to True.
+      :type last: bool
+
+      :returns: A dictionary containing the following keys:
+                'models_n_snapshots': The number of distinct snapshot times in the data.
+                'models_total': The total number of models in the data.
+                'models_empty': The models with no responses.
+                'models_nopositives': The models with responses but no positive responses.
+                'models_isimmature': The models with less than 200 positive responses.
+                'models_noperformance': The models with at least 200 positive responses but a performance of 50.
+                'models_n_nonperforming': The total number of models that are not performing well.
+                'models_missing_{key}': The number of models with missing values for each context key.
+                'models_bottom_left': The models with a performance of 50 and a success rate of 0.
+      :rtype: Dict
+
+
+
+   .. py:method:: describe_models(**kwargs) -> NoReturn
+
+      Convenience method to quickly summarize the models
+
+
+
+   .. py:method:: applyGlobalQuery(query: Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]) -> ADMDatamart
+
+      Convenience method to further query the datamart
+
+      It's possible to give this query to the initial `ADMDatamart` class
+      directly, but this method is more explicit. Filters on the model data
+      (query is put in a :meth:`polars.filter()` method), filters the predictorData
+      on the ModelIDs remaining after the query, and recomputes combinedData.
+
+      Only works with Polars expressions.
+
+      Paramters
+      ---------
+      query: Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]
+          The query to apply, see :meth:`._apply_query`
+
+
+
+   .. py:method:: fillMissing() -> ADMDatamart
+
+      Convenience method to fill missing values
+
+      - Fills categorical, string and null type columns with "NA"
+      - Fills SuccessRate, Performance and ResponseCount columns with 0
+      - When context keys have empty string values, replaces them
+      with "NA" string
+
+
+
+   .. py:method:: summary_by_channel(custom_channels: Dict[str, str] = None, keep_lists: bool = False)
+
+
+   .. py:method:: overall_summary(custom_channels: Dict[str, str] = None)
+
+
+   .. py:method:: generateReport(name: Optional[str] = None, working_dir: pathlib.Path = Path('.'), *, modelid: Optional[str] = '', delete_temp_files: bool = True, output_type: str = 'html', allow_collect: bool = True, cached_data: bool = False, predictordetails_activeonly: bool = False, **kwargs)
+
+      Generates a report based on the provided parameters. If modelid is provided, a model report will be generated.
+      If not, an overall HealthCheck report will be generated.
+
+      :param name: The name of the report.
+      :type name: Optional[str], default = None
+      :param working_dir: The working directory. Cached files will be written here.
+      :type working_dir: Path, default = Path(".")
+      :param \*:
+
+      :keyword modelid: The model id,
+      :kwtype modelid: Optional[str], default = ""
+      :keyword delete_temp_files: Whether to delete temporary files.
+      :kwtype delete_temp_files: bool, default = True
+      :keyword output_type: The type of the output file.
+      :kwtype output_type: str, default = "html"
+      :keyword allow_collect: Whether to allow collection of data.
+      :kwtype allow_collect: bool, default = True
+      :keyword cached_data: Whether to use cached data.
+      :kwtype cached_data: bool, default = False
+      :keyword del_cache: Whether to delete cache.
+      :kwtype del_cache: bool, default = True
+      :keyword predictordetails_activeonly: Whether to only include active predictor details.
+      :kwtype predictordetails_activeonly: bool, default = False
+      :keyword \*\*kwargs: Additional keyword arguments.
+
+
+
+   .. py:method:: exportTables(file: pathlib.Path = 'Tables.xlsx', predictorBinning=False)
+
+      Exports all tables from `pdstools.adm.Tables` into one Excel file.
+
+      :param file: The file name of the exported Excel file
+      :type file: Path, default = 'Tables.xlsx'
+      :param predictorBinning: If False, the 'predictorbinning' table will not be created
+      :type predictorBinning: bool, default = True
+
+
+
+.. py:class:: ADMTrees
+
+   .. py:method:: getMultiTrees(file: polars.DataFrame, n_threads=1, verbose=True, **kwargs)
+      :staticmethod:
+
+
+
+.. py:class:: ValueFinder(path: Optional[str] = None, df: Optional[Union[pandas.DataFrame, polars.DataFrame, polars.LazyFrame]] = None, verbose: bool = True, import_strategy: Literal['eager', 'lazy'] = 'eager', ncust: int = None, **kwargs)
+
+   Class to analyze Value Finder datasets.
+
+   Relies heavily on polars for faster reading and transformations.
+   See https://pola-rs.github.io/polars/py-polars/html/index.html
+
+   Requires either df or a path to be supplied,
+   If a path is supplied, the 'filename' argument is optional.
+   If path is given and no filename is, it will look for the most recent.
+
+   :param path: Path to the ValueFinder data files
+   :type path: Optional[str]
+   :param df: Override to supply a dataframe instead of a file.
+              Supports pandas or polars dataframes
+   :type df: Optional[DataFrame]
+   :param import_strategy: Whether to import the file fully to memory, or scan the file
+                           When data fits into memory, 'eager' is typically more efficient
+                           However, when data does not fit, the lazy methods typically allow
+                           you to still use the data.
+   :type import_strategy: Literal['eager', 'lazy'], default = 'eager'
+   :param verbose: Whether to print out information during importing
+   :type verbose: bool
+
+   :keyword th: An optional keyword argument to override the propensity threshold
+   :kwtype th: float
+   :keyword filename: The name, or extended filepath, towards the file
+   :kwtype filename: Optional[str]
+   :keyword subset: Whether to select only a subset of columns.
+                    Will speed up analysis and reduce unused information
+   :kwtype subset: bool
+
+
+   .. py:method:: save_data(path: str = '.') -> os.PathLike
+
+      Cache the ValueFinder dataset to a file
+
+      :param path: Where to place the file
+      :type path: str
+
+      :returns: The paths to the file
+      :rtype: PathLike
+
+
+
+   .. py:method:: getCustomerSummary(th: Optional[float] = None) -> polars.DataFrame
+
+      Computes the summary of propensities for all customers
+
+      :param th: The threshold to consider an action 'good'.
+                 If a customer has actions with propensity above this,
+                 the customer has at least one relevant action.
+                 If not given, will default to 5th quantile.
+      :type th: Optional[float]
+
+
+
+   .. py:method:: getCountsPerStage(customersummary: Optional[polars.DataFrame] = None) -> polars.DataFrame
+
+      Generates an aggregated view per stage.
+
+      :param customersummary: Optional override of the customer summary,
+                              which can be generated by getCustomerSummary().
+      :type customersummary: Optional[pl.DataFrame]
+
+
+
+   .. py:method:: getThFromQuantile(quantile: float) -> float
+
+      Return the propensity threshold corresponding to a given quantile
+
+      If the threshold is already in `self._thMap`, simply gets it from there
+      Otherwise, computes the threshold and then adds it to the map.
+
+      :param quantile: The quantile to get the threshold for
+      :type quantile: float
+
+
+
+   .. py:method:: getCountsPerThreshold(th, return_df=False) -> Optional[polars.LazyFrame]
+
+
+   .. py:method:: addCountsForThresholdRange(start, stop, step, method=Literal['threshold, quantile']) -> None
+
+      Adds the counts per stage for a range of quantiles or thresholds.
+
+      Once computed, the values are added to `.countsPerThreshold` so we
+      only need to compute each value once.
+
+      :param start: The starting of the range
+      :type start: float
+      :param stop: The end of the range
+      :type stop: float
+      :param step: The steps to compute between start and stop
+      :type step: float
+      :param method: Whether to get a range of thresholds directly or compute
+                     the thresholds from their quantiles
+      :type method: Literal["threshold", "quantile"]:
+
+
+
+   .. py:method:: plotPropensityDistribution(sampledN: int = 10000) -> plotly.graph_objects.Figure
+
+      Plots the distribution of the different propensities.
+
+      For optimization reasons (storage for all points in a boxplot and
+      time complexity for computing the distribution plot),
+      we have to sample to a reasonable amount of data points.
+
+      :param sampledN: The number of datapoints to sample
+      :type sampledN: int, default = 10_000
+
+
+
+   .. py:method:: plotPropensityThreshold(sampledN=10000, stage='Eligibility') -> plotly.graph_objects.Figure
+
+      Plots the propensity threshold vs the different propensities.
+
+      :param sampledN: The number of datapoints to sample
+      :type sampledN: int, default = 10_000
+
+
+
+   .. py:method:: plotPieCharts(start: float = None, stop: float = None, step: float = None, *, method: Literal['threshold', 'quantile'] = 'threshold', rounding: int = 3, th: Optional[float] = None) -> plotly.graph_objects.FigureWidget
+
+      Plots pie charts showing the distribution of customers
+
+      The pie charts each represent the fraction of customers with
+      the color indicating whether they have sufficient relevant actions
+      in that stage of the NBAD arbitration.
+
+      If no values are provided for start, stop or step, the pie charts are
+      shown using the default propensity threshold, as part of the Value Finder
+      class.
+
+      :param start: The starting of the range
+      :type start: float
+      :param stop: The end of the range
+      :type stop: float
+      :param step: The steps to compute between start and stop
+      :type step: float
+
+      :keyword method: Whether the range is computed based on the threshold directly
+                       or based on the quantile of the propensity
+      :kwtype method: Literal['threshold', 'quantile'], default='threshold'
+      :keyword rounding: The number of digits to round the values by
+      :kwtype rounding: int
+      :keyword th: Choose a specific propensity threshold to plot
+      :kwtype th: Optional[float]
+
+
+
+   .. py:method:: plotDistributionPerThreshold(start: float = None, stop: float = None, step: float = None, *, method: Literal['threshold', 'quantile'] = 'threshold', rounding=3) -> plotly.graph_objects.FigureWidget
+
+      Plots the distribution of customers per threshold, per stage.
+
+      Based on the precomputed data in self.countsPerThreshold,
+      this function will plot the distribution per stage.
+
+      To add more data points between a given range,
+      simply pass all three arguments to this function:
+      start, stop and step.
+
+      :param start: The starting of the range
+      :type start: float
+      :param stop: The end of the range
+      :type stop: float
+      :param step: The steps to compute between start and stop
+      :type step: float
+
+      :keyword method: Whether the range is computed based on the threshold directly
+                       or based on the quantile of the propensity
+      :kwtype method: Literal['threshold', 'quantile'], default='threshold'
+      :keyword rounding: The number of digits to round the values by
+      :kwtype rounding: int
+
+
+
+   .. py:method:: plotFunnelChart(level: str = 'Action', query=None, return_df=False, **kwargs)
+
+      Plots the funnel of actions or issues per stage.
+
+      :param level: Which element to plot:
+                    - If 'Actions', plots the distribution of actions.
+                    - If 'Issues', plots the distribution of issues
+      :type level: str, default = 'Actions'
+
+
 
 .. py:function:: CDHSample(plotting_engine='plotly', query=None, **kwargs)
 
-
 .. py:function:: SampleTrees()
 
-
 .. py:function:: SampleValueFinder(verbose=True)
-
 

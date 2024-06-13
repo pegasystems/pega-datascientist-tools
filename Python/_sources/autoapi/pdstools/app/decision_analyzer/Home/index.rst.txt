@@ -1,0 +1,264 @@
+pdstools.app.decision_analyzer.Home
+===================================
+
+.. py:module:: pdstools.app.decision_analyzer.Home
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.app.decision_analyzer.Home.file_upload_options
+   pdstools.app.decision_analyzer.Home.source
+   pdstools.app.decision_analyzer.Home.raw_data
+   pdstools.app.decision_analyzer.Home.extract_type
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.app.decision_analyzer.Home.DecisionData
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.app.decision_analyzer.Home.get_options
+   pdstools.app.decision_analyzer.Home.get_pages
+   pdstools.app.decision_analyzer.Home.handle_direct_file_path
+   pdstools.app.decision_analyzer.Home.handle_file_upload
+   pdstools.app.decision_analyzer.Home.handle_sample_data
+   pdstools.app.decision_analyzer.Home.get_git_version_and_date
+
+
+Module Contents
+---------------
+
+.. py:class:: DecisionData(raw_data: polars.LazyFrame)
+
+   Container data class for the raw decision data. Only one instance of this
+   should exist and will be associated with the streamlit app state.
+
+   It will keep a pointer to the raw interaction level data (as a
+   lazy frame) but also has VBD-style aggregation(s) to speed things up.
+
+
+   .. py:attribute:: unfiltered_raw_decision_data
+      :type:  polars.LazyFrame
+      :value: None
+
+
+
+   .. py:attribute:: decision_data
+      :type:  polars.LazyFrame
+      :value: None
+
+
+
+   .. py:attribute:: preaggregated_decision_data_filterview
+      :type:  polars.LazyFrame
+      :value: None
+
+
+
+   .. py:attribute:: preaggregated_decision_data_remainingview
+      :type:  polars.LazyFrame
+      :value: None
+
+
+
+   .. py:attribute:: fields_for_data_filtering
+      :value: ['pxDecisionTime', 'pyConfigurationName', 'pyChannel', 'pyDirection', 'pyIssue', 'pyGroup',...
+
+
+
+   .. py:method:: stages_from_arbitration_down()
+
+      All stages in the filter view starting at Arbitration. This initially
+      will just be [Arbitration, Final] but as we get more stages in there
+      may be more here.
+
+
+
+   .. py:method:: arbitration_stage()
+
+
+   .. py:method:: _invalidate_cached_properties()
+
+      Resets the properties of the class
+
+
+
+   .. py:method:: applyGlobalDataFilters(filters: Optional[Union[polars.Expr, List[polars.Expr]]] = None)
+
+      Apply a global set of filters
+
+
+
+   .. py:method:: resetGlobalDataFilters()
+
+
+   .. py:method:: getPreaggregatedFilterView()
+
+      Pre-aggregates the full dataset over customers and interactions providing
+      a view of what is filtered at a stage.
+
+      This pre-aggregation is pretty similar to what "VBD" does to interaction
+      history. It aggregates over individual customers and interactions giving
+      summary statistics that are sufficient to drive most of the analyses
+      (but not all). The results of this pre-aggregation are much smaller
+      than the original data and is expected to easily fit in memory. We therefore
+      use polars caching to efficiently cache this.
+
+      This "filter" view keeps the same organization as the decision analyzer data
+      in that it records the actions that get filtered out at stages. From this
+      a "remaining" view is easily derived.
+
+
+
+   .. py:method:: getPreaggregatedRemainingView()
+
+      Pre-aggregates the full dataset over customers and interactions providing a view of remaining offers.
+
+      This pre-aggregation builds on the filter view and aggregates over
+      the stages remaining.
+
+
+
+   .. py:method:: sample()
+
+
+   .. py:method:: getAvailableFieldsForFiltering(categoricalOnly=False)
+
+
+   .. py:method:: cleanup_raw_data(df: polars.LazyFrame)
+
+      This method cleans up the raw data we read from parquet/S3/whatever.
+
+      This likely needs to change as and when we get closer to product, to
+      match what comes out of Pega. It does some modest type casting and
+      potentially changing back some of the temporary column names that have
+      been added to generate more data.
+
+
+
+   .. py:method:: getPossibleScopeValues()
+
+
+   .. py:method:: getPossibleStageValues()
+
+
+   .. py:method:: getDistributionData(stage: str, grouping_levels: List[str], trend=False, additional_filters: Optional[Union[polars.Expr, List[polars.Expr]]] = None) -> polars.LazyFrame
+
+
+   .. py:method:: getFunnelData(level, additional_filters: Optional[Union[polars.Expr, List[polars.Expr]]] = None) -> polars.LazyFrame
+
+
+   .. py:method:: getFilterComponentData(top_n, additional_filters: Optional[Union[polars.Expr, List[polars.Expr]]] = None) -> polars.DataFrame
+
+
+   .. py:method:: reRank(additional_filters: Optional[Union[polars.Expr, List[polars.Expr]]] = None, overrides: List[polars.Expr] = []) -> polars.LazyFrame
+
+      Calculates prio and rank for all PVCL combinations
+
+
+
+   .. py:method:: get_win_loss_distribution_data(level, win_rank)
+
+
+   .. py:method:: get_optionality_data()
+
+      Finding the average number of actions per stage without trend analysis.
+      We have to go back to the interaction level data, no way to
+      use pre-aggregations unfortunately.
+
+
+
+   .. py:method:: get_optionality_data_with_trend()
+
+      Finding the average number of actions per stage with trend analysis.
+      We have to go back to the interaction level data, no way to
+      use pre-aggregations unfortunately.
+
+
+
+   .. py:method:: getActionVariationData(stage)
+
+
+   .. py:method:: getABTestResults()
+
+
+   .. py:method:: getThresholdingData(fld, quantile_range=range(10, 100, 10))
+
+
+   .. py:method:: getValueDistributionData()
+
+
+   .. py:method:: aggregate_remaining_per_stage(df: polars.LazyFrame, group_by_columns: List[str], aggregations: List = []) -> polars.LazyFrame
+
+      Workhorse function to convert the raw Decision Analyzer data (filter view) to
+      the aggregates remaining per stage. Used all over the place.
+
+
+
+   .. py:method:: get_offer_quality(df, group_by)
+
+      Given a dataframe with filtered action counts at stages.
+      Flips it to usual VF view by doing a rolling sum over stages.
+
+      :param df: Decision Analyzer style filtered action counts dataframe.
+      :type df: pl.LazyFrame
+      :param groupby_cols: The list of column names to group by(["pxEngagementStage", "pxInteractionID"]).
+      :type groupby_cols: list
+
+      :returns: Value Finder style, available action counts per group_by category
+      :rtype: pl.LazyFrame
+
+
+
+   .. py:method:: get_overview_stats()
+
+      Creates an overview from sampled data
+
+
+
+   .. py:method:: get_sensitivity(win_rank=1, filters=None)
+
+
+   .. py:method:: get_offer_variability_stats(stage)
+
+
+   .. py:method:: get_winning_or_losing_interactions(win_rank, group_filter, win: bool)
+
+
+   .. py:method:: winning_from(interactions, win_rank, groupby_cols, top_k)
+
+
+   .. py:method:: losing_to(interactions, win_rank, groupby_cols, top_k)
+
+
+.. py:function:: get_options()
+
+.. py:function:: get_pages(extract_type)
+
+.. py:function:: handle_direct_file_path()
+
+.. py:function:: handle_file_upload()
+
+.. py:function:: handle_sample_data(is_ec2)
+
+.. py:function:: get_git_version_and_date()
+
+.. py:data:: file_upload_options
+
+.. py:data:: source
+
+.. py:data:: raw_data
+
+.. py:data:: extract_type
+

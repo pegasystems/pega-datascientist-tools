@@ -1,15 +1,11 @@
-:py:mod:`pdstools.ih.IHAnalysis`
-================================
+pdstools.ih.IHAnalysis
+======================
 
 .. py:module:: pdstools.ih.IHAnalysis
 
 
-Module Contents
----------------
-
-
 Functions
-~~~~~~~~~
+---------
 
 .. autoapisummary::
 
@@ -25,34 +21,26 @@ Functions
    pdstools.ih.IHAnalysis.plotPropensityDistribution
 
 
+Module Contents
+---------------
 
 .. py:function:: SuccessRate(outcome_col='pyOutcome', **kwargs) -> polars.Expr
 
-
 .. py:function:: AUC(outcome_col='pyOutcome', propensity_col='pyModelPropensity') -> polars.Expr
-
 
 .. py:function:: _metricPerPeriod(df, period, metrics, OutcomeTime_col='pxOutcomeTime', by=None, **kwargs)
 
-
 .. py:function:: _cumulativeMetricPerPeriod(df, period, metrics, OutcomeTime_col='pxOutcomeTime', by=None, **kwargs)
-
 
 .. py:function:: successRatePerPeriod(df, period='1d', **kwargs)
 
-
 .. py:function:: volumesPerPeriod(df, period='1d', **kwargs)
-
 
 .. py:function:: _plotPerPeriod(df: polars.LazyFrame, to_plot, period, color=None, facet_col=None, facet_row=None, **kwargs)
 
-
 .. py:function:: plotSuccessRatePerPeriod(df: polars.LazyFrame, period, cumulative=False, color=None, facet_col=None, facet_row=None, **kwargs)
-
 
 .. py:function:: plotVolumesPerPeriod(df: polars.LazyFrame, period, cumulative=False, color=None, facet_col=None, facet_row=None, **kwargs)
 
-
 .. py:function:: plotPropensityDistribution(df: polars.LazyFrame, channel, direction, issue, group, name, propensityType, **kwargs)
-
 

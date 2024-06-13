@@ -1,5 +1,5 @@
-:py:mod:`pdstools.utils.cdh_utils`
-==================================
+pdstools.utils.cdh_utils
+========================
 
 .. py:module:: pdstools.utils.cdh_utils
 
@@ -12,12 +12,32 @@
 
 
 
-Module Contents
----------------
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.utils.cdh_utils.any_frame
+
+
+Exceptions
+----------
+
+.. autoapisummary::
+
+   pdstools.utils.cdh_utils.NotEagerError
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.utils.cdh_utils.PegaDefaultTables
 
 
 Functions
-~~~~~~~~~
+---------
 
 .. autoapisummary::
 
@@ -39,6 +59,7 @@ Functions
    pdstools.utils.cdh_utils.toPRPCDateTime
    pdstools.utils.cdh_utils.weighted_average_polars
    pdstools.utils.cdh_utils.weighted_performance_polars
+   pdstools.utils.cdh_utils.overlap_lists_polars
    pdstools.utils.cdh_utils.zRatio
    pdstools.utils.cdh_utils.lift
    pdstools.utils.cdh_utils.LogOdds
@@ -46,6 +67,299 @@ Functions
    pdstools.utils.cdh_utils.gains_table
    pdstools.utils.cdh_utils.legend_color_order
    pdstools.utils.cdh_utils.sync_reports
+
+
+Module Contents
+---------------
+
+.. py:data:: any_frame
+
+.. py:exception:: NotEagerError(operationType=None, defaultmsg='This operation is only possible in eager mode.')
+
+   Bases: :py:obj:`ValueError`
+
+
+   Operation only possible in eager mode.
+
+
+.. py:class:: PegaDefaultTables
+
+   .. py:class:: ADMModelSnapshot
+
+      .. py:attribute:: pxApplication
+
+
+      .. py:attribute:: pyAppliesToClass
+
+
+      .. py:attribute:: pyModelID
+
+
+      .. py:attribute:: pyConfigurationName
+
+
+      .. py:attribute:: pySnapshotTime
+
+
+      .. py:attribute:: pyIssue
+
+
+      .. py:attribute:: pyGroup
+
+
+      .. py:attribute:: pyName
+
+
+      .. py:attribute:: pyChannel
+
+
+      .. py:attribute:: pyDirection
+
+
+      .. py:attribute:: pyTreatment
+
+
+      .. py:attribute:: pyPerformance
+
+
+      .. py:attribute:: pySuccessRate
+
+
+      .. py:attribute:: pyResponseCount
+
+
+      .. py:attribute:: pxObjClass
+
+
+      .. py:attribute:: pzInsKey
+
+
+      .. py:attribute:: pxInsName
+
+
+      .. py:attribute:: pxSaveDateTime
+
+
+      .. py:attribute:: pxCommitDateTime
+
+
+      .. py:attribute:: pyExtension
+
+
+      .. py:attribute:: pyActivePredictors
+
+
+      .. py:attribute:: pyTotalPredictors
+
+
+      .. py:attribute:: pyNegatives
+
+
+      .. py:attribute:: pyPositives
+
+
+      .. py:attribute:: pyRelativeNegatives
+
+
+      .. py:attribute:: pyRelativePositives
+
+
+      .. py:attribute:: pyRelativeResponseCount
+
+
+      .. py:attribute:: pyMemory
+
+
+      .. py:attribute:: pyPerformanceThreshold
+
+
+      .. py:attribute:: pyCorrelationThreshold
+
+
+      .. py:attribute:: pyPerformanceError
+
+
+      .. py:attribute:: pyModelData
+
+
+      .. py:attribute:: pyModelVersion
+
+
+      .. py:attribute:: pyFactoryUpdatetime
+
+
+
+   .. py:class:: ADMPredictorBinningSnapshot
+
+      .. py:attribute:: pxCommitDateTime
+
+
+      .. py:attribute:: pxSaveDateTime
+
+
+      .. py:attribute:: pyModelID
+
+
+      .. py:attribute:: pxObjClass
+
+
+      .. py:attribute:: pzInsKey
+
+
+      .. py:attribute:: pxInsName
+
+
+      .. py:attribute:: pyPredictorName
+
+
+      .. py:attribute:: pyContents
+
+
+      .. py:attribute:: pyPerformance
+
+
+      .. py:attribute:: pyPositives
+
+
+      .. py:attribute:: pyNegatives
+
+
+      .. py:attribute:: pyType
+
+
+      .. py:attribute:: pyTotalBins
+
+
+      .. py:attribute:: pyResponseCount
+
+
+      .. py:attribute:: pyRelativePositives
+
+
+      .. py:attribute:: pyRelativeNegatives
+
+
+      .. py:attribute:: pyRelativeResponseCount
+
+
+      .. py:attribute:: pyBinNegatives
+
+
+      .. py:attribute:: pyBinPositives
+
+
+      .. py:attribute:: pyBinType
+
+
+      .. py:attribute:: pyBinNegativesPercentage
+
+
+      .. py:attribute:: pyBinPositivesPercentage
+
+
+      .. py:attribute:: pyBinSymbol
+
+
+      .. py:attribute:: pyBinLowerBound
+
+
+      .. py:attribute:: pyBinUpperBound
+
+
+      .. py:attribute:: pyRelativeBinPositives
+
+
+      .. py:attribute:: pyRelativeBinNegatives
+
+
+      .. py:attribute:: pyBinResponseCount
+
+
+      .. py:attribute:: pyRelativeBinResponseCount
+
+
+      .. py:attribute:: pyBinResponseCountPercentage
+
+
+      .. py:attribute:: pySnapshotTime
+
+
+      .. py:attribute:: pyBinIndex
+
+
+      .. py:attribute:: pyLift
+
+
+      .. py:attribute:: pyZRatio
+
+
+      .. py:attribute:: pyEntryType
+
+
+      .. py:attribute:: pyExtension
+
+
+      .. py:attribute:: pyGroupIndex
+
+
+      .. py:attribute:: pyCorrelationPredictor
+
+
+
+   .. py:class:: pyValueFinder
+
+      .. py:attribute:: pyDirection
+
+
+      .. py:attribute:: pySubjectType
+
+
+      .. py:attribute:: ModelPositives
+
+
+      .. py:attribute:: pyGroup
+
+
+      .. py:attribute:: pyPropensity
+
+
+      .. py:attribute:: FinalPropensity
+
+
+      .. py:attribute:: pyStage
+
+
+      .. py:attribute:: pxRank
+
+
+      .. py:attribute:: pxPriority
+
+
+      .. py:attribute:: pyModelPropensity
+
+
+      .. py:attribute:: pyChannel
+
+
+      .. py:attribute:: Value
+
+
+      .. py:attribute:: pyName
+
+
+      .. py:attribute:: StartingEvidence
+
+
+      .. py:attribute:: pySubjectID
+
+
+      .. py:attribute:: DecisionTime
+
+
+      .. py:attribute:: pyTreatment
+
+
+      .. py:attribute:: pyIssue
 
 
 
@@ -125,9 +439,7 @@ Functions
 
 .. py:function:: set_types(df, table='infer', verbose=False, **timestamp_opts)
 
-
 .. py:function:: inferTableDefinition(df)
-
 
 .. py:function:: safe_range_auc(auc: float) -> float
 
@@ -233,7 +545,6 @@ Functions
 
 .. py:function:: _polarsCapitalize(df: polars.LazyFrame)
 
-
 .. py:function:: fromPRPCDateTime(x: str, return_string: bool = False) -> Union[datetime.datetime, str]
 
    Convert from a Pega date-time string.
@@ -264,10 +575,14 @@ Functions
 
 .. py:function:: weighted_average_polars(vals: Union[str, polars.Expr], weights: Union[str, polars.Expr]) -> polars.Expr
 
-
 .. py:function:: weighted_performance_polars() -> polars.Expr
 
    Polars function to return a weighted performance
+
+
+.. py:function:: overlap_lists_polars(col: polars.Series, row_validity: polars.Series) -> List[float]
+
+   Calculate the overlap of each of the elements (must be a list) with all the others
 
 
 .. py:function:: zRatio(posCol: polars.Expr = pl.col('BinPositives'), negCol: polars.Expr = pl.col('BinNegatives')) -> polars.Expr
@@ -312,9 +627,7 @@ Functions
 
 .. py:function:: LogOdds(Positives=pl.col('Positives'), Negatives=pl.col('ResponseCount') - pl.col('Positives'))
 
-
 .. py:function:: featureImportance(over=['PredictorName', 'ModelID'])
-
 
 .. py:function:: gains_table(df, value: str, index=None, by=None)
 

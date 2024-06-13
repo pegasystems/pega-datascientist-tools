@@ -1,0 +1,64 @@
+pdstools.decision_analyzer.table_definition
+===========================================
+
+.. py:module:: pdstools.decision_analyzer.table_definition
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.decision_analyzer.table_definition.DecisionAnalyzer
+   pdstools.decision_analyzer.table_definition.ExplainabilityExtract
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.decision_analyzer.table_definition.TableConfig
+
+
+Module Contents
+---------------
+
+.. py:class:: TableConfig
+
+   Bases: :py:obj:`TypedDict`
+
+
+   dict() -> new empty dictionary
+   dict(mapping) -> new dictionary initialized from a mapping object's
+       (key, value) pairs
+   dict(iterable) -> new dictionary initialized as if via:
+       d = {}
+       for k, v in iterable:
+           d[k] = v
+   dict(**kwargs) -> new dictionary initialized with the name=value pairs
+       in the keyword argument list.  For example:  dict(one=1, two=2)
+
+
+   .. py:attribute:: label
+      :type:  str
+
+
+   .. py:attribute:: default
+      :type:  bool
+
+
+   .. py:attribute:: type
+      :type:  Type[polars.DataType]
+
+
+   .. py:attribute:: required
+      :type:  bool
+
+
+.. py:data:: DecisionAnalyzer
+   :type:  Dict[str, TableConfig]
+
+.. py:data:: ExplainabilityExtract
+   :type:  Dict[str, TableConfig]
+

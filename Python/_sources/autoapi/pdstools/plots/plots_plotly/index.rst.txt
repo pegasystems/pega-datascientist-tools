@@ -1,31 +1,30 @@
-:py:mod:`pdstools.plots.plots_plotly`
-=====================================
+pdstools.plots.plots_plotly
+===========================
 
 .. py:module:: pdstools.plots.plots_plotly
 
 
-Module Contents
----------------
-
 Classes
-~~~~~~~
+-------
 
 .. autoapisummary::
 
    pdstools.plots.plots_plotly.ADMVisualisations
 
 
-
+Module Contents
+---------------
 
 .. py:class:: ADMVisualisations
-
 
    .. py:method:: distribution_graph(df, title)
       :staticmethod:
 
 
+
    .. py:method:: post_plot(fig, name, query=None, title=None, file_title=None, file_path='.', show_each=False, image_format=None, to_html=False, **kwargs)
       :staticmethod:
+
 
 
    .. py:method:: PerformanceSuccessRateBubbleChart(df, add_bottom_left_text=True, facet=None, context_keys=None, **kwargs)
@@ -58,6 +57,7 @@ Classes
       :rtype: px.Figure
 
 
+
    .. py:method:: OverTime(df, metric='Performance', by='ModelID', facet=None, mode='diff', **kwargs)
 
       Shows metric of models over time
@@ -69,6 +69,7 @@ Classes
       :type query: Union[str, dict]
 
       :rtype: plt.figure
+
 
 
    .. py:method:: PropositionSuccessRates(df, metric='SuccessRate', by='Name', show_error=True, facet=None, **kwargs)
@@ -85,6 +86,7 @@ Classes
       :type query: Union[str, dict]
 
       :rtype: plt.figure
+
 
 
    .. py:method:: ScoreDistribution(df, facet_val, **kwargs)
@@ -108,6 +110,7 @@ Classes
       :rtype: plt.figure
 
 
+
    .. py:method:: PredictorBinning(df, facet_val, **kwargs)
 
       Show predictor graphs for a given model
@@ -128,6 +131,7 @@ Classes
       :type figsize: tuple
 
       :rtype: plt.figure
+
 
 
    .. py:method:: PredictorPerformance(df, facet=None, order=None, to_plot='Performance', y='PredictorName', **kwargs)
@@ -154,9 +158,11 @@ Classes
       :rtype: px.Figure
 
 
+
    .. py:method:: _divide_context()
 
       Divides the context keys if they are combined
+
 
 
    .. py:method:: PredictorPerformanceHeatmap(df, facet=None, **kwargs)
@@ -188,6 +194,7 @@ Classes
       :rtype: px.Figure
 
 
+
    .. py:method:: ResponseGain(df, by='Channel', facet=None, **kwargs)
 
       Plots the cumulative response per model, subsetted by 'by'
@@ -216,6 +223,7 @@ Classes
       :rtype: px.Figure
 
 
+
    .. py:method:: ModelsByPositives(df, by='Channel', **kwargs)
 
       Plots the percentage of models vs the number of positive responses
@@ -242,6 +250,7 @@ Classes
       :type facets: Optional[Union[list, str]]
 
       :rtype: px.Figure
+
 
 
    .. py:method:: TreeMap(df, color, values, title, reverse_scale, log, midpoint, format, context_keys, value_in_text=True, **kwargs)
@@ -287,10 +296,10 @@ Classes
       :rtype: px.Figure
 
 
+
    .. py:method:: PredictorCount(df, facet, **kwargs)
 
 
    .. py:method:: PredictorContribution(df, by, **kwargs)
-
 
 

@@ -1,0 +1,25 @@
+3-action_distribution
+=====================
+
+.. py:module:: 3-action_distribution
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   3-action_distribution.scope_options
+   3-action_distribution.distribution_data
+   3-action_distribution.scope_index
+
+
+Module Contents
+---------------
+
+.. py:data:: scope_options
+
+.. py:data:: distribution_data
+
+.. py:data:: scope_index
+

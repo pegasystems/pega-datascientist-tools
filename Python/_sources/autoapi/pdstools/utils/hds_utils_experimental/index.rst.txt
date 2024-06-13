@@ -1,14 +1,11 @@
-:py:mod:`pdstools.utils.hds_utils_experimental`
-===============================================
+pdstools.utils.hds_utils_experimental
+=====================================
 
 .. py:module:: pdstools.utils.hds_utils_experimental
 
 
-Module Contents
----------------
-
 Classes
-~~~~~~~
+-------
 
 .. autoapisummary::
 
@@ -16,10 +13,10 @@ Classes
    pdstools.utils.hds_utils_experimental.DataAnonymization2
 
 
+Module Contents
+---------------
 
-
-.. py:class:: Config(config_file: Optional[str] = None, hds_folder: pathlib.Path = '.', use_datamart: bool = False, datamart_folder: pathlib.Path = 'datamart', output_format: Literal[ndjson, parquet, arrow, csv] = 'ndjson', output_folder: pathlib.Path = 'output', mapping_file: str = 'mapping.map', mask_predictor_names: bool = False, mask_context_key_names: bool = False, mask_ih_names: bool = True, mask_outcome_name: bool = False, mask_predictor_values: bool = True, mask_context_key_values: bool = False, mask_ih_values: bool = True, mask_outcome_values: bool = True, context_key_label: str = 'Context_*', ih_label: str = 'IH_*', outcome_column: str = 'Decision_Outcome', positive_outcomes: list = ['Accepted', 'Clicked'], negative_outcomes: list = ['Rejected', 'Impression'], special_predictors: list = ['Decision_DecisionTime', 'Decision_OutcomeTime', 'Decision_Rank'], sample_percentage_schema_inferencing: float = 0.01)
-
+.. py:class:: Config(config_file: Optional[str] = None, hds_folder: pathlib.Path = '.', use_datamart: bool = False, datamart_folder: pathlib.Path = 'datamart', output_format: Literal['ndjson', 'parquet', 'arrow', 'csv'] = 'ndjson', output_folder: pathlib.Path = 'output', mapping_file: str = 'mapping.map', mask_predictor_names: bool = False, mask_context_key_names: bool = False, mask_ih_names: bool = True, mask_outcome_name: bool = False, mask_predictor_values: bool = True, mask_context_key_values: bool = False, mask_ih_values: bool = True, mask_outcome_values: bool = True, context_key_label: str = 'Context_*', ih_label: str = 'IH_*', outcome_column: str = 'Decision_Outcome', positive_outcomes: list = ['Accepted', 'Clicked'], negative_outcomes: list = ['Rejected', 'Impression'], special_predictors: list = ['Decision_DecisionTime', 'Decision_OutcomeTime', 'Decision_Rank'], sample_percentage_schema_inferencing: float = 0.01)
 
    Configuration file for the data anonymizer.
 
@@ -70,12 +67,14 @@ Classes
                                                 increase this percentage to check a larger portion of data.
    :type sample_percentage_schema_inferencing: float
 
+
    .. py:method:: load_from_config_file(config_file: pathlib.Path)
 
       Load the configurations from a file.
 
       :param config_file: The path to the configuration file
       :type config_file: Path
+
 
 
    .. py:method:: save_to_config_file(file_name: str = None)
@@ -86,6 +85,7 @@ Classes
       :type file_name: str
 
 
+
    .. py:method:: validate_paths()
 
       Validate the outcome folder exists.
@@ -93,7 +93,6 @@ Classes
 
 
 .. py:class:: DataAnonymization2(files, config=None, **config_args)
-
 
    .. py:method:: inferTypes(number_of_files_to_sample=20)
 
@@ -104,7 +103,7 @@ Classes
    .. py:method:: setPredictorTypes(typeDict: dict)
 
 
-   .. py:method:: setTypeForPredictor(predictor, type: Literal[numeric, symbolic])
+   .. py:method:: setTypeForPredictor(predictor, type: Literal['numeric', 'symbolic'])
 
 
    .. py:method:: getPredictorsWithTypes()
@@ -115,9 +114,11 @@ Classes
       Load the historical dataset files from the `config.hds_folder` location.
 
 
+
    .. py:method:: create_mapping_file()
 
       Create a file to write the column mapping
+
 
 
    .. py:method:: get_columns_by_type()
@@ -125,9 +126,11 @@ Classes
       Get a list of columns for each type.
 
 
+
    .. py:method:: create_predictor_mapping()
 
       Map the predictor names to their anonymized form.
+
 
 
    .. py:method:: calculateNumericRanges(verbose=False)
@@ -139,7 +142,7 @@ Classes
    .. py:method:: setRangeForPredictor(predictorName, min, max)
 
 
-   .. py:method:: write_to_output(df: Optional[polars.DataFrame] = None, ext: Literal[ndjson, parquet, arrow, csv] = None, mode: Literal[optimized, robust] = 'optimized', on_failed_file: Literal[warn, ignore, fail] = 'fail', verbose=False)
+   .. py:method:: write_to_output(df: Optional[polars.DataFrame] = None, ext: Literal['ndjson', 'parquet', 'arrow', 'csv'] = None, mode: Literal['optimized', 'robust'] = 'optimized', on_failed_file: Literal['warn', 'ignore', 'fail'] = 'fail', verbose=False)
 
       Write the processed dataframe to an output file.
 
@@ -153,6 +156,7 @@ Classes
                    Optimized should be faster, but robust should allow for bigger
                    data as we don't need all data in memory at the same time.
       :type mode: Literal['optimized', 'robust'], default = 'optimized'
+
 
 
    .. py:method:: getHasher(cols, algorithm='xxhash', seed='random', seed_1=None, seed_2=None, seed_3=None)

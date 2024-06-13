@@ -1,23 +1,33 @@
-:py:mod:`pdstools.adm.Tables`
-=============================
+pdstools.adm.Tables
+===================
 
 .. py:module:: pdstools.adm.Tables
 
 
-Module Contents
----------------
-
 Classes
-~~~~~~~
+-------
 
 .. autoapisummary::
 
    pdstools.adm.Tables.Tables
 
 
+Functions
+---------
 
+.. autoapisummary::
+
+   pdstools.adm.Tables.weighted_average_polars
+
+
+Module Contents
+---------------
+
+.. py:function:: weighted_average_polars(vals: Union[str, polars.Expr], weights: Union[str, polars.Expr]) -> polars.Expr
 
 .. py:class:: Tables
+
+   .. py:method:: _by()
 
 
    .. py:property:: AvailableTables
@@ -29,9 +39,6 @@ Classes
    .. py:property:: ApplicableTablesNoPredictorBinning
 
 
-   .. py:method:: _by()
-
-
    .. py:method:: modeldata_last_snapshot()
 
 
@@ -39,6 +46,5 @@ Classes
 
 
    .. py:method:: predictorbinning()
-
 
 

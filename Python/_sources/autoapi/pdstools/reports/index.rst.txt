@@ -1,5 +1,5 @@
-:py:mod:`pdstools.reports`
-==========================
+pdstools.reports
+================
 
 .. py:module:: pdstools.reports
 

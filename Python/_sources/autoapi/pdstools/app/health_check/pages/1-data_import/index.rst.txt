@@ -1,0 +1,19 @@
+pdstools.app.health_check.pages.1-data_import
+=============================================
+
+.. py:module:: pdstools.app.health_check.pages.1-data_import
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.app.health_check.pages.1-data_import.opts
+
+
+Module Contents
+---------------
+
+.. py:data:: opts
+

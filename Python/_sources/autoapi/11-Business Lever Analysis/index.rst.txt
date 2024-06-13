@@ -1,0 +1,54 @@
+11-Business Lever Analysis
+==========================
+
+.. py:module:: 11-Business Lever Analysis
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   11-Business Lever Analysis.slider_max
+   11-Business Lever Analysis.slider_min
+   11-Business Lever Analysis.value
+   11-Business Lever Analysis.lever
+   11-Business Lever Analysis.ranked_df
+   11-Business Lever Analysis.rank_1_df
+   11-Business Lever Analysis.parameters
+   11-Business Lever Analysis.segmented_df
+   11-Business Lever Analysis.segments
+   11-Business Lever Analysis.win_count
+   11-Business Lever Analysis.calculate_lever
+   11-Business Lever Analysis.lever_for_desired_ratio
+
+
+Module Contents
+---------------
+
+.. py:data:: slider_max
+
+.. py:data:: slider_min
+
+.. py:data:: value
+
+.. py:data:: lever
+
+.. py:data:: ranked_df
+
+.. py:data:: rank_1_df
+
+.. py:data:: parameters
+   :value: ['FinalPropensity', 'Value', 'ContextWeight', 'Weight']
+
+
+.. py:data:: segmented_df
+
+.. py:data:: segments
+
+.. py:data:: win_count
+
+.. py:data:: calculate_lever
+
+.. py:data:: lever_for_desired_ratio
+

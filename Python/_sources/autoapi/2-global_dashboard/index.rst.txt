@@ -1,0 +1,19 @@
+2-global_dashboard
+==================
+
+.. py:module:: 2-global_dashboard
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   2-global_dashboard.overview
+
+
+Module Contents
+---------------
+
+.. py:data:: overview
+

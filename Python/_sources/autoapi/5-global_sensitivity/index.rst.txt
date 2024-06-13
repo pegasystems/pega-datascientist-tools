@@ -1,0 +1,19 @@
+5-global_sensitivity
+====================
+
+.. py:module:: 5-global_sensitivity
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   5-global_sensitivity.scope_options
+
+
+Module Contents
+---------------
+
+.. py:data:: scope_options
+

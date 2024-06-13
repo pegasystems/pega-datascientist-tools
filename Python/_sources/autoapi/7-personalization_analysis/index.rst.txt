@@ -1,0 +1,28 @@
+7-personalization_analysis
+==========================
+
+.. py:module:: 7-personalization_analysis
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   7-personalization_analysis.optionality_data
+   7-personalization_analysis.stage_options
+   7-personalization_analysis.optionality_data_with_trend_per_stage
+   7-personalization_analysis.action_variability_stats
+
+
+Module Contents
+---------------
+
+.. py:data:: optionality_data
+
+.. py:data:: stage_options
+
+.. py:data:: optionality_data_with_trend_per_stage
+
+.. py:data:: action_variability_stats
+

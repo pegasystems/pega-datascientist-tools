@@ -3,7 +3,7 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../../../../genindex.html" /><link rel="search" title="Search" href="../../../../search.html" /><link rel="prev" title="pdstools.valuefinder" href="../index.html" />
+<link rel="index" title="Index" href="../../../../genindex.html" /><link rel="search" title="Search" href="../../../../search.html" /><link rel="next" title="4-action_funnel" href="../../../4-action_funnel/index.html" /><link rel="prev" title="pdstools.valuefinder" href="../index.html" />
 
     <link rel="shortcut icon" href="../../../../_static/pegasystems-inc-vector-logo.svg"/><!-- Generated with Sphinx 7.3.7 and Furo 2024.05.06 -->
         <title>pdstools.valuefinder.ValueFinder - pdstools</title>
@@ -232,6 +232,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/AGBModelVisualisation.html">Analyzing ADM AGB models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/vf_analysis.html">Value Finder analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/Example_Data_Anonymization.html">Data Anonymization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/explainability_extract.html">Explainability Extract Analysis</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Articles</span></p>
 <ul>
@@ -251,65 +252,96 @@
 <p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
 <ul class="current">
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
-<li class="toctree-l2 current has-children"><a class="reference internal" href="../../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of pdstools</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../adm/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of pdstools.adm</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../adm/ADMDatamart/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm.ADMDatamart</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../adm/ADMTrees/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm.ADMTrees</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../adm/BinAggregator/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm.BinAggregator</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../adm/Tables/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.adm.Tables</span></code></a></li>
+<li class="toctree-l2 current has-children"><a class="reference internal" href="../../index.html">pdstools</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of pdstools</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../adm/index.html">pdstools.adm</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of pdstools.adm</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/ADMDatamart/index.html">pdstools.adm.ADMDatamart</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/ADMTrees/index.html">pdstools.adm.ADMTrees</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/BinAggregator/index.html">pdstools.adm.BinAggregator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/Tables/index.html">pdstools.adm.Tables</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../app/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.app</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of pdstools.app</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l4 has-children"><a class="reference internal" href="../../app/pages/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.app.pages</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle navigation of pdstools.app.pages</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../app/index.html">pdstools.app</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of pdstools.app</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../app/decision_analyzer/index.html">pdstools.app.decision_analyzer</a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle navigation of pdstools.app.decision_analyzer</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../app/decision_analyzer/Home/index.html">pdstools.app.decision_analyzer.Home</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../app/decision_analyzer/da_streamlit_utils/index.html">pdstools.app.decision_analyzer.da_streamlit_utils</a></li>
 </ul>
 </li>
-<li class="toctree-l4"><a class="reference internal" href="../../app/Home/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.app.Home</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../app/cli/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.app.cli</span></code></a></li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../app/health_check/index.html">pdstools.app.health_check</a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle navigation of pdstools.app.health_check</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../app/health_check/pages/index.html">pdstools.app.health_check.pages</a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle navigation of pdstools.app.health_check.pages</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="../../app/health_check/pages/1-data_import/index.html">pdstools.app.health_check.pages.1-data_import</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../../app/health_check/pages/2-data_filters/index.html">pdstools.app.health_check.pages.2-data_filters</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../../app/health_check/pages/3-Reports/index.html">pdstools.app.health_check.pages.3-Reports</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../ih/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.ih</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle navigation of pdstools.ih</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../ih/IHAnalysis/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.ih.IHAnalysis</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../ih/legacy_IH/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.ih.legacy_IH</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../app/health_check/Home/index.html">pdstools.app.health_check.Home</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../pega_io/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.pega_io</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle navigation of pdstools.pega_io</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../pega_io/API/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.pega_io.API</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../pega_io/File/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.pega_io.File</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../pega_io/S3/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.pega_io.S3</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../app/cli/index.html">pdstools.app.cli</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../plots/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plots</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle navigation of pdstools.plots</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../plots/plot_base/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plots.plot_base</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../plots/plots_plotly/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.plots.plots_plotly</span></code></a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../decision_analyzer/index.html">pdstools.decision_analyzer</a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle navigation of pdstools.decision_analyzer</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../decision_analyzer/data_read_utils/index.html">pdstools.decision_analyzer.data_read_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../decision_analyzer/decision_data/index.html">pdstools.decision_analyzer.decision_data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../decision_analyzer/plots/index.html">pdstools.decision_analyzer.plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../decision_analyzer/table_definition/index.html">pdstools.decision_analyzer.table_definition</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../decision_analyzer/utils/index.html">pdstools.decision_analyzer.utils</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../prediction/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.prediction</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle navigation of pdstools.prediction</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../prediction/Prediction/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.prediction.Prediction</span></code></a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../ih/index.html">pdstools.ih</a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle navigation of pdstools.ih</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../ih/IHAnalysis/index.html">pdstools.ih.IHAnalysis</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../ih/legacy_IH/index.html">pdstools.ih.legacy_IH</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../reports/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.reports</span></code></a></li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><div class="visually-hidden">Toggle navigation of pdstools.utils</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../utils/CDHLimits/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.CDHLimits</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../utils/NBAD/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.NBAD</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../utils/cdh_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.cdh_utils</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../utils/datasets/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.datasets</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../utils/errors/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.errors</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../utils/hds_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.hds_utils</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../utils/hds_utils_experimental/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.hds_utils_experimental</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../utils/pega_template/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.pega_template</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../utils/polars_ext/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.polars_ext</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../utils/show_versions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.show_versions</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../utils/streamlit_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.streamlit_utils</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../utils/table_definitions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.table_definitions</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../utils/types/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.utils.types</span></code></a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../pega_io/index.html">pdstools.pega_io</a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><div class="visually-hidden">Toggle navigation of pdstools.pega_io</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../pega_io/API/index.html">pdstools.pega_io.API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../pega_io/File/index.html">pdstools.pega_io.File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../pega_io/S3/index.html">pdstools.pega_io.S3</a></li>
 </ul>
 </li>
-<li class="toctree-l3 current has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.valuefinder</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><div class="visually-hidden">Toggle navigation of pdstools.valuefinder</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
-<li class="toctree-l4 current current-page"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.valuefinder.ValueFinder</span></code></a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../plots/index.html">pdstools.plots</a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><div class="visually-hidden">Toggle navigation of pdstools.plots</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../plots/plot_base/index.html">pdstools.plots.plot_base</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../plots/plots_plotly/index.html">pdstools.plots.plots_plotly</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../prediction/index.html">pdstools.prediction</a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><div class="visually-hidden">Toggle navigation of pdstools.prediction</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../prediction/Prediction/index.html">pdstools.prediction.Prediction</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../reports/index.html">pdstools.reports</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../utils/index.html">pdstools.utils</a><input class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><div class="visually-hidden">Toggle navigation of pdstools.utils</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/CDHLimits/index.html">pdstools.utils.CDHLimits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/NBAD/index.html">pdstools.utils.NBAD</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/cdh_utils/index.html">pdstools.utils.cdh_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/datasets/index.html">pdstools.utils.datasets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/errors/index.html">pdstools.utils.errors</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/hds_utils/index.html">pdstools.utils.hds_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/hds_utils_experimental/index.html">pdstools.utils.hds_utils_experimental</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/pega_template/index.html">pdstools.utils.pega_template</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/polars_ext/index.html">pdstools.utils.polars_ext</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/show_versions/index.html">pdstools.utils.show_versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/streamlit_utils/index.html">pdstools.utils.streamlit_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/table_definitions/index.html">pdstools.utils.table_definitions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/types/index.html">pdstools.utils.types</a></li>
+</ul>
+</li>
+<li class="toctree-l3 current has-children"><a class="reference internal" href="../index.html">pdstools.valuefinder</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><div class="visually-hidden">Toggle navigation of pdstools.valuefinder</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l4 current current-page"><a class="current reference internal" href="#">pdstools.valuefinder.ValueFinder</a></li>
 </ul>
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../../4-action_funnel/index.html">4-action_funnel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../1-global_filters/index.html">1-global_filters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../12-Impact%20Analysis/index.html">12-Impact Analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../2-global_dashboard/index.html">2-global_dashboard</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../6-win_loss_analysis/index.html">6-win_loss_analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../5-global_sensitivity/index.html">5-global_sensitivity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../3-action_distribution/index.html">3-action_distribution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../9-Thresholding%20Analysis/index.html">9-Thresholding Analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../8-offer_quality_analysis/index.html">8-offer_quality_analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../10-Business%20Value%20Analysis/index.html">10-Business Value Analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../7-personalization_analysis/index.html">7-personalization_analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../11-Business%20Lever%20Analysis/index.html">11-Business Lever Analysis</a></li>
 </ul>
 </li>
 </ul>
@@ -353,11 +385,9 @@
         </div>
         <article role="main" id="furo-main-content">
           <section id="module-pdstools.valuefinder.ValueFinder">
-<span id="pdstools-valuefinder-valuefinder"></span><h1><a class="reference internal" href="#module-pdstools.valuefinder.ValueFinder" title="pdstools.valuefinder.ValueFinder"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.valuefinder.ValueFinder</span></code></a><a class="headerlink" href="#module-pdstools.valuefinder.ValueFinder" title="Link to this heading">¶</a></h1>
-<section id="module-contents">
-<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<span id="pdstools-valuefinder-valuefinder"></span><h1>pdstools.valuefinder.ValueFinder<a class="headerlink" href="#module-pdstools.valuefinder.ValueFinder" title="Link to this heading">¶</a></h1>
 <section id="classes">
-<h3>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h3>
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
@@ -367,9 +397,12 @@
 </tbody>
 </table>
 </div>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="pdstools.valuefinder.ValueFinder.ValueFinder">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ValueFinder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.DataFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.LazyFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">import_strategy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="pre">eager</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">lazy</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'eager'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ncust</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.valuefinder.ValueFinder.ValueFinder" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ValueFinder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.DataFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.LazyFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">import_strategy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'eager'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'lazy'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'eager'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ncust</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.valuefinder.ValueFinder.ValueFinder" title="Link to this definition">¶</a></dt>
 <dd><p>Class to analyze Value Finder datasets.</p>
 <p>Relies heavily on polars for faster reading and transformations.
 See <a class="reference external" href="https://pola-rs.github.io/polars/py-polars/html/index.html">https://pola-rs.github.io/polars/py-polars/html/index.html</a></p>
@@ -529,7 +562,7 @@ we have to sample to a reasonable amount of data points.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.valuefinder.ValueFinder.ValueFinder.plotPieCharts">
-<span class="sig-name descname"><span class="pre">plotPieCharts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="pre">ValueFinder.plotPieCharts.threshold</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">quantile</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'threshold'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rounding</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">th</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">plotly.graph_objects.FigureWidget</span></span></span><a class="headerlink" href="#pdstools.valuefinder.ValueFinder.ValueFinder.plotPieCharts" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">plotPieCharts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'threshold'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'quantile'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'threshold'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rounding</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">th</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">plotly.graph_objects.FigureWidget</span></span></span><a class="headerlink" href="#pdstools.valuefinder.ValueFinder.ValueFinder.plotPieCharts" title="Link to this definition">¶</a></dt>
 <dd><p>Plots pie charts showing the distribution of customers</p>
 <p>The pie charts each represent the fraction of customers with
 the color indicating whether they have sufficient relevant actions
@@ -543,7 +576,7 @@ class.</p>
 <li><p><strong>start</strong> (<em>float</em>) – The starting of the range</p></li>
 <li><p><strong>stop</strong> (<em>float</em>) – The end of the range</p></li>
 <li><p><strong>step</strong> (<em>float</em>) – The steps to compute between start and stop</p></li>
-<li><p><strong>method</strong> (<em>Literal</em><em>[</em><em>ValueFinder.plotPieCharts.threshold</em><em>, </em><em>quantile</em><em>]</em>)</p></li>
+<li><p><strong>method</strong> (<em>Literal</em><em>[</em><em>'threshold'</em><em>, </em><em>'quantile'</em><em>]</em>)</p></li>
 <li><p><strong>rounding</strong> (<em>int</em>)</p></li>
 <li><p><strong>th</strong> (<em>Optional</em><em>[</em><em>float</em><em>]</em>)</p></li>
 </ul>
@@ -564,7 +597,7 @@ or based on the quantile of the propensity</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.valuefinder.ValueFinder.ValueFinder.plotDistributionPerThreshold">
-<span class="sig-name descname"><span class="pre">plotDistributionPerThreshold</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="pre">threshold</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ValueFinder.plotDistributionPerThreshold.quantile</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'threshold'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rounding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">plotly.graph_objects.FigureWidget</span></span></span><a class="headerlink" href="#pdstools.valuefinder.ValueFinder.ValueFinder.plotDistributionPerThreshold" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">plotDistributionPerThreshold</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'threshold'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'quantile'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'threshold'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rounding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">plotly.graph_objects.FigureWidget</span></span></span><a class="headerlink" href="#pdstools.valuefinder.ValueFinder.ValueFinder.plotDistributionPerThreshold" title="Link to this definition">¶</a></dt>
 <dd><p>Plots the distribution of customers per threshold, per stage.</p>
 <p>Based on the precomputed data in self.countsPerThreshold,
 this function will plot the distribution per stage.</p>
@@ -577,7 +610,7 @@ start, stop and step.</p>
 <li><p><strong>start</strong> (<em>float</em>) – The starting of the range</p></li>
 <li><p><strong>stop</strong> (<em>float</em>) – The end of the range</p></li>
 <li><p><strong>step</strong> (<em>float</em>) – The steps to compute between start and stop</p></li>
-<li><p><strong>method</strong> (<em>Literal</em><em>[</em><em>threshold</em><em>, </em><em>ValueFinder.plotDistributionPerThreshold.quantile</em><em>]</em>)</p></li>
+<li><p><strong>method</strong> (<em>Literal</em><em>[</em><em>'threshold'</em><em>, </em><em>'quantile'</em><em>]</em>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
@@ -610,14 +643,21 @@ or based on the quantile of the propensity</p></li>
 
 </section>
 </section>
-</section>
 
         </article>
       </div>
       <footer>
         
         <div class="related-pages">
-          
+          <a class="next-page" href="../../../4-action_funnel/index.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">4-action_funnel</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
           <a class="prev-page" href="../index.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
@@ -625,7 +665,7 @@ or based on the quantile of the propensity</p></li>
                   <span>Previous</span>
                 </div>
                 
-                <div class="title"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.valuefinder</span></code></div>
+                <div class="title">pdstools.valuefinder</div>
                 
               </div>
             </a>
@@ -666,9 +706,9 @@ or based on the quantile of the propensity</p></li>
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.valuefinder.ValueFinder</span></code></a><ul>
+<li><a class="reference internal" href="#">pdstools.valuefinder.ValueFinder</a><ul>
+<li><a class="reference internal" href="#classes">Classes</a></li>
 <li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
-<li><a class="reference internal" href="#classes">Classes</a><ul>
 <li><a class="reference internal" href="#pdstools.valuefinder.ValueFinder.ValueFinder"><code class="docutils literal notranslate"><span class="pre">ValueFinder</span></code></a><ul>
 <li><a class="reference internal" href="#pdstools.valuefinder.ValueFinder.ValueFinder.save_data"><code class="docutils literal notranslate"><span class="pre">save_data()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.valuefinder.ValueFinder.ValueFinder.getCustomerSummary"><code class="docutils literal notranslate"><span class="pre">getCustomerSummary()</span></code></a></li>
@@ -681,8 +721,6 @@ or based on the quantile of the propensity</p></li>
 <li><a class="reference internal" href="#pdstools.valuefinder.ValueFinder.ValueFinder.plotPieCharts"><code class="docutils literal notranslate"><span class="pre">plotPieCharts()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.valuefinder.ValueFinder.ValueFinder.plotDistributionPerThreshold"><code class="docutils literal notranslate"><span class="pre">plotDistributionPerThreshold()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.valuefinder.ValueFinder.ValueFinder.plotFunnelChart"><code class="docutils literal notranslate"><span class="pre">plotFunnelChart()</span></code></a></li>
-</ul>
-</li>
 </ul>
 </li>
 </ul>

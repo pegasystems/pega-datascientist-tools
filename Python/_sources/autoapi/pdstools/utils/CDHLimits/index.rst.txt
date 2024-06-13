@@ -1,65 +1,51 @@
-:py:mod:`pdstools.utils.CDHLimits`
-==================================
+pdstools.utils.CDHLimits
+========================
 
 .. py:module:: pdstools.utils.CDHLimits
 
 
-Module Contents
----------------
-
 Classes
-~~~~~~~
+-------
 
 .. autoapisummary::
 
    pdstools.utils.CDHLimits.CDHLimits
 
 
-
-
-Attributes
-~~~~~~~~~~
-
-.. autoapisummary::
-
-   pdstools.utils.CDHLimits.limits
-
+Module Contents
+---------------
 
 .. py:class:: CDHLimits
 
-
    Bases: :py:obj:`object`
+
 
    A singleton container for best practice limits for CDH.
 
-   .. py:attribute:: LimitStatus
+   Limits taken from https://docs-previous.pega.com/pega-customer-decision-hub-user-guide/87/service-and-data-health-limits-pega-customer-decision-hub-pega-cloud?
+   but note these apply to Pega Cloud only.
 
-      
+
+   .. py:attribute:: Status
+
 
    .. py:attribute:: Metrics
 
-      
 
    .. py:attribute:: _instance
+      :value: None
 
-      
+
 
    .. py:attribute:: num_limit
 
-      
 
    .. py:attribute:: lims
 
-      
 
    .. py:method:: get_limits(metric: Metrics) -> Union[num_limit, None]
 
 
-   .. py:method:: check_limits(metric: Metrics, value: object) -> LimitStatus
+   .. py:method:: check_limits(metric: Metrics, value: object) -> Status
 
-
-
-.. py:data:: limits
-
-   
 

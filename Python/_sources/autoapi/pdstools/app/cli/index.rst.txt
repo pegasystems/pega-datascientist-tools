@@ -1,15 +1,11 @@
-:py:mod:`pdstools.app.cli`
-==========================
+pdstools.app.cli
+================
 
 .. py:module:: pdstools.app.cli
 
 
-Module Contents
----------------
-
-
 Functions
-~~~~~~~~~
+---------
 
 .. autoapisummary::
 
@@ -18,13 +14,12 @@ Functions
    pdstools.app.cli.help
 
 
+Module Contents
+---------------
 
 .. py:function:: main()
 
-
 .. py:function:: run(*args)
 
-
 .. py:function:: help(*args)
-
 

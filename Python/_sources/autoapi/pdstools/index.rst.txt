@@ -1,5 +1,5 @@
-:py:mod:`pdstools`
-==================
+pdstools
+========
 
 .. py:module:: pdstools
 
@@ -11,26 +11,33 @@
 
 Subpackages
 -----------
+
 .. toctree::
-   :titlesonly:
-   :maxdepth: 3
+   :maxdepth: 1
 
-   adm/index.rst
-   app/index.rst
-   ih/index.rst
-   pega_io/index.rst
-   plots/index.rst
-   prediction/index.rst
-   reports/index.rst
-   utils/index.rst
-   valuefinder/index.rst
+   /autoapi/pdstools/adm/index
+   /autoapi/pdstools/app/index
+   /autoapi/pdstools/decision_analyzer/index
+   /autoapi/pdstools/ih/index
+   /autoapi/pdstools/pega_io/index
+   /autoapi/pdstools/plots/index
+   /autoapi/pdstools/prediction/index
+   /autoapi/pdstools/reports/index
+   /autoapi/pdstools/utils/index
+   /autoapi/pdstools/valuefinder/index
 
 
-Package Contents
-----------------
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.__version__
+   pdstools.__reports__
+
 
 Classes
-~~~~~~~
+-------
 
 .. autoapisummary::
 
@@ -44,11 +51,11 @@ Classes
    pdstools.PegaDefaultTables
    pdstools.ValueFinder
    pdstools.Sample
-
+   pdstools.DecisionData
 
 
 Functions
-~~~~~~~~~
+---------
 
 .. autoapisummary::
 
@@ -62,25 +69,17 @@ Functions
    pdstools.SampleValueFinder
 
 
-
-Attributes
-~~~~~~~~~~
-
-.. autoapisummary::
-
-   pdstools.__version__
-   pdstools.__reports__
-
+Package Contents
+----------------
 
 .. py:data:: __version__
    :value: '3.4.3'
 
-   
 
-.. py:class:: ADMDatamart(path: Union[str, pathlib.Path] = Path('.'), import_strategy: Literal[eager, lazy] = 'eager', *, model_filename: Optional[str] = 'modelData', predictor_filename: Optional[str] = 'predictorData', model_df: Optional[pdstools.utils.types.any_frame] = None, predictor_df: Optional[pdstools.utils.types.any_frame] = None, query: Optional[Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]] = None, subset: bool = True, drop_cols: Optional[list] = None, include_cols: Optional[list] = None, context_keys: list = ['Channel', 'Direction', 'Issue', 'Group'], extract_keys: bool = False, predictorCategorization: polars.Expr = cdh_utils.defaultPredictorCategorization, plotting_engine: Union[str, Any] = 'plotly', verbose: bool = False, **reading_opts)
-
+.. py:class:: ADMDatamart(path: Union[str, pathlib.Path] = Path('.'), import_strategy: Literal['eager', 'lazy'] = 'eager', *, model_filename: Optional[str] = 'modelData', predictor_filename: Optional[str] = 'predictorData', model_df: Optional[pdstools.utils.types.any_frame] = None, predictor_df: Optional[pdstools.utils.types.any_frame] = None, query: Optional[Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]] = None, subset: bool = True, drop_cols: Optional[list] = None, include_cols: Optional[list] = None, context_keys: list = ['Channel', 'Direction', 'Issue', 'Group'], extract_keys: bool = False, predictorCategorization: polars.Expr = cdh_utils.defaultPredictorCategorization, plotting_engine: Union[str, Any] = 'plotly', verbose: bool = False, **reading_opts)
 
    Bases: :py:obj:`pdstools.plots.plot_base.Plots`, :py:obj:`pdstools.adm.Tables.Tables`
+
 
    Main class for importing, preprocessing and structuring Pega ADM Datamart.
    Gets all available data, properly names and merges into one main dataframe.
@@ -171,31 +170,29 @@ Attributes
                model_filename = "ModelData.csv",
                predictor_filename = "PredictorData.csv")
 
-   .. py:property:: is_available
-      :type: bool
-
 
    .. py:attribute:: standardChannelGroups
       :value: ['Web', 'Mobile', 'E-mail', 'Push', 'SMS', 'Retail', 'Call Center', 'IVR']
 
-      
+
 
    .. py:attribute:: standardDirections
       :value: ['Inbound', 'Outbound']
 
-      
+
 
    .. py:attribute:: NBAD_model_configurations
 
-      
 
    .. py:method:: get_engine(plotting_engine)
       :staticmethod:
+
 
       Which engine to use for creating the plots.
 
       By supplying a custom class here, you can re-use the pdstools functions
       but create visualisations to your own specifications, in any library.
+
 
 
    .. py:method:: import_data(path: Optional[Union[str, pathlib.Path]] = Path('.'), *, model_filename: Optional[str] = 'modelData', predictor_filename: Optional[str] = 'predictorData', model_df: Optional[pdstools.utils.types.any_frame] = None, predictor_df: Optional[pdstools.utils.types.any_frame] = None, subset: bool = True, drop_cols: Optional[list] = None, include_cols: Optional[list] = None, extract_keys: bool = False, verbose: bool = False, **reading_opts) -> Tuple[Optional[polars.LazyFrame], Optional[polars.LazyFrame]]
@@ -237,6 +234,12 @@ Attributes
       :rtype: (polars.LazyFrame, polars.LazyFrame)
 
 
+
+   .. py:property:: is_available
+      :type: bool
+
+
+
    .. py:method:: _import_utils(name: Union[str, pdstools.utils.types.any_frame], path: Optional[str] = None, *, subset: bool = True, extract_keys: bool = False, drop_cols: Optional[list] = None, include_cols: Optional[list] = None, **reading_opts) -> Tuple[polars.LazyFrame, dict, dict]
 
       Handler function to interface to the cdh_utils methods
@@ -269,6 +272,7 @@ Attributes
       :rtype: (pl.LazyFrame, dict, dict)
 
 
+
    .. py:method:: _available_columns(df: polars.LazyFrame, include_cols: Optional[list] = None, drop_cols: Optional[list] = None) -> Tuple[set, set]
 
       Based on the default names for variables, rename available data to proper formatting
@@ -284,6 +288,7 @@ Attributes
                 The original and updated names for all renamed columns &
                 The variables that were not found in the table
       :rtype: Tuple[set, set]
+
 
 
    .. py:method:: _set_types(df: pdstools.utils.types.any_frame, table: str = 'infer', *, timestamp_fmt: str = None, strict_conversion: bool = True) -> pdstools.utils.types.any_frame
@@ -306,7 +311,8 @@ Attributes
       :rtype: Union[pl.DataFrame, pl.LazyFrame]
 
 
-   .. py:method:: last(table='modelData', strategy: Literal[eager, lazy] = 'eager') -> pdstools.utils.types.any_frame
+
+   .. py:method:: last(table='modelData', strategy: Literal['eager', 'lazy'] = 'eager') -> pdstools.utils.types.any_frame
 
       Convenience function to get the last values for a table
 
@@ -323,12 +329,15 @@ Attributes
       :rtype: Union[pl.DataFrame, pl.LazyFrame]
 
 
+
    .. py:method:: _last(df: pdstools.utils.types.any_frame) -> pdstools.utils.types.any_frame
       :staticmethod:
 
 
-   .. py:method:: _last_timestamp(col: Literal[ResponseCount, Positives]) -> polars.Expr
+
+   .. py:method:: _last_timestamp(col: Literal['ResponseCount', 'Positives']) -> polars.Expr
       :staticmethod:
+
 
       Add a column to indicate the last timestamp a column has changed.
 
@@ -336,7 +345,8 @@ Attributes
       :type col: Literal['ResponseCount', 'Positives']
 
 
-   .. py:method:: _get_combined_data(last=True, strategy: Literal[eager, lazy] = 'eager') -> pdstools.utils.types.any_frame
+
+   .. py:method:: _get_combined_data(last=True, strategy: Literal['eager', 'lazy'] = 'eager') -> pdstools.utils.types.any_frame
 
       Combines the model data and predictor data into one dataframe.
 
@@ -350,6 +360,7 @@ Attributes
 
       :returns: The combined dataframe
       :rtype: Union[pl.DataFrame, pl.LazyFrame]
+
 
 
    .. py:method:: processTables(query: Optional[Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]] = None) -> ADMDatamart
@@ -369,6 +380,7 @@ Attributes
       :type query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]], default = None
 
 
+
    .. py:method:: save_data(path: str = '.') -> Tuple[os.PathLike, os.PathLike]
 
       Cache modelData and predictorData to files.
@@ -378,6 +390,7 @@ Attributes
 
       :returns: The paths to the model and predictor data files
       :rtype: (os.PathLike, os.PathLike)
+
 
 
    .. py:method:: _apply_query(df: pdstools.utils.types.any_frame, query: Optional[Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]] = None) -> polars.LazyFrame
@@ -398,6 +411,7 @@ Attributes
       :rtype: pl.DataFrame
 
 
+
    .. py:method:: discover_modelTypes(df: polars.LazyFrame, by: str = 'Configuration', allow_collect=False) -> Dict
 
       Discovers the type of model embedded in the pyModelData column.
@@ -413,6 +427,7 @@ Attributes
       :param allow_collect: Set to True to allow discovering modelTypes, even if in lazy strategy.
                             It will fetch one modelData string per configuration.
       :type allow_collect: bool, default = False
+
 
 
    .. py:method:: get_AGB_models(last: bool = False, by: str = 'Configuration', n_threads: int = 1, query: Optional[Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]] = None, verbose: bool = True, **kwargs) -> Dict
@@ -438,8 +453,10 @@ Attributes
       :type verbose: bool, default = False
 
 
+
    .. py:method:: _create_sign_df(df: polars.LazyFrame, by: str = 'Name', *, what: str = 'ResponseCount', every: str = '1d', pivot: bool = True, mask: bool = True) -> polars.LazyFrame
       :staticmethod:
+
 
       Generates dataframe to show whether responses decreased/increased from day to day
 
@@ -466,6 +483,7 @@ Attributes
       :rtype: pd.LazyFrame
 
 
+
    .. py:method:: model_summary(by: str = 'ModelID', query: Optional[Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]] = None, **kwargs) -> polars.LazyFrame
 
       Convenience method to automatically generate a summary over models
@@ -481,6 +499,7 @@ Attributes
 
       :returns: group_by dataframe over all models
       :rtype: pl.LazyFrame
+
 
 
    .. py:method:: pivot_df(df: polars.LazyFrame, by: Union[str, list] = 'Name', *, allow_collect: bool = True, top_n: int = 0) -> polars.DataFrame
@@ -503,10 +522,13 @@ Attributes
       :rtype: pl.DataFrame
 
 
+
    .. py:method:: response_gain_df(df: pdstools.utils.types.any_frame, by: str = 'Channel') -> pdstools.utils.types.any_frame
       :staticmethod:
 
+
       Simple function to extract the response gain per model
+
 
 
    .. py:method:: models_by_positives_df(df: polars.LazyFrame, by: str = 'Channel', allow_collect=True) -> polars.LazyFrame
@@ -524,6 +546,7 @@ Attributes
 
       :returns: DataFrame with PositivesBin column and model count statistics
       :rtype: pl.LazyFrame
+
 
 
    .. py:method:: get_model_stats(last: bool = True) -> dict
@@ -546,9 +569,11 @@ Attributes
       :rtype: Dict
 
 
+
    .. py:method:: describe_models(**kwargs) -> NoReturn
 
       Convenience method to quickly summarize the models
+
 
 
    .. py:method:: applyGlobalQuery(query: Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]) -> ADMDatamart
@@ -568,6 +593,7 @@ Attributes
           The query to apply, see :meth:`._apply_query`
 
 
+
    .. py:method:: fillMissing() -> ADMDatamart
 
       Convenience method to fill missing values
@@ -576,6 +602,7 @@ Attributes
       - Fills SuccessRate, Performance and ResponseCount columns with 0
       - When context keys have empty string values, replaces them
       with "NA" string
+
 
 
    .. py:method:: summary_by_channel(custom_channels: Dict[str, str] = None, keep_lists: bool = False)
@@ -612,6 +639,7 @@ Attributes
       :keyword \*\*kwargs: Additional keyword arguments.
 
 
+
    .. py:method:: exportTables(file: pathlib.Path = 'Tables.xlsx', predictorBinning=False)
 
       Exports all tables from `pdstools.adm.Tables` into one Excel file.
@@ -625,7 +653,6 @@ Attributes
 
 .. py:class:: ADMTrees
 
-
    .. py:method:: getMultiTrees(file: polars.DataFrame, n_threads=1, verbose=True, **kwargs)
       :staticmethod:
 
@@ -633,31 +660,26 @@ Attributes
 
 .. py:class:: MultiTrees
 
-
-   .. py:property:: first
-
-
-   .. py:property:: last
-
-
    .. py:attribute:: trees
-      :type: dict
+      :type:  dict
 
-      
 
    .. py:attribute:: model_name
-      :type: str
+      :type:  str
+      :value: None
 
-      
+
 
    .. py:attribute:: context_keys
-      :type: list
+      :type:  list
+      :value: None
 
-      
+
 
    .. py:method:: __repr__()
 
       Return repr(self).
+
 
 
    .. py:method:: __getitem__(index)
@@ -669,19 +691,24 @@ Attributes
    .. py:method:: __add__(other)
 
 
+   .. py:property:: first
+
+
+   .. py:property:: last
+
+
    .. py:method:: computeOverTime(predictorCategorization=None)
 
 
    .. py:method:: plotSplitsPerVariableType(predictorCategorization=None, **kwargs)
 
 
-
 .. py:class:: BinAggregator(dm: pdstools.ADMDatamart, query: polars.Expr = None)
-
 
    A class to generate rolled up insights from ADM predictor binning.
 
-   .. py:method:: roll_up(predictors: Union[str, list], n: int = 10, distribution: Literal[lin, log] = 'lin', boundaries: Optional[Union[float, list]] = None, symbols: Optional[Union[str, list]] = None, minimum: Optional[float] = None, maximum: Optional[float] = None, aggregation: Optional[str] = None, as_numeric: Optional[bool] = None, return_df: bool = False, verbose: bool = False) -> Union[polars.DataFrame, plotly.graph_objects.Figure]
+
+   .. py:method:: roll_up(predictors: Union[str, list], n: int = 10, distribution: Literal['lin', 'log'] = 'lin', boundaries: Optional[Union[float, list]] = None, symbols: Optional[Union[str, list]] = None, minimum: Optional[float] = None, maximum: Optional[float] = None, aggregation: Optional[str] = None, as_numeric: Optional[bool] = None, return_df: bool = False, verbose: bool = False) -> Union[polars.DataFrame, plotly.graph_objects.Figure]
 
       Roll up a predictor across all the models defined when creating the class.
 
@@ -734,6 +761,7 @@ Attributes
       :rtype: pl.DataFrame | Figure
 
 
+
    .. py:method:: accumulate_num_binnings(predictor, modelids, target_binning, verbose=False) -> polars.DataFrame
 
 
@@ -749,6 +777,7 @@ Attributes
 
       Fix up the boundaries for numeric bins and parse the bin labels
       into clean lists for symbolics.
+
 
 
    .. py:method:: create_empty_numbinning(predictor: str, n: int, distribution: str = 'lin', boundaries: Optional[list] = None, minimum: Optional[float] = None, maximum: Optional[float] = None) -> polars.DataFrame
@@ -767,7 +796,6 @@ Attributes
 
 
    .. py:method:: plot_lift_binning(binning: polars.DataFrame) -> plotly.graph_objects.Figure
-
 
 
 .. py:function:: get_token(credentialFile: str, verify: bool = True, **kwargs)
@@ -827,7 +855,7 @@ Attributes
                >>> df = readDSExport(filename = df)
 
 
-.. py:function:: setupAzureOpenAI(api_base: str = 'https://aze-openai-01.openai.azure.com/', api_version: Literal[2022-12-01, 2023-03-15-preview, 2023-05-15, 2023-06-01-preview, 2023-07-01-preview, 2023-09-15-preview, 2023-10-01-preview, 2023-12-01-preview] = '2023-12-01-preview')
+.. py:function:: setupAzureOpenAI(api_base: str = 'https://aze-openai-01.openai.azure.com/', api_version: Literal['2022-12-01', '2023-03-15-preview', '2023-05-15', '2023-06-01-preview', '2023-07-01-preview', '2023-09-15-preview', '2023-10-01-preview', '2023-12-01-preview'] = '2023-12-01-preview')
 
    Convenience function to automagically setup Azure AD-based authentication
    for the Azure OpenAI service. Mostly meant as an internal tool within Pega,
@@ -864,36 +892,36 @@ Attributes
 
 .. py:class:: CDHLimits
 
-
    Bases: :py:obj:`object`
+
 
    A singleton container for best practice limits for CDH.
 
-   .. py:attribute:: LimitStatus
+   Limits taken from https://docs-previous.pega.com/pega-customer-decision-hub-user-guide/87/service-and-data-health-limits-pega-customer-decision-hub-pega-cloud?
+   but note these apply to Pega Cloud only.
 
-      
+
+   .. py:attribute:: Status
+
 
    .. py:attribute:: Metrics
 
-      
 
    .. py:attribute:: _instance
+      :value: None
 
-      
+
 
    .. py:attribute:: num_limit
 
-      
 
    .. py:attribute:: lims
 
-      
 
    .. py:method:: get_limits(metric: Metrics) -> Union[num_limit, None]
 
 
-   .. py:method:: check_limits(metric: Metrics, value: object) -> LimitStatus
-
+   .. py:method:: check_limits(metric: Metrics, value: object) -> Status
 
 
 .. py:function:: defaultPredictorCategorization(x: Union[str, polars.Expr] = pl.col('PredictorName')) -> polars.Expr
@@ -947,15 +975,11 @@ Attributes
 
 .. py:function:: CDHSample(plotting_engine='plotly', query=None, **kwargs)
 
-
 .. py:function:: SampleTrees()
-
 
 .. py:function:: SampleValueFinder(verbose=True)
 
-
-.. py:class:: Config(config_file: Optional[str] = None, hds_folder: pathlib.Path = '.', use_datamart: bool = False, datamart_folder: pathlib.Path = 'datamart', output_format: Literal[ndjson, parquet, arrow, csv] = 'ndjson', output_folder: pathlib.Path = 'output', mapping_file: str = 'mapping.map', mask_predictor_names: bool = True, mask_context_key_names: bool = False, mask_ih_names: bool = True, mask_outcome_name: bool = False, mask_predictor_values: bool = True, mask_context_key_values: bool = True, mask_ih_values: bool = True, mask_outcome_values: bool = True, context_key_label: str = 'Context_*', ih_label: str = 'IH_*', outcome_column: str = 'Decision_Outcome', positive_outcomes: list = ['Accepted', 'Clicked'], negative_outcomes: list = ['Rejected', 'Impression'], special_predictors: list = ['Decision_DecisionTime', 'Decision_OutcomeTime', 'Decision_Rank'], sample_percentage_schema_inferencing: float = 0.01)
-
+.. py:class:: Config(config_file: Optional[str] = None, hds_folder: pathlib.Path = '.', use_datamart: bool = False, datamart_folder: pathlib.Path = 'datamart', output_format: Literal['ndjson', 'parquet', 'arrow', 'csv'] = 'ndjson', output_folder: pathlib.Path = 'output', mapping_file: str = 'mapping.map', mask_predictor_names: bool = True, mask_context_key_names: bool = False, mask_ih_names: bool = True, mask_outcome_name: bool = False, mask_predictor_values: bool = True, mask_context_key_values: bool = True, mask_ih_values: bool = True, mask_outcome_values: bool = True, context_key_label: str = 'Context_*', ih_label: str = 'IH_*', outcome_column: str = 'Decision_Outcome', positive_outcomes: list = ['Accepted', 'Clicked'], negative_outcomes: list = ['Rejected', 'Impression'], special_predictors: list = ['Decision_DecisionTime', 'Decision_OutcomeTime', 'Decision_Rank'], sample_percentage_schema_inferencing: float = 0.01)
 
    Configuration file for the data anonymizer.
 
@@ -1006,12 +1030,14 @@ Attributes
                                                 increase this percentage to check a larger portion of data.
    :type sample_percentage_schema_inferencing: float
 
+
    .. py:method:: load_from_config_file(config_file: pathlib.Path)
 
       Load the configurations from a file.
 
       :param config_file: The path to the configuration file
       :type config_file: Path
+
 
 
    .. py:method:: save_to_config_file(file_name: str = None)
@@ -1022,6 +1048,7 @@ Attributes
       :type file_name: str
 
 
+
    .. py:method:: validate_paths()
 
       Validate the outcome folder exists.
@@ -1029,7 +1056,6 @@ Attributes
 
 
 .. py:class:: DataAnonymization(config: Optional[Config] = None, df: Optional[polars.LazyFrame] = None, datamart: Optional[pdstools.ADMDatamart] = None, **config_args)
-
 
    Anonymize a historical dataset.
 
@@ -1043,7 +1069,8 @@ Attributes
 
    See https://pegasystems.github.io/pega-datascientist-tools/Python/articles/Example_Data_Anonymization.html
 
-   .. py:method:: write_to_output(df: Optional[polars.DataFrame] = None, ext: Literal[ndjson, parquet, arrow, csv] = None, mode: Literal[optimized, robust] = 'optimized')
+
+   .. py:method:: write_to_output(df: Optional[polars.DataFrame] = None, ext: Literal['ndjson', 'parquet', 'arrow', 'csv'] = None, mode: Literal['optimized', 'robust'] = 'optimized')
 
       Write the processed dataframe to an output file.
 
@@ -1059,14 +1086,17 @@ Attributes
       :type mode: Literal['optimized', 'robust'], default = 'optimized'
 
 
+
    .. py:method:: create_mapping_file()
 
       Create a file to write the column mapping
 
 
+
    .. py:method:: load_hds_files()
 
       Load the historical dataset files from the `config.hds_folder` location.
+
 
 
    .. py:method:: read_predictor_type_from_file(df: polars.LazyFrame)
@@ -1085,8 +1115,10 @@ Attributes
       :type df: pl.LazyFrame
 
 
+
    .. py:method:: read_predictor_type_from_datamart(datamart_folder: pathlib.Path, datamart: pdstools.ADMDatamart = None)
       :staticmethod:
+
 
       The datamart contains type information about each predictor.
       This function extracts that information to infer types for the HDS.
@@ -1097,14 +1129,17 @@ Attributes
       :type datamart: ADMDatamart
 
 
+
    .. py:method:: get_columns_by_type()
 
       Get a list of columns for each type.
 
 
+
    .. py:method:: get_predictors_mapping()
 
       Map the predictor names to their anonymized form.
+
 
 
    .. py:method:: getHasher(cols, algorithm='xxhash', seed='random', seed_1=None, seed_2=None, seed_3=None)
@@ -1118,382 +1153,286 @@ Attributes
 
 .. py:class:: PegaDefaultTables
 
-
    .. py:class:: ADMModelSnapshot
-
 
       .. py:attribute:: pxApplication
 
-         
 
       .. py:attribute:: pyAppliesToClass
 
-         
 
       .. py:attribute:: pyModelID
 
-         
 
       .. py:attribute:: pyConfigurationName
 
-         
 
       .. py:attribute:: pySnapshotTime
 
-         
 
       .. py:attribute:: pyIssue
 
-         
 
       .. py:attribute:: pyGroup
 
-         
 
       .. py:attribute:: pyName
 
-         
 
       .. py:attribute:: pyChannel
 
-         
 
       .. py:attribute:: pyDirection
 
-         
 
       .. py:attribute:: pyTreatment
 
-         
 
       .. py:attribute:: pyPerformance
 
-         
 
       .. py:attribute:: pySuccessRate
 
-         
 
       .. py:attribute:: pyResponseCount
 
-         
 
       .. py:attribute:: pxObjClass
 
-         
 
       .. py:attribute:: pzInsKey
 
-         
 
       .. py:attribute:: pxInsName
 
-         
 
       .. py:attribute:: pxSaveDateTime
 
-         
 
       .. py:attribute:: pxCommitDateTime
 
-         
 
       .. py:attribute:: pyExtension
 
-         
 
       .. py:attribute:: pyActivePredictors
 
-         
 
       .. py:attribute:: pyTotalPredictors
 
-         
 
       .. py:attribute:: pyNegatives
 
-         
 
       .. py:attribute:: pyPositives
 
-         
 
       .. py:attribute:: pyRelativeNegatives
 
-         
 
       .. py:attribute:: pyRelativePositives
 
-         
 
       .. py:attribute:: pyRelativeResponseCount
 
-         
 
       .. py:attribute:: pyMemory
 
-         
 
       .. py:attribute:: pyPerformanceThreshold
 
-         
 
       .. py:attribute:: pyCorrelationThreshold
 
-         
 
       .. py:attribute:: pyPerformanceError
 
-         
 
       .. py:attribute:: pyModelData
 
-         
 
       .. py:attribute:: pyModelVersion
 
-         
 
       .. py:attribute:: pyFactoryUpdatetime
 
-         
 
 
    .. py:class:: ADMPredictorBinningSnapshot
 
-
       .. py:attribute:: pxCommitDateTime
 
-         
 
       .. py:attribute:: pxSaveDateTime
 
-         
 
       .. py:attribute:: pyModelID
 
-         
 
       .. py:attribute:: pxObjClass
 
-         
 
       .. py:attribute:: pzInsKey
 
-         
 
       .. py:attribute:: pxInsName
 
-         
 
       .. py:attribute:: pyPredictorName
 
-         
 
       .. py:attribute:: pyContents
 
-         
 
       .. py:attribute:: pyPerformance
 
-         
 
       .. py:attribute:: pyPositives
 
-         
 
       .. py:attribute:: pyNegatives
 
-         
 
       .. py:attribute:: pyType
 
-         
 
       .. py:attribute:: pyTotalBins
 
-         
 
       .. py:attribute:: pyResponseCount
 
-         
 
       .. py:attribute:: pyRelativePositives
 
-         
 
       .. py:attribute:: pyRelativeNegatives
 
-         
 
       .. py:attribute:: pyRelativeResponseCount
 
-         
 
       .. py:attribute:: pyBinNegatives
 
-         
 
       .. py:attribute:: pyBinPositives
 
-         
 
       .. py:attribute:: pyBinType
 
-         
 
       .. py:attribute:: pyBinNegativesPercentage
 
-         
 
       .. py:attribute:: pyBinPositivesPercentage
 
-         
 
       .. py:attribute:: pyBinSymbol
 
-         
 
       .. py:attribute:: pyBinLowerBound
 
-         
 
       .. py:attribute:: pyBinUpperBound
 
-         
 
       .. py:attribute:: pyRelativeBinPositives
 
-         
 
       .. py:attribute:: pyRelativeBinNegatives
 
-         
 
       .. py:attribute:: pyBinResponseCount
 
-         
 
       .. py:attribute:: pyRelativeBinResponseCount
 
-         
 
       .. py:attribute:: pyBinResponseCountPercentage
 
-         
 
       .. py:attribute:: pySnapshotTime
 
-         
 
       .. py:attribute:: pyBinIndex
 
-         
 
       .. py:attribute:: pyLift
 
-         
 
       .. py:attribute:: pyZRatio
 
-         
 
       .. py:attribute:: pyEntryType
 
-         
 
       .. py:attribute:: pyExtension
 
-         
 
       .. py:attribute:: pyGroupIndex
 
-         
 
       .. py:attribute:: pyCorrelationPredictor
 
-         
 
 
    .. py:class:: pyValueFinder
 
-
       .. py:attribute:: pyDirection
 
-         
 
       .. py:attribute:: pySubjectType
 
-         
 
       .. py:attribute:: ModelPositives
 
-         
 
       .. py:attribute:: pyGroup
 
-         
 
       .. py:attribute:: pyPropensity
 
-         
 
       .. py:attribute:: FinalPropensity
 
-         
 
       .. py:attribute:: pyStage
 
-         
 
       .. py:attribute:: pxRank
 
-         
 
       .. py:attribute:: pxPriority
 
-         
 
       .. py:attribute:: pyModelPropensity
 
-         
 
       .. py:attribute:: pyChannel
 
-         
 
       .. py:attribute:: Value
 
-         
 
       .. py:attribute:: pyName
 
-         
 
       .. py:attribute:: StartingEvidence
 
-         
 
       .. py:attribute:: pySubjectID
 
-         
 
       .. py:attribute:: DecisionTime
 
-         
 
       .. py:attribute:: pyTreatment
 
-         
 
       .. py:attribute:: pyIssue
 
-         
 
 
-
-.. py:class:: ValueFinder(path: Optional[str] = None, df: Optional[Union[pandas.DataFrame, polars.DataFrame, polars.LazyFrame]] = None, verbose: bool = True, import_strategy: Literal[eager, lazy] = 'eager', ncust: int = None, **kwargs)
-
+.. py:class:: ValueFinder(path: Optional[str] = None, df: Optional[Union[pandas.DataFrame, polars.DataFrame, polars.LazyFrame]] = None, verbose: bool = True, import_strategy: Literal['eager', 'lazy'] = 'eager', ncust: int = None, **kwargs)
 
    Class to analyze Value Finder datasets.
 
@@ -1525,6 +1464,7 @@ Attributes
                     Will speed up analysis and reduce unused information
    :kwtype subset: bool
 
+
    .. py:method:: save_data(path: str = '.') -> os.PathLike
 
       Cache the ValueFinder dataset to a file
@@ -1534,6 +1474,7 @@ Attributes
 
       :returns: The paths to the file
       :rtype: PathLike
+
 
 
    .. py:method:: getCustomerSummary(th: Optional[float] = None) -> polars.DataFrame
@@ -1547,6 +1488,7 @@ Attributes
       :type th: Optional[float]
 
 
+
    .. py:method:: getCountsPerStage(customersummary: Optional[polars.DataFrame] = None) -> polars.DataFrame
 
       Generates an aggregated view per stage.
@@ -1554,6 +1496,7 @@ Attributes
       :param customersummary: Optional override of the customer summary,
                               which can be generated by getCustomerSummary().
       :type customersummary: Optional[pl.DataFrame]
+
 
 
    .. py:method:: getThFromQuantile(quantile: float) -> float
@@ -1565,6 +1508,7 @@ Attributes
 
       :param quantile: The quantile to get the threshold for
       :type quantile: float
+
 
 
    .. py:method:: getCountsPerThreshold(th, return_df=False) -> Optional[polars.LazyFrame]
@@ -1588,6 +1532,7 @@ Attributes
       :type method: Literal["threshold", "quantile"]:
 
 
+
    .. py:method:: plotPropensityDistribution(sampledN: int = 10000) -> plotly.graph_objects.Figure
 
       Plots the distribution of the different propensities.
@@ -1600,6 +1545,7 @@ Attributes
       :type sampledN: int, default = 10_000
 
 
+
    .. py:method:: plotPropensityThreshold(sampledN=10000, stage='Eligibility') -> plotly.graph_objects.Figure
 
       Plots the propensity threshold vs the different propensities.
@@ -1608,7 +1554,8 @@ Attributes
       :type sampledN: int, default = 10_000
 
 
-   .. py:method:: plotPieCharts(start: float = None, stop: float = None, step: float = None, *, method: Literal[ValueFinder.plotPieCharts.threshold, quantile] = 'threshold', rounding: int = 3, th: Optional[float] = None) -> plotly.graph_objects.FigureWidget
+
+   .. py:method:: plotPieCharts(start: float = None, stop: float = None, step: float = None, *, method: Literal['threshold', 'quantile'] = 'threshold', rounding: int = 3, th: Optional[float] = None) -> plotly.graph_objects.FigureWidget
 
       Plots pie charts showing the distribution of customers
 
@@ -1636,7 +1583,8 @@ Attributes
       :kwtype th: Optional[float]
 
 
-   .. py:method:: plotDistributionPerThreshold(start: float = None, stop: float = None, step: float = None, *, method: Literal[threshold, ValueFinder.plotDistributionPerThreshold.quantile] = 'threshold', rounding=3) -> plotly.graph_objects.FigureWidget
+
+   .. py:method:: plotDistributionPerThreshold(start: float = None, stop: float = None, step: float = None, *, method: Literal['threshold', 'quantile'] = 'threshold', rounding=3) -> plotly.graph_objects.FigureWidget
 
       Plots the distribution of customers per threshold, per stage.
 
@@ -1661,6 +1609,7 @@ Attributes
       :kwtype rounding: int
 
 
+
    .. py:method:: plotFunnelChart(level: str = 'Action', query=None, return_df=False, **kwargs)
 
       Plots the funnel of actions or issues per stage.
@@ -1674,7 +1623,6 @@ Attributes
 
 .. py:class:: Sample(ldf: polars.LazyFrame)
 
-
    .. py:method:: sample(n)
 
 
@@ -1687,8 +1635,208 @@ Attributes
    .. py:method:: item()
 
 
+.. py:class:: DecisionData(raw_data: polars.LazyFrame)
+
+   Container data class for the raw decision data. Only one instance of this
+   should exist and will be associated with the streamlit app state.
+
+   It will keep a pointer to the raw interaction level data (as a
+   lazy frame) but also has VBD-style aggregation(s) to speed things up.
+
+
+   .. py:attribute:: unfiltered_raw_decision_data
+      :type:  polars.LazyFrame
+      :value: None
+
+
+
+   .. py:attribute:: decision_data
+      :type:  polars.LazyFrame
+      :value: None
+
+
+
+   .. py:attribute:: preaggregated_decision_data_filterview
+      :type:  polars.LazyFrame
+      :value: None
+
+
+
+   .. py:attribute:: preaggregated_decision_data_remainingview
+      :type:  polars.LazyFrame
+      :value: None
+
+
+
+   .. py:attribute:: fields_for_data_filtering
+      :value: ['pxDecisionTime', 'pyConfigurationName', 'pyChannel', 'pyDirection', 'pyIssue', 'pyGroup',...
+
+
+
+   .. py:method:: stages_from_arbitration_down()
+
+      All stages in the filter view starting at Arbitration. This initially
+      will just be [Arbitration, Final] but as we get more stages in there
+      may be more here.
+
+
+
+   .. py:method:: arbitration_stage()
+
+
+   .. py:method:: _invalidate_cached_properties()
+
+      Resets the properties of the class
+
+
+
+   .. py:method:: applyGlobalDataFilters(filters: Optional[Union[polars.Expr, List[polars.Expr]]] = None)
+
+      Apply a global set of filters
+
+
+
+   .. py:method:: resetGlobalDataFilters()
+
+
+   .. py:method:: getPreaggregatedFilterView()
+
+      Pre-aggregates the full dataset over customers and interactions providing
+      a view of what is filtered at a stage.
+
+      This pre-aggregation is pretty similar to what "VBD" does to interaction
+      history. It aggregates over individual customers and interactions giving
+      summary statistics that are sufficient to drive most of the analyses
+      (but not all). The results of this pre-aggregation are much smaller
+      than the original data and is expected to easily fit in memory. We therefore
+      use polars caching to efficiently cache this.
+
+      This "filter" view keeps the same organization as the decision analyzer data
+      in that it records the actions that get filtered out at stages. From this
+      a "remaining" view is easily derived.
+
+
+
+   .. py:method:: getPreaggregatedRemainingView()
+
+      Pre-aggregates the full dataset over customers and interactions providing a view of remaining offers.
+
+      This pre-aggregation builds on the filter view and aggregates over
+      the stages remaining.
+
+
+
+   .. py:method:: sample()
+
+
+   .. py:method:: getAvailableFieldsForFiltering(categoricalOnly=False)
+
+
+   .. py:method:: cleanup_raw_data(df: polars.LazyFrame)
+
+      This method cleans up the raw data we read from parquet/S3/whatever.
+
+      This likely needs to change as and when we get closer to product, to
+      match what comes out of Pega. It does some modest type casting and
+      potentially changing back some of the temporary column names that have
+      been added to generate more data.
+
+
+
+   .. py:method:: getPossibleScopeValues()
+
+
+   .. py:method:: getPossibleStageValues()
+
+
+   .. py:method:: getDistributionData(stage: str, grouping_levels: List[str], trend=False, additional_filters: Optional[Union[polars.Expr, List[polars.Expr]]] = None) -> polars.LazyFrame
+
+
+   .. py:method:: getFunnelData(level, additional_filters: Optional[Union[polars.Expr, List[polars.Expr]]] = None) -> polars.LazyFrame
+
+
+   .. py:method:: getFilterComponentData(top_n, additional_filters: Optional[Union[polars.Expr, List[polars.Expr]]] = None) -> polars.DataFrame
+
+
+   .. py:method:: reRank(additional_filters: Optional[Union[polars.Expr, List[polars.Expr]]] = None, overrides: List[polars.Expr] = []) -> polars.LazyFrame
+
+      Calculates prio and rank for all PVCL combinations
+
+
+
+   .. py:method:: get_win_loss_distribution_data(level, win_rank)
+
+
+   .. py:method:: get_optionality_data()
+
+      Finding the average number of actions per stage without trend analysis.
+      We have to go back to the interaction level data, no way to
+      use pre-aggregations unfortunately.
+
+
+
+   .. py:method:: get_optionality_data_with_trend()
+
+      Finding the average number of actions per stage with trend analysis.
+      We have to go back to the interaction level data, no way to
+      use pre-aggregations unfortunately.
+
+
+
+   .. py:method:: getActionVariationData(stage)
+
+
+   .. py:method:: getABTestResults()
+
+
+   .. py:method:: getThresholdingData(fld, quantile_range=range(10, 100, 10))
+
+
+   .. py:method:: getValueDistributionData()
+
+
+   .. py:method:: aggregate_remaining_per_stage(df: polars.LazyFrame, group_by_columns: List[str], aggregations: List = []) -> polars.LazyFrame
+
+      Workhorse function to convert the raw Decision Analyzer data (filter view) to
+      the aggregates remaining per stage. Used all over the place.
+
+
+
+   .. py:method:: get_offer_quality(df, group_by)
+
+      Given a dataframe with filtered action counts at stages.
+      Flips it to usual VF view by doing a rolling sum over stages.
+
+      :param df: Decision Analyzer style filtered action counts dataframe.
+      :type df: pl.LazyFrame
+      :param groupby_cols: The list of column names to group by(["pxEngagementStage", "pxInteractionID"]).
+      :type groupby_cols: list
+
+      :returns: Value Finder style, available action counts per group_by category
+      :rtype: pl.LazyFrame
+
+
+
+   .. py:method:: get_overview_stats()
+
+      Creates an overview from sampled data
+
+
+
+   .. py:method:: get_sensitivity(win_rank=1, filters=None)
+
+
+   .. py:method:: get_offer_variability_stats(stage)
+
+
+   .. py:method:: get_winning_or_losing_interactions(win_rank, group_filter, win: bool)
+
+
+   .. py:method:: winning_from(interactions, win_rank, groupby_cols, top_k)
+
+
+   .. py:method:: losing_to(interactions, win_rank, groupby_cols, top_k)
+
 
 .. py:data:: __reports__
-
-   
 

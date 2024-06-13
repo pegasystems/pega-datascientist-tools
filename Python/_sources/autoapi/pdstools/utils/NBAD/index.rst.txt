@@ -1,7 +1,18 @@
-:py:mod:`pdstools.utils.NBAD`
-=============================
+pdstools.utils.NBAD
+===================
 
 .. py:module:: pdstools.utils.NBAD
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.utils.NBAD.NBAD_ModelConfiguration
+   pdstools.utils.NBAD.standardNBADModelConfigurations
+   pdstools.utils.NBAD.NBAD_Prediction
+   pdstools.utils.NBAD.standardNBADPredictions
 
 
 Module Contents
@@ -9,19 +20,11 @@ Module Contents
 
 .. py:data:: NBAD_ModelConfiguration
 
-   
-
 .. py:data:: standardNBADModelConfigurations
-   :type: List[NBAD_ModelConfiguration]
-
-   
+   :type:  List[NBAD_ModelConfiguration]
 
 .. py:data:: NBAD_Prediction
 
-   
-
 .. py:data:: standardNBADPredictions
-   :type: List[NBAD_Prediction]
-
-   
+   :type:  List[NBAD_Prediction]
 

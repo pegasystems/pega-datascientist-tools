@@ -1,18 +1,18 @@
-:py:mod:`pdstools.adm`
-======================
+pdstools.adm
+============
 
 .. py:module:: pdstools.adm
 
 
 Submodules
 ----------
+
 .. toctree::
-   :titlesonly:
    :maxdepth: 1
 
-   ADMDatamart/index.rst
-   ADMTrees/index.rst
-   BinAggregator/index.rst
-   Tables/index.rst
+   /autoapi/pdstools/adm/ADMDatamart/index
+   /autoapi/pdstools/adm/ADMTrees/index
+   /autoapi/pdstools/adm/BinAggregator/index
+   /autoapi/pdstools/adm/Tables/index
 
 

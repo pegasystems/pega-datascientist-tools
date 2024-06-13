@@ -1,34 +1,30 @@
-:py:mod:`pdstools.pega_io`
-==========================
+pdstools.pega_io
+================
 
 .. py:module:: pdstools.pega_io
 
 
 Submodules
 ----------
+
 .. toctree::
-   :titlesonly:
    :maxdepth: 1
 
-   API/index.rst
-   File/index.rst
-   S3/index.rst
+   /autoapi/pdstools/pega_io/API/index
+   /autoapi/pdstools/pega_io/File/index
+   /autoapi/pdstools/pega_io/S3/index
 
-
-Package Contents
-----------------
 
 Classes
-~~~~~~~
+-------
 
 .. autoapisummary::
 
    pdstools.pega_io.S3Data
 
 
-
 Functions
-~~~~~~~~~
+---------
 
 .. autoapisummary::
 
@@ -46,9 +42,10 @@ Functions
    pdstools.pega_io.cache_to_file
 
 
+Package Contents
+----------------
 
 .. py:function:: _readClientCredentialFile(credentialFile)
-
 
 .. py:function:: get_URL(credentialFile: str)
 
@@ -76,7 +73,7 @@ Functions
    :kwtype url: str
 
 
-.. py:function:: setupAzureOpenAI(api_base: str = 'https://aze-openai-01.openai.azure.com/', api_version: Literal[2022-12-01, 2023-03-15-preview, 2023-05-15, 2023-06-01-preview, 2023-07-01-preview, 2023-09-15-preview, 2023-10-01-preview, 2023-12-01-preview] = '2023-12-01-preview')
+.. py:function:: setupAzureOpenAI(api_base: str = 'https://aze-openai-01.openai.azure.com/', api_version: Literal['2022-12-01', '2023-03-15-preview', '2023-05-15', '2023-06-01-preview', '2023-07-01-preview', '2023-09-15-preview', '2023-10-01-preview', '2023-12-01-preview'] = '2023-12-01-preview')
 
    Convenience function to automagically setup Azure AD-based authentication
    for the Azure OpenAI service. Mostly meant as an internal tool within Pega,
@@ -193,7 +190,7 @@ Functions
    :rtype: os.BytesIO
 
 
-.. py:function:: readMultiZip(files: list, zip_type: Literal[gzip] = 'gzip', verbose: bool = True)
+.. py:function:: readMultiZip(files: list, zip_type: Literal['gzip'] = 'gzip', verbose: bool = True)
 
    Reads multiple zipped ndjson files, and concats them to one Polars dataframe.
 
@@ -227,8 +224,7 @@ Functions
 
 .. py:function:: getMatches(files_dir, target)
 
-
-.. py:function:: cache_to_file(df: Union[polars.DataFrame, polars.LazyFrame], path: os.PathLike, name: str, cache_type: Literal[ipc, parquet] = 'ipc', compression: str = 'uncompressed') -> str
+.. py:function:: cache_to_file(df: Union[polars.DataFrame, polars.LazyFrame], path: os.PathLike, name: str, cache_type: Literal['ipc', 'parquet'] = 'ipc', compression: str = 'uncompressed') -> str
 
    Very simple convenience function to cache data.
    Caches in arrow format for very fast reading.
@@ -251,9 +247,9 @@ Functions
 
 .. py:class:: S3Data(bucketName: str, temp_dir='./s3_download')
 
-
    .. py:method:: getS3Files(prefix, use_meta_files=False, verbose=True)
       :async:
+
 
       OOTB file exports can be written in many very small files.
 
@@ -308,8 +304,10 @@ Functions
       If the file is already on disk, we don't copy it over.
 
 
+
    .. py:method:: getDatamartData(table, datamart_folder: str = 'datamart', verbose: bool = True)
       :async:
+
 
       Wrapper method to import one of the tables in the datamart.
 
@@ -335,8 +333,10 @@ Functions
          }
 
 
+
    .. py:method:: get_ADMDatamart(datamart_folder: str = 'datamart', verbose: bool = True)
       :async:
+
 
       Get the ADMDatamart class directly from files in S3
 

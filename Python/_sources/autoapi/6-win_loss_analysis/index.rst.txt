@@ -1,0 +1,27 @@
+6-win_loss_analysis
+===================
+
+.. py:module:: 6-win_loss_analysis
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   6-win_loss_analysis.facetting
+   6-win_loss_analysis.scope_options
+   6-win_loss_analysis.groupby_cols
+
+
+Module Contents
+---------------
+
+.. py:data:: facetting
+   :value: 'pyChannel/pyDirection'
+
+
+.. py:data:: scope_options
+
+.. py:data:: groupby_cols
+

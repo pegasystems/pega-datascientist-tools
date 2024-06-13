@@ -1,27 +1,27 @@
-:py:mod:`pdstools.utils`
-========================
+pdstools.utils
+==============
 
 .. py:module:: pdstools.utils
 
 
 Submodules
 ----------
+
 .. toctree::
-   :titlesonly:
    :maxdepth: 1
 
-   CDHLimits/index.rst
-   NBAD/index.rst
-   cdh_utils/index.rst
-   datasets/index.rst
-   errors/index.rst
-   hds_utils/index.rst
-   hds_utils_experimental/index.rst
-   pega_template/index.rst
-   polars_ext/index.rst
-   show_versions/index.rst
-   streamlit_utils/index.rst
-   table_definitions/index.rst
-   types/index.rst
+   /autoapi/pdstools/utils/CDHLimits/index
+   /autoapi/pdstools/utils/NBAD/index
+   /autoapi/pdstools/utils/cdh_utils/index
+   /autoapi/pdstools/utils/datasets/index
+   /autoapi/pdstools/utils/errors/index
+   /autoapi/pdstools/utils/hds_utils/index
+   /autoapi/pdstools/utils/hds_utils_experimental/index
+   /autoapi/pdstools/utils/pega_template/index
+   /autoapi/pdstools/utils/polars_ext/index
+   /autoapi/pdstools/utils/show_versions/index
+   /autoapi/pdstools/utils/streamlit_utils/index
+   /autoapi/pdstools/utils/table_definitions/index
+   /autoapi/pdstools/utils/types/index
 
 

@@ -1,24 +1,21 @@
-:py:mod:`pdstools.utils.polars_ext`
-===================================
+pdstools.utils.polars_ext
+=========================
 
 .. py:module:: pdstools.utils.polars_ext
 
 
-Module Contents
----------------
-
 Classes
-~~~~~~~
+-------
 
 .. autoapisummary::
 
    pdstools.utils.polars_ext.Sample
 
 
-
+Module Contents
+---------------
 
 .. py:class:: Sample(ldf: polars.LazyFrame)
-
 
    .. py:method:: sample(n)
 
@@ -30,6 +27,5 @@ Classes
 
 
    .. py:method:: item()
-
 
 

@@ -1,0 +1,25 @@
+10-Business Value Analysis
+==========================
+
+.. py:module:: 10-Business Value Analysis
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   10-Business Value Analysis.scope_options
+   10-Business Value Analysis.valueData
+   10-Business Value Analysis.scope_index
+
+
+Module Contents
+---------------
+
+.. py:data:: scope_options
+
+.. py:data:: valueData
+
+.. py:data:: scope_index
+

@@ -1,48 +1,45 @@
-:py:mod:`pdstools.prediction.Prediction`
-========================================
+pdstools.prediction.Prediction
+==============================
 
 .. py:module:: pdstools.prediction.Prediction
 
 
-Module Contents
----------------
-
 Classes
-~~~~~~~
+-------
 
 .. autoapisummary::
 
    pdstools.prediction.Prediction.Prediction
 
 
-
+Module Contents
+---------------
 
 .. py:class:: Prediction(df: polars.LazyFrame)
+
+   .. py:attribute:: predictions
+      :type:  polars.LazyFrame
+
+
+   .. py:attribute:: prediction_validity_expr
+
+
+   .. py:method:: getPredictionsChannelMapping(custom_predictions: Optional[List[pdstools.utils.NBAD.NBAD_Prediction]] = None) -> polars.DataFrame
 
 
    .. py:property:: is_available
       :type: bool
 
 
+
    .. py:property:: is_valid
       :type: bool
 
 
-   .. py:attribute:: predictions
 
-      
-
-   .. py:attribute:: validityExpr
-
-      
-
-   .. py:method:: getPredictionsChannelMapping(custom_predictions=List[NBAD.NBAD_Prediction]) -> polars.DataFrame
+   .. py:method:: summary_by_channel(custom_predictions: Optional[List[pdstools.utils.NBAD.NBAD_Prediction]] = None, keep_trend_data: bool = False) -> polars.LazyFrame
 
 
-   .. py:method:: summary_by_channel(custom_predictions: List[pdstools.utils.NBAD.NBAD_Prediction] = None) -> polars.LazyFrame
-
-
-   .. py:method:: overall_summary(custom_predictions: List[pdstools.utils.NBAD.NBAD_Prediction] = None) -> polars.LazyFrame
-
+   .. py:method:: overall_summary(custom_predictions: Optional[List[pdstools.utils.NBAD.NBAD_Prediction]] = None) -> polars.LazyFrame
 
 
