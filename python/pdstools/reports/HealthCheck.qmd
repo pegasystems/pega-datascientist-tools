@@ -20,9 +20,7 @@ format:
 jupyter: python3
 ---
 ```{python}
-# | label: Imports
 # | code-fold: true
-# | code-summary: Python imports and utility function definitions
 # | output: false
 import logging, sys
 
@@ -44,13 +42,11 @@ from pdstools import (
 from pdstools.utils import pega_template
 
 # from plotly.offline import iplot
-from itables import show, JavascriptFunction  # Oh no JS and lets use show explicitly
 from great_tables import GT, style, md, html, loc
 import plotly.express as px
 import plotly.graph_objs as go
 import polars as pl
 
-# import pandas as pd
 import numpy as np
 import math
 
@@ -159,8 +155,8 @@ def table_style_predictor_count(gt, flds):
     return gt
 
 
-def table_standard_formatting(source_table, title=""):
-    def table_style_std_metrics(gt, col_name, metric):
+def table_standard_formatting(source_table, title=None, rowname_col=None):
+    def table_style_std_metrics(gt, col_name, metric, skip_warnings=False):
         if col_name in source_table.columns:
             status = list(
                 map(
@@ -171,17 +167,19 @@ def table_standard_formatting(source_table, title=""):
             error_rows = [
                 s[0] for s in enumerate(status.copy()) if s[1] == CDHLimits.Status.Bad
             ]
-            warning_rows = [
-                s[0]
-                for s in enumerate(status.copy())
-                if s[1] == CDHLimits.Status.Warning
-            ]
+            if not skip_warnings:
+                warning_rows = [
+                    s[0]
+                    for s in enumerate(status.copy())
+                    if s[1] == CDHLimits.Status.Warning
+                ]
+                gt = gt.tab_style(
+                    style=style.fill(color="orange"),
+                    locations=loc.body(columns=col_name, rows=warning_rows),
+                )
             # info_rows = [s[0] for s in enumerate(status.copy()) if s[1] == CDHLimits.Status.Info ]
             # "Good", "Bad", "Warning", "Unknown"
             gt = gt.tab_style(
-                style=style.fill(color="orange"),
-                locations=loc.body(columns=col_name, rows=warning_rows),
-            ).tab_style(
                 style=style.fill(color="orangered"),
                 locations=loc.body(columns=col_name, rows=error_rows),
             )
@@ -209,7 +207,7 @@ def table_standard_formatting(source_table, title=""):
                         locations=loc.body(
                             columns=col,
                             # CDHLimits.Metrics.Number_of_Responses.best_practice_min
-                            rows=((pl.col(col) >= 1) & (pl.col(col) < 200)),
+                            rows=(pl.col(col) >= 1) & (pl.col(col) < 200),
                         ),
                     )
                 )
@@ -230,12 +228,32 @@ def table_standard_formatting(source_table, title=""):
                 )
         return gt
 
-    gt = GT(source_table).tab_options(table_font_size=8).tab_header(title=title)
+    gt = (
+        GT(source_table, rowname_col=rowname_col)
+        .tab_options(table_font_size=8)
+    )
+
+    if "Performance" in source_table.columns:
+        gt = gt.fmt_number(
+            decimals=2,
+            columns=["Performance"],
+        )
+    if "CTR" in source_table.columns:
+        gt = gt.cols_label(CTR="Base Rate").fmt_percent(decimals=2, columns=["CTR"])
+    if "ResponseCount" in source_table.columns:
+        gt = gt.cols_label(ResponseCount="Total Responses")
+    if "Positives" in source_table.columns:
+        gt = gt.cols_label(Positives="Total Positives")
+    if title is not None:
+        gt = gt.tab_header(title=title)
     gt = table_style_std_metrics(
-        gt, "Channel", CDHLimits.Metrics.Standard_NBAD_Channel_Names
+        gt, "Channel", CDHLimits.Metrics.Standard_NBAD_Channel_Names, skip_warnings=True
     )
     gt = table_style_std_metrics(
-        gt, "Direction", CDHLimits.Metrics.Standard_NBAD_Direction_Names
+        gt,
+        "Direction",
+        CDHLimits.Metrics.Standard_NBAD_Direction_Names,
+        skip_warnings=True,
     )
     gt = table_style_response_count(gt, ["Positives", "ResponseCount"])
     gt = table_style_std_metrics(gt, "Performance", CDHLimits.Metrics.Model_Performance)
@@ -300,8 +318,6 @@ predictor_analysis_query = pl.col("ResponseCount") > predictor_analysis_threshol
 
 ```{python}
 # | echo: false
-# | label: Title
-
 quarto_print(
     f"""
 # {title}
@@ -316,9 +332,7 @@ quarto_print(
 
 ```{python}
 # | tags: [initialization]
-# | label: Datamart Initialization
 # | code-fold: true
-# | code-summary: Initialization of the datamart class.
 
 def reset_datamart(dm):
     global datamart
@@ -364,15 +378,13 @@ else:
 
 ```
 
-This document gives a global overview of the Adaptive models and predictors. It is generated from a Python markdown file in the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools). This is open-source software and comes without guarantees. Off-line reports for individual
+This document gives a global overview of the Adaptive models and (if available) the predictors of the models. It is generated from a Python markdown (Quarto) file in the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools). This is open-source software and comes without guarantees. Off-line reports for individual
 models can be created as well, see [Wiki](https://github.com/pegasystems/pega-datascientist-tools/wiki).
 
-We provide guidance and best practices where possible. However these are  generic practices and may or may not be applicable to the specific use case and situation of the implementation. The recommendations are strongly geared towards the CDH use cases and may not apply to, for example, Process AI.
+We provide guidance and best practices where possible. However these are  generic guidelines and may or may not be applicable to the specific use case and situation of the implementation. The recommendations are strongly geared towards the CDH use cases and may not apply to, for example, Process AI.
 
 
 ```{python}
-# | label: Global Bubble Chart
-
 # Start with a global bubble chart. Maybe later replace by
 # some ADM metrics, e.g. overall AUC, CTR, some other things.
 # TODO for the overall AUC chart would be nicer to color the
@@ -390,12 +402,13 @@ fig = (
         xaxis_title="Model Performance",
         yaxis_title="Success Rate",
     )
-    .update_yaxes(tickformat=",.3%")
+    .update_yaxes(tickformat=",.2%")
     .update_coloraxes(showscale=False)
 )
 
 fig.show()
 ```
+
 
 ::: {.callout-tip title="Guidance"}
 The [Plotly](https://plotly.com/python/) charts have [user controls for panning,
@@ -406,13 +419,13 @@ or Box. It is preferable to view them from a browser.
 
 # Overview of Channels
 
-In a typical NBAD setup, channels are served by both one channel specific model configuration as well as a cross-channel *OmniAdaptiveModel* configuration.
+In a typical NBAD setup, treatments for a channels are modelled by a channel specific model configuration as well as a cross-channel *OmniAdaptiveModel* configuration. This cross-channel configuration is typically only used as a fall-back, and, additionally, for action-level insights.
 
 If a channel has two model configurations with a naming pattern like “Adm_12345678912”, this could indicate the usage of the (no longer recommended) “2-stage model” predictions for conversion modeling, generated by Prediction Studio.
 
-```{python}
-# | label: Channel Overview
+The "OmniChannel" percentage is an indicator of the overlap of actions between channels. The general recommendation is to have cross-channel actions and channel-specific treatments. This metric counts the overlap between the actions in one channel and all the other channels. It takes the average overlap with the other channels. At 100% the actions are truly cross-channel and at 0% the actions are specific to this one channel.
 
+```{python}
 channel_overview = (
     datamart.summary_by_channel()
     .with_columns(
@@ -428,7 +441,7 @@ channel_overview = (
 )
 
 formatted_channel_overview = (
-    table_standard_formatting(channel_overview, "Channel Overview")
+    table_standard_formatting(channel_overview)
     .cols_hide(
         [
             "ChannelDirectionGroup",
@@ -437,14 +450,12 @@ formatted_channel_overview = (
             "DateRange Max",
             "usesNBAD",
             "usesNBADOnly",
+            "isValid",
         ]
     )
     .cols_label(
-        CTR="Base Rate",
-        ResponseCount="Total Responses",
         Configuration="Supported by Configurations",
         Performance="Average Performance",
-        Positives="Total Positives",
     )
     .tab_spanner(
         label=html("<b>ADM Models</b>"),
@@ -464,19 +475,39 @@ formatted_channel_overview = (
         ],
     )
     .fmt_percent(decimals=0, columns=["OmniChannel Actions"])
-    .fmt_percent(decimals=2, columns=["CTR"])
-    .fmt_number(
-        decimals=2,
-        columns=["Performance"],
-    )
 )
 
-formatted_channel_overview
+# display table in two parts otherwise doesn't fit
+
+display(
+    formatted_channel_overview.cols_hide(
+        [
+            "Total Number of Actions",
+            "Total Number of Treatments",
+            "Used Actions",
+            "Used Treatments",
+            "Issues",
+            "Groups",
+            "NBAD",
+            "OmniChannel Actions",
+        ]
+    ).tab_style(
+        style=style.text(decorate="line-through"),
+        locations=loc.body(rows=pl.col("isValid").not_()),
+    ).cols_move_to_start(columns=["Channel", "Direction", "CTR"])
+)
+
+display(
+    formatted_channel_overview.cols_hide(
+        ["Positives", "ResponseCount", "Performance", "Configuration", "CTR"]
+    ).tab_style(
+        style=style.text(decorate="line-through"),
+        locations=loc.body(rows=pl.col("isValid").not_()),
+    )
+)
 ```
 
 ```{python}
-# | label: Framework Usage
-
 framework_usage = (
     "is being used"
     if channel_overview.select(pl.col('usesNBAD').all()).item()
@@ -502,19 +533,13 @@ configurations it seems that the framework **{framework_usage}**.
 * Channels with no positive feedback
 :::
 
-In the table below we show the overall numbers per channel and direction. The numbers are not guaranteed to be correct: in the ADM data we only have aggregate numbers, we need to make some assumptions about the configurations, especially about having only one ADM model per configuration for an individual action or treatment. In some use cases these assumptions may not hold, so the ultimate truth about these numbers should come from data that tracks all interactions.
+::: {.callout-note}
+The total number of responses and positives are summed up over the models for that channel. If the models are configured differently, e.g. in a serial manner (shadow pattern for example) rather than in parallel (independently learning champion challenger setup) the actual counts per channel may be different. Ultimately, the real counts per channel can only be derived from interaction history data.
+:::
 
 ## Exclude unused Channels
 
-Channels with very few or no responses will be excluded from subsequent analyses.
-
-```{python}
-# | label: Unused Channels
-
-unused_channels = channel_overview.filter(pl.col.isValid.not_()).select(["Channel", "Direction"])
-display(GT(unused_channels))
-```
-
+Channels with very few or no responses will be excluded from subsequent analyses. They have been highlighted in the channel overview with a strike-through.
 
 # Overview of the Actions
 
@@ -525,8 +550,6 @@ Adaptive Models are created per treatment (at least in the default setup) and th
 The recommended Service and data health limits for Pega Customer Decision Hub on Pega Cloud are published in https://docs.pega.com/bundle/customer-decision-hub-241/page/customer-decision-hub/cdh-portal/cloud-service-health-limits.html.
 
 ```{python}
-# | label: Action Overview
-
 def nUniqueValues(fld):
     if not isinstance(fld, list):
         fld = [fld]
@@ -680,7 +703,7 @@ display(
 
 
 ```{python}
-# | label: Drop Unused Channels
+unused_channels = channel_overview.filter(pl.col.isValid.not_()).select(["Channel", "Direction"])
 if unused_channels.shape[0] > 0:
     reset_datamart(
         ADMDatamart(
@@ -709,8 +732,6 @@ Just showing the top {barchart_max_bars} here and limiting to the propositions t
 
 
 ```{python}
-# | label: Success Rates by Channel
-
 facet = "Channel/Direction"
 hover_columns = polars_subset_to_existing_cols(["Issue", "Group", "Name", "Treatment"])
 
@@ -779,8 +800,6 @@ Showing the success rates of all actions in an interactive
 tree map. Green is higher, red are lower success rates.
 
 ```{python}
-# | label: Success Rates treemap
-
 fig = datamart.plotTreeMap(
     color_var="SuccessRate",
     group_by_col=None,
@@ -806,7 +825,6 @@ Showing how the overall channel success rates evolved over the time that the dat
 :::
 
 ```{python}
-# | label: Success Rates trend line
 facets = "Configuration"
 unique_count = datamart.modelData.select(pl.concat_str(facets.split("/"), separator="/").n_unique()).collect().item()
 # TODO: the faceting errors out when there are many configurations and too few facet columns resulting in very small facet rows
@@ -850,58 +868,56 @@ There are a total of **{n_unique_models}** Adaptive Models in the latest snapsho
 In the standard configuration there is one Adaptive model per treatment/action for a configuration.
 
 ```{python}
-# | label: Model Overview
-action_dim_agg = [pl.col("Name").n_unique().alias("Number of Actions")]
+datamart.model_summary(context_keys=["Configuration","Channel","Direction"]).collect()
+```
+
+```{python}
+action_dim_agg = [pl.col("Name").n_unique().alias("Actions")]
 if polars_col_exists(last_data, "Treatment"):
-    action_dim_agg += [pl.col("Treatment").n_unique().alias("Number of Treatments")]
+    action_dim_agg += [pl.col("Treatment").n_unique().alias("Treatments")]
+
+# TODO work this into a get_model_overview function in the ADMDatamart
+# note there already is a perhaps useful model_summary in there
 
 model_overview = (
     last_data.group_by(
         ["Configuration"] + polars_subset_to_existing_cols(["Channel", "Direction"])
     )
     .agg(
-        action_dim_agg + 
         [
-            pl.col("ModelID").n_unique().alias("Number of Models"),
-            pl.max("ResponseCount"),
-            pl.max("Positives")
+            pl.col("ModelID").n_unique(),
         ]
+        + action_dim_agg
+        + [pl.sum("ResponseCount"), pl.sum("Positives")]
     )
     .with_columns(
         [
             # pl.col("Configuration")
             # .is_in(standardNBADNames.keys())
             # .alias("Standard in NBAD Framework"),
-            (pl.col("Number of Models") / pl.col("Number of Actions"))
+            (pl.col("ModelID") / pl.col("Actions"))
             .round(2)
-            .alias("Average number of Models per Action"),
+            .alias("ModelsPerAction"),
         ]
     )
     .sort(["Configuration", "Channel", "Direction"])
 )
 
-# display(
-#     model_overview.head(tables_max_rows)
-#     .to_pandas(use_pyarrow_extension_array=True)
-#     .style.set_caption("Model Overview")
-#     .hide(axis="index")
-#     .format(
-#         {
-#             "Responses": "{:.3g}",
-#             "Positives": "{:.3g}"
-#         },
-#         precision=2)
-#     .applymap(highlight_non_standard_channels, subset=["Channel"])
-#     .applymap(highlight_non_standard_configurations, subset=["Configuration"])
-# )
-
 display(
-    table_standard_formatting(model_overview, "Model Overview")
+    table_standard_formatting(model_overview, "Model Overview").tab_style(
+        style=style.text(weight="bold"),
+        locations=loc.body(columns="ModelID"),
+    ).cols_label(
+        ModelID="Number of Models",
+        Actions="Unique Actions",
+        Treatments="Unique Treatments",
+        ModelsPerAction="Average number of Models per Action"
+    )
+
 )
 ```
 
 ```{python}
-# | label: Configuration Overview
 quarto_print(
     f"""
 If there are any model configurations that have fewer than {configuration_responses_threshold} responses in total or no positives at all, these will be excluded. However if no configurations would be left, we don't do that.
@@ -920,7 +936,8 @@ all_configurations = configuration_overview.select(["Configuration"]).unique()
 
 unused_configurations = (
     configuration_overview.filter(
-        (pl.col("Responses") < configuration_responses_threshold) | (pl.col("Positives") == 0)
+        (pl.col("Responses") < configuration_responses_threshold)
+        | (pl.col("Positives") == 0)
     )
     .select(["Configuration", "Responses", "Positives"])
     .unique()
@@ -936,15 +953,11 @@ In the detailed analyses after the model overview, the following configurations 
     )
 
     display(
-        unused_configurations.sort(["Configuration"])
-        .to_pandas()
-        .style.hide()
-        .format(precision=0, na_rep="")
+        GT(unused_configurations.sort(["Configuration"])).tab_options(table_font_size=8)
     )
 ```
 
 ```{python}
-# | label: Drop Unused Configurations
 if (unused_configurations.shape[0] > 0) and (
     (unused_configurations.shape[0] != all_configurations.shape[0])
 ):
@@ -995,8 +1008,6 @@ This “Bubble Chart” - similar to the standard ADM models overview in Pega Pr
 :::
 
 ```{python}
-# | label: Facetted Bubble charts
-
 facet_cols = 2
 facet = "Configuration/Channel/Direction"
 
@@ -1043,8 +1054,6 @@ datamart.modelData.select(pl.col("Configuration").n_unique()).collect()
 
 
 ```{python}
-# | label: Model Performance trend
-
 facets = "Configuration"
 unique_count = datamart.modelData.select(pl.concat_str(facets.split("/"), separator="/").n_unique()).collect().item()
 # TODO: the faceting errors out when there are many configurations and too few facet columns resulting in very small facet rows
@@ -1077,8 +1086,6 @@ Using an interactive treemap to visualize the performance. Red is lower performa
 It can be interesting to see which issues, groups or channels can be better predicted than others. Identifying categories of items for which the predictions are poor can help to drive the search for better predictors, for example.
 
 ```{python}
-# | label: Model Performance treemap
-
 fig = datamart.plotTreeMap(
     color_var="performance_weighted",
     group_by_col=None,
@@ -1108,8 +1115,6 @@ If there are actions that have a much higher response count than the rest see wh
 
 
 ```{python}
-# | label: Response Counts treemap
-
 fig = datamart.plotTreeMap(
     color_var="responsecount",
     levels=polars_subset_to_existing_cols(
@@ -1151,8 +1156,6 @@ This shows the total number of predictors per model configuration (this includes
 Note that the total number of predictors in the model data does not always equate the data from the more detailed view split by category below.
 
 ```{python}
-# | label: Predictors per Configuration
-
 if datamart.predictorData is not None:
     context_aggregations = []
     if polars_col_exists(datamart.combinedData, "Channel"):
@@ -1173,6 +1176,9 @@ if datamart.predictorData is not None:
 
     gt = table_standard_formatting(
         predictors_per_configuration, "Number of Predictors per Configuration"
+    ).tab_style(
+        style=style.text(weight="bold"),
+        locations=loc.body(columns="Predictor Count"),
     )
     gt = table_style_predictor_count(gt, ["Predictor Count"])
 
@@ -1197,8 +1203,6 @@ The numbers here can differ from the totals above, these ones are leading.
 :::
 
 ```{python}
-# | label: Predictors with category per Configuration
-
 if datamart.predictorData is not None:
     predictors_per_category = (
         datamart.combinedData.filter(pl.col("EntryType") != "Classifier")
@@ -1301,6 +1305,7 @@ else:
 ```
 
 ### Relative Predictor Category importance per Configuration
+
 Although the same could be achieved using the standard **plotPredictorImportance** method, now that we only split by Configuration this allows for a more compact visualization using a stacked bar chart.
 
 ```{python}
@@ -1331,8 +1336,9 @@ else:
     quarto_callout_no_predictor_data_warning()
 ```
 
-## Bad predictors across all models
-See if there are predictors that are just always perform poorly.
+## Global Predictor Overview
+
+If predictors perform poorly across all models, that may be because of data sourcing issues or because it just is not related to any of the model outcomes. See also the analysis of missing data.
 
 ::: {.callout-tip title="Guidance"}
 - Predictors that consistently perform poorly could potentially be removed.
@@ -1350,36 +1356,45 @@ if datamart.predictorData is not None:
         .group_by("PredictorName")
         .agg(
             [
-                pl.sum("ResponseCount").alias("Response Count"),
+                pl.sum("BinResponseCount").alias("ResponseCount"),
                 (pl.min("Performance") * 100).alias("Min"),
                 (pl.mean("Performance") * 100).alias("Mean"),
                 (pl.median("Performance") * 100).alias("Median"),
-                (pl.max("Performance") * 100).alias("max"),
+                (pl.max("Performance") * 100).alias("Max"),
             ]
         )
-        .sort("Mean", descending=False)
+        .sort(["Mean", "PredictorName"], descending=False)
     ).collect()
-    responses_column_index = bad_predictors.columns.index("Response Count")
-    bad_predictors = bad_predictors.to_pandas(use_pyarrow_extension_array=False)
+    # responses_column_index = bad_predictors.columns.index("Response Count")
+    # bad_predictors = bad_predictors.to_pandas(use_pyarrow_extension_array=False)
 
-    show(
-        bad_predictors.head(tables_max_rows),
-        scrollX=True,
-        columnDefs=[
-            {
-                "className": "dt-left",
-                "targets": [responses_column_index],
-                "createdCell": JavascriptFunction(
-                    """
-function (td, cellData, rowData, row, col) {
-    if (cellData < 200) {
-        $(td).css('color', 'red')
-    }
-}
-"""
-                ),
-            }
-        ],
+    display(
+        table_standard_formatting(
+            bad_predictors,
+            # .with_columns(MeanPlotData=pl.col("Mean")),
+            rowname_col="PredictorName",
+        )
+        .tab_options(container_height="400px", container_overflow_y=True)
+        .tab_spanner(
+            label=html("<b>Performance</b>"),
+            columns=["Min", "Mean", "Median", "Max"],
+        )
+        .fmt_number(
+            decimals=2,
+            columns=["Min", "Mean", "Median", "Max"],
+        )
+        .tab_style(
+            style=style.text(weight="bold"),
+            locations=loc.body(columns="Mean"),
+        )
+        .tab_style(
+            style=style.text(align="left"),
+            locations=loc.body(columns="PredictorName"),
+        )
+        # .fmt_nanoplot(columns="MeanPlotData", plot_type="bar", autoscale=True)
+        # .cols_label(
+        #     MeanPlotData="Average Performance",
+        # )
     )
 else:
     quarto_callout_no_predictor_data_warning()
@@ -1490,7 +1505,7 @@ if datamart.predictorData is not None:
 
     hover_data = {
         "Percentage without responses": ":.2%",
-        "PredictorResponseCount": ":d"
+        "PredictorResponseCount": ":d",
     }
 
     fig = px.treemap(
@@ -1520,11 +1535,102 @@ values could be good to analyse, but we don't have that exactly.
 
 # Responses
 
-In the sections below we check which of these models have reached certain reliability (or “maturity”) thresholds. This is based on heuristics on both the number of positives (> 200 considered mature) and performance.
+In the sections below we check how many models have reached certain reliability (or “maturity”) thresholds. This is based on heuristics on both the number of positives (> 200 considered mature) and performance.
 
-## Empty and Immature Models
+For the full list of models, export the data into an Excel sheet from Pega or from the PDS Tools app.
 
-All below lists are guidance. There should be just a small percentage of immature or empty models overall.
+All below lists are guidance. With new treatments/actions being introduced regularly, you would expect a small percentage of the models to be at their initial stages, but that percentage should be small.
+
+
+```{python}
+maturity_criteria = [
+    pl.len().alias("Number of models in last snapshot"),
+    pl.col("Name")
+    .filter(
+        pl.col("ResponseCount")
+        < lims.get_limits(CDHLimits.Metrics.Number_of_Responses).min
+    )
+    .count()
+    .alias("Models that have never been used"),
+    pl.col("Name")
+    .filter(
+        (
+            pl.col("Positives")
+            < lims.get_limits(CDHLimits.Metrics.Number_of_Positive_Responses).min
+        )
+        & (
+            pl.col("ResponseCount")
+            >= lims.get_limits(CDHLimits.Metrics.Number_of_Responses).min
+        )
+    )
+    .count()
+    .alias("Models that have have been used but never received a positive response"),
+    pl.col("Name")
+    .filter(
+        (
+            pl.col("Positives")
+            < lims.get_limits(
+                CDHLimits.Metrics.Number_of_Positive_Responses
+            ).best_practice_min
+        )
+        & (
+            pl.col("Positives")
+            >= lims.get_limits(CDHLimits.Metrics.Number_of_Positive_Responses).min
+        )
+    )
+    .count()
+    .alias("Models that are still in an immature phase of learning"),
+    pl.col("Name")
+    .filter(
+        (pl.col("Performance") == 0.5)
+        & (
+            pl.col("Positives")
+            >= lims.get_limits(
+                CDHLimits.Metrics.Number_of_Positive_Responses
+            ).best_practice_min
+        )
+    )
+    .count()
+    .alias(
+        "Models that have received sufficient responses but are still at their minimum performance"
+    ),
+    pl.col("Name")
+    .filter(
+        (pl.col("Performance") > 0.5)
+        & (pl.col("Performance") < 0.52)
+        & (
+            pl.col("Positives")
+            >= lims.get_limits(
+                CDHLimits.Metrics.Number_of_Positive_Responses
+            ).best_practice_min
+        )
+    )
+    .count()
+    .alias(
+        "Models that have received sufficient responses but still have a low performance"
+    ),
+    pl.col("Name")
+    .filter(
+        (pl.col("Performance") >= 0.52)
+        & (
+            pl.col("Positives")
+            >= lims.get_limits(
+                CDHLimits.Metrics.Number_of_Positive_Responses
+            ).best_practice_min
+        )
+    )
+    .count()
+    .alias("Models with sufficient responses and a decent performance"),
+]
+
+maturity_overview = (
+    last_data.select([pl.lit(1).alias("Dummy")] + maturity_criteria)
+    .melt(id_vars="Dummy", variable_name="Category", value_name="Number of Models")
+    .drop("Dummy")
+)
+
+display(table_standard_formatting(maturity_overview, title="Model Maturity Overview"))
+```
 
 ### Models that have never been used
 
@@ -1532,108 +1638,17 @@ These models have no responses at all: no positives but also no negatives. The m
 
 Often these represent actions that never made it into production and were only used to test out logic. But it could also be that the response mechanism is broken. It could for example be caused by outcome labels that are returned by the channel application not matching the configuration of the adaptive models.
 
-```{python}
-empty_or_immature_overviews_cols = polars_subset_to_existing_cols(
-    [
-        "Configuration",
-        "Channel",
-        "Direction",
-        "Issue",
-        "Group",
-        "Name",
-        "Treatment",
-        "ResponseCount",
-        "Positives",
-    ]
-)
-
-zero_response = last_data.select(empty_or_immature_overviews_cols).filter(
-    pl.col("ResponseCount") == 0
-)
-
-if zero_response.shape[0] > 0:
-    quarto_print(f"There are {zero_response.shape[0]} models with no responses at all:")
-
-    show(
-        zero_response.to_pandas(use_pyarrow_extension_array=True).head(tables_max_rows),
-        scrollX=True,
-    )
-else:
-    quarto_callout_info("All models have received at least 1 response.")
-```
-
 ### Models that have have been used but never received a positive response
 
 These models have been used but never received a “positive” response. This means the action/treatments that these models represent have been selected, so an “impression” has been made to the customer, but they never received a “positive” response.
 
 This could be because no customer ever found the proposition attractive, but it could also be because the response loop is not working correctly. Possibly Pega “believes” the user received the action but the actual channel application did never show it.
 
-```{python}
-zero_positives = (
-    last_data.select(empty_or_immature_overviews_cols)
-    .filter(pl.col("Positives") == 0)
-    .filter(pl.col("ResponseCount") > 0)
-    .sort("ResponseCount")
-)
-
-if zero_positives.shape[0] > 0:
-    quarto_print(
-        f"There are {zero_positives.shape[0]} models with responses but no positives:"
-    )
-
-    show(
-        zero_positives.to_pandas(use_pyarrow_extension_array=True).head(
-            tables_max_rows
-        ),
-        scrollX=True,
-    )
-else:
-    quarto_callout_info(
-        "All models that have received feedback have received at least 1 positive response."
-    )
-
-
-```
-
 ### Models that are still in an immature phase of learning
 
-These models have received at least one positive response but not enough yet to be qualified to be fully “mature” - a concept that matters especially for outbound channels.
+These models have received at least one positive response but not enough yet to be qualified to be fully “mature” - a concept that matters especially for outbound channels: the Outbound Maturity Capping feature caps the reach of immature actions.
 
 These actions are typically new and still in early phases of learning.
-
-We show the “reach” of these actions as the percentage of the population that would be selected by the standard maturity capping algorithm in the NBA framework (which selects 2% for new models and 100% for models with 200 or more positive responses).
-
-
-```{python}
-def calc_reach(x=pl.col("Positives")):
-    return 0.02 + 0.98 * (pl.min_horizontal([pl.lit(200), x]) / 200)
-
-
-immature_models = (
-    last_data.select(empty_or_immature_overviews_cols)
-    .filter((pl.col("Positives") < 200) & (pl.col("Positives") > 0))
-    .sort("Positives")
-    .with_columns(
-        pl.format("{}%", (pl.lit(100) * calc_reach()).round(2)).alias(
-            "Outbound Default Reach"
-        )
-    )
-)
-
-if immature_models.shape[0] > 0:
-    quarto_print(
-        f"There are {immature_models.shape[0]} models with positive responses but fewer than 200:"
-    )
-
-    reach = immature_models.to_pandas(use_pyarrow_extension_array=True).head(
-        tables_max_rows
-    )
-    # reach.style.format({'Reach': '{:,.2%}'.format})
-    show(reach, scrollX=True)
-
-else:
-    quarto_callout_info("All non-empty models have received at least 200 positives.")
-```
 
 ### Models that have received sufficient responses but are still at their minimum performance 
 
@@ -1641,31 +1656,12 @@ These models have received over 200 positives but still show the minimum model p
 
 This could be an indication of data problems, or not having the right predictors but may also be caused by technical aspects like the order of the responses to the model.
 
-```{python}
-minimum_performance = (
-    last_data.select(empty_or_immature_overviews_cols + ["Performance"])
-    .filter(pl.col("Performance") == 0.5)
-    .filter(pl.col("Positives") >= 200)
-    .sort("ResponseCount")
-)
+### Models that have received sufficient responses but still have a low performance
 
-if minimum_performance.shape[0] > 0:
-    quarto_print(
-        f"There are {minimum_performance.shape[0]} models with sufficient evidence but still at minimum performance:"
-    )
+These models have received over 200 positives and do have a performance above the minimum but it still is really low. 
 
-    show(
-        minimum_performance.to_pandas(use_pyarrow_extension_array=True).head(
-            tables_max_rows
-        ),
-        scrollX=True,
-    )
-else:
-    quarto_callout_info(
-        "All models with over 200 positive responses are above the minimum performance."
-    )
+This could be because of lack of good predictors in the model.
 
-```
 
 ## Number of Empty/Immature Models over time 
 
@@ -1680,49 +1676,49 @@ Empty is defined as having no responses at all. Immature is defined as having < 
 
 ```{python}
 by = ["SnapshotTime", "Channel", "Direction"]
+facet_cols = 3
+facet = "Channel/Direction"
+
 df = (
     datamart.modelData.with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
     .with_columns(pl.col(pl.Utf8).fill_null("Missing"))
     .group_by(by)
     .agg(
-        [
-            pl.n_unique("ModelID").alias("Unique Models"),
-            (pl.col("Positives") >= 200).sum().alias("Mature Models"),
-            (pl.col("Performance") == 0.5).sum().alias("Models w/o Performance"),
-            ((pl.col("Positives") > 0) & (pl.col("Positives") < 200))
-            .sum()
-            .alias("Immature Models"),
-            (pl.col("Positives") == 0).sum().alias("Models w/o Positives"),
-            (pl.col("ResponseCount") == 0).sum().alias("Empty Models"),
-            # (pl.col("ResponseCount")!=0).sum().alias("Number of non-empty Models")
-        ]
+        maturity_criteria
     )
     .sort(["Channel", "Direction", "SnapshotTime"], descending=True)
 )
-facet_cols = 3
-facet = "Channel/Direction"
+
 df = df.with_columns(
     pl.concat_str(facet.split("/"), separator="/").alias(facet)
 ).with_columns(pl.col(facet).cast(pl.Utf8).fill_null("NA"))
-df_pd = df.collect().to_pandas()
-y = df_pd.iloc[:, len(by) :].columns.tolist()  # slice `df.columns` to get this easily
+
+# df.collect()
 fig = px.line(
-    df_pd,
+    df.melt(id_vars=by+[facet], variable_name="Category", value_name="Number of Models").sort(["SnapshotTime"]).collect(),
     x="SnapshotTime",
-    y=y,
+    y="Number of Models",
+    color="Category",
     facet_col=facet,
-    title="Immature and Empty Models over Time",
-    template="pega",
     facet_col_wrap=facet_cols,
+    template="pega",
     color_discrete_sequence=px.colors.sequential.Turbo,
 )
+
 fig.for_each_xaxis(lambda xaxis: xaxis.update(title=""))
 fig.update_layout(legend_title_text="Model Maturity")
 fig = fig_update_facet_height(fig, facet_cols, 200, 250)
-fig.update_layout(yaxis_title="Number of Models")
+
+fig.update_layout(legend=dict(
+    yanchor="bottom",
+    y=-400,
+    xanchor="left",
+    x=0
+))
 
 fig.show()
 ```
+
 
 ## Number of Responses over time 
 
@@ -1769,60 +1765,13 @@ Very skewed results may be caused by prioritization elements like levers and wei
 ::: {layout-ncol=2}
 
 ```{python}
-# df = datamart.last()
-# value = 'ResponseCount'
-# index = None
-# by=['Channel']
-
-# sortExpr = pl.col(value) if index is None else pl.col(value) / pl.col(index)
-# if by is not None:
-#     by_as_list = by if isinstance(by,list) else [by]
-#     sortExpr = by_as_list + [sortExpr]
-
-# indexExpr = (pl.int_range(1, pl.count() + 1)/ pl.count()) if index is None else (pl.cum_sum(index) / pl.sum(index))
-
-# gains_df = (
-#     df.lazy()
-#     .filter(pl.col(value) != 0)
-#     .sort(sortExpr, descending=True)
-#     .select(
-#         by_as_list +
-#         [indexExpr.over(by).cast(pl.Float64).alias("cum_x"),
-#         (pl.cum_sum(value) / pl.sum(value)).over(by).cast(pl.Float64).alias("cum_y")]
-#     )
-# )
-# # Add entry for the (0,0) point
-# gains_df = pl.concat(
-#     [
-#         gains_df.group_by(by).agg(cum_x = pl.lit(0.0), cum_y = pl.lit(0.0)),
-#         gains_df
-#     ]
-# ).sort(by_as_list+["cum_x"])
-
-# gains_df.filter(pl.col("Channel")=="Web").collect()
-
-
-```
-
-```{python}
-# fig = px.line(
-#     gains_df.collect(),
-#     x="cum_x", y="cum_y",
-#     color=gains_df.select(pl.concat_str(by_as_list,separator="/").alias("By")).collect()['By']
-# )
-
-# fig.show()
-```
-
-```{python}
 # TODO move gains_table to PDS tools utils
 # TODO a corresponding GINI calculation would be nice
-
 
 def gains_table(df, value: str, index=None, by=None):
     sortExpr = pl.col(value) if index is None else pl.col(value) / pl.col(index)
     indexExpr = (
-        (pl.int_range(1, pl.count() + 1) / pl.count())
+        (pl.int_range(1, pl.len() + 1) / pl.len())
         if index is None
         else (pl.cum_sum(index) / pl.sum(index))
     )
@@ -1891,6 +1840,7 @@ def plot_gains(df, value: str, index=None, by=None):
     )
     fig = (
         fig.update_yaxes(scaleanchor="x", scaleratio=1)
+        .update_layout(autosize=False, width=400, height=400, )
         .update_yaxes(constrain="domain", title="% of Responders")
         .update_xaxes(tickformat=",.0%")
         .update_yaxes(tickformat=",.0%")
@@ -1937,6 +1887,8 @@ fig.show()
 ## Models with largest number of responses (positive or negative)
 
 Zooming in into the models that drive most of the responses.
+
+TODO: swap to TreeMap here
 
 ```{python}
 # | echo: false
