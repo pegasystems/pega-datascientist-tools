@@ -23,9 +23,7 @@ jupyter: python3
 ---
 
 ```{python}
-# | label: Imports
 # | code-fold: true
-# | code-summary: Python imports
 # | output: false
 
 import sys
@@ -42,9 +40,10 @@ from IPython.display import display, Markdown
 from great_tables import GT, style, md, html, loc
 import plotly.express as px
 from plotly.graph_objects import Figure
-from typing import Union, Optional, Literal 
+from typing import Union, Optional, Literal
 
 # Convenience wrapper functions
+
 
 def quarto_print(text):
     display(Markdown(text))
@@ -71,8 +70,10 @@ def quarto_callout_important(info):
         % info
     )
 
+
 def polars_col_exists(df, col):
     return col in df.columns and df.schema[col] != pl.Null
+
 
 def polars_subset_to_existing_cols(cols):
     return [col for col in cols if col in datamart_all_columns]
