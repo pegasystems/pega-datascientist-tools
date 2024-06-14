@@ -229,31 +229,32 @@ See the [ADM Explained](https://pegasystems.github.io/pega-datascientist-tools/P
 
 ```{python}
 
-classifier_properties = classifier.select(
-    pl.last("ResponseCount").alias("Responses"),
-    pl.last("Positives"),
-    pl.format(
-        "{}%", (pl.last("Positives") * 100 / pl.last("ResponseCount")).round(3)
-    ).alias("Base Propensity"),
-    pl.format("{}", pl.last("Performance").round(4)).alias("Performance"),
-)
-
-GT(classifier.collect().select(
-    pl.last("ResponseCount"),
-    pl.last("Positives"),
-    (pl.last("Positives")/pl.last("ResponseCount")).alias("Base Propensity"),
-    pl.last("Performance")
-)).cols_label(
-    ResponseCount="Responses",).fmt_number(
+gt = (
+    GT(
+        classifier.collect().select(
+            pl.last("ResponseCount"),
+            pl.last("Positives"),
+            (pl.last("Positives") / pl.last("ResponseCount")).alias("Base Propensity"),
+            pl.last("Performance"),
+        )
+    )
+    .tab_options(table_font_size=8)
+    .cols_label(
+        ResponseCount="Responses",
+    )
+    .fmt_number(
         decimals=0,
         columns=["ResponseCount", "Positives"],
-    ).fmt_percent(
-        decimals=3, columns=["Base Propensity"]
-    ).fmt_number(
+    )
+    .fmt_percent(decimals=3, columns=["Base Propensity"])
+    .fmt_number(
         decimals=2,
         scale_by=100,
-        columns=["Performance"],  
+        columns=["Performance"],
     )
+)
+
+display(gt)
 ```
 
 
@@ -330,34 +331,53 @@ TODO: unfortunately the Python version has no notion of unreachable bins (yet) w
 # however it is so trivial, not really sure it should be. See also the other gains charts
 # in the health check.
 # TODO in HC there now is a beter way to plot gains, use that when it has progressed into PDS tools
-fig = px.area(
-    human_friendly_scoredistribution,
-    x="Cum. Total (%)",
-    y="Cum. Positives (%)",
-    title="Cumulative Gains",
-    template="pega",
+fig = (
+    px.area(
+        human_friendly_scoredistribution,
+        x="Cum. Total (%)",
+        y="Cum. Positives (%)",
+        title="Cumulative Gains",
+        template="pega",
+    )
+    .add_shape(type="line", line=dict(dash="dash"), x0=0, x1=100, y0=0, y1=100)
+    .update_yaxes(
+        scaleanchor="x",
+        scaleratio=1,
+        constrain="domain",
+        title="% of Positive Responders",
+    )
+    .update_xaxes(constrain="domain", title="% of Population")
+    .update_layout(
+        autosize=False,
+        width=400,
+        height=400,
+    )
 )
-fig.add_shape(type="line", line=dict(dash="dash"), x0=0, x1=100, y0=0, y1=100)
-fig.update_yaxes(
-    scaleanchor="x", scaleratio=1, constrain="domain", title="% of Positive Responders"
-)
-fig.update_xaxes(constrain="domain", title="% of Population")
+
 fig.show()
 ```
 
 ```{python}
 # TODO perhaps this should move into the pdstools plot functions "plotCumulativeLift"
-fig = px.area(
-    human_friendly_scoredistribution,
-    x="Cum. Total (%)",
-    y="Lift (%)",
-    title="Lift",
-    template="pega",
+fig = (
+    px.area(
+        human_friendly_scoredistribution,
+        x="Cum. Total (%)",
+        y="Lift (%)",
+        title="Lift",
+        template="pega",
+    )
+    .update_yaxes(
+        scaleanchor="x", scaleratio=0.01, constrain="domain", title="Propensity Lift"
+    )
+    .update_xaxes(constrain="domain", title="% of Population")
+    .update_layout(
+        autosize=False,
+        width=400,
+        height=400,
+    )
 )
-fig.update_yaxes(
-    scaleanchor="x", scaleratio=0.01, constrain="domain", title="Propensity Lift"
-)
-fig.update_xaxes(constrain="domain", title="% of Population")
+
 fig.show()
 ```
 
@@ -365,33 +385,48 @@ fig.show()
 
 # Trend charts
 
+::: {layout-ncol=2}
+
 ```{python}
 # TODO see if we can put the various trend charts in tabs - although this seems to require go not express, then gain .data[0] probably gives the go objects
 
 # But maybe .data[0] gives the trace
 
-fig = datamart.plotOverTime("weighted_performance")
-
-fig.update_layout(
-    title="Model Performance Trend", yaxis_title="ROC-AUC", xaxis_title=""
+fig = (
+    datamart.plotOverTime("weighted_performance")
+    .update_layout(
+        title="Model Performance Trend",
+        yaxis_title="ROC-AUC",
+        xaxis_title="",
+        showlegend=False,
+        autosize=False,
+        width=400,
+        height=300,
+    )
 )
-fig.update_layout(showlegend=False)
 
 fig.show()
 ```
 
 ```{python}
-fig = datamart.plotOverTime("SuccessRate")
-
-fig.update_layout(
-    title="Success Rate Trend", yaxis_title="Success Rate", xaxis_title=""
+fig = (
+    datamart.plotOverTime("SuccessRate")
+    .update_layout(
+        title="Success Rate Trend",
+        yaxis_title="Success Rate",
+        xaxis_title="",
+        showlegend=False,
+        autosize=False,
+        width=400,
+        height=300,
+    )
+    .update_yaxes(rangemode="tozero")
 )
-fig.update_layout(showlegend=False)
-fig.update_yaxes(rangemode="tozero")
 
 fig.show()
 ```
 
+:::
 
 # Performance by Predictor Category
 
@@ -440,7 +475,10 @@ negatives is not available.
 predictors_summary_info = (
     datamart.last("predictorData", strategy="lazy")
     .sort(["PredictorName", "BinIndex"])
-    .group_by("PredictorName", maintain_order=True,)
+    .group_by(
+        "PredictorName",
+        maintain_order=True,
+    )
     .agg(
         pl.last("ResponseCount").alias("Responses"),
         pl.last("Positives"),
@@ -460,29 +498,63 @@ predictors_summary_info = (
             * 100
             / pl.sum("BinResponseCount")
         ).alias("Residual %"),
-        pl.col("BinResponseCount").cast(pl.String).alias("Binning")
+        pl.col("BinResponseCount").cast(pl.String).alias("Binning"),
     )
-    .sort(["GroupIndex", "isActive", "Univariate Performance"], descending=[False, True, True])
-    .with_columns(
-        pl.col("isActive").any().over("GroupIndex").alias("AnyActiveInGroup")
+    .sort(
+        ["GroupIndex", "isActive", "Univariate Performance"],
+        descending=[False, True, True],
+        nulls_last=True,
     )
+    .with_columns(pl.col("isActive").any().over("GroupIndex").alias("AnyActiveInGroup"))
     .with_columns(
-        pl.when(pl.col("isActive").not_() & pl.col("AnyActiveInGroup")).then(pl.lit("&nbsp;&nbsp;&nbsp;&nbsp;")).otherwise(pl.lit("")).alias("Indentation")
+        pl.when(pl.col("isActive").not_() & pl.col("AnyActiveInGroup"))
+        .then(pl.lit("&nbsp;&nbsp;&nbsp;&nbsp;"))
+        .otherwise(pl.lit(""))
+        .alias("Indentation")
     )
     .with_columns(
         pl.col("Binning").list.join(" "),
-        pl.when(status_filter).then(pl.format("{} [{}](#{})", pl.col("Indentation"), pl.col("PredictorName"), pl.col("PredictorName").cast(pl.String).str.to_lowercase().str.replace_all(" ","-",literal=True))).otherwise(pl.format("{}{}", pl.col("Indentation"), pl.col("PredictorName"))).alias("PredictorLink"),
+        pl.when(status_filter)
+        .then(
+            pl.format(
+                "{} [{}](#{})",
+                pl.col("Indentation"),
+                pl.col("PredictorName"),
+                pl.col("PredictorName")
+                .cast(pl.String)
+                .str.to_lowercase()
+                .str.replace_all(" ", "-", literal=True),
+            )
+        )
+        .otherwise(pl.format("{}{}", pl.col("Indentation"), pl.col("PredictorName")))
+        .alias("PredictorLink"),
     )
 )
 
 
 # TODO we can easily color the predictors by Category
 
-gt = GT(predictors_summary_info.filter(pl.col("EntryType") != "Classifier").collect(), rowname_col="PredictorLink").tab_options(table_font_size=6).tab_header("Predictor Overview")
+gt = (
+    GT(
+        predictors_summary_info.filter(pl.col("EntryType") != "Classifier").collect(),
+        rowname_col="PredictorLink",
+    )
+    .tab_options(table_font_size=6)
+    .tab_header("Predictor Overview")
+)
 
 display(
-    gt
-    .cols_hide(["Positives", "Responses", "PredictorName", "isActive", "GroupIndex", "AnyActiveInGroup", "Indentation"])
+    gt.cols_hide(
+        [
+            "Positives",
+            "Responses",
+            "PredictorName",
+            "isActive",
+            "GroupIndex",
+            "AnyActiveInGroup",
+            "Indentation",
+        ]
+    )
     .cols_label(EntryType="Status")
     .fmt_number(
         decimals=2,

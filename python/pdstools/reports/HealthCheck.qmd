@@ -874,7 +874,9 @@ datamart.model_summary(context_keys=["Configuration","Channel","Direction"]).col
 ```{python}
 action_dim_agg = [pl.col("Name").n_unique().alias("Actions")]
 if polars_col_exists(last_data, "Treatment"):
-    action_dim_agg += [pl.col("Treatment").n_unique().alias("Treatments")]
+    action_dim_agg += [pl.col("Treatment").n_unique().alias("Unique Treatments")]
+else:
+    action_dim_agg += [pl.lit(0).alias("Unique Treatments")]
 
 # TODO work this into a get_model_overview function in the ADMDatamart
 # note there already is a perhaps useful model_summary in there
@@ -910,7 +912,6 @@ display(
     ).cols_label(
         ModelID="Number of Models",
         Actions="Unique Actions",
-        Treatments="Unique Treatments",
         ModelsPerAction="Average number of Models per Action"
     )
 
