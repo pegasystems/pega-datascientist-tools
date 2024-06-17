@@ -44,58 +44,120 @@ class Prediction:
         )
 
     def __init__(self, df: pl.LazyFrame):
-        self.predictions = (
-            df.group_by(["Channel", "ModelName", "SnapshotTime"])
-            .agg(
-                pl.len(),
-                Class=pl.col("ModelClass").unique(),
-                Positives=pl.col("Positives")
-                .filter(pl.col("ModelType") == "Prediction")
-                .sum(),  # Test and Control should add up to this but they do not always do that
-                Negatives=pl.col("Negatives")
-                .filter(pl.col("ModelType") == "Prediction")
-                .sum(),
-                Positives_Control=pl.col("Positives")
-                .filter(pl.col("ModelType") == "Prediction_Control")
-                .sum(),
-                Negatives_Control=pl.col("Negatives")
-                .filter(pl.col("ModelType") == "Prediction_Control")
-                .sum(),
-                Positives_Test=pl.col("Positives")
-                .filter(pl.col("ModelType") == "Prediction_Test")
-                .sum(),
-                Negatives_Test=pl.col("Negatives")
-                .filter(pl.col("ModelType") == "Prediction_Test")
-                .sum(),
-                ResponseCount=pl.col("ResponseCount")
-                .filter(pl.col("ModelType") == "Prediction")
-                .sum(),
-                Performance=(pl.col("Performance") * pl.col("ResponseCount"))
-                .filter(pl.col("ModelType") == "Prediction")
-                .sum()
-                / (
-                    pl.col("ResponseCount")
-                    .filter(pl.col("ModelType") == "Prediction")
-                    .sum()
-                )
-                * 100,
-                usesImpactAnalyzer=pl.col("ModelType").str.ends_with("_NBA").any(),
-            )
+        predictions_raw_data_prepped = (
+            df.filter(pl.col.pyModelType == "PREDICTION")
             .with_columns(
-                Class=pl.col("Class")
-                .list.join(", ")
-                .str.to_uppercase(),  # Prediction entries are uppercase so lets align
+                SnapshotTime=pl.col("pySnapShotTime")
+                .map_elements(
+                    lambda x: cdh_utils.fromPRPCDateTime(x), return_dtype=pl.Datetime
+                )
+                .cast(pl.Date),
+                Performance=pl.col("pyValue").cast(pl.Float32),
+            )
+            .rename(
+                {
+                    "pyPositives": "Positives",
+                    "pyNegatives": "Negatives",
+                    "pyCount": "ResponseCount",
+                }
+            )
+        )
+
+        # Below looks like a pivot.. but we want to make sure Control, Test and NBA
+        # columns are always there...
+        counts_control = predictions_raw_data_prepped.filter(
+            pl.col.pyDataUsage == "Control"
+        ).select(
+            ["pyModelId", "SnapshotTime", "Positives", "Negatives", "ResponseCount"]
+        )
+        counts_test = predictions_raw_data_prepped.filter(
+            pl.col.pyDataUsage == "Test"
+        ).select(
+            ["pyModelId", "SnapshotTime", "Positives", "Negatives", "ResponseCount"]
+        )
+        counts_NBA = predictions_raw_data_prepped.filter(
+            pl.col.pyDataUsage == "NBA"
+        ).select(
+            ["pyModelId", "SnapshotTime", "Positives", "Negatives", "ResponseCount"]
+        )
+
+        self.predictions = (
+            predictions_raw_data_prepped.filter(pl.col.pySnapshotType == "Daily")
+            .select(
+                [
+                    "pyModelId",
+                    "SnapshotTime",
+                    "Positives",
+                    "Negatives",
+                    "ResponseCount",
+                    "Performance",
+                ]
+            )
+            .join(counts_test, on=["pyModelId", "SnapshotTime"], suffix="_Test")
+            .join(counts_control, on=["pyModelId", "SnapshotTime"], suffix="_Control")
+            .join(counts_NBA, on=["pyModelId", "SnapshotTime"], suffix="_NBA")
+            .with_columns(
+                Class=pl.col("pyModelId").str.extract(r"(.+)!.+"),
+                ModelName=pl.col("pyModelId").str.extract(r".+!(.+)"),
                 CTR=pl.col("Positives") / (pl.col("Positives") + pl.col("Negatives")),
                 CTR_Test=pl.col("Positives_Test")
                 / (pl.col("Positives_Test") + pl.col("Negatives_Test")),
                 CTR_Control=pl.col("Positives_Control")
                 / (pl.col("Positives_Control") + pl.col("Negatives_Control")),
+                CTR_NBA=pl.col("Positives_NBA")
+                / (pl.col("Positives_NBA") + pl.col("Negatives_NBA")),
+                usesImpactAnalyzer=pl.lit(
+                    predictions_raw_data_prepped.select(
+                        (pl.col("pyDataUsage") == "NBA").any()
+                    )
+                    .collect()["pyDataUsage"]
+                    .item()
+                ),
             )
             .with_columns(
                 CTR_Lift=(pl.col("CTR_Test") - pl.col("CTR_Control"))
                 / pl.col("CTR_Control"),
+                isValidPrediction=self.prediction_validity_expr,
             )
-            .sort(["ModelName"])
+            .sort(["pyModelId", "SnapshotTime"])
+        )
+
+    @staticmethod
+    def from_pdc(df: pl.LazyFrame):
+        return Prediction(
+            df.filter(pl.col("ModelType").str.starts_with("Prediction"))
+            .rename(
+                {
+                    "SnapshotTime": "pySnapShotTime",
+                    "Positives": "pyPositives",
+                    "Negatives": "pyNegatives",
+                    "ResponseCount": "pyCount",
+                }
+            )
+            .with_columns(
+                pyModelId=pl.format("{}!{}", pl.col("ModelClass"), pl.col("ModelName")),
+                pyValue=pl.col("Performance").cast(pl.String),
+                pyUnscaledPerformance=(
+                    pl.col("Performance").cast(pl.Float64) / 100
+                ).cast(pl.String),
+                pyName=pl.lit("auc"),
+                pyDataUsage=pl.col("ModelType").str.extract(r".+_(Test|Control|NBA)"),
+                pyModelType=pl.lit("PREDICTION"),
+                pysnapshotday=pl.col("pySnapShotTime").str.slice(0, 8),
+                pySnapshotType=pl.lit(
+                    "Daily"
+                ),  # this is a guess - but Daily is also assumed by the Prediction class
+            )
+            .cast(
+                {
+                    "pyNegatives": pl.Float64,
+                    "pyPositives": pl.Float64,
+                    "pyCount": pl.Float64,
+                    # "TotalPositives": pl.Float64,
+                    # "TotalResponses": pl.Float64,
+                    # "Performance": pl.Float64,
+                }
+            )
         )
 
     @property
@@ -123,8 +185,7 @@ class Prediction:
             custom_predictions = []
 
         return (
-            self.predictions.drop("Channel")
-            .join(
+            self.predictions.join(
                 self.getPredictionsChannelMapping(custom_predictions).lazy(),
                 left_on="ModelName",
                 right_on="Prediction",
