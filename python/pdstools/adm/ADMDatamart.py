@@ -1298,7 +1298,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
 
         # Removes whitespace and capitalizes names for matching
         def name_normalizer(x):
-            return pl.col(x).str.replace_all("[ \-_]", "").str.to_uppercase()
+            return pl.col(x).str.replace_all(r"[ \-_]", "").str.to_uppercase()
 
         directionMapping = pl.DataFrame(
             # Standard directions have a 1:1 mapping to channel groups
