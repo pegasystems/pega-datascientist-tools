@@ -1506,7 +1506,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                     item_overlap_actions["isValid"],
                 )
             ).alias("OmniChannel Actions"),
-            CTR=(pl.col("Positives")) / (pl.col("ResponseCount"))
+            CTR=(pl.col("Positives")) / (pl.col("ResponseCount")),
         ).drop(
             ["isNBADModelConfiguration"]
             + (
@@ -1592,8 +1592,10 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 .alias("Used Actions"),
                 totalUsedTreatments.alias("Used Treatments"),
                 pl.lit(usesNBAD).alias("usesNBAD"),
-                ((pl.len() > 0) & pl.lit(usesNBAD and usesNBADOnly)).alias("usesNBADOnly"),
-                pl.col("OmniChannel Actions").filter(pl.col.isValid).mean()
+                ((pl.len() > 0) & pl.lit(usesNBAD and usesNBADOnly)).alias(
+                    "usesNBADOnly"
+                ),
+                pl.col("OmniChannel Actions").filter(pl.col.isValid).mean(),
             )
             .with_columns(CTR=(pl.col("Positives")) / (pl.col("ResponseCount")))
         )
@@ -1737,6 +1739,21 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                     bashCommand.split(), stdout=stdout, stderr=stderr, cwd=working_dir
                 )
                 process.communicate()
+
+        def _get_pandoc_version():
+            import subprocess
+
+            result = subprocess.run(
+                ["pandoc", "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+            if result.returncode == 0:
+                return result.stdout.decode().split("\n")[0]
+            else:
+                raise ImportError(
+                    "Pandoc is not installled. Please install the latest verion at https://www.pandoc.org"
+                )
+
+        _get_pandoc_version()
 
         # Main function logic
         healthcheck_file, report = get_report_files(modelid)
