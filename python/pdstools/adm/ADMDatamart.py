@@ -1004,10 +1004,10 @@ class ADMDatamart(Plots, Tables):
             data.group_by(context_keys)
             .agg(
                 [
-                    pl.count(by).suffix("_count"),
-                    pl.col([aggcols[0], aggcols[3]]).sum().suffix("_sum"),
-                    pl.col(aggcols).max().suffix("_max"),
-                    pl.col(aggcols).mean().suffix("_mean"),
+                    pl.count(by).name.suffix("_count"),
+                    pl.col([aggcols[0], aggcols[3]]).sum().name.suffix("_sum"),
+                    pl.col(aggcols).max().name.suffix("_max"),
+                    pl.col(aggcols).mean().name.suffix("_mean"),
                     (pl.col("ResponseCount") == 0)
                     .sum()
                     .alias("Count_without_responses"),
