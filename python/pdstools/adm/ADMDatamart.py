@@ -1547,7 +1547,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                     item_overlap_actions["isValid"],
                 )
             ).alias("OmniChannel Actions"),
-            CTR=(pl.col("Positives")) / (pl.col("ResponseCount")),
+            CTR=(pl.col("Positives")) / (pl.col("ResponseCount")),,
         ).drop(
             ["isNBADModelConfiguration"]
             + (
