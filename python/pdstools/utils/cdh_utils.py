@@ -285,8 +285,8 @@ def auc_from_probs(
     if nlabels > 2:
         raise Exception("'Groundtruth' has more than two levels.")
 
-    df = pl.DataFrame({"truth": groundtruth, "probs": probs})
-    binned = df.group_by(by="probs").agg(
+    df = pl.DataFrame({"truth": groundtruth, "probs": probs}, strict=False)
+    binned = df.group_by(probs="probs").agg(
         [
             (pl.col("truth") == 1).sum().alias("pos"),
             (pl.col("truth") == 0).sum().alias("neg"),
@@ -364,7 +364,7 @@ def aucpr_from_probs(
         raise Exception("'Groundtruth' has more than two levels.")
 
     df = pl.DataFrame({"truth": groundtruth, "probs": probs})
-    binned = df.group_by(by="probs").agg(
+    binned = df.group_by(probs="probs").agg(
         [
             (pl.col("truth") == 1).sum().alias("pos"),
             (pl.col("truth") == 0).sum().alias("neg"),
@@ -604,6 +604,7 @@ def weighted_performance_polars() -> pl.Expr:
     """Polars function to return a weighted performance"""
     return weighted_average_polars("Performance", "ResponseCount")
 
+
 def overlap_lists_polars(col: pl.Series, row_validity: pl.Series) -> List[float]:
     """Calculate the overlap of each of the elements (must be a list) with all the others"""
     nrows = col.len()
@@ -618,13 +619,16 @@ def overlap_lists_polars(col: pl.Series, row_validity: pl.Series) -> List[float]
                 set_j = set(col[j].to_list())
                 intersection = set_i & set_j
                 overlap_w_other_channels += [len(intersection)]
-        if len(overlap_w_other_channels)>0:
+        if len(overlap_w_other_channels) > 0:
             average_overlap += [
-                sum(overlap_w_other_channels) / len(overlap_w_other_channels) / len(set_i)
+                sum(overlap_w_other_channels)
+                / len(overlap_w_other_channels)
+                / len(set_i)
             ]
         else:
             average_overlap += [float("nan")]
     return average_overlap
+
 
 def zRatio(
     posCol: pl.Expr = pl.col("BinPositives"), negCol: pl.Expr = pl.col("BinNegatives")
