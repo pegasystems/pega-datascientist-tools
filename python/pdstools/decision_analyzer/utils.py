@@ -11,7 +11,7 @@ from .table_definition import DecisionAnalyzer, ExplainabilityExtract, TableConf
 # As long as this is run once, anywhere, it's enabled globally.
 # Putting it here AND in the Home.py file should therefore be enough,
 # because every other file imports from utils.py (hence running this part too.)
-pl.enable_string_cache(True)
+pl.enable_string_cache()
 
 
 # superset, in order
