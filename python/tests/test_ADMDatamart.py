@@ -511,8 +511,8 @@ def test_overall_summary_cols(test):
         "Performance",
         "Positives",
         "ResponseCount",
-        'Minimum Performance',
-        'Channel with Minimum Performance',
+        "Minimum Performance",
+        "Channel with Minimum Performance",
         "Issues",
         "Groups",
         "Total Number of Actions",
@@ -526,8 +526,16 @@ def test_overall_summary_cols(test):
     ]
     assert len(summary) == 1
 
+
 def test_overall_summary_n_valid_channels(test):
     assert test.overall_summary().collect()["Number of Valid Channels"].item() == 3
 
+
 def test_overall_summary_positives(test):
     assert test.overall_summary().collect()["Positives"].item() == 106720
+
+
+def test_extract_keys_on_empty_df(test):
+    """Testing that an empty dataframe doesn't fail hard"""
+    filtered_df = test.modelData.filter(pl.col("Name") == "TEST")
+    ADMDatamart(model_df=filtered_df, extract_keys=True).modelData.collect()
