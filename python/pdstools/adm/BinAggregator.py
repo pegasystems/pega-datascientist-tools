@@ -4,8 +4,8 @@ import plotly.express as px
 from plotly.graph_objects import Figure
 from typing import Union, Optional, Literal
 
-from pdstools import ADMDatamart
-from pdstools.utils.cdh_utils import lift  # only temp needed
+from ..adm import ADMDatamart
+from ..utils.cdh_utils import lift  # only temp needed
 
 # from IPython.display import display # for better display in notebooks rather than print of dataframes
 
@@ -305,9 +305,7 @@ class BinAggregator:
             values=["Lift"],
             index=["ModelID", "Lift_RESIDUAL"],
             columns="Symbol",
-        ).sort(
-            "ModelID"
-        )  # just for debugging/transparency
+        ).sort("ModelID")  # just for debugging/transparency
 
         if verbose:
             print("Pivot table:")
@@ -899,9 +897,7 @@ class BinAggregator:
             topic = binning.columns[-1]  # assuming the roll-up column is the last one
             model_facet = (
                 # if there are multiple topics, take the topic otherwise assume not rolled up over a topic
-                topic
-                if binning.select(pl.col(topic).n_unique() > 1).item()
-                else None
+                topic if binning.select(pl.col(topic).n_unique() > 1).item() else None
             )
             predictor_facet = (
                 # check if there are multiple predictors
