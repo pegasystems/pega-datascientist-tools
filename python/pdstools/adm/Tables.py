@@ -1,5 +1,5 @@
 import polars as pl
-from pdstools.utils.cdh_utils import weighted_average_polars
+from ..utils.cdh_utils import weighted_average_polars
 from functools import cached_property
 
 # TODO: reconsier this whole class

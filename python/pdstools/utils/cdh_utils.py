@@ -72,8 +72,16 @@ def _extract_keys(
     df: Union[pl.DataFrame, pl.LazyFrame]
         The dataframe to extract the keys from
     """
+    # Checking for the 'column is None/Null' case
+    if df.schema[col] != pl.Utf8:
+        return df
+
     if import_strategy != "eager":
         raise NotEagerError("Extracting keys")
+
+    # Checking for the 'empty df' case
+    if len(df.select(col).head(1).collect()) == 0:
+        return df
 
     def safeName():
         return (
@@ -604,6 +612,7 @@ def weighted_performance_polars() -> pl.Expr:
     """Polars function to return a weighted performance"""
     return weighted_average_polars("Performance", "ResponseCount")
 
+
 def overlap_lists_polars(col: pl.Series, row_validity: pl.Series) -> List[float]:
     """Calculate the overlap of each of the elements (must be a list) with all the others"""
     nrows = col.len()
@@ -618,13 +627,16 @@ def overlap_lists_polars(col: pl.Series, row_validity: pl.Series) -> List[float]
                 set_j = set(col[j].to_list())
                 intersection = set_i & set_j
                 overlap_w_other_channels += [len(intersection)]
-        if len(overlap_w_other_channels)>0:
+        if len(overlap_w_other_channels) > 0:
             average_overlap += [
-                sum(overlap_w_other_channels) / len(overlap_w_other_channels) / len(set_i)
+                sum(overlap_w_other_channels)
+                / len(overlap_w_other_channels)
+                / len(set_i)
             ]
         else:
             average_overlap += [float("nan")]
     return average_overlap
+
 
 def zRatio(
     posCol: pl.Expr = pl.col("BinPositives"), negCol: pl.Expr = pl.col("BinNegatives")
