@@ -208,8 +208,8 @@ class DecisionData:
             .alias(f"Win_at_rank{i}")
             for i in range(1, self.max_win_rank + 1)
         ] + [
-            pl.min(stats_cols).suffix("_min"),
-            pl.max(stats_cols).suffix("_max"),
+            pl.min(stats_cols).name.suffix("_min"),
+            pl.max(stats_cols).name.suffix("_max"),
             pl.col("FinalPropensity", "Priority").sample(
                 n=num_samples, with_replacement=True, shuffle=True
             ),
