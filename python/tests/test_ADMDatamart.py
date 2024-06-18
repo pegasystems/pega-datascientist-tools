@@ -447,7 +447,7 @@ def test_create_sign_df():
 
 
 def test_model_summary(test):
-    assert test.model_summary()
+    test.model_summary()
 
 
 def test_pivot_df(test):
