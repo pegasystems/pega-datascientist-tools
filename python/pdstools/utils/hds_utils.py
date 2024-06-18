@@ -7,7 +7,7 @@ import polars as pl
 
 from random import randint
 from typing import Literal, Optional, Union
-from ..adm import ADMDatamart
+from .. import ADMDatamart
 
 
 class Config:

@@ -4,7 +4,7 @@ import plotly.express as px
 from plotly.graph_objects import Figure
 from typing import Union, Optional, Literal
 
-from ..adm import ADMDatamart
+from .. import ADMDatamart
 from ..utils.cdh_utils import lift  # only temp needed
 
 # from IPython.display import display # for better display in notebooks rather than print of dataframes
