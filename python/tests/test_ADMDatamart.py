@@ -446,8 +446,8 @@ def test_create_sign_df():
     # TODO: make this a good test rather than test for no fail
 
 
-def test_model_summary():
-    pass
+def test_model_summary(test):
+    assert test.model_summary()
 
 
 def test_pivot_df(test):
