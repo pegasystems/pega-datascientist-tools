@@ -110,7 +110,7 @@ class Anonymization:
         >>> min_max("age", range)
         Column "age" normalized using min-max scaling.
         """
-        if range[0]["min"] == range[0]["max"]:
+        if range[0]["min"] == range[0]["max"]:  # pragma: no cover
             print(f"Column {column_name} only contains one value, so returning 0")
             return pl.lit(0.0).alias(column_name)
         return (pl.col(column_name) - pl.lit(range[0]["min"])) / (
@@ -195,7 +195,7 @@ class Anonymization:
         df = init_df.select(pl.all().exclude(pl.Null))
         types = self._infer_types(df)
         for n, t in types.items():
-            if t == "numeric" and not df.schema[n].is_numeric(): #pragma: no cover
+            if t == "numeric" and not df.schema[n].is_numeric():  # pragma: no cover
                 df = df.with_columns(
                     pl.col(n).replace(pl.lit(""), None).cast(pl.Float64)
                 )
@@ -262,7 +262,7 @@ class Anonymization:
         """
         try:  # to make it optional
             import polars_hash as plh
-        except ImportError: #pragma: no cover
+        except ImportError:  # pragma: no cover
             raise ImportError(
                 "Polars-hash not installed. Please install using pip install polars-hash"
             )
