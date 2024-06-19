@@ -23,7 +23,7 @@ def anonymizer():
 
 
 def test_anonymize(anonymizer):
-    anonymizer.anonymize()
+    anonymizer.anonymize(verbose=True)
     assert os.path.exists(anonymizer.output_file)
 
 

@@ -195,7 +195,7 @@ class Anonymization:
         df = init_df.select(pl.all().exclude(pl.Null))
         types = self._infer_types(df)
         for n, t in types.items():
-            if t == "numeric" and not df.schema[n].is_numeric():
+            if t == "numeric" and not df.schema[n].is_numeric(): #pragma: no cover
                 df = df.with_columns(
                     pl.col(n).replace(pl.lit(""), None).cast(pl.Float64)
                 )
@@ -262,7 +262,7 @@ class Anonymization:
         """
         try:  # to make it optional
             import polars_hash as plh
-        except ImportError:
+        except ImportError: #pragma: no cover
             raise ImportError(
                 "Polars-hash not installed. Please install using pip install polars-hash"
             )
