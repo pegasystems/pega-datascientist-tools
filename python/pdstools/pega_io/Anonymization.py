@@ -204,7 +204,7 @@ class Anonymization:
         df.write_parquet(filename)
         return filename
 
-    def preprocess(self, verbose: bool) -> list[str]:
+    def preprocess(self, verbose: bool) -> List[str]:
         """
         Preprocesses the files in the specified path.
 
@@ -238,7 +238,7 @@ class Anonymization:
 
     def process(
         self,
-        chunked_files: list[str],
+        chunked_files: List[str],
         verbose: bool = True,
     ):
         """
@@ -267,7 +267,9 @@ class Anonymization:
                 "Polars-hash not installed. Please install using pip install polars-hash"
             )
 
-        df = pl.concat([pl.scan_parquet(f) for f in chunked_files], how="diagonal_relaxed")
+        df = pl.concat(
+            [pl.scan_parquet(f) for f in chunked_files], how="diagonal_relaxed"
+        )
 
         symb_nonanonymised = [
             key for key in df.columns if key.startswith(tuple(self.skip_col_prefix))
