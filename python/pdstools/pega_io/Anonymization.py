@@ -80,11 +80,11 @@ class Anonymization:
         """
         if verbose:
             print("Writing temporary parquet files")
-        self.preprocess(verbose=verbose)
+        chunked_files = self.preprocess(verbose=verbose)
 
         if verbose:
             print("Processing and writing parquet files to single file")
-        self.process(verbose=verbose)
+        self.process(chunked_files, verbose=verbose)
         if verbose:
             print(f"Succesfully anonymized data to {self.output_file}")
 
@@ -204,7 +204,7 @@ class Anonymization:
         df.write_parquet(filename)
         return filename
 
-    def preprocess(self, verbose: bool):
+    def preprocess(self, verbose: bool) -> list[str]:
         """
         Preprocesses the files in the specified path.
 
@@ -215,7 +215,7 @@ class Anonymization:
 
         Returns
         -------
-            None
+            list[str]: A list of the temporary bundled parquet files
         """
 
         files = glob(self.path_to_files)
@@ -224,16 +224,21 @@ class Anonymization:
         if self.file_limit:
             files = files[: self.file_limit]
 
+        chunked_files = []
+
         length = math.ceil(len(files) / self.batch_size)
         for i, file_chunk in enumerate(
             tqdm(
                 self.chunker(files, self.batch_size), total=length, disable=not verbose
             )
         ):
-            self.chunk_to_parquet(file_chunk, self.temp_path, i)
+            chunked_files.append(self.chunk_to_parquet(file_chunk, self.temp_path, i))
+
+        return chunked_files
 
     def process(
         self,
+        chunked_files: list[str],
         verbose: bool = True,
     ):
         """
@@ -241,6 +246,9 @@ class Anonymization:
 
         Parameters
         ----------
+        chunked_files (list[str]):
+            A list of the bundled temporary parquet files to process
+
         verbose (bool):
             Whether to print verbose output. Default is True.
 
@@ -259,10 +267,7 @@ class Anonymization:
                 "Polars-hash not installed. Please install using pip install polars-hash"
             )
 
-        files = glob(os.path.join(self.temp_path, "*.parquet"))
-        files = sorted(files, key=lambda k: int(os.path.basename(k).split(".")[0]))
-
-        df = pl.concat([pl.scan_parquet(f) for f in files], how="diagonal_relaxed")
+        df = pl.concat([pl.scan_parquet(f) for f in chunked_files], how="diagonal_relaxed")
 
         symb_nonanonymised = [
             key for key in df.columns if key.startswith(tuple(self.skip_col_prefix))
