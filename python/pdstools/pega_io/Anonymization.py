@@ -204,7 +204,7 @@ class Anonymization:
         df.write_parquet(filename)
         return filename
 
-    def preprocess(self, verbose: bool):
+    def preprocess(self, verbose: bool) -> list[str]:
         """
         Preprocesses the files in the specified path.
 
