@@ -176,7 +176,7 @@ class Anonymization:
 
         return (files[pos : pos + size] for pos in range(0, len(files), size))
 
-    def chunk_to_parquet(self, files: List[str], temp_path: str, i) -> str:
+    def chunk_to_parquet(self, files: List[str], i) -> str:
         """Convert a chunk of files to Parquet format.
 
         Parameters:
@@ -200,7 +200,7 @@ class Anonymization:
                     pl.col(n).replace(pl.lit(""), None).cast(pl.Float64)
                 )
 
-        filename = os.path.join(temp_path, f"{i}.parquet")
+        filename = os.path.join(self.temp_path, f"{i}.parquet")
         df.write_parquet(filename)
         return filename
 
@@ -232,7 +232,7 @@ class Anonymization:
                 self.chunker(files, self.batch_size), total=length, disable=not verbose
             )
         ):
-            chunked_files.append(self.chunk_to_parquet(file_chunk, self.temp_path, i))
+            chunked_files.append(self.chunk_to_parquet(file_chunk, i))
 
         return chunked_files
 
