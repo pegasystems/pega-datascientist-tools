@@ -182,6 +182,7 @@ quarto_print(
 )
 ```
 
+
 ```{python}
 fig = datamart.plotScoreDistribution(modelids=[modelid])
 
@@ -382,6 +383,30 @@ fig.show()
 ```
 
 :::
+
+```{python}
+px.bar(
+    classifier.melt(
+        id_vars=["BinSymbol", "BinIndex"],
+        value_vars=["BinPositives", "BinNegatives"],
+        value_name="Count",
+        variable_name="Response",
+    ).with_columns(
+        (pl.col("Count") / pl.col("Count").max()).over("Response").alias("Relative Count")
+    ).collect(),
+    x="BinIndex",
+    y="Relative Count",
+    color="Response",
+    barmode="group",
+    template="pega",
+    title="Class Separation",
+    height=400, width=600,
+    color_discrete_map={
+        'BinNegatives': 'orangered',
+        'BinPositives': 'green'
+    }
+).update_layout(xaxis_title=None).update_xaxes(showticklabels=False)
+```
 
 # Trend charts
 
@@ -824,7 +849,7 @@ def get_cmd_output(args):
 
 
 def get_version_only(versionstr):
-    return re.sub("[^.\d]", "", versionstr)
+    return re.sub("[^.0-9]", "", versionstr)
 
 quarto_version = get_version_only(get_cmd_output(["quarto", "--version"])[0])
 pandoc_version = get_version_only(get_cmd_output(["pandoc", "--version"])[0])
