@@ -211,6 +211,10 @@ def test_init_from_pdc():
             "ModelName": ["PREDICTWEBPROPENSITY"] * 4 + ["PREDICTMOBILEPROPENSITY"] * 4,
             "ModelType": ["Prediction_Control", "Prediction_Test", "Prediction_NBA", ""]
             * 2,
+            "Positives": [100, 400, 500, 1000, 200, 800, 1000, 2000],
+            "Negatives": [1000, 2000, 3000, 6000, 3000, 6000, 9000, 18000],
+            "ResponseCount": [1100, 2400, 3500, 7000, 3200, 6800, 10000, 20000],
+            "Performance": [0.65] * 4 + [0.70] * 4,
         }
     ).lazy()
     pred = Prediction.from_pdc(df)
