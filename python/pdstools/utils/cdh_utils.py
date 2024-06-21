@@ -574,6 +574,8 @@ def fromPRPCDateTime(
         return dt
 
 
+# TODO: Polars doesn't like time zones like GMT+0200
+
 def toPRPCDateTime(dt: datetime.datetime) -> str:
     """Convert to a Pega date-time string
 
