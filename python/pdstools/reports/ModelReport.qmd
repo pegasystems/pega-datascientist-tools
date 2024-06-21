@@ -246,7 +246,7 @@ gt = (
         decimals=0,
         columns=["ResponseCount", "Positives"],
     )
-    .fmt_percent(decimals=3, columns=["Base Propensity"])
+    .fmt_percent(decimals=3, columns="Base Propensity")
     .fmt_number(
         decimals=2,
         scale_by=100,
@@ -826,16 +826,6 @@ def get_cmd_output(args):
 def get_version_only(versionstr):
     return re.sub("[^.\d]", "", versionstr)
 
-
-def get_pip_package_version(pck):
-    package_info = get_cmd_output(["pip", "show", pck])
-    if len(package_info) <= 1:
-        package_version = f"WARNING: {pck} not installed"
-    else:
-        package_version = package_info[1]
-    return get_version_only(package_version)
-
-
 quarto_version = get_version_only(get_cmd_output(["quarto", "--version"])[0])
 pandoc_version = get_version_only(get_cmd_output(["pandoc", "--version"])[0])
 timestamp_str = datetime.datetime.now().strftime("%d %b %Y %H:%M:%S")
@@ -848,9 +838,6 @@ quarto_print(
 | Notebook | {quarto_source} |
 | Quarto | {quarto_version} |
 | Pandoc | {pandoc_version} |
-| PDS Tools | {get_pip_package_version('pdstools')} |
-| Jupyter Notebook format (nbformat) | {get_pip_package_version('nbformat')} |
-| Great Tables | {get_pip_package_version('great_tables')} |
 | Created at | {timestamp_str} |
 
 """
