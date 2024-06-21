@@ -9,7 +9,7 @@ import polars as pl
 import math
 from plotly.subplots import make_subplots
 from typing import Optional
-from pdstools.utils import pega_template
+from ..utils import pega_template
 
 
 class ADMVisualisations:
@@ -491,8 +491,8 @@ class ADMVisualisations:
         import plotly
         from packaging import version
 
-        assert version.parse(plotly.__version__) >= version.parse(
-            "5.5.0"
+        assert (
+            version.parse(plotly.__version__) >= version.parse("5.5.0")
         ), f"Visualisation requires plotly version 5.5.0 or later (you have version {plotly.__version__}): please upgrade to a newer version."
 
         title = "over all models" if facet is None else f"per {facet}"

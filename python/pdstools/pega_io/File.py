@@ -336,7 +336,7 @@ def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
 
     def f(x):
         try:
-            return fromPRPCDateTime(re.search("\d.*GMT", x)[0].replace("_", " "))
+            return fromPRPCDateTime(re.search(r"\d.*GMT", x)[0].replace("_", " "))
         except:
             return pytz.timezone("GMT").localize(
                 datetime.datetime.fromtimestamp(os.path.getctime(x))
