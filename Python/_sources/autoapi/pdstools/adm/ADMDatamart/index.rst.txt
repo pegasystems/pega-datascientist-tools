@@ -273,6 +273,9 @@ Module Contents
       :staticmethod:
 
 
+      Method to retrieve only the last snapshot.
+
+
 
    .. py:method:: _last_timestamp(col: Literal['ResponseCount', 'Positives']) -> polars.Expr
       :staticmethod:
