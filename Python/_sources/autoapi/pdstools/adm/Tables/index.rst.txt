@@ -12,18 +12,8 @@ Classes
    pdstools.adm.Tables.Tables
 
 
-Functions
----------
-
-.. autoapisummary::
-
-   pdstools.adm.Tables.weighted_average_polars
-
-
 Module Contents
 ---------------
-
-.. py:function:: weighted_average_polars(vals: Union[str, polars.Expr], weights: Union[str, polars.Expr]) -> polars.Expr
 
 .. py:class:: Tables
 

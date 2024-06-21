@@ -4,100 +4,16 @@ pdstools.decision_analyzer.decision_data
 .. py:module:: pdstools.decision_analyzer.decision_data
 
 
-Attributes
-----------
-
-.. autoapisummary::
-
-   pdstools.decision_analyzer.decision_data.NBADScope_Mapping
-
-
 Classes
 -------
 
 .. autoapisummary::
 
-   pdstools.decision_analyzer.decision_data.Plot
    pdstools.decision_analyzer.decision_data.DecisionData
-
-
-Functions
----------
-
-.. autoapisummary::
-
-   pdstools.decision_analyzer.decision_data.validate_columns
-   pdstools.decision_analyzer.decision_data.apply_filter
-   pdstools.decision_analyzer.decision_data.determine_extract_type
-   pdstools.decision_analyzer.decision_data.get_table_definition
-   pdstools.decision_analyzer.decision_data.process
-   pdstools.decision_analyzer.decision_data.gini_coefficient
 
 
 Module Contents
 ---------------
-
-.. py:function:: validate_columns(df: polars.LazyFrame, extract_type: Dict[str, pdstools.decision_analyzer.table_definition.TableConfig])
-
-.. py:data:: NBADScope_Mapping
-
-.. py:function:: apply_filter(df: polars.LazyFrame, filters: Optional[Union[polars.Expr, List[polars.Expr]]] = None)
-
-   Apply a global set of filters. Kept outside of the DecisionData class as
-   this is really more of a utility function, not bound to that class at all.
-
-
-.. py:function:: determine_extract_type(raw_data)
-
-.. py:function:: get_table_definition(table: str)
-
-.. py:function:: process(df: polars.LazyFrame, table: Literal['decision_analyzer', 'explainability_extract'], subset: bool = True, include_cols: Optional[Iterable[str]] = None, drop_cols: Optional[Iterable[str]] = None, raise_on_unknown: bool = True) -> polars.LazyFrame
-
-.. py:function:: gini_coefficient(df: polars.DataFrame, col_x: str, col_y: str)
-
-.. py:class:: Plot(decision_data)
-
-   .. py:method:: plot_threshold_deciles(thresholding_name, return_df=False)
-
-
-   .. py:method:: plot_distribution_as_treemap(df: polars.LazyFrame, stage: str, scope_options: List[str])
-
-
-   .. py:method:: plot_sensitivity(win_rank: int = 1, hide_priority=True, limit_xaxis_range=True, return_df=False, reference_group=None)
-
-
-   .. py:method:: plot_global_winloss_distribution(level, win_rank, return_df=False)
-
-
-   .. py:method:: plot_propensity_vs_optionality(stage='Arbitration', return_df=False)
-
-
-   .. py:method:: plot_action_variation(stage='Final', return_df=False)
-
-
-   .. py:method:: plot_trend_chart(stage: str, scope: str, return_df=False) -> Tuple[plotly.graph_objects.Figure, Optional[str]]
-
-
-   .. py:method:: plot_decision_funnel(scope: str, NBADStages_Mapping: dict, additional_filters: Optional[Union[polars.Expr, List[polars.Expr]]] = None, return_df=False)
-
-
-   .. py:method:: plot_filtering_components(stages: List[str], top_n, AvailableNBADStages, additional_filters: Optional[Union[polars.Expr, List[polars.Expr]]] = None, return_df=False)
-
-
-   .. py:method:: plot_distribution(df: polars.LazyFrame, scope: str, breakdown: str, metric: str = 'Decisions', horizontal=False)
-
-
-   .. py:method:: plot_prio_factor_boxplots(reference: Optional[Union[polars.Expr, List[polars.Expr]]] = None, sample_size=10000, return_df=False) -> Tuple[plotly.graph_objects.Figure, Optional[str]]
-
-
-   .. py:method:: plot_rank_boxplot(reference: Optional[Union[polars.Expr, List[polars.Expr]]] = None, return_df=False)
-
-
-   .. py:method:: plot_optionality_per_stage(return_df=False)
-
-
-   .. py:method:: plot_optionality_trend(df: polars.LazyFrame, NBADStages_Mapping, return_df=False)
-
 
 .. py:class:: DecisionData(raw_data: polars.LazyFrame)
 

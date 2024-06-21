@@ -339,9 +339,9 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../3-action_distribution/index.html">3-action_distribution</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../9-Thresholding%20Analysis/index.html">9-Thresholding Analysis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../8-offer_quality_analysis/index.html">8-offer_quality_analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../11-Business%20Lever%20Analysis/index.html">11-Business Lever Analysis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../10-Business%20Value%20Analysis/index.html">10-Business Value Analysis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../7-personalization_analysis/index.html">7-personalization_analysis</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../11-Business%20Lever%20Analysis/index.html">11-Business Lever Analysis</a></li>
 </ul>
 </li>
 </ul>
@@ -391,28 +391,25 @@
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.pega_io.File.fromPRPCDateTime" title="pdstools.pega_io.File.fromPRPCDateTime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fromPRPCDateTime</span></code></a>(→ Union[datetime.datetime, str])</p></td>
-<td><p>Convert from a Pega date-time string.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.pega_io.File.readDSExport" title="pdstools.pega_io.File.readDSExport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readDSExport</span></code></a>(→ polars.LazyFrame)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.pega_io.File.readDSExport" title="pdstools.pega_io.File.readDSExport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readDSExport</span></code></a>(→ polars.LazyFrame)</p></td>
 <td><p>Read a Pega dataset export file.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.pega_io.File.import_file" title="pdstools.pega_io.File.import_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">import_file</span></code></a>(→ polars.LazyFrame)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.pega_io.File.import_file" title="pdstools.pega_io.File.import_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">import_file</span></code></a>(→ polars.LazyFrame)</p></td>
 <td><p>Imports a file using Polars</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.pega_io.File.readZippedFile" title="pdstools.pega_io.File.readZippedFile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readZippedFile</span></code></a>(→ io.BytesIO)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.pega_io.File.readZippedFile" title="pdstools.pega_io.File.readZippedFile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readZippedFile</span></code></a>(→ io.BytesIO)</p></td>
 <td><p>Read a zipped NDJSON file.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.pega_io.File.readMultiZip" title="pdstools.pega_io.File.readMultiZip"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readMultiZip</span></code></a>(files[, zip_type, verbose])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.pega_io.File.readMultiZip" title="pdstools.pega_io.File.readMultiZip"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readMultiZip</span></code></a>(files[, zip_type, verbose])</p></td>
 <td><p>Reads multiple zipped ndjson files, and concats them to one Polars dataframe.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.pega_io.File.get_latest_file" title="pdstools.pega_io.File.get_latest_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_latest_file</span></code></a>(→ str)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.pega_io.File.get_latest_file" title="pdstools.pega_io.File.get_latest_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_latest_file</span></code></a>(→ str)</p></td>
 <td><p>Convenience method to find the latest model snapshot.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.pega_io.File.getMatches" title="pdstools.pega_io.File.getMatches"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getMatches</span></code></a>(files_dir, target)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.pega_io.File.getMatches" title="pdstools.pega_io.File.getMatches"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getMatches</span></code></a>(files_dir, target)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.pega_io.File.cache_to_file" title="pdstools.pega_io.File.cache_to_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cache_to_file</span></code></a>(→ str)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.pega_io.File.cache_to_file" title="pdstools.pega_io.File.cache_to_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cache_to_file</span></code></a>(→ str)</p></td>
 <td><p>Very simple convenience function to cache data.</p></td>
 </tr>
 </tbody>
@@ -421,34 +418,6 @@
 </section>
 <section id="module-contents">
 <h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
-<dl class="py function">
-<dt class="sig sig-object py" id="pdstools.pega_io.File.fromPRPCDateTime">
-<span class="sig-name descname"><span class="pre">fromPRPCDateTime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">datetime.datetime</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span></span><a class="headerlink" href="#pdstools.pega_io.File.fromPRPCDateTime" title="Link to this definition">¶</a></dt>
-<dd><p>Convert from a Pega date-time string.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>str</em>) – String of Pega date-time</p></li>
-<li><p><strong>return_string</strong> (<em>bool</em><em>, </em><em>default=False</em>) – If True it will return the date in string format. If
-False it will return in datetime type</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p><em>Union[datetime.datetime, str]</em> – The converted date in datetime format or string.</p></li>
-<li><p><em>Examples</em> – &gt;&gt;&gt; fromPRPCDateTime(“20180316T134127.847 GMT”)
-&gt;&gt;&gt; fromPRPCDateTime(“20180316T134127.847 GMT”, True)
-&gt;&gt;&gt; fromPRPCDateTime(“20180316T184127.846”)
-&gt;&gt;&gt; fromPRPCDateTime(“20180316T184127.846”, True)</p></li>
-</ul>
-</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Union[datetime.datetime, str]</p>
-</dd>
-</dl>
-</dd></dl>
-
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.pega_io.File.readDSExport">
 <span class="sig-name descname"><span class="pre">readDSExport</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.DataFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'.'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">reading_opts</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.pega_io.File.readDSExport" title="Link to this definition">¶</a></dt>
@@ -680,7 +649,6 @@ Default is IPC, also supports parquet</p></li>
 <li><a class="reference internal" href="#">pdstools.pega_io.File</a><ul>
 <li><a class="reference internal" href="#functions">Functions</a></li>
 <li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
-<li><a class="reference internal" href="#pdstools.pega_io.File.fromPRPCDateTime"><code class="docutils literal notranslate"><span class="pre">fromPRPCDateTime()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.pega_io.File.readDSExport"><code class="docutils literal notranslate"><span class="pre">readDSExport()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.pega_io.File.import_file"><code class="docutils literal notranslate"><span class="pre">import_file()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.pega_io.File.readZippedFile"><code class="docutils literal notranslate"><span class="pre">readZippedFile()</span></code></a></li>

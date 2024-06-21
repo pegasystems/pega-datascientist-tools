@@ -339,9 +339,9 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../../3-action_distribution/index.html">3-action_distribution</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../9-Thresholding%20Analysis/index.html">9-Thresholding Analysis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../8-offer_quality_analysis/index.html">8-offer_quality_analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../11-Business%20Lever%20Analysis/index.html">11-Business Lever Analysis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../10-Business%20Value%20Analysis/index.html">10-Business Value Analysis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../7-personalization_analysis/index.html">7-personalization_analysis</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../../11-Business%20Lever%20Analysis/index.html">11-Business Lever Analysis</a></li>
 </ul>
 </li>
 </ul>
@@ -401,59 +401,8 @@
 </table>
 </div>
 </section>
-<section id="functions">
-<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">¶</a></h2>
-<div class="table-wrapper autosummary longtable docutils container">
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.app.health_check.pages.3-Reports.model_selection_df" title="pdstools.app.health_check.pages.3-Reports.model_selection_df"><code class="xref py py-obj docutils literal notranslate"><span class="pre">model_selection_df</span></code></a>(df, context_keys)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.app.health_check.pages.3-Reports.process_files" title="pdstools.app.health_check.pages.3-Reports.process_files"><code class="xref py py-obj docutils literal notranslate"><span class="pre">process_files</span></code></a>(→ Tuple[bytes, str])</p></td>
-<td><p>Processes a list of file paths. If there's only one file, returns the file's content as bytes</p></td>
-</tr>
-</tbody>
-</table>
-</div>
-</section>
 <section id="module-contents">
 <h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
-<dl class="py function">
-<dt class="sig sig-object py" id="pdstools.app.health_check.pages.3-Reports.model_selection_df">
-<span class="sig-name descname"><span class="pre">model_selection_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.app.health_check.pages.3-Reports.model_selection_df" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> (<em>polars.LazyFrame</em>)</p></li>
-<li><p><strong>context_keys</strong> (<em>list</em>)</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="pdstools.app.health_check.pages.3-Reports.process_files">
-<span class="sig-name descname"><span class="pre">process_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_paths</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">bytes</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.app.health_check.pages.3-Reports.process_files" title="Link to this definition">¶</a></dt>
-<dd><p>Processes a list of file paths. If there’s only one file, returns the file’s content as bytes
-and the provided file name. If there are multiple files, creates a zip file containing all the files
-and returns the zip file’s data as bytes and the generated zip file name.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>file_paths</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – A list of file paths to process.</p></li>
-<li><p><strong>file_name</strong> (<em>str</em>) – The file name to use when returning the file or zip file’s name.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The content of the single file as bytes and the file name if there’s only one file,
-or the zip file’s data as bytes and the zip file’s name if there are multiple files.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>(bytes, str)</p>
-</dd>
-</dl>
-</dd></dl>
-
 <dl class="py data">
 <dt class="sig sig-object py" id="pdstools.app.health_check.pages.3-Reports.name">
 <span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#pdstools.app.health_check.pages.3-Reports.name" title="Link to this definition">¶</a></dt>
@@ -531,10 +480,7 @@ or the zip file’s data as bytes and the zip file’s name if there are multipl
             <ul>
 <li><a class="reference internal" href="#">pdstools.app.health_check.pages.3-Reports</a><ul>
 <li><a class="reference internal" href="#attributes">Attributes</a></li>
-<li><a class="reference internal" href="#functions">Functions</a></li>
 <li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
-<li><a class="reference internal" href="#pdstools.app.health_check.pages.3-Reports.model_selection_df"><code class="docutils literal notranslate"><span class="pre">model_selection_df()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.app.health_check.pages.3-Reports.process_files"><code class="docutils literal notranslate"><span class="pre">process_files()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.app.health_check.pages.3-Reports.name"><code class="docutils literal notranslate"><span class="pre">name</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.app.health_check.pages.3-Reports.working_dir"><code class="docutils literal notranslate"><span class="pre">working_dir</span></code></a></li>
 </ul>

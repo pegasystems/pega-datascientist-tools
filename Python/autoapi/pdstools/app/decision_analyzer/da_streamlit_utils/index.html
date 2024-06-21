@@ -339,9 +339,9 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../3-action_distribution/index.html">3-action_distribution</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../9-Thresholding%20Analysis/index.html">9-Thresholding Analysis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../8-offer_quality_analysis/index.html">8-offer_quality_analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../11-Business%20Lever%20Analysis/index.html">11-Business Lever Analysis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../10-Business%20Value%20Analysis/index.html">10-Business Value Analysis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../7-personalization_analysis/index.html">7-personalization_analysis</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../11-Business%20Lever%20Analysis/index.html">11-Business Lever Analysis</a></li>
 </ul>
 </li>
 </ul>
@@ -403,55 +403,46 @@
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.get_da_data_path" title="pdstools.app.decision_analyzer.da_streamlit_utils.get_da_data_path"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_da_data_path</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.ensure_data" title="pdstools.app.decision_analyzer.da_streamlit_utils.ensure_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ensure_data</span></code></a>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.read_data" title="pdstools.app.decision_analyzer.da_streamlit_utils.read_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">read_data</span></code></a>(path)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.ensure_getFilterComponentData" title="pdstools.app.decision_analyzer.da_streamlit_utils.ensure_getFilterComponentData"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ensure_getFilterComponentData</span></code></a>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.read_nested_zip_files" title="pdstools.app.decision_analyzer.da_streamlit_utils.read_nested_zip_files"><code class="xref py py-obj docutils literal notranslate"><span class="pre">read_nested_zip_files</span></code></a>(→ polars.DataFrame)</p></td>
-<td><p>Reads a zip file buffer (uploaded from Streamlit) that contains .zip files,</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.ensure_data" title="pdstools.app.decision_analyzer.da_streamlit_utils.ensure_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ensure_data</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.get_current_index" title="pdstools.app.decision_analyzer.da_streamlit_utils.get_current_index"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_current_index</span></code></a>(options, session_state_key[, default])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.ensure_getFilterComponentData" title="pdstools.app.decision_analyzer.da_streamlit_utils.ensure_getFilterComponentData"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ensure_getFilterComponentData</span></code></a>()</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.get_current_index" title="pdstools.app.decision_analyzer.da_streamlit_utils.get_current_index"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_current_index</span></code></a>(options, session_state_key[, default])</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.get_current_stage_index" title="pdstools.app.decision_analyzer.da_streamlit_utils.get_current_stage_index"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_current_stage_index</span></code></a>(options)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.get_current_stage_index" title="pdstools.app.decision_analyzer.da_streamlit_utils.get_current_stage_index"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_current_stage_index</span></code></a>(options)</p></td>
 <td><p>Picks up the last stage from session state if it is set and it is applicable to</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.get_current_scope_index" title="pdstools.app.decision_analyzer.da_streamlit_utils.get_current_scope_index"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_current_scope_index</span></code></a>(options)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.get_current_scope_index" title="pdstools.app.decision_analyzer.da_streamlit_utils.get_current_scope_index"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_current_scope_index</span></code></a>(options)</p></td>
 <td><p>Picks up the last scope from session state if it is set and it is applicable to</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.show_filtered_counts" title="pdstools.app.decision_analyzer.da_streamlit_utils.show_filtered_counts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">show_filtered_counts</span></code></a>(statsBefore, statsAfter)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.show_filtered_counts" title="pdstools.app.decision_analyzer.da_streamlit_utils.show_filtered_counts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">show_filtered_counts</span></code></a>(statsBefore, statsAfter)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils._clean_unselected_filters" title="pdstools.app.decision_analyzer.da_streamlit_utils._clean_unselected_filters"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_clean_unselected_filters</span></code></a>(to_filter_columns, filter_type)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils._clean_unselected_filters" title="pdstools.app.decision_analyzer.da_streamlit_utils._clean_unselected_filters"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_clean_unselected_filters</span></code></a>(to_filter_columns, filter_type)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.get_data_filters" title="pdstools.app.decision_analyzer.da_streamlit_utils.get_data_filters"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_data_filters</span></code></a>(→ List[polars.Expr])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.get_data_filters" title="pdstools.app.decision_analyzer.da_streamlit_utils.get_data_filters"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_data_filters</span></code></a>(→ List[polars.Expr])</p></td>
 <td><p>Adds a UI on top of a dataframe to let viewers filter columns</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils._create_page" title="pdstools.app.decision_analyzer.da_streamlit_utils._create_page"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_create_page</span></code></a>(relative_path, name)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils._create_page" title="pdstools.app.decision_analyzer.da_streamlit_utils._create_page"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_create_page</span></code></a>(relative_path, name)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.get_pages" title="pdstools.app.decision_analyzer.da_streamlit_utils.get_pages"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_pages</span></code></a>(extract_type)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.get_pages" title="pdstools.app.decision_analyzer.da_streamlit_utils.get_pages"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_pages</span></code></a>(extract_type)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.get_options" title="pdstools.app.decision_analyzer.da_streamlit_utils.get_options"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_options</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.get_options" title="pdstools.app.decision_analyzer.da_streamlit_utils.get_options"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_options</span></code></a>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.handle_sample_data" title="pdstools.app.decision_analyzer.da_streamlit_utils.handle_sample_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">handle_sample_data</span></code></a>(is_ec2)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.handle_sample_data" title="pdstools.app.decision_analyzer.da_streamlit_utils.handle_sample_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">handle_sample_data</span></code></a>(is_ec2)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.handle_file_upload" title="pdstools.app.decision_analyzer.da_streamlit_utils.handle_file_upload"><code class="xref py py-obj docutils literal notranslate"><span class="pre">handle_file_upload</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.handle_file_upload" title="pdstools.app.decision_analyzer.da_streamlit_utils.handle_file_upload"><code class="xref py py-obj docutils literal notranslate"><span class="pre">handle_file_upload</span></code></a>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.handle_direct_file_path" title="pdstools.app.decision_analyzer.da_streamlit_utils.handle_direct_file_path"><code class="xref py py-obj docutils literal notranslate"><span class="pre">handle_direct_file_path</span></code></a>()</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.handle_direct_file_path" title="pdstools.app.decision_analyzer.da_streamlit_utils.handle_direct_file_path"><code class="xref py py-obj docutils literal notranslate"><span class="pre">handle_direct_file_path</span></code></a>()</p></td>
 <td><p></p></td>
 </tr>
 </tbody>
@@ -460,35 +451,6 @@
 </section>
 <section id="module-contents">
 <h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
-<dl class="py function">
-<dt class="sig sig-object py" id="pdstools.app.decision_analyzer.da_streamlit_utils.get_da_data_path">
-<span class="sig-name descname"><span class="pre">get_da_data_path</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.app.decision_analyzer.da_streamlit_utils.get_da_data_path" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="pdstools.app.decision_analyzer.da_streamlit_utils.read_data">
-<span class="sig-name descname"><span class="pre">read_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.app.decision_analyzer.da_streamlit_utils.read_data" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="pdstools.app.decision_analyzer.da_streamlit_utils.read_nested_zip_files">
-<span class="sig-name descname"><span class="pre">read_nested_zip_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_buffer</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span></span></span><a class="headerlink" href="#pdstools.app.decision_analyzer.da_streamlit_utils.read_nested_zip_files" title="Link to this definition">¶</a></dt>
-<dd><p>Reads a zip file buffer (uploaded from Streamlit) that contains .zip files,
-which are in fact gzipped ndjson files. Extracts, reads, and concatenates
-them into a single Polars DataFrame.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>file_buffer</strong> (<em>UploadedFile</em>) – The uploaded zip file buffer from Streamlit.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A concatenated Polars DataFrame containing the data from all gzipped ndjson files.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pl.DataFrame</p>
-</dd>
-</dl>
-</dd></dl>
-
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.app.decision_analyzer.da_streamlit_utils.ensure_data">
 <span class="sig-name descname"><span class="pre">ensure_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.app.decision_analyzer.da_streamlit_utils.ensure_data" title="Link to this definition">¶</a></dt>
@@ -646,9 +608,6 @@ current visual. Otherwise, picks the first option in the list</p>
 <li><a class="reference internal" href="#attributes">Attributes</a></li>
 <li><a class="reference internal" href="#functions">Functions</a></li>
 <li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
-<li><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.get_da_data_path"><code class="docutils literal notranslate"><span class="pre">get_da_data_path()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.read_data"><code class="docutils literal notranslate"><span class="pre">read_data()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.read_nested_zip_files"><code class="docutils literal notranslate"><span class="pre">read_nested_zip_files()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.ensure_data"><code class="docutils literal notranslate"><span class="pre">ensure_data()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.ensure_getFilterComponentData"><code class="docutils literal notranslate"><span class="pre">ensure_getFilterComponentData()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.app.decision_analyzer.da_streamlit_utils.polars_lazyframe_hashing"><code class="docutils literal notranslate"><span class="pre">polars_lazyframe_hashing</span></code></a></li>

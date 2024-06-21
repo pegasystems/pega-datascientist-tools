@@ -12,40 +12,8 @@ Attributes
    pdstools.app.health_check.pages.2-data_filters.expr_list
 
 
-Functions
----------
-
-.. autoapisummary::
-
-   pdstools.app.health_check.pages.2-data_filters.filter_dataframe
-   pdstools.app.health_check.pages.2-data_filters.model_and_row_counts
-
-
 Module Contents
 ---------------
-
-.. py:function:: filter_dataframe(df: polars.LazyFrame, schema: Optional[dict] = None, queries=[]) -> polars.LazyFrame
-
-   Adds a UI on top of a dataframe to let viewers filter columns
-
-   :param df: Original dataframe
-   :type df: pl.DataFrame
-
-   :returns: The filtered LazyFrame
-   :rtype: pl.LazyFrame
-
-
-.. py:function:: model_and_row_counts(df: pdstools.utils.types.any_frame)
-
-   Returns unique model id count and row count from a dataframe
-
-   :param df: The input dataframe
-   :type df: Union[pl.DataFrame, pl.LazyFrame]
-
-   :returns: unique model count
-             row count
-   :rtype: Tuple[int, int]
-
 
 .. py:data:: expr_list
    :value: []

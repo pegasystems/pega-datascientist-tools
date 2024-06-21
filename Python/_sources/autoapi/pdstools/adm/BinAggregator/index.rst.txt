@@ -12,34 +12,8 @@ Classes
    pdstools.adm.BinAggregator.BinAggregator
 
 
-Functions
----------
-
-.. autoapisummary::
-
-   pdstools.adm.BinAggregator.lift
-
-
 Module Contents
 ---------------
-
-.. py:function:: lift(posCol: polars.Expr = pl.col('BinPositives'), negCol: polars.Expr = pl.col('BinNegatives')) -> polars.Expr
-
-   Calculates the Lift for predictor bins.
-
-   The Lift is the ratio of the propensity in a particular bin over the average
-   propensity. So a value of 1 is the average, larger than 1 means higher
-   propensity, smaller means lower propensity.
-
-   :param posCol: The (Polars) column of the bin positives
-   :type posCol: pl.Expr
-   :param negCol: The (Polars) column of the bin positives
-   :type negCol: pl.Expr
-
-   .. rubric:: Examples
-
-   >>> df.group_by(['ModelID', 'PredictorName']).agg([lift()]).explode()
-
 
 .. py:class:: BinAggregator(dm: pdstools.ADMDatamart, query: polars.Expr = None)
 

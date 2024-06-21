@@ -17,9 +17,6 @@ Functions
 
 .. autoapisummary::
 
-   pdstools.app.decision_analyzer.da_streamlit_utils.get_da_data_path
-   pdstools.app.decision_analyzer.da_streamlit_utils.read_data
-   pdstools.app.decision_analyzer.da_streamlit_utils.read_nested_zip_files
    pdstools.app.decision_analyzer.da_streamlit_utils.ensure_data
    pdstools.app.decision_analyzer.da_streamlit_utils.ensure_getFilterComponentData
    pdstools.app.decision_analyzer.da_streamlit_utils.get_current_index
@@ -38,23 +35,6 @@ Functions
 
 Module Contents
 ---------------
-
-.. py:function:: get_da_data_path()
-
-.. py:function:: read_data(path)
-
-.. py:function:: read_nested_zip_files(file_buffer) -> polars.DataFrame
-
-   Reads a zip file buffer (uploaded from Streamlit) that contains .zip files,
-   which are in fact gzipped ndjson files. Extracts, reads, and concatenates
-   them into a single Polars DataFrame.
-
-   :param file_buffer: The uploaded zip file buffer from Streamlit.
-   :type file_buffer: UploadedFile
-
-   :returns: A concatenated Polars DataFrame containing the data from all gzipped ndjson files.
-   :rtype: pl.DataFrame
-
 
 .. py:function:: ensure_data()
 

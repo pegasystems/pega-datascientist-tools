@@ -339,9 +339,9 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../3-action_distribution/index.html">3-action_distribution</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../9-Thresholding%20Analysis/index.html">9-Thresholding Analysis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../8-offer_quality_analysis/index.html">8-offer_quality_analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../11-Business%20Lever%20Analysis/index.html">11-Business Lever Analysis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../10-Business%20Value%20Analysis/index.html">10-Business Value Analysis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../7-personalization_analysis/index.html">7-personalization_analysis</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../11-Business%20Lever%20Analysis/index.html">11-Business Lever Analysis</a></li>
 </ul>
 </li>
 </ul>
@@ -391,26 +391,8 @@
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.DecisionAnalyzer" title="pdstools.decision_analyzer.utils.DecisionAnalyzer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DecisionAnalyzer</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.ExplainabilityExtract" title="pdstools.decision_analyzer.utils.ExplainabilityExtract"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ExplainabilityExtract</span></code></a></p></td>
-<td><p></p></td>
-</tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.NBADScope_Mapping" title="pdstools.decision_analyzer.utils.NBADScope_Mapping"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NBADScope_Mapping</span></code></a></p></td>
 <td><p></p></td>
-</tr>
-</tbody>
-</table>
-</div>
-</section>
-<section id="classes">
-<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
-<div class="table-wrapper autosummary longtable docutils container">
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.TableConfig" title="pdstools.decision_analyzer.utils.TableConfig"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TableConfig</span></code></a></p></td>
-<td><p>dict() -&gt; new empty dictionary</p></td>
 </tr>
 </tbody>
 </table>
@@ -421,40 +403,37 @@
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.parsePegaDateTimeFormats" title="pdstools.decision_analyzer.utils.parsePegaDateTimeFormats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">parsePegaDateTimeFormats</span></code></a>([timestampCol, ...])</p></td>
-<td><p>Parses Pega DateTime formats.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.apply_filter" title="pdstools.decision_analyzer.utils.apply_filter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_filter</span></code></a>(df[, filters])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.apply_filter" title="pdstools.decision_analyzer.utils.apply_filter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_filter</span></code></a>(df[, filters])</p></td>
 <td><p>Apply a global set of filters. Kept outside of the DecisionData class as</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.filtered_action_counts" title="pdstools.decision_analyzer.utils.filtered_action_counts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">filtered_action_counts</span></code></a>(→ polars.LazyFrame)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.filtered_action_counts" title="pdstools.decision_analyzer.utils.filtered_action_counts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">filtered_action_counts</span></code></a>(→ polars.LazyFrame)</p></td>
 <td><p>Returns a DataFrame with action counts filtered based on the given propensity and priority thresholds.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.area_under_curve" title="pdstools.decision_analyzer.utils.area_under_curve"><code class="xref py py-obj docutils literal notranslate"><span class="pre">area_under_curve</span></code></a>(df, col_x, col_y)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.area_under_curve" title="pdstools.decision_analyzer.utils.area_under_curve"><code class="xref py py-obj docutils literal notranslate"><span class="pre">area_under_curve</span></code></a>(df, col_x, col_y)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.gini_coefficient" title="pdstools.decision_analyzer.utils.gini_coefficient"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gini_coefficient</span></code></a>(df, col_x, col_y)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.gini_coefficient" title="pdstools.decision_analyzer.utils.gini_coefficient"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gini_coefficient</span></code></a>(df, col_x, col_y)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.get_first_level_stats" title="pdstools.decision_analyzer.utils.get_first_level_stats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_first_level_stats</span></code></a>(interaction_data[, filters])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.get_first_level_stats" title="pdstools.decision_analyzer.utils.get_first_level_stats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_first_level_stats</span></code></a>(interaction_data[, filters])</p></td>
 <td><p>Returns some first level stats of a dataframe. Used to</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.get_git_version_and_date" title="pdstools.decision_analyzer.utils.get_git_version_and_date"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_git_version_and_date</span></code></a>()</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.get_git_version_and_date" title="pdstools.decision_analyzer.utils.get_git_version_and_date"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_git_version_and_date</span></code></a>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.find_lever_value" title="pdstools.decision_analyzer.utils.find_lever_value"><code class="xref py py-obj docutils literal notranslate"><span class="pre">find_lever_value</span></code></a>(decision_data, action, ...[, low, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.find_lever_value" title="pdstools.decision_analyzer.utils.find_lever_value"><code class="xref py py-obj docutils literal notranslate"><span class="pre">find_lever_value</span></code></a>(decision_data, action, ...[, low, ...])</p></td>
 <td><p>Binary search algorithm to find lever given a desired win percentage</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.determine_extract_type" title="pdstools.decision_analyzer.utils.determine_extract_type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">determine_extract_type</span></code></a>(raw_data)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.determine_extract_type" title="pdstools.decision_analyzer.utils.determine_extract_type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">determine_extract_type</span></code></a>(raw_data)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.process" title="pdstools.decision_analyzer.utils.process"><code class="xref py py-obj docutils literal notranslate"><span class="pre">process</span></code></a>(→ polars.LazyFrame)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.process" title="pdstools.decision_analyzer.utils.process"><code class="xref py py-obj docutils literal notranslate"><span class="pre">process</span></code></a>(→ polars.LazyFrame)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.get_table_definition" title="pdstools.decision_analyzer.utils.get_table_definition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_table_definition</span></code></a>(table)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.get_table_definition" title="pdstools.decision_analyzer.utils.get_table_definition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_table_definition</span></code></a>(table)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.get_schema" title="pdstools.decision_analyzer.utils.get_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_schema</span></code></a>(→ Dict[str, Type[polars.DataType]])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.utils.get_schema" title="pdstools.decision_analyzer.utils.get_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_schema</span></code></a>(→ Dict[str, Type[polars.DataType]])</p></td>
 <td><p></p></td>
 </tr>
 </tbody>
@@ -463,79 +442,6 @@
 </section>
 <section id="module-contents">
 <h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
-<dl class="py function">
-<dt class="sig sig-object py" id="pdstools.decision_analyzer.utils.parsePegaDateTimeFormats">
-<span class="sig-name descname"><span class="pre">parsePegaDateTimeFormats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestampCol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'SnapshotTime'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamp_fmt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict_conversion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.decision_analyzer.utils.parsePegaDateTimeFormats" title="Link to this definition">¶</a></dt>
-<dd><p>Parses Pega DateTime formats.</p>
-<p>Supports the two most commonly used formats:</p>
-<ul class="simple">
-<li><p>“%Y-%m-%d %H:%M:%S”</p></li>
-<li><p>“%Y%m%dT%H%M%S.%f %Z”</p></li>
-</ul>
-<p>If you want to parse a different timezone, then</p>
-<p>Removes timezones, and rounds to seconds, with a ‘ns’ time unit.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>timestampCol</strong> (<em>str</em><em>, </em><em>default = 'SnapshotTime'</em>) – The column to parse</p></li>
-<li><p><strong>timestamp_fmt</strong> (<em>str</em><em>, </em><em>default = None</em>) – An optional format to use rather than the default formats</p></li>
-<li><p><strong>strict_conversion</strong> (<em>bool</em><em>, </em><em>default = True</em>) – Whether to error on incorrect parses or just return Null values</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py data">
-<dt class="sig sig-object py" id="pdstools.decision_analyzer.utils.DecisionAnalyzer">
-<span class="sig-name descname"><span class="pre">DecisionAnalyzer</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#pdstools.decision_analyzer.utils.TableConfig" title="pdstools.decision_analyzer.utils.TableConfig"><span class="pre">TableConfig</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pdstools.decision_analyzer.utils.DecisionAnalyzer" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py data">
-<dt class="sig sig-object py" id="pdstools.decision_analyzer.utils.ExplainabilityExtract">
-<span class="sig-name descname"><span class="pre">ExplainabilityExtract</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#pdstools.decision_analyzer.utils.TableConfig" title="pdstools.decision_analyzer.utils.TableConfig"><span class="pre">TableConfig</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pdstools.decision_analyzer.utils.ExplainabilityExtract" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="pdstools.decision_analyzer.utils.TableConfig">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">TableConfig</span></span><a class="headerlink" href="#pdstools.decision_analyzer.utils.TableConfig" title="Link to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">TypedDict</span></code></p>
-<p>dict() -&gt; new empty dictionary
-dict(mapping) -&gt; new dictionary initialized from a mapping object’s</p>
-<blockquote>
-<div><p>(key, value) pairs</p>
-</div></blockquote>
-<dl>
-<dt>dict(iterable) -&gt; new dictionary initialized as if via:</dt><dd><p>d = {}
-for k, v in iterable:</p>
-<blockquote>
-<div><p>d[k] = v</p>
-</div></blockquote>
-</dd>
-<dt>dict(<a href="#id1"><span class="problematic" id="id2">**</span></a>kwargs) -&gt; new dictionary initialized with the name=value pairs</dt><dd><p>in the keyword argument list.  For example:  dict(one=1, two=2)</p>
-</dd>
-</dl>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.decision_analyzer.utils.TableConfig.label">
-<span class="sig-name descname"><span class="pre">label</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#pdstools.decision_analyzer.utils.TableConfig.label" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.decision_analyzer.utils.TableConfig.default">
-<span class="sig-name descname"><span class="pre">default</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#pdstools.decision_analyzer.utils.TableConfig.default" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.decision_analyzer.utils.TableConfig.type">
-<span class="sig-name descname"><span class="pre">type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">polars.DataType</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pdstools.decision_analyzer.utils.TableConfig.type" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.decision_analyzer.utils.TableConfig.required">
-<span class="sig-name descname"><span class="pre">required</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#pdstools.decision_analyzer.utils.TableConfig.required" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
 <dl class="py data">
 <dt class="sig sig-object py" id="pdstools.decision_analyzer.utils.NBADScope_Mapping">
 <span class="sig-name descname"><span class="pre">NBADScope_Mapping</span></span><a class="headerlink" href="#pdstools.decision_analyzer.utils.NBADScope_Mapping" title="Link to this definition">¶</a></dt>
@@ -754,19 +660,8 @@ show effects of user data filters.</p>
             <ul>
 <li><a class="reference internal" href="#">pdstools.decision_analyzer.utils</a><ul>
 <li><a class="reference internal" href="#attributes">Attributes</a></li>
-<li><a class="reference internal" href="#classes">Classes</a></li>
 <li><a class="reference internal" href="#functions">Functions</a></li>
 <li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.utils.parsePegaDateTimeFormats"><code class="docutils literal notranslate"><span class="pre">parsePegaDateTimeFormats()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.utils.DecisionAnalyzer"><code class="docutils literal notranslate"><span class="pre">DecisionAnalyzer</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.utils.ExplainabilityExtract"><code class="docutils literal notranslate"><span class="pre">ExplainabilityExtract</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.utils.TableConfig"><code class="docutils literal notranslate"><span class="pre">TableConfig</span></code></a><ul>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.utils.TableConfig.label"><code class="docutils literal notranslate"><span class="pre">label</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.utils.TableConfig.default"><code class="docutils literal notranslate"><span class="pre">default</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.utils.TableConfig.type"><code class="docutils literal notranslate"><span class="pre">type</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.utils.TableConfig.required"><code class="docutils literal notranslate"><span class="pre">required</span></code></a></li>
-</ul>
-</li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.utils.NBADScope_Mapping"><code class="docutils literal notranslate"><span class="pre">NBADScope_Mapping</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.utils.apply_filter"><code class="docutils literal notranslate"><span class="pre">apply_filter()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.utils.filtered_action_counts"><code class="docutils literal notranslate"><span class="pre">filtered_action_counts()</span></code></a></li>

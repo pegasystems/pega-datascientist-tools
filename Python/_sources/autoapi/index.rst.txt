@@ -16,8 +16,8 @@ This page contains auto-generated API reference documentation [#f1]_.
    /autoapi/3-action_distribution/index
    /autoapi/9-Thresholding Analysis/index
    /autoapi/8-offer_quality_analysis/index
+   /autoapi/11-Business Lever Analysis/index
    /autoapi/10-Business Value Analysis/index
    /autoapi/7-personalization_analysis/index
-   /autoapi/11-Business Lever Analysis/index
 
 .. [#f1] Created with `sphinx-autoapi <https://github.com/readthedocs/sphinx-autoapi>`_

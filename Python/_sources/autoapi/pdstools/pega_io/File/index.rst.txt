@@ -9,7 +9,6 @@ Functions
 
 .. autoapisummary::
 
-   pdstools.pega_io.File.fromPRPCDateTime
    pdstools.pega_io.File.readDSExport
    pdstools.pega_io.File.import_file
    pdstools.pega_io.File.readZippedFile
@@ -21,23 +20,6 @@ Functions
 
 Module Contents
 ---------------
-
-.. py:function:: fromPRPCDateTime(x: str, return_string: bool = False) -> Union[datetime.datetime, str]
-
-   Convert from a Pega date-time string.
-
-   :param x: String of Pega date-time
-   :type x: str
-   :param return_string: If True it will return the date in string format. If
-                         False it will return in datetime type
-   :type return_string: bool, default=False
-
-   :returns: * *Union[datetime.datetime, str]* -- The converted date in datetime format or string.
-             * *Examples* -- >>> fromPRPCDateTime("20180316T134127.847 GMT")
-               >>> fromPRPCDateTime("20180316T134127.847 GMT", True)
-               >>> fromPRPCDateTime("20180316T184127.846")
-               >>> fromPRPCDateTime("20180316T184127.846", True)
-
 
 .. py:function:: readDSExport(filename: Union[pandas.DataFrame, polars.DataFrame, str], path: str = '.', verbose: bool = True, **reading_opts) -> polars.LazyFrame
 

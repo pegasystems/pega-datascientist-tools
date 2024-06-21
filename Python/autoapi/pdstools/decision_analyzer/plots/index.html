@@ -339,9 +339,9 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../3-action_distribution/index.html">3-action_distribution</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../9-Thresholding%20Analysis/index.html">9-Thresholding Analysis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../8-offer_quality_analysis/index.html">8-offer_quality_analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../11-Business%20Lever%20Analysis/index.html">11-Business Lever Analysis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../10-Business%20Value%20Analysis/index.html">10-Business Value Analysis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../7-personalization_analysis/index.html">7-personalization_analysis</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../11-Business%20Lever%20Analysis/index.html">11-Business Lever Analysis</a></li>
 </ul>
 </li>
 </ul>
@@ -386,18 +386,6 @@
         <article role="main" id="furo-main-content">
           <section id="module-pdstools.decision_analyzer.plots">
 <span id="pdstools-decision-analyzer-plots"></span><h1>pdstools.decision_analyzer.plots<a class="headerlink" href="#module-pdstools.decision_analyzer.plots" title="Link to this heading">¶</a></h1>
-<section id="attributes">
-<h2>Attributes<a class="headerlink" href="#attributes" title="Link to this heading">¶</a></h2>
-<div class="table-wrapper autosummary longtable docutils container">
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.plots.NBADScope_Mapping" title="pdstools.decision_analyzer.plots.NBADScope_Mapping"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NBADScope_Mapping</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-</tbody>
-</table>
-</div>
-</section>
 <section id="classes">
 <h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
 <div class="table-wrapper autosummary longtable docutils container">
@@ -415,16 +403,13 @@
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.plots.apply_filter" title="pdstools.decision_analyzer.plots.apply_filter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_filter</span></code></a>(df[, filters])</p></td>
-<td><p>Apply a global set of filters. Kept outside of the DecisionData class as</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.plots.plot_offer_quality_piecharts" title="pdstools.decision_analyzer.plots.plot_offer_quality_piecharts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_offer_quality_piecharts</span></code></a>(df, propensityTH, ...[, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.plots.plot_offer_quality_piecharts" title="pdstools.decision_analyzer.plots.plot_offer_quality_piecharts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_offer_quality_piecharts</span></code></a>(df, propensityTH, ...[, ...])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.plots.getTrendChart" title="pdstools.decision_analyzer.plots.getTrendChart"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getTrendChart</span></code></a>(df[, stage, return_df])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.plots.getTrendChart" title="pdstools.decision_analyzer.plots.getTrendChart"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getTrendChart</span></code></a>(df[, stage, return_df])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.plots.plot_value_distribution" title="pdstools.decision_analyzer.plots.plot_value_distribution"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_value_distribution</span></code></a>(value_data, scope)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.plots.plot_value_distribution" title="pdstools.decision_analyzer.plots.plot_value_distribution"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_value_distribution</span></code></a>(value_data, scope)</p></td>
 <td><p></p></td>
 </tr>
 </tbody>
@@ -433,26 +418,6 @@
 </section>
 <section id="module-contents">
 <h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
-<dl class="py data">
-<dt class="sig sig-object py" id="pdstools.decision_analyzer.plots.NBADScope_Mapping">
-<span class="sig-name descname"><span class="pre">NBADScope_Mapping</span></span><a class="headerlink" href="#pdstools.decision_analyzer.plots.NBADScope_Mapping" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="pdstools.decision_analyzer.plots.apply_filter">
-<span class="sig-name descname"><span class="pre">apply_filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">polars.Expr</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.decision_analyzer.plots.apply_filter" title="Link to this definition">¶</a></dt>
-<dd><p>Apply a global set of filters. Kept outside of the DecisionData class as
-this is really more of a utility function, not bound to that class at all.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> (<em>polars.LazyFrame</em>)</p></li>
-<li><p><strong>filters</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>polars.Expr</em><em>, </em><em>List</em><em>[</em><em>polars.Expr</em><em>]</em><em>]</em><em>]</em>)</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
 <dl class="py class">
 <dt class="sig sig-object py" id="pdstools.decision_analyzer.plots.Plot">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">decision_data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.decision_analyzer.plots.Plot" title="Link to this definition">¶</a></dt>
@@ -700,12 +665,9 @@ this is really more of a utility function, not bound to that class at all.</p>
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">pdstools.decision_analyzer.plots</a><ul>
-<li><a class="reference internal" href="#attributes">Attributes</a></li>
 <li><a class="reference internal" href="#classes">Classes</a></li>
 <li><a class="reference internal" href="#functions">Functions</a></li>
 <li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.plots.NBADScope_Mapping"><code class="docutils literal notranslate"><span class="pre">NBADScope_Mapping</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.plots.apply_filter"><code class="docutils literal notranslate"><span class="pre">apply_filter()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.plots.Plot"><code class="docutils literal notranslate"><span class="pre">Plot</span></code></a><ul>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.plots.Plot.plot_threshold_deciles"><code class="docutils literal notranslate"><span class="pre">plot_threshold_deciles()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.plots.Plot.plot_distribution_as_treemap"><code class="docutils literal notranslate"><span class="pre">plot_distribution_as_treemap()</span></code></a></li>

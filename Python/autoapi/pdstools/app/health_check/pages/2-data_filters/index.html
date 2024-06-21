@@ -339,9 +339,9 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../../3-action_distribution/index.html">3-action_distribution</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../9-Thresholding%20Analysis/index.html">9-Thresholding Analysis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../8-offer_quality_analysis/index.html">8-offer_quality_analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../11-Business%20Lever%20Analysis/index.html">11-Business Lever Analysis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../10-Business%20Value%20Analysis/index.html">10-Business Value Analysis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../7-personalization_analysis/index.html">7-personalization_analysis</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../../11-Business%20Lever%20Analysis/index.html">11-Business Lever Analysis</a></li>
 </ul>
 </li>
 </ul>
@@ -398,61 +398,8 @@
 </table>
 </div>
 </section>
-<section id="functions">
-<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">¶</a></h2>
-<div class="table-wrapper autosummary longtable docutils container">
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.app.health_check.pages.2-data_filters.filter_dataframe" title="pdstools.app.health_check.pages.2-data_filters.filter_dataframe"><code class="xref py py-obj docutils literal notranslate"><span class="pre">filter_dataframe</span></code></a>(→ polars.LazyFrame)</p></td>
-<td><p>Adds a UI on top of a dataframe to let viewers filter columns</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.app.health_check.pages.2-data_filters.model_and_row_counts" title="pdstools.app.health_check.pages.2-data_filters.model_and_row_counts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">model_and_row_counts</span></code></a>(df)</p></td>
-<td><p>Returns unique model id count and row count from a dataframe</p></td>
-</tr>
-</tbody>
-</table>
-</div>
-</section>
 <section id="module-contents">
 <h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
-<dl class="py function">
-<dt class="sig sig-object py" id="pdstools.app.health_check.pages.2-data_filters.filter_dataframe">
-<span class="sig-name descname"><span class="pre">filter_dataframe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">queries</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.app.health_check.pages.2-data_filters.filter_dataframe" title="Link to this definition">¶</a></dt>
-<dd><p>Adds a UI on top of a dataframe to let viewers filter columns</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> (<em>pl.DataFrame</em>) – Original dataframe</p></li>
-<li><p><strong>schema</strong> (<em>Optional</em><em>[</em><em>dict</em><em>]</em>)</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The filtered LazyFrame</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pl.LazyFrame</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="pdstools.app.health_check.pages.2-data_filters.model_and_row_counts">
-<span class="sig-name descname"><span class="pre">model_and_row_counts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pdstools.utils.types.any_frame</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.app.health_check.pages.2-data_filters.model_and_row_counts" title="Link to this definition">¶</a></dt>
-<dd><p>Returns unique model id count and row count from a dataframe</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>df</strong> (<em>Union</em><em>[</em><em>pl.DataFrame</em><em>, </em><em>pl.LazyFrame</em><em>]</em>) – The input dataframe</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>unique model count
-row count</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple[int, int]</p>
-</dd>
-</dl>
-</dd></dl>
-
 <dl class="py data">
 <dt class="sig sig-object py" id="pdstools.app.health_check.pages.2-data_filters.expr_list">
 <span class="sig-name descname"><span class="pre">expr_list</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="headerlink" href="#pdstools.app.health_check.pages.2-data_filters.expr_list" title="Link to this definition">¶</a></dt>
@@ -525,10 +472,7 @@ row count</p>
             <ul>
 <li><a class="reference internal" href="#">pdstools.app.health_check.pages.2-data_filters</a><ul>
 <li><a class="reference internal" href="#attributes">Attributes</a></li>
-<li><a class="reference internal" href="#functions">Functions</a></li>
 <li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
-<li><a class="reference internal" href="#pdstools.app.health_check.pages.2-data_filters.filter_dataframe"><code class="docutils literal notranslate"><span class="pre">filter_dataframe()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.app.health_check.pages.2-data_filters.model_and_row_counts"><code class="docutils literal notranslate"><span class="pre">model_and_row_counts()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.app.health_check.pages.2-data_filters.expr_list"><code class="docutils literal notranslate"><span class="pre">expr_list</span></code></a></li>
 </ul>
 </li>

@@ -4,14 +4,6 @@ pdstools.decision_analyzer.plots
 .. py:module:: pdstools.decision_analyzer.plots
 
 
-Attributes
-----------
-
-.. autoapisummary::
-
-   pdstools.decision_analyzer.plots.NBADScope_Mapping
-
-
 Classes
 -------
 
@@ -25,7 +17,6 @@ Functions
 
 .. autoapisummary::
 
-   pdstools.decision_analyzer.plots.apply_filter
    pdstools.decision_analyzer.plots.plot_offer_quality_piecharts
    pdstools.decision_analyzer.plots.getTrendChart
    pdstools.decision_analyzer.plots.plot_value_distribution
@@ -33,14 +24,6 @@ Functions
 
 Module Contents
 ---------------
-
-.. py:data:: NBADScope_Mapping
-
-.. py:function:: apply_filter(df: polars.LazyFrame, filters: Optional[Union[polars.Expr, List[polars.Expr]]] = None)
-
-   Apply a global set of filters. Kept outside of the DecisionData class as
-   this is really more of a utility function, not bound to that class at all.
-
 
 .. py:class:: Plot(decision_data)
 

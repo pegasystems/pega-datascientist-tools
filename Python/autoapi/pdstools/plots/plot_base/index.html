@@ -339,9 +339,9 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../3-action_distribution/index.html">3-action_distribution</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../9-Thresholding%20Analysis/index.html">9-Thresholding Analysis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../8-offer_quality_analysis/index.html">8-offer_quality_analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../11-Business%20Lever%20Analysis/index.html">11-Business Lever Analysis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../10-Business%20Value%20Analysis/index.html">10-Business Value Analysis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../7-personalization_analysis/index.html">7-personalization_analysis</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../11-Business%20Lever%20Analysis/index.html">11-Business Lever Analysis</a></li>
 </ul>
 </li>
 </ul>
@@ -386,39 +386,12 @@
         <article role="main" id="furo-main-content">
           <section id="module-pdstools.plots.plot_base">
 <span id="pdstools-plots-plot-base"></span><h1>pdstools.plots.plot_base<a class="headerlink" href="#module-pdstools.plots.plot_base" title="Link to this heading">¶</a></h1>
-<section id="attributes">
-<h2>Attributes<a class="headerlink" href="#attributes" title="Link to this heading">¶</a></h2>
-<div class="table-wrapper autosummary longtable docutils container">
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.plots.plot_base.any_frame" title="pdstools.plots.plot_base.any_frame"><code class="xref py py-obj docutils literal notranslate"><span class="pre">any_frame</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-</tbody>
-</table>
-</div>
-</section>
-<section id="exceptions">
-<h2>Exceptions<a class="headerlink" href="#exceptions" title="Link to this heading">¶</a></h2>
-<div class="table-wrapper autosummary longtable docutils container">
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.plots.plot_base.NotApplicableError" title="pdstools.plots.plot_base.NotApplicableError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NotApplicableError</span></code></a></p></td>
-<td><p>Inappropriate argument value (of correct type).</p></td>
-</tr>
-</tbody>
-</table>
-</div>
-</section>
 <section id="classes">
 <h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.plots.plot_base.plotly" title="pdstools.plots.plot_base.plotly"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plotly</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.plots.plot_base.Plots" title="pdstools.plots.plot_base.Plots"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Plots</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.plots.plot_base.Plots" title="pdstools.plots.plot_base.Plots"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Plots</span></code></a></p></td>
 <td><p>Base plotting class</p></td>
 </tr>
 </tbody>
@@ -430,16 +403,7 @@
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.plots.plot_base.lift" title="pdstools.plots.plot_base.lift"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lift</span></code></a>(, negCol)</p></td>
-<td><p>Calculates the Lift for predictor bins.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.plots.plot_base.weighted_average_polars" title="pdstools.plots.plot_base.weighted_average_polars"><code class="xref py py-obj docutils literal notranslate"><span class="pre">weighted_average_polars</span></code></a>(→ polars.Expr)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.plots.plot_base.weighted_performance_polars" title="pdstools.plots.plot_base.weighted_performance_polars"><code class="xref py py-obj docutils literal notranslate"><span class="pre">weighted_performance_polars</span></code></a>(→ polars.Expr)</p></td>
-<td><p>Polars function to return a weighted performance</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.plots.plot_base.plotBinningLift" title="pdstools.plots.plot_base.plotBinningLift"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plotBinningLift</span></code></a>(→ Union[polars.DataFrame, ...)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.plots.plot_base.plotBinningLift" title="pdstools.plots.plot_base.plotBinningLift"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plotBinningLift</span></code></a>(→ Union[polars.DataFrame, ...)</p></td>
 <td><p></p></td>
 </tr>
 </tbody>
@@ -448,364 +412,6 @@
 </section>
 <section id="module-contents">
 <h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
-<dl class="py function">
-<dt class="sig sig-object py" id="pdstools.plots.plot_base.lift">
-<span class="sig-name descname"><span class="pre">lift</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">posCol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">pl.col('BinPositives')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">negCol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">pl.col('BinNegatives')</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.plots.plot_base.lift" title="Link to this definition">¶</a></dt>
-<dd><p>Calculates the Lift for predictor bins.</p>
-<p>The Lift is the ratio of the propensity in a particular bin over the average
-propensity. So a value of 1 is the average, larger than 1 means higher
-propensity, smaller means lower propensity.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>posCol</strong> (<em>pl.Expr</em>) – The (Polars) column of the bin positives</p></li>
-<li><p><strong>negCol</strong> (<em>pl.Expr</em>) – The (Polars) column of the bin positives</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>polars.Expr</p>
-</dd>
-</dl>
-<p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">df</span><span class="o">.</span><span class="n">group_by</span><span class="p">([</span><span class="s1">&#39;ModelID&#39;</span><span class="p">,</span> <span class="s1">&#39;PredictorName&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">agg</span><span class="p">([</span><span class="n">lift</span><span class="p">()])</span><span class="o">.</span><span class="n">explode</span><span class="p">()</span>
-</pre></div>
-</div>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="pdstools.plots.plot_base.weighted_average_polars">
-<span class="sig-name descname"><span class="pre">weighted_average_polars</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.Expr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.Expr</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.plots.plot_base.weighted_average_polars" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>vals</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>polars.Expr</em><em>]</em>)</p></li>
-<li><p><strong>weights</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>polars.Expr</em><em>]</em>)</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>polars.Expr</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="pdstools.plots.plot_base.weighted_performance_polars">
-<span class="sig-name descname"><span class="pre">weighted_performance_polars</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.plots.plot_base.weighted_performance_polars" title="Link to this definition">¶</a></dt>
-<dd><p>Polars function to return a weighted performance</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>polars.Expr</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py exception">
-<dt class="sig sig-object py" id="pdstools.plots.plot_base.NotApplicableError">
-<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">NotApplicableError</span></span><a class="headerlink" href="#pdstools.plots.plot_base.NotApplicableError" title="Link to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueError</span></code></p>
-<p>Inappropriate argument value (of correct type).</p>
-</dd></dl>
-
-<dl class="py data">
-<dt class="sig sig-object py" id="pdstools.plots.plot_base.any_frame">
-<span class="sig-name descname"><span class="pre">any_frame</span></span><a class="headerlink" href="#pdstools.plots.plot_base.any_frame" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="pdstools.plots.plot_base.plotly">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">plotly</span></span><a class="headerlink" href="#pdstools.plots.plot_base.plotly" title="Link to this definition">¶</a></dt>
-<dd><dl class="py method">
-<dt class="sig sig-object py" id="pdstools.plots.plot_base.plotly.distribution_graph">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">distribution_graph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.plots.plot_base.plotly.distribution_graph" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.plots.plot_base.plotly.post_plot">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">post_plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'.'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_each</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_html</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.plots.plot_base.plotly.post_plot" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.plots.plot_base.plotly.PerformanceSuccessRateBubbleChart">
-<span class="sig-name descname"><span class="pre">PerformanceSuccessRateBubbleChart</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_bottom_left_text</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.plots.plot_base.plotly.PerformanceSuccessRateBubbleChart" title="Link to this definition">¶</a></dt>
-<dd><p>Creates bubble chart similar to ADM OOTB reports</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>last</strong> (<em>bool</em>) – Whether to only include the last snapshot for each model</p></li>
-<li><p><strong>add_bottom_left_text</strong> (<em>bool</em>) – Whether to subtitle text to indicate how many models are at 0,50</p></li>
-<li><p><strong>to_html</strong> (<em>bool</em>) – Whether to write image to html, with title file_title at path file_path</p></li>
-<li><p><strong>file_title</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – The title of the image when written to html</p></li>
-<li><p><strong>file_path</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – The location the file will be written when written to html</p></li>
-<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – The query to supply to _apply_query
-If a string, uses the default Pandas query function
-Else, a dict of lists where the key is column name in the dataframe
-and the corresponding value is a list of values to keep in the dataframe</p></li>
-<li><p><strong>show_each</strong> (<em>bool</em>) – Whether to show each file when multiple facets are used</p></li>
-<li><p><strong>facets</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>list</em><em>, </em><em>str</em><em>]</em><em>]</em>) – Whether to create a chart for multiple facets or subsets.
-For example, if facets == ‘Channel’, a bubble plot is made for each channel
-Depending on show_each, every chart is either shown or not
-If more than one facet is visualised, they are returned in a list</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>px.Figure</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.plots.plot_base.plotly.OverTime">
-<span class="sig-name descname"><span class="pre">OverTime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metric</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Performance'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ModelID'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'diff'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.plots.plot_base.plotly.OverTime" title="Link to this definition">¶</a></dt>
-<dd><p>Shows metric of models over time</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – The query to supply to _apply_query
-If a string, uses the default Pandas query function
-Else, a dict of lists where the key is column name in the dataframe
-and the corresponding value is a list of values to keep in the dataframe</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>plt.figure</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.plots.plot_base.plotly.PropositionSuccessRates">
-<span class="sig-name descname"><span class="pre">PropositionSuccessRates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metric</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'SuccessRate'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Name'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_error</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.plots.plot_base.plotly.PropositionSuccessRates" title="Link to this definition">¶</a></dt>
-<dd><p>Shows all latest proposition success rates</p>
-<p>A bar plot to show the success rate of all latest model instances (propositions)
-For reading simplicity, latest success rate is also annotated next to each bar</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – The query to supply to _apply_query
-If a string, uses the default Pandas query function
-Else, a dict of lists where the key is column name in the dataframe
-and the corresponding value is a list of values to keep in the dataframe</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>plt.figure</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.plots.plot_base.plotly.ScoreDistribution">
-<span class="sig-name descname"><span class="pre">ScoreDistribution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facet_val</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.plots.plot_base.plotly.ScoreDistribution" title="Link to this definition">¶</a></dt>
-<dd><p>Show score distribution similar to ADM out-of-the-box report</p>
-<p>Shows a score distribution graph per model. If certain models selected,
-only those models will be shown.
-the only difference between this graph and the one shown on ADM
-report is that, here the raw number of responses are shown on left y-axis whereas in
-ADM reports, the percentage of responses are shown</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>show_zero_responses</strong> (<em>bool</em>) – Whether to include bins with no responses at all</p></li>
-<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – The query to supply to _apply_query
-If a string, uses the default Pandas query function
-Else, a dict of lists where the key is column name in the dataframe
-and the corresponding value is a list of values to keep in the dataframe</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>plt.figure</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.plots.plot_base.plotly.PredictorBinning">
-<span class="sig-name descname"><span class="pre">PredictorBinning</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facet_val</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.plots.plot_base.plotly.PredictorBinning" title="Link to this definition">¶</a></dt>
-<dd><p>Show predictor graphs for a given model</p>
-<p>For a given model (query) shows all its predictors’ graphs. If certain predictors
-selected, only those predictor graphs will be shown</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>predictors</strong> (<em>list</em>) – List of predictors to show their graphs, optional</p></li>
-<li><p><strong>modelid</strong> (<em>str</em>) – Model IDs to subset on, optional</p></li>
-<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – The query to supply to _apply_query
-If a string, uses the default Pandas query function
-Else, a dict of lists where the key is column name in the dataframe
-and the corresponding value is a list of values to keep in the dataframe</p></li>
-<li><p><strong>figsize</strong> (<em>tuple</em>) – Size of graph</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>plt.figure</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.plots.plot_base.plotly.PredictorPerformance">
-<span class="sig-name descname"><span class="pre">PredictorPerformance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_plot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Performance'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'PredictorName'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.plots.plot_base.plotly.PredictorPerformance" title="Link to this definition">¶</a></dt>
-<dd><p>Shows a box plot of predictor performance</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>top_n</strong> (<em>int</em>) – The number of top performing predictors to show
-If 0 (default), all predictors are shown</p></li>
-<li><p><strong>to_html</strong> (<em>bool</em>) – Whether to write image to html, with title file_title at path file_path</p></li>
-<li><p><strong>file_title</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – The title of the image when written to html</p></li>
-<li><p><strong>file_path</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – The location the file will be written when written to html</p></li>
-<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – The query to supply to _apply_query
-If a string, uses the default Pandas query function
-Else, a dict of lists where the key is column name in the dataframe
-and the corresponding value is a list of values to keep in the dataframe</p></li>
-<li><p><strong>facets</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>list</em><em>, </em><em>str</em><em>]</em><em>]</em>) – Whether to create a chart for multiple facets or subsets.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>px.Figure</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.plots.plot_base.plotly._divide_context">
-<span class="sig-name descname"><span class="pre">_divide_context</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.plots.plot_base.plotly._divide_context" title="Link to this definition">¶</a></dt>
-<dd><p>Divides the context keys if they are combined</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.plots.plot_base.plotly.PredictorPerformanceHeatmap">
-<span class="sig-name descname"><span class="pre">PredictorPerformanceHeatmap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.plots.plot_base.plotly.PredictorPerformanceHeatmap" title="Link to this definition">¶</a></dt>
-<dd><p>Shows a heatmap plot of predictor performance across models</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>top_n</strong> (<em>int</em>) – Whether to subset to a top number of predictors
-If 0 (default), all predictors are shown</p></li>
-<li><p><strong>to_html</strong> (<em>bool</em>) – Whether to write image to html, with title file_title at path file_path</p></li>
-<li><p><strong>file_title</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – The title of the image when written to html</p></li>
-<li><p><strong>file_path</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – The location the file will be written when written to html</p></li>
-<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – The query to supply to _apply_query
-If a string, uses the default Pandas query function
-Else, a dict of lists where the key is column name in the dataframe
-and the corresponding value is a list of values to keep in the dataframe</p></li>
-<li><p><strong>show_each</strong> (<em>bool</em>) – Whether to show each file when multiple facets are used</p></li>
-<li><p><strong>facets</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>list</em><em>, </em><em>str</em><em>]</em><em>]</em>) – Whether to create a chart for multiple facets or subsets.
-For example, if facets == ‘Channel’, a bubble plot is made for each channel
-Depending on show_each, every chart is either shown or not
-If more than one facet is visualised, they are returned in a list</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>px.Figure</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.plots.plot_base.plotly.ResponseGain">
-<span class="sig-name descname"><span class="pre">ResponseGain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Channel'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.plots.plot_base.plotly.ResponseGain" title="Link to this definition">¶</a></dt>
-<dd><p>Plots the cumulative response per model, subsetted by ‘by’</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>by</strong> (<em>str</em>) – The column to calculate response gain by</p></li>
-<li><p><strong>to_html</strong> (<em>bool</em>) – Whether to write image to html, with title file_title at path file_path</p></li>
-<li><p><strong>file_title</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – The title of the image when written to html</p></li>
-<li><p><strong>file_path</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – The location the file will be written when written to html</p></li>
-<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – The query to supply to _apply_query
-If a string, uses the default Pandas query function
-Else, a dict of lists where the key is column name in the dataframe
-and the corresponding value is a list of values to keep in the dataframe</p></li>
-<li><p><strong>show_each</strong> (<em>bool</em>) – Whether to show each file when multiple facets are used</p></li>
-<li><p><strong>facets</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>list</em><em>, </em><em>str</em><em>]</em><em>]</em>) – Whether to create a chart for multiple facets or subsets.
-For example, if facets == ‘Channel’, a bubble plot is made for each channel
-Depending on show_each, every chart is either shown or not
-If more than one facet is visualised, they are returned in a list</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>px.Figure</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.plots.plot_base.plotly.ModelsByPositives">
-<span class="sig-name descname"><span class="pre">ModelsByPositives</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Channel'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.plots.plot_base.plotly.ModelsByPositives" title="Link to this definition">¶</a></dt>
-<dd><p>Plots the percentage of models vs the number of positive responses</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>by</strong> (<em>str</em>) – The column to calculate the model percentage by</p></li>
-<li><p><strong>to_html</strong> (<em>bool</em>) – Whether to write image to html, with title file_title at path file_path</p></li>
-<li><p><strong>file_title</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – The title of the image when written to html</p></li>
-<li><p><strong>file_path</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – The location the file will be written when written to html</p></li>
-<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – The query to supply to _apply_query
-If a string, uses the default Pandas query function
-Else, a dict of lists where the key is column name in the dataframe
-and the corresponding value is a list of values to keep in the dataframe</p></li>
-<li><p><strong>show_each</strong> (<em>bool</em>) – Whether to show each file when multiple facets are used</p></li>
-<li><p><strong>facets</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>list</em><em>, </em><em>str</em><em>]</em><em>]</em>) – Whether to create a chart for multiple facets or subsets.
-For example, if facets == ‘Channel’, a bubble plot is made for each channel
-Depending on show_each, every chart is either shown or not
-If more than one facet is visualised, they are returned in a list</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>px.Figure</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.plots.plot_base.plotly.TreeMap">
-<span class="sig-name descname"><span class="pre">TreeMap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reverse_scale</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">midpoint</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context_keys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value_in_text</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.plots.plot_base.plotly.TreeMap" title="Link to this definition">¶</a></dt>
-<dd><p>Plots a treemap to view performance over multiple context keys</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>color</strong> (<em>str</em>) – The column to set as the color of the squares
-One out of:
-{responsecount, responsecount_log, positives,
-positives_log, percentage_without_responses,
-performance_weighted, successrate}</p></li>
-<li><p><strong>by</strong> (<em>str</em>) – The column to set as the size of the squares</p></li>
-<li><p><strong>value_in_text</strong> (<em>str</em>) – Whether to print the values of the squares in the squares</p></li>
-<li><p><strong>midpoint</strong> (<em>Optional</em><em>[</em><em>float</em><em>]</em>) – A parameter to assert more control over the color distribution
-Set near 0 to give lower values a ‘higher’ color
-Set near 1 to give higher values a ‘lower’ color
-Necessary for, for example, Success Rate, where rates lie very far apart
-If not supplied in such cases, there is no difference in the color
-between low values such as 0.001 and 0.1, so midpoint should be set low</p></li>
-<li><p><strong>to_html</strong> (<em>bool</em>) – Whether to write image to html, with title file_title at path file_path</p></li>
-<li><p><strong>file_title</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – The title of the image when written to html</p></li>
-<li><p><strong>file_path</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – The location the file will be written when written to html</p></li>
-<li><p><strong>query</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – The query to supply to _apply_query
-If a string, uses the default Pandas query function
-Else, a dict of lists where the key is column name in the dataframe
-and the corresponding value is a list of values to keep in the dataframe</p></li>
-<li><p><strong>show_each</strong> (<em>bool</em>) – Whether to show each file when multiple facets are used</p></li>
-<li><p><strong>facets</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>list</em><em>, </em><em>str</em><em>]</em><em>]</em>) – Whether to create a chart for multiple facets or subsets.
-For example, if facets == ‘Channel’, a bubble plot is made for each channel
-Depending on show_each, every chart is either shown or not
-If more than one facet is visualised, they are returned in a list</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>px.Figure</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.plots.plot_base.plotly.PredictorCount">
-<span class="sig-name descname"><span class="pre">PredictorCount</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facet</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.plots.plot_base.plotly.PredictorCount" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.plots.plot_base.plotly.PredictorContribution">
-<span class="sig-name descname"><span class="pre">PredictorContribution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.plots.plot_base.plotly.PredictorContribution" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
 <dl class="py class">
 <dt class="sig sig-object py" id="pdstools.plots.plot_base.Plots">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Plots</span></span><a class="headerlink" href="#pdstools.plots.plot_base.Plots" title="Link to this definition">¶</a></dt>
@@ -1640,34 +1246,9 @@ such as writing to html automatically or displaying figures while facetting.</p>
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">pdstools.plots.plot_base</a><ul>
-<li><a class="reference internal" href="#attributes">Attributes</a></li>
-<li><a class="reference internal" href="#exceptions">Exceptions</a></li>
 <li><a class="reference internal" href="#classes">Classes</a></li>
 <li><a class="reference internal" href="#functions">Functions</a></li>
 <li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
-<li><a class="reference internal" href="#pdstools.plots.plot_base.lift"><code class="docutils literal notranslate"><span class="pre">lift()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.plots.plot_base.weighted_average_polars"><code class="docutils literal notranslate"><span class="pre">weighted_average_polars()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.plots.plot_base.weighted_performance_polars"><code class="docutils literal notranslate"><span class="pre">weighted_performance_polars()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.plots.plot_base.NotApplicableError"><code class="docutils literal notranslate"><span class="pre">NotApplicableError</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.plots.plot_base.any_frame"><code class="docutils literal notranslate"><span class="pre">any_frame</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.plots.plot_base.plotly"><code class="docutils literal notranslate"><span class="pre">plotly</span></code></a><ul>
-<li><a class="reference internal" href="#pdstools.plots.plot_base.plotly.distribution_graph"><code class="docutils literal notranslate"><span class="pre">distribution_graph()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.plots.plot_base.plotly.post_plot"><code class="docutils literal notranslate"><span class="pre">post_plot()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.plots.plot_base.plotly.PerformanceSuccessRateBubbleChart"><code class="docutils literal notranslate"><span class="pre">PerformanceSuccessRateBubbleChart()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.plots.plot_base.plotly.OverTime"><code class="docutils literal notranslate"><span class="pre">OverTime()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.plots.plot_base.plotly.PropositionSuccessRates"><code class="docutils literal notranslate"><span class="pre">PropositionSuccessRates()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.plots.plot_base.plotly.ScoreDistribution"><code class="docutils literal notranslate"><span class="pre">ScoreDistribution()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.plots.plot_base.plotly.PredictorBinning"><code class="docutils literal notranslate"><span class="pre">PredictorBinning()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.plots.plot_base.plotly.PredictorPerformance"><code class="docutils literal notranslate"><span class="pre">PredictorPerformance()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.plots.plot_base.plotly._divide_context"><code class="docutils literal notranslate"><span class="pre">_divide_context()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.plots.plot_base.plotly.PredictorPerformanceHeatmap"><code class="docutils literal notranslate"><span class="pre">PredictorPerformanceHeatmap()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.plots.plot_base.plotly.ResponseGain"><code class="docutils literal notranslate"><span class="pre">ResponseGain()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.plots.plot_base.plotly.ModelsByPositives"><code class="docutils literal notranslate"><span class="pre">ModelsByPositives()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.plots.plot_base.plotly.TreeMap"><code class="docutils literal notranslate"><span class="pre">TreeMap()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.plots.plot_base.plotly.PredictorCount"><code class="docutils literal notranslate"><span class="pre">PredictorCount()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.plots.plot_base.plotly.PredictorContribution"><code class="docutils literal notranslate"><span class="pre">PredictorContribution()</span></code></a></li>
-</ul>
-</li>
 <li><a class="reference internal" href="#pdstools.plots.plot_base.Plots"><code class="docutils literal notranslate"><span class="pre">Plots</span></code></a><ul>
 <li><a class="reference internal" href="#pdstools.plots.plot_base.Plots.hasModels"><code class="docutils literal notranslate"><span class="pre">hasModels</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.plots.plot_base.Plots.hasPredictorBinning"><code class="docutils literal notranslate"><span class="pre">hasPredictorBinning</span></code></a></li>

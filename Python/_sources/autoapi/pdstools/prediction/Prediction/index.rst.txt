@@ -27,6 +27,19 @@ Module Contents
    .. py:method:: getPredictionsChannelMapping(custom_predictions: Optional[List[pdstools.utils.NBAD.NBAD_Prediction]] = None) -> polars.DataFrame
 
 
+   .. py:method:: from_pdc(source: Union[polars.LazyFrame, str, pathlib.Path])
+      :staticmethod:
+
+
+      Initializes a Prediction from PDC data.
+
+      :param df: Dataframe with PDC data in the exact format exported by PDC. If
+                 a string or path, the file name of the path of the file that will
+                 be read, and the data in the "pxResults" element will be used
+      :type df: pl.LazyFrame, str or Path
+
+
+
    .. py:property:: is_available
       :type: bool
 

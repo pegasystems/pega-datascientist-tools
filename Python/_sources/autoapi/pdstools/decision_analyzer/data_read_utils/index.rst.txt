@@ -4,14 +4,6 @@ pdstools.decision_analyzer.data_read_utils
 .. py:module:: pdstools.decision_analyzer.data_read_utils
 
 
-Classes
--------
-
-.. autoapisummary::
-
-   pdstools.decision_analyzer.data_read_utils.TableConfig
-
-
 Functions
 ---------
 
@@ -27,38 +19,6 @@ Functions
 
 Module Contents
 ---------------
-
-.. py:class:: TableConfig
-
-   Bases: :py:obj:`TypedDict`
-
-
-   dict() -> new empty dictionary
-   dict(mapping) -> new dictionary initialized from a mapping object's
-       (key, value) pairs
-   dict(iterable) -> new dictionary initialized as if via:
-       d = {}
-       for k, v in iterable:
-           d[k] = v
-   dict(**kwargs) -> new dictionary initialized with the name=value pairs
-       in the keyword argument list.  For example:  dict(one=1, two=2)
-
-
-   .. py:attribute:: label
-      :type:  str
-
-
-   .. py:attribute:: default
-      :type:  bool
-
-
-   .. py:attribute:: type
-      :type:  Type[polars.DataType]
-
-
-   .. py:attribute:: required
-      :type:  bool
-
 
 .. py:function:: read_nested_zip_files(file_buffer) -> polars.DataFrame
 
