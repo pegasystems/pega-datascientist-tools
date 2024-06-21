@@ -587,8 +587,12 @@ class ADMDatamart(Plots, Tables):
     @staticmethod
     def _last(df: any_frame) -> any_frame:
         """Method to retrieve only the last snapshot."""
+        if df.select("SnapshotTime").dtypes[0] == pl.datatypes.Null:
+            return df
+
         return df.filter(
-            pl.col("SnapshotTime").is_null().all() | (pl.col("SnapshotTime") == pl.col("SnapshotTime").max())
+            pl.col("SnapshotTime").fill_null(strategy="zero")
+            == (pl.col("SnapshotTime").fill_null(strategy="zero").max())
         )
 
     @staticmethod
