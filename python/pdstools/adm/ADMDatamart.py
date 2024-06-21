@@ -586,11 +586,10 @@ class ADMDatamart(Plots, Tables):
 
     @staticmethod
     def _last(df: any_frame) -> any_frame:
-        fill_date = datetime.datetime.fromtimestamp(0)
         """Method to retrieve only the last snapshot."""
         return df.filter(
-            pl.col("SnapshotTime").fill_null(fill_date)
-            == pl.col("SnapshotTime").fill_null(fill_date).max()
+            (pl.col("SnapshotTime") == pl.col("SnapshotTime").max())
+            | pl.col("SnapshotTime").is_null().all()
         )
 
     @staticmethod
@@ -1506,7 +1505,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                     item_overlap_actions["isValid"],
                 )
             ).alias("OmniChannel Actions"),
-            CTR=(pl.col("Positives")) / (pl.col("ResponseCount"))
+            CTR=(pl.col("Positives")) / (pl.col("ResponseCount")),
         ).drop(
             ["isNBADModelConfiguration"]
             + (
@@ -1592,8 +1591,10 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 .alias("Used Actions"),
                 totalUsedTreatments.alias("Used Treatments"),
                 pl.lit(usesNBAD).alias("usesNBAD"),
-                ((pl.len() > 0) & pl.lit(usesNBAD and usesNBADOnly)).alias("usesNBADOnly"),
-                pl.col("OmniChannel Actions").filter(pl.col.isValid).mean()
+                ((pl.len() > 0) & pl.lit(usesNBAD and usesNBADOnly)).alias(
+                    "usesNBADOnly"
+                ),
+                pl.col("OmniChannel Actions").filter(pl.col.isValid).mean(),
             )
             .with_columns(CTR=(pl.col("Positives")) / (pl.col("ResponseCount")))
         )

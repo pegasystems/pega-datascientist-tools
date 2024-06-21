@@ -246,7 +246,7 @@ gt = (
         decimals=0,
         columns=["ResponseCount", "Positives"],
     )
-    .fmt_percent(decimals=3, columns=["Base Propensity"])
+    .fmt_percent(decimals=3, columns="Base Propensity")
     .fmt_number(
         decimals=2,
         scale_by=100,
