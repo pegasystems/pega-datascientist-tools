@@ -14,25 +14,26 @@ from pdstools import Prediction, cdh_utils, errors
 
 mock_prediction_data = pl.DataFrame(
     {
-        "SnapshotTime": datetime.datetime.now(),
-        "ModelClass": ["DATA-DECISION-REQUEST-CUSTOMER"] * 8,
-        "ModelName": ["PREDICTWEBPROPENSITY"] * 4 + ["PREDICTMOBILEPROPENSITY"] * 4,
-        "Channel": ["Web"] * 4 + ["Mobile"] * 4,
-        "Direction": ["Inbound"] * 4 + ["Outbound"] * 4,
-        "ModelType": [
-            "Prediction_Control",
-            "Prediction_Test",
-            "Prediction_NBA",
-            "Prediction",
-            "Prediction_Control",
-            "Prediction_Test",
-            "Prediction_NBA",
-            "Prediction",
+        "pySnapShotTime": cdh_utils.toPRPCDateTime(datetime.datetime.now())[0:15], # Polars doesn't like time zones like GMT+0200
+        "pyModelId": ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTWEBPROPENSITY"] * 4 + ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTMOBILEPROPENSITY"] * 4,
+        # "Channel": ["Web"] * 4 + ["Mobile"] * 4,
+        # "Direction": ["Inbound"] * 4 + ["Outbound"] * 4,
+        "pyModelType": "PREDICTION",
+        "pySnapshotType": (["Daily"]*3 + [None])*2,
+        "pyDataUsage": [
+            "Control",
+            "Test",
+            "NBA",
+            "",
+            "Control",
+            "Test",
+            "NBA",
+            "",
         ],
-        "Positives": [100, 400, 500, 1000, 200, 800, 1000, 2000],
-        "Negatives": [1000, 2000, 3000, 6000, 3000, 6000, 9000, 18000],
-        "ResponseCount": [1100, 2400, 3500, 7000, 3200, 6800, 10000, 20000],
-        "Performance": [0.65] * 4 + [0.70] * 4,
+        "pyPositives": [100, 400, 500, 1000, 200, 800, 1000, 2000],
+        "pyNegatives": [1000, 2000, 3000, 6000, 3000, 6000, 9000, 18000],
+        "pyCount": [1100, 2400, 3500, 7000, 3200, 6800, 10000, 20000],
+        "pyValue": [0.65] * 4 + [0.70] * 4,
     }
 ).lazy()
 
@@ -49,9 +50,9 @@ def test2(test):
     return Prediction(
         pl.concat(
             [
-                mock_prediction_data.with_columns(SnapshotTime=pl.lit(today)),
+                mock_prediction_data.with_columns(pySnapShotTime=pl.lit(cdh_utils.toPRPCDateTime(today)[0:15])),
                 mock_prediction_data.with_columns(
-                    SnapshotTime=pl.lit(today + datetime.timedelta(days=-1))
+                    pySnapShotTime=pl.lit(cdh_utils.toPRPCDateTime(today + datetime.timedelta(days=-1))[0:15])
                 ),
             ],
             how="vertical",
@@ -173,6 +174,6 @@ def test_overall_summary_controlpct(test):
 def test_overall_summary_ia(test):
     assert test.overall_summary().collect().select(pl.col("usesImpactAnalyzer")).item()
 
-    test = Prediction(mock_prediction_data.filter(pl.col("ModelType") != "Prediction_NBA"))
+    test = Prediction(mock_prediction_data.filter(pl.col("pyDataUsage") != "NBA"))
     assert not test.overall_summary().collect().select(pl.col("usesImpactAnalyzer")).item()
 

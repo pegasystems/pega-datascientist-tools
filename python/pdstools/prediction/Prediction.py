@@ -1,4 +1,6 @@
-from typing import List, Optional
+import json
+from pathlib import Path
+from typing import List, Optional, Union
 import polars as pl
 
 from ..utils import cdh_utils
@@ -47,6 +49,9 @@ class Prediction:
         predictions_raw_data_prepped = (
             df.filter(pl.col.pyModelType == "PREDICTION")
             .with_columns(
+                #                 SnapshotTime=cdh_utils.parsePegaDateTimeFormats(
+                #     "SnapshotTime"
+                # ).dt.date(),
                 SnapshotTime=pl.col("pySnapShotTime")
                 .map_elements(
                     lambda x: cdh_utils.fromPRPCDateTime(x), return_dtype=pl.Datetime
@@ -65,6 +70,8 @@ class Prediction:
 
         # Below looks like a pivot.. but we want to make sure Control, Test and NBA
         # columns are always there...
+        # TODO we may want to assert that this results in exactly one record for
+        # every combination of model ID and snapshot time.
         counts_control = predictions_raw_data_prepped.filter(
             pl.col.pyDataUsage == "Control"
         ).select(
@@ -82,6 +89,9 @@ class Prediction:
         )
 
         self.predictions = (
+            # Performance is taken for the records with a filled in "snapshot type".
+            # The numbers of positives, negatives may not make sense but are included
+            # anyways.
             predictions_raw_data_prepped.filter(pl.col.pySnapshotType == "Daily")
             .select(
                 [
@@ -123,9 +133,25 @@ class Prediction:
         )
 
     @staticmethod
-    def from_pdc(df: pl.LazyFrame):
+    def from_pdc(source: Union[pl.LazyFrame, str, Path]):
+        """Initializes a Prediction from PDC data.
+
+        Parameters
+        ----------
+        df : pl.LazyFrame, str or Path
+            Dataframe with PDC data in the exact format exported by PDC. If
+            a string or path, the file name of the path of the file that will
+            be read, and the data in the "pxResults" element will be used
+        """
+        if isinstance(source, str):
+            source = Path(source)
+
+        if isinstance(source, Path):
+            with open(source.expanduser()) as f:
+                source = pl.from_dicts(json.loads(f.read())["pxResults"]).lazy()
+
         return Prediction(
-            df.filter(pl.col("ModelType").str.starts_with("Prediction"))
+            source.filter(pl.col("ModelType").str.starts_with("Prediction"))
             .rename(
                 {
                     "SnapshotTime": "pySnapShotTime",
@@ -146,7 +172,7 @@ class Prediction:
                 pysnapshotday=pl.col("pySnapShotTime").str.slice(0, 8),
                 pySnapshotType=pl.lit(
                     "Daily"
-                ),  # this is a guess - but Daily is also assumed by the Prediction class
+                ),  # this is a guess - but Daily is also assumed by the Prediction constructor
             )
             .cast(
                 {
