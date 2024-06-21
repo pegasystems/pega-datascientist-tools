@@ -14,12 +14,15 @@ from pdstools import Prediction, cdh_utils, errors
 
 mock_prediction_data = pl.DataFrame(
     {
-        "pySnapShotTime": cdh_utils.toPRPCDateTime(datetime.datetime.now())[0:15], # Polars doesn't like time zones like GMT+0200
-        "pyModelId": ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTWEBPROPENSITY"] * 4 + ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTMOBILEPROPENSITY"] * 4,
+        "pySnapShotTime": cdh_utils.toPRPCDateTime(datetime.datetime.now())[
+            0:15
+        ],  # Polars doesn't like time zones like GMT+0200
+        "pyModelId": ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTWEBPROPENSITY"] * 4
+        + ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTMOBILEPROPENSITY"] * 4,
         # "Channel": ["Web"] * 4 + ["Mobile"] * 4,
         # "Direction": ["Inbound"] * 4 + ["Outbound"] * 4,
         "pyModelType": "PREDICTION",
-        "pySnapshotType": (["Daily"]*3 + [None])*2,
+        "pySnapshotType": (["Daily"] * 3 + [None]) * 2,
         "pyDataUsage": [
             "Control",
             "Test",
@@ -50,9 +53,15 @@ def test2(test):
     return Prediction(
         pl.concat(
             [
-                mock_prediction_data.with_columns(pySnapShotTime=pl.lit(cdh_utils.toPRPCDateTime(today)[0:15])),
                 mock_prediction_data.with_columns(
-                    pySnapShotTime=pl.lit(cdh_utils.toPRPCDateTime(today + datetime.timedelta(days=-1))[0:15])
+                    pySnapShotTime=pl.lit(cdh_utils.toPRPCDateTime(today)[0:15])
+                ),
+                mock_prediction_data.with_columns(
+                    pySnapShotTime=pl.lit(
+                        cdh_utils.toPRPCDateTime(today + datetime.timedelta(days=-1))[
+                            0:15
+                        ]
+                    )
                 ),
             ],
             how="vertical",
@@ -98,17 +107,24 @@ def test_summary_by_channel_validity(test):
     summary = test.summary_by_channel().collect()
     assert summary["isValidPrediction"].to_list() == [True, True]
 
+
 def test_summary_by_channel_ia(test):
     summary = test.summary_by_channel().collect()
     assert summary["usesImpactAnalyzer"].to_list() == [True, True]
+
 
 def test_summary_by_channel_lift(test):
     summary = test.summary_by_channel().collect()
     assert [round(x, 5) for x in summary["Lift"].to_list()] == [0.88235, 0.83333]
 
+
 def test_summary_by_channel_controlpct(test):
     summary = test.summary_by_channel().collect()
-    assert [round(x, 5) for x in summary["ControlPercentage"].to_list()] == [32.0, 31.42857]
+    assert [round(x, 5) for x in summary["ControlPercentage"].to_list()] == [
+        32.0,
+        31.42857,
+    ]
+
 
 def test_summary_by_channel_trend(test):
     summary = test.summary_by_channel(keep_trend_data=True).collect()
@@ -167,13 +183,37 @@ def test_overall_summary_min_lift(test):
 def test_overall_summary_ctr(test):
     assert round(test.overall_summary().collect()["CTR"].item(), 5) == 0.11111
 
+
 def test_overall_summary_controlpct(test):
     summary = test.summary_by_channel().collect()
-    assert round(test.overall_summary().collect()["ControlPercentage"].item(), 5) == 31.85185
+    assert (
+        round(test.overall_summary().collect()["ControlPercentage"].item(), 5)
+        == 31.85185
+    )
+
 
 def test_overall_summary_ia(test):
     assert test.overall_summary().collect().select(pl.col("usesImpactAnalyzer")).item()
 
     test = Prediction(mock_prediction_data.filter(pl.col("pyDataUsage") != "NBA"))
-    assert not test.overall_summary().collect().select(pl.col("usesImpactAnalyzer")).item()
+    assert (
+        not test.overall_summary().collect().select(pl.col("usesImpactAnalyzer")).item()
+    )
 
+
+def test_init_from_pdc():
+    df = pl.DataFrame(
+        {
+            "SnapshotTime": cdh_utils.toPRPCDateTime(datetime.datetime.now())[
+                0:15
+            ],  # Polars doesn't like time zones like GMT+0200
+            "ModelClass": "Data-Decision-Request-Customer",
+            "ModelName": ["PREDICTWEBPROPENSITY"] * 4 + ["PREDICTMOBILEPROPENSITY"] * 4,
+            "ModelType": ["Prediction_Control", "Prediction_Test", "Prediction_NBA", ""]
+            * 2,
+        }
+    ).lazy()
+    pred = Prediction.from_pdc(df)
+    assert pred.is_valid
+    assert pred.overall_summary().collect()["Positives"].item() == 3000
+    assert pred.overall_summary().collect().select(pl.col("usesImpactAnalyzer")).item()
