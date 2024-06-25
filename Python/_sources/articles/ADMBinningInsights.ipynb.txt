@@ -43,7 +43,7 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "import pathlib, sys\n",
+    "import sys\n",
     "basePath = \"../..\"\n",
     "\n",
     "sys.path.append(f\"{str(basePath)}/python\")\n",
@@ -52,15 +52,12 @@
     "from pdstools import ADMDatamart, datasets\n",
     "import polars as pl\n",
     "\n",
-    "# dm = datasets.CDHSample()\n",
-    "dm = ADMDatamart(model_filename=\"/Users/perdo/Downloads/cross-customers-cache/CDHSample_ModelSnapshots.parquet\",\n",
-    "                    predictor_filename=\"/Users/perdo/Downloads/cross-customers-cache/CDHSample_PredictorSnapshots.parquet\",\n",
-    "                    subset=False)\n",
-    "\n",
+    "dm = datasets.CDHSample(subset=False)\n",
     "# replace this with your own datamart data, see PDS tools documentation for examples\n",
     "# dm = ADMDatamart(\n",
     "#     model_filename=\"...\",\n",
-    "#     predictor_filename=\"...\"\n",
+    "#     predictor_filename=\"...\",\n",
+    "#     subset=False\n",
     "# )\n",
     "\n",
     "fig = dm.plotPredictorPerformance(top_n=10)\n",
@@ -146,10 +143,7 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "from pdstools import BinAggregator\n",
-    "\n",
     "# For PDS tools example keep dm as above but the subset argument is important\n",
-    "# dm = datasets.CDHSample(subset=False)\n",
     "myAggregator = BinAggregator(dm)\n",
     "\n",
     "target = myAggregator.create_empty_numbinning(\"Customer.Age\", 4, minimum=20, maximum=80)\n",
@@ -354,134 +348,6 @@
     ")\n",
     "fig.show()"
    ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "dm.predictorData.select(pl.col('PredictorName').filter(pl.col('PredictorName').cast(pl.String).str.starts_with(\"IH.\")).unique().sort()).collect()['PredictorName'].to_list()"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "pred = 'IH.Web.Inbound.Clicked.pyHistoricalOutcomeCount'\n",
-    "myAggregator = BinAggregator(dm, query=(pl.col(\"Channel\")==\"Web\") & (pl.col(\"Group\")==\"CreditCards\"))\n",
-    "\n",
-    "target = myAggregator.create_empty_numbinning(pred, 10)\n",
-    "target"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "myAggregator.all_predictorbinning.select(pl.col(\"ModelID\").n_unique()).collect()"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "pred = 'IH.Web.Inbound.Clicked.pyHistoricalOutcomeCount'\n",
-    "myAggregator.all_predictorbinning.filter(pl.col(\"PredictorName\") == pred).group_by(\n",
-    "    pl.col(\"ModelID\")\n",
-    ").agg(pl.sum(\"ResponseCount\"), pl.max(\"BinIndex\")).sort(\n",
-    "    \"ResponseCount\", descending=True\n",
-    ").head().collect().to_pandas().style"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "overall = myAggregator.roll_up(predictors=pred, return_df=True).with_columns(BinIndex = pl.col(\"BinIndex\").cast(pl.UInt32))\n",
-    "overall.to_pandas().style\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "myAggregator.all_predictorbinning.head().collect()"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "predictor_types=myAggregator.all_predictorbinning.group_by(\"PredictorName\").agg(pl.first(\"isNumeric\")).sort('PredictorName').collect().to_dict()\n",
-    "is_numeric_map = {i[1]:predictor_types['isNumeric'][i[0]] for i in enumerate(predictor_types['PredictorName'])}\n",
-    "is_numeric_map"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "from pdstools.utils.cdh_utils import weighted_average_polars\n",
-    "\n",
-    "ids = [\"fb41259a-2c47-5039-be73-00287273f32d\", \"ae3e7134-f30e-5e25-8845-e08af0009942\"]\n",
-    "ids = myAggregator.all_predictorbinning.select(pl.col(\"ModelID\").unique()).collect()[\"ModelID\"].head(10).to_list()\n",
-    "\n",
-    "# preds = ['IH.Web.Inbound.Clicked.pyHistoricalOutcomeCount']\n",
-    "preds = ['IH.Web.Inbound.Clicked.pyHistoricalOutcomeCount', 'IH.SMS.Outbound.Clicked.pyHistoricalOutcomeCount', \"IH.Web.Inbound.Clicked.pxLastGroupID\", \"IH.SMS.Outbound.Clicked.pxLastGroupID\"]\n",
-    "\n",
-    "def combine_num_binnings(pred, id, target):\n",
-    "    return myAggregator.accumulate_num_binnings(pred, [id], target.clone()).with_columns(ModelID=pl.lit(id))\n",
-    "\n",
-    "def combine_sym_binnings(pred, id, target):\n",
-    "    return  myAggregator.accumulate_sym_binnings(pred, [id], symbols).with_columns(ModelID=pl.lit(id))\n",
-    "\n",
-    "def combine_binnings_multiple(pred, ids):\n",
-    "    is_numeric = is_numeric_map[pred]\n",
-    "    if is_numeric:\n",
-    "        target = myAggregator.create_empty_numbinning(pred, 10)\n",
-    "        result = pl.concat([combine_num_binnings(pred, id, target) for id in ids], how=\"vertical_relaxed\")\n",
-    "    else:\n",
-    "        symbols = myAggregator.create_symbol_list(pred, n_symbols=10, musthave_symbols=[])\n",
-    "        result = pl.concat([combine_sym_binnings(pred, id, symbols) for id in ids], how=\"vertical_relaxed\")\n",
-    "    return result\n",
-    "\n",
-    "# Map the individual binning of each model onto the normalized target binning\n",
-    "normalized_source_binnings = pl.concat([combine_binnings_multiple(pred, ids) for pred in preds], how=\"vertical_relaxed\")\n",
-    "# normalized_source_binnings.to_pandas().style\n",
-    "normalized_source_binnings.with_columns(BinIndex = pl.col(\"BinIndex\").cast(pl.UInt32)).join(\n",
-    "    overall.select([\"BinIndex\", \"Lift\"]), on=\"BinIndex\", how=\"left\", suffix=\"_overall\"\n",
-    ").with_columns(\n",
-    "    Distance=(pl.col(\"Lift\") - pl.col(\"Lift_overall\")).abs()\n",
-    ").group_by(\n",
-    "    [\"PredictorName\", \"ModelID\"]\n",
-    ").agg(\n",
-    "    Distance=weighted_average_polars(\"Distance\", \"BinResponses\")\n",
-    ").group_by(\"PredictorName\").agg(ACDC=pl.col(\"Distance\").mean()).sort(\"PredictorName\").to_pandas().style"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "onemodel.join(overall.select([\"BinIndex\", \"Lift\"]), on=\"BinIndex\", how=\"left\", suffix=\"_overall\")"
-   ]
   }
  ],
  "metadata": {
@@ -500,7 +366,7 @@
    "name": "python",
    "nbconvert_exporter": "python",
    "pygments_lexer": "ipython3",
-   "version": "3.11.9"
+   "version": "3.11.4"
   },
   "orig_nbformat": 4
  },
