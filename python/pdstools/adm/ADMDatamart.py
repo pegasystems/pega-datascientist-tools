@@ -1293,10 +1293,36 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         return self.processTables()
 
     def summary_by_channel(
-        self, custom_channels: Dict[str, str] = None, keep_lists: bool = False
-    ):
+        self,
+        custom_channels: Dict[str, str] = None,
+        by_period: str = None,
+        keep_lists: bool = False,
+    ) -> pl.LazyFrame:
+        """Summarize ADM models per channel
+
+        Parameters
+        ----------
+        custom_channels : Dict[str, str], optional
+            Optional list with custom channel/direction name mappings. Defaults to None.
+        by_period : str, optional
+            Optional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. If provided, creates a new Period column with the truncated date/time. Defaults to None.
+        keep_lists : bool, optional
+            Internal flag to keep some columns (action and treatment names etc) as full lists.
+
+        Returns
+        -------
+        pl.LazyFrame
+            Dataframe with summary per channel (and optionally a period)
+        """
         if not custom_channels:
             custom_channels = {}
+
+        if by_period is not None:
+            period_expr = [
+                pl.col("SnapshotTime").dt.truncate(by_period).alias("Period")
+            ]
+        else:
+            period_expr = []
 
         # Removes whitespace and capitalizes names for matching
         def name_normalizer(x):
@@ -1382,8 +1408,11 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
 
         channel_summary = (
             self.modelData.with_columns(
-                activeActionExpr.alias("isUsedAction"),
-                activeTreatmentExpr.alias("isUsedTreatment"),
+                [
+                    activeActionExpr.alias("isUsedAction"),
+                    activeTreatmentExpr.alias("isUsedTreatment"),
+                ]
+                + period_expr
             )
             # .filter(
             #     pl.col("Configuration").cast(pl.Utf8).str.to_uppercase()
@@ -1425,6 +1454,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                     "Direction",
                     "ChannelDirectionGroup",
                 ]
+                + (["Period"] if by_period is not None else [])
             )
             .agg(
                 pl.col("SnapshotTime").min().cast(pl.Date).alias("DateRange Min"),
@@ -1467,12 +1497,12 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 .alias("Used Treatments"),
                 ChannelDirection=pl.format(
                     "{}/{}",
-                    pl.when(pl.col("Channel").is_not_null())
+                    pl.when(pl.col("Channel").is_not_null() & (pl.col("Channel") != ""))
                     .then(pl.col("Channel"))
-                    .otherwise(pl.lit("Empty")),
-                    pl.when(pl.col("Direction").is_not_null())
+                    .otherwise(pl.lit("")),
+                    pl.when(pl.col("Direction").is_not_null() & (pl.col("Direction") != ""))
                     .then(pl.col("Direction"))
-                    .otherwise(pl.lit("Empty")),
+                    .otherwise(pl.lit("")),
                 ),
                 isValid=(pl.col("Positives") > 200) & (pl.col("ResponseCount") > 1000),
                 Configuration=pl.col("Configuration")
@@ -1494,6 +1524,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                     "Channel",
                     "Direction",
                 ]
+                + (["Period"] if by_period is not None else [])
             )
         )
 
@@ -1525,7 +1556,23 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             )
         )
 
-    def overall_summary(self, custom_channels: Dict[str, str] = None):
+    def overall_summary(
+        self, custom_channels: Dict[str, str] = None, by_period: str = None
+    ) -> pl.LazyFrame:
+        """Overall ADM models summary. Only valid data is included.
+
+        Parameters
+        ----------
+        custom_channels : Dict[str, str], optional
+            Optional list with custom channel/direction name mappings. Defaults to None.
+        by_period : str, optional
+            Optional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. If provided, creates a new Period column with the truncated date/time. Defaults to None.
+
+        Returns
+        -------
+        pl.LazyFrame
+            Summary across all valid ADM models as a dataframe
+        """
         totalTreatments = (
             pl.col("AllTreatments").list.explode().n_unique()
             if "Treatment" in self.modelData.columns
@@ -1564,9 +1611,12 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         )
 
         return (
-            self.summary_by_channel(custom_channels, keep_lists=True)
+            self.summary_by_channel(
+                custom_channels=custom_channels, by_period=by_period, keep_lists=True
+            )
             .filter(pl.col("isValid"))
-            .select(
+            .group_by(["Period"] if by_period is not None else None)
+            .agg(
                 pl.col("DateRange Min").min(),
                 pl.col("DateRange Max").max(),
                 pl.len().alias("Number of Valid Channels"),
@@ -1599,7 +1649,9 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 ),
                 pl.col("OmniChannel Actions").filter(pl.col.isValid).mean(),
             )
+            .drop(["literal"] if by_period is None else [])  # created by null group
             .with_columns(CTR=(pl.col("Positives")) / (pl.col("ResponseCount")))
+            .sort(["Period"] if by_period is not None else [])
         )
 
     def generateReport(

@@ -50,6 +50,12 @@ def defaultPredictorCategorization(
     ).alias("PredictorCategory")
 
 
+# TODO: we could make below much more efficient. We're now making everything
+# JSON then extracting. We could first detect if there is any JSON at all
+# ( startswith("{").any() ). Also could do the JSON extract on just the unique pyNames
+# that do start with a {. This could then be merged back with the original data.
+
+
 def _extract_keys(
     df: any_frame,
     col="Name",
@@ -66,6 +72,11 @@ def _extract_keys(
     This is relatively efficient, but we still do need the whole
     pyName column in memory to do this, so it won't work completely
     lazily from e.g. s3. That's why it only works with eager mode.
+
+    The data in column for which the JSON is extract is normalized a
+    little by taking out non-space, non-printable characters. Not just
+    ASCII of course. This may be relatively expensive, see notes in
+    code about ideas to speed up.
 
     Parameters
     ----------
@@ -86,8 +97,22 @@ def _extract_keys(
     def safeName():
         return (
             pl.when(~pl.col(col).cast(pl.Utf8).str.starts_with("{"))
-            .then(pl.concat_str([pl.lit('{"pyName":"'), pl.col(col), pl.lit('"}')]))
-            .otherwise(pl.col(col))
+            .then(
+                pl.concat_str(
+                    [
+                        pl.lit('{"pyName":"'),
+                        # we need to protect the string in the extract column
+                        # against very wild content like emoticons that break
+                        # the json parsing
+                        # see https://www.regular-expressions.info/posixbrackets.html
+                        pl.col(col).str.replace_all(
+                            r"[^\p{L}\p{Nl}\p{Nd}\p{P}\p{Z}]", ""
+                        ),
+                        pl.lit('"}'),
+                    ]
+                )
+            )
+            .otherwise(pl.col(col).cast(pl.Utf8))
         ).alias("tempName")
 
     series = (
@@ -576,6 +601,7 @@ def fromPRPCDateTime(
 
 # TODO: Polars doesn't like time zones like GMT+0200
 
+
 def toPRPCDateTime(dt: datetime.datetime) -> str:
     """Convert to a Pega date-time string
 
@@ -711,7 +737,9 @@ def lift(
             # TODO not sure how polars (mis)behaves when there are no positives at all
             # I would hope for a NaN but base python doesn't do that. Polars perhaps.
             # Stijn: It does have proper None value support, may work like you say
-            binPos * (totalPos + totalNeg) / ((binPos + binNeg) * totalPos)
+            binPos
+            * (totalPos + totalNeg)
+            / ((binPos + binNeg) * totalPos)
         ).alias("Lift")
 
     return liftImpl(posCol, negCol, posCol.sum(), negCol.sum())

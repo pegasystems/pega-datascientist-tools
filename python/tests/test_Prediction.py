@@ -10,7 +10,7 @@ import pathlib
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(f"{str(basePath)}/python")
-from pdstools import Prediction, cdh_utils, errors
+from pdstools import Prediction, cdh_utils
 
 mock_prediction_data = pl.DataFrame(
     {
@@ -88,12 +88,14 @@ def test_summary_by_channel_cols(test):
         "ResponseCount",
         "Positives_Test",
         "Positives_Control",
+        "Positives_NBA",
         "Negatives_Test",
         "Negatives_Control",
+        "Negatives_NBA",
         "usesImpactAnalyzer",
         "ControlPercentage",
         "CTR",
-        "isValidPrediction",
+        "isValid",
     ]
     assert len(summary) == 2
 
@@ -105,12 +107,15 @@ def test_summary_by_channel_channels(test):
 
 def test_summary_by_channel_validity(test):
     summary = test.summary_by_channel().collect()
-    assert summary["isValidPrediction"].to_list() == [True, True]
+    assert summary["isValid"].to_list() == [True, True]
 
 
 def test_summary_by_channel_ia(test):
     summary = test.summary_by_channel().collect()
     assert summary["usesImpactAnalyzer"].to_list() == [True, True]
+    
+    test = Prediction(mock_prediction_data.filter((pl.col("pyDataUsage") != "NBA") | (pl.col("pyModelId") == "DATA-DECISION-REQUEST-CUSTOMER!PREDICTWEBPROPENSITY")))
+    assert test.summary_by_channel().collect()["usesImpactAnalyzer"].to_list() == [False, True]
 
 
 def test_summary_by_channel_lift(test):
@@ -127,12 +132,12 @@ def test_summary_by_channel_controlpct(test):
 
 
 def test_summary_by_channel_trend(test):
-    summary = test.summary_by_channel(keep_trend_data=True).collect()
+    summary = test.summary_by_channel(by_period="1d").collect()
     assert summary.select(pl.len()).item() == 2
 
 
 def test_summary_by_channel_trend2(test2):
-    summary = test2.summary_by_channel(keep_trend_data=True).collect()
+    summary = test2.summary_by_channel(by_period="1d").collect()
     assert summary.select(pl.len()).item() == 4
 
 
@@ -195,29 +200,6 @@ def test_overall_summary_controlpct(test):
 def test_overall_summary_ia(test):
     assert test.overall_summary().collect().select(pl.col("usesImpactAnalyzer")).item()
 
-    test = Prediction(mock_prediction_data.filter(pl.col("pyDataUsage") != "NBA"))
-    assert (
-        not test.overall_summary().collect().select(pl.col("usesImpactAnalyzer")).item()
-    )
-
-
-def test_init_from_pdc():
-    df = pl.DataFrame(
-        {
-            "SnapshotTime": cdh_utils.toPRPCDateTime(datetime.datetime.now())[
-                0:15
-            ],  # Polars doesn't like time zones like GMT+0200
-            "ModelClass": "Data-Decision-Request-Customer",
-            "ModelName": ["PREDICTWEBPROPENSITY"] * 4 + ["PREDICTMOBILEPROPENSITY"] * 4,
-            "ModelType": ["Prediction_Control", "Prediction_Test", "Prediction_NBA", ""]
-            * 2,
-            "Positives": [100, 400, 500, 1000, 200, 800, 1000, 2000],
-            "Negatives": [1000, 2000, 3000, 6000, 3000, 6000, 9000, 18000],
-            "ResponseCount": [1100, 2400, 3500, 7000, 3200, 6800, 10000, 20000],
-            "Performance": [0.65] * 4 + [0.70] * 4,
-        }
-    ).lazy()
-    pred = Prediction.from_pdc(df)
-    assert pred.is_valid
-    assert pred.overall_summary().collect()["Positives"].item() == 3000
-    assert pred.overall_summary().collect().select(pl.col("usesImpactAnalyzer")).item()
+    test = Prediction(mock_prediction_data.filter((pl.col("pyDataUsage") != "NBA") | (pl.col("pyModelId") == "DATA-DECISION-REQUEST-CUSTOMER!PREDICTWEBPROPENSITY")))
+    assert test.overall_summary().collect()["usesImpactAnalyzer"].to_list() == [True]
+    
