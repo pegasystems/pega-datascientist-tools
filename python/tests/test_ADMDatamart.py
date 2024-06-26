@@ -2,19 +2,19 @@
 Testing the functionality of the ADMDatamart functions
 """
 
-import sys
-import pytest
-import zipfile
-import polars as pl
-from polars.testing import assert_frame_equal
 import itertools
-from pandas.errors import UndefinedVariableError
 import pathlib
+import sys
+import zipfile
+
+import polars as pl
+import pytest
+from pandas.errors import UndefinedVariableError
+from polars.testing import assert_frame_equal
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(f"{str(basePath)}/python")
-from pdstools import ADMDatamart, cdh_utils
-from pdstools import errors
+from pdstools import ADMDatamart, cdh_utils, errors
 
 
 @pl.api.register_lazyframe_namespace("shape")
@@ -175,7 +175,7 @@ def test_extract_treatment(test, data):
     mapping = {"pyname": "Name"}
     output = cdh_utils._extract_keys(data.rename(mapping).lazy()).collect()
     assert output.shape == (3, 6)
-    assert list(output["Treatment"]) == ["XYZ", "xyz", None]
+    assert list(output["Treatment"]) == ["XYZ", "xyz", ""]
     assert list(output["Name"]) == ["ABC", "abc", "NormalName"]
     jsonnames = pl.LazyFrame(
         {

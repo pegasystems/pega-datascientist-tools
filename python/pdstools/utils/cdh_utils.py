@@ -6,17 +6,18 @@ Various utilities to access and manipulate data from Pega for purposes
 of data analysis, reporting and monitoring.
 """
 
-from typing import List, Union
-import polars as pl
-import re
-import numpy as np
 import datetime
+import re
 import warnings
-from .types import any_frame
+from typing import List, Union
+
+import numpy as np
+import polars as pl
+import pytz
+
 from .errors import NotEagerError
 from .table_definitions import PegaDefaultTables
-
-import pytz
+from .types import any_frame
 
 
 def defaultPredictorCategorization(
@@ -86,7 +87,16 @@ def _extract_keys(
     def safeName():
         return (
             pl.when(~pl.col(col).cast(pl.Utf8).str.starts_with("{"))
-            .then(pl.concat_str([pl.lit('{"pyName":"'), pl.col(col), pl.lit('"}')]))
+            .then(
+                pl.concat_str(
+                    [
+                        pl.lit('{"pyName":"'),
+                        pl.col(col),
+                        pl.lit('",'),
+                        pl.lit('"pyTreatment":""}'),
+                    ]
+                )
+            )
             .otherwise(pl.col(col))
         ).alias("tempName")
 
@@ -576,6 +586,7 @@ def fromPRPCDateTime(
 
 # TODO: Polars doesn't like time zones like GMT+0200
 
+
 def toPRPCDateTime(dt: datetime.datetime) -> str:
     """Convert to a Pega date-time string
 
@@ -711,7 +722,9 @@ def lift(
             # TODO not sure how polars (mis)behaves when there are no positives at all
             # I would hope for a NaN but base python doesn't do that. Polars perhaps.
             # Stijn: It does have proper None value support, may work like you say
-            binPos * (totalPos + totalNeg) / ((binPos + binNeg) * totalPos)
+            binPos
+            * (totalPos + totalNeg)
+            / ((binPos + binNeg) * totalPos)
         ).alias("Lift")
 
     return liftImpl(posCol, negCol, posCol.sum(), negCol.sum())
@@ -877,9 +890,10 @@ def sync_reports(checkOnly: bool = False, autoUpdate: bool = False):
     autoUpdate : bool, default = False
         If True, doensn't prompt for update and goes ahead
     """
-    from pdstools import __reports__
     import glob
     import urllib
+
+    from pdstools import __reports__
 
     files = [f for f in glob.glob(str(__reports__ / "*.qmd"))]
     latest = {}
