@@ -105,7 +105,7 @@ class Prediction:
             )
             .join(counts_test, on=["pyModelId", "SnapshotTime"], suffix="_Test")
             .join(counts_control, on=["pyModelId", "SnapshotTime"], suffix="_Control")
-            .join(counts_NBA, on=["pyModelId", "SnapshotTime"], suffix="_NBA")
+            .join(counts_NBA, on=["pyModelId", "SnapshotTime"], suffix="_NBA", how="left")
             .with_columns(
                 Class=pl.col("pyModelId").str.extract(r"(.+)!.+"),
                 ModelName=pl.col("pyModelId").str.extract(r".+!(.+)"),
@@ -116,13 +116,6 @@ class Prediction:
                 / (pl.col("Positives_Control") + pl.col("Negatives_Control")),
                 CTR_NBA=pl.col("Positives_NBA")
                 / (pl.col("Positives_NBA") + pl.col("Negatives_NBA")),
-                usesImpactAnalyzer=pl.lit(
-                    predictions_raw_data_prepped.select(
-                        (pl.col("pyDataUsage") == "NBA").any()
-                    )
-                    .collect()["pyDataUsage"]
-                    .item()
-                ),
             )
             .with_columns(
                 CTR_Lift=(pl.col("CTR_Test") - pl.col("CTR_Control"))
@@ -130,60 +123,6 @@ class Prediction:
                 isValidPrediction=self.prediction_validity_expr,
             )
             .sort(["pyModelId", "SnapshotTime"])
-        )
-
-    @staticmethod
-    def from_pdc(source: Union[pl.LazyFrame, str, Path]):
-        """Initializes a Prediction from PDC data.
-
-        Parameters
-        ----------
-        df : pl.LazyFrame, str or Path
-            Dataframe with PDC data in the exact format exported by PDC. If
-            a string or path, the file name of the path of the file that will
-            be read, and the data in the "pxResults" element will be used
-        """
-        if isinstance(source, str):
-            source = Path(source)
-
-        if isinstance(source, Path):
-            with open(source.expanduser()) as f:
-                source = pl.from_dicts(json.loads(f.read())["pxResults"]).lazy()
-
-        return Prediction(
-            source.filter(pl.col("ModelType").str.starts_with("Prediction"))
-            .rename(
-                {
-                    "SnapshotTime": "pySnapShotTime",
-                    "Positives": "pyPositives",
-                    "Negatives": "pyNegatives",
-                    "ResponseCount": "pyCount",
-                }
-            )
-            .with_columns(
-                pyModelId=pl.format("{}!{}", pl.col("ModelClass"), pl.col("ModelName")),
-                pyValue=pl.col("Performance").cast(pl.String),
-                pyUnscaledPerformance=(
-                    pl.col("Performance").cast(pl.Float64) / 100
-                ).cast(pl.String),
-                pyName=pl.lit("auc"),
-                pyDataUsage=pl.col("ModelType").str.extract(r".+_(Test|Control|NBA)"),
-                pyModelType=pl.lit("PREDICTION"),
-                pysnapshotday=pl.col("pySnapShotTime").str.slice(0, 8),
-                pySnapshotType=pl.lit(
-                    "Daily"
-                ),  # this is a guess - but Daily is also assumed by the Prediction constructor
-            )
-            .cast(
-                {
-                    "pyNegatives": pl.Float64,
-                    "pyPositives": pl.Float64,
-                    "pyCount": pl.Float64,
-                    # "TotalPositives": pl.Float64,
-                    # "TotalResponses": pl.Float64,
-                    # "Performance": pl.Float64,
-                }
-            )
         )
 
     @property
@@ -200,15 +139,36 @@ class Prediction:
             .item()
         )
 
-    # TODO give this an optional argument for grouping by
+    # TODO generalize the group_by
 
     def summary_by_channel(
         self,
         custom_predictions: Optional[List[NBAD.NBAD_Prediction]] = None,
-        keep_trend_data: bool = False,
+        by_period: str = None,
     ) -> pl.LazyFrame:
+        """Summarize prediction per channel
+
+        Parameters
+        ----------
+        custom_predictions : Optional[List[NBAD.NBAD_Prediction]], optional
+            Optional list with custom prediction name to channel mappings. Defaults to None.
+        by_period : str, optional
+            Optional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. If provided, creates a new Period column with the truncated date/time. Defaults to None.
+
+        Returns
+        -------
+        pl.LazyFrame
+            Dataframe with prediction summary (validity, numbers in test, control etc.)
+        """
         if not custom_predictions:
             custom_predictions = []
+
+        if by_period is not None:
+            period_expr = [
+                pl.col("SnapshotTime").dt.truncate(by_period).alias("Period")
+            ]
+        else:
+            period_expr = []
 
         return (
             self.predictions.join(
@@ -218,22 +178,21 @@ class Prediction:
                 how="left",
             )
             .with_columns(
-                Channel=pl.when(pl.col("Channel").is_null())
-                .then(pl.lit("Unknown"))
-                .otherwise(pl.col("Channel")),
-                Direction=pl.when(pl.col("Direction").is_null())
-                .then(pl.lit("Unknown"))
-                .otherwise(pl.col("Direction")),
-                isStandardNBADPrediction=pl.when(
-                    pl.col("isStandardNBADPrediction").is_null()
-                )
-                .then(pl.lit(False))
-                .otherwise(pl.col("isStandardNBADPrediction")),
-                isMultiChannelPrediction=pl.when(
-                    pl.col("isMultiChannelPrediction").is_null()
-                )
-                .then(pl.lit(False))
-                .otherwise(pl.col("isMultiChannelPrediction")),
+                [
+                    pl.when(pl.col("Channel").is_null())
+                    .then(pl.lit("Unknown"))
+                    .otherwise(pl.col("Channel")).alias("Channel"),
+                    pl.when(pl.col("Direction").is_null())
+                    .then(pl.lit("Unknown"))
+                    .otherwise(pl.col("Direction")).alias("Direction"),
+                    pl.when(pl.col("isStandardNBADPrediction").is_null())
+                    .then(pl.lit(False))
+                    .otherwise(pl.col("isStandardNBADPrediction")).alias("isStandardNBADPrediction"),
+                    pl.when(pl.col("isMultiChannelPrediction").is_null())
+                    .then(pl.lit(False))
+                    .otherwise(pl.col("isMultiChannelPrediction")).alias("isMultiChannelPrediction"),
+                ]
+                + period_expr
             )
             .group_by(
                 [
@@ -243,7 +202,7 @@ class Prediction:
                     "isStandardNBADPrediction",
                     "isMultiChannelPrediction",
                 ]
-                + (["SnapshotTime"] if keep_trend_data else [])
+                + (["Period"] if by_period is not None else [])
             )
             .agg(
                 cdh_utils.weighted_average_polars("CTR_Lift", "ResponseCount").alias(
@@ -255,11 +214,13 @@ class Prediction:
                 pl.col("ResponseCount").sum(),
                 pl.col("Positives_Test").sum(),
                 pl.col("Positives_Control").sum(),
+                pl.col("Positives_NBA").sum(),
                 pl.col("Negatives_Test").sum(),
                 pl.col("Negatives_Control").sum(),
-                pl.col("usesImpactAnalyzer").any(),
+                pl.col("Negatives_NBA").sum(),
             )
             .with_columns(
+                usesImpactAnalyzer=(pl.col("Positives_NBA") > 0) & (pl.col("Negatives_NBA") > 0),
                 ControlPercentage=100.0
                 * (pl.col("Positives_Control") + pl.col("Negatives_Control"))
                 / (
@@ -269,20 +230,49 @@ class Prediction:
                     + pl.col("Negatives_Control")
                 ),
                 CTR=(pl.col("Positives")) / (pl.col("ResponseCount")),
-                isValidPrediction=self.prediction_validity_expr,
+                isValid=self.prediction_validity_expr,
             )
-            .sort(["ModelName"] + (["SnapshotTime"] if keep_trend_data else []))
+            .sort(["ModelName"] + (["Period"] if by_period is not None else []))
         )
 
+    # TODO rethink use of multi-channel. If the only valid predictions are multi-channel predictions
+    # then use those. If there are valid non-multi-channel predictions then only use those.
+
     def overall_summary(
-        self, custom_predictions: Optional[List[NBAD.NBAD_Prediction]] = None
+        self,
+        custom_predictions: Optional[List[NBAD.NBAD_Prediction]] = None,
+        by_period: str = None,
     ) -> pl.LazyFrame:
+        """Overall prediction summary. Only valid prediction data is included.
+
+        Parameters
+        ----------
+        custom_predictions : Optional[List[NBAD.NBAD_Prediction]], optional
+            Optional list with custom prediction name to channel mappings. Defaults to None.
+        by_period : str, optional
+            Optional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. If provided, creates a new Period column with the truncated date/time. Defaults to None.
+
+        Returns
+        -------
+        pl.LazyFrame
+            Summary across all valid predictions as a dataframe
+        """
+
+        channel_summary = self.summary_by_channel(
+            custom_predictions=custom_predictions, by_period=by_period
+        )
+
+        if channel_summary.select((pl.col("isMultiChannelPrediction").not_() & pl.col("isValid")).any()).collect().item():
+            # There are valid non-multi-channel predictions
+            validity_filter_expr = pl.col("isMultiChannelPrediction").not_() & pl.col("isValid")
+        else:
+            validity_filter_expr = pl.col("isValid")
+
         return (
-            self.summary_by_channel(custom_predictions)
-            .filter(
-                pl.col("isMultiChannelPrediction").not_() & pl.col("isValidPrediction")
-            )
-            .select(
+            channel_summary
+            .filter(validity_filter_expr)
+            .group_by(["Period"] if by_period is not None else None)
+            .agg(
                 pl.concat_str(["Channel", "Direction"], separator="/")
                 .n_unique()
                 .alias("Number of Valid Channels"),
@@ -300,10 +290,14 @@ class Prediction:
                 .where((pl.col("Lift") == pl.col("Lift").min()) & (pl.col("Lift") < 0))
                 .first()
                 .alias("Minimum Negative Lift"),
-                pl.col("usesImpactAnalyzer").any(),
+                pl.col("usesImpactAnalyzer"),
                 cdh_utils.weighted_average_polars(
                     "ControlPercentage", "ResponseCount"
                 ).alias("ControlPercentage"),
             )
-            .with_columns(CTR=(pl.col("Positives")) / (pl.col("ResponseCount")))
+            .drop(["literal"] if by_period is None else []) # created by null group
+            .with_columns(CTR=(pl.col("Positives")) / (pl.col("ResponseCount")),
+                          usesImpactAnalyzer=pl.col("usesImpactAnalyzer").list.any())
+            .sort(["Period"] if by_period is not None else [])
         )
+    
