@@ -511,6 +511,10 @@ This dataframe is then joined back to the original dataframe.</p>
 <p>This is relatively efficient, but we still do need the whole
 pyName column in memory to do this, so it won’t work completely
 lazily from e.g. s3. That’s why it only works with eager mode.</p>
+<p>The data in column for which the JSON is extract is normalized a
+little by taking out non-space, non-printable characters. Not just
+ASCII of course. This may be relatively expensive, see notes in
+code about ideas to speed up.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>df</strong> (<em>Union</em><em>[</em><em>pl.DataFrame</em><em>, </em><em>pl.LazyFrame</em><em>]</em>) – The dataframe to extract the keys from</p>

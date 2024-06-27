@@ -1199,23 +1199,41 @@ on the ModelIDs remaining after the query, and recomputes combinedData.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMDatamart.summary_by_channel">
-<span class="sig-name descname"><span class="pre">summary_by_channel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">custom_channels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_lists</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMDatamart.summary_by_channel" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
+<span class="sig-name descname"><span class="pre">summary_by_channel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">custom_channels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by_period</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_lists</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.ADMDatamart.summary_by_channel" title="Link to this definition">¶</a></dt>
+<dd><p>Summarize ADM models per channel</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>custom_channels</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>str</em><em>]</em>)</p></li>
-<li><p><strong>keep_lists</strong> (<em>bool</em>)</p></li>
+<li><p><strong>custom_channels</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>str</em><em>]</em><em>, </em><em>optional</em>) – Optional list with custom channel/direction name mappings. Defaults to None.</p></li>
+<li><p><strong>by_period</strong> (<em>str</em><em>, </em><em>optional</em>) – Optional grouping by time period. Format string as in polars.Expr.dt.truncate (<a class="reference external" href="https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html">https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html</a>), for example “1mo”, “1w”, “1d” for calendar month, week day. If provided, creates a new Period column with the truncated date/time. Defaults to None.</p></li>
+<li><p><strong>keep_lists</strong> (<em>bool</em><em>, </em><em>optional</em>) – Internal flag to keep some columns (action and treatment names etc) as full lists.</p></li>
 </ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dataframe with summary per channel (and optionally a period)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pl.LazyFrame</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ADMDatamart.overall_summary">
-<span class="sig-name descname"><span class="pre">overall_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">custom_channels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMDatamart.overall_summary" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
+<span class="sig-name descname"><span class="pre">overall_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">custom_channels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by_period</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.ADMDatamart.overall_summary" title="Link to this definition">¶</a></dt>
+<dd><p>Overall ADM models summary. Only valid data is included.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>custom_channels</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>str</em><em>]</em>)</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>custom_channels</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>str</em><em>]</em><em>, </em><em>optional</em>) – Optional list with custom channel/direction name mappings. Defaults to None.</p></li>
+<li><p><strong>by_period</strong> (<em>str</em><em>, </em><em>optional</em>) – Optional grouping by time period. Format string as in polars.Expr.dt.truncate (<a class="reference external" href="https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html">https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html</a>), for example “1mo”, “1w”, “1d” for calendar month, week day. If provided, creates a new Period column with the truncated date/time. Defaults to None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Summary across all valid ADM models as a dataframe</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pl.LazyFrame</p>
 </dd>
 </dl>
 </dd></dl>

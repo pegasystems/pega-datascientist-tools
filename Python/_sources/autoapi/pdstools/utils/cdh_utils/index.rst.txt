@@ -79,6 +79,11 @@ Module Contents
    pyName column in memory to do this, so it won't work completely
    lazily from e.g. s3. That's why it only works with eager mode.
 
+   The data in column for which the JSON is extract is normalized a
+   little by taking out non-space, non-printable characters. Not just
+   ASCII of course. This may be relatively expensive, see notes in
+   code about ideas to speed up.
+
    :param df: The dataframe to extract the keys from
    :type df: Union[pl.DataFrame, pl.LazyFrame]
 

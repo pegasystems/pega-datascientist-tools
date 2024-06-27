@@ -608,10 +608,34 @@ Package Contents
 
 
 
-   .. py:method:: summary_by_channel(custom_channels: Dict[str, str] = None, keep_lists: bool = False)
+   .. py:method:: summary_by_channel(custom_channels: Dict[str, str] = None, by_period: str = None, keep_lists: bool = False) -> polars.LazyFrame
+
+      Summarize ADM models per channel
+
+      :param custom_channels: Optional list with custom channel/direction name mappings. Defaults to None.
+      :type custom_channels: Dict[str, str], optional
+      :param by_period: Optional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. If provided, creates a new Period column with the truncated date/time. Defaults to None.
+      :type by_period: str, optional
+      :param keep_lists: Internal flag to keep some columns (action and treatment names etc) as full lists.
+      :type keep_lists: bool, optional
+
+      :returns: Dataframe with summary per channel (and optionally a period)
+      :rtype: pl.LazyFrame
 
 
-   .. py:method:: overall_summary(custom_channels: Dict[str, str] = None)
+
+   .. py:method:: overall_summary(custom_channels: Dict[str, str] = None, by_period: str = None) -> polars.LazyFrame
+
+      Overall ADM models summary. Only valid data is included.
+
+      :param custom_channels: Optional list with custom channel/direction name mappings. Defaults to None.
+      :type custom_channels: Dict[str, str], optional
+      :param by_period: Optional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. If provided, creates a new Period column with the truncated date/time. Defaults to None.
+      :type by_period: str, optional
+
+      :returns: Summary across all valid ADM models as a dataframe
+      :rtype: pl.LazyFrame
+
 
 
    .. py:method:: generateReport(name: Optional[str] = None, working_dir: pathlib.Path = Path('.'), *, modelid: Optional[str] = '', delete_temp_files: bool = True, output_type: str = 'html', allow_collect: bool = True, cached_data: bool = False, predictordetails_activeonly: bool = False, **kwargs)

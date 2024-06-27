@@ -431,22 +431,6 @@
 </dl>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.prediction.Prediction.Prediction.from_pdc">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_pdc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">pathlib.Path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.prediction.Prediction.Prediction.from_pdc" title="Link to this definition">¶</a></dt>
-<dd><p>Initializes a Prediction from PDC data.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> (<em>pl.LazyFrame</em><em>, </em><em>str</em><em> or </em><em>Path</em>) – Dataframe with PDC data in the exact format exported by PDC. If
-a string or path, the file name of the path of the file that will
-be read, and the data in the “pxResults” element will be used</p></li>
-<li><p><strong>source</strong> (<em>Union</em><em>[</em><em>polars.LazyFrame</em><em>, </em><em>str</em><em>, </em><em>pathlib.Path</em><em>]</em>)</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
 <dl class="py property">
 <dt class="sig sig-object py" id="pdstools.prediction.Prediction.Prediction.is_available">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_available</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#pdstools.prediction.Prediction.Prediction.is_available" title="Link to this definition">¶</a></dt>
@@ -469,29 +453,40 @@ be read, and the data in the “pxResults” element will be used</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.prediction.Prediction.Prediction.summary_by_channel">
-<span class="sig-name descname"><span class="pre">summary_by_channel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">custom_predictions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">pdstools.utils.NBAD.NBAD_Prediction</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_trend_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.prediction.Prediction.Prediction.summary_by_channel" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
+<span class="sig-name descname"><span class="pre">summary_by_channel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">custom_predictions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">pdstools.utils.NBAD.NBAD_Prediction</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by_period</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.prediction.Prediction.Prediction.summary_by_channel" title="Link to this definition">¶</a></dt>
+<dd><p>Summarize prediction per channel</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>custom_predictions</strong> (<em>Optional</em><em>[</em><em>List</em><em>[</em><em>pdstools.utils.NBAD.NBAD_Prediction</em><em>]</em><em>]</em>)</p></li>
-<li><p><strong>keep_trend_data</strong> (<em>bool</em>)</p></li>
+<li><p><strong>custom_predictions</strong> (<em>Optional</em><em>[</em><em>List</em><em>[</em><em>NBAD.NBAD_Prediction</em><em>]</em><em>]</em><em>, </em><em>optional</em>) – Optional list with custom prediction name to channel mappings. Defaults to None.</p></li>
+<li><p><strong>by_period</strong> (<em>str</em><em>, </em><em>optional</em>) – Optional grouping by time period. Format string as in polars.Expr.dt.truncate (<a class="reference external" href="https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html">https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html</a>), for example “1mo”, “1w”, “1d” for calendar month, week day. If provided, creates a new Period column with the truncated date/time. Defaults to None.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>polars.LazyFrame</p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dataframe with prediction summary (validity, numbers in test, control etc.)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pl.LazyFrame</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.prediction.Prediction.Prediction.overall_summary">
-<span class="sig-name descname"><span class="pre">overall_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">custom_predictions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">pdstools.utils.NBAD.NBAD_Prediction</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.prediction.Prediction.Prediction.overall_summary" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
+<span class="sig-name descname"><span class="pre">overall_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">custom_predictions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">pdstools.utils.NBAD.NBAD_Prediction</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by_period</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.prediction.Prediction.Prediction.overall_summary" title="Link to this definition">¶</a></dt>
+<dd><p>Overall prediction summary. Only valid prediction data is included.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>custom_predictions</strong> (<em>Optional</em><em>[</em><em>List</em><em>[</em><em>pdstools.utils.NBAD.NBAD_Prediction</em><em>]</em><em>]</em>)</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>custom_predictions</strong> (<em>Optional</em><em>[</em><em>List</em><em>[</em><em>NBAD.NBAD_Prediction</em><em>]</em><em>]</em><em>, </em><em>optional</em>) – Optional list with custom prediction name to channel mappings. Defaults to None.</p></li>
+<li><p><strong>by_period</strong> (<em>str</em><em>, </em><em>optional</em>) – Optional grouping by time period. Format string as in polars.Expr.dt.truncate (<a class="reference external" href="https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html">https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html</a>), for example “1mo”, “1w”, “1d” for calendar month, week day. If provided, creates a new Period column with the truncated date/time. Defaults to None.</p></li>
+</ul>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>polars.LazyFrame</p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Summary across all valid predictions as a dataframe</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pl.LazyFrame</p>
 </dd>
 </dl>
 </dd></dl>
@@ -570,7 +565,6 @@ be read, and the data in the “pxResults” element will be used</p></li>
 <li><a class="reference internal" href="#pdstools.prediction.Prediction.Prediction.predictions"><code class="docutils literal notranslate"><span class="pre">predictions</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.prediction.Prediction.Prediction.prediction_validity_expr"><code class="docutils literal notranslate"><span class="pre">prediction_validity_expr</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.prediction.Prediction.Prediction.getPredictionsChannelMapping"><code class="docutils literal notranslate"><span class="pre">getPredictionsChannelMapping()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.prediction.Prediction.Prediction.from_pdc"><code class="docutils literal notranslate"><span class="pre">from_pdc()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.prediction.Prediction.Prediction.is_available"><code class="docutils literal notranslate"><span class="pre">is_available</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.prediction.Prediction.Prediction.is_valid"><code class="docutils literal notranslate"><span class="pre">is_valid</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.prediction.Prediction.Prediction.summary_by_channel"><code class="docutils literal notranslate"><span class="pre">summary_by_channel()</span></code></a></li>
