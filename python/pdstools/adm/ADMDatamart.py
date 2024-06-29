@@ -1319,7 +1319,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
 
         if by_period is not None:
             period_expr = [
-                pl.col("SnapshotTime").dt.truncate(by_period).alias("Period")
+                pl.col("SnapshotTime").dt.truncate(by_period).cast(pl.Date).alias("Period")
             ]
         else:
             period_expr = []
