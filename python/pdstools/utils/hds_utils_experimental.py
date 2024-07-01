@@ -326,8 +326,8 @@ class DataAnonymization2:
         def minMaxFrame(df, columns_to_check):
             col = pl.col(columns_to_check).replace("", None).cast(pl.Float64)
             return df.select(
-                col.min().suffix("_min"),
-                col.max().suffix("_max"),
+                col.min().name.suffix("_min"),
+                col.max().name.suffix("_max"),
             ).collect()
 
         if not hasattr(self, "numeric_predictors_to_mask"):

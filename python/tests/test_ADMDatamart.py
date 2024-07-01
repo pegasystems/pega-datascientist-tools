@@ -139,7 +139,8 @@ def data():
                 "2022-03-01 05:00:00",
                 "2022-03-01 05:00:00",
             ],
-        }
+        },
+        strict=False,
     )
 
 
@@ -238,9 +239,10 @@ def test_set_types(test):
                 "2022-03-01 05:00:00",
                 "2022-14-01 05:00:00",
             ],
-        }
+        },
+        strict=False,
     )
-    with pytest.raises(pl.ComputeError):
+    with pytest.raises((pl.ComputeError, pl.InvalidOperationError)):
         test._set_types(
             df,
             timestamp_fmt="%Y%m%dT%H%M%S",
@@ -262,8 +264,8 @@ def test_set_types(test):
         pl.Datetime,
     ]
 
-    assert df2["Positives"].to_list() == [None, None, 3]
-    assert df2["Negatives"].to_list() == [0.0, None, None]
+    assert df2["Positives"].to_list() == [1, 2, 3]
+    assert df2["Negatives"].to_list() == [0, 2, 4]
     assert df2["Issue"].to_list() == ["Issue1", "Issue2", None]
     import datetime
 
@@ -444,8 +446,8 @@ def test_create_sign_df():
     # TODO: make this a good test rather than test for no fail
 
 
-def test_model_summary():
-    pass
+def test_model_summary(test):
+    test.model_summary()
 
 
 def test_pivot_df(test):
