@@ -4,8 +4,6 @@ import polars as pl
 import streamlit as st
 from st_pages import show_pages
 
-from pdstools.decision_analyzer.decision_data import DecisionData
-
 from pdstools.app.decision_analyzer.da_streamlit_utils import (
     get_options,
     get_pages,
@@ -13,14 +11,12 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
     handle_file_upload,
     handle_sample_data,
 )
-from pdstools.decision_analyzer.utils import get_git_version_and_date
+from pdstools.decision_analyzer.decision_data import DecisionData
 
 st.set_page_config(layout="wide")
 pl.enable_string_cache()  # Done here, but also put in ensure_data()
 
-# app_version, tag_date = get_git_version_and_date()
-app_version, tag_date = 1, 1
-
+app_version, tag_date = "V0.1", "18 Jun 2024"
 
 # TODO: the caching is not optimal yet, sometimes caches too much, sometimes too little - need to clean this up
 # TODO: fix up the commentary, labels, annotations everywhere, align with Dennis' designs and NBA designer terminology

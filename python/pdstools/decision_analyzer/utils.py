@@ -192,11 +192,11 @@ def get_git_version_and_date():
     )
 
     # Get the date the tag was pushed
-    date_str = (
-        subprocess.check_output(["git", "show", "-s", "--format=%ci", version])  
-        .decode()
-        .strip()
-    )
+    date_str = (  
+        subprocess.check_output(["git", "log", "-1", "--format=%ai", version])  
+        .decode()  
+        .strip()  
+    )  
     date = datetime.datetime.strptime(date_str.split()[0], "%Y-%m-%d")
     return version, date.strftime("%d %b %Y")
 
