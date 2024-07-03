@@ -1,0 +1,25 @@
+pdstools.app.decision_analyzer.pages.10-Business_Value_Analysis
+===============================================================
+
+.. py:module:: pdstools.app.decision_analyzer.pages.10-Business_Value_Analysis
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.app.decision_analyzer.pages.10-Business_Value_Analysis.scope_options
+   pdstools.app.decision_analyzer.pages.10-Business_Value_Analysis.valueData
+   pdstools.app.decision_analyzer.pages.10-Business_Value_Analysis.scope_index
+
+
+Module Contents
+---------------
+
+.. py:data:: scope_options
+
+.. py:data:: valueData
+
+.. py:data:: scope_index
+

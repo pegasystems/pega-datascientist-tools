@@ -4,6 +4,15 @@ pdstools.app.decision_analyzer
 .. py:module:: pdstools.app.decision_analyzer
 
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/pdstools/app/decision_analyzer/pages/index
+
+
 Submodules
 ----------
 

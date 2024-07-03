@@ -1,0 +1,27 @@
+pdstools.app.decision_analyzer.pages.6-win_loss_analysis
+========================================================
+
+.. py:module:: pdstools.app.decision_analyzer.pages.6-win_loss_analysis
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.app.decision_analyzer.pages.6-win_loss_analysis.facetting
+   pdstools.app.decision_analyzer.pages.6-win_loss_analysis.scope_options
+   pdstools.app.decision_analyzer.pages.6-win_loss_analysis.groupby_cols
+
+
+Module Contents
+---------------
+
+.. py:data:: facetting
+   :value: 'pyChannel/pyDirection'
+
+
+.. py:data:: scope_options
+
+.. py:data:: groupby_cols
+

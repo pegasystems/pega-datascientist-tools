@@ -1,0 +1,26 @@
+pdstools.app.decision_analyzer.pages
+====================================
+
+.. py:module:: pdstools.app.decision_analyzer.pages
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/pdstools/app/decision_analyzer/pages/1-global_filters/index
+   /autoapi/pdstools/app/decision_analyzer/pages/10-Business_Value_Analysis/index
+   /autoapi/pdstools/app/decision_analyzer/pages/11-Business_Lever_Analysis/index
+   /autoapi/pdstools/app/decision_analyzer/pages/12-Impact_Analysis/index
+   /autoapi/pdstools/app/decision_analyzer/pages/2-global_dashboard/index
+   /autoapi/pdstools/app/decision_analyzer/pages/3-action_distribution/index
+   /autoapi/pdstools/app/decision_analyzer/pages/4-action_funnel/index
+   /autoapi/pdstools/app/decision_analyzer/pages/5-global_sensitivity/index
+   /autoapi/pdstools/app/decision_analyzer/pages/6-win_loss_analysis/index
+   /autoapi/pdstools/app/decision_analyzer/pages/7-personalization_analysis/index
+   /autoapi/pdstools/app/decision_analyzer/pages/8-offer_quality_analysis/index
+   /autoapi/pdstools/app/decision_analyzer/pages/9-Thresholding_Analysis/index
+
+

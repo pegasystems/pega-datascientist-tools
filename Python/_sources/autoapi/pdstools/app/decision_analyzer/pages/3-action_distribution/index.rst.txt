@@ -1,0 +1,25 @@
+pdstools.app.decision_analyzer.pages.3-action_distribution
+==========================================================
+
+.. py:module:: pdstools.app.decision_analyzer.pages.3-action_distribution
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.app.decision_analyzer.pages.3-action_distribution.scope_options
+   pdstools.app.decision_analyzer.pages.3-action_distribution.distribution_data
+   pdstools.app.decision_analyzer.pages.3-action_distribution.scope_index
+
+
+Module Contents
+---------------
+
+.. py:data:: scope_options
+
+.. py:data:: distribution_data
+
+.. py:data:: scope_index
+

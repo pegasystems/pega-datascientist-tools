@@ -1,0 +1,30 @@
+pdstools.app.decision_analyzer.pages.1-global_filters
+=====================================================
+
+.. py:module:: pdstools.app.decision_analyzer.pages.1-global_filters
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.app.decision_analyzer.pages.1-global_filters.expr_list
+   pdstools.app.decision_analyzer.pages.1-global_filters.uploaded_file
+   pdstools.app.decision_analyzer.pages.1-global_filters.deserialize_exprs
+   pdstools.app.decision_analyzer.pages.1-global_filters.statsBeforeFilter
+
+
+Module Contents
+---------------
+
+.. py:data:: expr_list
+   :value: []
+
+
+.. py:data:: uploaded_file
+
+.. py:data:: deserialize_exprs
+
+.. py:data:: statsBeforeFilter
+

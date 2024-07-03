@@ -1,0 +1,28 @@
+pdstools.app.decision_analyzer.pages.9-Thresholding_Analysis
+============================================================
+
+.. py:module:: pdstools.app.decision_analyzer.pages.9-Thresholding_Analysis
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.app.decision_analyzer.pages.9-Thresholding_Analysis.thresholding_mapping
+   pdstools.app.decision_analyzer.pages.9-Thresholding_Analysis.thresholding_on
+   pdstools.app.decision_analyzer.pages.9-Thresholding_Analysis.threshold_deciles_data
+   pdstools.app.decision_analyzer.pages.9-Thresholding_Analysis.xxx
+
+
+Module Contents
+---------------
+
+.. py:data:: thresholding_mapping
+
+.. py:data:: thresholding_on
+
+.. py:data:: threshold_deciles_data
+
+.. py:data:: xxx
+

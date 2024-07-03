@@ -7,17 +7,5 @@ This page contains auto-generated API reference documentation [#f1]_.
    :titlesonly:
 
    /autoapi/pdstools/index
-   /autoapi/4-action_funnel/index
-   /autoapi/1-global_filters/index
-   /autoapi/12-Impact Analysis/index
-   /autoapi/2-global_dashboard/index
-   /autoapi/6-win_loss_analysis/index
-   /autoapi/5-global_sensitivity/index
-   /autoapi/3-action_distribution/index
-   /autoapi/9-Thresholding Analysis/index
-   /autoapi/8-offer_quality_analysis/index
-   /autoapi/11-Business Lever Analysis/index
-   /autoapi/10-Business Value Analysis/index
-   /autoapi/7-personalization_analysis/index
 
 .. [#f1] Created with `sphinx-autoapi <https://github.com/readthedocs/sphinx-autoapi>`_

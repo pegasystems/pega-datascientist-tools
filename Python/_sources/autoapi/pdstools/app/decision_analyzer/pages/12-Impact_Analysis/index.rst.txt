@@ -1,0 +1,6 @@
+pdstools.app.decision_analyzer.pages.12-Impact_Analysis
+=======================================================
+
+.. py:module:: pdstools.app.decision_analyzer.pages.12-Impact_Analysis
+
+

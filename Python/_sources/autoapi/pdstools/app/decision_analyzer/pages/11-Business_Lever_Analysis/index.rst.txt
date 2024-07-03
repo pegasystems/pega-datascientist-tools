@@ -1,0 +1,54 @@
+pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis
+===============================================================
+
+.. py:module:: pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis.slider_max
+   pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis.slider_min
+   pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis.value
+   pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis.lever
+   pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis.ranked_df
+   pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis.rank_1_df
+   pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis.parameters
+   pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis.segmented_df
+   pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis.segments
+   pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis.win_count
+   pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis.calculate_lever
+   pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis.lever_for_desired_ratio
+
+
+Module Contents
+---------------
+
+.. py:data:: slider_max
+
+.. py:data:: slider_min
+
+.. py:data:: value
+
+.. py:data:: lever
+
+.. py:data:: ranked_df
+
+.. py:data:: rank_1_df
+
+.. py:data:: parameters
+   :value: ['FinalPropensity', 'Value', 'ContextWeight', 'Weight']
+
+
+.. py:data:: segmented_df
+
+.. py:data:: segments
+
+.. py:data:: win_count
+
+.. py:data:: calculate_lever
+
+.. py:data:: lever_for_desired_ratio
+

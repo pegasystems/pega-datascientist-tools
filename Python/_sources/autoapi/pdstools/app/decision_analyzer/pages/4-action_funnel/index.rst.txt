@@ -1,0 +1,22 @@
+pdstools.app.decision_analyzer.pages.4-action_funnel
+====================================================
+
+.. py:module:: pdstools.app.decision_analyzer.pages.4-action_funnel
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.app.decision_analyzer.pages.4-action_funnel.scope_options
+   pdstools.app.decision_analyzer.pages.4-action_funnel.scope_index
+
+
+Module Contents
+---------------
+
+.. py:data:: scope_options
+
+.. py:data:: scope_index
+

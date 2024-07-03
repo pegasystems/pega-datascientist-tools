@@ -1,0 +1,19 @@
+pdstools.app.decision_analyzer.pages.5-global_sensitivity
+=========================================================
+
+.. py:module:: pdstools.app.decision_analyzer.pages.5-global_sensitivity
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.app.decision_analyzer.pages.5-global_sensitivity.scope_options
+
+
+Module Contents
+---------------
+
+.. py:data:: scope_options
+

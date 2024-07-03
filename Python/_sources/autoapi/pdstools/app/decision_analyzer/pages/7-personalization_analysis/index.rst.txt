@@ -1,0 +1,28 @@
+pdstools.app.decision_analyzer.pages.7-personalization_analysis
+===============================================================
+
+.. py:module:: pdstools.app.decision_analyzer.pages.7-personalization_analysis
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.app.decision_analyzer.pages.7-personalization_analysis.optionality_data
+   pdstools.app.decision_analyzer.pages.7-personalization_analysis.stage_options
+   pdstools.app.decision_analyzer.pages.7-personalization_analysis.optionality_data_with_trend_per_stage
+   pdstools.app.decision_analyzer.pages.7-personalization_analysis.action_variability_stats
+
+
+Module Contents
+---------------
+
+.. py:data:: optionality_data
+
+.. py:data:: stage_options
+
+.. py:data:: optionality_data_with_trend_per_stage
+
+.. py:data:: action_variability_stats
+

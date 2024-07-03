@@ -1,0 +1,33 @@
+pdstools.app.decision_analyzer.pages.8-offer_quality_analysis
+=============================================================
+
+.. py:module:: pdstools.app.decision_analyzer.pages.8-offer_quality_analysis
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.app.decision_analyzer.pages.8-offer_quality_analysis.defaultPercentile
+   pdstools.app.decision_analyzer.pages.8-offer_quality_analysis.scope_options
+   pdstools.app.decision_analyzer.pages.8-offer_quality_analysis.action_counts
+   pdstools.app.decision_analyzer.pages.8-offer_quality_analysis.vf
+   pdstools.app.decision_analyzer.pages.8-offer_quality_analysis.vf
+
+
+Module Contents
+---------------
+
+.. py:data:: defaultPercentile
+   :value: 0.05
+
+
+.. py:data:: scope_options
+
+.. py:data:: action_counts
+
+.. py:data:: vf
+
+.. py:data:: vf
+

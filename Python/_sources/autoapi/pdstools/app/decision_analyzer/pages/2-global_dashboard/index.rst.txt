@@ -1,0 +1,19 @@
+pdstools.app.decision_analyzer.pages.2-global_dashboard
+=======================================================
+
+.. py:module:: pdstools.app.decision_analyzer.pages.2-global_dashboard
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.app.decision_analyzer.pages.2-global_dashboard.overview
+
+
+Module Contents
+---------------
+
+.. py:data:: overview
+
