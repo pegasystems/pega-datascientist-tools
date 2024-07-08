@@ -228,6 +228,18 @@ class Prediction:
                     + pl.col("Negatives_Test")
                     + pl.col("Positives_Control")
                     + pl.col("Negatives_Control")
+                    + pl.col("Positives_NBA")
+                    + pl.col("Negatives_NBA")
+                ),
+                TestPercentage=100.0
+                * (pl.col("Positives_Test") + pl.col("Negatives_Test"))
+                / (
+                    pl.col("Positives_Test")
+                    + pl.col("Negatives_Test")
+                    + pl.col("Positives_Control")
+                    + pl.col("Negatives_Control")
+                    + pl.col("Positives_NBA")
+                    + pl.col("Negatives_NBA")
                 ),
                 CTR=(pl.col("Positives")) / (pl.col("ResponseCount")),
                 isValid=self.prediction_validity_expr,
@@ -294,6 +306,9 @@ class Prediction:
                 cdh_utils.weighted_average_polars(
                     "ControlPercentage", "ResponseCount"
                 ).alias("ControlPercentage"),
+                cdh_utils.weighted_average_polars(
+                    "TestPercentage", "ResponseCount"
+                ).alias("TestPercentage"),
             )
             .drop(["literal"] if by_period is None else []) # created by null group
             .with_columns(CTR=(pl.col("Positives")) / (pl.col("ResponseCount")),

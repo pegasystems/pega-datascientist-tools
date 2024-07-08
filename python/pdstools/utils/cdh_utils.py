@@ -632,8 +632,8 @@ def weighted_average_polars(
         weights = pl.col(weights)
 
     return (
-        (vals * weights).filter(vals.is_not_nan() & weights.is_not_null()).sum()
-    ) / weights.sum()
+        (vals * weights).filter(vals.is_not_nan() & vals.is_infinite().not_() & weights.is_not_null()).sum()
+    ) / weights.filter(vals.is_not_nan() & vals.is_infinite().not_() & weights.is_not_null()).sum()
 
 
 def weighted_performance_polars() -> pl.Expr:

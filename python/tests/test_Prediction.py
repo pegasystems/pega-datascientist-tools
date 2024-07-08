@@ -94,6 +94,7 @@ def test_summary_by_channel_cols(test):
         "Negatives_NBA",
         "usesImpactAnalyzer",
         "ControlPercentage",
+        "TestPercentage",
         "CTR",
         "isValid",
     ]
@@ -126,8 +127,12 @@ def test_summary_by_channel_lift(test):
 def test_summary_by_channel_controlpct(test):
     summary = test.summary_by_channel().collect()
     assert [round(x, 5) for x in summary["ControlPercentage"].to_list()] == [
-        32.0,
-        31.42857,
+        16.0,
+        15.71429,
+    ]
+    assert [round(x, 5) for x in summary["TestPercentage"].to_list()] == [
+        34.0,
+        34.28571,
     ]
 
 
@@ -153,6 +158,7 @@ def test_overall_summary_cols(test):
         "Minimum Negative Lift",
         "usesImpactAnalyzer",
         "ControlPercentage",
+        "TestPercentage",
         "CTR",
     ]
     assert len(summary) == 1
@@ -190,10 +196,13 @@ def test_overall_summary_ctr(test):
 
 
 def test_overall_summary_controlpct(test):
-    summary = test.summary_by_channel().collect()
     assert (
         round(test.overall_summary().collect()["ControlPercentage"].item(), 5)
-        == 31.85185
+        == 15.92593
+    )
+    assert (
+        round(test.overall_summary().collect()["TestPercentage"].item(), 5)
+        == 34.07407
     )
 
 
