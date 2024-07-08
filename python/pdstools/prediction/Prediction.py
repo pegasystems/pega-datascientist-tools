@@ -306,6 +306,9 @@ class Prediction:
                 cdh_utils.weighted_average_polars(
                     "ControlPercentage", "ResponseCount"
                 ).alias("ControlPercentage"),
+                cdh_utils.weighted_average_polars(
+                    "TestPercentage", "ResponseCount"
+                ).alias("TestPercentage"),
             )
             .drop(["literal"] if by_period is None else []) # created by null group
             .with_columns(CTR=(pl.col("Positives")) / (pl.col("ResponseCount")),
