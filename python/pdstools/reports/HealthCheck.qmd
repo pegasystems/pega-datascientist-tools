@@ -193,7 +193,7 @@ def table_standard_formatting(source_table, title=None, rowname_col=None):
         for col in flds:
             if col in source_table.columns:
                 gt = (
-                    gt.fmt_scientific(columns=col)
+                    gt.fmt_number(columns=col, compact=True)
                     .tab_style(
                         style=style.fill(color="orangered"),
                         locations=loc.body(
