@@ -334,16 +334,20 @@ aucpr_from_probs <- function(groundtruth, probs)
 #'
 #' @param pos Vector with counts of the positive responses
 #' @param neg Vector with counts of the negative responses
-#' @param probs Optional vector of probabilities, defaults to pos/(pos+neg). Used to order the response bins.
+#' @param probs Optional probabilities, used to set the binorder, defaults to pos/(pos+neg)
+#' @param binorder Optional order of the bins, defaults to decreasing order of propensities.
 #'
 #' @return The ROC AUC as a value between 0.5 and 1.
 #' @export
 #'
 #' @examples
 #' auc_from_bincounts( c(3,1,0), c(2,0,1))
-auc_from_bincounts <- function(pos, neg, probs = pos/(pos+neg))
+auc_from_bincounts <- function(pos, neg, probs = pos/(pos+neg), binorder = NULL)
 {
-  binorder <- order(probs, decreasing = T)
+  if (is.null(binorder)) {
+    binorder <- order(probs, decreasing = T)
+  }
+
   FPR <- cumsum(neg[binorder]) / sum(neg)
   TPR <- cumsum(pos[binorder]) / sum(pos)
   Area <- (FPR - shift(FPR, 1, fill=0)) * (TPR + shift(TPR, 1, fill=0)) / 2
@@ -358,16 +362,20 @@ auc_from_bincounts <- function(pos, neg, probs = pos/(pos+neg))
 #'
 #' @param pos Vector with counts of the positive responses
 #' @param neg Vector with counts of the negative responses
-#' @param probs Optional vector of probabilities, defaults to pos/(pos+neg). Used to order the response bins.
+#' @param probs Optional probabilities, used to set the binorder, defaults to pos/(pos+neg)
+#' @param binorder Optional order of the bins, defaults to decreasing order of propensities.
 #'
 #' @return The PR AUC as a value between 0.0 and 1.0
 #' @export
 #'
 #' @examples
 #' auc_from_bincounts( c(3,1,0), c(2,0,1))
-aucpr_from_bincounts <- function(pos, neg, probs = pos/(pos+neg))
+aucpr_from_bincounts <- function(pos, neg, probs = pos/(pos+neg), binorder = NULL)
 {
-  binorder <- order(probs, decreasing = T)
+  if (is.null(binorder)) {
+    binorder <- order(probs, decreasing = T)
+  }
+
   recall <- cumsum(pos[binorder]) / sum(pos)
   precision <- cumsum(pos[binorder]) / cumsum(pos[binorder] + neg[binorder])
   Area <- (recall - shift(recall, 1, fill=0)) * (precision + shift(precision, 1, fill=0)) / 2
