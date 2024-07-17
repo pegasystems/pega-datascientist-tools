@@ -73,7 +73,7 @@ Package Contents
 ----------------
 
 .. py:data:: __version__
-   :value: '3.4.4'
+   :value: '3.4.5'
 
 
 .. py:class:: ADMDatamart(path: Union[str, pathlib.Path] = Path('.'), import_strategy: Literal['eager', 'lazy'] = 'eager', *, model_filename: Optional[str] = 'modelData', predictor_filename: Optional[str] = 'predictorData', model_df: Optional[pdstools.utils.types.any_frame] = None, predictor_df: Optional[pdstools.utils.types.any_frame] = None, query: Optional[Union[polars.Expr, List[polars.Expr], str, Dict[str, list]]] = None, subset: bool = True, drop_cols: Optional[list] = None, include_cols: Optional[list] = None, context_keys: list = ['Channel', 'Direction', 'Issue', 'Group'], extract_keys: bool = False, predictorCategorization: polars.Expr = cdh_utils.defaultPredictorCategorization, plotting_engine: Union[str, Any] = 'plotly', verbose: bool = False, **reading_opts)
