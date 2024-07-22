@@ -171,7 +171,9 @@ if st.session_state["dm"].predictorData is not None:
                                 value=i / len(st.session_state["selected_models"]),
                                 text=f"Generating report for {modelid} ({i+1} / {len(st.session_state['selected_models'])})",
                             )
-
+                            st.write(i)
+                            st.write(del_cache)
+                            st.write(working_dir)
                             outfile = (
                                 st.session_state["dm"]
                                 .applyGlobalQuery(st.session_state.get("filters", None))
@@ -182,7 +184,7 @@ if st.session_state["dm"].predictorData is not None:
                                     delete_temp_files=del_cache,
                                     output_type="html",
                                     allow_collect=True,
-                                    cached_data=st.session_state["data_is_cached"],
+                                    cached_data=False,#st.session_state["data_is_cached"], # TODO avoid caching data over an over for each modelid
                                     output_to_file=True,
                                     del_cache=del_cache,
                                     predictordetails_activeonly=st.session_state[
@@ -192,10 +194,6 @@ if st.session_state["dm"].predictorData is not None:
                                 )
                             )
                             files.append(outfile)
-                            if not del_cache:
-                                st.session_state["data_is_cached"] = True
-                            else:
-                                st.session_state["data_is_cached"] = False
 
                         (
                             st.session_state["model_report_files"],
