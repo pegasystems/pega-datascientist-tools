@@ -24,11 +24,12 @@ def sample_without_predictorbinning():
 
 
 def test_GenerateHealthCheck(sample):
-    hc = sample.generateReport(verbose=True)
-    assert hc == "./HealthCheck.html"
+    hc = sample.generate_health_check(verbose=True)
+    assert hc == pathlib.Path("./HealthCheck.html").resolve()
     assert pathlib.Path(hc).exists()
     pathlib.Path(hc).unlink()
     assert not pathlib.Path(hc).exists()
+
 
 def test_ExportTables(sample):
     excel = sample.exportTables(predictorBinning=True)
@@ -45,6 +46,7 @@ def test_ExportTables(sample):
     pathlib.Path(excel).unlink()
     assert not pathlib.Path(excel).exists()
 
+
 def test_ExportTables_NoBinning(sample):
     excel = sample.exportTables(predictorBinning=False)
     assert excel == "Tables.xlsx"
@@ -59,11 +61,12 @@ def test_ExportTables_NoBinning(sample):
     pathlib.Path(excel).unlink()
     assert not pathlib.Path(excel).exists()
 
+
 def test_GenerateHealthCheck_ModelDataOnly(sample_without_predictorbinning):
-    hc = sample_without_predictorbinning.generateReport(
+    hc = sample_without_predictorbinning.generate_health_check(
         name="MyOrg", verbose=True, modelData_only=True
     )
-    assert hc == "./HealthCheck_MyOrg.html"
+    assert hc == pathlib.Path("./HealthCheck_MyOrg.html").resolve()
     assert pathlib.Path(hc).exists()
     pathlib.Path(hc).unlink()
     assert not pathlib.Path(hc).exists()
@@ -85,17 +88,24 @@ def test_ExportTables_ModelDataOnly(sample_without_predictorbinning):
 
 
 def test_GenerateModelReport(sample):
-    report = sample.generateReport(
-        name="MyOrg", modelid="bd70a915-697a-5d43-ab2c-53b0557c85a0"
+    report = sample.generate_model_reports(
+        name="MyOrg",
+        model_list=["bd70a915-697a-5d43-ab2c-53b0557c85a0"],
+        predictordetails_activeonly=True,
     )
-    assert report == "./ModelReport_MyOrg_bd70a915-697a-5d43-ab2c-53b0557c85a0.html"
+    expected_path = pathlib.Path("ModelReport_MyOrg_bd70a915-697a-5d43-ab2c-53b0557c85a0.html").resolve()
+    assert report == expected_path
     assert pathlib.Path(report).exists()
     pathlib.Path(report).unlink()
     assert not pathlib.Path(report).exists()
 
+
 def test_GenerateModelReport_Failing(sample_without_predictorbinning):
     with pytest.raises(Exception) as e_info:
-        sample_without_predictorbinning.generateReport(
-            name="MyOrg", modelid="bd70a915-697a-5d43-ab2c-53b0557c85a0"
+        sample_without_predictorbinning.generate_model_reports(
+            name="MyOrg", modelid=["bd70a915-697a-5d43-ab2c-53b0557c85a0"]
         )
-    assert "Error when generating healthcheck" in str(e_info)
+    assert (
+        "No model IDs provided to generate_model_reports. Please provide at least one model ID to generate reports."
+        in str(e_info)
+    )

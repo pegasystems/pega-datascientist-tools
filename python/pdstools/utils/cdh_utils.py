@@ -6,17 +6,21 @@ Various utilities to access and manipulate data from Pega for purposes
 of data analysis, reporting and monitoring.
 """
 
-from typing import List, Union
-import polars as pl
-import re
-import numpy as np
 import datetime
+import io
+import re
 import warnings
-from .types import any_frame
+import zipfile
+from pathlib import Path
+from typing import List, Tuple, Union
+
+import numpy as np
+import polars as pl
+import pytz
+
 from .errors import NotEagerError
 from .table_definitions import PegaDefaultTables
-
-import pytz
+from .types import any_frame
 
 
 def defaultPredictorCategorization(
@@ -632,8 +636,12 @@ def weighted_average_polars(
         weights = pl.col(weights)
 
     return (
-        (vals * weights).filter(vals.is_not_nan() & vals.is_infinite().not_() & weights.is_not_null()).sum()
-    ) / weights.filter(vals.is_not_nan() & vals.is_infinite().not_() & weights.is_not_null()).sum()
+        (vals * weights)
+        .filter(vals.is_not_nan() & vals.is_infinite().not_() & weights.is_not_null())
+        .sum()
+    ) / weights.filter(
+        vals.is_not_nan() & vals.is_infinite().not_() & weights.is_not_null()
+    ).sum()
 
 
 def weighted_performance_polars() -> pl.Expr:
@@ -737,9 +745,7 @@ def lift(
             # TODO not sure how polars (mis)behaves when there are no positives at all
             # I would hope for a NaN but base python doesn't do that. Polars perhaps.
             # Stijn: It does have proper None value support, may work like you say
-            binPos
-            * (totalPos + totalNeg)
-            / ((binPos + binNeg) * totalPos)
+            binPos * (totalPos + totalNeg) / ((binPos + binNeg) * totalPos)
         ).alias("Lift")
 
     return liftImpl(posCol, negCol, posCol.sum(), negCol.sum())
@@ -905,9 +911,10 @@ def sync_reports(checkOnly: bool = False, autoUpdate: bool = False):
     autoUpdate : bool, default = False
         If True, doensn't prompt for update and goes ahead
     """
-    from pdstools import __reports__
     import glob
     import urllib
+
+    from pdstools import __reports__
 
     files = [f for f in glob.glob(str(__reports__ / "*.qmd"))]
     latest = {}
@@ -935,3 +942,65 @@ def sync_reports(checkOnly: bool = False, autoUpdate: bool = False):
             return False
     else:
         return True
+
+
+def process_files_to_bytes(
+    file_paths: List[Union[str, Path]], base_file_name: Union[str, Path]
+) -> Tuple[bytes, str]:
+    """
+    Processes a list of file paths, returning file content as bytes and a corresponding file name.
+    Useful for zipping muliple model reports and the byte object is used for downloading files in
+    Streamlit app.
+
+    This function handles three scenarios:
+    1. Single file: Returns the file's content as bytes and the provided base file name.
+    2. Multiple files: Creates a zip file containing all files, returns the zip file's content as bytes
+       and a generated zip file name.
+    3. No files: Returns empty bytes and an empty string.
+
+    Parameters
+    ----------
+    file_paths : List[Union[str, Path]]
+        A list of file paths to process. Can be empty, contain a single path, or multiple paths.
+    base_file_name : Union[str, Path]
+        The base name to use for the output file. For a single file, this name is returned as is.
+        For multiple files, this is used as part of the generated zip file name.
+
+    Returns
+    -------
+    Tuple[bytes, str]
+        A tuple containing:
+        - bytes: The content of the single file or the created zip file, or empty bytes if no files.
+        - str: The file name (either base_file_name or a generated zip file name), or an empty string if no files.
+    """
+    file_paths = [Path(fp) for fp in file_paths]
+    base_file_name = Path(base_file_name)
+
+    if not file_paths:
+        return b"", ""
+
+    if len(file_paths) == 1:
+        try:
+            with file_paths[0].open("rb") as file:
+                return file.read(), base_file_name.name
+        except IOError as e:
+            print(f"Error reading file {file_paths[0]}: {e}")
+            return b"", ""
+
+    # Multiple files
+    in_memory_zip = io.BytesIO()
+    with zipfile.ZipFile(in_memory_zip, "w") as zipf:
+        for file_path in file_paths:
+            try:
+                zipf.write(
+                    file_path,
+                    file_path.name,
+                    compress_type=zipfile.ZIP_DEFLATED,
+                )
+            except IOError as e:
+                print(f"Error adding file {file_path} to zip: {e}")
+
+    time = datetime.datetime.now().strftime("%Y%m%dT%H%M%S")
+    zip_file_name = f"{base_file_name.stem}_{time}.zip"
+    in_memory_zip.seek(0)
+    return in_memory_zip.getvalue(), zip_file_name

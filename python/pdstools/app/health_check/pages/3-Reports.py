@@ -1,9 +1,12 @@
 import os
+import traceback
 from pathlib import Path
+
 import polars as pl
 import streamlit as st
-from pdstools.utils.streamlit_utils import model_selection_df, process_files
-import traceback
+
+from pdstools.utils import cdh_utils
+from pdstools.utils.streamlit_utils import model_selection_df
 
 if "dm" not in st.session_state:
     st.warning("Please configure your files in the `data import` tab.")
@@ -42,7 +45,7 @@ with health_check:
                 outfile = (
                     st.session_state["dm"]
                     .applyGlobalQuery(st.session_state.get("filters", None))
-                    .generateReport(
+                    .generate_health_check(
                         name=name,
                         output_type=output_type,
                         working_dir=working_dir,
@@ -157,56 +160,50 @@ if st.session_state["dm"].predictorData is not None:
             st.write(f"{len(st.session_state['selected_models'])} models are selected")
             if len(st.session_state["selected_models"]) > 0:
                 if st.button("Create Model Report(s) for selected model(s)"):
-                    row_count_bar = st.progress(0.0)
-                    files = []
                     with st.spinner("Running Model Reports..."):
-                        for i, modelid in enumerate(
-                            st.session_state["selected_models"]
-                        ):
-                            if i + 1 == len(st.session_state["selected_models"]):
-                                del_cache = True
-                            else:
-                                del_cache = False
-                            row_count_bar.progress(
-                                value=i / len(st.session_state["selected_models"]),
-                                text=f"Generating report for {modelid} ({i+1} / {len(st.session_state['selected_models'])})",
-                            )
-                            st.write(i)
-                            st.write(del_cache)
-                            st.write(working_dir)
-                            outfile = (
-                                st.session_state["dm"]
-                                .applyGlobalQuery(st.session_state.get("filters", None))
-                                .generateReport(
-                                    name="",
-                                    working_dir=working_dir,
-                                    modelid=modelid,
-                                    delete_temp_files=del_cache,
-                                    output_type="html",
-                                    allow_collect=True,
-                                    cached_data=False,#st.session_state["data_is_cached"], # TODO avoid caching data over an over for each modelid
-                                    output_to_file=True,
-                                    del_cache=del_cache,
-                                    predictordetails_activeonly=st.session_state[
-                                        "predictordetails_activeonly"
-                                    ],
-                                    verbose=True,
-                                )
-                            )
-                            files.append(outfile)
+                        progress_bar = st.progress(
+                            0,
+                            text=f"Generated {0} of {len(st.session_state['selected_models'])}",
+                        )
+                        progress_text = st.empty()
 
-                        (
-                            st.session_state["model_report_files"],
-                            st.session_state["model_report_name"],
-                        ) = process_files(files, outfile)
+                        def update_progress(current, total):
+                            progress = current / total
+                            progress_bar.progress(
+                                progress, text=f"Generated {current} of {total}"
+                            )
 
-                        row_count_bar.progress(value=1.0, text="Finished")
+                        outfile = (
+                            st.session_state["dm"]
+                            .applyGlobalQuery(st.session_state.get("filters", None))
+                            .generate_model_reports(
+                                name="",
+                                working_dir=working_dir,
+                                model_list=st.session_state["selected_models"],
+                                output_type="html",
+                                predictordetails_activeonly=st.session_state[
+                                    "predictordetails_activeonly"
+                                ],
+                                progress_callback=update_progress,
+                            )
+                        )
+                        if os.path.isfile(outfile):
+                            file = open(outfile, "rb")
+                        st.session_state["model_report_files"] = file
+                        st.session_state["model_report_name"] = (
+                            outfile.name
+                            if st.session_state["selected_models"] == 1
+                            else "ModelReports"
+                        )
+
                         btn = st.download_button(
                             label="Download Model Reports",
                             data=st.session_state["model_report_files"],
                             file_name=st.session_state["model_report_name"],
                             key="ModelReportDownload",
                         )
+                        progress_bar.empty()
+                        progress_text.empty()
                         st.balloons()
                         st.session_state["data_is_cached"] = False
         except Exception as e:
@@ -220,7 +217,7 @@ if st.session_state["dm"].predictorData is not None:
                     label="Download error log",
                     data=f,
                     file_name="errorlog.txt",
-                    key="ErrorLogDownload"
+                    key="ErrorLogDownload",
                 )
 
             for filename in os.listdir(working_dir):

@@ -6,36 +6,33 @@ import logging
 import os
 import shutil
 import subprocess
+import sys
+import tempfile
 from collections import namedtuple
-
+from datetime import datetime
 from io import BytesIO
 from pathlib import Path
-import sys
 from typing import Any, Dict, List, Literal, NoReturn, Optional, Tuple, Union
 
 import polars as pl
+import streamlit as st
 import yaml
+from tqdm import tqdm
 
 from .. import pega_io
 from ..plots.plot_base import Plots
 from ..plots.plots_plotly import ADMVisualisations as plotly_plot
-from ..utils import cdh_utils, NBAD
+from ..utils import NBAD, cdh_utils
 from ..utils.errors import NotEagerError
 from ..utils.types import any_frame
 from .ADMTrees import ADMTrees
 from .Tables import Tables
-import streamlit as st
-from datetime import datetime
-import tempfile
-from pathlib import Path
-import shutil
-import subprocess
-import yaml
-from typing import Optional, List, Tuple
 
 
 class ReportGenerationError(Exception):
     pass
+
+
 class ADMDatamart(Plots, Tables):
     """Main class for importing, preprocessing and structuring Pega ADM Datamart.
     Gets all available data, properly names and merges into one main dataframe.
@@ -1331,7 +1328,10 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
 
         if by_period is not None:
             period_expr = [
-                pl.col("SnapshotTime").dt.truncate(by_period).cast(pl.Date).alias("Period")
+                pl.col("SnapshotTime")
+                .dt.truncate(by_period)
+                .cast(pl.Date)
+                .alias("Period")
             ]
         else:
             period_expr = []
@@ -1512,7 +1512,9 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                     pl.when(pl.col("Channel").is_not_null() & (pl.col("Channel") != ""))
                     .then(pl.col("Channel"))
                     .otherwise(pl.lit("")),
-                    pl.when(pl.col("Direction").is_not_null() & (pl.col("Direction") != ""))
+                    pl.when(
+                        pl.col("Direction").is_not_null() & (pl.col("Direction") != "")
+                    )
                     .then(pl.col("Direction"))
                     .otherwise(pl.lit("")),
                 ),
@@ -1665,15 +1667,125 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             .with_columns(CTR=(pl.col("Positives")) / (pl.col("ResponseCount")))
             .sort(["Period"] if by_period is not None else [])
         )
-    def generateReport(
+
+    def generate_model_reports(
+        self,
+        name: Optional[str] = None,
+        model_list: List[str] = [],
+        working_dir: Optional[Path] = None,
+        *,
+        predictordetails_activeonly: bool = False,
+        base_file_name: str = None,
+        output_type: str = "html",
+        debug_mode: bool = False,
+        progress_callback=None,  #:  Callable[[int, int], None] = None,
+        **kwargs,
+    ) -> Path:
+        """
+        Generates model reports.
+
+        Parameters
+        ----------
+        name : str, optional
+            The name of the report.
+        model_list : List[str]
+            The list of model IDs to generate reports for.
+        working_dir : Path, optional
+            The working directory for the output. If None, uses current working directory.
+        predictordetails_activeonly : bool, default=False
+            Whether to only include active predictor details.
+        base_file_name : str, optional
+            The base file name for the generated reports. Defaults to None.
+        output_type : str, default='html'
+            The type of the output file (e.g., "html", "pdf").
+        debug_mode : bool, optional
+            If True, the temporary directory will not be deleted after report generation.
+        **kwargs : dict
+            Additional keyword arguments.
+
+        Returns
+        -------
+        Path
+            The path to the generated report file.
+
+        Raises
+        ------
+        ValueError
+            If there's an error in report generation or invalid parameters.
+        FileNotFoundError
+            If required files are not found.
+        subprocess.SubprocessError
+            If there's an error in running external commands.
+        """
+
+        if not model_list:
+            raise ValueError(
+                "No model IDs provided to generate_model_reports. Please provide at least one model ID to generate reports."
+            )
+
+        logger = logging.getLogger(__name__)
+        working_dir = Path(working_dir) if working_dir else Path.cwd()
+        working_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create a unique temporary directory name
+        temp_dir_name = (
+            f"tmp_{name}_{tempfile.mktemp(dir='').split('/')[-1]}"
+            if name
+            else f"tmp_{tempfile.mktemp(dir='').split('/')[-1]}"
+        )
+        temp_dir_path = working_dir / temp_dir_name
+
+        try:
+            temp_dir_path.mkdir(parents=True, exist_ok=False)
+
+            qmd_file = "ModelReport.qmd"
+            self._copy_quarto_file(qmd_file, temp_dir_path)
+            self.save_data(temp_dir_path)
+            output_file_paths = []
+            for i, model_id in enumerate(model_list):
+                output_filename = self._get_output_filename(
+                    name, "ModelReport", model_id, output_type
+                )
+                self._write_params_file(
+                    temp_dir_path, model_id, predictordetails_activeonly
+                )
+                self._run_quarto_command(
+                    temp_dir_path, qmd_file, output_type, output_filename, debug_mode
+                )
+                output_path = temp_dir_path / output_filename
+                if not output_path.exists():
+                    raise ValueError(f"Failed to write the report: {output_filename}")
+                output_file_paths.append(output_path)
+                if progress_callback:
+                    progress_callback(i + 1, len(model_list))
+            base_file_name = kwargs.get(
+                base_file_name, output_path
+            )  # either use the given name or the latest file name
+            file_data, file_name = cdh_utils.process_files_to_bytes(
+                output_file_paths, base_file_name
+            )
+            output_path = working_dir / file_name
+            with open(output_path, "wb") as f:
+                f.write(file_data)
+            if not output_path.exists():
+                raise ValueError(f"Failed to generate report: {output_filename}")
+
+            return output_path
+
+        except Exception as e:
+            logger.error(f"Error generating report: {str(e)}", exc_info=True)
+            raise
+        finally:
+            if not debug_mode:
+                if temp_dir_path.exists() and temp_dir_path.is_dir():
+                    shutil.rmtree(temp_dir_path, ignore_errors=True)
+
+    def generate_health_check(
         self,
         name: Optional[str] = None,
         working_dir: Optional[Path] = None,
         *,
-        modelid: Optional[str] = "",
         output_type: str = "html",
-        cached_data: bool = False,
-        predictordetails_activeonly: bool = False,
         **kwargs,
     ) -> Path:
         """
@@ -1685,14 +1797,10 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             The name of the report.
         working_dir : Path, optional
             The working directory for the output. If None, uses current working directory.
-        modelid : str, optional
-            The model ID. If provided, generates a model report; otherwise, a HealthCheck report.
         output_type : str, default='html'
             The type of the output file (e.g., "html", "pdf").
-        cached_data : bool, default=False
-            Whether to use cached data.
-        predictordetails_activeonly : bool, default=False
-            Whether to only include active predictor details.
+        debug_mode : bool, optional
+            If True, a temporary directory will be created and not deleted after report generation.
         **kwargs : dict
             Additional keyword arguments.
 
@@ -1711,35 +1819,46 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             If there's an error in running external commands.
         """
         logger = logging.getLogger(__name__)
-
+        debug_mode = kwargs.get("debug_mode", self.verbose)
         working_dir = Path(working_dir) if working_dir else Path.cwd()
         working_dir.mkdir(parents=True, exist_ok=True)
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_dir_path = Path(temp_dir)
+        # Create a unique temporary directory name
+        temp_dir_name = (
+            f"tmp_{name}_{tempfile.mktemp(dir='').split('/')[-1]}"
+            if name
+            else f"tmp_{tempfile.mktemp(dir='').split('/')[-1]}"
+        )
+        temp_dir_path = working_dir / temp_dir_name
+        try:
+            temp_dir_path.mkdir(parents=True, exist_ok=False)
+            qmd_file = "HealthCheck.qmd"
+            output_filename = self._get_output_filename(
+                name, "HealthCheck", None, output_type
+            )
 
-            try:
-                report_type = "ModelReport" if modelid else "HealthCheck"
-                qmd_file = f"{report_type}.qmd"
-                output_filename = self._get_output_filename(name, report_type, modelid, output_type)
+            self._copy_quarto_file(qmd_file, temp_dir_path)
+            self.save_data(temp_dir_path)
+            self._write_params_file(temp_dir_path, None, None)
+            self._run_quarto_command(
+                temp_dir_path, qmd_file, output_type, output_filename, debug_mode
+            )
 
-                self._copy_quarto_file(qmd_file, temp_dir_path)
-                self._prepare_data_files(temp_dir_path, cached_data)
-                self._write_params_file(temp_dir_path, modelid, predictordetails_activeonly)
+            output_path = temp_dir_path / output_filename
+            if not output_path.exists():
+                raise ValueError(f"Failed to generate report: {output_filename}")
 
-                self._run_quarto_command(temp_dir_path, qmd_file, output_type, output_filename, kwargs)
+            final_path = working_dir / output_filename
+            shutil.copy(output_path, final_path)
+            return final_path
 
-                output_path = temp_dir_path / output_filename
-                if not output_path.exists():
-                    raise ValueError(f"Failed to generate report: {output_filename}")
-
-                final_path = working_dir / output_filename
-                shutil.copy(output_path, final_path)
-                return final_path
-
-            except Exception as e:
-                logger.error(f"Error generating report: {str(e)}", exc_info=True)
-                raise
+        except Exception as e:
+            logger.error(f"Error generating report: {str(e)}", exc_info=True)
+            raise
+        finally:
+            if not debug_mode:
+                if temp_dir_path.exists() and temp_dir_path.is_dir():
+                    shutil.rmtree(temp_dir_path, ignore_errors=True)
 
     def _get_output_filename(self, name, report_type, modelid, output_type):
         """Generate the output filename based on the report parameters."""
@@ -1747,29 +1866,28 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         if report_type == "ModelReport":
             if not modelid:
                 raise ValueError("ModelID is required for a ModelReport.")
-            return f"{report_type}_{name}_{modelid}.{output_type}" if name else f"{report_type}_{modelid}.{output_type}"
-        return f"{report_type}_{name}.{output_type}" if name else f"{report_type}.{output_type}"
+            return (
+                f"{report_type}_{name}_{modelid}.{output_type}"
+                if name
+                else f"{report_type}_{modelid}.{output_type}"
+            )
+        return (
+            f"{report_type}_{name}.{output_type}"
+            if name
+            else f"{report_type}.{output_type}"
+        )
 
     def _copy_quarto_file(self, qmd_file, temp_dir):
         """Copy the report quarto file to the temporary directory."""
         from pdstools import __reports__
-        shutil.copy(__reports__ / qmd_file, temp_dir)
 
-    def _prepare_data_files(self, temp_dir, cached_data):
-        """Prepare data files for the report."""
-        if not cached_data:
-            self.save_data(temp_dir)
-        else:
-            import streamlit as st
-            st.write("temp_dir")
-            st.write(temp_dir)
-            self._verify_cached_files(temp_dir)
+        shutil.copy(__reports__ / qmd_file, temp_dir)
 
     def _verify_cached_files(self, temp_dir):
         """Verify that cached data files exist."""
         modeldata_files = list(temp_dir.glob("cached_modelData*"))
         predictordata_files = list(temp_dir.glob("cached_predictorData*"))
-        
+
         if not modeldata_files:
             raise FileNotFoundError("No cached model data found.")
         if not predictordata_files:
@@ -1787,7 +1905,9 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         with open(temp_dir / "params.yaml", "w") as f:
             yaml.dump(params, f)
 
-    def _run_quarto_command(self, temp_dir, qmd_file, output_type, output_filename, kwargs):
+    def _run_quarto_command(
+        self, temp_dir, qmd_file, output_type, output_filename, verbose
+    ):
         """Run the Quarto command to generate the report."""
         try:
             quarto_exec = self._find_quarto_executable()
@@ -1797,7 +1917,12 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
 
         # Check Quarto version
         try:
-            version_result = subprocess.run([str(quarto_exec), "--version"], capture_output=True, text=True, check=True)
+            version_result = subprocess.run(
+                [str(quarto_exec), "--version"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
             quarto_version = version_result.stdout.strip()
             logging.info(f"Quarto version: {quarto_version}")
             # add version compatibility check here if needed
@@ -1805,35 +1930,46 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             logging.warning(f"Failed to check Quarto version: {e}")
 
         command = [
-            str(quarto_exec), "render", qmd_file,
-            "--to", output_type,
-            "--output", output_filename,
-            "--execute-params", "params.yaml"
+            str(quarto_exec),
+            "render",
+            qmd_file,
+            "--to",
+            output_type,
+            "--output",
+            output_filename,
+            "--execute-params",
+            "params.yaml",
         ]
-        
+
         try:
             result = subprocess.run(
-                command,
-                cwd=temp_dir,
-                capture_output=True,
-                text=True,
-                check=True
+                command, cwd=temp_dir, capture_output=True, text=True, check=True
             )
-            if kwargs.get("verbose", getattr(self, 'verbose', False)):
+            if verbose:
                 print(result.stdout)
             if result.stderr:
                 logging.warning(f"Quarto command warnings: {result.stderr}")
         except subprocess.CalledProcessError as e:
             logging.error(f"Quarto command failed: {e.stderr}")
-            raise subprocess.SubprocessError(f"Failed to generate report. Quarto command error: {e}")
+            raise subprocess.SubprocessError(
+                f"Failed to generate report. Quarto command error: {e}"
+            )
 
-        
     def _find_quarto_executable(self):
         """Find the Quarto executable on the system."""
         if sys.platform == "win32":
             possible_paths = [
-                Path(os.environ.get("USERPROFILE", "")) / "AppData" / "Local" / "Programs" / "Quarto" / "bin" / "quarto.cmd",
-                Path(os.environ.get("PROGRAMFILES", "")) / "Quarto" / "bin" / "quarto.cmd",
+                Path(os.environ.get("USERPROFILE", ""))
+                / "AppData"
+                / "Local"
+                / "Programs"
+                / "Quarto"
+                / "bin"
+                / "quarto.cmd",
+                Path(os.environ.get("PROGRAMFILES", ""))
+                / "Quarto"
+                / "bin"
+                / "quarto.cmd",
             ]
         else:
             possible_paths = [
@@ -1851,9 +1987,9 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         if quarto_in_path:
             return Path(quarto_in_path)
 
-        raise FileNotFoundError("Quarto executable not found. Please ensure Quarto is installed and in the system PATH.")
-
-        
+        raise FileNotFoundError(
+            "Quarto executable not found. Please ensure Quarto is installed and in the system PATH."
+        )
 
     def exportTables(self, file: Path = "Tables.xlsx", predictorBinning=False):
         """Exports all tables from `pdstools.adm.Tables` into one Excel file.
@@ -1887,3 +2023,6 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 )
                 data.write_excel(workbook=wb, worksheet=tab)
         return file
+
+
+# %%

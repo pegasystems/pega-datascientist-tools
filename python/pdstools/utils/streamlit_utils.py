@@ -346,47 +346,6 @@ def convert_df(df):
     return df.write_csv().encode("utf-8")
 
 
-def process_files(file_paths: List[Union[str, Path]], file_name: Union[str, Path]) -> Tuple[bytes, str]:
-    """
-    Processes a list of file paths. If there's only one file, returns the file's content as bytes
-    and the provided file name. If there are multiple files, creates a zip file containing all the files
-    and returns the zip file's data as bytes and the generated zip file name.
-
-    Parameters
-    ----------
-    file_paths : List[Union[str, Path]]
-        A list of file paths to process.
-    file_name : Union[str, Path]
-        The file name to use when returning the file or zip file's name.
-
-    Returns
-    -------
-    Tuple[bytes, str]
-        The content of the single file as bytes and the file name if there's only one file,
-        or the zip file's data as bytes and the zip file's name if there are multiple files.
-    """
-    file_paths = [Path(fp) for fp in file_paths]
-    file_name = Path(file_name)
-
-    if len(file_paths) == 1:
-        with file_paths[0].open("rb") as file:
-            return file.read(), file_name.name
-    elif len(file_paths) > 1:
-        in_memory_zip = io.BytesIO()
-        with zipfile.ZipFile(in_memory_zip, "w") as zipf:
-            for file_path in file_paths:
-                zipf.write(
-                    file_path,
-                    file_path.name,
-                    compress_type=zipfile.ZIP_DEFLATED,
-                )
-        time = datetime.now().strftime("%Y%m%dT%H%M%S.%f")[:-3]
-        zip_file_name = f"ModelReports_{time}.zip"
-        in_memory_zip.seek(0)
-        return in_memory_zip.read(), zip_file_name
-
-    return b"", ""  # Return empty byte string and empty string if no files
-
 
 # def newPredictorCategorizationFunc():
 
