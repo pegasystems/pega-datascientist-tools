@@ -3,7 +3,7 @@ import shutil
 import streamlit as st
 
 import pdstools
-from pdstools.utils.streamlit_utils import get_latest_pdstools_version
+from pdstools.utils.streamlit_utils import st_get_latest_pdstools_version
 
 st.set_page_config(
     page_title="Home",
@@ -34,7 +34,7 @@ if not pandoc_available:
 
 
 current_version = pdstools.__version__
-latest_version = get_latest_pdstools_version()
+latest_version = st_get_latest_pdstools_version()
 
 if latest_version and current_version != latest_version:
     st.warning(

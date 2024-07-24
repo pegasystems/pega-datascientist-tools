@@ -10,9 +10,6 @@ if "dm" not in st.session_state:
     st.warning("Please configure your files in the `data import` tab.")
     st.stop()
 
-if "data_is_cached" not in st.session_state:
-    st.session_state["data_is_cached"] = False
-
 health_check, model_report = st.tabs(
     [
         "Overall Health Check",
@@ -190,8 +187,8 @@ if st.session_state["dm"].predictorData is not None:
                         st.session_state["model_report_files"] = file
                         st.session_state["model_report_name"] = (
                             outfile.name
-                            if st.session_state["selected_models"] == 1
-                            else "ModelReports"
+                            if len(st.session_state["selected_models"]) == 1
+                            else "ModelReports.zip"
                         )
 
                         btn = st.download_button(
@@ -203,11 +200,9 @@ if st.session_state["dm"].predictorData is not None:
                         progress_bar.empty()
                         progress_text.empty()
                         st.balloons()
-                        st.session_state["data_is_cached"] = False
         except Exception as e:
             st.error(f"""An error occured: {e}""")
             traceback_str = traceback.format_exc()
-            st.session_state["data_is_cached"] = False
             with open(working_dir / "log.txt", "a") as f:
                 f.write(traceback_str)
             with open(working_dir / "log.txt", "rb") as f:

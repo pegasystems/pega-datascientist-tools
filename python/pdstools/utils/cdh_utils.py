@@ -11,6 +11,7 @@ import io
 import re
 import warnings
 import zipfile
+import requests
 from pathlib import Path
 from typing import List, Tuple, Union
 
@@ -745,7 +746,9 @@ def lift(
             # TODO not sure how polars (mis)behaves when there are no positives at all
             # I would hope for a NaN but base python doesn't do that. Polars perhaps.
             # Stijn: It does have proper None value support, may work like you say
-            binPos * (totalPos + totalNeg) / ((binPos + binNeg) * totalPos)
+            binPos
+            * (totalPos + totalNeg)
+            / ((binPos + binNeg) * totalPos)
         ).alias("Lift")
 
     return liftImpl(posCol, negCol, posCol.sum(), negCol.sum())
@@ -1004,3 +1007,11 @@ def process_files_to_bytes(
     zip_file_name = f"{base_file_name.stem}_{time}.zip"
     in_memory_zip.seek(0)
     return in_memory_zip.getvalue(), zip_file_name
+
+
+def get_latest_pdstools_version():
+    try:
+        response = requests.get("https://pypi.org/pypi/pdstools/json")
+        return response.json()["info"]["version"]
+    except:
+        return None

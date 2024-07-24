@@ -4,7 +4,6 @@ from typing import Optional
 
 import plotly.express as px
 import polars as pl
-import requests
 import streamlit as st
 
 from .. import pega_io
@@ -346,7 +345,6 @@ def convert_df(df):
     return df.write_csv().encode("utf-8")
 
 
-
 # def newPredictorCategorizationFunc():
 
 #     def conditions():
@@ -377,10 +375,7 @@ def convert_df(df):
 #     {'func':'regex', 'value':'IH^', 'then_func':'regex', 'then_value':'IH^.^'}]
 #     """
 
-@st.cache
-def get_latest_pdstools_version():
-    try:
-        response = requests.get("https://pypi.org/pypi/pdstools/json")
-        return response.json()["info"]["version"]
-    except:
-        return None
+
+@st.cache_data
+def st_get_latest_pdstools_version():
+    return cdh_utils.get_latest_pdstools_version()
