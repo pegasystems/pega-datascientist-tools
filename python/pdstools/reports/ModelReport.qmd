@@ -88,9 +88,9 @@ def polars_subset_to_existing_cols(cols):
 datafolder = ""
 modelfilename = ""
 predictorfilename = ""
-modelid = ""
+model_id = ""
 
-predictordetails_activeonly = True
+only_active_predictors = True
 
 title = "Demo Dataset"  # pass in customer name here
 subtitle = ""  # typically used to pass in a date range or other qualification of the data source
@@ -104,11 +104,11 @@ kwargs = dict()
 # Predictor data for one model ID
 if len(kwargs) > 0:
     # streamlit call
-    modelid = kwargs["modelid"]
+    model_id = kwargs["model_id"]
     datamart = ADMDatamart(
-        **kwargs, include_cols="pyFeatureImportance", query=pl.col("ModelID") == modelid
+        **kwargs, include_cols="pyFeatureImportance", query=pl.col("ModelID") == model_id
     ).fillMissing()
-    predictordetails_activeonly = kwargs["predictordetails_activeonly"]
+    only_active_predictors = kwargs["only_active_predictors"]
 elif len(datafolder) > 0 or len(modelfilename) > 0 or len(predictorfilename) > 0:
     # command line call
     datamart = ADMDatamart(
@@ -117,12 +117,12 @@ elif len(datafolder) > 0 or len(modelfilename) > 0 or len(predictorfilename) > 0
         predictor_filename=predictorfilename,
         extract_keys=True,
         include_cols=["pyFeatureImportance"],
-        query=pl.col("ModelID") == modelid,
+        query=pl.col("ModelID") == model_id,
     ).fillMissing()
 else:
     # fall back to sample data
-    modelid = "bd70a915-697a-5d43-ab2c-53b0557c85a0"
-    datamart = datasets.CDHSample(query=pl.col("ModelID") == modelid)
+    model_id = "bd70a915-697a-5d43-ab2c-53b0557c85a0"
+    datamart = datasets.CDHSample(query=pl.col("ModelID") == model_id)
 
 # TODO ensure this is only one predictor snapshot, just in case? although it would be
 # neat to show predictor evolution, if available
@@ -135,7 +135,7 @@ if polars_col_exists(datamart.modelData, "Treatment"):
 else:
     datamart.modelData = datamart.modelData.with_columns(pl.lit("-").alias("Treatment"))
 
-if predictordetails_activeonly:
+if only_active_predictors:
     status_filter = pl.col("EntryType") == "Active"
 else:
     status_filter = pl.col("EntryType") != "Classifier"
@@ -176,7 +176,7 @@ quarto_print(
 
 | Channel | ID |
 |:-----|------:|
-| {channel_name} | {modelid} |
+| {channel_name} | {model_id} |
 
 """
 )
@@ -184,7 +184,7 @@ quarto_print(
 
 
 ```{python}
-fig = datamart.plotScoreDistribution(modelids=[modelid])
+fig = datamart.plotScoreDistribution(modelids=[model_id])
 
 # Customize some of the default styling of the plot
 
@@ -606,7 +606,7 @@ The predictors are listed in the same order as in the summary above.
 ```{python}
 quarto_print(
     f"""
-Here we show **{'only the active' if predictordetails_activeonly else 'all'}**
+Here we show **{'only the active' if only_active_predictors else 'all'}**
 predictors. This can be configured via a parameter to this report.
 """
 )
@@ -770,7 +770,7 @@ def show_single_predictor(pred):
 
     # Predictor binning
 
-    fig = datamart.plotPredictorBinning(modelids=[modelid], predictors=[pred])
+    fig = datamart.plotPredictorBinning(modelids=[model_id], predictors=[pred])
 
     # Customize some of the default styling of the plot
 
