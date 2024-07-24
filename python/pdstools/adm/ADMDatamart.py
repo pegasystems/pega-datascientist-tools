@@ -226,7 +226,7 @@ class ADMDatamart(Plots, Tables):
         If model_df or predictor_df is supplied, it will use those instead
         If any filters are included in the the `query` argument of the ADMDatmart,
         those will be applied to the modeldata, and the predictordata will be
-        filtered such that it only contains the modelids leftover after filtering.
+        filtered such that it only contains the model_ids leftover after filtering.
         After reading, some additional values (such as success rate) are
         automatically computed.
         Lastly, if there are missing columns from both datasets,
@@ -1664,10 +1664,10 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
     def generate_model_reports(
         self,
         name: Optional[str] = None,
-        model_list: List[str] = [],
+        model_list: List[str] = None,
         working_dir: Optional[Path] = None,
+        only_active_predictors: bool = False,
         *,
-        predictordetails_activeonly: bool = False,
         base_file_name: str = None,
         output_type: str = "html",
         debug_mode: bool = False,
@@ -1685,7 +1685,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             The list of model IDs to generate reports for.
         working_dir : Path, optional
             The working directory for the output. If None, uses current working directory.
-        predictordetails_activeonly : bool, default=False
+        only_active_predictors : bool, default=False
             Whether to only include active predictor details.
         base_file_name : str, optional
             The base file name for the generated reports. Defaults to None.
@@ -1711,9 +1711,13 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             If there's an error in running external commands.
         """
 
-        if not model_list:
+        if (
+            not model_list
+            or not isinstance(model_list, list)
+            or not all(isinstance(i, str) for i in model_list)
+        ):
             raise ValueError(
-                "No model IDs provided to generate_model_reports. Please provide at least one model ID to generate reports."
+                "model_list argument is None, not a list, or contains non-string elements for generate_model_reports. Please provide a list of model_id strings to generate reports."
             )
 
         logger = logging.getLogger(__name__)
@@ -1737,9 +1741,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 output_filename = self._get_output_filename(
                     name, "ModelReport", model_id, output_type
                 )
-                self._write_params_file(
-                    temp_dir_path, model_id, predictordetails_activeonly
-                )
+                self._write_params_file(temp_dir_path, model_id, only_active_predictors)
                 self._run_quarto_command(
                     temp_dir_path, qmd_file, output_type, output_filename, debug_mode
                 )
@@ -1850,16 +1852,16 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 if temp_dir_path.exists() and temp_dir_path.is_dir():
                     shutil.rmtree(temp_dir_path, ignore_errors=True)
 
-    def _get_output_filename(self, name, report_type, modelid, output_type):
+    def _get_output_filename(self, name, report_type, model_id, output_type):
         """Generate the output filename based on the report parameters."""
         name = name.replace(" ", "_") if name else None
         if report_type == "ModelReport":
-            if not modelid:
-                raise ValueError("ModelID is required for a ModelReport.")
+            if not model_id:
+                raise ValueError("model_id is required for a model report.")
             return (
-                f"{report_type}_{name}_{modelid}.{output_type}"
+                f"{report_type}_{name}_{model_id}.{output_type}"
                 if name
-                else f"{report_type}_{modelid}.{output_type}"
+                else f"{report_type}_{model_id}.{output_type}"
             )
         return (
             f"{report_type}_{name}.{output_type}"
@@ -1883,13 +1885,13 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         if not predictordata_files:
             logging.warning("No cached predictor data found.")
 
-    def _write_params_file(self, temp_dir, modelid, predictordetails_activeonly):
+    def _write_params_file(self, temp_dir, model_id, only_active_predictors):
         """Write parameters to a YAML file."""
         params = {
             "kwargs": {
                 "subset": False,
-                "modelid": modelid,
-                "predictordetails_activeonly": predictordetails_activeonly,
+                "model_id": model_id,
+                "only_active_predictors": only_active_predictors,
             },
         }
         with open(temp_dir / "params.yaml", "w") as f:

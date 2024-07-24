@@ -91,9 +91,11 @@ def test_GenerateModelReport(sample):
     report = sample.generate_model_reports(
         name="MyOrg",
         model_list=["bd70a915-697a-5d43-ab2c-53b0557c85a0"],
-        predictordetails_activeonly=True,
+        only_active_predictors=True,
     )
-    expected_path = pathlib.Path("ModelReport_MyOrg_bd70a915-697a-5d43-ab2c-53b0557c85a0.html").resolve()
+    expected_path = pathlib.Path(
+        "ModelReport_MyOrg_bd70a915-697a-5d43-ab2c-53b0557c85a0.html"
+    ).resolve()
     assert report == expected_path
     assert pathlib.Path(report).exists()
     pathlib.Path(report).unlink()
@@ -103,9 +105,9 @@ def test_GenerateModelReport(sample):
 def test_GenerateModelReport_Failing(sample_without_predictorbinning):
     with pytest.raises(Exception) as e_info:
         sample_without_predictorbinning.generate_model_reports(
-            name="MyOrg", modelid=["bd70a915-697a-5d43-ab2c-53b0557c85a0"]
+            name="MyOrg", model_list="bd70a915-697a-5d43-ab2c-53b0557c85a0"
         )
     assert (
-        "No model IDs provided to generate_model_reports. Please provide at least one model ID to generate reports."
+        "model_list argument is None, not a list, or contains non-string elements for generate_model_reports. Please provide a list of model_id strings to generate reports."
         in str(e_info)
     )

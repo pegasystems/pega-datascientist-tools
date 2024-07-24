@@ -1,17 +1,17 @@
 import os
-import zipfile
-import io
-import streamlit as st
-from typing import Optional, List, Tuple, Union
-import polars as pl
 from pathlib import Path
-from datetime import datetime
-from . import cdh_utils
+from typing import Optional
+
+import plotly.express as px
+import polars as pl
+import requests
+import streamlit as st
+
+from .. import pega_io
 from ..adm.ADMDatamart import ADMDatamart
 from ..utils import datasets
 from ..utils.types import any_frame
-import plotly.express as px
-from .. import pega_io
+from . import cdh_utils
 
 
 @st.cache_resource
@@ -376,3 +376,11 @@ def convert_df(df):
 #     {'func':'contains','value':'customer', 'then_func', 'head', 'then_value':[2]},
 #     {'func':'regex', 'value':'IH^', 'then_func':'regex', 'then_value':'IH^.^'}]
 #     """
+
+@st.cache
+def get_latest_pdstools_version():
+    try:
+        response = requests.get("https://pypi.org/pypi/pdstools/json")
+        return response.json()["info"]["version"]
+    except:
+        return None

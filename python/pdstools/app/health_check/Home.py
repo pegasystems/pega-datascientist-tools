@@ -1,9 +1,9 @@
 import shutil
 
-import requests
 import streamlit as st
 
 import pdstools
+from pdstools.utils.streamlit_utils import get_latest_pdstools_version
 
 st.set_page_config(
     page_title="Home",
@@ -24,27 +24,23 @@ To be up to date with changes in the app, make sure to regularly run a `pip inst
 pandoc_available = shutil.which("pandoc") is not None
 
 if not pandoc_available:
-    st.warning("""
+    st.warning(
+        """
     ⚠️ Pandoc is not available on your system. Some features of this app may not work correctly.
     
     Please install Pandoc from https://pandoc.org/installing.html to ensure full functionality.
-    """)
-
-
-def get_latest_pdstools_version():
-    try:
-        response = requests.get("https://pypi.org/pypi/pdstools/json")
-        return response.json()["info"]["version"]
-    except:
-        return None
+    """
+    )
 
 
 current_version = pdstools.__version__
 latest_version = get_latest_pdstools_version()
 
 if latest_version and current_version != latest_version:
-    st.warning(f"""
+    st.warning(
+        f"""
     ⚠️ You are using pdstools version {current_version}, but version {latest_version} is available.
     
     To update, run: `pip install --upgrade pdstools`
-    """)
+    """
+    )

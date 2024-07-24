@@ -147,7 +147,7 @@ if st.session_state["dm"].predictorData is not None:
                 disabled=st.session_state["dm"].context_keys + ["Name"],
                 use_container_width=True,
             )
-            st.session_state["predictordetails_activeonly"] = st.checkbox(
+            st.session_state["only_active_predictors"] = st.checkbox(
                 label="Show only active predictors",
                 help="The ADM service automatically determines which predictors are used by the models, based on the individual predictive performance and the correlation between predictors. For example, the predictors with a low predictive performance do not become active. When predictors are highly correlated, only the best-performing predictor is used.",
                 value=True,
@@ -179,8 +179,8 @@ if st.session_state["dm"].predictorData is not None:
                                 working_dir=working_dir,
                                 model_list=st.session_state["selected_models"],
                                 output_type="html",
-                                predictordetails_activeonly=st.session_state[
-                                    "predictordetails_activeonly"
+                                only_active_predictors=st.session_state[
+                                    "only_active_predictors"
                                 ],
                                 progress_callback=update_progress,
                             )
