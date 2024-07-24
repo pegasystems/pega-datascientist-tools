@@ -1,23 +1,18 @@
 from __future__ import annotations
 
 import datetime
-import glob
 import logging
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
-from collections import namedtuple
-from datetime import datetime
 from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict, List, Literal, NoReturn, Optional, Tuple, Union
 
 import polars as pl
-import streamlit as st
 import yaml
-from tqdm import tqdm
 
 from .. import pega_io
 from ..plots.plot_base import Plots
@@ -707,9 +702,7 @@ class ADMDatamart(Plots, Tables):
         (os.PathLike, os.PathLike):
             The paths to the model and predictor data files
         """
-        from datetime import datetime
-
-        time = datetime.now().strftime("%Y%m%dT%H%M%S.%f")[:-3]
+        time = datetime.datetime.now().strftime("%Y%m%dT%H%M%S.%f")[:-3]
         if self.modelData is not None:
             modeldata_cache = pega_io.cache_to_file(
                 self.modelData, path, name=f"cached_modelData_{time}"
@@ -1729,15 +1722,13 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
 
         # Create a unique temporary directory name
         temp_dir_name = (
-            f"tmp_{name}_{tempfile.mktemp(dir='').split('/')[-1]}"
+            tempfile.mkdtemp(prefix=f"tmp_{name}_", dir=working_dir)
             if name
-            else f"tmp_{tempfile.mktemp(dir='').split('/')[-1]}"
+            else tempfile.mkdtemp(prefix="tmp_", dir=working_dir)
         )
-        temp_dir_path = working_dir / temp_dir_name
+        temp_dir_path = Path(temp_dir_name)
 
         try:
-            temp_dir_path.mkdir(parents=True, exist_ok=False)
-
             qmd_file = "ModelReport.qmd"
             self._copy_quarto_file(qmd_file, temp_dir_path)
             self.save_data(temp_dir_path)
@@ -1825,13 +1816,12 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
 
         # Create a unique temporary directory name
         temp_dir_name = (
-            f"tmp_{name}_{tempfile.mktemp(dir='').split('/')[-1]}"
+            tempfile.mkdtemp(prefix=f"tmp_{name}_", dir=working_dir)
             if name
-            else f"tmp_{tempfile.mktemp(dir='').split('/')[-1]}"
+            else tempfile.mkdtemp(prefix="tmp_", dir=working_dir)
         )
-        temp_dir_path = working_dir / temp_dir_name
+        temp_dir_path = Path(temp_dir_name)
         try:
-            temp_dir_path.mkdir(parents=True, exist_ok=False)
             qmd_file = "HealthCheck.qmd"
             output_filename = self._get_output_filename(
                 name, "HealthCheck", None, output_type
@@ -1843,7 +1833,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             self._run_quarto_command(
                 temp_dir_path, qmd_file, output_type, output_filename, debug_mode
             )
-
+            # copy report to working dir
             output_path = temp_dir_path / output_filename
             if not output_path.exists():
                 raise ValueError(f"Failed to generate report: {output_filename}")

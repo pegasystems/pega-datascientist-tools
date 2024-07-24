@@ -2,10 +2,8 @@ import os
 import traceback
 from pathlib import Path
 
-import polars as pl
 import streamlit as st
 
-from pdstools.utils import cdh_utils
 from pdstools.utils.streamlit_utils import model_selection_df
 
 if "dm" not in st.session_state:
