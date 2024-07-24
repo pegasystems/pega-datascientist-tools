@@ -17,6 +17,9 @@ Module Contents
 
 .. py:class:: Sample(ldf: polars.LazyFrame)
 
+   .. py:attribute:: _ldf
+
+
    .. py:method:: sample(n)
 
 

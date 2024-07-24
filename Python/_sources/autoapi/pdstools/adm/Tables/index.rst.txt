@@ -17,7 +17,7 @@ Module Contents
 
 .. py:class:: Tables
 
-   .. py:method:: _by()
+   .. py:property:: _by
 
 
    .. py:property:: AvailableTables
@@ -29,12 +29,12 @@ Module Contents
    .. py:property:: ApplicableTablesNoPredictorBinning
 
 
-   .. py:method:: modeldata_last_snapshot()
+   .. py:property:: modeldata_last_snapshot
 
 
-   .. py:method:: predictor_last_snapshot()
+   .. py:property:: predictor_last_snapshot
 
 
-   .. py:method:: predictorbinning()
+   .. py:property:: predictorbinning
 
 

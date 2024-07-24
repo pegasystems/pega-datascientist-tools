@@ -48,6 +48,40 @@ Module Contents
    :kwtype subset: bool
 
 
+   .. py:attribute:: import_strategy
+
+
+   .. py:attribute:: keep_cols
+      :value: ['pyStage', 'pyIssue', 'pyGroup', 'pyChannel', 'pyDirection', 'CustomerID', 'pyName',...
+
+
+
+   .. py:attribute:: df
+
+
+   .. py:attribute:: NBADStages
+      :value: ['Eligibility', 'Applicability', 'Suitability', 'Arbitration']
+
+
+
+   .. py:attribute:: StageOrder
+
+
+   .. py:attribute:: maxPropPerCustomer
+
+
+   .. py:attribute:: customersummary
+
+
+   .. py:attribute:: countsPerStage
+
+
+   .. py:attribute:: _thMap
+
+
+   .. py:attribute:: countsPerThreshold
+
+
    .. py:method:: save_data(path: str = '.') -> os.PathLike
 
       Cache the ValueFinder dataset to a file

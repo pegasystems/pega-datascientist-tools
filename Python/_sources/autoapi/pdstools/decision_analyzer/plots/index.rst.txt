@@ -27,6 +27,9 @@ Module Contents
 
 .. py:class:: Plot(decision_data)
 
+   .. py:attribute:: _decision_data
+
+
    .. py:method:: plot_threshold_deciles(thresholding_name, return_df=False)
 
 

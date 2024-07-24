@@ -128,28 +128,28 @@ Module Contents
 
 
 
-   .. py:method:: predictors()
+   .. py:property:: predictors
 
 
-   .. py:method:: treeStats()
+   .. py:property:: treeStats
 
 
-   .. py:method:: splitsPerTree()
+   .. py:property:: splitsPerTree
 
 
-   .. py:method:: gainsPerTree()
+   .. py:property:: gainsPerTree
 
 
-   .. py:method:: gainsPerSplit()
+   .. py:property:: gainsPerSplit
 
 
-   .. py:method:: groupedGainsPerSplit()
+   .. py:property:: groupedGainsPerSplit
 
 
-   .. py:method:: allValuesPerSplit()
+   .. py:property:: allValuesPerSplit
 
 
-   .. py:method:: splitsPerVariableType(**kwargs)
+   .. py:property:: splitsPerVariableType
 
 
    .. py:method:: parseSplitValues(value) -> Tuple[str, str, str]

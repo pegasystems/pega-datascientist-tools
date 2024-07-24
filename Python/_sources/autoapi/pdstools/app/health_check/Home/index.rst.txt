@@ -4,3 +4,22 @@ pdstools.app.health_check.Home
 .. py:module:: pdstools.app.health_check.Home
 
 
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.app.health_check.Home.pandoc_available
+   pdstools.app.health_check.Home.current_version
+   pdstools.app.health_check.Home.latest_version
+
+
+Module Contents
+---------------
+
+.. py:data:: pandoc_available
+
+.. py:data:: current_version
+
+.. py:data:: latest_version
+

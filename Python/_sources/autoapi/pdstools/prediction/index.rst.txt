@@ -36,6 +36,18 @@ Package Contents
    .. py:method:: getPredictionsChannelMapping(custom_predictions: Optional[List[pdstools.utils.NBAD.NBAD_Prediction]] = None) -> polars.DataFrame
 
 
+   .. py:attribute:: predictions_raw_data_prepped
+
+
+   .. py:attribute:: counts_control
+
+
+   .. py:attribute:: counts_test
+
+
+   .. py:attribute:: counts_NBA
+
+
    .. py:property:: is_available
       :type: bool
 

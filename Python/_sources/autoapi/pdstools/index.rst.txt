@@ -184,6 +184,24 @@ Package Contents
    .. py:attribute:: NBAD_model_configurations
 
 
+   .. py:attribute:: import_strategy
+
+
+   .. py:attribute:: context_keys
+
+
+   .. py:attribute:: verbose
+
+
+   .. py:attribute:: query
+
+
+   .. py:attribute:: predictorCategorization
+
+
+   .. py:attribute:: plotting_engine
+
+
    .. py:method:: get_engine(plotting_engine)
       :staticmethod:
 
@@ -203,7 +221,7 @@ Package Contents
       If model_df or predictor_df is supplied, it will use those instead
       If any filters are included in the the `query` argument of the ADMDatmart,
       those will be applied to the modeldata, and the predictordata will be
-      filtered such that it only contains the modelids leftover after filtering.
+      filtered such that it only contains the model_ids leftover after filtering.
       After reading, some additional values (such as success rate) are
       automatically computed.
       Lastly, if there are missing columns from both datasets,
@@ -638,32 +656,93 @@ Package Contents
 
 
 
-   .. py:method:: generateReport(name: Optional[str] = None, working_dir: pathlib.Path = Path('.'), *, modelid: Optional[str] = '', delete_temp_files: bool = True, output_type: str = 'html', allow_collect: bool = True, cached_data: bool = False, predictordetails_activeonly: bool = False, **kwargs)
+   .. py:method:: generate_model_reports(name: Optional[str] = None, model_list: List[str] = None, working_dir: Optional[pathlib.Path] = None, only_active_predictors: bool = False, *, base_file_name: str = None, output_type: str = 'html', debug_mode: bool = False, progress_callback=None, **kwargs) -> pathlib.Path
 
-      Generates a report based on the provided parameters. If modelid is provided, a model report will be generated.
-      If not, an overall HealthCheck report will be generated.
+      Generates model reports.
 
       :param name: The name of the report.
-      :type name: Optional[str], default = None
-      :param working_dir: The working directory. Cached files will be written here.
-      :type working_dir: Path, default = Path(".")
-      :param \*:
+      :type name: str, optional
+      :param model_list: The list of model IDs to generate reports for.
+      :type model_list: List[str]
+      :param working_dir: The working directory for the output. If None, uses current working directory.
+      :type working_dir: Path, optional
+      :param only_active_predictors: Whether to only include active predictor details.
+      :type only_active_predictors: bool, default=False
+      :param base_file_name: The base file name for the generated reports. Defaults to None.
+      :type base_file_name: str, optional
+      :param output_type: The type of the output file (e.g., "html", "pdf").
+      :type output_type: str, default='html'
+      :param debug_mode: If True, the temporary directory will not be deleted after report generation.
+      :type debug_mode: bool, optional
+      :param \*\*kwargs: Additional keyword arguments.
+      :type \*\*kwargs: dict
 
-      :keyword modelid: The model id,
-      :kwtype modelid: Optional[str], default = ""
-      :keyword delete_temp_files: Whether to delete temporary files.
-      :kwtype delete_temp_files: bool, default = True
-      :keyword output_type: The type of the output file.
-      :kwtype output_type: str, default = "html"
-      :keyword allow_collect: Whether to allow collection of data.
-      :kwtype allow_collect: bool, default = True
-      :keyword cached_data: Whether to use cached data.
-      :kwtype cached_data: bool, default = False
-      :keyword del_cache: Whether to delete cache.
-      :kwtype del_cache: bool, default = True
-      :keyword predictordetails_activeonly: Whether to only include active predictor details.
-      :kwtype predictordetails_activeonly: bool, default = False
-      :keyword \*\*kwargs: Additional keyword arguments.
+      :returns: The path to the generated report file.
+      :rtype: Path
+
+      :raises ValueError: If there's an error in report generation or invalid parameters.
+      :raises FileNotFoundError: If required files are not found.
+      :raises subprocess.SubprocessError: If there's an error in running external commands.
+
+
+
+   .. py:method:: generate_health_check(name: Optional[str] = None, working_dir: Optional[pathlib.Path] = None, *, output_type: str = 'html', **kwargs) -> pathlib.Path
+
+      Generates a report based on the provided parameters.
+
+      :param name: The name of the report.
+      :type name: str, optional
+      :param working_dir: The working directory for the output. If None, uses current working directory.
+      :type working_dir: Path, optional
+      :param output_type: The type of the output file (e.g., "html", "pdf").
+      :type output_type: str, default='html'
+      :param debug_mode: If True, a temporary directory will be created and not deleted after report generation.
+      :type debug_mode: bool, optional
+      :param \*\*kwargs: Additional keyword arguments.
+      :type \*\*kwargs: dict
+
+      :returns: The path to the generated report file.
+      :rtype: Path
+
+      :raises ValueError: If there's an error in report generation or invalid parameters.
+      :raises FileNotFoundError: If required files are not found.
+      :raises subprocess.SubprocessError: If there's an error in running external commands.
+
+
+
+   .. py:method:: _get_output_filename(name, report_type, model_id, output_type)
+
+      Generate the output filename based on the report parameters.
+
+
+
+   .. py:method:: _copy_quarto_file(qmd_file, temp_dir)
+
+      Copy the report quarto file to the temporary directory.
+
+
+
+   .. py:method:: _verify_cached_files(temp_dir)
+
+      Verify that cached data files exist.
+
+
+
+   .. py:method:: _write_params_file(temp_dir, model_id, only_active_predictors)
+
+      Write parameters to a YAML file.
+
+
+
+   .. py:method:: _run_quarto_command(temp_dir, qmd_file, output_type, output_filename, verbose)
+
+      Run the Quarto command to generate the report.
+
+
+
+   .. py:method:: _find_quarto_executable()
+
+      Find the Quarto executable on the system.
 
 
 
@@ -733,6 +812,12 @@ Package Contents
 .. py:class:: BinAggregator(dm: pdstools.ADMDatamart, query: polars.Expr = None)
 
    A class to generate rolled up insights from ADM predictor binning.
+
+
+   .. py:attribute:: data
+
+
+   .. py:attribute:: all_predictorbinning
 
 
    .. py:method:: roll_up(predictors: Union[str, list], n: int = 10, distribution: Literal['lin', 'log'] = 'lin', boundaries: Optional[Union[float, list]] = None, symbols: Optional[Union[str, list]] = None, minimum: Optional[float] = None, maximum: Optional[float] = None, aggregation: Optional[str] = None, as_numeric: Optional[bool] = None, return_df: bool = False, verbose: bool = False) -> Union[polars.DataFrame, plotly.graph_objects.Figure]
@@ -1058,6 +1143,9 @@ Package Contents
    :type sample_percentage_schema_inferencing: float
 
 
+   .. py:attribute:: _opts
+
+
    .. py:method:: load_from_config_file(config_file: pathlib.Path)
 
       Load the configurations from a file.
@@ -1095,6 +1183,14 @@ Package Contents
    .. rubric:: Example
 
    See https://pegasystems.github.io/pega-datascientist-tools/Python/articles/Example_Data_Anonymization.html
+
+
+   .. py:attribute:: config
+
+
+   .. py:attribute:: df_out
+      :value: None
+
 
 
    .. py:method:: write_to_output(df: Optional[polars.DataFrame] = None, ext: Literal['ndjson', 'parquet', 'arrow', 'csv'] = None, mode: Literal['optimized', 'robust'] = 'optimized')
@@ -1492,6 +1588,40 @@ Package Contents
    :kwtype subset: bool
 
 
+   .. py:attribute:: import_strategy
+
+
+   .. py:attribute:: keep_cols
+      :value: ['pyStage', 'pyIssue', 'pyGroup', 'pyChannel', 'pyDirection', 'CustomerID', 'pyName',...
+
+
+
+   .. py:attribute:: df
+
+
+   .. py:attribute:: NBADStages
+      :value: ['Eligibility', 'Applicability', 'Suitability', 'Arbitration']
+
+
+
+   .. py:attribute:: StageOrder
+
+
+   .. py:attribute:: maxPropPerCustomer
+
+
+   .. py:attribute:: customersummary
+
+
+   .. py:attribute:: countsPerStage
+
+
+   .. py:attribute:: _thMap
+
+
+   .. py:attribute:: countsPerThreshold
+
+
    .. py:method:: save_data(path: str = '.') -> os.PathLike
 
       Cache the ValueFinder dataset to a file
@@ -1650,6 +1780,9 @@ Package Contents
 
 .. py:class:: Sample(ldf: polars.LazyFrame)
 
+   .. py:attribute:: _ldf
+
+
    .. py:method:: sample(n)
 
 
@@ -1700,15 +1833,38 @@ Package Contents
 
 
 
-   .. py:method:: stages_from_arbitration_down()
+   .. py:attribute:: plot
 
+
+   .. py:attribute:: extract_type
+
+
+   .. py:attribute:: raw_data
+
+
+   .. py:attribute:: available_columns
+
+
+   .. py:attribute:: preaggregation_columns
+
+
+   .. py:attribute:: max_win_rank
+      :value: 5
+
+
+
+   .. py:attribute:: AvailableNBADStages
+      :value: ['Arbitration']
+
+
+
+   .. py:property:: stages_from_arbitration_down
       All stages in the filter view starting at Arbitration. This initially
       will just be [Arbitration, Final] but as we get more stages in there
       may be more here.
 
 
-
-   .. py:method:: arbitration_stage()
+   .. py:property:: arbitration_stage
 
 
    .. py:method:: _invalidate_cached_properties()
@@ -1726,8 +1882,7 @@ Package Contents
    .. py:method:: resetGlobalDataFilters()
 
 
-   .. py:method:: getPreaggregatedFilterView()
-
+   .. py:property:: getPreaggregatedFilterView
       Pre-aggregates the full dataset over customers and interactions providing
       a view of what is filtered at a stage.
 
@@ -1743,17 +1898,14 @@ Package Contents
       a "remaining" view is easily derived.
 
 
-
-   .. py:method:: getPreaggregatedRemainingView()
-
+   .. py:property:: getPreaggregatedRemainingView
       Pre-aggregates the full dataset over customers and interactions providing a view of remaining offers.
 
       This pre-aggregation builds on the filter view and aggregates over
       the stages remaining.
 
 
-
-   .. py:method:: sample()
+   .. py:property:: sample
 
 
    .. py:method:: getAvailableFieldsForFiltering(categoricalOnly=False)
@@ -1794,20 +1946,16 @@ Package Contents
    .. py:method:: get_win_loss_distribution_data(level, win_rank)
 
 
-   .. py:method:: get_optionality_data()
-
+   .. py:property:: get_optionality_data
       Finding the average number of actions per stage without trend analysis.
       We have to go back to the interaction level data, no way to
       use pre-aggregations unfortunately.
 
 
-
-   .. py:method:: get_optionality_data_with_trend()
-
+   .. py:property:: get_optionality_data_with_trend
       Finding the average number of actions per stage with trend analysis.
       We have to go back to the interaction level data, no way to
       use pre-aggregations unfortunately.
-
 
 
    .. py:method:: getActionVariationData(stage)
@@ -1844,10 +1992,8 @@ Package Contents
 
 
 
-   .. py:method:: get_overview_stats()
-
+   .. py:property:: get_overview_stats
       Creates an overview from sampled data
-
 
 
    .. py:method:: get_sensitivity(win_rank=1, filters=None)

@@ -43,6 +43,8 @@ Functions
    pdstools.utils.cdh_utils.gains_table
    pdstools.utils.cdh_utils.legend_color_order
    pdstools.utils.cdh_utils.sync_reports
+   pdstools.utils.cdh_utils.process_files_to_bytes
+   pdstools.utils.cdh_utils.get_latest_pdstools_version
 
 
 Module Contents
@@ -363,4 +365,30 @@ Module Contents
    :param autoUpdate: If True, doensn't prompt for update and goes ahead
    :type autoUpdate: bool, default = False
 
+
+.. py:function:: process_files_to_bytes(file_paths: List[Union[str, pathlib.Path]], base_file_name: Union[str, pathlib.Path]) -> Tuple[bytes, str]
+
+   Processes a list of file paths, returning file content as bytes and a corresponding file name.
+   Useful for zipping muliple model reports and the byte object is used for downloading files in
+   Streamlit app.
+
+   This function handles three scenarios:
+   1. Single file: Returns the file's content as bytes and the provided base file name.
+   2. Multiple files: Creates a zip file containing all files, returns the zip file's content as bytes
+      and a generated zip file name.
+   3. No files: Returns empty bytes and an empty string.
+
+   :param file_paths: A list of file paths to process. Can be empty, contain a single path, or multiple paths.
+   :type file_paths: List[Union[str, Path]]
+   :param base_file_name: The base name to use for the output file. For a single file, this name is returned as is.
+                          For multiple files, this is used as part of the generated zip file name.
+   :type base_file_name: Union[str, Path]
+
+   :returns: A tuple containing:
+             - bytes: The content of the single file or the created zip file, or empty bytes if no files.
+             - str: The file name (either base_file_name or a generated zip file name), or an empty string if no files.
+   :rtype: Tuple[bytes, str]
+
+
+.. py:function:: get_latest_pdstools_version()
 

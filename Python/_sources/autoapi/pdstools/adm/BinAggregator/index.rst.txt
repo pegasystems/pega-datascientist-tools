@@ -20,6 +20,12 @@ Module Contents
    A class to generate rolled up insights from ADM predictor binning.
 
 
+   .. py:attribute:: data
+
+
+   .. py:attribute:: all_predictorbinning
+
+
    .. py:method:: roll_up(predictors: Union[str, list], n: int = 10, distribution: Literal['lin', 'log'] = 'lin', boundaries: Optional[Union[float, list]] = None, symbols: Optional[Union[str, list]] = None, minimum: Optional[float] = None, maximum: Optional[float] = None, aggregation: Optional[str] = None, as_numeric: Optional[bool] = None, return_df: bool = False, verbose: bool = False) -> Union[polars.DataFrame, plotly.graph_objects.Figure]
 
       Roll up a predictor across all the models defined when creating the class.

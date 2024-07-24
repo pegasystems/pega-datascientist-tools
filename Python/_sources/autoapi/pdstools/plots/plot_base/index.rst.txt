@@ -61,6 +61,15 @@ Module Contents
       :type: str
 
 
+   .. py:attribute:: hasModels
+
+
+   .. py:attribute:: hasPredictorBinning
+
+
+   .. py:attribute:: hasCombined
+
+
    .. py:property:: AvailableVisualisations
 
 

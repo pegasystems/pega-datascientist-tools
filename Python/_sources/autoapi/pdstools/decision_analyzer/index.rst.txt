@@ -66,15 +66,38 @@ Package Contents
 
 
 
-   .. py:method:: stages_from_arbitration_down()
+   .. py:attribute:: plot
 
+
+   .. py:attribute:: extract_type
+
+
+   .. py:attribute:: raw_data
+
+
+   .. py:attribute:: available_columns
+
+
+   .. py:attribute:: preaggregation_columns
+
+
+   .. py:attribute:: max_win_rank
+      :value: 5
+
+
+
+   .. py:attribute:: AvailableNBADStages
+      :value: ['Arbitration']
+
+
+
+   .. py:property:: stages_from_arbitration_down
       All stages in the filter view starting at Arbitration. This initially
       will just be [Arbitration, Final] but as we get more stages in there
       may be more here.
 
 
-
-   .. py:method:: arbitration_stage()
+   .. py:property:: arbitration_stage
 
 
    .. py:method:: _invalidate_cached_properties()
@@ -92,8 +115,7 @@ Package Contents
    .. py:method:: resetGlobalDataFilters()
 
 
-   .. py:method:: getPreaggregatedFilterView()
-
+   .. py:property:: getPreaggregatedFilterView
       Pre-aggregates the full dataset over customers and interactions providing
       a view of what is filtered at a stage.
 
@@ -109,17 +131,14 @@ Package Contents
       a "remaining" view is easily derived.
 
 
-
-   .. py:method:: getPreaggregatedRemainingView()
-
+   .. py:property:: getPreaggregatedRemainingView
       Pre-aggregates the full dataset over customers and interactions providing a view of remaining offers.
 
       This pre-aggregation builds on the filter view and aggregates over
       the stages remaining.
 
 
-
-   .. py:method:: sample()
+   .. py:property:: sample
 
 
    .. py:method:: getAvailableFieldsForFiltering(categoricalOnly=False)
@@ -160,20 +179,16 @@ Package Contents
    .. py:method:: get_win_loss_distribution_data(level, win_rank)
 
 
-   .. py:method:: get_optionality_data()
-
+   .. py:property:: get_optionality_data
       Finding the average number of actions per stage without trend analysis.
       We have to go back to the interaction level data, no way to
       use pre-aggregations unfortunately.
 
 
-
-   .. py:method:: get_optionality_data_with_trend()
-
+   .. py:property:: get_optionality_data_with_trend
       Finding the average number of actions per stage with trend analysis.
       We have to go back to the interaction level data, no way to
       use pre-aggregations unfortunately.
-
 
 
    .. py:method:: getActionVariationData(stage)
@@ -210,10 +225,8 @@ Package Contents
 
 
 
-   .. py:method:: get_overview_stats()
-
+   .. py:property:: get_overview_stats
       Creates an overview from sampled data
-
 
 
    .. py:method:: get_sensitivity(win_rank=1, filters=None)

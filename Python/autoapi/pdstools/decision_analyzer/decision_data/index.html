@@ -5,13 +5,13 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="../../../../genindex.html" /><link rel="search" title="Search" href="../../../../search.html" /><link rel="next" title="pdstools.decision_analyzer.plots" href="../plots/index.html" /><link rel="prev" title="pdstools.decision_analyzer.data_read_utils" href="../data_read_utils/index.html" />
 
-    <link rel="shortcut icon" href="../../../../_static/pegasystems-inc-vector-logo.svg"/><!-- Generated with Sphinx 7.4.5 and Furo 2024.05.06 -->
+    <link rel="shortcut icon" href="../../../../_static/pegasystems-inc-vector-logo.svg"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.07.18 -->
         <title>pdstools.decision_analyzer.decision_data - pdstools</title>
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=a746c00c" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=387cc868" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=613ab9ff" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=fd3f3429" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=36a5483c" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=302659d7" />
     
     
 
@@ -93,19 +93,6 @@
       <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
     </svg>
   </symbol>
-  <symbol id="svg-sun-half" viewBox="0 0 24 24">
-    <title>Auto light/dark mode</title>
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
-      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M13 12h5" />
-      <path d="M13 15h4" />
-      <path d="M13 18h1" />
-      <path d="M13 9h4" />
-      <path d="M13 6h1" />
-    </svg>
-  </symbol>
   <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
     <title>Auto light/dark, in light mode</title>
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -146,7 +133,7 @@
       <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
       <path d="M13.5 6.5l4 4" />
       <path d="M20 21l2 -2l-2 -2" />
-      <path d="M17 17l-2 2l2 2" /
+      <path d="M17 17l-2 2l2 2" />
     </svg>
   </symbol>
   <symbol id="svg-eye" viewBox="0 0 24 24">
@@ -440,17 +427,55 @@ lazy frame) but also has VBD-style aggregation(s) to speed things up.</p>
 <span class="sig-name descname"><span class="pre">fields_for_data_filtering</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['pxDecisionTime',</span> <span class="pre">'pyConfigurationName',</span> <span class="pre">'pyChannel',</span> <span class="pre">'pyDirection',</span> <span class="pre">'pyIssue',</span> <span class="pre">'pyGroup',...</span></em><a class="headerlink" href="#pdstools.decision_analyzer.decision_data.DecisionData.fields_for_data_filtering" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.decision_analyzer.decision_data.DecisionData.stages_from_arbitration_down">
-<span class="sig-name descname"><span class="pre">stages_from_arbitration_down</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.decision_analyzer.decision_data.DecisionData.stages_from_arbitration_down" title="Link to this definition">¶</a></dt>
-<dd><p>All stages in the filter view starting at Arbitration. This initially
-will just be [Arbitration, Final] but as we get more stages in there
-may be more here.</p>
-</dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.decision_data.DecisionData.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><a class="headerlink" href="#pdstools.decision_analyzer.decision_data.DecisionData.plot" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
 
-<dl class="py method">
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.decision_data.DecisionData.extract_type">
+<span class="sig-name descname"><span class="pre">extract_type</span></span><a class="headerlink" href="#pdstools.decision_analyzer.decision_data.DecisionData.extract_type" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.decision_data.DecisionData.raw_data">
+<span class="sig-name descname"><span class="pre">raw_data</span></span><a class="headerlink" href="#pdstools.decision_analyzer.decision_data.DecisionData.raw_data" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.decision_data.DecisionData.available_columns">
+<span class="sig-name descname"><span class="pre">available_columns</span></span><a class="headerlink" href="#pdstools.decision_analyzer.decision_data.DecisionData.available_columns" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.decision_data.DecisionData.preaggregation_columns">
+<span class="sig-name descname"><span class="pre">preaggregation_columns</span></span><a class="headerlink" href="#pdstools.decision_analyzer.decision_data.DecisionData.preaggregation_columns" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.decision_data.DecisionData.max_win_rank">
+<span class="sig-name descname"><span class="pre">max_win_rank</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5</span></em><a class="headerlink" href="#pdstools.decision_analyzer.decision_data.DecisionData.max_win_rank" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.decision_data.DecisionData.AvailableNBADStages">
+<span class="sig-name descname"><span class="pre">AvailableNBADStages</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['Arbitration']</span></em><a class="headerlink" href="#pdstools.decision_analyzer.decision_data.DecisionData.AvailableNBADStages" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.decision_data.DecisionData.stages_from_arbitration_down">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">stages_from_arbitration_down</span></span><a class="headerlink" href="#pdstools.decision_analyzer.decision_data.DecisionData.stages_from_arbitration_down" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">All</span> <span class="pre">stages</span> <span class="pre">in</span> <span class="pre">the</span> <span class="pre">filter</span> <span class="pre">view</span> <span class="pre">starting</span> <span class="pre">at</span> <span class="pre">Arbitration.</span> <span class="pre">This</span> <span class="pre">initially</span></span></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">will</span> <span class="pre">just</span> <span class="pre">be</span> <span class="pre">[Arbitration,</span> <span class="pre">Final]</span> <span class="pre">but</span> <span class="pre">as</span> <span class="pre">we</span> <span class="pre">get</span> <span class="pre">more</span> <span class="pre">stages</span> <span class="pre">in</span> <span class="pre">there</span></span></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">may</span> <span class="pre">be</span> <span class="pre">more</span> <span class="pre">here.</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py property">
 <dt class="sig sig-object py" id="pdstools.decision_analyzer.decision_data.DecisionData.arbitration_stage">
-<span class="sig-name descname"><span class="pre">arbitration_stage</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.decision_analyzer.decision_data.DecisionData.arbitration_stage" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">arbitration_stage</span></span><a class="headerlink" href="#pdstools.decision_analyzer.decision_data.DecisionData.arbitration_stage" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -475,12 +500,14 @@ may be more here.</p>
 <span class="sig-name descname"><span class="pre">resetGlobalDataFilters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.decision_analyzer.decision_data.DecisionData.resetGlobalDataFilters" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="py method">
+<dl class="py property">
 <dt class="sig sig-object py" id="pdstools.decision_analyzer.decision_data.DecisionData.getPreaggregatedFilterView">
-<span class="sig-name descname"><span class="pre">getPreaggregatedFilterView</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.decision_analyzer.decision_data.DecisionData.getPreaggregatedFilterView" title="Link to this definition">¶</a></dt>
-<dd><p>Pre-aggregates the full dataset over customers and interactions providing
-a view of what is filtered at a stage.</p>
-<p>This pre-aggregation is pretty similar to what “VBD” does to interaction
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">getPreaggregatedFilterView</span></span><a class="headerlink" href="#pdstools.decision_analyzer.decision_data.DecisionData.getPreaggregatedFilterView" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">Pre-aggregates</span> <span class="pre">the</span> <span class="pre">full</span> <span class="pre">dataset</span> <span class="pre">over</span> <span class="pre">customers</span> <span class="pre">and</span> <span class="pre">interactions</span> <span class="pre">providing</span></span></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">a</span> <span class="pre">view</span> <span class="pre">of</span> <span class="pre">what</span> <span class="pre">is</span> <span class="pre">filtered</span> <span class="pre">at</span> <span class="pre">a</span> <span class="pre">stage.</span></span></dt>
+<dd><p>This pre-aggregation is pretty similar to what “VBD” does to interaction
 history. It aggregates over individual customers and interactions giving
 summary statistics that are sufficient to drive most of the analyses
 (but not all). The results of this pre-aggregation are much smaller
@@ -491,17 +518,18 @@ in that it records the actions that get filtered out at stages. From this
 a “remaining” view is easily derived.</p>
 </dd></dl>
 
-<dl class="py method">
+<dl class="py property">
 <dt class="sig sig-object py" id="pdstools.decision_analyzer.decision_data.DecisionData.getPreaggregatedRemainingView">
-<span class="sig-name descname"><span class="pre">getPreaggregatedRemainingView</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.decision_analyzer.decision_data.DecisionData.getPreaggregatedRemainingView" title="Link to this definition">¶</a></dt>
-<dd><p>Pre-aggregates the full dataset over customers and interactions providing a view of remaining offers.</p>
-<p>This pre-aggregation builds on the filter view and aggregates over
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">getPreaggregatedRemainingView</span></span><a class="headerlink" href="#pdstools.decision_analyzer.decision_data.DecisionData.getPreaggregatedRemainingView" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">Pre-aggregates</span> <span class="pre">the</span> <span class="pre">full</span> <span class="pre">dataset</span> <span class="pre">over</span> <span class="pre">customers</span> <span class="pre">and</span> <span class="pre">interactions</span> <span class="pre">providing</span> <span class="pre">a</span> <span class="pre">view</span> <span class="pre">of</span> <span class="pre">remaining</span> <span class="pre">offers.</span></span></dt>
+<dd><p>This pre-aggregation builds on the filter view and aggregates over
 the stages remaining.</p>
 </dd></dl>
 
-<dl class="py method">
+<dl class="py property">
 <dt class="sig sig-object py" id="pdstools.decision_analyzer.decision_data.DecisionData.sample">
-<span class="sig-name descname"><span class="pre">sample</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.decision_analyzer.decision_data.DecisionData.sample" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sample</span></span><a class="headerlink" href="#pdstools.decision_analyzer.decision_data.DecisionData.sample" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -599,21 +627,27 @@ been added to generate more data.</p>
 <span class="sig-name descname"><span class="pre">get_win_loss_distribution_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">level</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">win_rank</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.decision_analyzer.decision_data.DecisionData.get_win_loss_distribution_data" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="py method">
+<dl class="py property">
 <dt class="sig sig-object py" id="pdstools.decision_analyzer.decision_data.DecisionData.get_optionality_data">
-<span class="sig-name descname"><span class="pre">get_optionality_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.decision_analyzer.decision_data.DecisionData.get_optionality_data" title="Link to this definition">¶</a></dt>
-<dd><p>Finding the average number of actions per stage without trend analysis.
-We have to go back to the interaction level data, no way to
-use pre-aggregations unfortunately.</p>
-</dd></dl>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_optionality_data</span></span><a class="headerlink" href="#pdstools.decision_analyzer.decision_data.DecisionData.get_optionality_data" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">Finding</span> <span class="pre">the</span> <span class="pre">average</span> <span class="pre">number</span> <span class="pre">of</span> <span class="pre">actions</span> <span class="pre">per</span> <span class="pre">stage</span> <span class="pre">without</span> <span class="pre">trend</span> <span class="pre">analysis.</span></span></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">We</span> <span class="pre">have</span> <span class="pre">to</span> <span class="pre">go</span> <span class="pre">back</span> <span class="pre">to</span> <span class="pre">the</span> <span class="pre">interaction</span> <span class="pre">level</span> <span class="pre">data,</span> <span class="pre">no</span> <span class="pre">way</span> <span class="pre">to</span></span></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">use</span> <span class="pre">pre-aggregations</span> <span class="pre">unfortunately.</span></span></dt>
+<dd></dd></dl>
 
-<dl class="py method">
+<dl class="py property">
 <dt class="sig sig-object py" id="pdstools.decision_analyzer.decision_data.DecisionData.get_optionality_data_with_trend">
-<span class="sig-name descname"><span class="pre">get_optionality_data_with_trend</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.decision_analyzer.decision_data.DecisionData.get_optionality_data_with_trend" title="Link to this definition">¶</a></dt>
-<dd><p>Finding the average number of actions per stage with trend analysis.
-We have to go back to the interaction level data, no way to
-use pre-aggregations unfortunately.</p>
-</dd></dl>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_optionality_data_with_trend</span></span><a class="headerlink" href="#pdstools.decision_analyzer.decision_data.DecisionData.get_optionality_data_with_trend" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">Finding</span> <span class="pre">the</span> <span class="pre">average</span> <span class="pre">number</span> <span class="pre">of</span> <span class="pre">actions</span> <span class="pre">per</span> <span class="pre">stage</span> <span class="pre">with</span> <span class="pre">trend</span> <span class="pre">analysis.</span></span></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">We</span> <span class="pre">have</span> <span class="pre">to</span> <span class="pre">go</span> <span class="pre">back</span> <span class="pre">to</span> <span class="pre">the</span> <span class="pre">interaction</span> <span class="pre">level</span> <span class="pre">data,</span> <span class="pre">no</span> <span class="pre">way</span> <span class="pre">to</span></span></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">use</span> <span class="pre">pre-aggregations</span> <span class="pre">unfortunately.</span></span></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.decision_analyzer.decision_data.DecisionData.getActionVariationData">
@@ -675,11 +709,12 @@ Flips it to usual VF view by doing a rolling sum over stages.</p>
 </dl>
 </dd></dl>
 
-<dl class="py method">
+<dl class="py property">
 <dt class="sig sig-object py" id="pdstools.decision_analyzer.decision_data.DecisionData.get_overview_stats">
-<span class="sig-name descname"><span class="pre">get_overview_stats</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.decision_analyzer.decision_data.DecisionData.get_overview_stats" title="Link to this definition">¶</a></dt>
-<dd><p>Creates an overview from sampled data</p>
-</dd></dl>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_overview_stats</span></span><a class="headerlink" href="#pdstools.decision_analyzer.decision_data.DecisionData.get_overview_stats" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">Creates</span> <span class="pre">an</span> <span class="pre">overview</span> <span class="pre">from</span> <span class="pre">sampled</span> <span class="pre">data</span></span></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.decision_analyzer.decision_data.DecisionData.get_sensitivity">
@@ -787,14 +822,21 @@ Flips it to usual VF view by doing a rolling sum over stages.</p>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.preaggregated_decision_data_filterview"><code class="docutils literal notranslate"><span class="pre">preaggregated_decision_data_filterview</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.preaggregated_decision_data_remainingview"><code class="docutils literal notranslate"><span class="pre">preaggregated_decision_data_remainingview</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.fields_for_data_filtering"><code class="docutils literal notranslate"><span class="pre">fields_for_data_filtering</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.stages_from_arbitration_down"><code class="docutils literal notranslate"><span class="pre">stages_from_arbitration_down()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.arbitration_stage"><code class="docutils literal notranslate"><span class="pre">arbitration_stage()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.plot"><code class="docutils literal notranslate"><span class="pre">plot</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.extract_type"><code class="docutils literal notranslate"><span class="pre">extract_type</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.raw_data"><code class="docutils literal notranslate"><span class="pre">raw_data</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.available_columns"><code class="docutils literal notranslate"><span class="pre">available_columns</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.preaggregation_columns"><code class="docutils literal notranslate"><span class="pre">preaggregation_columns</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.max_win_rank"><code class="docutils literal notranslate"><span class="pre">max_win_rank</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.AvailableNBADStages"><code class="docutils literal notranslate"><span class="pre">AvailableNBADStages</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.stages_from_arbitration_down"><code class="docutils literal notranslate"><span class="pre">stages_from_arbitration_down</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.arbitration_stage"><code class="docutils literal notranslate"><span class="pre">arbitration_stage</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData._invalidate_cached_properties"><code class="docutils literal notranslate"><span class="pre">_invalidate_cached_properties()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.applyGlobalDataFilters"><code class="docutils literal notranslate"><span class="pre">applyGlobalDataFilters()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.resetGlobalDataFilters"><code class="docutils literal notranslate"><span class="pre">resetGlobalDataFilters()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.getPreaggregatedFilterView"><code class="docutils literal notranslate"><span class="pre">getPreaggregatedFilterView()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.getPreaggregatedRemainingView"><code class="docutils literal notranslate"><span class="pre">getPreaggregatedRemainingView()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.getPreaggregatedFilterView"><code class="docutils literal notranslate"><span class="pre">getPreaggregatedFilterView</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.getPreaggregatedRemainingView"><code class="docutils literal notranslate"><span class="pre">getPreaggregatedRemainingView</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.sample"><code class="docutils literal notranslate"><span class="pre">sample</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.getAvailableFieldsForFiltering"><code class="docutils literal notranslate"><span class="pre">getAvailableFieldsForFiltering()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.cleanup_raw_data"><code class="docutils literal notranslate"><span class="pre">cleanup_raw_data()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.getPossibleScopeValues"><code class="docutils literal notranslate"><span class="pre">getPossibleScopeValues()</span></code></a></li>
@@ -804,15 +846,15 @@ Flips it to usual VF view by doing a rolling sum over stages.</p>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.getFilterComponentData"><code class="docutils literal notranslate"><span class="pre">getFilterComponentData()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.reRank"><code class="docutils literal notranslate"><span class="pre">reRank()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.get_win_loss_distribution_data"><code class="docutils literal notranslate"><span class="pre">get_win_loss_distribution_data()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.get_optionality_data"><code class="docutils literal notranslate"><span class="pre">get_optionality_data()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.get_optionality_data_with_trend"><code class="docutils literal notranslate"><span class="pre">get_optionality_data_with_trend()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.get_optionality_data"><code class="docutils literal notranslate"><span class="pre">get_optionality_data</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.get_optionality_data_with_trend"><code class="docutils literal notranslate"><span class="pre">get_optionality_data_with_trend</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.getActionVariationData"><code class="docutils literal notranslate"><span class="pre">getActionVariationData()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.getABTestResults"><code class="docutils literal notranslate"><span class="pre">getABTestResults()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.getThresholdingData"><code class="docutils literal notranslate"><span class="pre">getThresholdingData()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.getValueDistributionData"><code class="docutils literal notranslate"><span class="pre">getValueDistributionData()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.aggregate_remaining_per_stage"><code class="docutils literal notranslate"><span class="pre">aggregate_remaining_per_stage()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.get_offer_quality"><code class="docutils literal notranslate"><span class="pre">get_offer_quality()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.get_overview_stats"><code class="docutils literal notranslate"><span class="pre">get_overview_stats()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.get_overview_stats"><code class="docutils literal notranslate"><span class="pre">get_overview_stats</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.get_sensitivity"><code class="docutils literal notranslate"><span class="pre">get_sensitivity()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.get_offer_variability_stats"><code class="docutils literal notranslate"><span class="pre">get_offer_variability_stats()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.decision_data.DecisionData.get_winning_or_losing_interactions"><code class="docutils literal notranslate"><span class="pre">get_winning_or_losing_interactions()</span></code></a></li>
@@ -836,7 +878,7 @@ Flips it to usual VF view by doing a rolling sum over stages.</p>
 </div><script src="../../../../_static/documentation_options.js?v=b21de401"></script>
     <script src="../../../../_static/doctools.js?v=9a2dae69"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="../../../../_static/scripts/furo.js?v=4e2eecee"></script>
+    <script src="../../../../_static/scripts/furo.js?v=5fa4622c"></script>
     <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../../../_static/copybutton.js?v=f281be69"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>

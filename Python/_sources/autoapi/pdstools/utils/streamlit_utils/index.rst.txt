@@ -19,7 +19,7 @@ Functions
    pdstools.utils.streamlit_utils.model_and_row_counts
    pdstools.utils.streamlit_utils.configure_predictor_categorization
    pdstools.utils.streamlit_utils.convert_df
-   pdstools.utils.streamlit_utils.process_files
+   pdstools.utils.streamlit_utils.st_get_latest_pdstools_version
 
 
 Module Contents
@@ -64,19 +64,5 @@ Module Contents
 
 .. py:function:: convert_df(df)
 
-.. py:function:: process_files(file_paths: List[str], file_name: str) -> Tuple[bytes, str]
-
-   Processes a list of file paths. If there's only one file, returns the file's content as bytes
-   and the provided file name. If there are multiple files, creates a zip file containing all the files
-   and returns the zip file's data as bytes and the generated zip file name.
-
-   :param file_paths: A list of file paths to process.
-   :type file_paths: List[str]
-   :param file_name: The file name to use when returning the file or zip file's name.
-   :type file_name: str
-
-   :returns: The content of the single file as bytes and the file name if there's only one file,
-             or the zip file's data as bytes and the zip file's name if there are multiple files.
-   :rtype: (bytes, str)
-
+.. py:function:: st_get_latest_pdstools_version()
 

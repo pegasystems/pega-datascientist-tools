@@ -68,6 +68,9 @@ Module Contents
    :type sample_percentage_schema_inferencing: float
 
 
+   .. py:attribute:: _opts
+
+
    .. py:method:: load_from_config_file(config_file: pathlib.Path)
 
       Load the configurations from a file.
@@ -93,6 +96,19 @@ Module Contents
 
 
 .. py:class:: DataAnonymization2(files, config=None, **config_args)
+
+   .. py:attribute:: config
+
+
+   .. py:attribute:: typeMapping
+      :value: None
+
+
+
+   .. py:attribute:: numericRanges
+      :value: None
+
+
 
    .. py:method:: inferTypes(number_of_files_to_sample=20)
 
