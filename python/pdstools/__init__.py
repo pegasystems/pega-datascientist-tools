@@ -1,6 +1,6 @@
-"""Python pdstools"""
+"""Pega Data Scientist Tools Python library"""
 
-__version__ = "3.4.4"
+__version__ = "3.4.5"
 
 from polars import enable_string_cache
 
