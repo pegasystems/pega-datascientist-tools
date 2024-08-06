@@ -47,7 +47,7 @@ class Plots:
                 )
 
     # TODO reconsider those tables
-                
+
     @property
     def AvailableVisualisations(self):
         df = pl.DataFrame(
@@ -672,12 +672,15 @@ class Plots:
             "BinPropensity",
             "ModelID",
         }
+        import pdb
+
+        pdb.set_trace()
         df, _ = self._subset_data(table, required_columns, query)
         if modelids is not None:
             df = df.filter(pl.col("ModelID").is_in(modelids))
-        df = df.filter(pl.col("PredictorName") == "Classifier").collect()
+        df = df.filter(pl.col("PredictorName") != "Classifier").collect()
         if df.shape[0] == 0:
-            raise ValueError(f'There is no data for the provided modelids {modelids}')  
+            raise ValueError(f"There is no data for the provided modelids {modelids}")
         if kwargs.pop("return_df", False):
             return df
 
@@ -1531,8 +1534,9 @@ class Plots:
             facets, plotting_engine.PredictorCount, df=df, **kwargs
         )
 
+
 # "Philip Mann" plot with simple red/green lift bars relative to base propensity
-# TODO currently shared between ModelReport.qmd and BinAggregator.py and 
+# TODO currently shared between ModelReport.qmd and BinAggregator.py and
 # copied into plot_base - move over to that version once PDS tools version got bumped
 def plotBinningLift(
     binning,
@@ -1547,9 +1551,7 @@ def plotBinningLift(
     # Add Lift column if not present
     if "Lift" not in binning.columns:
         binning = binning.with_columns(
-            (lift(pl.col("BinPositives"), pl.col("BinNegatives")) - 1.0).alias(
-                "Lift"
-            )
+            (lift(pl.col("BinPositives"), pl.col("BinNegatives")) - 1.0).alias("Lift")
         )
 
     # Optionally a shading expression

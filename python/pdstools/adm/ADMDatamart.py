@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 import logging
+import traceback
 import os
 import shutil
 import subprocess
@@ -152,6 +153,8 @@ class ADMDatamart(Plots, Tables):
         verbose: bool = False,
         **reading_opts,
     ):
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.DEBUG)
         self.import_strategy = import_strategy
         self.context_keys = context_keys
         self.verbose = verbose
@@ -1670,7 +1673,8 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         *,
         base_file_name: str = None,
         output_type: str = "html",
-        debug_mode: bool = False,
+        save_log_file: bool = True,
+        keep_temp_files: bool = False,
         progress_callback=None,  #:  Callable[[int, int], None] = None,
         **kwargs,
     ) -> Path:
@@ -1691,8 +1695,10 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             The base file name for the generated reports. Defaults to None.
         output_type : str, default='html'
             The type of the output file (e.g., "html", "pdf").
-        debug_mode : bool, optional
-            If True, the temporary directory will not be deleted after report generation.
+        keep_all_temp_files : bool, optional
+            If True, a temporary directory will be created and not deleted after report generation.
+        save_log_file: bool
+            Whether to save the log.txt
         **kwargs : dict
             Additional keyword arguments.
 
@@ -1719,8 +1725,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             raise ValueError(
                 "model_list argument is None, not a list, or contains non-string elements for generate_model_reports. Please provide a list of model_id strings to generate reports."
             )
-
-        logger = logging.getLogger(__name__)
+        verbose = kwargs.get("verbose", False)
         working_dir = Path(working_dir) if working_dir else Path.cwd()
         working_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1731,6 +1736,8 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             else tempfile.mkdtemp(prefix="tmp_", dir=working_dir)
         )
         temp_dir_path = Path(temp_dir_name)
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_file_path = working_dir / f"pdstools_logs_{timestamp}.txt"
 
         try:
             qmd_file = "ModelReport.qmd"
@@ -1743,7 +1750,13 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 )
                 self._write_params_file(temp_dir_path, model_id, only_active_predictors)
                 self._run_quarto_command(
-                    temp_dir_path, qmd_file, output_type, output_filename, debug_mode
+                log_file_path,
+                temp_dir_path,
+                qmd_file,
+                output_type,
+                output_filename,
+                verbose,
+                save_log_file,
                 )
                 output_path = temp_dir_path / output_filename
                 if not output_path.exists():
@@ -1766,10 +1779,10 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             return output_path
 
         except Exception as e:
-            logger.error(f"Error generating report: {str(e)}", exc_info=True)
+            self.logger.error(f"Error generating report: {str(e)}", exc_info=True)
             raise
         finally:
-            if not debug_mode:
+            if not verbose:
                 if temp_dir_path.exists() and temp_dir_path.is_dir():
                     shutil.rmtree(temp_dir_path, ignore_errors=True)
 
@@ -1779,10 +1792,12 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         working_dir: Optional[Path] = None,
         *,
         output_type: str = "html",
+        save_log_file: bool = True,
+        keep_temp_files: bool = False,
         **kwargs,
     ) -> Path:
         """
-        Generates a report based on the provided parameters.
+        Generates Health Check report based on the provided parameters.
 
         Parameters
         ----------
@@ -1792,8 +1807,10 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             The working directory for the output. If None, uses current working directory.
         output_type : str, default='html'
             The type of the output file (e.g., "html", "pdf").
-        debug_mode : bool, optional
+        keep_all_temp_files : bool, optional
             If True, a temporary directory will be created and not deleted after report generation.
+        save_log_file: bool
+            Whether to save the log.txt
         **kwargs : dict
             Additional keyword arguments.
 
@@ -1811,18 +1828,18 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         subprocess.SubprocessError
             If there's an error in running external commands.
         """
-        logger = logging.getLogger(__name__)
-        debug_mode = kwargs.get("debug_mode", self.verbose)
+        verbose = kwargs.get("verbose", False)
+        # Create a temporary directory in working_dir
         working_dir = Path(working_dir) if working_dir else Path.cwd()
         working_dir.mkdir(parents=True, exist_ok=True)
-
-        # Create a unique temporary directory name
         temp_dir_name = (
             tempfile.mkdtemp(prefix=f"tmp_{name}_", dir=working_dir)
             if name
             else tempfile.mkdtemp(prefix="tmp_", dir=working_dir)
         )
         temp_dir_path = Path(temp_dir_name)
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_file_path = working_dir / f"pdstools_logs_{timestamp}.txt"
         try:
             qmd_file = "HealthCheck.qmd"
             output_filename = self._get_output_filename(
@@ -1833,9 +1850,15 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             self.save_data(temp_dir_path)
             self._write_params_file(temp_dir_path, None, None)
             self._run_quarto_command(
-                temp_dir_path, qmd_file, output_type, output_filename, debug_mode
+                log_file_path,
+                temp_dir_path,
+                qmd_file,
+                output_type,
+                output_filename,
+                verbose,
+                save_log_file,
             )
-            # copy report to working dir
+
             output_path = temp_dir_path / output_filename
             if not output_path.exists():
                 raise ValueError(f"Failed to generate report: {output_filename}")
@@ -1845,10 +1868,9 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             return final_path
 
         except Exception as e:
-            logger.error(f"Error generating report: {str(e)}", exc_info=True)
             raise
         finally:
-            if not debug_mode:
+            if not keep_temp_files:
                 if temp_dir_path.exists() and temp_dir_path.is_dir():
                     shutil.rmtree(temp_dir_path, ignore_errors=True)
 
@@ -1898,13 +1920,28 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             yaml.dump(params, f)
 
     def _run_quarto_command(
-        self, temp_dir, qmd_file, output_type, output_filename, verbose
-    ):
+        self,
+        log_file: Path,
+        temp_dir: Path,
+        qmd_file: str,
+        output_type: str,
+        output_filename: str,
+        verbose: bool,
+        save_log_file: bool,
+    ) -> int:
         """Run the Quarto command to generate the report."""
+
+        def log_and_write(message: str, level: str = "INFO"):
+            if save_log_file:
+                with open(log_file, "a") as log:
+                    log.write(f"{message}\n")
+            if verbose:
+                getattr(self.logger, level.lower())(message)
+
         try:
             quarto_exec = self._find_quarto_executable()
         except FileNotFoundError as e:
-            logging.error(str(e))
+            log_and_write(f"ERROR: {str(e)}")
             raise
 
         # Check Quarto version
@@ -1916,10 +1953,9 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 check=True,
             )
             quarto_version = version_result.stdout.strip()
-            logging.info(f"Quarto version: {quarto_version}")
-            # add version compatibility check here if needed
+            log_and_write(f"Quarto version: {quarto_version}")
         except subprocess.CalledProcessError as e:
-            logging.warning(f"Failed to check Quarto version: {e}")
+            log_and_write(f"WARNING: Failed to check Quarto version: {e}")
 
         command = [
             str(quarto_exec),
@@ -1933,19 +1969,26 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             "params.yaml",
         ]
 
-        try:
-            result = subprocess.run(
-                command, cwd=temp_dir, capture_output=True, text=True, check=True
-            )
-            if verbose:
-                print(result.stdout)
-            if result.stderr:
-                logging.warning(f"Quarto command warnings: {result.stderr}")
-        except subprocess.CalledProcessError as e:
-            logging.error(f"Quarto command failed: {e.stderr}")
-            raise subprocess.SubprocessError(
-                f"Failed to generate report. Quarto command error: {e}"
-            )
+        process = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=temp_dir,
+            text=True,
+        )
+
+        while True:
+            output = process.stdout.readline()
+            error = process.stderr.readline()
+            if output:
+                log_and_write(output.strip())
+            if error:
+                log_and_write(error.strip())
+            if process.poll() is not None and not output and not error:
+                break
+
+        returncode = process.returncode
+        log_and_write(f"Quarto process exited with return code {returncode}")
 
     def _find_quarto_executable(self):
         """Find the Quarto executable on the system."""

@@ -45,7 +45,7 @@ with health_check:
                         output_type=output_type,
                         working_dir=working_dir,
                         delete_temp_files=delete_temp_files,
-                        output_to_file=True,
+                        save_log_file=True,
                         verbose=True,
                     )
                 )
@@ -68,7 +68,6 @@ with health_check:
                 ).name,
                 key="HealthCheckDownload",
             )
-
         st.title("Create Excel Tables")
         st.write(
             "If you prefer conducting a custom analysis in Excel, you can easily transform your data into Excel format."
@@ -103,20 +102,19 @@ with health_check:
     except Exception as e:
         st.error(f"""An error occured: {e}""")
         traceback_str = traceback.format_exc()
-        with open(working_dir / "log.txt", "a") as f:
+        log_file_path = working_dir / "log.txt"
+        with open(log_file_path, "a") as f:
             f.write(traceback_str)
-        with open(working_dir / "log.txt", "rb") as f:
+        with open(log_file_path, "rb") as f:
             btn = st.download_button(
                 label="Download error log",
                 data=f,
                 file_name="errorlog.txt",
                 key="ErrorLogDownload",
             )
-
-        for filename in os.listdir(working_dir):
-            file_path = os.path.join(working_dir, filename)
-            if os.path.isfile(file_path):
-                os.remove(file_path)
+    finally:
+        for file in Path(working_dir).glob("pdstools_logs_*"):
+            file.unlink(missing_ok=True)
 
 if st.session_state["dm"].predictorData is not None:
     with model_report:
@@ -201,17 +199,19 @@ if st.session_state["dm"].predictorData is not None:
                         progress_text.empty()
                         st.balloons()
         except Exception as e:
-            st.error(f"""An error occured: {e}""")
-            traceback_str = traceback.format_exc()
-            with open(working_dir / "log.txt", "a") as f:
-                f.write(traceback_str)
-            with open(working_dir / "log.txt", "rb") as f:
-                btn = st.download_button(
-                    label="Download error log",
-                    data=f,
-                    file_name="errorlog.txt",
-                    key="ErrorLogDownload",
-                )
+            st.error(f"""An error occurred: {e}""")
+            log_file = Path(working_dir) / "log.txt"
+
+            if log_file.exists():
+                with open(log_file, "rb") as f:
+                    btn = st.download_button(
+                        label="Download error log",
+                        data=f,
+                        file_name="errorlog.txt",
+                        key="ErrorLogDownload",
+                    )
+            else:
+                st.warning("Log file not found.")
 
             for filename in os.listdir(working_dir):
                 file_path = os.path.join(working_dir, filename)

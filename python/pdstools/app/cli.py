@@ -31,7 +31,7 @@ def run(*args):
         ]
 
     else:
-        filename = os.path.join(os.path.dirname(__file__), "health_check", "home.py")
+        filename = os.path.join(os.path.dirname(__file__), "health_check", "Home.py")
         sys.argv = ["streamlit", "run", filename]
     if len(args) > 2:
         sys.argv.extend(args[2:])
