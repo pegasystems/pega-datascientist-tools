@@ -100,21 +100,27 @@ with health_check:
             )
 
     except Exception as e:
-        st.error(f"""An error occured: {e}""")
-        traceback_str = traceback.format_exc()
-        log_file_path = working_dir / "log.txt"
-        with open(log_file_path, "a") as f:
-            f.write(traceback_str)
-        with open(log_file_path, "rb") as f:
-            btn = st.download_button(
-                label="Download error log",
-                data=f,
-                file_name="errorlog.txt",
-                key="ErrorLogDownload",
-            )
+        if "HCErrorLogDownload" not in st.session_state:
+            st.error(f"""An error occurred hc: {e}""")
+            traceback_str = traceback.format_exc()
+
+            # Find the most recent log file in the working directorpdsy
+            log_files = list(working_dir.glob("pdstools_logs_*.txt"))
+            if log_files:
+                latest_log = max(log_files, key=os.path.getctime)
+                with open(latest_log, "a") as f:
+                    f.write(traceback_str)
+                with open(latest_log, "rb") as f:
+                    btn = st.download_button(
+                        label="Download error log",
+                        data=f,
+                        file_name=latest_log.name,
+                        key="HCErrorLogDownload",
+                    )
+
     finally:
-        for file in Path(working_dir).glob("pdstools_logs_*"):
-            file.unlink(missing_ok=True)
+        for log_file in working_dir.glob("pdstools_logs_*.txt"):
+            log_file.unlink(missing_ok=True)
 
 if st.session_state["dm"].predictorData is not None:
     with model_report:
@@ -177,6 +183,8 @@ if st.session_state["dm"].predictorData is not None:
                                 only_active_predictors=st.session_state[
                                     "only_active_predictors"
                                 ],
+                                delete_temp_files=delete_temp_files,
+                                save_log_file=True,
                                 progress_callback=update_progress,
                             )
                         )
@@ -199,24 +207,29 @@ if st.session_state["dm"].predictorData is not None:
                         progress_text.empty()
                         st.balloons()
         except Exception as e:
-            st.error(f"""An error occurred: {e}""")
-            log_file = Path(working_dir) / "log.txt"
+            if "HCErrorLogDownload" not in st.session_state:
+                st.error(f"""An error occurred hc: {e}""")
+                traceback_str = "".join(
+                    traceback.format_exception(type(e), e, e.__traceback__)
+                )
 
-            if log_file.exists():
-                with open(log_file, "rb") as f:
-                    btn = st.download_button(
-                        label="Download error log",
-                        data=f,
-                        file_name="errorlog.txt",
-                        key="ErrorLogDownload",
-                    )
-            else:
-                st.warning("Log file not found.")
+                # Find the most recent log file in the working directorpdsy
+                log_files = list(working_dir.glob("pdstools_logs_*.txt"))
+                if log_files:
+                    latest_log = max(log_files, key=os.path.getctime)
+                    with open(latest_log, "a") as f:
+                        f.write(traceback_str)
+                    with open(latest_log, "rb") as f:
+                        btn = st.download_button(
+                            label="Download error log",
+                            data=f,
+                            file_name=latest_log.name,
+                            key="HCErrorLogDownload",
+                        )
 
-            for filename in os.listdir(working_dir):
-                file_path = os.path.join(working_dir, filename)
-                if os.path.isfile(file_path):
-                    os.remove(file_path)
+        finally:
+            for log_file in working_dir.glob("pdstools_logs_*.txt"):
+                log_file.unlink(missing_ok=True)
 else:
     st.info(
         "You can generate individual model reports if you provide Predictor Snapshot in 'Data Import' stage.",

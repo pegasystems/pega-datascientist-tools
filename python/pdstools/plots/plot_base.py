@@ -672,9 +672,7 @@ class Plots:
             "BinPropensity",
             "ModelID",
         }
-        import pdb
 
-        pdb.set_trace()
         df, _ = self._subset_data(table, required_columns, query)
         if modelids is not None:
             df = df.filter(pl.col("ModelID").is_in(modelids))

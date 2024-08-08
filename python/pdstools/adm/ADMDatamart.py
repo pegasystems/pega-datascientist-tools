@@ -1673,8 +1673,8 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         *,
         base_file_name: str = None,
         output_type: str = "html",
-        save_log_file: bool = True,
         keep_temp_files: bool = False,
+        save_log_file: bool = False,
         progress_callback=None,  #:  Callable[[int, int], None] = None,
         **kwargs,
     ) -> Path:
@@ -1695,8 +1695,8 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             The base file name for the generated reports. Defaults to None.
         output_type : str, default='html'
             The type of the output file (e.g., "html", "pdf").
-        keep_all_temp_files : bool, optional
-            If True, a temporary directory will be created and not deleted after report generation.
+        keep_temp_files : bool, optional
+            If True, the temporary directory with temp files will not be deleted after report generation.
         save_log_file: bool
             Whether to save the log.txt
         **kwargs : dict
@@ -1728,8 +1728,6 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         verbose = kwargs.get("verbose", False)
         working_dir = Path(working_dir) if working_dir else Path.cwd()
         working_dir.mkdir(parents=True, exist_ok=True)
-
-        # Create a unique temporary directory name
         temp_dir_name = (
             tempfile.mkdtemp(prefix=f"tmp_{name}_", dir=working_dir)
             if name
@@ -1750,13 +1748,13 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 )
                 self._write_params_file(temp_dir_path, model_id, only_active_predictors)
                 self._run_quarto_command(
-                log_file_path,
-                temp_dir_path,
-                qmd_file,
-                output_type,
-                output_filename,
-                verbose,
-                save_log_file,
+                    log_file_path,
+                    temp_dir_path,
+                    qmd_file,
+                    output_type,
+                    output_filename,
+                    verbose,
+                    save_log_file,
                 )
                 output_path = temp_dir_path / output_filename
                 if not output_path.exists():
@@ -1779,10 +1777,9 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             return output_path
 
         except Exception as e:
-            self.logger.error(f"Error generating report: {str(e)}", exc_info=True)
             raise
         finally:
-            if not verbose:
+            if not keep_temp_files:
                 if temp_dir_path.exists() and temp_dir_path.is_dir():
                     shutil.rmtree(temp_dir_path, ignore_errors=True)
 
@@ -1792,8 +1789,8 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         working_dir: Optional[Path] = None,
         *,
         output_type: str = "html",
-        save_log_file: bool = True,
         keep_temp_files: bool = False,
+        save_log_file: bool = False,
         **kwargs,
     ) -> Path:
         """
@@ -1807,8 +1804,8 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             The working directory for the output. If None, uses current working directory.
         output_type : str, default='html'
             The type of the output file (e.g., "html", "pdf").
-        keep_all_temp_files : bool, optional
-            If True, a temporary directory will be created and not deleted after report generation.
+        keep_temp_files : bool, optional
+            If True, the temporary directory with temp files will not be deleted after report generation.
         save_log_file: bool
             Whether to save the log.txt
         **kwargs : dict
