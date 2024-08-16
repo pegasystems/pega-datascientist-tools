@@ -122,7 +122,7 @@ def _extract_keys(
 
     series = (
         df.select(
-            safeName().str.json_decode(),
+            safeName().str.json_decode(infer_schema_length=None),
         )
         .unnest("tempName")
         .lazy()
