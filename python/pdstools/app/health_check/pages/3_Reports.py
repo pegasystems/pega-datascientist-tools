@@ -46,7 +46,6 @@ with health_check:
                         working_dir=working_dir,
                         delete_temp_files=delete_temp_files,
                         save_log_file=True,
-                        verbose=True,
                     )
                 )
                 if os.path.isfile(outfile):

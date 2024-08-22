@@ -1825,7 +1825,6 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         subprocess.SubprocessError
             If there's an error in running external commands.
         """
-        verbose = kwargs.get("verbose", False)
         # Create a temporary directory in working_dir
         working_dir = Path(working_dir) if working_dir else Path.cwd()
         working_dir.mkdir(parents=True, exist_ok=True)
@@ -1852,7 +1851,6 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 qmd_file,
                 output_type,
                 output_filename,
-                verbose,
                 save_log_file,
             )
 
@@ -1923,17 +1921,15 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         qmd_file: str,
         output_type: str,
         output_filename: str,
-        verbose: bool,
         save_log_file: bool,
     ) -> int:
         """Run the Quarto command to generate the report."""
 
         def log_and_write(message: str, level: str = "INFO"):
+            getattr(self.logger, level.lower())(message)
             if save_log_file:
                 with open(log_file, "a") as log:
                     log.write(f"{message}\n")
-            if verbose:
-                getattr(self.logger, level.lower())(message)
 
         try:
             quarto_exec = self._find_quarto_executable()
