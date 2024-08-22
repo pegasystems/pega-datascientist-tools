@@ -1725,7 +1725,6 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             raise ValueError(
                 "model_list argument is None, not a list, or contains non-string elements for generate_model_reports. Please provide a list of model_id strings to generate reports."
             )
-        verbose = kwargs.get("verbose", False)
         working_dir = Path(working_dir) if working_dir else Path.cwd()
         working_dir.mkdir(parents=True, exist_ok=True)
         temp_dir_name = (
@@ -1753,7 +1752,6 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                     qmd_file,
                     output_type,
                     output_filename,
-                    verbose,
                     save_log_file,
                 )
                 output_path = temp_dir_path / output_filename
