@@ -676,7 +676,7 @@ class Plots:
         df, _ = self._subset_data(table, required_columns, query)
         if modelids is not None:
             df = df.filter(pl.col("ModelID").is_in(modelids))
-        df = df.filter(pl.col("PredictorName") != "Classifier").collect()
+        df = df.filter(pl.col("PredictorName") == "Classifier").collect()
         if df.shape[0] == 0:
             raise ValueError(f"There is no data for the provided modelids {modelids}")
         if kwargs.pop("return_df", False):

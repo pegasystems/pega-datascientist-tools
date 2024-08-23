@@ -1,5 +1,5 @@
 import os
-import traceback
+from datetime import datetime
 from pathlib import Path
 
 import streamlit as st
@@ -35,7 +35,9 @@ with health_check:
     try:
         if st.button("Generate Health Check"):
             st.session_state["runID"] = max(list(st.session_state["run"].keys())) + 1
-
+            st.session_state.logger.info(
+                f"Starting Health Check generation. Run ID: {st.session_state['runID']}"
+            )
             with st.spinner("Generating Health Check..."):
                 outfile = (
                     st.session_state["dm"]
@@ -45,7 +47,6 @@ with health_check:
                         output_type=output_type,
                         working_dir=working_dir,
                         delete_temp_files=delete_temp_files,
-                        save_log_file=True,
                     )
                 )
                 if os.path.isfile(outfile):
@@ -99,27 +100,27 @@ with health_check:
             )
 
     except Exception as e:
-        if "HCErrorLogDownload" not in st.session_state:
-            st.error(f"""An error occurred hc: {e}""")
-            traceback_str = traceback.format_exc()
-
-            # Find the most recent log file in the working directorpdsy
-            log_files = list(working_dir.glob("pdstools_logs_*.txt"))
-            if log_files:
-                latest_log = max(log_files, key=os.path.getctime)
-                with open(latest_log, "a") as f:
-                    f.write(traceback_str)
-                with open(latest_log, "rb") as f:
-                    btn = st.download_button(
-                        label="Download error log",
-                        data=f,
-                        file_name=latest_log.name,
-                        key="HCErrorLogDownload",
-                    )
+        st.session_state.logger.exception(
+            f"An error occurred during Health Check generation: {e}"
+        )
+        if "health_check_error_download" not in st.session_state:
+            st.error(f"An error occurred: {e}")
+            log_file_path = (
+                f"pdstools_error_log_{datetime.now().isoformat().replace(':', '_')}.txt"
+            )
+            with open(log_file_path, "w") as log_file:
+                log_file.write(st.session_state.log_buffer.getvalue())
+            with open(log_file_path, "rb") as f:
+                btn = st.download_button(
+                    label="Download error log",
+                    data=f,
+                    file_name=Path(log_file_path).name,
+                    key="health_check_error_download",
+                )
 
     finally:
-        for log_file in working_dir.glob("pdstools_logs_*.txt"):
-            log_file.unlink(missing_ok=True)
+        if "log_file_path" in locals() and os.path.isfile(log_file_path):
+            os.remove(log_file_path)
 
 if st.session_state["dm"].predictorData is not None:
     with model_report:
@@ -183,7 +184,6 @@ if st.session_state["dm"].predictorData is not None:
                                     "only_active_predictors"
                                 ],
                                 delete_temp_files=delete_temp_files,
-                                save_log_file=True,
                                 progress_callback=update_progress,
                             )
                         )
@@ -206,29 +206,25 @@ if st.session_state["dm"].predictorData is not None:
                         progress_text.empty()
                         st.balloons()
         except Exception as e:
-            if "HCErrorLogDownload" not in st.session_state:
-                st.error(f"""An error occurred hc: {e}""")
-                traceback_str = "".join(
-                    traceback.format_exception(type(e), e, e.__traceback__)
-                )
-
-                # Find the most recent log file in the working directorpdsy
-                log_files = list(working_dir.glob("pdstools_logs_*.txt"))
-                if log_files:
-                    latest_log = max(log_files, key=os.path.getctime)
-                    with open(latest_log, "a") as f:
-                        f.write(traceback_str)
-                    with open(latest_log, "rb") as f:
-                        btn = st.download_button(
-                            label="Download error log",
-                            data=f,
-                            file_name=latest_log.name,
-                            key="HCErrorLogDownload",
-                        )
+            st.session_state.logger.exception(
+                "An error occurred during Model Report generation"
+            )
+            if "model_report_error_download" not in st.session_state:
+                st.error(f"An error occurred: {e}")
+                log_file_path = f"pdstools_error_log_{datetime.now().isoformat().replace(':', '_')}.txt"
+                with open(log_file_path, "w") as log_file:
+                    log_file.write(st.session_state.log_buffer.getvalue())
+                with open(log_file_path, "rb") as f:
+                    btn = st.download_button(
+                        label="Download error log",
+                        data=f,
+                        file_name=Path(log_file_path).name,
+                        key="model_report_error_download",
+                    )
 
         finally:
-            for log_file in working_dir.glob("pdstools_logs_*.txt"):
-                log_file.unlink(missing_ok=True)
+            if "log_file_path" in locals() and os.path.isfile(log_file_path):
+                os.remove(log_file_path)
 else:
     st.info(
         "You can generate individual model reports if you provide Predictor Snapshot in 'Data Import' stage.",
