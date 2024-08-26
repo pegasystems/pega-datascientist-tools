@@ -453,7 +453,7 @@ run_python_model_reports <-function(customer, dm,
                               if (!quiet) cat("datafolder =", paste0('"', path.expand(report_utils_intermediates_folder), '"'), fill=T)
                               if (!quiet) cat("modelfilename =", paste0('"', filenameModelData, '"'), fill=T)
                               if (!quiet) cat("predictorfilename =", paste0('"', filenamePredictorData, '"'), fill=T)
-                              if (!quiet) cat("modelid =", paste0('"', id, '"'), fill=T)
+                              if (!quiet) cat("model_id =", paste0('"', id, '"'), fill=T)
 
                               # using output name results in loss of JS/CSS files so sticking to default name then copying.
 
@@ -464,7 +464,7 @@ run_python_model_reports <-function(customer, dm,
                                     "datafolder" = path.expand(report_utils_intermediates_folder),
                                     "modelfilename" = filenameModelData,
                                     "predictorfilename" = filenamePredictorData,
-                                    "modelid" = id,
+                                    "model_id" = id,
                                     "title" = title,
                                     "subtitle" = subtitle
                                   ),
@@ -478,7 +478,7 @@ run_python_model_reports <-function(customer, dm,
                                     "datafolder" = path.expand(report_utils_intermediates_folder),
                                     "modelfilename" = filenameModelData,
                                     "predictorfilename" = filenamePredictorData,
-                                    "modelid" = id,
+                                    "model_id" = id,
                                     "title" = title,
                                     "subtitle" = subtitle
                                   ),

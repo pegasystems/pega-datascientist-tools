@@ -133,10 +133,6 @@ def fig_set_xaxis_modelperformance(fig, label="Model Performance"):
 #         color = ""
 #     return "background-color: %s" % color
 
-
-# TODO pull from Limits class
-
-
 def table_style_predictor_count(gt, flds):
     for col in flds:
         gt = gt.tab_style(
