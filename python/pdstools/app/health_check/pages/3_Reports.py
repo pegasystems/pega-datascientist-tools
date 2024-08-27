@@ -1,3 +1,4 @@
+import logging
 import os
 from datetime import datetime
 from pathlib import Path
@@ -9,7 +10,7 @@ from pdstools.utils.streamlit_utils import model_selection_df
 if "dm" not in st.session_state:
     st.warning("Please configure your files in the `data import` tab.")
     st.stop()
-
+logger = logging.getLogger(__name__)
 health_check, model_report = st.tabs(
     [
         "Overall Health Check",
@@ -35,7 +36,7 @@ with health_check:
     try:
         if st.button("Generate Health Check"):
             st.session_state["runID"] = max(list(st.session_state["run"].keys())) + 1
-            st.session_state.logger.info(
+            logger.info(
                 f"Starting Health Check generation. Run ID: {st.session_state['runID']}"
             )
             with st.spinner("Generating Health Check..."):
@@ -100,9 +101,7 @@ with health_check:
             )
 
     except Exception as e:
-        st.session_state.logger.exception(
-            f"An error occurred during Health Check generation: {e}"
-        )
+        logger.exception(f"An error occurred during Health Check generation: {e}")
         if "health_check_error_download" not in st.session_state:
             st.error(f"An error occurred: {e}")
             log_file_path = (
@@ -206,9 +205,7 @@ if st.session_state["dm"].predictorData is not None:
                         progress_text.empty()
                         st.balloons()
         except Exception as e:
-            st.session_state.logger.exception(
-                "An error occurred during Model Report generation"
-            )
+            logger.exception("An error occurred during Model Report generation")
             if "model_report_error_download" not in st.session_state:
                 st.error(f"An error occurred: {e}")
                 log_file_path = f"pdstools_error_log_{datetime.now().isoformat().replace(':', '_')}.txt"

@@ -1021,7 +1021,8 @@ def get_latest_pdstools_version():
 
 
 def setup_logger():
-    logger = logging.getLogger("PDSTools")
+    """Returns a logger and log buffer in root level"""
+    logger = logging.getLogger()
     logger.setLevel(logging.INFO)
     log_buffer = StringIO()
     handler = logging.StreamHandler(log_buffer)

@@ -22,8 +22,7 @@ from ..utils.types import any_frame
 from .ADMTrees import ADMTrees
 from .Tables import Tables
 
-logger = logging.getLogger("PDSTools.ADMDatamart")
-logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class ReportGenerationError(Exception):
@@ -1895,7 +1894,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         try:
             quarto_exec = self._find_quarto_executable()
         except FileNotFoundError as e:
-            logger.warning(e)
+            logger.error(e)
             raise
 
         # Check Quarto version

@@ -15,8 +15,8 @@ import pdstools
 from pdstools.utils.cdh_utils import setup_logger
 from pdstools.utils.streamlit_utils import st_get_latest_pdstools_version
 
-if "logger" not in st.session_state:
-    st.session_state.logger, st.session_state.log_buffer = setup_logger()
+if "log_buffer" not in st.session_state:
+    logger, st.session_state.log_buffer = setup_logger()
 
 """
 # Welcome to the Health Check app!
