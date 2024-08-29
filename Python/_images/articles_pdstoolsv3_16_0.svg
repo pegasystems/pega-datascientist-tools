@@ -69,7 +69,7 @@
 <g id="node5" class="node">
 <title>p4</title>
 <polygon fill="none" stroke="black" points="11242,-341 5630,-341 5630,-305 11242,-305 11242,-341"/>
-<text text-anchor="middle" x="8436" y="-319.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [when([(col(&quot;__POLARS_CSER_0x303f9e5d1a165f04&quot;).is_not_nan()) | (col(&quot;__POLARS_CSER_0x303f9e5d1a165f04&quot;).is_null())]).then(col(&quot;__POLARS_CSER_0x303f9e5d1a165f04&quot;)).otherwise(0.0).alias(&quot;SuccessRate&quot;), when([(col(&quot;Positives&quot;).min()) == (col(&quot;Positives&quot;).max())]).then(col(&quot;SnapshotTime&quot;).max()).otherwise(col(&quot;SnapshotTime&quot;).filter([(col(&quot;Positives&quot;).diff()) != (0.0)]).max()).over([col(&quot;ModelID&quot;)]).alias(&quot;Last_Positives&quot;), when([(col(&quot;ResponseCount&quot;).min()) == (col(&quot;ResponseCount&quot;).max())]).then(col(&quot;SnapshotTime&quot;).max()).otherwise(col(&quot;SnapshotTime&quot;).filter([(col(&quot;ResponseCount&quot;).diff()) != (0.0)]).max()).over([col(&quot;ModelID&quot;)]).alias(&quot;Last_ResponseCount&quot;), [(col(&quot;Positives&quot;)) / (col(&quot;ResponseCount&quot;))].alias(&quot;__POLARS_CSER_0x303f9e5d1a165f04&quot;)]</text>
+<text text-anchor="middle" x="8436" y="-319.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [when([(col(&quot;__POLARS_CSER_0xb4239194c696f90f&quot;).is_not_nan()) | (col(&quot;__POLARS_CSER_0xb4239194c696f90f&quot;).is_null())]).then(col(&quot;__POLARS_CSER_0xb4239194c696f90f&quot;)).otherwise(0.0).alias(&quot;SuccessRate&quot;), when([(col(&quot;Positives&quot;).min()) == (col(&quot;Positives&quot;).max())]).then(col(&quot;SnapshotTime&quot;).max()).otherwise(col(&quot;SnapshotTime&quot;).filter([(col(&quot;Positives&quot;).diff()) != (0.0)]).max()).over([col(&quot;ModelID&quot;)]).alias(&quot;Last_Positives&quot;), when([(col(&quot;ResponseCount&quot;).min()) == (col(&quot;ResponseCount&quot;).max())]).then(col(&quot;SnapshotTime&quot;).max()).otherwise(col(&quot;SnapshotTime&quot;).filter([(col(&quot;ResponseCount&quot;).diff()) != (0.0)]).max()).over([col(&quot;ModelID&quot;)]).alias(&quot;Last_ResponseCount&quot;), [(col(&quot;Positives&quot;)) / (col(&quot;ResponseCount&quot;))].alias(&quot;__POLARS_CSER_0xb4239194c696f90f&quot;)]</text>
 </g>
 <!-- p3&#45;&#45;p4 -->
 <g id="edge4" class="edge">
@@ -80,7 +80,7 @@
 <g id="node6" class="node">
 <title>p5</title>
 <polygon fill="none" stroke="black" points="10841,-269 6031,-269 6031,-233 10841,-233 10841,-269"/>
-<text text-anchor="middle" x="8436" y="-247.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [col(&quot;Positives&quot;).strict_cast(Float32), col(&quot;Channel&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Direction&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Configuration&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Group&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Issue&quot;).strict_cast(Categorical(None, Physical)), col(&quot;ResponseCount&quot;).strict_cast(Float32), when([(col(&quot;SnapshotTime&quot;).str.slice([dyn int: 4, dyn int: 1])) == (String(-))]).then(col(&quot;SnapshotTime&quot;).str.strptime([String(raise)]).dt.cast_time_unit()).otherwise(col(&quot;SnapshotTime&quot;).str.strptime([String(raise)]).dt.replace_time_zone([String(raise)]).dt.cast_time_unit()).alias(&quot;SnapshotTime&quot;)]</text>
+<text text-anchor="middle" x="8436" y="-247.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [col(&quot;ResponseCount&quot;).strict_cast(Float32), col(&quot;Configuration&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Positives&quot;).strict_cast(Float32), col(&quot;Direction&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Channel&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Group&quot;).strict_cast(Categorical(None, Physical)), when([(col(&quot;SnapshotTime&quot;).str.slice([dyn int: 4, dyn int: 1])) == (String(-))]).then(col(&quot;SnapshotTime&quot;).str.strptime([String(raise)]).dt.cast_time_unit()).otherwise(col(&quot;SnapshotTime&quot;).str.strptime([String(raise)]).dt.replace_time_zone([String(raise)]).dt.cast_time_unit()).alias(&quot;SnapshotTime&quot;), col(&quot;Issue&quot;).strict_cast(Categorical(None, Physical))]</text>
 </g>
 <!-- p4&#45;&#45;p5 -->
 <g id="edge5" class="edge">
@@ -138,13 +138,13 @@
 <!-- p11 -->
 <g id="node12" class="node">
 <title>p11</title>
-<polygon fill="none" stroke="black" points="9431,-648 5805,-648 5805,-612 9431,-612 9431,-648"/>
-<text text-anchor="middle" x="7618" y="-626.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [[(col(&quot;BinPositives&quot;)) / (col(&quot;BinResponseCount&quot;))].alias(&quot;BinPropensity&quot;), [([(col(&quot;BinPositives&quot;)) + (0.5)]) / ([(col(&quot;BinResponseCount&quot;)) + (1.0)])].alias(&quot;BinAdjustedPropensity&quot;), when([(col(&quot;__POLARS_CSER_0xca1589d30ef0d2fe&quot;).list.length()) &gt; (1)]).then(col(&quot;__POLARS_CSER_0xca1589d30ef0d2fe&quot;).list.get([dyn int: 0])).otherwise(String(Primary)).alias(&quot;PredictorCategory&quot;), col(&quot;PredictorName&quot;).strict_cast(String).str.split([String(.)]).alias(&quot;__POLARS_CSER_0xca1589d30ef0d2fe&quot;)]</text>
+<polygon fill="none" stroke="black" points="9446.5,-648 5799.5,-648 5799.5,-612 9446.5,-612 9446.5,-648"/>
+<text text-anchor="middle" x="7623" y="-626.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [[(col(&quot;BinPositives&quot;)) / (col(&quot;BinResponseCount&quot;))].alias(&quot;BinPropensity&quot;), [([(col(&quot;BinPositives&quot;)) + (0.5)]) / ([(col(&quot;BinResponseCount&quot;)) + (1.0)])].alias(&quot;BinAdjustedPropensity&quot;), when([(col(&quot;__POLARS_CSER_0x4523d96d220ed9f5&quot;).list.length()) &gt; (1)]).then(col(&quot;__POLARS_CSER_0x4523d96d220ed9f5&quot;).list.get([dyn int: 0])).otherwise(String(Primary)).alias(&quot;PredictorCategory&quot;), col(&quot;PredictorName&quot;).strict_cast(String).str.split([String(.)]).alias(&quot;__POLARS_CSER_0x4523d96d220ed9f5&quot;)]</text>
 </g>
 <!-- p10&#45;&#45;p11 -->
 <g id="edge11" class="edge">
 <title>p10--p11</title>
-<path fill="none" stroke="black" d="M5489.28,-706.37C5760.78,-696.76 6597.65,-667.13 7137.66,-648.01"/>
+<path fill="none" stroke="black" d="M5489.13,-706.39C5760.89,-696.79 6600.2,-667.13 7141.64,-648.01"/>
 </g>
 <!-- p15 -->
 <g id="node16" class="node">
@@ -161,12 +161,12 @@
 <g id="node13" class="node">
 <title>p12</title>
 <polygon fill="none" stroke="black" points="10920,-575 5034,-575 5034,-539 10920,-539 10920,-575"/>
-<text text-anchor="middle" x="7977" y="-553.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [col(&quot;Type&quot;).strict_cast(Categorical(None, Physical)), col(&quot;EntryType&quot;).strict_cast(Categorical(None, Physical)), col(&quot;BinIndex&quot;).strict_cast(UInt16), col(&quot;GroupIndex&quot;).strict_cast(UInt32), col(&quot;BinPositives&quot;).strict_cast(Float32), col(&quot;Positives&quot;).strict_cast(Float32), col(&quot;BinNegatives&quot;).strict_cast(Float32), col(&quot;ResponseCount&quot;).strict_cast(Float32), col(&quot;BinResponseCount&quot;).strict_cast(Float32), col(&quot;BinType&quot;).strict_cast(Categorical(None, Physical)), col(&quot;PredictorName&quot;).strict_cast(Categorical(None, Physical)), when([(col(&quot;SnapshotTime&quot;).str.slice([dyn int: 4, dyn int: 1])) == (String(-))]).then(col(&quot;SnapshotTime&quot;).str.strptime([String(raise)]).dt.cast_time_unit()).otherwise(col(&quot;SnapshotTime&quot;).str.strptime([String(raise)]).dt.replace_time_zone([String(raise)]).dt.cast_time_unit()).alias(&quot;SnapshotTime&quot;)]</text>
+<text text-anchor="middle" x="7977" y="-553.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [col(&quot;ResponseCount&quot;).strict_cast(Float32), col(&quot;Positives&quot;).strict_cast(Float32), col(&quot;BinPositives&quot;).strict_cast(Float32), col(&quot;BinType&quot;).strict_cast(Categorical(None, Physical)), col(&quot;PredictorName&quot;).strict_cast(Categorical(None, Physical)), col(&quot;BinIndex&quot;).strict_cast(UInt16), col(&quot;GroupIndex&quot;).strict_cast(UInt32), col(&quot;EntryType&quot;).strict_cast(Categorical(None, Physical)), col(&quot;BinResponseCount&quot;).strict_cast(Float32), col(&quot;BinNegatives&quot;).strict_cast(Float32), col(&quot;Type&quot;).strict_cast(Categorical(None, Physical)), when([(col(&quot;SnapshotTime&quot;).str.slice([dyn int: 4, dyn int: 1])) == (String(-))]).then(col(&quot;SnapshotTime&quot;).str.strptime([String(raise)]).dt.cast_time_unit()).otherwise(col(&quot;SnapshotTime&quot;).str.strptime([String(raise)]).dt.replace_time_zone([String(raise)]).dt.cast_time_unit()).alias(&quot;SnapshotTime&quot;)]</text>
 </g>
 <!-- p11&#45;&#45;p12 -->
 <g id="edge12" class="edge">
 <title>p11--p12</title>
-<path fill="none" stroke="black" d="M7703.99,-611.99C7760.52,-600.81 7834.21,-586.24 7890.78,-575.05"/>
+<path fill="none" stroke="black" d="M7707.79,-611.99C7763.53,-600.81 7836.2,-586.24 7891.98,-575.05"/>
 </g>
 <!-- p13 -->
 <g id="node14" class="node">
@@ -213,7 +213,7 @@
 <g id="node19" class="node">
 <title>p18</title>
 <polygon fill="none" stroke="black" points="5612,-341 0,-341 0,-305 5612,-305 5612,-341"/>
-<text text-anchor="middle" x="2806" y="-319.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [when([(col(&quot;__POLARS_CSER_0x303f9e5d1a165f04&quot;).is_not_nan()) | (col(&quot;__POLARS_CSER_0x303f9e5d1a165f04&quot;).is_null())]).then(col(&quot;__POLARS_CSER_0x303f9e5d1a165f04&quot;)).otherwise(0.0).alias(&quot;SuccessRate&quot;), when([(col(&quot;Positives&quot;).min()) == (col(&quot;Positives&quot;).max())]).then(col(&quot;SnapshotTime&quot;).max()).otherwise(col(&quot;SnapshotTime&quot;).filter([(col(&quot;Positives&quot;).diff()) != (0.0)]).max()).over([col(&quot;ModelID&quot;)]).alias(&quot;Last_Positives&quot;), when([(col(&quot;ResponseCount&quot;).min()) == (col(&quot;ResponseCount&quot;).max())]).then(col(&quot;SnapshotTime&quot;).max()).otherwise(col(&quot;SnapshotTime&quot;).filter([(col(&quot;ResponseCount&quot;).diff()) != (0.0)]).max()).over([col(&quot;ModelID&quot;)]).alias(&quot;Last_ResponseCount&quot;), [(col(&quot;Positives&quot;)) / (col(&quot;ResponseCount&quot;))].alias(&quot;__POLARS_CSER_0x303f9e5d1a165f04&quot;)]</text>
+<text text-anchor="middle" x="2806" y="-319.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [when([(col(&quot;__POLARS_CSER_0xb4239194c696f90f&quot;).is_not_nan()) | (col(&quot;__POLARS_CSER_0xb4239194c696f90f&quot;).is_null())]).then(col(&quot;__POLARS_CSER_0xb4239194c696f90f&quot;)).otherwise(0.0).alias(&quot;SuccessRate&quot;), when([(col(&quot;Positives&quot;).min()) == (col(&quot;Positives&quot;).max())]).then(col(&quot;SnapshotTime&quot;).max()).otherwise(col(&quot;SnapshotTime&quot;).filter([(col(&quot;Positives&quot;).diff()) != (0.0)]).max()).over([col(&quot;ModelID&quot;)]).alias(&quot;Last_Positives&quot;), when([(col(&quot;ResponseCount&quot;).min()) == (col(&quot;ResponseCount&quot;).max())]).then(col(&quot;SnapshotTime&quot;).max()).otherwise(col(&quot;SnapshotTime&quot;).filter([(col(&quot;ResponseCount&quot;).diff()) != (0.0)]).max()).over([col(&quot;ModelID&quot;)]).alias(&quot;Last_ResponseCount&quot;), [(col(&quot;Positives&quot;)) / (col(&quot;ResponseCount&quot;))].alias(&quot;__POLARS_CSER_0xb4239194c696f90f&quot;)]</text>
 </g>
 <!-- p17&#45;&#45;p18 -->
 <g id="edge19" class="edge">
@@ -224,7 +224,7 @@
 <g id="node20" class="node">
 <title>p19</title>
 <polygon fill="none" stroke="black" points="5211,-269 401,-269 401,-233 5211,-233 5211,-269"/>
-<text text-anchor="middle" x="2806" y="-247.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [col(&quot;Positives&quot;).strict_cast(Float32), col(&quot;Channel&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Direction&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Configuration&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Group&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Issue&quot;).strict_cast(Categorical(None, Physical)), col(&quot;ResponseCount&quot;).strict_cast(Float32), when([(col(&quot;SnapshotTime&quot;).str.slice([dyn int: 4, dyn int: 1])) == (String(-))]).then(col(&quot;SnapshotTime&quot;).str.strptime([String(raise)]).dt.cast_time_unit()).otherwise(col(&quot;SnapshotTime&quot;).str.strptime([String(raise)]).dt.replace_time_zone([String(raise)]).dt.cast_time_unit()).alias(&quot;SnapshotTime&quot;)]</text>
+<text text-anchor="middle" x="2806" y="-247.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [col(&quot;ResponseCount&quot;).strict_cast(Float32), col(&quot;Configuration&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Positives&quot;).strict_cast(Float32), col(&quot;Direction&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Channel&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Group&quot;).strict_cast(Categorical(None, Physical)), when([(col(&quot;SnapshotTime&quot;).str.slice([dyn int: 4, dyn int: 1])) == (String(-))]).then(col(&quot;SnapshotTime&quot;).str.strptime([String(raise)]).dt.cast_time_unit()).otherwise(col(&quot;SnapshotTime&quot;).str.strptime([String(raise)]).dt.replace_time_zone([String(raise)]).dt.cast_time_unit()).alias(&quot;SnapshotTime&quot;), col(&quot;Issue&quot;).strict_cast(Categorical(None, Physical))]</text>
 </g>
 <!-- p18&#45;&#45;p19 -->
 <g id="edge20" class="edge">
