@@ -1820,6 +1820,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 qmd_file,
                 output_type,
                 output_filename,
+                **kwargs,
             )
 
             output_path = temp_dir / output_filename
@@ -1888,9 +1889,12 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         qmd_file: str,
         output_type: str,
         output_filename: str,
+        **kwargs,
     ) -> int:
         """Run the Quarto command to generate the report."""
-
+        verbose = kwargs.get("verbose", True)
+        if verbose:
+            print("Set verbose=False to hide output.")
         try:
             quarto_exec = self._find_quarto_executable()
         except FileNotFoundError as e:
@@ -1906,7 +1910,8 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 check=True,
             )
             quarto_version = version_result.stdout.strip()
-            logger.info(f"Quarto version: {quarto_version}")
+            log = f"Quarto version: {quarto_version}"
+            print(log) if verbose else logger.info(log)
         except subprocess.CalledProcessError as e:
             logger.warning(f"Failed to check Quarto version: {e}")
 
@@ -1929,19 +1934,31 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             cwd=temp_dir,
             text=True,
         )
+        import select
 
         while True:
-            output = process.stdout.readline()
-            error = process.stderr.readline()
-            if output:
-                logger.info(output.strip())
-            if error:
-                logger.info(error.strip())
+            reads = [process.stdout.fileno(), process.stderr.fileno()]
+            ret = select.select(reads, [], [])
+            for fd in ret[0]:
+                if fd == process.stdout.fileno():
+                    output = process.stdout.readline()
+                    if output:
+                        if verbose:
+                            print(output.strip())
+                        else:
+                            logger.info(output.strip())
+                if fd == process.stderr.fileno():
+                    error = process.stderr.readline()
+                    if error:
+                        if verbose:
+                            print(error.strip())
+                        else:
+                            logger.info(error.strip())
             if process.poll() is not None and not output and not error:
                 break
-
-        returncode = process.returncode
-        logger.info(f"Quarto process exited with return code {returncode}")
+        return_code = process.returncode
+        message = f"Quarto process exited with return code {return_code}"
+        print(message) if verbose else logger.info()
 
     def _find_quarto_executable(self):
         """Find the Quarto executable on the system."""
