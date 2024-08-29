@@ -48,6 +48,7 @@ with health_check:
                         output_type=output_type,
                         working_dir=working_dir,
                         delete_temp_files=delete_temp_files,
+                        verbose=False,
                     )
                 )
                 if os.path.isfile(outfile):
@@ -184,6 +185,7 @@ if st.session_state["dm"].predictorData is not None:
                                 ],
                                 delete_temp_files=delete_temp_files,
                                 progress_callback=update_progress,
+                                verbose=False,
                             )
                         )
                         if os.path.isfile(outfile):

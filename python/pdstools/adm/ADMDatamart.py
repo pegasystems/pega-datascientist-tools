@@ -1737,6 +1737,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                     qmd_file,
                     output_type,
                     output_filename,
+                    **kwargs,
                 )
                 output_path = temp_dir / output_filename
                 if not output_path.exists():
@@ -1910,8 +1911,10 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 check=True,
             )
             quarto_version = version_result.stdout.strip()
-            log = f"Quarto version: {quarto_version}"
-            print(log) if verbose else logger.info(log)
+            message = f"Quarto version: {quarto_version}"
+            logger.info(message)
+            if verbose:
+                print(message)
         except subprocess.CalledProcessError as e:
             logger.warning(f"Failed to check Quarto version: {e}")
 
@@ -1940,25 +1943,22 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             reads = [process.stdout.fileno(), process.stderr.fileno()]
             ret = select.select(reads, [], [])
             for fd in ret[0]:
-                if fd == process.stdout.fileno():
-                    output = process.stdout.readline()
-                    if output:
-                        if verbose:
-                            print(output.strip())
-                        else:
-                            logger.info(output.strip())
-                if fd == process.stderr.fileno():
-                    error = process.stderr.readline()
-                    if error:
-                        if verbose:
-                            print(error.strip())
-                        else:
-                            logger.info(error.strip())
-            if process.poll() is not None and not output and not error:
+                line = (
+                    process.stdout.readline()
+                    if fd == process.stdout.fileno()
+                    else process.stderr.readline()
+                )
+                if line:
+                    logger.info(line.strip())
+                    if verbose:
+                        print(line.strip())
+            if process.poll() is not None and not line:
                 break
         return_code = process.returncode
         message = f"Quarto process exited with return code {return_code}"
-        print(message) if verbose else logger.info()
+        logger.info(message)
+        if verbose:
+            print(message)
 
     def _find_quarto_executable(self):
         """Find the Quarto executable on the system."""
