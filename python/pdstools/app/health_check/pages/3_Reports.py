@@ -1,5 +1,6 @@
+import logging
 import os
-import traceback
+from datetime import datetime
 from pathlib import Path
 
 import streamlit as st
@@ -9,7 +10,7 @@ from pdstools.utils.streamlit_utils import model_selection_df
 if "dm" not in st.session_state:
     st.warning("Please configure your files in the `data import` tab.")
     st.stop()
-
+logger = logging.getLogger(__name__)
 health_check, model_report = st.tabs(
     [
         "Overall Health Check",
@@ -35,7 +36,9 @@ with health_check:
     try:
         if st.button("Generate Health Check"):
             st.session_state["runID"] = max(list(st.session_state["run"].keys())) + 1
-
+            logger.info(
+                f"Starting Health Check generation. Run ID: {st.session_state['runID']}"
+            )
             with st.spinner("Generating Health Check..."):
                 outfile = (
                     st.session_state["dm"]
@@ -45,8 +48,7 @@ with health_check:
                         output_type=output_type,
                         working_dir=working_dir,
                         delete_temp_files=delete_temp_files,
-                        output_to_file=True,
-                        verbose=True,
+                        verbose=False,
                     )
                 )
                 if os.path.isfile(outfile):
@@ -68,7 +70,6 @@ with health_check:
                 ).name,
                 key="HealthCheckDownload",
             )
-
         st.title("Create Excel Tables")
         st.write(
             "If you prefer conducting a custom analysis in Excel, you can easily transform your data into Excel format."
@@ -101,22 +102,25 @@ with health_check:
             )
 
     except Exception as e:
-        st.error(f"""An error occured: {e}""")
-        traceback_str = traceback.format_exc()
-        with open(working_dir / "log.txt", "a") as f:
-            f.write(traceback_str)
-        with open(working_dir / "log.txt", "rb") as f:
-            btn = st.download_button(
-                label="Download error log",
-                data=f,
-                file_name="errorlog.txt",
-                key="ErrorLogDownload",
+        logger.exception(f"An error occurred during Health Check generation: {e}")
+        if "health_check_error_download" not in st.session_state:
+            st.error(f"An error occurred: {e}")
+            log_file_path = (
+                f"pdstools_error_log_{datetime.now().isoformat().replace(':', '_')}.txt"
             )
+            with open(log_file_path, "w") as log_file:
+                log_file.write(st.session_state.log_buffer.getvalue())
+            with open(log_file_path, "rb") as f:
+                btn = st.download_button(
+                    label="Download error log",
+                    data=f,
+                    file_name=Path(log_file_path).name,
+                    key="health_check_error_download",
+                )
 
-        for filename in os.listdir(working_dir):
-            file_path = os.path.join(working_dir, filename)
-            if os.path.isfile(file_path):
-                os.remove(file_path)
+    finally:
+        if "log_file_path" in locals() and os.path.isfile(log_file_path):
+            os.remove(log_file_path)
 
 if st.session_state["dm"].predictorData is not None:
     with model_report:
@@ -179,7 +183,9 @@ if st.session_state["dm"].predictorData is not None:
                                 only_active_predictors=st.session_state[
                                     "only_active_predictors"
                                 ],
+                                delete_temp_files=delete_temp_files,
                                 progress_callback=update_progress,
+                                verbose=False,
                             )
                         )
                         if os.path.isfile(outfile):
@@ -201,22 +207,23 @@ if st.session_state["dm"].predictorData is not None:
                         progress_text.empty()
                         st.balloons()
         except Exception as e:
-            st.error(f"""An error occured: {e}""")
-            traceback_str = traceback.format_exc()
-            with open(working_dir / "log.txt", "a") as f:
-                f.write(traceback_str)
-            with open(working_dir / "log.txt", "rb") as f:
-                btn = st.download_button(
-                    label="Download error log",
-                    data=f,
-                    file_name="errorlog.txt",
-                    key="ErrorLogDownload",
-                )
+            logger.exception("An error occurred during Model Report generation")
+            if "model_report_error_download" not in st.session_state:
+                st.error(f"An error occurred: {e}")
+                log_file_path = f"pdstools_error_log_{datetime.now().isoformat().replace(':', '_')}.txt"
+                with open(log_file_path, "w") as log_file:
+                    log_file.write(st.session_state.log_buffer.getvalue())
+                with open(log_file_path, "rb") as f:
+                    btn = st.download_button(
+                        label="Download error log",
+                        data=f,
+                        file_name=Path(log_file_path).name,
+                        key="model_report_error_download",
+                    )
 
-            for filename in os.listdir(working_dir):
-                file_path = os.path.join(working_dir, filename)
-                if os.path.isfile(file_path):
-                    os.remove(file_path)
+        finally:
+            if "log_file_path" in locals() and os.path.isfile(log_file_path):
+                os.remove(log_file_path)
 else:
     st.info(
         "You can generate individual model reports if you provide Predictor Snapshot in 'Data Import' stage.",

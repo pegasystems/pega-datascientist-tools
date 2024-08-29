@@ -8,16 +8,19 @@ of data analysis, reporting and monitoring.
 
 import datetime
 import io
+import logging
 import re
 import warnings
 import zipfile
-import requests
+import tempfile
+from io import StringIO
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Optional
 
 import numpy as np
 import polars as pl
 import pytz
+import requests
 
 from .errors import NotEagerError
 from .table_definitions import PegaDefaultTables
@@ -122,7 +125,7 @@ def _extract_keys(
 
     series = (
         df.select(
-            safeName().str.json_decode(),
+            safeName().str.json_decode(infer_schema_length=None),
         )
         .unnest("tempName")
         .lazy()
@@ -1015,3 +1018,34 @@ def get_latest_pdstools_version():
         return response.json()["info"]["version"]
     except:
         return None
+
+
+def setup_logger():
+    """Returns a logger and log buffer in root level"""
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    log_buffer = StringIO()
+    handler = logging.StreamHandler(log_buffer)
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%dT%H:%M:%S",
+    )
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    return logger, log_buffer
+
+
+def create_working_and_temp_dir(
+    name: Optional[str] = None,
+    working_dir: Union[str, Path, None] = None,
+):
+    """Creates a working directory for saving files and a temp_dir"""
+    # Create a temporary directory in working_dir
+    working_dir = Path(working_dir) if working_dir else Path.cwd()
+    working_dir.mkdir(parents=True, exist_ok=True)
+    temp_dir_name = (
+        tempfile.mkdtemp(prefix=f"tmp_{name}_", dir=working_dir)
+        if name
+        else tempfile.mkdtemp(prefix="tmp_", dir=working_dir)
+    )
+    return working_dir, Path(temp_dir_name)

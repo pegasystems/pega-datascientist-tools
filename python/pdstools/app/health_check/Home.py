@@ -2,9 +2,6 @@ import shutil
 
 import streamlit as st
 
-import pdstools
-from pdstools.utils.streamlit_utils import st_get_latest_pdstools_version
-
 st.set_page_config(
     page_title="Home",
     menu_items={
@@ -12,6 +9,15 @@ st.set_page_config(
         "Get help": "https://pegasystems.github.io/pega-datascientist-tools/Python/examples.html",
     },
 )
+
+
+import pdstools
+from pdstools.utils.cdh_utils import setup_logger
+from pdstools.utils.streamlit_utils import st_get_latest_pdstools_version
+
+if "log_buffer" not in st.session_state:
+    logger, st.session_state.log_buffer = setup_logger()
+
 """
 # Welcome to the Health Check app!
 

@@ -24,5 +24,5 @@ with st.expander("Configure advanced options", expanded=True):
 
 streamlit_utils.import_datamart(**opts)
 for key in st.session_state.keys():
-    if key not in ["dm", "params"]:
+    if key not in ["dm", "params", "logger", "log_buffer"]:
         del st.session_state[key]
