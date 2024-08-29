@@ -308,7 +308,7 @@ class ADMDatamart(Plots, Tables):
         if df2 is not None:
             if "BinResponseCount" not in df2.columns:  # pragma: no cover
                 df2 = df2.with_columns(
-                    (pl.col("BinPositives") + pl.col("BinNegatigves")).alias(
+                    (pl.col("BinPositives") + pl.col("BinNegatives")).alias(
                         "BinResponseCount"
                     )
                 )
