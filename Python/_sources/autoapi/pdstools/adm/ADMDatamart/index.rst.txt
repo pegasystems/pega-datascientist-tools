@@ -4,6 +4,14 @@ pdstools.adm.ADMDatamart
 .. py:module:: pdstools.adm.ADMDatamart
 
 
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.adm.ADMDatamart.logger
+
+
 Exceptions
 ----------
 
@@ -22,6 +30,8 @@ Classes
 
 Module Contents
 ---------------
+
+.. py:data:: logger
 
 .. py:exception:: ReportGenerationError
 
@@ -611,7 +621,7 @@ Module Contents
 
 
 
-   .. py:method:: generate_model_reports(name: Optional[str] = None, model_list: List[str] = None, working_dir: Optional[pathlib.Path] = None, only_active_predictors: bool = False, *, base_file_name: str = None, output_type: str = 'html', debug_mode: bool = False, progress_callback=None, **kwargs) -> pathlib.Path
+   .. py:method:: generate_model_reports(name: Optional[str] = None, model_list: List[str] = None, working_dir: Union[str, pathlib.Path, None] = None, only_active_predictors: bool = False, *, base_file_name: str = None, output_type: str = 'html', keep_temp_files: bool = False, progress_callback=None, **kwargs) -> pathlib.Path
 
       Generates model reports.
 
@@ -620,15 +630,15 @@ Module Contents
       :param model_list: The list of model IDs to generate reports for.
       :type model_list: List[str]
       :param working_dir: The working directory for the output. If None, uses current working directory.
-      :type working_dir: Path, optional
+      :type working_dir: Union[str, Path, None], optional
       :param only_active_predictors: Whether to only include active predictor details.
       :type only_active_predictors: bool, default=False
       :param base_file_name: The base file name for the generated reports. Defaults to None.
       :type base_file_name: str, optional
       :param output_type: The type of the output file (e.g., "html", "pdf").
       :type output_type: str, default='html'
-      :param debug_mode: If True, the temporary directory will not be deleted after report generation.
-      :type debug_mode: bool, optional
+      :param keep_temp_files: If True, the temporary directory with temp files will not be deleted after report generation.
+      :type keep_temp_files: bool, optional
       :param \*\*kwargs: Additional keyword arguments.
       :type \*\*kwargs: dict
 
@@ -641,18 +651,18 @@ Module Contents
 
 
 
-   .. py:method:: generate_health_check(name: Optional[str] = None, working_dir: Optional[pathlib.Path] = None, *, output_type: str = 'html', **kwargs) -> pathlib.Path
+   .. py:method:: generate_health_check(name: Optional[str] = None, working_dir: Union[str, pathlib.Path, None] = None, *, output_type: str = 'html', keep_temp_files: bool = False, **kwargs) -> pathlib.Path
 
-      Generates a report based on the provided parameters.
+      Generates Health Check report based on the provided parameters.
 
       :param name: The name of the report.
       :type name: str, optional
       :param working_dir: The working directory for the output. If None, uses current working directory.
-      :type working_dir: Path, optional
+      :type working_dir: Union[str, Path, None], optional
       :param output_type: The type of the output file (e.g., "html", "pdf").
       :type output_type: str, default='html'
-      :param debug_mode: If True, a temporary directory will be created and not deleted after report generation.
-      :type debug_mode: bool, optional
+      :param keep_temp_files: If True, the temporary directory with temp files will not be deleted after report generation.
+      :type keep_temp_files: bool, optional
       :param \*\*kwargs: Additional keyword arguments.
       :type \*\*kwargs: dict
 
@@ -689,7 +699,7 @@ Module Contents
 
 
 
-   .. py:method:: _run_quarto_command(temp_dir, qmd_file, output_type, output_filename, verbose)
+   .. py:method:: _run_quarto_command(temp_dir: pathlib.Path, qmd_file: str, output_type: str, output_filename: str, **kwargs) -> int
 
       Run the Quarto command to generate the report.
 

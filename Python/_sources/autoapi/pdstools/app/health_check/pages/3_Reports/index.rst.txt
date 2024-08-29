@@ -1,0 +1,27 @@
+pdstools.app.health_check.pages.3_Reports
+=========================================
+
+.. py:module:: pdstools.app.health_check.pages.3_Reports
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.app.health_check.pages.3_Reports.logger
+   pdstools.app.health_check.pages.3_Reports.name
+   pdstools.app.health_check.pages.3_Reports.working_dir
+
+
+Module Contents
+---------------
+
+.. py:data:: logger
+
+.. py:data:: name
+
+.. py:data:: working_dir
+   :value: 'healthCheckDir'
+
+

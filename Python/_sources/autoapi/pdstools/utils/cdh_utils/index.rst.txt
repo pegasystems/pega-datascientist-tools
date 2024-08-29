@@ -45,6 +45,8 @@ Functions
    pdstools.utils.cdh_utils.sync_reports
    pdstools.utils.cdh_utils.process_files_to_bytes
    pdstools.utils.cdh_utils.get_latest_pdstools_version
+   pdstools.utils.cdh_utils.setup_logger
+   pdstools.utils.cdh_utils.create_working_and_temp_dir
 
 
 Module Contents
@@ -391,4 +393,14 @@ Module Contents
 
 
 .. py:function:: get_latest_pdstools_version()
+
+.. py:function:: setup_logger()
+
+   Returns a logger and log buffer in root level
+
+
+.. py:function:: create_working_and_temp_dir(name: Optional[str] = None, working_dir: Union[str, pathlib.Path, None] = None)
+
+   Creates a working directory for saving files and a temp_dir
+
 
