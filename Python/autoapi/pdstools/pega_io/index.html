@@ -296,6 +296,7 @@
 </li>
 <li class="toctree-l3 current has-children current-page"><a class="current reference internal" href="#">pdstools.pega_io</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><div class="visually-hidden">Toggle navigation of pdstools.pega_io</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="API/index.html">pdstools.pega_io.API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Anonymization/index.html">pdstools.pega_io.Anonymization</a></li>
 <li class="toctree-l4"><a class="reference internal" href="File/index.html">pdstools.pega_io.File</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S3/index.html">pdstools.pega_io.S3</a></li>
 </ul>
@@ -316,8 +317,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../utils/cdh_utils/index.html">pdstools.utils.cdh_utils</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../utils/datasets/index.html">pdstools.utils.datasets</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../utils/errors/index.html">pdstools.utils.errors</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../utils/hds_utils/index.html">pdstools.utils.hds_utils</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../utils/hds_utils_experimental/index.html">pdstools.utils.hds_utils_experimental</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../utils/pega_template/index.html">pdstools.utils.pega_template</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../utils/polars_ext/index.html">pdstools.utils.polars_ext</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../utils/show_versions/index.html">pdstools.utils.show_versions</a></li>
@@ -381,6 +380,7 @@
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="API/index.html">pdstools.pega_io.API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Anonymization/index.html">pdstools.pega_io.Anonymization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="File/index.html">pdstools.pega_io.File</a></li>
 <li class="toctree-l1"><a class="reference internal" href="S3/index.html">pdstools.pega_io.S3</a></li>
 </ul>
@@ -391,7 +391,10 @@
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.pega_io.S3Data" title="pdstools.pega_io.S3Data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">S3Data</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.pega_io.Anonymization" title="pdstools.pega_io.Anonymization"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Anonymization</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.pega_io.S3Data" title="pdstools.pega_io.S3Data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">S3Data</span></code></a></p></td>
 <td><p></p></td>
 </tr>
 </tbody>
@@ -445,6 +448,217 @@
 </section>
 <section id="package-contents">
 <h2>Package Contents<a class="headerlink" href="#package-contents" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="pdstools.pega_io.Anonymization">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Anonymization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path_to_files</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temporary_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'/tmp/anonymisation'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'anonymised.parquet'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_columns_with_prefix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_limit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.pega_io.Anonymization" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path_to_files</strong> (<em>str</em>)</p></li>
+<li><p><strong>temporary_path</strong> (<em>str</em>)</p></li>
+<li><p><strong>output_file</strong> (<em>str</em>)</p></li>
+<li><p><strong>skip_columns_with_prefix</strong> (<em>Optional</em><em>[</em><em>List</em><em>[</em><em>str</em><em>]</em><em>]</em>)</p></li>
+<li><p><strong>batch_size</strong> (<em>int</em>)</p></li>
+<li><p><strong>file_limit</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.pega_io.Anonymization.path_to_files">
+<span class="sig-name descname"><span class="pre">path_to_files</span></span><a class="headerlink" href="#pdstools.pega_io.Anonymization.path_to_files" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.pega_io.Anonymization.temp_path">
+<span class="sig-name descname"><span class="pre">temp_path</span></span><a class="headerlink" href="#pdstools.pega_io.Anonymization.temp_path" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.pega_io.Anonymization.output_file">
+<span class="sig-name descname"><span class="pre">output_file</span></span><a class="headerlink" href="#pdstools.pega_io.Anonymization.output_file" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.pega_io.Anonymization.skip_col_prefix">
+<span class="sig-name descname"><span class="pre">skip_col_prefix</span></span><a class="headerlink" href="#pdstools.pega_io.Anonymization.skip_col_prefix" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.pega_io.Anonymization.batch_size">
+<span class="sig-name descname"><span class="pre">batch_size</span></span><a class="headerlink" href="#pdstools.pega_io.Anonymization.batch_size" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.pega_io.Anonymization.file_limit">
+<span class="sig-name descname"><span class="pre">file_limit</span></span><a class="headerlink" href="#pdstools.pega_io.Anonymization.file_limit" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.pega_io.Anonymization.anonymize">
+<span class="sig-name descname"><span class="pre">anonymize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.pega_io.Anonymization.anonymize" title="Link to this definition">¶</a></dt>
+<dd><p>Anonymize the data.</p>
+<p>This method performs the anonymization process on the data files specified
+during initialization. It writes temporary parquet files, processes and
+writes the parquet files to a single file, and outputs the anonymized data
+to the specified output file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to print verbose output during the anonymization process.
+Defaults to True.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.pega_io.Anonymization.min_max">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">min_max</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">column_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">range</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.pega_io.Anonymization.min_max" title="Link to this definition">¶</a></dt>
+<dd><p>Normalize the values in a column using the min-max scaling method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>column_name</strong> (<em>str</em>) – The name of the column to be normalized.</p></li>
+<li><p><strong>range</strong> (<em>List</em><em>[</em><em>Dict</em><em>[</em><em>str</em><em>, </em><em>float</em><em>]</em><em>]</em>) – A list of dictionaries containing the minimum and maximum values for the column.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A Polars expression representing the normalized column.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pl.Expr</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">range</span> <span class="o">=</span> <span class="p">[{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">100.0</span><span class="p">}]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">min_max</span><span class="p">(</span><span class="s2">&quot;age&quot;</span><span class="p">,</span> <span class="nb">range</span><span class="p">)</span>
+<span class="go">Column &quot;age&quot; normalized using min-max scaling.</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.pega_io.Anonymization._infer_types">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_infer_types</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.DataFrame</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.pega_io.Anonymization._infer_types" title="Link to this definition">¶</a></dt>
+<dd><p>Infers the types of columns in a DataFrame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>(</strong><strong>pl.DataFrame</strong><strong>)</strong> (<em>df</em>) – The DataFrame for which to infer column types.</p></li>
+<li><p><strong>df</strong> (<em>polars.DataFrame</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary mapping column names to their inferred types.
+The inferred types can be either “numeric” or “symbolic”.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.pega_io.Anonymization.chunker">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">chunker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.pega_io.Anonymization.chunker" title="Link to this definition">¶</a></dt>
+<dd><p>Split a list of files into chunks of a specified size.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>(</strong><strong>List</strong><strong>[</strong><strong>str</strong><strong>]</strong><strong>)</strong> (<em>files</em>) – A list of file names.</p></li>
+<li><p><strong>(</strong><strong>int</strong><strong>)</strong> (<em>size</em>) – The size of each chunk.</p></li>
+<li><p><strong>files</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>)</p></li>
+<li><p><strong>size</strong> (<em>int</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A generator that yields chunks of files.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>generator</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">files</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;file1.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;file2.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;file3.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;file4.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;file5.txt&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">chunks</span> <span class="o">=</span> <span class="n">chunker</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">chunks</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+<span class="go">[&#39;file1.txt&#39;, &#39;file2.txt&#39;]</span>
+<span class="go">[&#39;file3.txt&#39;, &#39;file4.txt&#39;]</span>
+<span class="go">[&#39;file5.txt&#39;]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.pega_io.Anonymization.chunk_to_parquet">
+<span class="sig-name descname"><span class="pre">chunk_to_parquet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#pdstools.pega_io.Anonymization.chunk_to_parquet" title="Link to this definition">¶</a></dt>
+<dd><p>Convert a chunk of files to Parquet format.</p>
+<p>Parameters:
+files (List[str]):</p>
+<blockquote>
+<div><p>List of file paths to be converted.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>temp_path (str):</dt><dd><p>Path to the temporary directory where the Parquet file will be saved.</p>
+</dd>
+<dt>i:</dt><dd><p>Index of the chunk.</p>
+</dd>
+</dl>
+<p>Returns:
+str: File path of the converted Parquet file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>files</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.pega_io.Anonymization.preprocess">
+<span class="sig-name descname"><span class="pre">preprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.pega_io.Anonymization.preprocess" title="Link to this definition">¶</a></dt>
+<dd><p>Preprocesses the files in the specified path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>(</strong><strong>bool</strong><strong>)</strong> (<em>verbose</em>) – Set to True to get a progress bar for the file count</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>list[str]</strong></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list of the temporary bundled parquet files</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.pega_io.Anonymization.process">
+<span class="sig-name descname"><span class="pre">process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">chunked_files</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.pega_io.Anonymization.process" title="Link to this definition">¶</a></dt>
+<dd><p>Process the data for anonymization.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>(</strong><strong>list</strong><strong>[</strong><strong>str</strong><strong>]</strong><strong>)</strong> (<em>chunked_files</em>) – A list of the bundled temporary parquet files to process</p></li>
+<li><p><strong>(</strong><strong>bool</strong><strong>)</strong> (<em>verbose</em>) – Whether to print verbose output. Default is True.</p></li>
+<li><p><strong>chunked_files</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>)</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ImportError:</strong> – If polars-hash is not installed.</p></li>
+<li><p><strong>Returns:</strong> – None</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.pega_io._readClientCredentialFile">
 <span class="sig-name descname"><span class="pre">_readClientCredentialFile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">credentialFile</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.pega_io._readClientCredentialFile" title="Link to this definition">¶</a></dt>
@@ -914,6 +1128,22 @@ Typically, this is the top-level folder in the bucket.</p></li>
 <li><a class="reference internal" href="#classes">Classes</a></li>
 <li><a class="reference internal" href="#functions">Functions</a></li>
 <li><a class="reference internal" href="#package-contents">Package Contents</a><ul>
+<li><a class="reference internal" href="#pdstools.pega_io.Anonymization"><code class="docutils literal notranslate"><span class="pre">Anonymization</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.pega_io.Anonymization.path_to_files"><code class="docutils literal notranslate"><span class="pre">path_to_files</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.Anonymization.temp_path"><code class="docutils literal notranslate"><span class="pre">temp_path</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.Anonymization.output_file"><code class="docutils literal notranslate"><span class="pre">output_file</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.Anonymization.skip_col_prefix"><code class="docutils literal notranslate"><span class="pre">skip_col_prefix</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.Anonymization.batch_size"><code class="docutils literal notranslate"><span class="pre">batch_size</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.Anonymization.file_limit"><code class="docutils literal notranslate"><span class="pre">file_limit</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.Anonymization.anonymize"><code class="docutils literal notranslate"><span class="pre">anonymize()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.Anonymization.min_max"><code class="docutils literal notranslate"><span class="pre">min_max()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.Anonymization._infer_types"><code class="docutils literal notranslate"><span class="pre">_infer_types()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.Anonymization.chunker"><code class="docutils literal notranslate"><span class="pre">chunker()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.Anonymization.chunk_to_parquet"><code class="docutils literal notranslate"><span class="pre">chunk_to_parquet()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.Anonymization.preprocess"><code class="docutils literal notranslate"><span class="pre">preprocess()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.pega_io.Anonymization.process"><code class="docutils literal notranslate"><span class="pre">process()</span></code></a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#pdstools.pega_io._readClientCredentialFile"><code class="docutils literal notranslate"><span class="pre">_readClientCredentialFile()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.pega_io.get_URL"><code class="docutils literal notranslate"><span class="pre">get_URL()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.pega_io.get_token"><code class="docutils literal notranslate"><span class="pre">get_token()</span></code></a></li>

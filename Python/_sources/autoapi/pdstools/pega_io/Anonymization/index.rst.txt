@@ -1,0 +1,152 @@
+pdstools.pega_io.Anonymization
+==============================
+
+.. py:module:: pdstools.pega_io.Anonymization
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.pega_io.Anonymization.Anonymization
+
+
+Module Contents
+---------------
+
+.. py:class:: Anonymization(path_to_files: str, temporary_path: str = '/tmp/anonymisation', output_file: str = 'anonymised.parquet', skip_columns_with_prefix: Optional[List[str]] = None, batch_size: int = 500, file_limit: Optional[int] = None)
+
+   .. py:attribute:: path_to_files
+
+
+   .. py:attribute:: temp_path
+
+
+   .. py:attribute:: output_file
+
+
+   .. py:attribute:: skip_col_prefix
+
+
+   .. py:attribute:: batch_size
+
+
+   .. py:attribute:: file_limit
+
+
+   .. py:method:: anonymize(verbose: bool = True)
+
+      Anonymize the data.
+
+      This method performs the anonymization process on the data files specified
+      during initialization. It writes temporary parquet files, processes and
+      writes the parquet files to a single file, and outputs the anonymized data
+      to the specified output file.
+
+      :param verbose: Whether to print verbose output during the anonymization process.
+                      Defaults to True.
+      :type verbose: bool, optional
+
+
+
+   .. py:method:: min_max(column_name: str, range: List[Dict[str, float]]) -> polars.Expr
+      :staticmethod:
+
+
+      Normalize the values in a column using the min-max scaling method.
+
+      :param column_name: The name of the column to be normalized.
+      :type column_name: str
+      :param range: A list of dictionaries containing the minimum and maximum values for the column.
+      :type range: List[Dict[str, float]]
+
+      :returns: A Polars expression representing the normalized column.
+      :rtype: pl.Expr
+
+      .. rubric:: Examples
+
+      >>> range = [{"min": 0.0, "max": 100.0}]
+      >>> min_max("age", range)
+      Column "age" normalized using min-max scaling.
+
+
+
+   .. py:method:: _infer_types(df: polars.DataFrame)
+      :staticmethod:
+
+
+      Infers the types of columns in a DataFrame.
+
+      :param df (pl.DataFrame): The DataFrame for which to infer column types.
+
+      :returns: A dictionary mapping column names to their inferred types.
+                The inferred types can be either "numeric" or "symbolic".
+      :rtype: dict
+
+
+
+   .. py:method:: chunker(files: List[str], size: int)
+      :staticmethod:
+
+
+      Split a list of files into chunks of a specified size.
+
+      :param files (List[str]): A list of file names.
+      :param size (int): The size of each chunk.
+
+      :returns: A generator that yields chunks of files.
+      :rtype: generator
+
+      .. rubric:: Examples
+
+      >>> files = ['file1.txt', 'file2.txt', 'file3.txt', 'file4.txt', 'file5.txt']
+      >>> chunks = chunker(files, 2)
+      >>> for chunk in chunks:
+      ...     print(chunk)
+      ['file1.txt', 'file2.txt']
+      ['file3.txt', 'file4.txt']
+      ['file5.txt']
+
+
+
+   .. py:method:: chunk_to_parquet(files: List[str], i) -> str
+
+      Convert a chunk of files to Parquet format.
+
+      Parameters:
+      files (List[str]):
+          List of file paths to be converted.
+      temp_path (str):
+          Path to the temporary directory where the Parquet file will be saved.
+      i:
+          Index of the chunk.
+
+      Returns:
+      str: File path of the converted Parquet file.
+
+
+
+   .. py:method:: preprocess(verbose: bool) -> List[str]
+
+      Preprocesses the files in the specified path.
+
+      :param verbose (bool): Set to True to get a progress bar for the file count
+
+      :returns: **list[str]**
+      :rtype: A list of the temporary bundled parquet files
+
+
+
+   .. py:method:: process(chunked_files: List[str], verbose: bool = True)
+
+      Process the data for anonymization.
+
+      :param chunked_files (list[str]): A list of the bundled temporary parquet files to process
+      :param verbose (bool): Whether to print verbose output. Default is True.
+
+      :raises ImportError:: If polars-hash is not installed.
+      :raises Returns:: None
+
+
+

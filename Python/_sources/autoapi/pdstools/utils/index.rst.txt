@@ -15,8 +15,6 @@ Submodules
    /autoapi/pdstools/utils/cdh_utils/index
    /autoapi/pdstools/utils/datasets/index
    /autoapi/pdstools/utils/errors/index
-   /autoapi/pdstools/utils/hds_utils/index
-   /autoapi/pdstools/utils/hds_utils_experimental/index
    /autoapi/pdstools/utils/pega_template/index
    /autoapi/pdstools/utils/polars_ext/index
    /autoapi/pdstools/utils/show_versions/index

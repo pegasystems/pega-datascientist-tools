@@ -294,6 +294,7 @@
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="autoapi/pdstools/pega_io/index.html">pdstools.pega_io</a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><div class="visually-hidden">Toggle navigation of pdstools.pega_io</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/pega_io/API/index.html">pdstools.pega_io.API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/pega_io/Anonymization/index.html">pdstools.pega_io.Anonymization</a></li>
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/pega_io/File/index.html">pdstools.pega_io.File</a></li>
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/pega_io/S3/index.html">pdstools.pega_io.S3</a></li>
 </ul>
@@ -314,8 +315,6 @@
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/utils/cdh_utils/index.html">pdstools.utils.cdh_utils</a></li>
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/utils/datasets/index.html">pdstools.utils.datasets</a></li>
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/utils/errors/index.html">pdstools.utils.errors</a></li>
-<li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/utils/hds_utils/index.html">pdstools.utils.hds_utils</a></li>
-<li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/utils/hds_utils_experimental/index.html">pdstools.utils.hds_utils_experimental</a></li>
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/utils/pega_template/index.html">pdstools.utils.pega_template</a></li>
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/utils/polars_ext/index.html">pdstools.utils.polars_ext</a></li>
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/utils/show_versions/index.html">pdstools.utils.show_versions</a></li>
@@ -435,7 +434,7 @@
 </li>
         <li><a href="autoapi/pdstools/adm/ADMDatamart/index.html#pdstools.adm.ADMDatamart.ADMDatamart._import_utils">_import_utils() (ADMDatamart method)</a>, <a href="autoapi/pdstools/index.html#pdstools.ADMDatamart._import_utils">[1]</a>
 </li>
-        <li><a href="autoapi/pdstools/utils/hds_utils_experimental/index.html#pdstools.utils.hds_utils_experimental.DataAnonymization2._inferTypes">_inferTypes() (DataAnonymization2 method)</a>
+        <li><a href="autoapi/pdstools/pega_io/Anonymization/index.html#pdstools.pega_io.Anonymization.Anonymization._infer_types">_infer_types() (Anonymization static method)</a>, <a href="autoapi/pdstools/pega_io/index.html#pdstools.pega_io.Anonymization._infer_types">[1]</a>
 </li>
         <li><a href="autoapi/pdstools/index.html#pdstools.CDHLimits._instance">_instance (CDHLimits attribute)</a>, <a href="autoapi/pdstools/utils/CDHLimits/index.html#pdstools.utils.CDHLimits.CDHLimits._instance">[1]</a>
 </li>
@@ -448,8 +447,6 @@
         <li><a href="autoapi/pdstools/index.html#pdstools.Sample._ldf">_ldf (Sample attribute)</a>, <a href="autoapi/pdstools/utils/polars_ext/index.html#pdstools.utils.polars_ext.Sample._ldf">[1]</a>
 </li>
         <li><a href="autoapi/pdstools/ih/IHAnalysis/index.html#pdstools.ih.IHAnalysis._metricPerPeriod">_metricPerPeriod() (in module pdstools.ih.IHAnalysis)</a>
-</li>
-        <li><a href="autoapi/pdstools/index.html#pdstools.Config._opts">_opts (Config attribute)</a>, <a href="autoapi/pdstools/utils/hds_utils/index.html#pdstools.utils.hds_utils.Config._opts">[1]</a>, <a href="autoapi/pdstools/utils/hds_utils_experimental/index.html#pdstools.utils.hds_utils_experimental.Config._opts">[2]</a>
 </li>
         <li><a href="autoapi/pdstools/ih/IHAnalysis/index.html#pdstools.ih.IHAnalysis._plotPerPeriod">_plotPerPeriod() (in module pdstools.ih.IHAnalysis)</a>
 </li>
@@ -521,12 +518,20 @@
           <li><a href="autoapi/pdstools/adm/ADMTrees/index.html#id6">(ADMTreesModel property)</a>
 </li>
         </ul></li>
-        <li><a href="autoapi/pdstools/utils/types/index.html#pdstools.utils.types.any_frame">any_frame (in module pdstools.utils.types)</a>
+        <li><a href="autoapi/pdstools/pega_io/index.html#pdstools.pega_io.Anonymization">Anonymization (class in pdstools.pega_io)</a>
+
+        <ul>
+          <li><a href="autoapi/pdstools/pega_io/Anonymization/index.html#pdstools.pega_io.Anonymization.Anonymization">(class in pdstools.pega_io.Anonymization)</a>
 </li>
-        <li><a href="autoapi/pdstools/adm/Tables/index.html#pdstools.adm.Tables.Tables.ApplicableTables">ApplicableTables (Tables property)</a>
+        </ul></li>
+        <li><a href="autoapi/pdstools/pega_io/Anonymization/index.html#pdstools.pega_io.Anonymization.Anonymization.anonymize">anonymize() (Anonymization method)</a>, <a href="autoapi/pdstools/pega_io/index.html#pdstools.pega_io.Anonymization.anonymize">[1]</a>
+</li>
+        <li><a href="autoapi/pdstools/utils/types/index.html#pdstools.utils.types.any_frame">any_frame (in module pdstools.utils.types)</a>
 </li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="autoapi/pdstools/adm/Tables/index.html#pdstools.adm.Tables.Tables.ApplicableTables">ApplicableTables (Tables property)</a>
+</li>
         <li><a href="autoapi/pdstools/adm/Tables/index.html#pdstools.adm.Tables.Tables.ApplicableTablesNoPredictorBinning">ApplicableTablesNoPredictorBinning (Tables property)</a>
 </li>
         <li><a href="autoapi/pdstools/plots/plot_base/index.html#pdstools.plots.plot_base.Plots.ApplicableVisualisations">ApplicableVisualisations (Plots property)</a>
@@ -573,6 +578,8 @@
   <h2>B</h2>
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="autoapi/pdstools/pega_io/Anonymization/index.html#pdstools.pega_io.Anonymization.Anonymization.batch_size">batch_size (Anonymization attribute)</a>, <a href="autoapi/pdstools/pega_io/index.html#pdstools.pega_io.Anonymization.batch_size">[1]</a>
+</li>
         <li><a href="autoapi/pdstools/index.html#pdstools.BinAggregator">BinAggregator (class in pdstools)</a>
 
         <ul>
@@ -603,8 +610,6 @@
 </li>
         <li><a href="autoapi/pdstools/app/decision_analyzer/pages/11-Business_Lever_Analysis/index.html#pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis.calculate_lever">calculate_lever (in module pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis)</a>
 </li>
-        <li><a href="autoapi/pdstools/utils/hds_utils_experimental/index.html#pdstools.utils.hds_utils_experimental.DataAnonymization2.calculateNumericRanges">calculateNumericRanges() (DataAnonymization2 method)</a>
-</li>
         <li><a href="autoapi/pdstools/index.html#pdstools.CDHLimits">CDHLimits (class in pdstools)</a>
 
         <ul>
@@ -619,6 +624,10 @@
         </ul></li>
         <li><a href="autoapi/pdstools/index.html#pdstools.CDHLimits.check_limits">check_limits() (CDHLimits method)</a>, <a href="autoapi/pdstools/utils/CDHLimits/index.html#pdstools.utils.CDHLimits.CDHLimits.check_limits">[1]</a>
 </li>
+        <li><a href="autoapi/pdstools/pega_io/Anonymization/index.html#pdstools.pega_io.Anonymization.Anonymization.chunk_to_parquet">chunk_to_parquet() (Anonymization method)</a>, <a href="autoapi/pdstools/pega_io/index.html#pdstools.pega_io.Anonymization.chunk_to_parquet">[1]</a>
+</li>
+        <li><a href="autoapi/pdstools/pega_io/Anonymization/index.html#pdstools.pega_io.Anonymization.Anonymization.chunker">chunker() (Anonymization static method)</a>, <a href="autoapi/pdstools/pega_io/index.html#pdstools.pega_io.Anonymization.chunker">[1]</a>
+</li>
         <li><a href="autoapi/pdstools/decision_analyzer/decision_data/index.html#pdstools.decision_analyzer.decision_data.DecisionData.cleanup_raw_data">cleanup_raw_data() (DecisionData method)</a>, <a href="autoapi/pdstools/decision_analyzer/index.html#pdstools.decision_analyzer.DecisionData.cleanup_raw_data">[1]</a>, <a href="autoapi/pdstools/index.html#pdstools.DecisionData.cleanup_raw_data">[2]</a>
 </li>
         <li><a href="autoapi/pdstools/utils/pega_template/index.html#pdstools.utils.pega_template.colorway">colorway (in module pdstools.utils.pega_template)</a>
@@ -627,26 +636,12 @@
 </li>
         <li><a href="autoapi/pdstools/adm/ADMDatamart/index.html#pdstools.adm.ADMDatamart.ADMDatamart.combinedData">combinedData (ADMDatamart attribute)</a>, <a href="autoapi/pdstools/index.html#pdstools.ADMDatamart.combinedData">[1]</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/pdstools/adm/ADMTrees/index.html#pdstools.adm.ADMTrees.ADMTreesModel.computeCategorizationOverTime">computeCategorizationOverTime() (ADMTreesModel method)</a>
 </li>
         <li><a href="autoapi/pdstools/adm/ADMTrees/index.html#pdstools.adm.ADMTrees.MultiTrees.computeOverTime">computeOverTime() (MultiTrees method)</a>, <a href="autoapi/pdstools/index.html#pdstools.MultiTrees.computeOverTime">[1]</a>
 </li>
-        <li><a href="autoapi/pdstools/index.html#pdstools.Config">Config (class in pdstools)</a>
-
-        <ul>
-          <li><a href="autoapi/pdstools/utils/hds_utils/index.html#pdstools.utils.hds_utils.Config">(class in pdstools.utils.hds_utils)</a>
-</li>
-          <li><a href="autoapi/pdstools/utils/hds_utils_experimental/index.html#pdstools.utils.hds_utils_experimental.Config">(class in pdstools.utils.hds_utils_experimental)</a>
-</li>
-        </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="autoapi/pdstools/index.html#pdstools.DataAnonymization.config">config (DataAnonymization attribute)</a>, <a href="autoapi/pdstools/utils/hds_utils/index.html#pdstools.utils.hds_utils.DataAnonymization.config">[1]</a>
-
-        <ul>
-          <li><a href="autoapi/pdstools/utils/hds_utils_experimental/index.html#pdstools.utils.hds_utils_experimental.DataAnonymization2.config">(DataAnonymization2 attribute)</a>
-</li>
-        </ul></li>
         <li><a href="autoapi/pdstools/utils/streamlit_utils/index.html#pdstools.utils.streamlit_utils.configure_predictor_categorization">configure_predictor_categorization() (in module pdstools.utils.streamlit_utils)</a>
 </li>
         <li><a href="autoapi/pdstools/adm/ADMDatamart/index.html#id1">context_keys (ADMDatamart attribute)</a>, <a href="autoapi/pdstools/adm/ADMDatamart/index.html#pdstools.adm.ADMDatamart.ADMDatamart.context_keys">[1]</a>, <a href="autoapi/pdstools/index.html#id1">[2]</a>, <a href="autoapi/pdstools/index.html#pdstools.ADMDatamart.context_keys">[3]</a>
@@ -669,14 +664,6 @@
 </li>
         <li><a href="autoapi/pdstools/adm/BinAggregator/index.html#pdstools.adm.BinAggregator.BinAggregator.create_empty_numbinning">create_empty_numbinning() (BinAggregator method)</a>, <a href="autoapi/pdstools/index.html#pdstools.BinAggregator.create_empty_numbinning">[1]</a>
 </li>
-        <li><a href="autoapi/pdstools/index.html#pdstools.DataAnonymization.create_mapping_file">create_mapping_file() (DataAnonymization method)</a>, <a href="autoapi/pdstools/utils/hds_utils/index.html#pdstools.utils.hds_utils.DataAnonymization.create_mapping_file">[1]</a>
-
-        <ul>
-          <li><a href="autoapi/pdstools/utils/hds_utils_experimental/index.html#pdstools.utils.hds_utils_experimental.DataAnonymization2.create_mapping_file">(DataAnonymization2 method)</a>
-</li>
-        </ul></li>
-        <li><a href="autoapi/pdstools/utils/hds_utils_experimental/index.html#pdstools.utils.hds_utils_experimental.DataAnonymization2.create_predictor_mapping">create_predictor_mapping() (DataAnonymization2 method)</a>
-</li>
         <li><a href="autoapi/pdstools/adm/BinAggregator/index.html#pdstools.adm.BinAggregator.BinAggregator.create_symbol_list">create_symbol_list() (BinAggregator method)</a>, <a href="autoapi/pdstools/index.html#pdstools.BinAggregator.create_symbol_list">[1]</a>
 </li>
         <li><a href="autoapi/pdstools/utils/cdh_utils/index.html#pdstools.utils.cdh_utils.create_working_and_temp_dir">create_working_and_temp_dir() (in module pdstools.utils.cdh_utils)</a>
@@ -695,14 +682,6 @@
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/pdstools/adm/BinAggregator/index.html#pdstools.adm.BinAggregator.BinAggregator.data">data (BinAggregator attribute)</a>, <a href="autoapi/pdstools/index.html#pdstools.BinAggregator.data">[1]</a>
 </li>
-        <li><a href="autoapi/pdstools/index.html#pdstools.DataAnonymization">DataAnonymization (class in pdstools)</a>
-
-        <ul>
-          <li><a href="autoapi/pdstools/utils/hds_utils/index.html#pdstools.utils.hds_utils.DataAnonymization">(class in pdstools.utils.hds_utils)</a>
-</li>
-        </ul></li>
-        <li><a href="autoapi/pdstools/utils/hds_utils_experimental/index.html#pdstools.utils.hds_utils_experimental.DataAnonymization2">DataAnonymization2 (class in pdstools.utils.hds_utils_experimental)</a>
-</li>
         <li><a href="autoapi/pdstools/decision_analyzer/decision_data/index.html#pdstools.decision_analyzer.decision_data.DecisionData.decision_data">decision_data (DecisionData attribute)</a>, <a href="autoapi/pdstools/decision_analyzer/index.html#pdstools.decision_analyzer.DecisionData.decision_data">[1]</a>, <a href="autoapi/pdstools/index.html#pdstools.DecisionData.decision_data">[2]</a>
 </li>
         <li><a href="autoapi/pdstools/decision_analyzer/table_definition/index.html#pdstools.decision_analyzer.table_definition.DecisionAnalyzer">DecisionAnalyzer (in module pdstools.decision_analyzer.table_definition)</a>
@@ -719,10 +698,10 @@
 </li>
         <li><a href="autoapi/pdstools/decision_analyzer/table_definition/index.html#pdstools.decision_analyzer.table_definition.TableConfig.default">default (TableConfig attribute)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/pdstools/app/decision_analyzer/pages/8-offer_quality_analysis/index.html#pdstools.app.decision_analyzer.pages.8-offer_quality_analysis.defaultPercentile">defaultPercentile (in module pdstools.app.decision_analyzer.pages.8-offer_quality_analysis)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/pdstools/index.html#pdstools.defaultPredictorCategorization">defaultPredictorCategorization() (in module pdstools)</a>
 
         <ul>
@@ -738,8 +717,6 @@
         <li><a href="autoapi/pdstools/decision_analyzer/utils/index.html#pdstools.decision_analyzer.utils.determine_extract_type">determine_extract_type() (in module pdstools.decision_analyzer.utils)</a>
 </li>
         <li><a href="autoapi/pdstools/index.html#pdstools.ValueFinder.df">df (ValueFinder attribute)</a>, <a href="autoapi/pdstools/valuefinder/ValueFinder/index.html#pdstools.valuefinder.ValueFinder.ValueFinder.df">[1]</a>
-</li>
-        <li><a href="autoapi/pdstools/index.html#pdstools.DataAnonymization.df_out">df_out (DataAnonymization attribute)</a>, <a href="autoapi/pdstools/utils/hds_utils/index.html#pdstools.utils.hds_utils.DataAnonymization.df_out">[1]</a>
 </li>
         <li><a href="autoapi/pdstools/adm/ADMDatamart/index.html#pdstools.adm.ADMDatamart.ADMDatamart.discover_modelTypes">discover_modelTypes() (ADMDatamart method)</a>, <a href="autoapi/pdstools/index.html#pdstools.ADMDatamart.discover_modelTypes">[1]</a>
 </li>
@@ -792,6 +769,8 @@
         <li><a href="autoapi/pdstools/utils/cdh_utils/index.html#pdstools.utils.cdh_utils.featureImportance">featureImportance() (in module pdstools.utils.cdh_utils)</a>
 </li>
         <li><a href="autoapi/pdstools/decision_analyzer/decision_data/index.html#pdstools.decision_analyzer.decision_data.DecisionData.fields_for_data_filtering">fields_for_data_filtering (DecisionData attribute)</a>, <a href="autoapi/pdstools/decision_analyzer/index.html#pdstools.decision_analyzer.DecisionData.fields_for_data_filtering">[1]</a>, <a href="autoapi/pdstools/index.html#pdstools.DecisionData.fields_for_data_filtering">[2]</a>
+</li>
+        <li><a href="autoapi/pdstools/pega_io/Anonymization/index.html#pdstools.pega_io.Anonymization.Anonymization.file_limit">file_limit (Anonymization attribute)</a>, <a href="autoapi/pdstools/pega_io/index.html#pdstools.pega_io.Anonymization.file_limit">[1]</a>
 </li>
         <li><a href="autoapi/pdstools/app/decision_analyzer/Home/index.html#pdstools.app.decision_analyzer.Home.file_upload_options">file_upload_options (in module pdstools.app.decision_analyzer.Home)</a>
 </li>
@@ -857,12 +836,6 @@
 </li>
         <li><a href="autoapi/pdstools/ih/legacy_IH/index.html#pdstools.ih.legacy_IH.get_allDays_df">get_allDays_df() (in module pdstools.ih.legacy_IH)</a>
 </li>
-        <li><a href="autoapi/pdstools/index.html#pdstools.DataAnonymization.get_columns_by_type">get_columns_by_type() (DataAnonymization method)</a>, <a href="autoapi/pdstools/utils/hds_utils/index.html#pdstools.utils.hds_utils.DataAnonymization.get_columns_by_type">[1]</a>
-
-        <ul>
-          <li><a href="autoapi/pdstools/utils/hds_utils_experimental/index.html#pdstools.utils.hds_utils_experimental.DataAnonymization2.get_columns_by_type">(DataAnonymization2 method)</a>
-</li>
-        </ul></li>
         <li><a href="autoapi/pdstools/app/decision_analyzer/da_streamlit_utils/index.html#pdstools.app.decision_analyzer.da_streamlit_utils.get_current_index">get_current_index() (in module pdstools.app.decision_analyzer.da_streamlit_utils)</a>
 </li>
         <li><a href="autoapi/pdstools/app/decision_analyzer/da_streamlit_utils/index.html#pdstools.app.decision_analyzer.da_streamlit_utils.get_current_scope_index">get_current_scope_index() (in module pdstools.app.decision_analyzer.da_streamlit_utils)</a>
@@ -911,8 +884,6 @@
 </li>
         <li><a href="autoapi/pdstools/app/decision_analyzer/da_streamlit_utils/index.html#pdstools.app.decision_analyzer.da_streamlit_utils.get_pages">get_pages() (in module pdstools.app.decision_analyzer.da_streamlit_utils)</a>
 </li>
-        <li><a href="autoapi/pdstools/index.html#pdstools.DataAnonymization.get_predictors_mapping">get_predictors_mapping() (DataAnonymization method)</a>, <a href="autoapi/pdstools/utils/hds_utils/index.html#pdstools.utils.hds_utils.DataAnonymization.get_predictors_mapping">[1]</a>
-</li>
         <li><a href="autoapi/pdstools/decision_analyzer/utils/index.html#pdstools.decision_analyzer.utils.get_schema">get_schema() (in module pdstools.decision_analyzer.utils)</a>
 </li>
         <li><a href="autoapi/pdstools/decision_analyzer/decision_data/index.html#pdstools.decision_analyzer.decision_data.DecisionData.get_sensitivity">get_sensitivity() (DecisionData method)</a>, <a href="autoapi/pdstools/decision_analyzer/index.html#pdstools.decision_analyzer.DecisionData.get_sensitivity">[1]</a>, <a href="autoapi/pdstools/index.html#pdstools.DecisionData.get_sensitivity">[2]</a>
@@ -929,10 +900,10 @@
           <li><a href="autoapi/pdstools/pega_io/API/index.html#pdstools.pega_io.API.get_token">(in module pdstools.pega_io.API)</a>
 </li>
         </ul></li>
-        <li><a href="autoapi/pdstools/ih/legacy_IH/index.html#pdstools.ih.legacy_IH.get_total_outcome">get_total_outcome() (in module pdstools.ih.legacy_IH)</a>
-</li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="autoapi/pdstools/ih/legacy_IH/index.html#pdstools.ih.legacy_IH.get_total_outcome">get_total_outcome() (in module pdstools.ih.legacy_IH)</a>
+</li>
         <li><a href="autoapi/pdstools/ih/legacy_IH/index.html#pdstools.ih.legacy_IH.get_total_outcome_share_per_level">get_total_outcome_share_per_level() (in module pdstools.ih.legacy_IH)</a>
 </li>
         <li><a href="autoapi/pdstools/pega_io/index.html#pdstools.pega_io.get_URL">get_URL() (in module pdstools.pega_io)</a>
@@ -965,8 +936,6 @@
 </li>
         <li><a href="autoapi/pdstools/decision_analyzer/decision_data/index.html#pdstools.decision_analyzer.decision_data.DecisionData.getDistributionData">getDistributionData() (DecisionData method)</a>, <a href="autoapi/pdstools/decision_analyzer/index.html#pdstools.decision_analyzer.DecisionData.getDistributionData">[1]</a>, <a href="autoapi/pdstools/index.html#pdstools.DecisionData.getDistributionData">[2]</a>
 </li>
-        <li><a href="autoapi/pdstools/utils/hds_utils_experimental/index.html#pdstools.utils.hds_utils_experimental.DataAnonymization2.getFiles">getFiles() (DataAnonymization2 method)</a>
-</li>
         <li><a href="autoapi/pdstools/decision_analyzer/decision_data/index.html#pdstools.decision_analyzer.decision_data.DecisionData.getFilterComponentData">getFilterComponentData() (DecisionData method)</a>, <a href="autoapi/pdstools/decision_analyzer/index.html#pdstools.decision_analyzer.DecisionData.getFilterComponentData">[1]</a>, <a href="autoapi/pdstools/index.html#pdstools.DecisionData.getFilterComponentData">[2]</a>
 </li>
         <li><a href="autoapi/pdstools/decision_analyzer/decision_data/index.html#pdstools.decision_analyzer.decision_data.DecisionData.getFunnelData">getFunnelData() (DecisionData method)</a>, <a href="autoapi/pdstools/decision_analyzer/index.html#pdstools.decision_analyzer.DecisionData.getFunnelData">[1]</a>, <a href="autoapi/pdstools/index.html#pdstools.DecisionData.getFunnelData">[2]</a>
@@ -975,12 +944,6 @@
 </li>
         <li><a href="autoapi/pdstools/adm/ADMTrees/index.html#pdstools.adm.ADMTrees.ADMTreesModel.getGroupedGainsPerSplit">getGroupedGainsPerSplit() (ADMTreesModel method)</a>
 </li>
-        <li><a href="autoapi/pdstools/index.html#pdstools.DataAnonymization.getHasher">getHasher() (DataAnonymization method)</a>, <a href="autoapi/pdstools/utils/hds_utils/index.html#pdstools.utils.hds_utils.DataAnonymization.getHasher">[1]</a>
-
-        <ul>
-          <li><a href="autoapi/pdstools/utils/hds_utils_experimental/index.html#pdstools.utils.hds_utils_experimental.DataAnonymization2.getHasher">(DataAnonymization2 method)</a>
-</li>
-        </ul></li>
         <li><a href="autoapi/pdstools/pega_io/index.html#pdstools.pega_io.getMatches">getMatches() (in module pdstools.pega_io)</a>
 
         <ul>
@@ -1002,8 +965,6 @@
         <li><a href="autoapi/pdstools/prediction/Prediction/index.html#pdstools.prediction.Prediction.Prediction.getPredictionsChannelMapping">getPredictionsChannelMapping() (Prediction method)</a>, <a href="autoapi/pdstools/prediction/index.html#pdstools.prediction.Prediction.getPredictionsChannelMapping">[1]</a>
 </li>
         <li><a href="autoapi/pdstools/adm/ADMTrees/index.html#pdstools.adm.ADMTrees.ADMTreesModel.getPredictors">getPredictors() (ADMTreesModel method)</a>
-</li>
-        <li><a href="autoapi/pdstools/utils/hds_utils_experimental/index.html#pdstools.utils.hds_utils_experimental.DataAnonymization2.getPredictorsWithTypes">getPredictorsWithTypes() (DataAnonymization2 method)</a>
 </li>
         <li><a href="autoapi/pdstools/pega_io/S3/index.html#pdstools.pega_io.S3.S3Data.getS3Files">getS3Files() (S3Data method)</a>, <a href="autoapi/pdstools/pega_io/index.html#pdstools.pega_io.S3Data.getS3Files">[1]</a>
 </li>
@@ -1091,8 +1052,6 @@
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/pdstools/utils/cdh_utils/index.html#pdstools.utils.cdh_utils.inferTableDefinition">inferTableDefinition() (in module pdstools.utils.cdh_utils)</a>
 </li>
-        <li><a href="autoapi/pdstools/utils/hds_utils_experimental/index.html#pdstools.utils.hds_utils_experimental.DataAnonymization2.inferTypes">inferTypes() (DataAnonymization2 method)</a>
-</li>
         <li><a href="autoapi/pdstools/ih/legacy_IH/index.html#pdstools.ih.legacy_IH.initial_prep">initial_prep() (in module pdstools.ih.legacy_IH)</a>
 </li>
         <li><a href="autoapi/pdstools/adm/ADMDatamart/index.html#pdstools.adm.ADMDatamart.ADMDatamart.is_available">is_available (ADMDatamart property)</a>, <a href="autoapi/pdstools/index.html#pdstools.ADMDatamart.is_available">[1]</a>
@@ -1137,17 +1096,13 @@
 </li>
         <li><a href="autoapi/pdstools/app/decision_analyzer/pages/11-Business_Lever_Analysis/index.html#pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis.lever">lever (in module pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis)</a>
 </li>
-        <li><a href="autoapi/pdstools/app/decision_analyzer/pages/11-Business_Lever_Analysis/index.html#pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis.lever_for_desired_ratio">lever_for_desired_ratio (in module pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis)</a>
-</li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="autoapi/pdstools/app/decision_analyzer/pages/11-Business_Lever_Analysis/index.html#pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis.lever_for_desired_ratio">lever_for_desired_ratio (in module pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis)</a>
+</li>
         <li><a href="autoapi/pdstools/utils/cdh_utils/index.html#pdstools.utils.cdh_utils.lift">lift() (in module pdstools.utils.cdh_utils)</a>
 </li>
         <li><a href="autoapi/pdstools/index.html#pdstools.CDHLimits.lims">lims (CDHLimits attribute)</a>, <a href="autoapi/pdstools/utils/CDHLimits/index.html#pdstools.utils.CDHLimits.CDHLimits.lims">[1]</a>
-</li>
-        <li><a href="autoapi/pdstools/index.html#pdstools.Config.load_from_config_file">load_from_config_file() (Config method)</a>, <a href="autoapi/pdstools/utils/hds_utils/index.html#pdstools.utils.hds_utils.Config.load_from_config_file">[1]</a>, <a href="autoapi/pdstools/utils/hds_utils_experimental/index.html#pdstools.utils.hds_utils_experimental.Config.load_from_config_file">[2]</a>
-</li>
-        <li><a href="autoapi/pdstools/index.html#pdstools.DataAnonymization.load_hds_files">load_hds_files() (DataAnonymization method)</a>, <a href="autoapi/pdstools/utils/hds_utils/index.html#pdstools.utils.hds_utils.DataAnonymization.load_hds_files">[1]</a>
 </li>
         <li><a href="autoapi/pdstools/adm/ADMDatamart/index.html#pdstools.adm.ADMDatamart.logger">logger (in module pdstools.adm.ADMDatamart)</a>
 
@@ -1174,6 +1129,8 @@
         <li><a href="autoapi/pdstools/index.html#pdstools.ValueFinder.maxPropPerCustomer">maxPropPerCustomer (ValueFinder attribute)</a>, <a href="autoapi/pdstools/valuefinder/ValueFinder/index.html#pdstools.valuefinder.ValueFinder.ValueFinder.maxPropPerCustomer">[1]</a>
 </li>
         <li><a href="autoapi/pdstools/index.html#pdstools.CDHLimits.Metrics">Metrics (CDHLimits attribute)</a>, <a href="autoapi/pdstools/utils/CDHLimits/index.html#pdstools.utils.CDHLimits.CDHLimits.Metrics">[1]</a>
+</li>
+        <li><a href="autoapi/pdstools/pega_io/Anonymization/index.html#pdstools.pega_io.Anonymization.Anonymization.min_max">min_max() (Anonymization static method)</a>, <a href="autoapi/pdstools/pega_io/index.html#pdstools.pega_io.Anonymization.min_max">[1]</a>
 </li>
         <li><a href="autoapi/pdstools/adm/ADMTrees/index.html#pdstools.adm.ADMTrees.ADMTreesModel.model">model (ADMTreesModel attribute)</a>
 </li>
@@ -1279,6 +1236,8 @@
 </li>
           <li><a href="autoapi/pdstools/pega_io/index.html#module-pdstools.pega_io">pdstools.pega_io</a>
 </li>
+          <li><a href="autoapi/pdstools/pega_io/Anonymization/index.html#module-pdstools.pega_io.Anonymization">pdstools.pega_io.Anonymization</a>
+</li>
           <li><a href="autoapi/pdstools/pega_io/API/index.html#module-pdstools.pega_io.API">pdstools.pega_io.API</a>
 </li>
           <li><a href="autoapi/pdstools/pega_io/File/index.html#module-pdstools.pega_io.File">pdstools.pega_io.File</a>
@@ -1306,10 +1265,6 @@
           <li><a href="autoapi/pdstools/utils/datasets/index.html#module-pdstools.utils.datasets">pdstools.utils.datasets</a>
 </li>
           <li><a href="autoapi/pdstools/utils/errors/index.html#module-pdstools.utils.errors">pdstools.utils.errors</a>
-</li>
-          <li><a href="autoapi/pdstools/utils/hds_utils/index.html#module-pdstools.utils.hds_utils">pdstools.utils.hds_utils</a>
-</li>
-          <li><a href="autoapi/pdstools/utils/hds_utils_experimental/index.html#module-pdstools.utils.hds_utils_experimental">pdstools.utils.hds_utils_experimental</a>
 </li>
           <li><a href="autoapi/pdstools/utils/NBAD/index.html#module-pdstools.utils.NBAD">pdstools.utils.NBAD</a>
 </li>
@@ -1372,8 +1327,6 @@
 </li>
         <li><a href="autoapi/pdstools/index.html#pdstools.CDHLimits.num_limit">num_limit (CDHLimits attribute)</a>, <a href="autoapi/pdstools/utils/CDHLimits/index.html#pdstools.utils.CDHLimits.CDHLimits.num_limit">[1]</a>
 </li>
-        <li><a href="autoapi/pdstools/utils/hds_utils_experimental/index.html#pdstools.utils.hds_utils_experimental.DataAnonymization2.numericRanges">numericRanges (DataAnonymization2 attribute)</a>
-</li>
     </ul></td>
   </tr></table>
 </section>
@@ -1388,14 +1341,16 @@
 </li>
         <li><a href="autoapi/pdstools/app/health_check/pages/1_Data_Import/index.html#pdstools.app.health_check.pages.1_Data_Import.opts">opts (in module pdstools.app.health_check.pages.1_Data_Import)</a>
 </li>
+        <li><a href="autoapi/pdstools/pega_io/Anonymization/index.html#pdstools.pega_io.Anonymization.Anonymization.output_file">output_file (Anonymization attribute)</a>, <a href="autoapi/pdstools/pega_io/index.html#pdstools.pega_io.Anonymization.output_file">[1]</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/pdstools/adm/ADMDatamart/index.html#pdstools.adm.ADMDatamart.ADMDatamart.overall_summary">overall_summary() (ADMDatamart method)</a>, <a href="autoapi/pdstools/index.html#pdstools.ADMDatamart.overall_summary">[1]</a>
 
         <ul>
           <li><a href="autoapi/pdstools/prediction/Prediction/index.html#pdstools.prediction.Prediction.Prediction.overall_summary">(Prediction method)</a>, <a href="autoapi/pdstools/prediction/index.html#pdstools.prediction.Prediction.overall_summary">[1]</a>
 </li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/pdstools/utils/cdh_utils/index.html#pdstools.utils.cdh_utils.overlap_lists_polars">overlap_lists_polars() (in module pdstools.utils.cdh_utils)</a>
 </li>
         <li><a href="autoapi/pdstools/plots/plots_plotly/index.html#pdstools.plots.plots_plotly.ADMVisualisations.OverTime">OverTime() (ADMVisualisations method)</a>
@@ -1419,6 +1374,8 @@
         <li><a href="autoapi/pdstools/adm/ADMTrees/index.html#pdstools.adm.ADMTrees.ADMTreesModel.parseSplitValues">parseSplitValues() (ADMTreesModel method)</a>
 </li>
         <li><a href="autoapi/pdstools/adm/ADMTrees/index.html#pdstools.adm.ADMTrees.ADMTreesModel.parseSplitValuesWithSpaces">parseSplitValuesWithSpaces() (ADMTreesModel static method)</a>
+</li>
+        <li><a href="autoapi/pdstools/pega_io/Anonymization/index.html#pdstools.pega_io.Anonymization.Anonymization.path_to_files">path_to_files (Anonymization attribute)</a>, <a href="autoapi/pdstools/pega_io/index.html#pdstools.pega_io.Anonymization.path_to_files">[1]</a>
 </li>
         <li>
     pdstools
@@ -1701,6 +1658,13 @@
 </li>
         </ul></li>
         <li>
+    pdstools.pega_io.Anonymization
+
+        <ul>
+          <li><a href="autoapi/pdstools/pega_io/Anonymization/index.html#module-pdstools.pega_io.Anonymization">module</a>
+</li>
+        </ul></li>
+        <li>
     pdstools.pega_io.API
 
         <ul>
@@ -1796,20 +1760,6 @@
 
         <ul>
           <li><a href="autoapi/pdstools/utils/errors/index.html#module-pdstools.utils.errors">module</a>
-</li>
-        </ul></li>
-        <li>
-    pdstools.utils.hds_utils
-
-        <ul>
-          <li><a href="autoapi/pdstools/utils/hds_utils/index.html#module-pdstools.utils.hds_utils">module</a>
-</li>
-        </ul></li>
-        <li>
-    pdstools.utils.hds_utils_experimental
-
-        <ul>
-          <li><a href="autoapi/pdstools/utils/hds_utils_experimental/index.html#module-pdstools.utils.hds_utils_experimental">module</a>
 </li>
         </ul></li>
         <li>
@@ -2077,11 +2027,11 @@
           <li><a href="autoapi/pdstools/adm/ADMTrees/index.html#id0">(ADMTreesModel property)</a>
 </li>
         </ul></li>
-        <li><a href="autoapi/pdstools/index.html#pdstools.DataAnonymization.process">process() (DataAnonymization method)</a>, <a href="autoapi/pdstools/utils/hds_utils/index.html#pdstools.utils.hds_utils.DataAnonymization.process">[1]</a>
+        <li><a href="autoapi/pdstools/pega_io/Anonymization/index.html#pdstools.pega_io.Anonymization.Anonymization.preprocess">preprocess() (Anonymization method)</a>, <a href="autoapi/pdstools/pega_io/index.html#pdstools.pega_io.Anonymization.preprocess">[1]</a>
+</li>
+        <li><a href="autoapi/pdstools/pega_io/Anonymization/index.html#pdstools.pega_io.Anonymization.Anonymization.process">process() (Anonymization method)</a>, <a href="autoapi/pdstools/pega_io/index.html#pdstools.pega_io.Anonymization.process">[1]</a>
 
         <ul>
-          <li><a href="autoapi/pdstools/utils/hds_utils_experimental/index.html#pdstools.utils.hds_utils_experimental.DataAnonymization2.process">(DataAnonymization2 method)</a>
-</li>
           <li><a href="autoapi/pdstools/decision_analyzer/utils/index.html#pdstools.decision_analyzer.utils.process">(in module pdstools.decision_analyzer.utils)</a>
 </li>
         </ul></li>
@@ -2341,10 +2291,6 @@
 </li>
         <li><a href="autoapi/pdstools/decision_analyzer/data_read_utils/index.html#pdstools.decision_analyzer.data_read_utils.read_nested_zip_files">read_nested_zip_files() (in module pdstools.decision_analyzer.data_read_utils)</a>
 </li>
-        <li><a href="autoapi/pdstools/index.html#pdstools.DataAnonymization.read_predictor_type_from_datamart">read_predictor_type_from_datamart() (DataAnonymization static method)</a>, <a href="autoapi/pdstools/utils/hds_utils/index.html#pdstools.utils.hds_utils.DataAnonymization.read_predictor_type_from_datamart">[1]</a>
-</li>
-        <li><a href="autoapi/pdstools/index.html#pdstools.DataAnonymization.read_predictor_type_from_file">read_predictor_type_from_file() (DataAnonymization method)</a>, <a href="autoapi/pdstools/utils/hds_utils/index.html#pdstools.utils.hds_utils.DataAnonymization.read_predictor_type_from_file">[1]</a>
-</li>
         <li><a href="autoapi/pdstools/index.html#pdstools.readDSExport">readDSExport() (in module pdstools)</a>
 
         <ul>
@@ -2427,8 +2373,6 @@
           <li><a href="autoapi/pdstools/index.html#pdstools.ValueFinder.save_data">(ValueFinder method)</a>, <a href="autoapi/pdstools/valuefinder/ValueFinder/index.html#pdstools.valuefinder.ValueFinder.ValueFinder.save_data">[1]</a>
 </li>
         </ul></li>
-        <li><a href="autoapi/pdstools/index.html#pdstools.Config.save_to_config_file">save_to_config_file() (Config method)</a>, <a href="autoapi/pdstools/utils/hds_utils/index.html#pdstools.utils.hds_utils.Config.save_to_config_file">[1]</a>, <a href="autoapi/pdstools/utils/hds_utils_experimental/index.html#pdstools.utils.hds_utils_experimental.Config.save_to_config_file">[2]</a>
-</li>
         <li><a href="autoapi/pdstools/app/decision_analyzer/pages/10-Business_Value_Analysis/index.html#pdstools.app.decision_analyzer.pages.10-Business_Value_Analysis.scope_index">scope_index (in module pdstools.app.decision_analyzer.pages.10-Business_Value_Analysis)</a>
 
         <ul>
@@ -2463,16 +2407,6 @@
 </li>
         <li><a href="autoapi/pdstools/utils/cdh_utils/index.html#pdstools.utils.cdh_utils.set_types">set_types() (in module pdstools.utils.cdh_utils)</a>
 </li>
-        <li><a href="autoapi/pdstools/utils/hds_utils_experimental/index.html#pdstools.utils.hds_utils_experimental.DataAnonymization2.setNumericRanges">setNumericRanges() (DataAnonymization2 method)</a>
-</li>
-        <li><a href="autoapi/pdstools/utils/hds_utils_experimental/index.html#pdstools.utils.hds_utils_experimental.DataAnonymization2.setPredictorTypes">setPredictorTypes() (DataAnonymization2 method)</a>
-</li>
-        <li><a href="autoapi/pdstools/utils/hds_utils_experimental/index.html#pdstools.utils.hds_utils_experimental.DataAnonymization2.setRangeForPredictor">setRangeForPredictor() (DataAnonymization2 method)</a>
-</li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="autoapi/pdstools/utils/hds_utils_experimental/index.html#pdstools.utils.hds_utils_experimental.DataAnonymization2.setTypeForPredictor">setTypeForPredictor() (DataAnonymization2 method)</a>
-</li>
         <li><a href="autoapi/pdstools/utils/cdh_utils/index.html#pdstools.utils.cdh_utils.setup_logger">setup_logger() (in module pdstools.utils.cdh_utils)</a>
 </li>
         <li><a href="autoapi/pdstools/index.html#pdstools.setupAzureOpenAI">setupAzureOpenAI() (in module pdstools)</a>
@@ -2483,6 +2417,8 @@
           <li><a href="autoapi/pdstools/pega_io/API/index.html#pdstools.pega_io.API.setupAzureOpenAI">(in module pdstools.pega_io.API)</a>
 </li>
         </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/pdstools/index.html#pdstools.Sample.shape">shape() (Sample method)</a>, <a href="autoapi/pdstools/utils/polars_ext/index.html#pdstools.utils.polars_ext.Sample.shape">[1]</a>
 </li>
         <li><a href="autoapi/pdstools/app/decision_analyzer/da_streamlit_utils/index.html#pdstools.app.decision_analyzer.da_streamlit_utils.show_filtered_counts">show_filtered_counts() (in module pdstools.app.decision_analyzer.da_streamlit_utils)</a>
@@ -2493,6 +2429,8 @@
           <li><a href="autoapi/pdstools/utils/show_versions/index.html#pdstools.utils.show_versions.show_versions">(in module pdstools.utils.show_versions)</a>
 </li>
         </ul></li>
+        <li><a href="autoapi/pdstools/pega_io/Anonymization/index.html#pdstools.pega_io.Anonymization.Anonymization.skip_col_prefix">skip_col_prefix (Anonymization attribute)</a>, <a href="autoapi/pdstools/pega_io/index.html#pdstools.pega_io.Anonymization.skip_col_prefix">[1]</a>
+</li>
         <li><a href="autoapi/pdstools/app/decision_analyzer/pages/11-Business_Lever_Analysis/index.html#pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis.slider_max">slider_max (in module pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis)</a>
 </li>
         <li><a href="autoapi/pdstools/app/decision_analyzer/pages/11-Business_Lever_Analysis/index.html#pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis.slider_min">slider_min (in module pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis)</a>
@@ -2557,18 +2495,18 @@
 </li>
         <li><a href="autoapi/pdstools/pega_io/S3/index.html#pdstools.pega_io.S3.S3Data.temp_dir">temp_dir (S3Data attribute)</a>, <a href="autoapi/pdstools/pega_io/index.html#pdstools.pega_io.S3Data.temp_dir">[1]</a>
 </li>
+        <li><a href="autoapi/pdstools/pega_io/Anonymization/index.html#pdstools.pega_io.Anonymization.Anonymization.temp_path">temp_path (Anonymization attribute)</a>, <a href="autoapi/pdstools/pega_io/index.html#pdstools.pega_io.Anonymization.temp_path">[1]</a>
+</li>
         <li><a href="autoapi/pdstools/app/decision_analyzer/pages/9-Thresholding_Analysis/index.html#pdstools.app.decision_analyzer.pages.9-Thresholding_Analysis.threshold_deciles_data">threshold_deciles_data (in module pdstools.app.decision_analyzer.pages.9-Thresholding_Analysis)</a>
 </li>
         <li><a href="autoapi/pdstools/app/decision_analyzer/pages/9-Thresholding_Analysis/index.html#pdstools.app.decision_analyzer.pages.9-Thresholding_Analysis.thresholding_mapping">thresholding_mapping (in module pdstools.app.decision_analyzer.pages.9-Thresholding_Analysis)</a>
 </li>
         <li><a href="autoapi/pdstools/app/decision_analyzer/pages/9-Thresholding_Analysis/index.html#pdstools.app.decision_analyzer.pages.9-Thresholding_Analysis.thresholding_on">thresholding_on (in module pdstools.app.decision_analyzer.pages.9-Thresholding_Analysis)</a>
 </li>
-        <li><a href="autoapi/pdstools/utils/hds_utils_experimental/index.html#pdstools.utils.hds_utils_experimental.DataAnonymization2.to_normalize">to_normalize() (DataAnonymization2 method)</a>
-</li>
-        <li><a href="autoapi/pdstools/plots/plot_base/index.html#pdstools.plots.plot_base.Plots.top_n">top_n() (Plots static method)</a>
-</li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="autoapi/pdstools/plots/plot_base/index.html#pdstools.plots.plot_base.Plots.top_n">top_n() (Plots static method)</a>
+</li>
         <li><a href="autoapi/pdstools/utils/cdh_utils/index.html#pdstools.utils.cdh_utils.toPRPCDateTime">toPRPCDateTime() (in module pdstools.utils.cdh_utils)</a>
 </li>
         <li><a href="autoapi/pdstools/plots/plots_plotly/index.html#pdstools.plots.plots_plotly.ADMVisualisations.TreeMap">TreeMap() (ADMVisualisations method)</a>
@@ -2586,8 +2524,6 @@
 </li>
         </ul></li>
         <li><a href="autoapi/pdstools/decision_analyzer/table_definition/index.html#pdstools.decision_analyzer.table_definition.TableConfig.type">type (TableConfig attribute)</a>
-</li>
-        <li><a href="autoapi/pdstools/utils/hds_utils_experimental/index.html#pdstools.utils.hds_utils_experimental.DataAnonymization2.typeMapping">typeMapping (DataAnonymization2 attribute)</a>
 </li>
     </ul></td>
   </tr></table>
@@ -2612,8 +2548,6 @@
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/pdstools/decision_analyzer/data_read_utils/index.html#pdstools.decision_analyzer.data_read_utils.validate_columns">validate_columns() (in module pdstools.decision_analyzer.data_read_utils)</a>
-</li>
-        <li><a href="autoapi/pdstools/index.html#pdstools.Config.validate_paths">validate_paths() (Config method)</a>, <a href="autoapi/pdstools/utils/hds_utils/index.html#pdstools.utils.hds_utils.Config.validate_paths">[1]</a>, <a href="autoapi/pdstools/utils/hds_utils_experimental/index.html#pdstools.utils.hds_utils_experimental.Config.validate_paths">[2]</a>
 </li>
         <li><a href="autoapi/pdstools/app/decision_analyzer/pages/11-Business_Lever_Analysis/index.html#pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis.value">value (in module pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis)</a>
 </li>
@@ -2647,20 +2581,14 @@
 </li>
         <li><a href="autoapi/pdstools/utils/cdh_utils/index.html#pdstools.utils.cdh_utils.weighted_performance_polars">weighted_performance_polars() (in module pdstools.utils.cdh_utils)</a>
 </li>
-        <li><a href="autoapi/pdstools/app/decision_analyzer/pages/11-Business_Lever_Analysis/index.html#pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis.win_count">win_count (in module pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis)</a>
-</li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="autoapi/pdstools/app/decision_analyzer/pages/11-Business_Lever_Analysis/index.html#pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis.win_count">win_count (in module pdstools.app.decision_analyzer.pages.11-Business_Lever_Analysis)</a>
+</li>
         <li><a href="autoapi/pdstools/decision_analyzer/decision_data/index.html#pdstools.decision_analyzer.decision_data.DecisionData.winning_from">winning_from() (DecisionData method)</a>, <a href="autoapi/pdstools/decision_analyzer/index.html#pdstools.decision_analyzer.DecisionData.winning_from">[1]</a>, <a href="autoapi/pdstools/index.html#pdstools.DecisionData.winning_from">[2]</a>
 </li>
         <li><a href="autoapi/pdstools/app/health_check/pages/3_Reports/index.html#pdstools.app.health_check.pages.3_Reports.working_dir">working_dir (in module pdstools.app.health_check.pages.3_Reports)</a>
 </li>
-        <li><a href="autoapi/pdstools/index.html#pdstools.DataAnonymization.write_to_output">write_to_output() (DataAnonymization method)</a>, <a href="autoapi/pdstools/utils/hds_utils/index.html#pdstools.utils.hds_utils.DataAnonymization.write_to_output">[1]</a>
-
-        <ul>
-          <li><a href="autoapi/pdstools/utils/hds_utils_experimental/index.html#pdstools.utils.hds_utils_experimental.DataAnonymization2.write_to_output">(DataAnonymization2 method)</a>
-</li>
-        </ul></li>
     </ul></td>
   </tr></table>
 </section>

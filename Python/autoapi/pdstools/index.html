@@ -296,6 +296,7 @@
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="pega_io/index.html">pdstools.pega_io</a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><div class="visually-hidden">Toggle navigation of pdstools.pega_io</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="pega_io/API/index.html">pdstools.pega_io.API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="pega_io/Anonymization/index.html">pdstools.pega_io.Anonymization</a></li>
 <li class="toctree-l4"><a class="reference internal" href="pega_io/File/index.html">pdstools.pega_io.File</a></li>
 <li class="toctree-l4"><a class="reference internal" href="pega_io/S3/index.html">pdstools.pega_io.S3</a></li>
 </ul>
@@ -316,8 +317,6 @@
 <li class="toctree-l4"><a class="reference internal" href="utils/cdh_utils/index.html">pdstools.utils.cdh_utils</a></li>
 <li class="toctree-l4"><a class="reference internal" href="utils/datasets/index.html">pdstools.utils.datasets</a></li>
 <li class="toctree-l4"><a class="reference internal" href="utils/errors/index.html">pdstools.utils.errors</a></li>
-<li class="toctree-l4"><a class="reference internal" href="utils/hds_utils/index.html">pdstools.utils.hds_utils</a></li>
-<li class="toctree-l4"><a class="reference internal" href="utils/hds_utils_experimental/index.html">pdstools.utils.hds_utils_experimental</a></li>
 <li class="toctree-l4"><a class="reference internal" href="utils/pega_template/index.html">pdstools.utils.pega_template</a></li>
 <li class="toctree-l4"><a class="reference internal" href="utils/polars_ext/index.html">pdstools.utils.polars_ext</a></li>
 <li class="toctree-l4"><a class="reference internal" href="utils/show_versions/index.html">pdstools.utils.show_versions</a></li>
@@ -376,7 +375,7 @@
         <article role="main" id="furo-main-content">
           <section id="module-pdstools">
 <span id="pdstools"></span><h1>pdstools<a class="headerlink" href="#module-pdstools" title="Link to this heading">¶</a></h1>
-<p>Python pdstools</p>
+<p>Pega Data Scientist Tools Python library</p>
 <section id="subpackages">
 <h2>Subpackages<a class="headerlink" href="#subpackages" title="Link to this heading">¶</a></h2>
 <div class="toctree-wrapper compound">
@@ -426,26 +425,20 @@
 <tr class="row-even"><td><p><a class="reference internal" href="#pdstools.BinAggregator" title="pdstools.BinAggregator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BinAggregator</span></code></a></p></td>
 <td><p>A class to generate rolled up insights from ADM predictor binning.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.CDHLimits" title="pdstools.CDHLimits"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CDHLimits</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.DecisionData" title="pdstools.DecisionData"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DecisionData</span></code></a></p></td>
+<td><p>Container data class for the raw decision data. Only one instance of this</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.CDHLimits" title="pdstools.CDHLimits"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CDHLimits</span></code></a></p></td>
 <td><p>A singleton container for best practice limits for CDH.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.Config" title="pdstools.Config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Config</span></code></a></p></td>
-<td><p>Configuration file for the data anonymizer.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.DataAnonymization" title="pdstools.DataAnonymization"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DataAnonymization</span></code></a></p></td>
-<td><p>Anonymize a historical dataset.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.Sample" title="pdstools.Sample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sample</span></code></a></p></td>
+<td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pdstools.PegaDefaultTables" title="pdstools.PegaDefaultTables"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PegaDefaultTables</span></code></a></p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.ValueFinder" title="pdstools.ValueFinder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueFinder</span></code></a></p></td>
 <td><p>Class to analyze Value Finder datasets.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.Sample" title="pdstools.Sample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sample</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.DecisionData" title="pdstools.DecisionData"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DecisionData</span></code></a></p></td>
-<td><p>Container data class for the raw decision data. Only one instance of this</p></td>
 </tr>
 </tbody>
 </table>
@@ -468,17 +461,17 @@
 <tr class="row-even"><td><p><a class="reference internal" href="#pdstools.defaultPredictorCategorization" title="pdstools.defaultPredictorCategorization"><code class="xref py py-obj docutils literal notranslate"><span class="pre">defaultPredictorCategorization</span></code></a>() → polars.Expr)</p></td>
 <td><p>Function to determine the 'category' of a predictor.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.show_versions" title="pdstools.show_versions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">show_versions</span></code></a>(→ None)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.CDHSample" title="pdstools.CDHSample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CDHSample</span></code></a>([plotting_engine, query])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.SampleTrees" title="pdstools.SampleTrees"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SampleTrees</span></code></a>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.SampleValueFinder" title="pdstools.SampleValueFinder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SampleValueFinder</span></code></a>([verbose])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.show_versions" title="pdstools.show_versions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">show_versions</span></code></a>(→ None)</p></td>
 <td><p>Print out version of pdstools and dependencies to stdout.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.CDHSample" title="pdstools.CDHSample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CDHSample</span></code></a>([plotting_engine, query])</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.SampleTrees" title="pdstools.SampleTrees"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SampleTrees</span></code></a>()</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.SampleValueFinder" title="pdstools.SampleValueFinder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SampleValueFinder</span></code></a>([verbose])</p></td>
-<td><p></p></td>
 </tr>
 </tbody>
 </table>
@@ -1673,6 +1666,364 @@ into clean lists for symbolics.</p>
 
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="pdstools.DecisionData">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">DecisionData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData" title="Link to this definition">¶</a></dt>
+<dd><p>Container data class for the raw decision data. Only one instance of this
+should exist and will be associated with the streamlit app state.</p>
+<p>It will keep a pointer to the raw interaction level data (as a
+lazy frame) but also has VBD-style aggregation(s) to speed things up.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>raw_data</strong> (<em>polars.LazyFrame</em>)</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.DecisionData.unfiltered_raw_decision_data">
+<span class="sig-name descname"><span class="pre">unfiltered_raw_decision_data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">polars.LazyFrame</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#pdstools.DecisionData.unfiltered_raw_decision_data" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.DecisionData.decision_data">
+<span class="sig-name descname"><span class="pre">decision_data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">polars.LazyFrame</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#pdstools.DecisionData.decision_data" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.DecisionData.preaggregated_decision_data_filterview">
+<span class="sig-name descname"><span class="pre">preaggregated_decision_data_filterview</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">polars.LazyFrame</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#pdstools.DecisionData.preaggregated_decision_data_filterview" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.DecisionData.preaggregated_decision_data_remainingview">
+<span class="sig-name descname"><span class="pre">preaggregated_decision_data_remainingview</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">polars.LazyFrame</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#pdstools.DecisionData.preaggregated_decision_data_remainingview" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.DecisionData.fields_for_data_filtering">
+<span class="sig-name descname"><span class="pre">fields_for_data_filtering</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['pxDecisionTime',</span> <span class="pre">'pyConfigurationName',</span> <span class="pre">'pyChannel',</span> <span class="pre">'pyDirection',</span> <span class="pre">'pyIssue',</span> <span class="pre">'pyGroup',...</span></em><a class="headerlink" href="#pdstools.DecisionData.fields_for_data_filtering" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.DecisionData.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><a class="headerlink" href="#pdstools.DecisionData.plot" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.DecisionData.extract_type">
+<span class="sig-name descname"><span class="pre">extract_type</span></span><a class="headerlink" href="#pdstools.DecisionData.extract_type" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.DecisionData.raw_data">
+<span class="sig-name descname"><span class="pre">raw_data</span></span><a class="headerlink" href="#pdstools.DecisionData.raw_data" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.DecisionData.available_columns">
+<span class="sig-name descname"><span class="pre">available_columns</span></span><a class="headerlink" href="#pdstools.DecisionData.available_columns" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.DecisionData.preaggregation_columns">
+<span class="sig-name descname"><span class="pre">preaggregation_columns</span></span><a class="headerlink" href="#pdstools.DecisionData.preaggregation_columns" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.DecisionData.max_win_rank">
+<span class="sig-name descname"><span class="pre">max_win_rank</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5</span></em><a class="headerlink" href="#pdstools.DecisionData.max_win_rank" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.DecisionData.AvailableNBADStages">
+<span class="sig-name descname"><span class="pre">AvailableNBADStages</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['Arbitration']</span></em><a class="headerlink" href="#pdstools.DecisionData.AvailableNBADStages" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.DecisionData.stages_from_arbitration_down">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">stages_from_arbitration_down</span></span><a class="headerlink" href="#pdstools.DecisionData.stages_from_arbitration_down" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">All</span> <span class="pre">stages</span> <span class="pre">in</span> <span class="pre">the</span> <span class="pre">filter</span> <span class="pre">view</span> <span class="pre">starting</span> <span class="pre">at</span> <span class="pre">Arbitration.</span> <span class="pre">This</span> <span class="pre">initially</span></span></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">will</span> <span class="pre">just</span> <span class="pre">be</span> <span class="pre">[Arbitration,</span> <span class="pre">Final]</span> <span class="pre">but</span> <span class="pre">as</span> <span class="pre">we</span> <span class="pre">get</span> <span class="pre">more</span> <span class="pre">stages</span> <span class="pre">in</span> <span class="pre">there</span></span></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">may</span> <span class="pre">be</span> <span class="pre">more</span> <span class="pre">here.</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.DecisionData.arbitration_stage">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">arbitration_stage</span></span><a class="headerlink" href="#pdstools.DecisionData.arbitration_stage" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DecisionData._invalidate_cached_properties">
+<span class="sig-name descname"><span class="pre">_invalidate_cached_properties</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData._invalidate_cached_properties" title="Link to this definition">¶</a></dt>
+<dd><p>Resets the properties of the class</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DecisionData.applyGlobalDataFilters">
+<span class="sig-name descname"><span class="pre">applyGlobalDataFilters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">polars.Expr</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.applyGlobalDataFilters" title="Link to this definition">¶</a></dt>
+<dd><p>Apply a global set of filters</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filters</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>polars.Expr</em><em>, </em><em>List</em><em>[</em><em>polars.Expr</em><em>]</em><em>]</em><em>]</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DecisionData.resetGlobalDataFilters">
+<span class="sig-name descname"><span class="pre">resetGlobalDataFilters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.resetGlobalDataFilters" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.DecisionData.getPreaggregatedFilterView">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">getPreaggregatedFilterView</span></span><a class="headerlink" href="#pdstools.DecisionData.getPreaggregatedFilterView" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">Pre-aggregates</span> <span class="pre">the</span> <span class="pre">full</span> <span class="pre">dataset</span> <span class="pre">over</span> <span class="pre">customers</span> <span class="pre">and</span> <span class="pre">interactions</span> <span class="pre">providing</span></span></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">a</span> <span class="pre">view</span> <span class="pre">of</span> <span class="pre">what</span> <span class="pre">is</span> <span class="pre">filtered</span> <span class="pre">at</span> <span class="pre">a</span> <span class="pre">stage.</span></span></dt>
+<dd><p>This pre-aggregation is pretty similar to what “VBD” does to interaction
+history. It aggregates over individual customers and interactions giving
+summary statistics that are sufficient to drive most of the analyses
+(but not all). The results of this pre-aggregation are much smaller
+than the original data and is expected to easily fit in memory. We therefore
+use polars caching to efficiently cache this.</p>
+<p>This “filter” view keeps the same organization as the decision analyzer data
+in that it records the actions that get filtered out at stages. From this
+a “remaining” view is easily derived.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.DecisionData.getPreaggregatedRemainingView">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">getPreaggregatedRemainingView</span></span><a class="headerlink" href="#pdstools.DecisionData.getPreaggregatedRemainingView" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">Pre-aggregates</span> <span class="pre">the</span> <span class="pre">full</span> <span class="pre">dataset</span> <span class="pre">over</span> <span class="pre">customers</span> <span class="pre">and</span> <span class="pre">interactions</span> <span class="pre">providing</span> <span class="pre">a</span> <span class="pre">view</span> <span class="pre">of</span> <span class="pre">remaining</span> <span class="pre">offers.</span></span></dt>
+<dd><p>This pre-aggregation builds on the filter view and aggregates over
+the stages remaining.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.DecisionData.sample">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sample</span></span><a class="headerlink" href="#pdstools.DecisionData.sample" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DecisionData.getAvailableFieldsForFiltering">
+<span class="sig-name descname"><span class="pre">getAvailableFieldsForFiltering</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">categoricalOnly</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.getAvailableFieldsForFiltering" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DecisionData.cleanup_raw_data">
+<span class="sig-name descname"><span class="pre">cleanup_raw_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.cleanup_raw_data" title="Link to this definition">¶</a></dt>
+<dd><p>This method cleans up the raw data we read from parquet/S3/whatever.</p>
+<p>This likely needs to change as and when we get closer to product, to
+match what comes out of Pega. It does some modest type casting and
+potentially changing back some of the temporary column names that have
+been added to generate more data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>polars.LazyFrame</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DecisionData.getPossibleScopeValues">
+<span class="sig-name descname"><span class="pre">getPossibleScopeValues</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.getPossibleScopeValues" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DecisionData.getPossibleStageValues">
+<span class="sig-name descname"><span class="pre">getPossibleStageValues</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.getPossibleStageValues" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DecisionData.getDistributionData">
+<span class="sig-name descname"><span class="pre">getDistributionData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stage</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grouping_levels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additional_filters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">polars.Expr</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.DecisionData.getDistributionData" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>stage</strong> (<em>str</em>)</p></li>
+<li><p><strong>grouping_levels</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>)</p></li>
+<li><p><strong>additional_filters</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>polars.Expr</em><em>, </em><em>List</em><em>[</em><em>polars.Expr</em><em>]</em><em>]</em><em>]</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>polars.LazyFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DecisionData.getFunnelData">
+<span class="sig-name descname"><span class="pre">getFunnelData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">level</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additional_filters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">polars.Expr</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.DecisionData.getFunnelData" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>additional_filters</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>polars.Expr</em><em>, </em><em>List</em><em>[</em><em>polars.Expr</em><em>]</em><em>]</em><em>]</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>polars.LazyFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DecisionData.getFilterComponentData">
+<span class="sig-name descname"><span class="pre">getFilterComponentData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">top_n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additional_filters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">polars.Expr</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span></span></span><a class="headerlink" href="#pdstools.DecisionData.getFilterComponentData" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>additional_filters</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>polars.Expr</em><em>, </em><em>List</em><em>[</em><em>polars.Expr</em><em>]</em><em>]</em><em>]</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>polars.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DecisionData.reRank">
+<span class="sig-name descname"><span class="pre">reRank</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">additional_filters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">polars.Expr</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overrides</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">polars.Expr</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.DecisionData.reRank" title="Link to this definition">¶</a></dt>
+<dd><p>Calculates prio and rank for all PVCL combinations</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>additional_filters</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>polars.Expr</em><em>, </em><em>List</em><em>[</em><em>polars.Expr</em><em>]</em><em>]</em><em>]</em>)</p></li>
+<li><p><strong>overrides</strong> (<em>List</em><em>[</em><em>polars.Expr</em><em>]</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>polars.LazyFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DecisionData.get_win_loss_distribution_data">
+<span class="sig-name descname"><span class="pre">get_win_loss_distribution_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">level</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">win_rank</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.get_win_loss_distribution_data" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.DecisionData.get_optionality_data">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_optionality_data</span></span><a class="headerlink" href="#pdstools.DecisionData.get_optionality_data" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">Finding</span> <span class="pre">the</span> <span class="pre">average</span> <span class="pre">number</span> <span class="pre">of</span> <span class="pre">actions</span> <span class="pre">per</span> <span class="pre">stage</span> <span class="pre">without</span> <span class="pre">trend</span> <span class="pre">analysis.</span></span></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">We</span> <span class="pre">have</span> <span class="pre">to</span> <span class="pre">go</span> <span class="pre">back</span> <span class="pre">to</span> <span class="pre">the</span> <span class="pre">interaction</span> <span class="pre">level</span> <span class="pre">data,</span> <span class="pre">no</span> <span class="pre">way</span> <span class="pre">to</span></span></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">use</span> <span class="pre">pre-aggregations</span> <span class="pre">unfortunately.</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.DecisionData.get_optionality_data_with_trend">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_optionality_data_with_trend</span></span><a class="headerlink" href="#pdstools.DecisionData.get_optionality_data_with_trend" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">Finding</span> <span class="pre">the</span> <span class="pre">average</span> <span class="pre">number</span> <span class="pre">of</span> <span class="pre">actions</span> <span class="pre">per</span> <span class="pre">stage</span> <span class="pre">with</span> <span class="pre">trend</span> <span class="pre">analysis.</span></span></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">We</span> <span class="pre">have</span> <span class="pre">to</span> <span class="pre">go</span> <span class="pre">back</span> <span class="pre">to</span> <span class="pre">the</span> <span class="pre">interaction</span> <span class="pre">level</span> <span class="pre">data,</span> <span class="pre">no</span> <span class="pre">way</span> <span class="pre">to</span></span></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">use</span> <span class="pre">pre-aggregations</span> <span class="pre">unfortunately.</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DecisionData.getActionVariationData">
+<span class="sig-name descname"><span class="pre">getActionVariationData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stage</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.getActionVariationData" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DecisionData.getABTestResults">
+<span class="sig-name descname"><span class="pre">getABTestResults</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.getABTestResults" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DecisionData.getThresholdingData">
+<span class="sig-name descname"><span class="pre">getThresholdingData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fld</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantile_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">range(10,</span> <span class="pre">100,</span> <span class="pre">10)</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.getThresholdingData" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DecisionData.getValueDistributionData">
+<span class="sig-name descname"><span class="pre">getValueDistributionData</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.getValueDistributionData" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DecisionData.aggregate_remaining_per_stage">
+<span class="sig-name descname"><span class="pre">aggregate_remaining_per_stage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_by_columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aggregations</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.DecisionData.aggregate_remaining_per_stage" title="Link to this definition">¶</a></dt>
+<dd><p>Workhorse function to convert the raw Decision Analyzer data (filter view) to
+the aggregates remaining per stage. Used all over the place.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>polars.LazyFrame</em>)</p></li>
+<li><p><strong>group_by_columns</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>)</p></li>
+<li><p><strong>aggregations</strong> (<em>List</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>polars.LazyFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DecisionData.get_offer_quality">
+<span class="sig-name descname"><span class="pre">get_offer_quality</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_by</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.get_offer_quality" title="Link to this definition">¶</a></dt>
+<dd><p>Given a dataframe with filtered action counts at stages.
+Flips it to usual VF view by doing a rolling sum over stages.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>pl.LazyFrame</em>) – Decision Analyzer style filtered action counts dataframe.</p></li>
+<li><p><strong>groupby_cols</strong> (<em>list</em>) – The list of column names to group by([“pxEngagementStage”, “pxInteractionID”]).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Value Finder style, available action counts per group_by category</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pl.LazyFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.DecisionData.get_overview_stats">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_overview_stats</span></span><a class="headerlink" href="#pdstools.DecisionData.get_overview_stats" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">Creates</span> <span class="pre">an</span> <span class="pre">overview</span> <span class="pre">from</span> <span class="pre">sampled</span> <span class="pre">data</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DecisionData.get_sensitivity">
+<span class="sig-name descname"><span class="pre">get_sensitivity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">win_rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.get_sensitivity" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DecisionData.get_offer_variability_stats">
+<span class="sig-name descname"><span class="pre">get_offer_variability_stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stage</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.get_offer_variability_stats" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DecisionData.get_winning_or_losing_interactions">
+<span class="sig-name descname"><span class="pre">get_winning_or_losing_interactions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">win_rank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_filter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">win</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.get_winning_or_losing_interactions" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>win</strong> (<em>bool</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DecisionData.winning_from">
+<span class="sig-name descname"><span class="pre">winning_from</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">interactions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">win_rank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groupby_cols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top_k</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.winning_from" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.DecisionData.losing_to">
+<span class="sig-name descname"><span class="pre">losing_to</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">interactions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">win_rank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groupby_cols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top_k</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.losing_to" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.get_token">
 <span class="sig-name descname"><span class="pre">get_token</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">credentialFile</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verify</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.get_token" title="Link to this definition">¶</a></dt>
@@ -1781,6 +2132,28 @@ Else, ask your system administrator for the correct url.</p></li>
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.defaultPredictorCategorization">
+<span class="sig-name descname"><span class="pre">defaultPredictorCategorization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.Expr</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">pl.col('PredictorName')</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.defaultPredictorCategorization" title="Link to this definition">¶</a></dt>
+<dd><p>Function to determine the ‘category’ of a predictor.</p>
+<p>It is possible to supply a custom function.
+This function can accept an optional column as input
+And as output should be a Polars expression.
+The most straight-forward way to implement this is with
+pl.when().then().otherwise(), which you can chain.</p>
+<p>By default, this function returns “Primary” whenever
+there is no ‘.’ anywhere in the name string,
+otherwise returns the first string before the first period</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>pl.Expr</em><em>]</em><em>, </em><em>default = pl.col</em><em>(</em><em>'PredictorName'</em><em>)</em>) – The column to parse</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>polars.Expr</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="pdstools.CDHLimits">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">CDHLimits</span></span><a class="headerlink" href="#pdstools.CDHLimits" title="Link to this definition">¶</a></dt>
@@ -1845,25 +2218,53 @@ but note these apply to Pega Cloud only.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="pdstools.defaultPredictorCategorization">
-<span class="sig-name descname"><span class="pre">defaultPredictorCategorization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.Expr</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">pl.col('PredictorName')</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.Expr</span></span></span><a class="headerlink" href="#pdstools.defaultPredictorCategorization" title="Link to this definition">¶</a></dt>
-<dd><p>Function to determine the ‘category’ of a predictor.</p>
-<p>It is possible to supply a custom function.
-This function can accept an optional column as input
-And as output should be a Polars expression.
-The most straight-forward way to implement this is with
-pl.when().then().otherwise(), which you can chain.</p>
-<p>By default, this function returns “Primary” whenever
-there is no ‘.’ anywhere in the name string,
-otherwise returns the first string before the first period</p>
-<dl class="field-list simple">
+<dt class="sig sig-object py" id="pdstools.CDHSample">
+<span class="sig-name descname"><span class="pre">CDHSample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plotting_engine</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'plotly'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.CDHSample" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.SampleTrees">
+<span class="sig-name descname"><span class="pre">SampleTrees</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.SampleTrees" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.SampleValueFinder">
+<span class="sig-name descname"><span class="pre">SampleValueFinder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.SampleValueFinder" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pdstools.Sample">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ldf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.Sample" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>x</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>pl.Expr</em><em>]</em><em>, </em><em>default = pl.col</em><em>(</em><em>'PredictorName'</em><em>)</em>) – The column to parse</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>polars.Expr</p>
+<dd class="field-odd"><p><strong>ldf</strong> (<em>polars.LazyFrame</em>)</p>
 </dd>
 </dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.Sample._ldf">
+<span class="sig-name descname"><span class="pre">_ldf</span></span><a class="headerlink" href="#pdstools.Sample._ldf" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.Sample.sample">
+<span class="sig-name descname"><span class="pre">sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.Sample.sample" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.Sample.height">
+<span class="sig-name descname"><span class="pre">height</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.Sample.height" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.Sample.shape">
+<span class="sig-name descname"><span class="pre">shape</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.Sample.shape" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.Sample.item">
+<span class="sig-name descname"><span class="pre">item</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.Sample.item" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="py function">
@@ -1901,206 +2302,6 @@ otherwise returns the first string before the first period</p>
 <dd class="field-odd"><p>None</p>
 </dd>
 </dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="pdstools.CDHSample">
-<span class="sig-name descname"><span class="pre">CDHSample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plotting_engine</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'plotly'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.CDHSample" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="pdstools.SampleTrees">
-<span class="sig-name descname"><span class="pre">SampleTrees</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.SampleTrees" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="pdstools.SampleValueFinder">
-<span class="sig-name descname"><span class="pre">SampleValueFinder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.SampleValueFinder" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="pdstools.Config">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hds_folder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pathlib.Path</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'.'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_datamart</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">datamart_folder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pathlib.Path</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'datamart'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_format</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'ndjson'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'parquet'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'arrow'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'csv'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'ndjson'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_folder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pathlib.Path</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'output'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mapping_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'mapping.map'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_predictor_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_context_key_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_ih_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_outcome_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_predictor_values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_context_key_values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_ih_values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_outcome_values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context_key_label</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Context_*'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ih_label</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'IH_*'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outcome_column</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Decision_Outcome'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positive_outcomes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">['Accepted',</span> <span class="pre">'Clicked']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">negative_outcomes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">['Rejected',</span> <span class="pre">'Impression']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">special_predictors</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">['Decision_DecisionTime',</span> <span class="pre">'Decision_OutcomeTime',</span> <span class="pre">'Decision_Rank']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_percentage_schema_inferencing</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.01</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.Config" title="Link to this definition">¶</a></dt>
-<dd><p>Configuration file for the data anonymizer.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>config_file</strong> (<em>str = None</em>) – An optional path to a config file</p></li>
-<li><p><strong>hds_folder</strong> (<em>Path = &quot;.&quot;</em>) – The path to the hds files</p></li>
-<li><p><strong>use_datamart</strong> (<em>bool = False</em>) – Whether to use the datamart to infer predictor types</p></li>
-<li><p><strong>datamart_folder</strong> (<em>Path = &quot;datamart&quot;</em>) – The folder of the datamart files</p></li>
-<li><p><strong>output_format</strong> (<em>Literal</em><em>[</em><em>&quot;ndjson&quot;</em><em>, </em><em>&quot;parquet&quot;</em><em>, </em><em>&quot;arrow&quot;</em><em>, </em><em>&quot;csv&quot;</em><em>] </em><em>= &quot;ndjson&quot;</em>) – The output format to write the files in</p></li>
-<li><p><strong>output_folder</strong> (<em>Path = &quot;output&quot;</em>) – The location to write the files to</p></li>
-<li><p><strong>mapping_file</strong> (<em>str = &quot;mapping.map&quot;</em>) – The name of the predictor mapping file</p></li>
-<li><p><strong>mask_predictor_names</strong> (<em>bool = True</em>) – Whether to mask the names of regular predictors</p></li>
-<li><p><strong>mask_context_key_names</strong> (<em>bool = True</em>) – Whether to mask the names of context key predictors</p></li>
-<li><p><strong>mask_ih_names</strong> (<em>bool = True</em>) – Whether to mask the name of Interaction History summary predictors</p></li>
-<li><p><strong>mask_outcome_name</strong> (<em>bool = True</em>) – Whether to mask the name of the outcome column</p></li>
-<li><p><strong>mask_predictor_values</strong> (<em>bool = True</em>) – Whether to mask the values of regular predictors</p></li>
-<li><p><strong>mask_context_key_values</strong> (<em>bool = True</em>) – Whether to mask the values of context key predictors</p></li>
-<li><p><strong>mask_ih_values</strong> (<em>bool = True</em>) – Whether to mask the values of Interaction History summary predictors</p></li>
-<li><p><strong>mask_outcome_values</strong> (<em>bool = True</em>) – Whether to mask the values of the outcomes to binary</p></li>
-<li><p><strong>context_key_label</strong> (<em>str = &quot;Context_*&quot;</em>) – The pattern of names for context key predictors</p></li>
-<li><p><strong>ih_label</strong> (<em>str = &quot;IH_*&quot;</em>) – The pattern of names for Interaction History summary predictors</p></li>
-<li><p><strong>outcome_column</strong> (<em>str = &quot;Decision_Outcome&quot;</em>) – The name of the outcome column</p></li>
-<li><p><strong>positive_outcomes</strong> (<em>list =</em><em> [</em><em>&quot;Accepted&quot;</em><em>, </em><em>&quot;Clicked&quot;</em><em>]</em>) – Which positive outcomes to map to True</p></li>
-<li><p><strong>negative_outcomes</strong> (<em>list =</em><em> [</em><em>&quot;Rejected&quot;</em><em>, </em><em>&quot;Impression&quot;</em><em>]</em>) – Which negative outcomes to map to False</p></li>
-<li><p><strong>special_predictors</strong> (<em>list =</em><em> [</em><em>&quot;Decision_DecisionTime&quot;</em><em>, </em><em>&quot;Decision_OutcomeTime&quot;</em><em>]</em>) – A list of special predictors which are not touched</p></li>
-<li><p><strong>sample_percentage_schema_inferencing</strong> (<em>float</em>) – The percentage of records to sample to infer the column type.
-In case you’re getting casting errors, it may be useful to
-increase this percentage to check a larger portion of data.</p></li>
-</ul>
-</dd>
-</dl>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.Config._opts">
-<span class="sig-name descname"><span class="pre">_opts</span></span><a class="headerlink" href="#pdstools.Config._opts" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.Config.load_from_config_file">
-<span class="sig-name descname"><span class="pre">load_from_config_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pathlib.Path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.Config.load_from_config_file" title="Link to this definition">¶</a></dt>
-<dd><p>Load the configurations from a file.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>config_file</strong> (<em>Path</em>) – The path to the configuration file</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.Config.save_to_config_file">
-<span class="sig-name descname"><span class="pre">save_to_config_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.Config.save_to_config_file" title="Link to this definition">¶</a></dt>
-<dd><p>Save the configurations to a file.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>file_name</strong> (<em>str</em>) – The name of the configuration file</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.Config.validate_paths">
-<span class="sig-name descname"><span class="pre">validate_paths</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.Config.validate_paths" title="Link to this definition">¶</a></dt>
-<dd><p>Validate the outcome folder exists.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="pdstools.DataAnonymization">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">DataAnonymization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pdstools.Config" title="pdstools.Config"><span class="pre">Config</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">datamart</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pdstools.ADMDatamart" title="pdstools.ADMDatamart"><span class="pre">pdstools.ADMDatamart</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">config_args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DataAnonymization" title="Link to this definition">¶</a></dt>
-<dd><p>Anonymize a historical dataset.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>config</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="#pdstools.Config" title="pdstools.Config"><em>Config</em></a><em>]</em>) – Override the default configurations with the Config class</p></li>
-<li><p><strong>df</strong> (<em>Optional</em><em>[</em><em>polars.LazyFrame</em><em>]</em>) – Manually supply a Polars lazyframe to anonymize</p></li>
-<li><p><strong>datamart</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="#pdstools.ADMDatamart" title="pdstools.ADMDatamart"><em>pdstools.ADMDatamart</em></a><em>]</em>) – Manually supply a Datamart file to infer predictor types</p></li>
-</ul>
-</dd>
-<dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>**config_args</strong> – See <a class="reference internal" href="#pdstools.Config" title="pdstools.Config"><code class="xref py py-class docutils literal notranslate"><span class="pre">Config</span></code></a></p>
-</dd>
-</dl>
-<p class="rubric">Example</p>
-<p>See <a class="reference external" href="https://pegasystems.github.io/pega-datascientist-tools/Python/articles/Example_Data_Anonymization.html">https://pegasystems.github.io/pega-datascientist-tools/Python/articles/Example_Data_Anonymization.html</a></p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.DataAnonymization.config">
-<span class="sig-name descname"><span class="pre">config</span></span><a class="headerlink" href="#pdstools.DataAnonymization.config" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.DataAnonymization.df_out">
-<span class="sig-name descname"><span class="pre">df_out</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#pdstools.DataAnonymization.df_out" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DataAnonymization.write_to_output">
-<span class="sig-name descname"><span class="pre">write_to_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.DataFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ext</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'ndjson'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'parquet'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'arrow'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'csv'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'optimized'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'robust'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'optimized'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DataAnonymization.write_to_output" title="Link to this definition">¶</a></dt>
-<dd><p>Write the processed dataframe to an output file.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> (<em>Optional</em><em>[</em><em>pl.DataFrame</em><em>]</em>) – Dataframe to write.
-If not provided, runs <cite>self.process()</cite></p></li>
-<li><p><strong>ext</strong> (<em>Literal</em><em>[</em><em>&quot;ndjson&quot;</em><em>, </em><em>&quot;parquet&quot;</em><em>, </em><em>&quot;arrow&quot;</em><em>, </em><em>&quot;csv&quot;</em><em>]</em>) – What extension to write the file to</p></li>
-<li><p><strong>mode</strong> (<em>Literal</em><em>[</em><em>'optimized'</em><em>, </em><em>'robust'</em><em>]</em><em>, </em><em>default = 'optimized'</em>) – Whether to output a single file (optimized) or maintain
-the same file structure as the original files (robust).
-Optimized should be faster, but robust should allow for bigger
-data as we don’t need all data in memory at the same time.</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DataAnonymization.create_mapping_file">
-<span class="sig-name descname"><span class="pre">create_mapping_file</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DataAnonymization.create_mapping_file" title="Link to this definition">¶</a></dt>
-<dd><p>Create a file to write the column mapping</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DataAnonymization.load_hds_files">
-<span class="sig-name descname"><span class="pre">load_hds_files</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DataAnonymization.load_hds_files" title="Link to this definition">¶</a></dt>
-<dd><p>Load the historical dataset files from the <cite>config.hds_folder</cite> location.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DataAnonymization.read_predictor_type_from_file">
-<span class="sig-name descname"><span class="pre">read_predictor_type_from_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DataAnonymization.read_predictor_type_from_file" title="Link to this definition">¶</a></dt>
-<dd><p>Infer the types of the preditors from the data.</p>
-<p>This is non-trivial, as it’s not ideal to pull in all data to memory for this.
-For this reason, we sample 1% of data, or all data if less than 50 rows,
-and try to cast it to numeric. If that fails, we set it to categorical,
-else we set it to numeric.</p>
-<p>It is technically supported to manually override this, by just overriding
-the <cite>symbolic_predictors_to_mask</cite> &amp; <cite>numeric_predictors_to_mask</cite> properties.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>df</strong> (<em>pl.LazyFrame</em>) – The lazyframe to infer the types with</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DataAnonymization.read_predictor_type_from_datamart">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read_predictor_type_from_datamart</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">datamart_folder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">datamart</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pdstools.ADMDatamart" title="pdstools.ADMDatamart"><span class="pre">pdstools.ADMDatamart</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DataAnonymization.read_predictor_type_from_datamart" title="Link to this definition">¶</a></dt>
-<dd><p>The datamart contains type information about each predictor.
-This function extracts that information to infer types for the HDS.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>datamart_folder</strong> (<em>Path</em>) – The path to the datamart files</p></li>
-<li><p><strong>datamart</strong> (<a class="reference internal" href="#pdstools.ADMDatamart" title="pdstools.ADMDatamart"><em>ADMDatamart</em></a>) – The direct ADMDatamart object</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DataAnonymization.get_columns_by_type">
-<span class="sig-name descname"><span class="pre">get_columns_by_type</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DataAnonymization.get_columns_by_type" title="Link to this definition">¶</a></dt>
-<dd><p>Get a list of columns for each type.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DataAnonymization.get_predictors_mapping">
-<span class="sig-name descname"><span class="pre">get_predictors_mapping</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DataAnonymization.get_predictors_mapping" title="Link to this definition">¶</a></dt>
-<dd><p>Map the predictor names to their anonymized form.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DataAnonymization.getHasher">
-<span class="sig-name descname"><span class="pre">getHasher</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">algorithm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'xxhash'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'random'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed_1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed_2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed_3</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DataAnonymization.getHasher" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DataAnonymization.process">
-<span class="sig-name descname"><span class="pre">process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">strategy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'eager'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DataAnonymization.process" title="Link to this definition">¶</a></dt>
-<dd><p>Anonymize the dataset.</p>
-</dd></dl>
-
 </dd></dl>
 
 <dl class="py class">
@@ -2864,399 +3065,6 @@ or based on the quantile of the propensity</p></li>
 
 </dd></dl>
 
-<dl class="py class">
-<dt class="sig sig-object py" id="pdstools.Sample">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ldf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.Sample" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>ldf</strong> (<em>polars.LazyFrame</em>)</p>
-</dd>
-</dl>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.Sample._ldf">
-<span class="sig-name descname"><span class="pre">_ldf</span></span><a class="headerlink" href="#pdstools.Sample._ldf" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.Sample.sample">
-<span class="sig-name descname"><span class="pre">sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.Sample.sample" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.Sample.height">
-<span class="sig-name descname"><span class="pre">height</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.Sample.height" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.Sample.shape">
-<span class="sig-name descname"><span class="pre">shape</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.Sample.shape" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.Sample.item">
-<span class="sig-name descname"><span class="pre">item</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.Sample.item" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="pdstools.DecisionData">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">DecisionData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData" title="Link to this definition">¶</a></dt>
-<dd><p>Container data class for the raw decision data. Only one instance of this
-should exist and will be associated with the streamlit app state.</p>
-<p>It will keep a pointer to the raw interaction level data (as a
-lazy frame) but also has VBD-style aggregation(s) to speed things up.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>raw_data</strong> (<em>polars.LazyFrame</em>)</p>
-</dd>
-</dl>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.DecisionData.unfiltered_raw_decision_data">
-<span class="sig-name descname"><span class="pre">unfiltered_raw_decision_data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">polars.LazyFrame</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#pdstools.DecisionData.unfiltered_raw_decision_data" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.DecisionData.decision_data">
-<span class="sig-name descname"><span class="pre">decision_data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">polars.LazyFrame</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#pdstools.DecisionData.decision_data" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.DecisionData.preaggregated_decision_data_filterview">
-<span class="sig-name descname"><span class="pre">preaggregated_decision_data_filterview</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">polars.LazyFrame</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#pdstools.DecisionData.preaggregated_decision_data_filterview" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.DecisionData.preaggregated_decision_data_remainingview">
-<span class="sig-name descname"><span class="pre">preaggregated_decision_data_remainingview</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">polars.LazyFrame</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#pdstools.DecisionData.preaggregated_decision_data_remainingview" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.DecisionData.fields_for_data_filtering">
-<span class="sig-name descname"><span class="pre">fields_for_data_filtering</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['pxDecisionTime',</span> <span class="pre">'pyConfigurationName',</span> <span class="pre">'pyChannel',</span> <span class="pre">'pyDirection',</span> <span class="pre">'pyIssue',</span> <span class="pre">'pyGroup',...</span></em><a class="headerlink" href="#pdstools.DecisionData.fields_for_data_filtering" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.DecisionData.plot">
-<span class="sig-name descname"><span class="pre">plot</span></span><a class="headerlink" href="#pdstools.DecisionData.plot" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.DecisionData.extract_type">
-<span class="sig-name descname"><span class="pre">extract_type</span></span><a class="headerlink" href="#pdstools.DecisionData.extract_type" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.DecisionData.raw_data">
-<span class="sig-name descname"><span class="pre">raw_data</span></span><a class="headerlink" href="#pdstools.DecisionData.raw_data" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.DecisionData.available_columns">
-<span class="sig-name descname"><span class="pre">available_columns</span></span><a class="headerlink" href="#pdstools.DecisionData.available_columns" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.DecisionData.preaggregation_columns">
-<span class="sig-name descname"><span class="pre">preaggregation_columns</span></span><a class="headerlink" href="#pdstools.DecisionData.preaggregation_columns" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.DecisionData.max_win_rank">
-<span class="sig-name descname"><span class="pre">max_win_rank</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5</span></em><a class="headerlink" href="#pdstools.DecisionData.max_win_rank" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.DecisionData.AvailableNBADStages">
-<span class="sig-name descname"><span class="pre">AvailableNBADStages</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['Arbitration']</span></em><a class="headerlink" href="#pdstools.DecisionData.AvailableNBADStages" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="pdstools.DecisionData.stages_from_arbitration_down">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">stages_from_arbitration_down</span></span><a class="headerlink" href="#pdstools.DecisionData.stages_from_arbitration_down" title="Link to this definition">¶</a></dt>
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">All</span> <span class="pre">stages</span> <span class="pre">in</span> <span class="pre">the</span> <span class="pre">filter</span> <span class="pre">view</span> <span class="pre">starting</span> <span class="pre">at</span> <span class="pre">Arbitration.</span> <span class="pre">This</span> <span class="pre">initially</span></span></dt>
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">will</span> <span class="pre">just</span> <span class="pre">be</span> <span class="pre">[Arbitration,</span> <span class="pre">Final]</span> <span class="pre">but</span> <span class="pre">as</span> <span class="pre">we</span> <span class="pre">get</span> <span class="pre">more</span> <span class="pre">stages</span> <span class="pre">in</span> <span class="pre">there</span></span></dt>
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">may</span> <span class="pre">be</span> <span class="pre">more</span> <span class="pre">here.</span></span></dt>
-<dd></dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="pdstools.DecisionData.arbitration_stage">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">arbitration_stage</span></span><a class="headerlink" href="#pdstools.DecisionData.arbitration_stage" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DecisionData._invalidate_cached_properties">
-<span class="sig-name descname"><span class="pre">_invalidate_cached_properties</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData._invalidate_cached_properties" title="Link to this definition">¶</a></dt>
-<dd><p>Resets the properties of the class</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DecisionData.applyGlobalDataFilters">
-<span class="sig-name descname"><span class="pre">applyGlobalDataFilters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">polars.Expr</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.applyGlobalDataFilters" title="Link to this definition">¶</a></dt>
-<dd><p>Apply a global set of filters</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>filters</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>polars.Expr</em><em>, </em><em>List</em><em>[</em><em>polars.Expr</em><em>]</em><em>]</em><em>]</em>)</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DecisionData.resetGlobalDataFilters">
-<span class="sig-name descname"><span class="pre">resetGlobalDataFilters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.resetGlobalDataFilters" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="pdstools.DecisionData.getPreaggregatedFilterView">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">getPreaggregatedFilterView</span></span><a class="headerlink" href="#pdstools.DecisionData.getPreaggregatedFilterView" title="Link to this definition">¶</a></dt>
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">Pre-aggregates</span> <span class="pre">the</span> <span class="pre">full</span> <span class="pre">dataset</span> <span class="pre">over</span> <span class="pre">customers</span> <span class="pre">and</span> <span class="pre">interactions</span> <span class="pre">providing</span></span></dt>
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">a</span> <span class="pre">view</span> <span class="pre">of</span> <span class="pre">what</span> <span class="pre">is</span> <span class="pre">filtered</span> <span class="pre">at</span> <span class="pre">a</span> <span class="pre">stage.</span></span></dt>
-<dd><p>This pre-aggregation is pretty similar to what “VBD” does to interaction
-history. It aggregates over individual customers and interactions giving
-summary statistics that are sufficient to drive most of the analyses
-(but not all). The results of this pre-aggregation are much smaller
-than the original data and is expected to easily fit in memory. We therefore
-use polars caching to efficiently cache this.</p>
-<p>This “filter” view keeps the same organization as the decision analyzer data
-in that it records the actions that get filtered out at stages. From this
-a “remaining” view is easily derived.</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="pdstools.DecisionData.getPreaggregatedRemainingView">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">getPreaggregatedRemainingView</span></span><a class="headerlink" href="#pdstools.DecisionData.getPreaggregatedRemainingView" title="Link to this definition">¶</a></dt>
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">Pre-aggregates</span> <span class="pre">the</span> <span class="pre">full</span> <span class="pre">dataset</span> <span class="pre">over</span> <span class="pre">customers</span> <span class="pre">and</span> <span class="pre">interactions</span> <span class="pre">providing</span> <span class="pre">a</span> <span class="pre">view</span> <span class="pre">of</span> <span class="pre">remaining</span> <span class="pre">offers.</span></span></dt>
-<dd><p>This pre-aggregation builds on the filter view and aggregates over
-the stages remaining.</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="pdstools.DecisionData.sample">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sample</span></span><a class="headerlink" href="#pdstools.DecisionData.sample" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DecisionData.getAvailableFieldsForFiltering">
-<span class="sig-name descname"><span class="pre">getAvailableFieldsForFiltering</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">categoricalOnly</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.getAvailableFieldsForFiltering" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DecisionData.cleanup_raw_data">
-<span class="sig-name descname"><span class="pre">cleanup_raw_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.cleanup_raw_data" title="Link to this definition">¶</a></dt>
-<dd><p>This method cleans up the raw data we read from parquet/S3/whatever.</p>
-<p>This likely needs to change as and when we get closer to product, to
-match what comes out of Pega. It does some modest type casting and
-potentially changing back some of the temporary column names that have
-been added to generate more data.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>df</strong> (<em>polars.LazyFrame</em>)</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DecisionData.getPossibleScopeValues">
-<span class="sig-name descname"><span class="pre">getPossibleScopeValues</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.getPossibleScopeValues" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DecisionData.getPossibleStageValues">
-<span class="sig-name descname"><span class="pre">getPossibleStageValues</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.getPossibleStageValues" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DecisionData.getDistributionData">
-<span class="sig-name descname"><span class="pre">getDistributionData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stage</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grouping_levels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additional_filters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">polars.Expr</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.DecisionData.getDistributionData" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>stage</strong> (<em>str</em>)</p></li>
-<li><p><strong>grouping_levels</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>)</p></li>
-<li><p><strong>additional_filters</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>polars.Expr</em><em>, </em><em>List</em><em>[</em><em>polars.Expr</em><em>]</em><em>]</em><em>]</em>)</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>polars.LazyFrame</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DecisionData.getFunnelData">
-<span class="sig-name descname"><span class="pre">getFunnelData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">level</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additional_filters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">polars.Expr</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.DecisionData.getFunnelData" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>additional_filters</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>polars.Expr</em><em>, </em><em>List</em><em>[</em><em>polars.Expr</em><em>]</em><em>]</em><em>]</em>)</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>polars.LazyFrame</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DecisionData.getFilterComponentData">
-<span class="sig-name descname"><span class="pre">getFilterComponentData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">top_n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additional_filters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">polars.Expr</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span></span></span><a class="headerlink" href="#pdstools.DecisionData.getFilterComponentData" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>additional_filters</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>polars.Expr</em><em>, </em><em>List</em><em>[</em><em>polars.Expr</em><em>]</em><em>]</em><em>]</em>)</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>polars.DataFrame</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DecisionData.reRank">
-<span class="sig-name descname"><span class="pre">reRank</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">additional_filters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">polars.Expr</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overrides</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">polars.Expr</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.DecisionData.reRank" title="Link to this definition">¶</a></dt>
-<dd><p>Calculates prio and rank for all PVCL combinations</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>additional_filters</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>polars.Expr</em><em>, </em><em>List</em><em>[</em><em>polars.Expr</em><em>]</em><em>]</em><em>]</em>)</p></li>
-<li><p><strong>overrides</strong> (<em>List</em><em>[</em><em>polars.Expr</em><em>]</em>)</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>polars.LazyFrame</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DecisionData.get_win_loss_distribution_data">
-<span class="sig-name descname"><span class="pre">get_win_loss_distribution_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">level</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">win_rank</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.get_win_loss_distribution_data" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="pdstools.DecisionData.get_optionality_data">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_optionality_data</span></span><a class="headerlink" href="#pdstools.DecisionData.get_optionality_data" title="Link to this definition">¶</a></dt>
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">Finding</span> <span class="pre">the</span> <span class="pre">average</span> <span class="pre">number</span> <span class="pre">of</span> <span class="pre">actions</span> <span class="pre">per</span> <span class="pre">stage</span> <span class="pre">without</span> <span class="pre">trend</span> <span class="pre">analysis.</span></span></dt>
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">We</span> <span class="pre">have</span> <span class="pre">to</span> <span class="pre">go</span> <span class="pre">back</span> <span class="pre">to</span> <span class="pre">the</span> <span class="pre">interaction</span> <span class="pre">level</span> <span class="pre">data,</span> <span class="pre">no</span> <span class="pre">way</span> <span class="pre">to</span></span></dt>
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">use</span> <span class="pre">pre-aggregations</span> <span class="pre">unfortunately.</span></span></dt>
-<dd></dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="pdstools.DecisionData.get_optionality_data_with_trend">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_optionality_data_with_trend</span></span><a class="headerlink" href="#pdstools.DecisionData.get_optionality_data_with_trend" title="Link to this definition">¶</a></dt>
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">Finding</span> <span class="pre">the</span> <span class="pre">average</span> <span class="pre">number</span> <span class="pre">of</span> <span class="pre">actions</span> <span class="pre">per</span> <span class="pre">stage</span> <span class="pre">with</span> <span class="pre">trend</span> <span class="pre">analysis.</span></span></dt>
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">We</span> <span class="pre">have</span> <span class="pre">to</span> <span class="pre">go</span> <span class="pre">back</span> <span class="pre">to</span> <span class="pre">the</span> <span class="pre">interaction</span> <span class="pre">level</span> <span class="pre">data,</span> <span class="pre">no</span> <span class="pre">way</span> <span class="pre">to</span></span></dt>
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">use</span> <span class="pre">pre-aggregations</span> <span class="pre">unfortunately.</span></span></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DecisionData.getActionVariationData">
-<span class="sig-name descname"><span class="pre">getActionVariationData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stage</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.getActionVariationData" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DecisionData.getABTestResults">
-<span class="sig-name descname"><span class="pre">getABTestResults</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.getABTestResults" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DecisionData.getThresholdingData">
-<span class="sig-name descname"><span class="pre">getThresholdingData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fld</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantile_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">range(10,</span> <span class="pre">100,</span> <span class="pre">10)</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.getThresholdingData" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DecisionData.getValueDistributionData">
-<span class="sig-name descname"><span class="pre">getValueDistributionData</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.getValueDistributionData" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DecisionData.aggregate_remaining_per_stage">
-<span class="sig-name descname"><span class="pre">aggregate_remaining_per_stage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_by_columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aggregations</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.DecisionData.aggregate_remaining_per_stage" title="Link to this definition">¶</a></dt>
-<dd><p>Workhorse function to convert the raw Decision Analyzer data (filter view) to
-the aggregates remaining per stage. Used all over the place.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> (<em>polars.LazyFrame</em>)</p></li>
-<li><p><strong>group_by_columns</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>)</p></li>
-<li><p><strong>aggregations</strong> (<em>List</em>)</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>polars.LazyFrame</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DecisionData.get_offer_quality">
-<span class="sig-name descname"><span class="pre">get_offer_quality</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_by</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.get_offer_quality" title="Link to this definition">¶</a></dt>
-<dd><p>Given a dataframe with filtered action counts at stages.
-Flips it to usual VF view by doing a rolling sum over stages.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> (<em>pl.LazyFrame</em>) – Decision Analyzer style filtered action counts dataframe.</p></li>
-<li><p><strong>groupby_cols</strong> (<em>list</em>) – The list of column names to group by([“pxEngagementStage”, “pxInteractionID”]).</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Value Finder style, available action counts per group_by category</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pl.LazyFrame</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="pdstools.DecisionData.get_overview_stats">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_overview_stats</span></span><a class="headerlink" href="#pdstools.DecisionData.get_overview_stats" title="Link to this definition">¶</a></dt>
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">Creates</span> <span class="pre">an</span> <span class="pre">overview</span> <span class="pre">from</span> <span class="pre">sampled</span> <span class="pre">data</span></span></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DecisionData.get_sensitivity">
-<span class="sig-name descname"><span class="pre">get_sensitivity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">win_rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.get_sensitivity" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DecisionData.get_offer_variability_stats">
-<span class="sig-name descname"><span class="pre">get_offer_variability_stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stage</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.get_offer_variability_stats" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DecisionData.get_winning_or_losing_interactions">
-<span class="sig-name descname"><span class="pre">get_winning_or_losing_interactions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">win_rank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_filter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">win</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.get_winning_or_losing_interactions" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>win</strong> (<em>bool</em>)</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DecisionData.winning_from">
-<span class="sig-name descname"><span class="pre">winning_from</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">interactions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">win_rank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groupby_cols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top_k</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.winning_from" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.DecisionData.losing_to">
-<span class="sig-name descname"><span class="pre">losing_to</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">interactions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">win_rank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groupby_cols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top_k</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.DecisionData.losing_to" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
 <dl class="py data">
 <dt class="sig sig-object py" id="pdstools.__reports__">
 <span class="sig-name descname"><span class="pre">__reports__</span></span><a class="headerlink" href="#pdstools.__reports__" title="Link to this definition">¶</a></dt>
@@ -3422,9 +3230,56 @@ Flips it to usual VF view by doing a rolling sum over stages.</p>
 <li><a class="reference internal" href="#pdstools.BinAggregator.plot_lift_binning"><code class="docutils literal notranslate"><span class="pre">plot_lift_binning()</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#pdstools.DecisionData"><code class="docutils literal notranslate"><span class="pre">DecisionData</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.DecisionData.unfiltered_raw_decision_data"><code class="docutils literal notranslate"><span class="pre">unfiltered_raw_decision_data</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.decision_data"><code class="docutils literal notranslate"><span class="pre">decision_data</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.preaggregated_decision_data_filterview"><code class="docutils literal notranslate"><span class="pre">preaggregated_decision_data_filterview</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.preaggregated_decision_data_remainingview"><code class="docutils literal notranslate"><span class="pre">preaggregated_decision_data_remainingview</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.fields_for_data_filtering"><code class="docutils literal notranslate"><span class="pre">fields_for_data_filtering</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.plot"><code class="docutils literal notranslate"><span class="pre">plot</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.extract_type"><code class="docutils literal notranslate"><span class="pre">extract_type</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.raw_data"><code class="docutils literal notranslate"><span class="pre">raw_data</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.available_columns"><code class="docutils literal notranslate"><span class="pre">available_columns</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.preaggregation_columns"><code class="docutils literal notranslate"><span class="pre">preaggregation_columns</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.max_win_rank"><code class="docutils literal notranslate"><span class="pre">max_win_rank</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.AvailableNBADStages"><code class="docutils literal notranslate"><span class="pre">AvailableNBADStages</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.stages_from_arbitration_down"><code class="docutils literal notranslate"><span class="pre">stages_from_arbitration_down</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.arbitration_stage"><code class="docutils literal notranslate"><span class="pre">arbitration_stage</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData._invalidate_cached_properties"><code class="docutils literal notranslate"><span class="pre">_invalidate_cached_properties()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.applyGlobalDataFilters"><code class="docutils literal notranslate"><span class="pre">applyGlobalDataFilters()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.resetGlobalDataFilters"><code class="docutils literal notranslate"><span class="pre">resetGlobalDataFilters()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.getPreaggregatedFilterView"><code class="docutils literal notranslate"><span class="pre">getPreaggregatedFilterView</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.getPreaggregatedRemainingView"><code class="docutils literal notranslate"><span class="pre">getPreaggregatedRemainingView</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.sample"><code class="docutils literal notranslate"><span class="pre">sample</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.getAvailableFieldsForFiltering"><code class="docutils literal notranslate"><span class="pre">getAvailableFieldsForFiltering()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.cleanup_raw_data"><code class="docutils literal notranslate"><span class="pre">cleanup_raw_data()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.getPossibleScopeValues"><code class="docutils literal notranslate"><span class="pre">getPossibleScopeValues()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.getPossibleStageValues"><code class="docutils literal notranslate"><span class="pre">getPossibleStageValues()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.getDistributionData"><code class="docutils literal notranslate"><span class="pre">getDistributionData()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.getFunnelData"><code class="docutils literal notranslate"><span class="pre">getFunnelData()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.getFilterComponentData"><code class="docutils literal notranslate"><span class="pre">getFilterComponentData()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.reRank"><code class="docutils literal notranslate"><span class="pre">reRank()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.get_win_loss_distribution_data"><code class="docutils literal notranslate"><span class="pre">get_win_loss_distribution_data()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.get_optionality_data"><code class="docutils literal notranslate"><span class="pre">get_optionality_data</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.get_optionality_data_with_trend"><code class="docutils literal notranslate"><span class="pre">get_optionality_data_with_trend</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.getActionVariationData"><code class="docutils literal notranslate"><span class="pre">getActionVariationData()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.getABTestResults"><code class="docutils literal notranslate"><span class="pre">getABTestResults()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.getThresholdingData"><code class="docutils literal notranslate"><span class="pre">getThresholdingData()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.getValueDistributionData"><code class="docutils literal notranslate"><span class="pre">getValueDistributionData()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.aggregate_remaining_per_stage"><code class="docutils literal notranslate"><span class="pre">aggregate_remaining_per_stage()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.get_offer_quality"><code class="docutils literal notranslate"><span class="pre">get_offer_quality()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.get_overview_stats"><code class="docutils literal notranslate"><span class="pre">get_overview_stats</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.get_sensitivity"><code class="docutils literal notranslate"><span class="pre">get_sensitivity()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.get_offer_variability_stats"><code class="docutils literal notranslate"><span class="pre">get_offer_variability_stats()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.get_winning_or_losing_interactions"><code class="docutils literal notranslate"><span class="pre">get_winning_or_losing_interactions()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.winning_from"><code class="docutils literal notranslate"><span class="pre">winning_from()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.DecisionData.losing_to"><code class="docutils literal notranslate"><span class="pre">losing_to()</span></code></a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#pdstools.get_token"><code class="docutils literal notranslate"><span class="pre">get_token()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.readDSExport"><code class="docutils literal notranslate"><span class="pre">readDSExport()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.setupAzureOpenAI"><code class="docutils literal notranslate"><span class="pre">setupAzureOpenAI()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.defaultPredictorCategorization"><code class="docutils literal notranslate"><span class="pre">defaultPredictorCategorization()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.CDHLimits"><code class="docutils literal notranslate"><span class="pre">CDHLimits</span></code></a><ul>
 <li><a class="reference internal" href="#pdstools.CDHLimits.Status"><code class="docutils literal notranslate"><span class="pre">Status</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.CDHLimits.Metrics"><code class="docutils literal notranslate"><span class="pre">Metrics</span></code></a></li>
@@ -3435,32 +3290,18 @@ Flips it to usual VF view by doing a rolling sum over stages.</p>
 <li><a class="reference internal" href="#pdstools.CDHLimits.check_limits"><code class="docutils literal notranslate"><span class="pre">check_limits()</span></code></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#pdstools.defaultPredictorCategorization"><code class="docutils literal notranslate"><span class="pre">defaultPredictorCategorization()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.show_versions"><code class="docutils literal notranslate"><span class="pre">show_versions()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.CDHSample"><code class="docutils literal notranslate"><span class="pre">CDHSample()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.SampleTrees"><code class="docutils literal notranslate"><span class="pre">SampleTrees()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.SampleValueFinder"><code class="docutils literal notranslate"><span class="pre">SampleValueFinder()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.Config"><code class="docutils literal notranslate"><span class="pre">Config</span></code></a><ul>
-<li><a class="reference internal" href="#pdstools.Config._opts"><code class="docutils literal notranslate"><span class="pre">_opts</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.Config.load_from_config_file"><code class="docutils literal notranslate"><span class="pre">load_from_config_file()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.Config.save_to_config_file"><code class="docutils literal notranslate"><span class="pre">save_to_config_file()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.Config.validate_paths"><code class="docutils literal notranslate"><span class="pre">validate_paths()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.Sample"><code class="docutils literal notranslate"><span class="pre">Sample</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.Sample._ldf"><code class="docutils literal notranslate"><span class="pre">_ldf</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.Sample.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.Sample.height"><code class="docutils literal notranslate"><span class="pre">height()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.Sample.shape"><code class="docutils literal notranslate"><span class="pre">shape()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.Sample.item"><code class="docutils literal notranslate"><span class="pre">item()</span></code></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#pdstools.DataAnonymization"><code class="docutils literal notranslate"><span class="pre">DataAnonymization</span></code></a><ul>
-<li><a class="reference internal" href="#pdstools.DataAnonymization.config"><code class="docutils literal notranslate"><span class="pre">config</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DataAnonymization.df_out"><code class="docutils literal notranslate"><span class="pre">df_out</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DataAnonymization.write_to_output"><code class="docutils literal notranslate"><span class="pre">write_to_output()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DataAnonymization.create_mapping_file"><code class="docutils literal notranslate"><span class="pre">create_mapping_file()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DataAnonymization.load_hds_files"><code class="docutils literal notranslate"><span class="pre">load_hds_files()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DataAnonymization.read_predictor_type_from_file"><code class="docutils literal notranslate"><span class="pre">read_predictor_type_from_file()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DataAnonymization.read_predictor_type_from_datamart"><code class="docutils literal notranslate"><span class="pre">read_predictor_type_from_datamart()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DataAnonymization.get_columns_by_type"><code class="docutils literal notranslate"><span class="pre">get_columns_by_type()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DataAnonymization.get_predictors_mapping"><code class="docutils literal notranslate"><span class="pre">get_predictors_mapping()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DataAnonymization.getHasher"><code class="docutils literal notranslate"><span class="pre">getHasher()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DataAnonymization.process"><code class="docutils literal notranslate"><span class="pre">process()</span></code></a></li>
-</ul>
-</li>
+<li><a class="reference internal" href="#pdstools.show_versions"><code class="docutils literal notranslate"><span class="pre">show_versions()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.PegaDefaultTables"><code class="docutils literal notranslate"><span class="pre">PegaDefaultTables</span></code></a><ul>
 <li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot"><code class="docutils literal notranslate"><span class="pre">ADMModelSnapshot</span></code></a><ul>
 <li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot.pxApplication"><code class="docutils literal notranslate"><span class="pre">pxApplication</span></code></a></li>
@@ -3585,60 +3426,6 @@ Flips it to usual VF view by doing a rolling sum over stages.</p>
 <li><a class="reference internal" href="#pdstools.ValueFinder.plotPieCharts"><code class="docutils literal notranslate"><span class="pre">plotPieCharts()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ValueFinder.plotDistributionPerThreshold"><code class="docutils literal notranslate"><span class="pre">plotDistributionPerThreshold()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ValueFinder.plotFunnelChart"><code class="docutils literal notranslate"><span class="pre">plotFunnelChart()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#pdstools.Sample"><code class="docutils literal notranslate"><span class="pre">Sample</span></code></a><ul>
-<li><a class="reference internal" href="#pdstools.Sample._ldf"><code class="docutils literal notranslate"><span class="pre">_ldf</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.Sample.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.Sample.height"><code class="docutils literal notranslate"><span class="pre">height()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.Sample.shape"><code class="docutils literal notranslate"><span class="pre">shape()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.Sample.item"><code class="docutils literal notranslate"><span class="pre">item()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#pdstools.DecisionData"><code class="docutils literal notranslate"><span class="pre">DecisionData</span></code></a><ul>
-<li><a class="reference internal" href="#pdstools.DecisionData.unfiltered_raw_decision_data"><code class="docutils literal notranslate"><span class="pre">unfiltered_raw_decision_data</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.decision_data"><code class="docutils literal notranslate"><span class="pre">decision_data</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.preaggregated_decision_data_filterview"><code class="docutils literal notranslate"><span class="pre">preaggregated_decision_data_filterview</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.preaggregated_decision_data_remainingview"><code class="docutils literal notranslate"><span class="pre">preaggregated_decision_data_remainingview</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.fields_for_data_filtering"><code class="docutils literal notranslate"><span class="pre">fields_for_data_filtering</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.plot"><code class="docutils literal notranslate"><span class="pre">plot</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.extract_type"><code class="docutils literal notranslate"><span class="pre">extract_type</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.raw_data"><code class="docutils literal notranslate"><span class="pre">raw_data</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.available_columns"><code class="docutils literal notranslate"><span class="pre">available_columns</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.preaggregation_columns"><code class="docutils literal notranslate"><span class="pre">preaggregation_columns</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.max_win_rank"><code class="docutils literal notranslate"><span class="pre">max_win_rank</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.AvailableNBADStages"><code class="docutils literal notranslate"><span class="pre">AvailableNBADStages</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.stages_from_arbitration_down"><code class="docutils literal notranslate"><span class="pre">stages_from_arbitration_down</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.arbitration_stage"><code class="docutils literal notranslate"><span class="pre">arbitration_stage</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData._invalidate_cached_properties"><code class="docutils literal notranslate"><span class="pre">_invalidate_cached_properties()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.applyGlobalDataFilters"><code class="docutils literal notranslate"><span class="pre">applyGlobalDataFilters()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.resetGlobalDataFilters"><code class="docutils literal notranslate"><span class="pre">resetGlobalDataFilters()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.getPreaggregatedFilterView"><code class="docutils literal notranslate"><span class="pre">getPreaggregatedFilterView</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.getPreaggregatedRemainingView"><code class="docutils literal notranslate"><span class="pre">getPreaggregatedRemainingView</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.sample"><code class="docutils literal notranslate"><span class="pre">sample</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.getAvailableFieldsForFiltering"><code class="docutils literal notranslate"><span class="pre">getAvailableFieldsForFiltering()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.cleanup_raw_data"><code class="docutils literal notranslate"><span class="pre">cleanup_raw_data()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.getPossibleScopeValues"><code class="docutils literal notranslate"><span class="pre">getPossibleScopeValues()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.getPossibleStageValues"><code class="docutils literal notranslate"><span class="pre">getPossibleStageValues()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.getDistributionData"><code class="docutils literal notranslate"><span class="pre">getDistributionData()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.getFunnelData"><code class="docutils literal notranslate"><span class="pre">getFunnelData()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.getFilterComponentData"><code class="docutils literal notranslate"><span class="pre">getFilterComponentData()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.reRank"><code class="docutils literal notranslate"><span class="pre">reRank()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.get_win_loss_distribution_data"><code class="docutils literal notranslate"><span class="pre">get_win_loss_distribution_data()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.get_optionality_data"><code class="docutils literal notranslate"><span class="pre">get_optionality_data</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.get_optionality_data_with_trend"><code class="docutils literal notranslate"><span class="pre">get_optionality_data_with_trend</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.getActionVariationData"><code class="docutils literal notranslate"><span class="pre">getActionVariationData()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.getABTestResults"><code class="docutils literal notranslate"><span class="pre">getABTestResults()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.getThresholdingData"><code class="docutils literal notranslate"><span class="pre">getThresholdingData()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.getValueDistributionData"><code class="docutils literal notranslate"><span class="pre">getValueDistributionData()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.aggregate_remaining_per_stage"><code class="docutils literal notranslate"><span class="pre">aggregate_remaining_per_stage()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.get_offer_quality"><code class="docutils literal notranslate"><span class="pre">get_offer_quality()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.get_overview_stats"><code class="docutils literal notranslate"><span class="pre">get_overview_stats</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.get_sensitivity"><code class="docutils literal notranslate"><span class="pre">get_sensitivity()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.get_offer_variability_stats"><code class="docutils literal notranslate"><span class="pre">get_offer_variability_stats()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.get_winning_or_losing_interactions"><code class="docutils literal notranslate"><span class="pre">get_winning_or_losing_interactions()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.winning_from"><code class="docutils literal notranslate"><span class="pre">winning_from()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.DecisionData.losing_to"><code class="docutils literal notranslate"><span class="pre">losing_to()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#pdstools.__reports__"><code class="docutils literal notranslate"><span class="pre">__reports__</span></code></a></li>
