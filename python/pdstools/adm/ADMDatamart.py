@@ -1155,24 +1155,20 @@ class ADMDatamart(Plots, Tables):
 
         modelsByPositives = df.select([by, "Positives", "ModelID"]).collect()
         return (
-            modelsByPositives.join(
-                modelsByPositives["Positives"].cut(
+            modelsByPositives.with_columns(
+                PositivesBin=modelsByPositives["Positives"].cut(
                     breaks=list(range(0, 210, 10)),
-                    series=False,
-                    category_label="PositivesBin",
-                ),
-                on="Positives",
-                how="left",
+                )
             )
             .lazy()
-            .group_by([by, "PositivesBin", "break_point"])
+            .group_by([by, "PositivesBin"])
             .agg([pl.min("Positives"), pl.n_unique("ModelID").alias("ModelCount")])
             .with_columns(
                 (pl.col("ModelCount") / (pl.sum("ModelCount").over(by))).alias(
                     "cumModels"
                 )
             )
-            .sort("break_point")
+            .sort("Positives")
         )
 
     def get_model_stats(self, last: bool = True) -> dict:
@@ -1547,7 +1543,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                     item_overlap_actions["isValid"],
                 )
             ).alias("OmniChannel Actions"),
-            CTR=(pl.col("Positives")) / (pl.col("ResponseCount")),,
+            CTR=(pl.col("Positives")) / (pl.col("ResponseCount")),
         ).drop(
             ["isNBADModelConfiguration"]
             + (
