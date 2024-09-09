@@ -6,8 +6,7 @@ from pathlib import Path
 import streamlit as st
 
 from pdstools.utils.streamlit_utils import model_selection_df
-from pdstools import show_versions
-
+from pdstools.utils.show_versions import show_versions
 if "dm" not in st.session_state:
     st.warning("Please configure your files in the `data import` tab.")
     st.stop()
@@ -111,8 +110,6 @@ with health_check:
             )
             with open(log_file_path, "w") as log_file:
                 log_file.write(st.session_state.log_buffer.getvalue())
-                log_file.write("\n\n--- Version Information ---\n")
-                log_file.write(show_versions(print_output=False))
             with open(log_file_path, "rb") as f:
                 btn = st.download_button(
                     label="Download error log",

@@ -10,7 +10,7 @@ from .. import __version__
 package_name = "pdstools"
 
 
-def show_versions(print_output: bool = True) -> Optional[str]:
+def show_versions() -> None:
     """
     Print or return version of pdstools and dependencies.
     Parameters
