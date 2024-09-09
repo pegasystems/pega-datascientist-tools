@@ -2,7 +2,7 @@ def main():
     import sys
 
     if len(sys.argv) == 1:
-        print("No arguments provided. Please see `pdstools help`.")
+        run()
     elif sys.argv[1] == "run":
         run(*sys.argv[1:])
     elif sys.argv[1] == "help":
