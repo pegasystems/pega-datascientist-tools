@@ -1929,21 +1929,28 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         process = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,  # Redirect stderr to stdout
+            stderr=subprocess.PIPE,
             cwd=temp_dir,
             text=True,
-            bufsize=1,  # Line buffered
         )
+        import select
 
-        verbose = kwargs.get("verbose", True)
-
-        for line in iter(process.stdout.readline, ""):
-            line = line.strip()
-            logger.info(line)
-            if verbose:
-                print(line)
-
-        return_code = process.wait()
+        while True:
+            reads = [process.stdout.fileno(), process.stderr.fileno()]
+            ret = select.select(reads, [], [])
+            for fd in ret[0]:
+                line = (
+                    process.stdout.readline()
+                    if fd == process.stdout.fileno()
+                    else process.stderr.readline()
+                )
+                if line:
+                    logger.info(line.strip())
+                    if verbose:
+                        print(line.strip())
+            if process.poll() is not None and not line:
+                break
+        return_code = process.returncode
         message = f"Quarto process exited with return code {return_code}"
         logger.info(message)
         if verbose:

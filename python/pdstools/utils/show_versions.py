@@ -1,28 +1,16 @@
 from __future__ import annotations
 
 import importlib
-import importlib.metadata
 import sys
-from typing import Optional
 
 from .. import __version__
 
+import importlib.metadata
 
-def show_versions(print_output: bool = True) -> Optional[str]:
+
+def show_versions() -> None:
     """
-    Print or return version of pdstools and dependencies.
-
-    Parameters
-    ----------
-    print_output : bool, optional
-        If True, print the version information to stdout.
-        If False, return the version information as a string.
-        Default is True.
-
-    Returns
-    -------
-    Optional[str]
-        Version information as a string if print_output is False, else None.
+    Print out version of pdstools and dependencies to stdout.
 
     Examples
     --------
@@ -54,27 +42,20 @@ def show_versions(print_output: bool = True) -> Optional[str]:
     # note: we import 'platform' here as a micro-optimisation for initial import
     import platform
 
-    info = []
-    info.append("---Version info---")
-    info.append(f"pdstools: {__version__}")
-    info.append(f"Platform: {platform.platform()}")
-    info.append(f"Python: {sys.version}")
+    print("---Version info---")
+    print(f"pdstools: {__version__}")
+    print(f"Platform: {platform.platform()}")
+    print(f"Python: {sys.version}")
 
-    info.append("\n---Dependencies---")
+    print("\n---Dependencies---")
     deps = _get_dependency_info()
     for name, v in deps.items():
-        info.append(f"{name}: {v}")
+        print(f"{name}: {v}")
 
-    info.append("\n---Streamlit app dependencies---")
+    print("\n---Streamlit app dependencies---")
     deps = _get_opt_dependency_info()
     for name, v in deps.items():
-        info.append(f"{name}: {v}")
-    version_info = "\n".join(info)
-    if print_output:
-        print(version_info)
-        return None
-    else:
-        return version_info
+        print(f"{name}: {v}")
 
 
 def _get_dependency_info() -> dict[str, str]:
