@@ -1,16 +1,29 @@
 from __future__ import annotations
 
 import importlib
+import importlib.metadata
 import sys
+from typing import Optional
 
 from .. import __version__
 
 import importlib.metadata
 
 
-def show_versions() -> None:
+def show_versions(print_output: bool = True) -> Optional[str]:
     """
-    Print out version of pdstools and dependencies to stdout.
+    Print or return version of pdstools and dependencies.
+    Parameters
+    ----------
+    print_output : bool, optional
+        If True, print the version information to stdout.
+        If False, return the version information as a string.
+        Default is True.
+
+    Returns
+    -------
+    Optional[str]
+        Version information as a string if print_output is False, else None.
 
     Examples
     --------
@@ -20,6 +33,7 @@ def show_versions() -> None:
     pdstools: 3.1.0
     Platform: macOS-12.6.4-x86_64-i386-64bit
     Python: 3.11.0 (v3.11.0:deaf509e8f, Oct 24 2022, 14:43:23) [Clang 13.0.0 (clang-1300.0.29.30)]
+
     ---Dependencies---
     plotly: 5.13.1
     requests: 2.28.1
@@ -29,6 +43,7 @@ def show_versions() -> None:
     tqdm: 4.64.1
     pyyaml: <not installed>
     aioboto3: 11.0.1
+
     ---Streamlit app dependencies---
     streamlit: 1.20.0
     quarto: 0.1.0
@@ -42,20 +57,27 @@ def show_versions() -> None:
     # note: we import 'platform' here as a micro-optimisation for initial import
     import platform
 
-    print("---Version info---")
-    print(f"pdstools: {__version__}")
-    print(f"Platform: {platform.platform()}")
-    print(f"Python: {sys.version}")
+    info = []
+    info.append("---Version info---")
+    info.append(f"pdstools: {__version__}")
+    info.append(f"Platform: {platform.platform()}")
+    info.append(f"Python: {sys.version}")
 
-    print("\n---Dependencies---")
+    info.append("\n---Dependencies---")
     deps = _get_dependency_info()
     for name, v in deps.items():
-        print(f"{name}: {v}")
+        info.append(f"{name}: {v}")
 
-    print("\n---Streamlit app dependencies---")
+    info.append("\n---Streamlit app dependencies---")
     deps = _get_opt_dependency_info()
     for name, v in deps.items():
-        print(f"{name}: {v}")
+        info.append(f"{name}: {v}")
+    version_info = "\n".join(info)
+    if print_output:
+        print(version_info)
+        return None
+    else:
+        return version_info
 
 
 def _get_dependency_info() -> dict[str, str]:
