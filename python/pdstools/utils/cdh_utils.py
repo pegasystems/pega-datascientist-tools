@@ -309,8 +309,8 @@ def auc_from_probs(
     if nlabels > 2:
         raise Exception("'Groundtruth' has more than two levels.")
 
-    df = pl.DataFrame({"truth": groundtruth, "probs": probs})
-    binned = df.group_by(by="probs").agg(
+    df = pl.DataFrame({"truth": groundtruth, "probs": probs}, strict=False)
+    binned = df.group_by(probs="probs").agg(
         [
             (pl.col("truth") == 1).sum().alias("pos"),
             (pl.col("truth") == 0).sum().alias("neg"),
@@ -388,7 +388,7 @@ def aucpr_from_probs(
         raise Exception("'Groundtruth' has more than two levels.")
 
     df = pl.DataFrame({"truth": groundtruth, "probs": probs})
-    binned = df.group_by(by="probs").agg(
+    binned = df.group_by(probs="probs").agg(
         [
             (pl.col("truth") == 1).sum().alias("pos"),
             (pl.col("truth") == 0).sum().alias("neg"),

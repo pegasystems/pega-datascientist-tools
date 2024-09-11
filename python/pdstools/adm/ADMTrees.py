@@ -674,7 +674,7 @@ class ADMTreesModel:
         plt.figure
         """
         figlist = []
-        for name, data in self.gainsPerSplit.group_by("predictor"):
+        for (name,), data in self.gainsPerSplit.group_by("predictor"):
             if (subset is not None and name in subset) or subset is None:
                 fig = make_subplots()
                 fig.add_trace(
@@ -739,7 +739,7 @@ class ADMTreesModel:
     def getAllValuesPerSplit(self) -> Dict:
         """Generate a dictionary with the possible values for each split"""
         splitvalues = {}
-        for name, group in self.groupedGainsPerSplit.group_by("predictor"):
+        for (name,), group in self.groupedGainsPerSplit.group_by("predictor"):
             if name not in splitvalues.keys():
                 splitvalues[name] = set()
             splitvalue = group.get_column("values").to_list()

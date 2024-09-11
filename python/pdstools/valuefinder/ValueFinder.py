@@ -519,7 +519,7 @@ class ValueFinder:
                 .partition_by("pyStage", as_dict=True)
             )
             for i, stage in enumerate(self.NBADStages):
-                plotdf = df[stage].drop("pyStage")
+                plotdf = [f for k, f in df.items() if k[0] == stage][0].drop("pyStage")
                 fig.add_trace(
                     go.Pie(
                         values=list(plotdf.to_numpy())[0],

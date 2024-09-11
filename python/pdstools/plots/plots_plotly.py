@@ -491,8 +491,8 @@ class ADMVisualisations:
         import plotly
         from packaging import version
 
-        assert (
-            version.parse(plotly.__version__) >= version.parse("5.5.0")
+        assert version.parse(plotly.__version__) >= version.parse(
+            "5.5.0"
         ), f"Visualisation requires plotly version 5.5.0 or later (you have version {plotly.__version__}): please upgrade to a newer version."
 
         title = "over all models" if facet is None else f"per {facet}"
@@ -620,9 +620,9 @@ class ADMVisualisations:
             labels={"cumModels": "Percentage of Models", "PositivesBin": "Positives"},
             template="pega",
             category_orders={
-                "PositivesBin": df.select("PositivesBin", "break_point")
+                "PositivesBin": df.select("Positives", "PositivesBin")
                 .unique()
-                .sort("break_point")["PositivesBin"]
+                .sort("Positives")["PositivesBin"]
                 .to_list()
             },
         )
