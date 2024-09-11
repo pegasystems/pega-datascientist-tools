@@ -1,10 +1,8 @@
-import json
-from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Optional
+
 import polars as pl
 
-from ..utils import cdh_utils
-from ..utils import NBAD
+from ..utils import NBAD, cdh_utils
 
 
 class Prediction:
@@ -54,7 +52,7 @@ class Prediction:
                 # ).dt.date(),
                 SnapshotTime=pl.col("pySnapShotTime")
                 .map_elements(
-                    lambda x: cdh_utils.fromPRPCDateTime(x), return_dtype=pl.Datetime
+                    lambda x: cdh_utils.from_prpc_date_time(x), return_dtype=pl.Datetime
                 )
                 .cast(pl.Date),
                 Performance=pl.col("pyValue").cast(pl.Float32),
@@ -105,7 +103,9 @@ class Prediction:
             )
             .join(counts_test, on=["pyModelId", "SnapshotTime"], suffix="_Test")
             .join(counts_control, on=["pyModelId", "SnapshotTime"], suffix="_Control")
-            .join(counts_NBA, on=["pyModelId", "SnapshotTime"], suffix="_NBA", how="left")
+            .join(
+                counts_NBA, on=["pyModelId", "SnapshotTime"], suffix="_NBA", how="left"
+            )
             .with_columns(
                 Class=pl.col("pyModelId").str.extract(r"(.+)!.+"),
                 ModelName=pl.col("pyModelId").str.extract(r".+!(.+)"),
@@ -165,7 +165,10 @@ class Prediction:
 
         if by_period is not None:
             period_expr = [
-                pl.col("SnapshotTime").dt.truncate(by_period).cast(pl.Date).alias("Period")
+                pl.col("SnapshotTime")
+                .dt.truncate(by_period)
+                .cast(pl.Date)
+                .alias("Period")
             ]
         else:
             period_expr = []
@@ -181,16 +184,20 @@ class Prediction:
                 [
                     pl.when(pl.col("Channel").is_null())
                     .then(pl.lit("Unknown"))
-                    .otherwise(pl.col("Channel")).alias("Channel"),
+                    .otherwise(pl.col("Channel"))
+                    .alias("Channel"),
                     pl.when(pl.col("Direction").is_null())
                     .then(pl.lit("Unknown"))
-                    .otherwise(pl.col("Direction")).alias("Direction"),
+                    .otherwise(pl.col("Direction"))
+                    .alias("Direction"),
                     pl.when(pl.col("isStandardNBADPrediction").is_null())
                     .then(pl.lit(False))
-                    .otherwise(pl.col("isStandardNBADPrediction")).alias("isStandardNBADPrediction"),
+                    .otherwise(pl.col("isStandardNBADPrediction"))
+                    .alias("isStandardNBADPrediction"),
                     pl.when(pl.col("isMultiChannelPrediction").is_null())
                     .then(pl.lit(False))
-                    .otherwise(pl.col("isMultiChannelPrediction")).alias("isMultiChannelPrediction"),
+                    .otherwise(pl.col("isMultiChannelPrediction"))
+                    .alias("isMultiChannelPrediction"),
                 ]
                 + period_expr
             )
@@ -220,7 +227,8 @@ class Prediction:
                 pl.col("Negatives_NBA").sum(),
             )
             .with_columns(
-                usesImpactAnalyzer=(pl.col("Positives_NBA") > 0) & (pl.col("Negatives_NBA") > 0),
+                usesImpactAnalyzer=(pl.col("Positives_NBA") > 0)
+                & (pl.col("Negatives_NBA") > 0),
                 ControlPercentage=100.0
                 * (pl.col("Positives_Control") + pl.col("Negatives_Control"))
                 / (
@@ -274,15 +282,22 @@ class Prediction:
             custom_predictions=custom_predictions, by_period=by_period
         )
 
-        if channel_summary.select((pl.col("isMultiChannelPrediction").not_() & pl.col("isValid")).any()).collect().item():
+        if (
+            channel_summary.select(
+                (pl.col("isMultiChannelPrediction").not_() & pl.col("isValid")).any()
+            )
+            .collect()
+            .item()
+        ):
             # There are valid non-multi-channel predictions
-            validity_filter_expr = pl.col("isMultiChannelPrediction").not_() & pl.col("isValid")
+            validity_filter_expr = pl.col("isMultiChannelPrediction").not_() & pl.col(
+                "isValid"
+            )
         else:
             validity_filter_expr = pl.col("isValid")
 
         return (
-            channel_summary
-            .filter(validity_filter_expr)
+            channel_summary.filter(validity_filter_expr)
             .group_by(["Period"] if by_period is not None else None)
             .agg(
                 pl.concat_str(["Channel", "Direction"], separator="/")
@@ -310,9 +325,10 @@ class Prediction:
                     "TestPercentage", "ResponseCount"
                 ).alias("TestPercentage"),
             )
-            .drop(["literal"] if by_period is None else []) # created by null group
-            .with_columns(CTR=(pl.col("Positives")) / (pl.col("ResponseCount")),
-                          usesImpactAnalyzer=pl.col("usesImpactAnalyzer").list.any())
+            .drop(["literal"] if by_period is None else [])  # created by null group
+            .with_columns(
+                CTR=(pl.col("Positives")) / (pl.col("ResponseCount")),
+                usesImpactAnalyzer=pl.col("usesImpactAnalyzer").list.any(),
+            )
             .sort(["Period"] if by_period is not None else [])
         )
-    

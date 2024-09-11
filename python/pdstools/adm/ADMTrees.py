@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import base64
 import collections
+import copy
 import functools
-from functools import cached_property, lru_cache
 import json
 import logging
 import multiprocessing
@@ -9,26 +11,146 @@ import operator
 import urllib.request
 import zlib
 from dataclasses import dataclass
+from functools import cached_property, lru_cache
 from math import exp
 from statistics import mean
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple, Union
 
-import polars as pl
 import plotly.express as px
 import plotly.graph_objects as go
+import polars as pl
 import pydot
 from plotly.subplots import make_subplots
 from tqdm import tqdm
-import copy
+
+if TYPE_CHECKING:
+    from .new_ADMDatamart import ADMDatamart
+logger = logging.getLogger(__name__)
+
+
+class AGB:
+    def __init__(self, datamart: "ADMDatamart"):
+        self.datamart = datamart
+
+    def discover_model_types(
+        self, df: pl.LazyFrame, by: str = "Configuration"
+    ) -> Dict:  # pragma: no cover
+        """Discovers the type of model embedded in the pyModelData column.
+
+        By default, we do a group_by Configuration, because a model rule can only
+        contain one type of model. Then, for each configuration, we look into the
+        pyModelData blob and find the _serialClass, returning it in a dict.
+
+        Parameters
+        ----------
+        df: pl.LazyFrame
+            The dataframe to search for model types
+        by: str
+            The column to look for types in. Configuration is recommended.
+        allow_collect: bool, default = False
+            Set to True to allow discovering modelTypes, even if in lazy strategy.
+            It will fetch one modelData string per configuration.
+        """
+
+        if "Modeldata" not in df.columns:
+            raise ValueError(
+                (
+                    "Modeldata column not in the data. "
+                    "Please make sure to include it by setting 'subset' to False."
+                )
+            )
+
+        def _get_type(val):
+            import base64
+            import zlib
+
+            return next(
+                line.split('"')[-2].split(".")[-1]
+                for line in zlib.decompress(base64.b64decode(val)).decode().split("\n")
+                if line.startswith('  "_serialClass"')
+            )
+
+        if isinstance(df, pl.DataFrame):
+            df = df.lazy()
+
+        types = (
+            df.filter(pl.col("Modeldata").is_not_null())
+            .group_by(by)
+            .agg(pl.col("Modeldata").last())
+            .collect()
+            .with_columns(pl.col("Modeldata").map_elements(lambda v: _get_type(v)))
+            .to_dicts()
+        )
+        return {key: value for key, value in [i.values() for i in types]}
+
+    def get_agb_models(
+        self,
+        last: bool = False,
+        by: str = "Configuration",
+        n_threads: int = 1,
+        query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]] = None,
+        verbose: bool = True,
+        **kwargs,
+    ) -> ADMTrees:  # pragma: no cover
+        """Method to automatically extract AGB models.
+
+        Recommended to subset using the querying functionality
+        to cut down on execution time, because it checks for each
+        model ID. If you only have AGB models remaining after the query,
+        it will only return proper AGB models.
+
+        Parameters
+        ----------
+        last: bool, default = False
+            Whether to only look at the last snapshot for each model
+        by: str, default = 'Configuration'
+            Which column to determine unique models with
+        n_threads: int, default = 6
+            The number of threads to use for extracting the models.
+            Since we use multithreading, setting this to a reasonable value
+            helps speed up the import.
+        query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]]
+            Please refer to :meth:`._apply_query`
+        verbose: bool, default = False
+            Whether to print out information while importing
+
+        """
+        df = self.datamart.model_data
+        if query is not None:
+            df = self._apply_query(df, query)
+
+        model_types = self.discover_model_types(df)
+        agb_models = [
+            model for model, type in model_types.items() if type.endswith("GbModel")
+        ]
+        logger.info(f"Found AGB models: {agb_models}")
+        df = df.filter(pl.col("Configuration").is_in(agb_models))
+        if df.select(pl.col("ModelID").n_unique()).collect().item() == 0:
+            raise ValueError("No models found.")
+
+        if last:
+            return ADMTrees(
+                self.datamart.aggregates.last(df),
+                n_threads=n_threads,
+                verbose=verbose,
+                **kwargs,
+            )
+        else:
+            return ADMTrees(
+                df.select("Configuration", "SnapshotTime", "Modeldata").collect(),
+                n_threads=n_threads,
+                verbose=verbose,
+                **kwargs,
+            )
 
 
 class ADMTrees:
     def __new__(cls, file, n_threads=6, verbose=True, **kwargs):
         if isinstance(file, pl.DataFrame):
-            logging.info("DataFrame supplied.")
+            logger.info("DataFrame supplied.")
             file = file.filter(pl.col("Modeldata").is_not_null())
             if len(file) > 1:
-                logging.info("Multiple models found, so creating MultiTrees")
+                logger.info("Multiple models found, so creating MultiTrees")
                 if verbose:
                     print(
                         f"AGB models found: {file.select(pl.col('Configuration').unique())}"
@@ -37,14 +159,14 @@ class ADMTrees:
                     file=file, n_threads=n_threads, verbose=verbose, **kwargs
                 )
             else:
-                logging.info("One model found, so creating ADMTrees")
+                logger.info("One model found, so creating ADMTrees")
                 return ADMTrees(file.select("Modeldata").item(), **kwargs)
         if isinstance(file, pl.Series):
-            logging.info("One model found, so creating ADMTrees")
-            logging.debug(file.select(pl.col("Modeldata")))
+            logger.info("One model found, so creating ADMTrees")
+            logger.debug(file.select(pl.col("Modeldata")))
             return ADMTrees(file.select(pl.col("Modeldata")), **kwargs)
 
-        logging.info("No need to extract from DataFrame, regular import")
+        logger.info("No need to extract from DataFrame, regular import")
         return ADMTreesModel(file, **kwargs)
 
     @staticmethod
@@ -124,30 +246,30 @@ class ADMTreesModel:
     """
 
     def __init__(self, file: str, **kwargs):
-        logging.info("Reading model...")
+        logger.info("Reading model...")
         self._read_model(file, **kwargs)
         if self.trees is None:
             raise ValueError("Import unsuccessful.")
 
     def _read_model(self, file, **kwargs):
         def _import(file):
-            logging.info("Trying regular import.")
+            logger.info("Trying regular import.")
             with open(file) as f:
                 file = json.load(f)
-            logging.info("Regular import successful.")
+            logger.info("Regular import successful.")
 
             return file
 
         def read_url(file):
-            logging.info("Trying to read from URL.")
+            logger.info("Trying to read from URL.")
             file = urllib.request.urlopen(file).read()
-            logging.info("Import from URL successful.")
+            logger.info("Import from URL successful.")
             return file
 
         def decode_string(file):
-            logging.info("Trying to decompress the string.")
+            logger.info("Trying to decompress the string.")
             file = zlib.decompress(base64.b64decode(file))
-            logging.info("Decompressing string successful.")
+            logger.info("Decompressing string successful.")
             return file
 
         decode = kwargs.pop("decode", False)
@@ -158,20 +280,20 @@ class ADMTreesModel:
                 if not self.trees["_serialClass"].endswith("GbModel"):
                     return ValueError("Not an AGB model")
                 decode = True
-                logging.info("Model needs to be decoded")
-            except Exception as e:
-                logging.info(f"Decoding failed, exception:", exc_info=True)
+                logger.info("Model needs to be decoded")
+            except Exception:
+                logger.info("Decoding failed, exception:", exc_info=True)
                 try:
                     self.trees = _import(file)
-                    logging.info("Regular export, no need for decoding")
-                except Exception as e:
-                    logging.info(f"Regular import failed, exception:", exc_info=True)
+                    logger.info("Regular export, no need for decoding")
+                except Exception:
+                    logger.info("Regular import failed, exception:", exc_info=True)
                     try:
                         self.trees = json.loads(read_url(file))
-                        logging.info("Read model from URL")
-                    except Exception as e:
-                        logging.info(
-                            f"Reading from URL failed, exception:", exc_info=True
+                        logger.info("Read model from URL")
+                    except Exception:
+                        logger.info(
+                            "Reading from URL failed, exception:", exc_info=True
                         )
                         msg = (
                             "Could not import the AGB model.\n"
@@ -186,9 +308,9 @@ class ADMTreesModel:
             if not self.trees["_serialClass"].endswith("GbModel"):
                 return ValueError("Not an AGB model")
             decode = True
-            logging.info("Model needs to be decoded")
+            logger.info("Model needs to be decoded")
         elif isinstance(file, dict):
-            logging.info("Dict supplied, so no reading required")
+            logger.info("Dict supplied, so no reading required")
             self.trees = file
         self.raw_model = copy.deepcopy(file)
 
@@ -204,7 +326,7 @@ class ADMTreesModel:
 
         def stringDecoder(encoder: dict, index: int, sign, verbose=False):
             def set_types(split):
-                logging.debug(split)
+                logger.debug(split)
                 split = split.rsplit("=", 1)
                 split[1] = int(split[1])
                 return tuple(reversed(split))
@@ -229,7 +351,7 @@ class ADMTreesModel:
         def decodeSplit(split: str, verbose=False):
             if not isinstance(split, str):
                 return split
-            logging.debug(f"Decoding split: {split}")
+            logger.debug(f"Decoding split: {split}")
             predictor, sign, splitval = split.split(" ")
 
             if sign == "LT":
@@ -254,7 +376,7 @@ class ADMTreesModel:
                 else:
                     val = "{ " + val + " }"
                     sign = "in"
-            logging.debug(f"Decoded split: {variable} {sign} {val}")
+            logger.debug(f"Decoded split: {variable} {sign} {val}")
             return f"{variable} {sign} {val}"
 
         try:
@@ -274,11 +396,11 @@ class ADMTreesModel:
 
         for i, model in enumerate(self.model):
             self.model[i] = decodeAllTrees(model, decodeSplit)
-            logging.debug(f"Decoded tree {i}")
+            logger.debug(f"Decoded tree {i}")
 
     def _post_import_cleanup(self, decode, **kwargs):
         if not hasattr(self, "model"):
-            logging.info("Adding model tag")
+            logger.info("Adding model tag")
 
             try:
                 self.model = self.trees["model"]["boosters"][0]["trees"]
@@ -297,7 +419,7 @@ class ADMTreesModel:
                             raise (e1, e2, e3, e4)
 
         if decode:
-            logging.info("Decoding the tree splits.")
+            logger.info("Decoding the tree splits.")
             self._decodeTrees()
 
         try:
@@ -305,19 +427,19 @@ class ADMTreesModel:
                 prop[0]: prop[1] for prop in self.trees.items() if prop[0] != "model"
             }
         except:
-            logging.info("Could not extract the properties.")
+            logger.info("Could not extract the properties.")
 
         try:
             self.learning_rate = self.properties["configuration"]["parameters"][
                 "learningRateEta"
             ]
         except:
-            logging.info("Could not find the learning rate in the model.")
+            logger.info("Could not find the learning rate in the model.")
 
         try:
             self.context_keys = self.properties["configuration"]["contextKeys"]
         except:
-            logging.info("Could not find context keys.")
+            logger.info("Could not find context keys.")
             self.context_keys = kwargs.get("context_keys", None)
 
     def _depth(self, d: Dict) -> Dict:
@@ -328,12 +450,12 @@ class ADMTreesModel:
 
     @cached_property
     def predictors(self):
-        logging.info("Extracting predictors.")
+        logger.info("Extracting predictors.")
         return self.getPredictors()
 
     @cached_property
     def treeStats(self):
-        logging.info("Calculating tree stats.")
+        logger.info("Calculating tree stats.")
         return self.getTreeStats()
 
     @cached_property
@@ -350,17 +472,17 @@ class ADMTreesModel:
 
     @cached_property
     def groupedGainsPerSplit(self):
-        logging.info("Calculating grouped gains per split.")
+        logger.info("Calculating grouped gains per split.")
         return self.getGroupedGainsPerSplit()
 
     @cached_property
     def allValuesPerSplit(self):
-        logging.info("Calculating all values per split.")
+        logger.info("Calculating all values per split.")
         return self.getAllValuesPerSplit()
 
     @cached_property
     def splitsPerVariableType(self, **kwargs):
-        logging.info("Calculating splits per variable type.")
+        logger.info("Calculating splits per variable type.")
         return self.computeCategorizationOverTime(
             predictorCategorization=kwargs.pop("predictorCategorization", None)
         )

@@ -146,7 +146,7 @@ class ValueFinder:
         """
         from datetime import datetime
 
-        time = cdh_utils.toPRPCDateTime(datetime.now())
+        time = cdh_utils.to_prpc_date_time(datetime.now())
         out = pega_io.cache_to_file(self.df, path, name=f"cached_ValueFinder_{time}")
         return out
 

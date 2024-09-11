@@ -1,33 +1,24 @@
-# -*- coding: utf-8 -*-
-"""
-cdhtools: Data Science add-ons for Pega.
-
-Various utilities to access and manipulate data from Pega for purposes
-of data analysis, reporting and monitoring.
-"""
-
 import datetime
 import io
 import logging
 import re
+import tempfile
 import warnings
 import zipfile
-import tempfile
 from io import StringIO
 from pathlib import Path
-from typing import List, Tuple, Union, Optional
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import polars as pl
 import pytz
 import requests
 
-from .errors import NotEagerError
 from .table_definitions import PegaDefaultTables
 from .types import any_frame
 
 
-def defaultPredictorCategorization(
+def default_predictor_categorization(
     x: Union[str, pl.Expr] = pl.col("PredictorName"),
 ) -> pl.Expr:
     """Function to determine the 'category' of a predictor.
@@ -68,7 +59,6 @@ def _extract_keys(
     df: any_frame,
     col="Name",
     capitalize=True,
-    import_strategy="eager",
 ) -> any_frame:
     """Extracts keys out of the pyName column
 
@@ -92,17 +82,25 @@ def _extract_keys(
         The dataframe to extract the keys from
     """
     # Checking for the 'column is None/Null' case
-    if df.schema[col] != pl.Utf8:
+    if df.collect_schema()[col] != pl.Utf8:
         return df
-
-    if import_strategy != "eager":
-        raise NotEagerError("Extracting keys")
 
     # Checking for the 'empty df' case
-    if len(df.select(col).head(1).collect()) == 0:
+    if len(df.lazy().select(col).head(1).collect()) == 0:
         return df
+    
+    # No-op in case we know there's no additional keys in the data
+    # if df.lazy().select(pl.col(col).first().str.starts_with('{').over(col))
 
-    def safeName():
+    def safe_name():
+        """To extract keys, we need JSON. If no JSON present, json_decode won't work.
+        Therefore, this method adds a dummy `pyName` struct in case it's not a string.
+
+        Returns
+        -------
+        pl.Expr
+            The expression to add the pyname column
+        """
         return (
             pl.when(~pl.col(col).cast(pl.Utf8).str.starts_with("{"))
             .then(
@@ -125,7 +123,7 @@ def _extract_keys(
 
     series = (
         df.select(
-            safeName().str.json_decode(infer_schema_length=None),
+            safe_name().str.json_decode(infer_schema_length=None),
         )
         .unnest("tempName")
         .lazy()
@@ -133,13 +131,12 @@ def _extract_keys(
     )
     if not capitalize:
         return df.with_columns(series)
-    return df.with_columns(_polarsCapitalize(series))
+    return df.with_columns(_polars_capitalize(series))
 
 
-def parsePegaDateTimeFormats(
-    timestampCol="SnapshotTime",
-    timestamp_fmt: str = None,
-    strict_conversion: bool = True,
+def parse_pega_date_time_formats(
+    timestamp_col="SnapshotTime",
+    timestamp_fmt: Optional[str] = None,
 ):
     """Parses Pega DateTime formats.
 
@@ -158,33 +155,19 @@ def parsePegaDateTimeFormats(
         The column to parse
     timestamp_fmt: str, default = None
         An optional format to use rather than the default formats
-    strict_conversion: bool, default = True
-        Whether to error on incorrect parses or just return Null values
     """
-    if timestamp_fmt is not None:
-        return pl.col(timestampCol).str.strptime(
-            pl.Datetime,
-            timestamp_fmt,
-            strict=strict_conversion,
+    return (
+        pl.coalesce(
+            pl.col(timestamp_col).str.to_datetime("%Y-%m-%d %H:%M:%S", strict=False),
+            pl.col(timestamp_col).str.to_datetime("%Y%m%dT%H%M%S.%3f %Z", strict=False),
+            pl.col(timestamp_col).str.to_datetime(timestamp_fmt, strict=False),
         )
-    else:
-        return (
-            pl.when((pl.col(timestampCol).str.slice(4, 1) == pl.lit("-")))
-            .then(
-                pl.col(timestampCol)
-                .str.strptime(pl.Datetime, "%Y-%m-%d %H:%M:%S", strict=False)
-                .dt.cast_time_unit("ns")
-            )
-            .otherwise(
-                pl.col(timestampCol)
-                .str.strptime(pl.Datetime, "%Y%m%dT%H%M%S.%3f %Z", strict=False)
-                .dt.replace_time_zone(None)
-                .dt.cast_time_unit("ns")
-            )
-        ).alias(timestampCol)
+        .dt.replace_time_zone(None)
+        .dt.cast_time_unit("ns")
+    )
 
 
-def getTypeMapping(df, definition, verbose=False, **timestamp_opts):
+def get_type_mapping(df, definition, verbose=False, **timestamp_opts):
     """
     This function is used to convert the data types of columns in a DataFrame to a desired types.
     The desired types are defined in a `PegaDefaultTables` class.
@@ -206,21 +189,21 @@ def getTypeMapping(df, definition, verbose=False, **timestamp_opts):
         A list with polars expressions for casting data types.
     """
 
-    def getMapping(columns, reverse=False):
+    def get_mapping(columns, reverse=False):
         if not reverse:
             return dict(zip(columns, _capitalize(columns)))
         else:
             return dict(zip(_capitalize(columns), columns))
 
-    named = getMapping(df.columns)
-    typed = getMapping(
+    named = get_mapping(df.columns)
+    typed = get_mapping(
         [col for col in dir(definition) if not col.startswith("__")], reverse=True
     )
 
     types = []
-    for col, renamedCol in named.items():
+    for col, renamed_col in named.items():
         try:
-            new_type = getattr(definition, typed[renamedCol])
+            new_type = getattr(definition, typed[renamed_col])
             original_type = df.schema[col].base_type()
             if original_type == pl.Null:
                 if verbose:
@@ -229,7 +212,7 @@ def getTypeMapping(df, definition, verbose=False, **timestamp_opts):
                 if original_type == pl.Categorical and new_type in pl.NUMERIC_DTYPES:
                     types.append(pl.col(col).cast(pl.Utf8).cast(new_type))
                 elif new_type == pl.Datetime and original_type != pl.Date:
-                    types.append(parsePegaDateTimeFormats(col, **timestamp_opts))
+                    types.append(parse_pega_date_time_formats(col, **timestamp_opts))
                 else:
                     types.append(pl.col(col).cast(new_type))
         except:
@@ -242,7 +225,7 @@ def getTypeMapping(df, definition, verbose=False, **timestamp_opts):
 
 def set_types(df, table="infer", verbose=False, **timestamp_opts):
     if table == "infer":
-        table = inferTableDefinition(df)
+        table = infer_table_definition(df)
 
     if table == "pyValueFinder":
         definition = PegaDefaultTables.pyValueFinder()
@@ -254,7 +237,7 @@ def set_types(df, table="infer", verbose=False, **timestamp_opts):
     else:
         raise ValueError(table)
 
-    mapping = getTypeMapping(df, definition, verbose=verbose, **timestamp_opts)
+    mapping = get_type_mapping(df, definition, verbose=verbose, **timestamp_opts)
 
     if len(mapping) > 0:
         return df.with_columns(mapping)
@@ -262,7 +245,7 @@ def set_types(df, table="infer", verbose=False, **timestamp_opts):
         return df
 
 
-def inferTableDefinition(df):
+def infer_table_definition(df):
     cols = _capitalize(df.columns)
     vf = ["Propensity", "Stage"]
     predictors = ["PredictorName", "ModelID", "BinSymbol"]
@@ -456,7 +439,7 @@ def aucpr_from_bincounts(
     return np.sum(Area[1:])
 
 
-def auc2GINI(auc: float) -> float:
+def auc_to_gini(auc: float) -> float:
     """
     Convert AUC performance metric to GINI
 
@@ -542,18 +525,19 @@ def _capitalize(fields: list) -> list:
     return fields
 
 
-def _polarsCapitalize(df: pl.LazyFrame):
+def _polars_capitalize(df: any_frame):
+    cols = df.collect_schema().names()
     return df.rename(
         dict(
             zip(
-                df.columns,
-                _capitalize(df.columns),
+                cols,
+                _capitalize(cols),
             )
         )
     )
 
 
-def fromPRPCDateTime(
+def from_prpc_date_time(
     x: str, return_string: bool = False
 ) -> Union[datetime.datetime, str]:
     """Convert from a Pega date-time string.
@@ -610,7 +594,7 @@ def fromPRPCDateTime(
 # TODO: Polars doesn't like time zones like GMT+0200
 
 
-def toPRPCDateTime(dt: datetime.datetime) -> str:
+def to_prpc_date_time(dt: datetime.datetime) -> str:
     """Convert to a Pega date-time string
 
     Parameters
@@ -678,7 +662,7 @@ def overlap_lists_polars(col: pl.Series, row_validity: pl.Series) -> List[float]
     return average_overlap
 
 
-def zRatio(
+def z_ratio(
     posCol: pl.Expr = pl.col("BinPositives"), negCol: pl.Expr = pl.col("BinNegatives")
 ) -> pl.Expr:
     """Calculates the Z-Ratio for predictor bins.
@@ -703,10 +687,10 @@ def zRatio(
     >>> df.group_by(['ModelID', 'PredictorName']).agg([zRatio()]).explode()
     """
 
-    def getFracs(posCol=pl.col("BinPositives"), negCol=pl.col("BinNegatives")):
+    def get_fracs(posCol=pl.col("BinPositives"), negCol=pl.col("BinNegatives")):
         return posCol / posCol.sum(), negCol / negCol.sum()
 
-    def zRatioimpl(
+    def z_ratio_impl(
         posFractionCol=pl.col("posFraction"),
         negFractionCol=pl.col("negFraction"),
         PositivesCol=pl.sum("BinPositives"),
@@ -720,7 +704,7 @@ def zRatio(
             ).sqrt()
         ).alias("ZRatio")
 
-    return zRatioimpl(*getFracs(posCol, negCol), posCol.sum(), negCol.sum())
+    return z_ratio_impl(*get_fracs(posCol, negCol), posCol.sum(), negCol.sum())
 
 
 def lift(
@@ -749,15 +733,13 @@ def lift(
             # TODO not sure how polars (mis)behaves when there are no positives at all
             # I would hope for a NaN but base python doesn't do that. Polars perhaps.
             # Stijn: It does have proper None value support, may work like you say
-            binPos
-            * (totalPos + totalNeg)
-            / ((binPos + binNeg) * totalPos)
+            binPos * (totalPos + totalNeg) / ((binPos + binNeg) * totalPos)
         ).alias("Lift")
 
     return liftImpl(posCol, negCol, posCol.sum(), negCol.sum())
 
 
-def LogOdds(
+def log_odds(
     Positives=pl.col("Positives"),
     Negatives=pl.col("ResponseCount") - pl.col("Positives"),
 ):
@@ -774,9 +756,9 @@ def LogOdds(
 
 # TODO: reconsider this. Feature importance now stored in datamart
 # perhaps we should not bother to calculate it ourselves.
-def featureImportance(over=["PredictorName", "ModelID"]):
+def feature_importance(over=["PredictorName", "ModelID"]):
     varImp = weighted_average_polars(
-        LogOdds(
+        log_odds(
             pl.col("BinPositives"), pl.col("BinResponseCount") - pl.col("BinPositives")
         ),
         "BinResponseCount",
@@ -902,52 +884,6 @@ def legend_color_order(fig):
                 pass
 
     return fig
-
-
-def sync_reports(checkOnly: bool = False, autoUpdate: bool = False):
-    """Compares the report files in your local directory to the repo
-
-    If any of the files are different from the ones in GitHub,
-    will prompt you to update them.
-
-    Parameters
-    ----------
-    checkOnly : bool, default = False
-        If True, only checks, does not prompt to update
-    autoUpdate : bool, default = False
-        If True, doensn't prompt for update and goes ahead
-    """
-    import glob
-    import urllib
-
-    from pdstools import __reports__
-
-    files = [f for f in glob.glob(str(__reports__ / "*.qmd"))]
-    latest = {}
-    replacement = {}
-    for file in files:
-        name = file.rsplit("/")[-1]
-        path = f"http://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/python/pdstools/reports/{name}"
-        fileFromUrl = urllib.request.urlopen(path).read()
-        latest[file] = (
-            int.from_bytes(fileFromUrl) ^ int.from_bytes(open(file).read().encode())
-            == 0
-        )
-        if not latest[file]:
-            replacement[file] = fileFromUrl
-    if False in latest.values():
-        if not checkOnly and (
-            autoUpdate
-            or input("One or more files out of sync. Enter 'y' to update them:")
-        ):
-            for filename, file in replacement.items():
-                with open(filename, "w") as f:
-                    f.write(file.decode())
-            return True
-        else:
-            return False
-    else:
-        return True
 
 
 def process_files_to_bytes(

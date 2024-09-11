@@ -8,7 +8,6 @@ import sys
 
 import numpy as np
 import polars as pl
-import pytest
 from pytz import timezone
 
 basePath = pathlib.Path(__file__).parent.parent.parent
@@ -96,36 +95,39 @@ def test_aucpr_from_bincounts():
 
 
 def test_auc2gini():
-    assert abs(cdh_utils.auc2GINI(0.8232) - 0.6464) < 1e-6
+    assert abs(cdh_utils.auc_to_gini(0.8232) - 0.6464) < 1e-6
 
 
 def test_fromPRPCDateTime():
     assert (
-        cdh_utils.fromPRPCDateTime("20180316T134127.847 GMT", True)
+        cdh_utils.from_prpc_date_time("20180316T134127.847 GMT", True)
         == "2018-03-16 13:41:27 GMT"
     )
-    assert cdh_utils.fromPRPCDateTime(
+    assert cdh_utils.from_prpc_date_time(
         "20180316T134127.847 GMT", False
     ) == datetime.datetime(2018, 3, 16, 13, 41, 27, 847, tzinfo=timezone("GMT"))
     assert (
-        cdh_utils.fromPRPCDateTime("20180316T134127.847345", True)
+        cdh_utils.from_prpc_date_time("20180316T134127.847345", True)
         == "2018-03-16 13:41:27 "
     )
     assert (
-        cdh_utils.fromPRPCDateTime("20180316T134127.8", True) == "2018-03-16 13:41:27 "
+        cdh_utils.from_prpc_date_time("20180316T134127.8", True)
+        == "2018-03-16 13:41:27 "
     )
-    assert cdh_utils.fromPRPCDateTime("20180316T134127", True) == "2018-03-16 13:41:27 "
+    assert (
+        cdh_utils.from_prpc_date_time("20180316T134127", True) == "2018-03-16 13:41:27 "
+    )
 
 
 def test_toPRPCDateTime():
     assert (
-        cdh_utils.toPRPCDateTime(
+        cdh_utils.to_prpc_date_time(
             datetime.datetime(2018, 3, 16, 13, 41, 27, 847000, tzinfo=timezone("GMT"))
         )
         == "20180316T134127.847 GMT+0000"
     )
     assert (
-        cdh_utils.toPRPCDateTime(
+        cdh_utils.to_prpc_date_time(
             datetime.datetime(
                 2018, 3, 16, 13, 41, 27, 847000, tzinfo=timezone("US/Eastern")
             )
@@ -133,7 +135,7 @@ def test_toPRPCDateTime():
         == "20180316T134127.847 GMT-0456"
     )
     assert (
-        cdh_utils.toPRPCDateTime(datetime.datetime(2018, 3, 16, 13, 41, 27, 847000))[
+        cdh_utils.to_prpc_date_time(datetime.datetime(2018, 3, 16, 13, 41, 27, 847000))[
             :-3
         ]
         == "20180316T134127.847 GMT+0000"[:-3]
@@ -185,34 +187,41 @@ def test_weighted_average_polars():
 
     assert output.equals(expected_output)
 
+
 def test_overlap_lists_polars_simple():
     input = pl.DataFrame(
-        {
-            "Actions" : [['a', 'b'], ['a', 'c', 'd']],
-            "Valid" : [True, True]
-        }
+        {"Actions": [["a", "b"], ["a", "c", "d"]], "Valid": [True, True]}
     )
 
-    assert cdh_utils.overlap_lists_polars(input['Actions'], input['Valid']) == [0.5, 1.0/3]
+    assert cdh_utils.overlap_lists_polars(input["Actions"], input["Valid"]) == [
+        0.5,
+        1.0 / 3,
+    ]
+
 
 def test_overlap_lists_polars_more():
     input = pl.DataFrame(
         {
-            "Actions" : [['a', 'b'], ['b'], ['a', 'b'], ['a', 'c', 'd']],
-            "Valid" : [True, True, False, True],
-            "Valid2" : [True, True, True, True]
+            "Actions": [["a", "b"], ["b"], ["a", "b"], ["a", "c", "d"]],
+            "Valid": [True, True, False, True],
+            "Valid2": [True, True, True, True],
         }
     )
 
-    results = cdh_utils.overlap_lists_polars(input['Actions'], input['Valid'])
-    expected_results = [0.5, 0.5, float("nan"), 1.0/6]
+    results = cdh_utils.overlap_lists_polars(input["Actions"], input["Valid"])
+    expected_results = [0.5, 0.5, float("nan"), 1.0 / 6]
     for i in range(len(expected_results)):
-        assert (results[i] == expected_results[i]) or (np.isnan(results[i]) and np.isnan(expected_results[i]))
+        assert (results[i] == expected_results[i]) or (
+            np.isnan(results[i]) and np.isnan(expected_results[i])
+        )
 
-    results = cdh_utils.overlap_lists_polars(input['Actions'], input['Valid2'])
-    expected_results = [2.0/3, 2.0/3, 2.0/3, 2.0/9]
+    results = cdh_utils.overlap_lists_polars(input["Actions"], input["Valid2"])
+    expected_results = [2.0 / 3, 2.0 / 3, 2.0 / 3, 2.0 / 9]
     for i in range(len(expected_results)):
-        assert (results[i] == expected_results[i]) or (np.isnan(results[i]) and np.isnan(expected_results[i]))
+        assert (results[i] == expected_results[i]) or (
+            np.isnan(results[i]) and np.isnan(expected_results[i])
+        )
+
 
 def test_weighted_performance_polars():
     input = pl.DataFrame(
@@ -252,7 +261,7 @@ def test_zRatio():
     )
 
     output = (
-        input.with_columns(cdh_utils.zRatio())
+        input.with_columns(cdh_utils.z_ratio())
         .with_columns(pl.col("ZRatio").round(2))
         .sort("Predictor_range")
     )
@@ -295,7 +304,7 @@ def test_log_odds():
             "ResponseCount": [5, 2215, 1930, 1094, 358],
         }
     )
-    output = input.with_columns(cdh_utils.LogOdds().round(2))
+    output = input.with_columns(cdh_utils.log_odds().round(2))
 
     log_odds_list = [1.65, -0.81, -0.23, 0.43, 0.87]
     expected_output = input.with_columns(
@@ -315,7 +324,7 @@ def test_featureImportance():
         }
     )
 
-    output = input.with_columns(cdh_utils.featureImportance().round(2)).sort(
+    output = input.with_columns(cdh_utils.feature_importance().round(2)).sort(
         "BinPositives"
     )
     importance_list = [-0.12, 0.28, -0.12, 0.28]
@@ -341,14 +350,14 @@ def test_capitalize_behavior():
 def test_PredictorCategorization():
     df = (
         pl.LazyFrame({"PredictorName": ["Customer.Variable", "Variable"]})
-        .with_columns(cdh_utils.defaultPredictorCategorization())
+        .with_columns(cdh_utils.default_predictor_categorization())
         .collect()
     )
     assert df.get_column("PredictorCategory").to_list() == ["Customer", "Primary"]
 
     df = (
         pl.LazyFrame({"Predictor": ["Customer.Variable", "Variable"]})
-        .with_columns(cdh_utils.defaultPredictorCategorization(x="Predictor"))
+        .with_columns(cdh_utils.default_predictor_categorization(x="Predictor"))
         .collect()
     )
     assert df.get_column("PredictorCategory").to_list() == ["Customer", "Primary"]

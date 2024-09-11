@@ -146,7 +146,7 @@ class ADMDatamart(Plots, Tables):
             "Group",
         ],  # TODO Name/Treatment are normally also part of context
         extract_keys: bool = False,  # TODO: should be True by default, extract should be efficiently using Configuration
-        predictorCategorization: pl.Expr = cdh_utils.defaultPredictorCategorization,
+        predictorCategorization: pl.Expr = cdh_utils.default_predictor_categorization,
         plotting_engine: Union[
             str, Any
         ] = "plotly",  # TODO drop this, no plot engine abstraction
@@ -414,7 +414,7 @@ class ADMDatamart(Plots, Tables):
         if df is None:
             return None, None, None
 
-        df = cdh_utils._polarsCapitalize(df)
+        df = cdh_utils._polars_capitalize(df)
         cols, missing = self._available_columns(
             df, include_cols=include_cols, drop_cols=drop_cols
         )
@@ -422,7 +422,7 @@ class ADMDatamart(Plots, Tables):
             df = df.select(cols)
         if extract_keys:
             df = cdh_utils._extract_keys(df, import_strategy=self.import_strategy)
-            df = cdh_utils._polarsCapitalize(df)
+            df = cdh_utils._polars_capitalize(df)
 
         df = self._set_types(
             df,
@@ -1832,7 +1832,7 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
             shutil.copy(output_path, final_path)
             return final_path
 
-        except Exception as e:
+        except Exception:
             raise
         finally:
             if not keep_temp_files:
@@ -2021,6 +2021,3 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 )
                 data.write_excel(workbook=wb, worksheet=tab)
         return file
-
-
-# %%

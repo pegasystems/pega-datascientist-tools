@@ -14,7 +14,7 @@ import pytz
 import requests
 from tqdm import tqdm
 
-from ..utils.cdh_utils import fromPRPCDateTime
+from ..utils.cdh_utils import from_prpc_date_time
 
 
 def readDSExport(
@@ -315,7 +315,7 @@ def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
         The most recent file given the file name criteria.
     """
     if target not in {"modelData", "predictorData", "ValueFinder"}:
-        return f"Target not found"
+        return "Target not found"
 
     supported = [".json", ".csv", ".zip", ".parquet", ".feather", ".ipc", ".arrow"]
 
@@ -336,7 +336,7 @@ def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
 
     def f(x):
         try:
-            return fromPRPCDateTime(re.search(r"\d.*GMT", x)[0].replace("_", " "))
+            return from_prpc_date_time(re.search(r"\d.*GMT", x)[0].replace("_", " "))
         except:
             return pytz.timezone("GMT").localize(
                 datetime.datetime.fromtimestamp(os.path.getctime(x))
