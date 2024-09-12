@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Literal, NoReturn, Optional, Tuple, Union
 
 import polars as pl
 import yaml
+from polars.exceptions import ColumnNotFoundError
 
 from .. import pega_io
 from ..plots.plot_base import Plots
@@ -173,7 +174,9 @@ class ADMDatamart(Plots, Tables):
         )
         if self.modelData is not None:
             missing_context_keys = [
-                key for key in self.context_keys if key not in self.modelData.columns
+                key
+                for key in self.context_keys
+                if key not in self.modelData.collect_schema().names()
             ]
             if missing_context_keys:
                 self.modelData = self.modelData.with_columns(
@@ -307,7 +310,8 @@ class ADMDatamart(Plots, Tables):
                 **reading_opts,
             )
         if df2 is not None:
-            if "BinResponseCount" not in df2.columns:  # pragma: no cover
+            df2_columns = df2.collect_schema().names()
+            if "BinResponseCount" not in df2_columns:  # pragma: no cover
                 df2 = df2.with_columns(
                     (pl.col("BinPositives") + pl.col("BinNegatives")).alias(
                         "BinResponseCount"
@@ -323,7 +327,7 @@ class ADMDatamart(Plots, Tables):
 
             if (
                 self.predictorCategorization is not None
-                and "PredictorCategory" not in df2.columns
+                and "PredictorCategory" not in df2_columns
             ):
                 if not isinstance(self.predictorCategorization, pl.Expr):
                     self.predictorCategorization = self.predictorCategorization()
@@ -332,7 +336,9 @@ class ADMDatamart(Plots, Tables):
         if df1 is not None and df2 is not None:
             total_missing = (
                 set(self.missing_model)
-                & set(self.missing_preds) - set(df1.columns) - set(df2.columns)
+                & set(self.missing_preds)
+                - set(df1.collect_schema().names())
+                - set(df2_columns)
             ) - {"Treatment"}
             if len(total_missing) > 0 and verbose:  # pragma: no cover
                 print(
@@ -436,7 +442,7 @@ class ADMDatamart(Plots, Tables):
                 df = self._apply_query(df, self.query)
                 if self.verbose:
                     print(f"Query successful for {name}.")
-            except pl.ColumnNotFoundError:
+            except ColumnNotFoundError:
                 if self.verbose:
                     print(
                         f"""Query unsuccessful for {name}.
@@ -498,7 +504,9 @@ class ADMDatamart(Plots, Tables):
             "GroupIndex",
         }  # NOTE: these default names are already capitalized properly, with py/px/pz removed.
 
-        rename = {i: "Name" for i in df.columns if i.lower() == "modelname"}
+        rename = {
+            i: "Name" for i in df.collect_schema().names() if i.lower() == "modelname"
+        }
         if len(rename) > 0:
             df = df.rename(rename)
 
@@ -510,8 +518,10 @@ class ADMDatamart(Plots, Tables):
         )
 
         include_cols = default_names.union(include_cols).difference(drop_cols)
-        missing = {col for col in include_cols if col not in df.columns}
-        to_import = include_cols.intersection(set(df.columns))
+        missing = {
+            col for col in include_cols if col not in df.collect_schema().names()
+        }
+        to_import = include_cols.intersection(set(df.collect_schema().names()))
 
         return to_import, missing
 
@@ -553,7 +563,7 @@ class ADMDatamart(Plots, Tables):
             timestamp_fmt=timestamp_fmt,
             strict_conversion=strict_conversion,
         )
-        if "SnapshotTime" not in df.columns:
+        if "SnapshotTime" not in df.collect_schema().names():
             df = df.with_columns(SnapshotTime=None)
         return df
 
@@ -592,7 +602,7 @@ class ADMDatamart(Plots, Tables):
     @staticmethod
     def _last(df: any_frame) -> any_frame:
         """Method to retrieve only the last snapshot."""
-        if df.select("SnapshotTime").dtypes[0] == pl.datatypes.Null:
+        if df.select("SnapshotTime").collect_schema().dtypes()[0] == pl.datatypes.Null:
             return df
 
         return df.filter(
@@ -740,24 +750,27 @@ class ADMDatamart(Plots, Tables):
             Filtered Polars DataFrame
         """
         if isinstance(df, pl.DataFrame):
+            df_cols = df.columns
             df = df.lazy()
+        else:
+            df_cols = df.collect_schema().names()
         if query is not None:
             if isinstance(query, pl.Expr):
-                col_diff = set(query.meta.root_names()) - set(df.columns)
+                col_diff = set(query.meta.root_names()) - set(df_cols)
                 if len(col_diff) == 0:
                     return df.filter(query)
 
                 else:
-                    raise pl.ColumnNotFoundError(col_diff)
+                    raise ColumnNotFoundError(col_diff)
 
             if isinstance(query, list):
                 for item in query:
                     if isinstance(item, pl.Expr):
-                        col_diff = set(item.meta.root_names()) - set(df.columns)
+                        col_diff = set(item.meta.root_names()) - set(df_cols)
                         if len(col_diff) == 0:
                             df = df.filter(item)
                         else:
-                            raise pl.ColumnNotFoundError(col_diff)
+                            raise ColumnNotFoundError(col_diff)
                     else:
                         raise ValueError(item)
                 return df
@@ -809,7 +822,7 @@ class ADMDatamart(Plots, Tables):
         """
         if self.import_strategy != "eager" and allow_collect == False:
             raise NotEagerError("Discovering AGB models")
-        if "Modeldata" not in df.columns:
+        if "Modeldata" not in df.collect_schema().names():
             raise ValueError(
                 (
                     "Modeldata column not in the data. "
@@ -949,7 +962,7 @@ class ADMDatamart(Plots, Tables):
                 .alias("Daily_increase")
                 .over("ModelID")
             )
-            .group_by_dynamic("SnapshotTime", every=every, by=by)
+            .group_by_dynamic("SnapshotTime", every=every, group_by=by)
             .agg(pl.sum("Daily_increase").alias("Increase"))
         )
         if pivot:
@@ -957,7 +970,7 @@ class ADMDatamart(Plots, Tables):
                 df.collect()
                 .pivot(
                     index="SnapshotTime",
-                    columns=by,
+                    on=by,
                     values="Increase",
                     aggregate_function="first",
                 )
@@ -998,7 +1011,9 @@ class ADMDatamart(Plots, Tables):
         required_columns = set(aggcols).union({by})
 
         context_keys = kwargs.get("context_keys", self.context_keys)
-        assert required_columns.issubset(set(data.columns) | set(context_keys))
+        assert required_columns.issubset(
+            set(data.collect_schema().names()) | set(context_keys)
+        )
 
         return (
             data.group_by(context_keys)
@@ -1080,7 +1095,7 @@ class ADMDatamart(Plots, Tables):
             df.collect()
             .pivot(
                 index=by,
-                columns="PredictorName",
+                on="PredictorName",
                 values="PerformanceBin",
                 aggregate_function="first",
             )
@@ -1328,7 +1343,13 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
 
         # Removes whitespace and capitalizes names for matching
         def name_normalizer(x):
-            return pl.col(x).str.replace_all(r"[ \-_]", "").str.to_uppercase()
+            return (
+                pl.col(x)
+                .cast(pl.Utf8)
+                .str.replace_all(r"[ \-_]", "")
+                .str.to_uppercase()
+                .cast(pl.Categorical)
+            )
 
         directionMapping = pl.DataFrame(
             # Standard directions have a 1:1 mapping to channel groups
@@ -1374,9 +1395,10 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
         # all these expressions needed because not every customer has Treatments and
         # polars can't aggregate literals, so we have to be careful to pass on explicit
         # values when there are no treatments
+        model_data_cols = self.modelData.collect_schema().names()
         treatmentIdentifierExpr = (
             pl.concat_str(["Issue", "Group", "Name", "Treatment"], separator="/")
-            if "Treatment" in self.modelData.columns
+            if "Treatment" in model_data_cols
             else pl.lit("")
         )
         activeTreatmentExpr = (
@@ -1384,27 +1406,27 @@ Meaning in total, {self.model_stats['models_n_nonperforming']} ({round(self.mode
                 (pl.col("ResponseCount").sum() > 0)
                 & (pl.col("Treatment").is_not_null())
             ).over(["Issue", "Group", "Name", "Treatment"])
-            if "Treatment" in self.modelData.columns
+            if "Treatment" in model_data_cols
             else pl.lit(False)
         )
         uniqueTreatmentExpr = (
             treatmentIdentifierExpr.unique()
-            if "Treatment" in self.modelData.columns
+            if "Treatment" in model_data_cols
             else pl.lit([])
         )
         uniqueTreatmentCountExpr = (
             treatmentIdentifierExpr.n_unique()
-            if "Treatment" in self.modelData.columns
+            if "Treatment" in model_data_cols
             else pl.lit(0)
         )
         uniqueUsedTreatmentExpr = (
             treatmentIdentifierExpr.filter(pl.col("isUsedTreatment")).unique()
-            if "Treatment" in self.modelData.columns
+            if "Treatment" in model_data_cols
             else pl.lit([])
         )
         uniqueUsedTreatmentCountExpr = (
             treatmentIdentifierExpr.filter(pl.col("isUsedTreatment")).n_unique()
-            if "Treatment" in self.modelData.columns
+            if "Treatment" in model_data_cols
             else pl.lit(0)
         )
 

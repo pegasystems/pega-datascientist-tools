@@ -472,7 +472,9 @@ class ADMTreesModel:
         total_split_list = functools.reduce(operator.iconcat, splitlist, [])
         total_gains_list = functools.reduce(operator.iconcat, gainslist, [])
         gainsPerSplit = pl.DataFrame(
-            list(zip(total_split_list, total_gains_list)), schema=["split", "gains"]
+            list(zip(total_split_list, total_gains_list)),
+            schema=["split", "gains"],
+            orient="row",
         )
         gainsPerSplit = gainsPerSplit.with_columns(
             predictor=pl.col("split").map_elements(

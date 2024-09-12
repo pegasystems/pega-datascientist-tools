@@ -193,19 +193,20 @@ class Plots:
             )
 
         df = getattr(self, table)
+        df_columns = df.collect_schema().names()
         if table != "predictorData":
             required_columns = required_columns.union(self.context_keys)
 
         assert required_columns.issubset(
-            df.columns
-        ), f"The following columns are missing in the data: {required_columns - set(df.columns)}"
+            df_columns
+        ), f"The following columns are missing in the data: {required_columns - set(df_columns)}"
 
         df = self._apply_query(df, query)
 
         if last:
             df = self.last(df, "lazy")
 
-        if active_only and "PredictorName" in df.columns:
+        if active_only and "PredictorName" in df.collect_schema().names():
             df = df.filter(pl.col("EntryType") == "Active")
 
         df, facets = self._generateFacets(df, facets)
