@@ -14,17 +14,20 @@ from dataclasses import dataclass
 from functools import cached_property, lru_cache
 from math import exp
 from statistics import mean
-from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Union
 
-import plotly.express as px
-import plotly.graph_objects as go
 import polars as pl
-import pydot
-from plotly.subplots import make_subplots
 from tqdm import tqdm
 
+from ..utils import cdh_utils
+from ..utils.namespaces import MissingDependencies
+from ..utils.types import QUERY
+
 if TYPE_CHECKING:
+    import pydot
+
     from .new_ADMDatamart import ADMDatamart
+
 logger = logging.getLogger(__name__)
 
 
@@ -88,7 +91,7 @@ class AGB:
         last: bool = False,
         by: str = "Configuration",
         n_threads: int = 1,
-        query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]] = None,
+        query: Optional[QUERY] = None,
         verbose: bool = True,
         **kwargs,
     ) -> ADMTrees:  # pragma: no cover
@@ -116,8 +119,10 @@ class AGB:
 
         """
         df = self.datamart.model_data
+        if df is None:
+            raise ValueError("No model data available to get agb models.")
         if query is not None:
-            df = self._apply_query(df, query)
+            df = cdh_utils._apply_query(df, query)
 
         model_types = self.discover_model_types(df)
         agb_models = [
@@ -130,7 +135,7 @@ class AGB:
 
         if last:
             return ADMTrees(
-                self.datamart.aggregates.last(df),
+                self.datamart.aggregates.last(data=df),
                 n_threads=n_threads,
                 verbose=verbose,
                 **kwargs,
@@ -155,7 +160,7 @@ class ADMTrees:
                     print(
                         f"AGB models found: {file.select(pl.col('Configuration').unique())}"
                     )
-                return cls.getMultiTrees(
+                return cls.get_multi_trees(
                     file=file, n_threads=n_threads, verbose=verbose, **kwargs
                 )
             else:
@@ -170,7 +175,7 @@ class ADMTrees:
         return ADMTreesModel(file, **kwargs)
 
     @staticmethod
-    def getMultiTrees(file: pl.DataFrame, n_threads=1, verbose=True, **kwargs):
+    def get_multi_trees(file: pl.DataFrame, n_threads=1, verbose=True, **kwargs):
         out = {}
         df = file.filter(pl.col("Modeldata").is_not_null()).select(
             pl.col("SnapshotTime")
@@ -197,12 +202,12 @@ class ADMTrees:
                     list(f(ADMTrees, tqdm(df2["Modeldata"]))),
                 )
             )
-        dictPerConfig = {key[0]: {} for key in out.keys()}
+        dict_per_config: Dict[Any, Any] = {key[0]: {} for key in out.keys()}
         for (configuration, timestamp), value in out.items():
-            dictPerConfig[configuration][timestamp] = value
+            dict_per_config[configuration][timestamp] = value
         return {
             key: MultiTrees(value, model_name=key)
-            for key, value in dictPerConfig.items()
+            for key, value in dict_per_config.items()
         }
 
 
@@ -248,6 +253,7 @@ class ADMTreesModel:
     def __init__(self, file: str, **kwargs):
         logger.info("Reading model...")
         self._read_model(file, **kwargs)
+        self.nospaces = True
         if self.trees is None:
             raise ValueError("Import unsuccessful.")
 
@@ -316,15 +322,15 @@ class ADMTreesModel:
 
         self._post_import_cleanup(decode=decode, **kwargs)
 
-    def _decodeTrees(self):
-        def quantileDecoder(encoder: dict, index: int, verbose=False):
+    def _decode_trees(self):
+        def quantile_decoder(encoder: dict, index: int, verbose=False):
             if encoder["summaryType"] == "INITIAL_SUMMARY":
                 return encoder["summary"]["initialValues"][
                     index
                 ]  # Note: could also be index-1
             return encoder["summary"]["list"][index - 1].split("=")[0]
 
-        def stringDecoder(encoder: dict, index: int, sign, verbose=False):
+        def string_decoder(encoder: dict, index: int, sign, verbose=False):
             def set_types(split):
                 logger.debug(split)
                 split = split.rsplit("=", 1)
@@ -348,7 +354,7 @@ class ADMTreesModel:
             output = ", ".join(splitvalues)
             return output
 
-        def decodeSplit(split: str, verbose=False):
+        def decode_split(split: str, verbose=False):
             if not isinstance(split, str):
                 return split
             logger.debug(f"Decoding split: {split}")
@@ -363,12 +369,12 @@ class ADMTreesModel:
                 raise ValueError((predictor, sign, splitval))
             variable = encoderkeys[int(predictor)]
             encoder = encoders[variable]
-            variableType = list(encoder["encoder"].keys())[0]
+            variable_type = list(encoder["encoder"].keys())[0]
             to_decode = list(encoder["encoder"].values())[0]
-            if variableType == "quantileArray":
-                val = quantileDecoder(to_decode, int(splitval))
-            if variableType == "stringTranslator":
-                val = stringDecoder(
+            if variable_type == "quantileArray":
+                val = quantile_decoder(to_decode, int(splitval))
+            if variable_type == "stringTranslator":
+                val = string_decoder(
                     to_decode, int(splitval), sign=sign, verbose=verbose
                 )
                 if val == "Missing":
@@ -388,14 +394,14 @@ class ADMTreesModel:
             encoderkeys[encoder["value"]["index"]] = encoder["key"]
         encoders = {encoder["key"]: encoder["value"] for encoder in encoders}
 
-        def decodeAllTrees(ob, func):
+        def decode_all_trees(ob, func):
             if isinstance(ob, collections.abc.Mapping):
-                return {k: decodeAllTrees(v, func) for k, v in ob.items()}
+                return {k: decode_all_trees(v, func) for k, v in ob.items()}
             else:
                 return func(ob)
 
         for i, model in enumerate(self.model):
-            self.model[i] = decodeAllTrees(model, decodeSplit)
+            self.model[i] = decode_all_trees(model, decode_split)
             logger.debug(f"Decoded tree {i}")
 
     def _post_import_cleanup(self, decode, **kwargs):
@@ -420,7 +426,7 @@ class ADMTreesModel:
 
         if decode:
             logger.info("Decoding the tree splits.")
-            self._decodeTrees()
+            self._decode_trees()
 
         try:
             self.properties = {
@@ -451,43 +457,43 @@ class ADMTreesModel:
     @cached_property
     def predictors(self):
         logger.info("Extracting predictors.")
-        return self.getPredictors()
+        return self.get_predictors()
 
     @cached_property
-    def treeStats(self):
+    def tree_stats(self):
         logger.info("Calculating tree stats.")
-        return self.getTreeStats()
+        return self.get_tree_stats()
 
     @cached_property
-    def splitsPerTree(self):
-        return self.getGainsPerSplit()[0]
+    def splits_per_tree(self):
+        return self.get_gains_per_split()[0]
 
     @cached_property
-    def gainsPerTree(self):
-        return self.getGainsPerSplit()[1]
+    def gains_per_tree(self):
+        return self.get_gains_per_split()[1]
 
     @cached_property
-    def gainsPerSplit(self):
-        return self.getGainsPerSplit()[2]
+    def gains_per_split(self):
+        return self.get_gains_per_split()[2]
 
     @cached_property
-    def groupedGainsPerSplit(self):
+    def grouped_gains_per_split(self):
         logger.info("Calculating grouped gains per split.")
-        return self.getGroupedGainsPerSplit()
+        return self.get_grouped_gains_per_split()
 
     @cached_property
-    def allValuesPerSplit(self):
+    def all_values_per_split(self):
         logger.info("Calculating all values per split.")
-        return self.getAllValuesPerSplit()
+        return self.get_all_values_per_split()
 
     @cached_property
-    def splitsPerVariableType(self, **kwargs):
+    def splits_per_variable_type(self, **kwargs):
         logger.info("Calculating splits per variable type.")
-        return self.computeCategorizationOverTime(
+        return self.compute_categorization_over_time(
             predictorCategorization=kwargs.pop("predictorCategorization", None)
         )
 
-    def parseSplitValues(self, value) -> Tuple[str, str, str]:
+    def parse_split_values(self, value) -> Tuple[str, str, str]:
         """Parses the raw 'split' string into its three components.
 
         Once the split is parsed, Python can use it to evaluate.
@@ -503,7 +509,6 @@ class ADMTreesModel:
             The direction of the split (< or 'in')
             The value on which to split
         """
-        self.predictors
         if isinstance(value, pl.Series):
             value = value["split"][0, 0]
         if isinstance(value, tuple):
@@ -512,9 +517,9 @@ class ADMTreesModel:
             variable, sign, *splitvalue = value.split(" ")
             if sign not in {">", "<", "in", "is", "=="}:
                 self.nospaces = False
-                variable, sign, *splitvalue = self.parseSplitValuesWithSpaces(value)
+                variable, sign, *splitvalue = self.parse_split_values_with_spaces(value)
         else:
-            variable, sign, *splitvalue = self.parseSplitValuesWithSpaces(value)
+            variable, sign, *splitvalue = self.parse_split_values_with_spaces(value)
 
         if len(splitvalue) == 1 and isinstance(splitvalue, list):
             splitvalue = splitvalue[0]
@@ -527,7 +532,7 @@ class ADMTreesModel:
         return variable, sign, splitvalue
 
     @staticmethod
-    def parseSplitValuesWithSpaces(value) -> Tuple[str, str, str]:
+    def parse_split_values_with_spaces(value) -> Tuple[str, str, str]:
         splittypes = {">", "<", "in", "is", "=="}
         stage = "predictor"
         variable = ""
@@ -547,7 +552,7 @@ class ADMTreesModel:
         variable = variable.strip()
         return variable, sign, splitvalue
 
-    def getPredictors(self) -> Dict:
+    def get_predictors(self) -> Dict:
         self.nospaces = True
         try:
             predictors = self.properties["configuration"]["predictors"]
@@ -569,24 +574,24 @@ class ADMTreesModel:
                 except:
                     print("Could not find the predictors.")
                     return None
-        predictorsDict = {}
+        predictors_dict = {}
         for predictor in predictors:
             if isinstance(predictor, str):
                 predictor = json.loads(predictor)
-            predictorsDict[predictor["name"]] = predictor["type"]
-        return predictorsDict
+            predictors_dict[predictor["name"]] = predictor["type"]
+        return predictors_dict
 
     @lru_cache
-    def getGainsPerSplit(self) -> Tuple[Dict, pl.DataFrame, dict]:
+    def get_gains_per_split(self) -> Tuple[Dict, pl.DataFrame, dict]:
         """Function to compute the gains of each split in each tree."""
         self.predictors
 
         splitsPerTree = {
-            treeID: self.getSplitsRecursively(tree=tree, splits=[], gains=[])[0]
+            treeID: self.get_splits_recursively(tree=tree, splits=[], gains=[])[0]
             for treeID, tree in enumerate(self.model)
         }
         gainsPerTree = {
-            treeID: self.getSplitsRecursively(tree=tree, splits=[], gains=[])[1]
+            treeID: self.get_splits_recursively(tree=tree, splits=[], gains=[])[1]
             for treeID, tree in enumerate(self.model)
         }
         splitlist = [value for value in splitsPerTree.values() if value != []]
@@ -598,36 +603,36 @@ class ADMTreesModel:
         )
         gainsPerSplit = gainsPerSplit.with_columns(
             predictor=pl.col("split").map_elements(
-                lambda x: self.parseSplitValues(x)[0]
+                lambda x: self.parse_split_values(x)[0]
             )
         )
         return splitsPerTree, gainsPerTree, gainsPerSplit
 
-    def getGroupedGainsPerSplit(self) -> pl.DataFrame:
+    def get_grouped_gains_per_split(self) -> pl.DataFrame:
         """Function to get the gains per split, grouped by split.
 
         It adds some additional information, such as the possible values,
         the mean gains, and the number of times the split is performed.
         """
         return (
-            self.gainsPerSplit.group_by("split", maintain_order=True)
+            self.gains_per_split.group_by("split", maintain_order=True)
             .agg(
                 [
                     pl.first("predictor"),
                     pl.col("gains").implode(),
                     pl.col("gains").mean().alias("mean"),
                     pl.first("split")
-                    .map_elements(lambda x: self.parseSplitValues(x)[1])
+                    .map_elements(lambda x: self.parse_split_values(x)[1])
                     .alias("sign"),
                     pl.first("split")
-                    .map_elements(lambda x: self.parseSplitValues(x)[2])
+                    .map_elements(lambda x: self.parse_split_values(x)[2])
                     .alias("values"),
                 ]
             )
             .with_columns(n=pl.col("gains").list.len())
         )
 
-    def getSplitsRecursively(
+    def get_splits_recursively(
         self, tree: Dict, splits: List, gains: List
     ) -> Tuple[List, List]:
         """Recursively finds splits and their gains for each node.
@@ -656,10 +661,12 @@ class ADMTreesModel:
             if key == "split":
                 splits.append(value)
             if key in {"left", "right"}:
-                self.getSplitsRecursively(tree=dict(value), splits=splits, gains=gains)
+                self.get_splits_recursively(
+                    tree=dict(value), splits=splits, gains=gains
+                )
         return splits, gains
 
-    def plotSplitsPerVariable(self, subset: Optional[Set] = None, show=True):
+    def plot_splits_per_variable(self, subset: Optional[Set] = None, show=True):
         """Plots the splits for each variable in the tree.
 
         Parameters
@@ -673,8 +680,14 @@ class ADMTreesModel:
         -------
         plt.figure
         """
+        try:
+            import plotly.express as px
+            import plotly.graph_objects as go
+            from plotly.subplots import make_subplots
+        except ImportError:
+            raise MissingDependencies(["plotly"], "AGB")
         figlist = []
-        for (name,), data in self.gainsPerSplit.group_by("predictor"):
+        for (name,), data in self.gains_per_split.group_by("predictor"):
             if (subset is not None and name in subset) or subset is None:
                 fig = make_subplots()
                 fig.add_trace(
@@ -686,11 +699,15 @@ class ADMTreesModel:
                 )
                 fig.add_trace(
                     go.Scatter(
-                        x=self.groupedGainsPerSplit.filter(pl.col("predictor") == name)
+                        x=self.grouped_gains_per_split.filter(
+                            pl.col("predictor") == name
+                        )
                         .select("split")
                         .to_series()
                         .to_list(),
-                        y=self.groupedGainsPerSplit.filter(pl.col("predictor") == name)
+                        y=self.grouped_gains_per_split.filter(
+                            pl.col("predictor") == name
+                        )
                         .select("n")
                         .to_series()
                         .to_list(),
@@ -719,7 +736,7 @@ class ADMTreesModel:
                 figlist.append(fig)
         return figlist
 
-    def getTreeStats(self) -> pl.DataFrame:
+    def get_tree_stats(self) -> pl.DataFrame:
         """Generate a dataframe with useful stats for each tree"""
         stats = {
             k: [] for k in ["treeID", "score", "depth", "nsplits", "gains", "meangains"]
@@ -728,7 +745,7 @@ class ADMTreesModel:
             stats["treeID"].append(treeID)
             stats["score"].append(tree["score"])
             stats["depth"].append(self._depth(tree) - 1)
-            splits, gains = self.getSplitsRecursively(tree, splits=[], gains=[])
+            splits, gains = self.get_splits_recursively(tree, splits=[], gains=[])
             stats["nsplits"].append(len(splits))
             stats["gains"].append(gains)
             meangains = mean(gains) if len(gains) > 0 else 0
@@ -736,10 +753,10 @@ class ADMTreesModel:
 
         return pl.from_dict(stats)
 
-    def getAllValuesPerSplit(self) -> Dict:
+    def get_all_values_per_split(self) -> Dict:
         """Generate a dictionary with the possible values for each split"""
         splitvalues = {}
-        for (name,), group in self.groupedGainsPerSplit.group_by("predictor"):
+        for (name,), group in self.grouped_gains_per_split.group_by("predictor"):
             if name not in splitvalues.keys():
                 splitvalues[name] = set()
             splitvalue = group.get_column("values").to_list()
@@ -750,7 +767,7 @@ class ADMTreesModel:
                 print(e)
         return splitvalues
 
-    def getNodesRecursively(
+    def get_nodes_recursively(
         self, tree: Dict, nodelist: Dict, counter: Dict, childs: List
     ) -> Tuple[Dict, List]:
         """Recursively walks through each node, used for tree representation.
@@ -775,7 +792,7 @@ class ADMTreesModel:
 
         for key, value in tree.items():
             if key in {"left", "right"}:
-                nodelist[len(counter) + 1], _ = self.getNodesRecursively(
+                nodelist[len(counter) + 1], _ = self.get_nodes_recursively(
                     value, nodelist, counter, childs
                 )
 
@@ -805,14 +822,14 @@ class ADMTreesModel:
         return nodelist, childs
 
     @staticmethod
-    def _fillChildNodeIDs(nodeinfo: Dict, childs: Dict) -> Dict:
+    def _fill_child_node_ids(nodeinfo: Dict, childs: Dict) -> Dict:
         """Utility function to add child info to nodes"""
         for ID, children in childs.items():
             nodeinfo[ID]["left_child"] = children["left"]
             nodeinfo[ID]["right_child"] = children["right"]
         return nodeinfo
 
-    def getTreeRepresentation(self, tree_number: int) -> Dict:
+    def get_tree_representation(self, tree_number: int) -> Dict:
         """Generates a more usable tree representation.
 
         In this tree representation, each node has an ID,
@@ -828,10 +845,10 @@ class ADMTreesModel:
         """
 
         tree = self.model[tree_number]
-        nodeinfo, childs = self.getNodesRecursively(
+        nodeinfo, childs = self.get_nodes_recursively(
             tree, nodelist={}, childs={}, counter=[]
         )
-        tree = self._fillChildNodeIDs(nodeinfo, childs)
+        tree = self._fill_child_node_ids(nodeinfo, childs)
         # This is a very crude fix
         # It seems to add the entire tree as the last key value
         # Will work on a better fix in the future
@@ -839,7 +856,7 @@ class ADMTreesModel:
         del tree[list(tree.keys())[-1]]
         return tree
 
-    def plotTree(
+    def plot_tree(
         self,
         tree_number: int,
         highlighted: Optional[Union[Dict, List]] = None,
@@ -861,23 +878,27 @@ class ADMTreesModel:
         -------
         pydot.Graph
         """
+        try:
+            import pydot
+        except ImportError:
+            raise MissingDependencies(["pydot"], "AGB")
         if isinstance(highlighted, dict):
-            highlighted = self.getVisitedNodes(tree_number, highlighted)[0]
+            highlighted = self.get_visited_nodes(tree_number, highlighted)[0]
         else:
             highlighted = highlighted or []
-        nodes = self.getTreeRepresentation(tree_number)
+        nodes = self.get_tree_representation(tree_number)
         graph = pydot.Dot("my_graph", graph_type="graph", rankdir="BT")
         for key, node in nodes.items():
             color = "green" if key in highlighted else "white"
             label = f"Score: {node['score']}"
             if "split" in node:
                 split = node["split"]
-                variable, sign, values = self.parseSplitValues(split)
+                variable, sign, values = self.parse_split_values(split)
                 if sign == "in":
                     if len(values) <= 3:
                         labelname = values
                     else:
-                        totallen = len(self.allValuesPerSplit[variable])
+                        totallen = len(self.all_values_per_split[variable])
                         labelname = (
                             f"{list(values)[0:2]+['...']} ({len(values)}/{totallen})"
                         )
@@ -923,7 +944,7 @@ class ADMTreesModel:
                 )
         return graph
 
-    def getVisitedNodes(
+    def get_visited_nodes(
         self, treeID: int, x: Dict, save_all: bool = False
     ) -> Tuple[List, float, List]:
         """Finds all visited nodes for a given tree, given an x
@@ -946,7 +967,7 @@ class ADMTreesModel:
             The gains for each split in the visited nodes
 
         """
-        tree = self.getTreeRepresentation(treeID)
+        tree = self.get_tree_representation(treeID)
         current_node_id = 1
         leaf = False
         visited = []
@@ -955,7 +976,7 @@ class ADMTreesModel:
             visited += [current_node_id]
             current_node = tree[current_node_id]
             if "split" in current_node:
-                variable, type, split = self.parseSplitValues(current_node["split"])
+                variable, type, split = self.parse_split_values(current_node["split"])
                 splitvalue = f"'{x[variable]}'" if type in {"in", "is"} else x[variable]
                 type = "in" if type == "is" else type
                 if save_all:
@@ -970,7 +991,7 @@ class ADMTreesModel:
                 leaf = True
         return visited, current_node["score"], scores
 
-    def getAllVisitedNodes(self, x: Dict) -> pl.DataFrame:
+    def get_all_visited_nodes(self, x: Dict) -> pl.DataFrame:
         """Loops through each tree, and records the scoring info
 
         Parameters
@@ -985,7 +1006,7 @@ class ADMTreesModel:
         tree_ids, visited_nodes, score, splits = [], [], [], []
         for treeID in range(0, len(self.model)):
             tree_ids.append(treeID)
-            visits = self.getVisitedNodes(treeID, x, save_all=True)
+            visits = self.get_visited_nodes(treeID, x, save_all=True)
             visited_nodes.append(visits[0])
             score.append(visits[1])
             splits.append(visits[2])
@@ -997,13 +1018,19 @@ class ADMTreesModel:
 
     def score(self, x: Dict) -> float:
         """Computes the score for a given x"""
-        score = self.getAllVisitedNodes(x)["score"].sum()
+        score = self.get_all_visited_nodes(x)["score"].sum()
         return 1 / (1 + exp(-score))
 
-    def plotContributionPerTree(self, x: Dict, show=True):
+    def plot_contribution_per_tree(self, x: Dict, show=True):
         """Plots the contribution of each tree towards the final propensity."""
+        try:
+            import plotly.express as px
+            import plotly.graph_objects as go
+            from plotly.subplots import make_subplots
+        except ImportError:
+            raise MissingDependencies(["plotly"], "AGB")
         scores = (
-            self.getAllVisitedNodes(x)
+            self.get_all_visited_nodes(x)
             .sort("treeID")
             .to_pandas(use_pyarrow_extension_array=True)
         )
@@ -1040,7 +1067,7 @@ class ADMTreesModel:
             fig.show()  # pragma: no cover
         return fig
 
-    def predictorCategorization(self, x: str, context_keys=None):
+    def predictor_categorization(self, x: str, context_keys=None):
         context_keys = context_keys if context_keys is not None else self.context_keys
         if context_keys is None:
             context_keys = set()
@@ -1051,34 +1078,42 @@ class ADMTreesModel:
         else:
             return "Primary"
 
-    def computeCategorizationOverTime(
+    def compute_categorization_over_time(
         self, predictorCategorization=None, context_keys=None
     ):
         context_keys = context_keys if context_keys is not None else self.context_keys
         predictorCategorization = (
             predictorCategorization
             if predictorCategorization is not None
-            else self.predictorCategorization
+            else self.predictor_categorization
         )
         splitsPerTree = list()
-        for splits in self.splitsPerTree.values():
+        for splits in self.splits_per_tree.values():
             counter = collections.Counter()
             for split in splits:
                 counter.update(
                     [
                         predictorCategorization(
-                            self.parseSplitValues(split)[0], context_keys
+                            self.parse_split_values(split)[0], context_keys
                         )
                     ]
                 )
             splitsPerTree.append(counter)
-        return splitsPerTree, self.treeStats.select("score").to_series().abs().to_list()
+        return splitsPerTree, self.tree_stats.select(
+            "score"
+        ).to_series().abs().to_list()
 
-    def plotSplitsPerVariableType(self, predictorCategorization=None, **kwargs):
-        if predictorCategorization is not None:
-            to_plot = self.computeCategorizationOverTime(predictorCategorization)[0]
+    def plot_splits_per_variable_type(self, predictor_categorization=None, **kwargs):
+        try:
+            import plotly.express as px
+            import plotly.graph_objects as go
+            from plotly.subplots import make_subplots
+        except ImportError:
+            raise MissingDependencies(["plotly"], "AGB")
+        if predictor_categorization is not None:
+            to_plot = self.compute_categorization_over_time(predictor_categorization)[0]
         else:
-            to_plot = self.splitsPerVariableType[0]
+            to_plot = self.splits_per_variable_type[0]
         df = pl.DataFrame(to_plot).to_pandas(use_pyarrow_extension_array=True)
 
         fig = px.area(
@@ -1127,8 +1162,8 @@ class ADMTreesModel:
 @dataclass
 class MultiTrees:
     trees: dict
-    model_name: str = None
-    context_keys: list = None
+    model_name: Optional[str] = None
+    context_keys: Optional[list] = None
 
     def __repr__(self):
         mod = "" if self.model_name is None else f" for {self.model_name}"
@@ -1164,12 +1199,14 @@ class MultiTrees:
     def last(self):
         return self[-1]
 
-    def computeOverTime(self, predictorCategorization=None):
+    def compute_over_time(self, predictor_categorization=None):
         outdf = []
         for timestamp, tree in self.trees.items():
             to_plot = tree.splitsPerVariableType[0]
-            if predictorCategorization is not None:
-                to_plot = tree.computeCategorizationOverTime(predictorCategorization)[0]
+            if predictor_categorization is not None:
+                to_plot = tree.computeCategorizationOverTime(predictor_categorization)[
+                    0
+                ]
             outdf.append(
                 pl.DataFrame(to_plot).with_columns(
                     SnapshotTime=pl.lit(timestamp).str.to_date(format="%Y-%m-%d %X")
@@ -1178,8 +1215,14 @@ class MultiTrees:
 
         return pl.concat(outdf, how="diagonal")
 
-    def plotSplitsPerVariableType(self, predictorCategorization=None, **kwargs):
-        df = self.computeOverTime(predictorCategorization).to_pandas(
+    def plot_splits_per_variable_type(self, predictor_categorization=None, **kwargs):
+        try:
+            import plotly.express as px
+            import plotly.graph_objects as go
+            from plotly.subplots import make_subplots
+        except ImportError:
+            raise MissingDependencies(["plotly"], "AGB")
+        df = self.compute_over_time(predictor_categorization).to_pandas(
             use_pyarrow_extension_array=True
         )
         fig = px.area(

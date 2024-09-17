@@ -1,14 +1,16 @@
 import datetime
 import logging
 import os
+import pathlib
 import re
 import urllib
 import zipfile
+from glob import glob
 from io import BytesIO
-from typing import Literal, Union
+from pathlib import Path
+from typing import Iterable, List, Literal, Optional, Tuple, Union, overload
 
 import numpy as np
-import pandas as pd
 import polars as pl
 import pytz
 import requests
@@ -17,14 +19,14 @@ from tqdm import tqdm
 from ..utils.cdh_utils import from_prpc_date_time
 
 
-def readDSExport(
-    filename: Union[pd.DataFrame, pl.DataFrame, str],
-    path: str = ".",
+def read_ds_export(
+    filename: str,
+    path: os.StrPath = ".",
     verbose: bool = True,
     **reading_opts,
-) -> pl.LazyFrame:
+) -> Optional[pl.LazyFrame]:
     """Read a Pega dataset export file.
-    Can accept either a Pandas DataFrame or one of the following formats:
+    Accepts one of the following formats:
     - .csv
     - .json
     - .zip (zipped json or CSV)
@@ -67,34 +69,21 @@ def readDSExport(
         >>> df = readDSExport(filename = df)
 
     """
-
-    # If a lazy frame is supplied directly, we just pass it through
-    if isinstance(filename, pl.LazyFrame):
-        logging.debug("Lazyframe returned directly")
-        return filename
-
-    # If a dataframe is supplied directly, we can just return its lazy version
-    if isinstance(filename, pl.DataFrame):
-        logging.debug("Dataframe returned directly")
-        return filename.lazy()
-
-    # If dataframe is pandas, we transform to Polars
-    if isinstance(filename, pd.DataFrame):
-        logging.debug("Pandas dataframe supplied, transforming to polars")
-        return pl.DataFrame(filename).lazy()
-
+    file: Union[str, BytesIO]
     # If the data is a BytesIO object, such as an uploaded file
     # in certain webapps, then we can simply return the object
     # as is, while extracting the extension as well.
     if isinstance(filename, BytesIO):
         logging.debug("Filename is of type BytesIO, importing that directly")
-        name, extension = os.path.splitext(filename.name)
+        _, extension = os.path.splitext(filename.name)
         return import_file(filename, extension, **reading_opts)
 
     # If the filename is simply a string, then we first
     # extract the extension of the file, then look for
     # the file in the user's directory.
-    if os.path.isfile(os.path.join(path, filename)):
+    if os.path.isfile(filename):
+        file = filename
+    elif os.path.isfile(os.path.join(path, filename)):
         logging.debug("File found in directory")
         file = os.path.join(path, filename)
     else:
@@ -115,7 +104,7 @@ def readDSExport(
                 logging.debug("File found online, importing and parsing to BytesIO")
                 file = f"{path}/{filename}"
                 file = BytesIO(urllib.request.urlopen(file).read())
-                name, extension = os.path.splitext(filename)
+                _, extension = os.path.splitext(filename)
 
         except Exception as e:
             logging.info(e)
@@ -124,15 +113,17 @@ def readDSExport(
             logging.info(f"File not found: {path}/{filename}")
             return None
 
-    if "extension" not in vars():
-        name, extension = os.path.splitext(file)
+    if "extension" not in vars() and not isinstance(file, BytesIO):
+        _, extension = os.path.splitext(file)
 
     # Now we should either have a full path to a file, or a
     # BytesIO wrapper around the file. Polars can read those both.
     return import_file(file, extension, **reading_opts)
 
 
-def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
+def import_file(
+    file: Union[str, BytesIO], extension: str, **reading_opts
+) -> pl.LazyFrame:
     """Imports a file using Polars
 
     Parameters
@@ -149,7 +140,7 @@ def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
     """
     if extension == ".zip":
         logging.debug("Zip file found, extracting data.json to BytesIO.")
-        file, extension = readZippedFile(file)
+        file, extension = read_zipped_file(file)
     elif extension == ".gz":
         import gzip
 
@@ -166,58 +157,54 @@ def import_file(file: str, extension: str, **reading_opts) -> pl.LazyFrame:
             ignore_errors=reading_opts.get("ignore_errors", False),
         )
         if isinstance(file, BytesIO):
-            file = pl.read_csv(
+            return pl.read_csv(
                 file,
                 **csv_opts,
             ).lazy()
         else:
-            file = pl.scan_csv(file, **csv_opts)
+            return pl.scan_csv(file, **csv_opts)
 
-    elif extension == ".json":
+    if extension == ".json":
         try:
             if isinstance(file, BytesIO):
                 from pyarrow import json
 
-                file = pl.LazyFrame(
+                return pl.LazyFrame(
                     json.read_json(
                         file,
                     )
                 )
             else:
-                file = pl.scan_ndjson(
+                return pl.scan_ndjson(
                     file,
                     infer_schema_length=reading_opts.pop("infer_schema_length", 10000),
                 )
-        except:  # pragma: no cover
+        except Exception:  # pragma: no cover
             try:
-                file = pl.read_json(file).lazy()
-            except:
+                return pl.read_json(file).lazy()
+            except Exception:
                 import json
 
                 with open(file) as f:
-                    file = pl.from_dicts(json.loads(f.read())["pxResults"]).lazy()
+                    return pl.from_dicts(json.loads(f.read())["pxResults"]).lazy()
 
-    elif extension == ".parquet":
-        try:
-            file = pl.scan_parquet(file)
-        except:  # Polars can't read BytesIo
-            if isinstance(file, BytesIO):
-                file.seek(0)
-                file = pl.read_parquet(file).lazy()
-
-    elif extension.casefold() in {".feather", ".ipc", ".arrow"}:
+    if extension == ".parquet":
         if isinstance(file, BytesIO):
-            file = pl.read_ipc(file).lazy()
-        else:
-            file = pl.scan_ipc(file)
+            file.seek(0)
+            return pl.read_parquet(file).lazy()
+        return pl.scan_parquet(file)
 
-    else:
-        raise ValueError(f"Could not import file: {file}, with extension {extension}")
+    if extension.casefold() in {".feather", ".ipc", ".arrow"}:
+        if isinstance(file, BytesIO):
+            return pl.read_ipc(file).lazy()
+        return pl.scan_ipc(file)
 
-    return file
+    raise ValueError(f"Could not import file: {file}, with extension {extension}")
 
 
-def readZippedFile(file: str, verbose: bool = False) -> BytesIO:
+def read_zipped_file(
+    file: Union[str, BytesIO], verbose: bool = False
+) -> Tuple[BytesIO, str]:
     """Read a zipped NDJSON file.
     Reads a dataset export file as exported and downloaded from Pega. The export
     file is formatted as a zipped multi-line JSON file. It reads the file,
@@ -236,7 +223,7 @@ def readZippedFile(file: str, verbose: bool = False) -> BytesIO:
         The raw bytes object to pass through to Polars
     """
 
-    def getValidFiles(files):
+    def get_valid_files(files: List[str]):
         logging.debug(f"Files found: {files}")
         if "data.json" in files:
             return "data.json"
@@ -249,7 +236,7 @@ def readZippedFile(file: str, verbose: bool = False) -> BytesIO:
 
     with zipfile.ZipFile(file, mode="r") as z:
         logging.debug("Opened zip file.")
-        file = getValidFiles(z.namelist())
+        zfile = get_valid_files(z.namelist())
         logging.debug(f"Opening file {file}")
         if file is not None:
             logging.debug("data.json found.")
@@ -261,13 +248,18 @@ def readZippedFile(file: str, verbose: bool = False) -> BytesIO:
                         "See example in docs #TODO",
                     )
                 )
-            with z.open(file) as zippedfile:
+            with z.open(zfile) as zippedfile:
                 return (BytesIO(zippedfile.read()), ".json")
         else:  # pragma: no cover
             raise FileNotFoundError("Cannot find a 'data.json' file in the zip folder.")
 
 
-def readMultiZip(files: list, zip_type: Literal["gzip"] = "gzip", verbose: bool = True):
+def read_multi_zip(
+    files: Iterable[str],
+    zip_type: Literal["gzip"] = "gzip",
+    add_original_file_name: bool = False,
+    verbose: bool = True,
+) -> pl.LazyFrame:
     """Reads multiple zipped ndjson files, and concats them to one Polars dataframe.
 
     Parameters
@@ -284,12 +276,15 @@ def readMultiZip(files: list, zip_type: Literal["gzip"] = "gzip", verbose: bool 
     table = []
     if zip_type != "gzip":
         raise NotImplementedError("Only supports gzip for now")
-    for file in tqdm(files, desc="Combining files...", disable=not verbose):
-        table.append(pl.read_ndjson(gzip.open(file).read()))
+    for file in tqdm(files, desc="Reading files...", disable=not verbose):
+        data = pl.read_ndjson(gzip.open(file).read())
+        if add_original_file_name:
+            data = data.with_columns(file=file)
+        table.append(data)
     df = pl.concat(table, how="diagonal")
     if verbose:
         print("Combining completed")
-    return df
+    return df.lazy()
 
 
 def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
@@ -303,9 +298,9 @@ def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
     ----------
     path : str
         The filepath where the data is stored
-    target : str in ['modelData', 'predictorData']
-        Whether to look for data about the predictive models ('modelData')
-        or the predictor bins ('predictorData')
+    target : str in ['model_data', 'model_data']
+        Whether to look for data about the predictive models ('model_data')
+        or the predictor bins ('model_data')
     verbose : bool, default = False
         Whether to print all found files before comparing name criteria for debugging purposes
 
@@ -314,7 +309,7 @@ def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
     str
         The most recent file given the file name criteria.
     """
-    if target not in {"modelData", "predictorData", "ValueFinder"}:
+    if target not in {"model_data", "predictor_data", "value_finder"}:
         return "Target not found"
 
     supported = [".json", ".csv", ".zip", ".parquet", ".feather", ".ipc", ".arrow"]
@@ -323,7 +318,7 @@ def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
     files_dir = [f for f in files_dir if os.path.splitext(f)[-1].lower() in supported]
     if verbose:
         print(files_dir)  # pragma: no cover
-    matches = getMatches(files_dir, target)
+    matches = find_files(files_dir, target)
 
     if len(matches) == 0:  # pragma: no cover
         if verbose:
@@ -346,7 +341,7 @@ def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
     return paths[np.argmax(dates)]
 
 
-def getMatches(files_dir, target):
+def find_files(files_dir, target):
     matches = []
     default_model_names = [
         "Data-Decision-ADM-ModelSnapshot",
@@ -364,14 +359,14 @@ def getMatches(files_dir, target):
         "PRED_FACT",
         "cached_predictorData",
     ]
-    ValueFinder_names = ["Data-Insights_pyValueFinder", "cached_ValueFinder"]
+    value_finder_names = ["Data-Insights_pyValueFinder", "cached_ValueFinder"]
 
-    if target == "modelData":
+    if target == "model_data":
         names = default_model_names
-    elif target == "predictorData":
+    elif target == "predictor_data":
         names = default_predictor_names
-    elif target == "ValueFinder":
-        names = ValueFinder_names
+    elif target == "value_finder":
+        names = value_finder_names
     else:
         raise ValueError(f"Target {target} not found.")
     for file in files_dir:
@@ -381,13 +376,35 @@ def getMatches(files_dir, target):
     return matches
 
 
+@overload
+def cache_to_file(
+    df: Union[pl.DataFrame, pl.LazyFrame],
+    path: os.PathLike,
+    name: str,
+    cache_type: Literal["parquet"] = "parquet",
+    compression: pl._typing.ParquetCompression = "uncompressed",
+) -> pathlib.Path: ...
+
+
+@overload
+def cache_to_file(
+    df: Union[pl.DataFrame, pl.LazyFrame],
+    path: os.PathLike,
+    name: str,
+    cache_type: Literal["ipc"] = "ipc",
+    compression: pl._typing.IpcCompression = "uncompressed",
+) -> pathlib.Path: ...
+
+
 def cache_to_file(
     df: Union[pl.DataFrame, pl.LazyFrame],
     path: os.PathLike,
     name: str,
     cache_type: Literal["ipc", "parquet"] = "ipc",
-    compression: str = "uncompressed",
-) -> str:
+    compression: Union[
+        pl._typing.ParquetCompression, pl._typing.IpcCompression
+    ] = "uncompressed",
+) -> pathlib.Path:
     """Very simple convenience function to cache data.
     Caches in arrow format for very fast reading.
 
@@ -410,15 +427,94 @@ def cache_to_file(
     os.PathLike:
         The filepath to the cached file
     """
-    import pathlib
 
     outpath = pathlib.Path(path).joinpath(pathlib.Path(name))
     if isinstance(df, pl.LazyFrame):
         df = df.collect()
     if cache_type == "ipc":
-        outpath = f"{outpath}.arrow"
+        outpath = outpath.joinpath(".arrow")
         df.write_ipc(outpath, compression=compression)
     if cache_type == "parquet":
-        outpath = f"{outpath}.parquet"
+        outpath = outpath.joinpath(".parquet")
         df.write_parquet(outpath, compression=compression)
     return outpath
+
+
+def read_dataflow_output(
+    files: Union[Iterable[str]],
+    cache_file_name: Optional[str] = None,
+    *,
+    extension: Literal["json"] = "json",
+    compression: Literal["gzip"] = "gzip",
+    cache_directory: os.StrPath = "cache",
+):
+    """Reads the file output of a dataflow run.
+
+    By default, the Prediction Studio data export also uses dataflows,
+    thus this function can be used for those use cases as well.
+
+    Because dataflows have good resiliancy, they can produce a great number of files.
+    By default, every few seconds each dataflow node writes a file for each partition.
+    While this helps the system stay healthy, it is a bit more difficult to consume.
+    This function can take in a list of files (or a glob pattern),
+    and read in all of the files.
+
+    If `cache_file_name` is specified, this function caches the data it read before
+    as a `parquet` file. This not only reduces the file size, it is also very fast.
+    When this function is run and there is a pre-existing parquet file with the name
+    specified in `cache_file_name`, it will read all of the files that weren't read in
+    before and add it to the parquet file. If no new files are found, it simply returns
+    the contents of that parquet file - significantly speeding up operations.
+
+    In a future version, the functionality of this function will be extended to also
+    read from S3 or other remote file systems directly using the same caching method.
+
+    Parameters
+    ----------
+    files : Union[str, Iterable[str]]
+        An iterable (list or a glob) of file strings to read.
+        If a string is provided, we call glob() on it to find all files corresponding
+    cache_file_name : str, Optional
+        If given, caches the files to a file with the given name.
+        If None, does not use the cache at all
+    extension : Literal["json"]
+        The extension of the files, by default "json"
+    compression : Literal["gzip"]
+        The compression of the files, by default "gzip"
+    cache_directory : os.StrPath
+        The file path to cache the previously read files
+
+    Usage
+    -----
+    >>> from glob import glob
+    >>> read_dataflow_output(files=glob("model_snapshots_*.json"))
+    """
+    if isinstance(files, str):
+        files = glob(files)
+
+    if cache_file_name:
+        cache_file = Path(cache_directory) / f"{cache_file_name}.parquet"
+        if os.path.isfile(cache_file):
+            cached_data = pl.scan_parquet(cache_file)
+            files = (
+                pl.LazyFrame({"file": files})
+                .join(cached_data, on="file", how="anti")
+                .collect()["file"]
+                .to_list()
+            )
+            if not files:
+                return cached_data.drop("file")
+
+    new_data = read_multi_zip(
+        files=files,
+        zip_type=compression,
+        add_original_file_name=True,
+    )
+
+    if not cache_file_name:
+        return new_data
+
+    cached_data = pl.scan_parquet(cache_file)
+    combined_data = pl.concat([cached_data, new_data], how="diagonal")
+    combined_data.collect().write_parquet(cache_file)
+    return combined_data

@@ -9,13 +9,13 @@ import streamlit as st
 from .. import pega_io
 from ..adm.ADMDatamart import ADMDatamart
 from ..utils import datasets
-from ..utils.types import any_frame
+from ..utils.types import ANY_FRAME
 from . import cdh_utils
 
 
 @st.cache_resource
 def cachedSample():
-    return datasets.CDHSample()
+    return datasets.cdh_sample()
 
 
 @st.cache_resource
@@ -280,7 +280,7 @@ def filter_dataframe(
     return queries
 
 
-def model_and_row_counts(df: any_frame):
+def model_and_row_counts(df: ANY_FRAME):
     """
     Returns unique model id count and row count from a dataframe
 

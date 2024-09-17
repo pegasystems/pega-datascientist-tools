@@ -18,7 +18,7 @@ from ..plots.plot_base import Plots
 from ..plots.plots_plotly import ADMVisualisations as plotly_plot
 from ..utils import NBAD, cdh_utils
 from ..utils.errors import NotEagerError
-from ..utils.types import any_frame
+from ..utils.types import ANY_FRAME
 from .ADMTrees import ADMTrees
 from .Tables import Tables
 
@@ -133,8 +133,8 @@ class ADMDatamart(Plots, Tables):
         *,
         model_filename: Optional[str] = "modelData",
         predictor_filename: Optional[str] = "predictorData",
-        model_df: Optional[any_frame] = None,
-        predictor_df: Optional[any_frame] = None,
+        model_df: Optional[ANY_FRAME] = None,
+        predictor_df: Optional[ANY_FRAME] = None,
         query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]] = None,
         subset: bool = True,
         drop_cols: Optional[list] = None,
@@ -212,8 +212,8 @@ class ADMDatamart(Plots, Tables):
         *,
         model_filename: Optional[str] = "modelData",
         predictor_filename: Optional[str] = "predictorData",
-        model_df: Optional[any_frame] = None,
-        predictor_df: Optional[any_frame] = None,
+        model_df: Optional[ANY_FRAME] = None,
+        predictor_df: Optional[ANY_FRAME] = None,
         subset: bool = True,
         drop_cols: Optional[list] = None,
         include_cols: Optional[list] = None,
@@ -350,7 +350,7 @@ class ADMDatamart(Plots, Tables):
 
     def _import_utils(
         self,
-        name: Union[str, any_frame],
+        name: Union[str, ANY_FRAME],
         path: Optional[str] = None,
         *,
         subset: bool = True,
@@ -399,7 +399,7 @@ class ADMDatamart(Plots, Tables):
             self.import_strategy = "eager"
 
         if isinstance(name, str) or isinstance(name, BytesIO):
-            df = pega_io.readDSExport(
+            df = pega_io.read_ds_export(
                 filename=name, path=path, verbose=self.verbose, **reading_opts
             )
         elif isinstance(name, pl.DataFrame):
@@ -517,12 +517,12 @@ class ADMDatamart(Plots, Tables):
 
     def _set_types(
         self,
-        df: any_frame,
+        df: ANY_FRAME,
         table: str = "infer",
         *,
         timestamp_fmt: str = None,
         strict_conversion: bool = True,
-    ) -> any_frame:
+    ) -> ANY_FRAME:
         """A method to change columns to their proper type
 
         Parameters
@@ -559,7 +559,7 @@ class ADMDatamart(Plots, Tables):
 
     def last(
         self, table="modelData", strategy: Literal["eager", "lazy"] = "eager"
-    ) -> any_frame:
+    ) -> ANY_FRAME:
         """Convenience function to get the last values for a table
 
         Parameters
@@ -590,7 +590,7 @@ class ADMDatamart(Plots, Tables):
         return df if not strategy == "eager" else df.collect()
 
     @staticmethod
-    def _last(df: any_frame) -> any_frame:
+    def _last(df: ANY_FRAME) -> ANY_FRAME:
         """Method to retrieve only the last snapshot."""
         if df.select("SnapshotTime").dtypes[0] == pl.datatypes.Null:
             return df
@@ -620,7 +620,7 @@ class ADMDatamart(Plots, Tables):
 
     def _get_combined_data(
         self, last=True, strategy: Literal["eager", "lazy"] = "eager"
-    ) -> any_frame:
+    ) -> ANY_FRAME:
         """Combines the model data and predictor data into one dataframe.
 
         Parameters
@@ -718,7 +718,7 @@ class ADMDatamart(Plots, Tables):
 
     def _apply_query(
         self,
-        df: any_frame,
+        df: ANY_FRAME,
         query: Optional[Union[pl.Expr, List[pl.Expr], str, Dict[str, list]]] = None,
     ) -> pl.LazyFrame:
         """Given an input Polars dataframe, it filters the dataframe based on input query
@@ -1108,7 +1108,7 @@ class ADMDatamart(Plots, Tables):
         return df[mod_order].select(pred_order)
 
     @staticmethod
-    def response_gain_df(df: any_frame, by: str = "Channel") -> any_frame:
+    def response_gain_df(df: ANY_FRAME, by: str = "Channel") -> ANY_FRAME:
         """Simple function to extract the response gain per model"""
         if isinstance(by, list):
             by = by[0]

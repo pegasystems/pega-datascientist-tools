@@ -6,8 +6,9 @@ import tempfile
 import warnings
 import zipfile
 from io import StringIO
+from os import PathLike
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Tuple, TypeVar, Union
 
 import numpy as np
 import polars as pl
@@ -15,7 +16,36 @@ import pytz
 import requests
 
 from .table_definitions import PegaDefaultTables
-from .types import any_frame
+from .types import QUERY
+
+T = TypeVar("T", pl.DataFrame, pl.LazyFrame)
+
+
+def _apply_query(df: T, query: Optional[QUERY] = None) -> T:
+    if query is None:
+        return df
+
+    if isinstance(query, pl.Expr):
+        col_names = set(query.meta.root_names())
+        query = [query]
+    elif isinstance(query, List):
+        if not all(isinstance(expr, pl.Expr) for expr in query):
+            raise ValueError("If query is a list, all items need to be Expressions.")
+        col_names = {
+            root_name for expr in query for root_name in expr.meta.root_names()
+        }
+    elif isinstance(query, Dict):
+        col_names = set(query.keys())
+        query = [pl.col(k).is_in(v) for k, v in query]
+    else:
+        ValueError("Unsupported query type")
+    col_diff = col_names - set(df.collect_schema().names())
+    if col_diff:
+        raise ValueError(f"Columns not found: {col_diff}")
+    filtered_df = df.filter(*query)
+    if filtered_df.lazy().select(pl.first().count()).collect().item() == 0:
+        raise ValueError("The given query resulted in no more remaining data.")
+    return filtered_df
 
 
 def default_predictor_categorization(
@@ -56,10 +86,10 @@ def default_predictor_categorization(
 
 
 def _extract_keys(
-    df: any_frame,
+    df: T,
     col="Name",
     capitalize=True,
-) -> any_frame:
+) -> T:
     """Extracts keys out of the pyName column
 
     This is not a lazy operation as we don't know the possible keys
@@ -88,7 +118,7 @@ def _extract_keys(
     # Checking for the 'empty df' case
     if len(df.lazy().select(col).head(1).collect()) == 0:
         return df
-    
+
     # No-op in case we know there's no additional keys in the data
     # if df.lazy().select(pl.col(col).first().str.starts_with('{').over(col))
 
@@ -145,9 +175,11 @@ def parse_pega_date_time_formats(
     - "%Y-%m-%d %H:%M:%S"
     - "%Y%m%dT%H%M%S.%f %Z"
 
-    If you want to parse a different timezone, then
-
     Removes timezones, and rounds to seconds, with a 'ns' time unit.
+
+    In the implementation, the third expression uses timestamp_fmt or %Y.
+    This is a bit of a hack, because if we pass None, it tries to infer automatically.
+    Inferring raises when it can't find an appropriate format, so that's not good.
 
     Parameters
     ----------
@@ -156,11 +188,18 @@ def parse_pega_date_time_formats(
     timestamp_fmt: str, default = None
         An optional format to use rather than the default formats
     """
+
     return (
         pl.coalesce(
-            pl.col(timestamp_col).str.to_datetime("%Y-%m-%d %H:%M:%S", strict=False),
-            pl.col(timestamp_col).str.to_datetime("%Y%m%dT%H%M%S.%3f %Z", strict=False),
-            pl.col(timestamp_col).str.to_datetime(timestamp_fmt, strict=False),
+            pl.col(timestamp_col).str.to_datetime(
+                "%Y-%m-%d %H:%M:%S", strict=False, ambiguous="null"
+            ),
+            pl.col(timestamp_col).str.to_datetime(
+                "%Y%m%dT%H%M%S.%3f %Z", strict=False, ambiguous="null"
+            ),
+            pl.col(timestamp_col).str.to_datetime(
+                timestamp_fmt or "%Y", strict=False, ambiguous="null"
+            ),
         )
         .dt.replace_time_zone(None)
         .dt.cast_time_unit("ns")
@@ -459,7 +498,7 @@ def auc_to_gini(auc: float) -> float:
     return 2 * safe_range_auc(auc) - 1
 
 
-def _capitalize(fields: list) -> list:
+def _capitalize(fields: Iterable[str]) -> List[str]:
     """Applies automatic capitalization, aligned with the R couterpart.
 
     Parameters
@@ -525,7 +564,7 @@ def _capitalize(fields: list) -> list:
     return fields
 
 
-def _polars_capitalize(df: any_frame):
+def _polars_capitalize(df: T) -> T:
     cols = df.collect_schema().names()
     return df.rename(
         dict(
@@ -634,7 +673,7 @@ def weighted_average_polars(
 
 def weighted_performance_polars() -> pl.Expr:
     """Polars function to return a weighted performance"""
-    return weighted_average_polars("Performance", "ResponseCount")
+    return weighted_average_polars("Performance", "ResponseCount").fill_nan(0.5)
 
 
 def overlap_lists_polars(col: pl.Series, row_validity: pl.Series) -> List[float]:
@@ -973,7 +1012,7 @@ def setup_logger():
 
 def create_working_and_temp_dir(
     name: Optional[str] = None,
-    working_dir: Union[str, Path, None] = None,
+    working_dir: Optional[PathLike] = None,
 ):
     """Creates a working directory for saving files and a temp_dir"""
     # Create a temporary directory in working_dir

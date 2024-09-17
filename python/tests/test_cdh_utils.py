@@ -546,7 +546,7 @@ def test_gains_table():
 
 
 def test_legend_color_order():
-    input_fig = datasets.CDHSample().plotPerformanceSuccessRateBubbleChart()
+    input_fig = datasets.cdh_sample().plotPerformanceSuccessRateBubbleChart()
     output_fig = cdh_utils.legend_color_order(input_fig)
 
     assert output_fig.data[0].marker.color == "#001F5F"

@@ -2,12 +2,14 @@
 Testing the functionality of the built-in datasets
 """
 
-import sys
 import pathlib
+import sys
+
 basePath = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(f"{str(basePath)}/python")
-from pdstools import datasets
 import polars as pl
+from pdstools import datasets
+
 
 @pl.api.register_lazyframe_namespace("shape")
 class Shape:
@@ -23,12 +25,14 @@ class Shape:
 
 
 def test_import_CDHSample():
-    Sample = datasets.CDHSample()
-    assert Sample.modelData.shape == (1047,15)
+    Sample = datasets.cdh_sample()
+    assert Sample.modelData.shape == (1047, 15)
+
 
 def test_import_SampleTrees():
-    datasets.SampleTrees()
+    datasets.sample_trees()
+
 
 def test_import_SampleValueFinder():
-    vf = datasets.SampleValueFinder()
+    vf = datasets.sample_value_finder()
     assert vf.df.shape == (27133, 11)

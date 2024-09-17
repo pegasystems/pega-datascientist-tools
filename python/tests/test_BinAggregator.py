@@ -2,22 +2,21 @@
 Testing the functionality of the BinAggregator
 """
 
-
-import sys
-import pytest
-
 import pathlib
-from plotly.graph_objects import Figure
+import sys
+
 import polars as pl
+import pytest
+from plotly.graph_objects import Figure
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(f"{str(basePath)}/python")
-from pdstools import datasets
-from pdstools import BinAggregator
+from pdstools import BinAggregator, datasets
+
 
 @pytest.fixture
 def cdhsample_binaggregator():
-    dm = datasets.CDHSample(subset=False)
+    dm = datasets.cdh_sample(subset=False)
     return BinAggregator(dm)
 
 
@@ -157,7 +156,7 @@ def test_combine_two_numbinnings(cdhsample_binaggregator):
 
 
 def test_subsetting():
-    dm = datasets.CDHSample(subset=False)
+    dm = datasets.cdh_sample(subset=False)
     ba = BinAggregator(dm, query=pl.col("Group").cast(pl.Utf8).str.contains("Loan"))
     result = ba.roll_up("Customer.Age", n=6, aggregation="Group", return_df=True)
     assert result.select(pl.col("Group").n_unique()).item() == 2

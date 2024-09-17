@@ -9,7 +9,7 @@ from plotly.graph_objects import Figure
 
 from ..utils.cdh_utils import lift, weighted_average_polars, weighted_performance_polars
 from ..utils.errors import NotApplicableError
-from ..utils.types import any_frame
+from ..utils.types import ANY_FRAME
 from .plots_plotly import ADMVisualisations as plotly
 
 
@@ -214,7 +214,7 @@ class Plots:
             required_columns = set(list(required_columns) + include_cols)
             df, include_cols = self._generateFacets(df, include_cols)
 
-        if facets is not [None] and facets is not None:
+        if facets != [None] and facets is not None:
             required_columns = set(list(required_columns) + facets)
         required_columns = {x for x in required_columns if x is not None}
 
@@ -227,7 +227,7 @@ class Plots:
         )
 
     def _generateFacets(
-        self, df: any_frame, facets: Union[str, List[str]] = None
+        self, df: ANY_FRAME, facets: Union[str, List[str]] = None
     ) -> list:
         """Generates a list of facets based on the given dataframe and facet columns.
 

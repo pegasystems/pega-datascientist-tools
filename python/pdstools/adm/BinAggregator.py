@@ -1,30 +1,35 @@
-import polars as pl
-import numpy as np
-import plotly.express as px
-from plotly.graph_objects import Figure
-from typing import Union, Optional, Literal
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
-from .. import ADMDatamart
+import polars as pl
+
 from ..utils.cdh_utils import lift  # only temp needed
+from ..utils.namespaces import LazyNamespace
+
+if TYPE_CHECKING:
+    import plotly.graph_objects as go
+
+    from .new_ADMDatamart import ADMDatamart
+
+Figure = Union[Any, "go.Figure"]  # So that this still imports without plotly installed
 
 # from IPython.display import display # for better display in notebooks rather than print of dataframes
 
 
-class BinAggregator:
+class BinAggregator(LazyNamespace):
+    dependencies = ["plotly", "numpy"]
     """
     A class to generate rolled up insights from ADM predictor binning.
     """
 
-    def __init__(self, dm: ADMDatamart, query: pl.Expr = None) -> None:
-        data = dm.last("combinedData").lazy()
-        if query is not None:
-            # print(f"Query: {query}")
-            data = data.filter(query)
+    def __init__(self, dm: "ADMDatamart") -> None:
+        data = dm.aggregates.last(table="combined_data")
         self.all_predictorbinning = self.normalize_all_binnings(data)
+        super().__init__()
 
-    def roll_up(
+    def roll_up(  # TODO: overload this
         self,
         predictors: Union[str, list],
+        *,
         n: int = 10,
         distribution: Literal["lin", "log"] = "lin",
         boundaries: Optional[Union[float, list]] = None,
@@ -393,7 +398,7 @@ class BinAggregator:
         Fix up the boundaries for numeric bins and parse the bin labels
         into clean lists for symbolics.
         """
-        numberRegExp = r"[+\-]?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+\-]?\d+)?"  # matches numbers also with scientific notation
+        number_regexp = r"[+\-]?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+\-]?\d+)?"  # matches numbers also with scientific notation
 
         binnings = (
             combined_dm.filter(pl.col("EntryType") != "Classifier")
@@ -410,7 +415,7 @@ class BinAggregator:
                     .then(
                         pl.col("Contents")
                         .cast(pl.Utf8)
-                        .str.extract_all(numberRegExp)
+                        .str.extract_all(number_regexp)
                         .list.eval(pl.element().cast(pl.Float64))
                     )
                     .otherwise(pl.lit(None))
@@ -498,6 +503,8 @@ class BinAggregator:
         minimum: Optional[float] = None,
         maximum: Optional[float] = None,
     ) -> pl.DataFrame:
+        import numpy as np
+
         # take min/max across all models
         bins_minmax = (
             self.all_predictorbinning.filter(pl.col("Type") == "numeric")
@@ -685,6 +692,8 @@ class BinAggregator:
     def plot_binning_attribution(
         self, source: pl.DataFrame, target: pl.DataFrame
     ) -> Figure:
+        import plotly.express as px
+
         # create "long" dataframe with the upper and lower bounds of source and target
         boundaries_data = (
             pl.DataFrame(
@@ -773,7 +782,9 @@ class BinAggregator:
     # "Philip Mann" plot with simple red/green lift bars relative to base propensity
     # TODO currently shared between ModelReport.qmd and BinAggregator.py and
     # copied into plot_base - move over to that version once PDS tools version got bumped
-    def plotBinningLift(
+
+    # NOTE: Otto - could you change this to use that implementation instead? Don't want to break things.
+    def plot_binning_lift(
         self,
         binning,
         col_facet=None,
@@ -781,6 +792,8 @@ class BinAggregator:
         custom_data=["PredictorName", "BinSymbol"],
         return_df=False,
     ) -> Union[pl.DataFrame, Figure]:
+        import plotly.express as px
+
         if not isinstance(binning, pl.LazyFrame):
             binning = binning.lazy()
 
@@ -919,7 +932,7 @@ class BinAggregator:
             .shape[0]
         )
 
-        fig = self.plotBinningLift(
+        fig = self.plot_binning_lift(
             binning.with_columns(
                 (pl.col("BinCoverage") / pl.col("Models")).alias("RelativeBinCoverage")
             ),

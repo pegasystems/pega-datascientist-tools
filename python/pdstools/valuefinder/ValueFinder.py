@@ -1,18 +1,18 @@
 import functools
 import operator
 from os import PathLike
-from typing import Literal, Optional, Union
+from typing import TYPE_CHECKING, Literal, Optional, Union
 
 import numpy as np
 import pandas as pd
-import plotly.express as px
-import plotly.figure_factory as ff
-import plotly.graph_objects as go
 import polars as pl
-from plotly.subplots import make_subplots
 
 from .. import pega_io
 from ..utils import cdh_utils
+from ..utils.namespaces import MissingDependencies
+
+if TYPE_CHECKING:
+    import plotly.graph_objects as go
 
 
 class ValueFinder:
@@ -82,10 +82,10 @@ class ValueFinder:
         ]
 
         if df is not None:
-            self.df = pega_io.readDSExport(df, verbose=verbose)
+            self.df = pega_io.read_ds_export(df, verbose=verbose)
         else:
             filename = kwargs.pop("filename", "ValueFinder")
-            self.df = pega_io.readDSExport(filename, path, verbose=verbose)
+            self.df = pega_io.read_ds_export(filename, path, verbose=verbose)
         if kwargs.get("subset", True):
             self.df = self.df.select(
                 [col for col in keep_cols if col in self.df.columns]
@@ -319,7 +319,7 @@ class ValueFinder:
             to_add = list(map(self.getThFromQuantile, to_add))
         list(map(self.getCountsPerThreshold, to_add))
 
-    def plotPropensityDistribution(self, sampledN: int = 10_000) -> go.Figure:
+    def plotPropensityDistribution(self, sampledN: int = 10_000):
         """Plots the distribution of the different propensities.
 
         For optimization reasons (storage for all points in a boxplot and
@@ -332,6 +332,13 @@ class ValueFinder:
             The number of datapoints to sample
 
         """
+        try:
+            import plotly.express as px
+            import plotly.figure_factory as ff
+            import plotly.graph_objects as go
+            from plotly.subplots import make_subplots
+        except ImportError:
+            raise MissingDependencies(["plotly"], "plotting")
         i = 0
         figs = make_subplots(
             rows=len(self.NBADStages), cols=1, shared_xaxes=True, vertical_spacing=0.005
@@ -371,7 +378,7 @@ class ValueFinder:
         )
         return figs
 
-    def plotPropensityThreshold(self, sampledN=10000, stage="Eligibility") -> go.Figure:
+    def plotPropensityThreshold(self, sampledN=10000, stage="Eligibility"):
         """Plots the propensity threshold vs the different propensities.
 
         Parameters
@@ -380,6 +387,13 @@ class ValueFinder:
             The number of datapoints to sample
 
         """
+        try:
+            import plotly.express as px
+            import plotly.figure_factory as ff
+            import plotly.graph_objects as go
+            from plotly.subplots import make_subplots
+        except ImportError:
+            raise MissingDependencies(["plotly"], "plotting")
         colors = ["#001F5F", "#10A5AC", "#F76923"]
         propensities = ["FinalPropensity", "pyPropensity", "pyModelPropensity"]
 
@@ -456,7 +470,7 @@ class ValueFinder:
         method: Literal["threshold", "quantile"] = "threshold",
         rounding: int = 3,
         th: Optional[float] = None,
-    ) -> go.FigureWidget:
+    ):
         """Plots pie charts showing the distribution of customers
 
         The pie charts each represent the fraction of customers with
@@ -486,6 +500,13 @@ class ValueFinder:
         th : Optional[float]
             Choose a specific propensity threshold to plot
         """
+        try:
+            import plotly.express as px
+            import plotly.figure_factory as ff
+            import plotly.graph_objects as go
+            from plotly.subplots import make_subplots
+        except ImportError:
+            raise MissingDependencies(["plotly"], "plotting")
         default = th or self.th.pdstools.item()
         if None in (start, stop, step):
             if start is not None:
@@ -588,7 +609,7 @@ class ValueFinder:
         *,
         method: Literal["threshold", "quantile"] = "threshold",
         rounding=3,
-    ) -> go.FigureWidget:
+    ):
         """Plots the distribution of customers per threshold, per stage.
 
         Based on the precomputed data in self.countsPerThreshold,
@@ -615,7 +636,13 @@ class ValueFinder:
         rounding : int
             The number of digits to round the values by
         """
-
+        try:
+            import plotly.express as px
+            import plotly.figure_factory as ff
+            import plotly.graph_objects as go
+            from plotly.subplots import make_subplots
+        except ImportError:
+            raise MissingDependencies(["plotly"], "plotting")
         if None not in (start, stop, step):
             self.addCountsForThresholdRange(start, stop, step, method)
         self.addCountsForThresholdRange(0.01, 1, 0.1, "quantile")
@@ -668,7 +695,13 @@ class ValueFinder:
             - If 'Actions', plots the distribution of actions.
             - If 'Issues', plots the distribution of issues
         """
-
+        try:
+            import plotly.express as px
+            import plotly.figure_factory as ff
+            import plotly.graph_objects as go
+            from plotly.subplots import make_subplots
+        except ImportError:
+            raise MissingDependencies(["plotly"], "plotting")
         if level.casefold() in {"action", "name", "pyname"}:
             level, cat = "pyName", "Actions"
         elif level.casefold() in {"issue", "pyissue"}:
