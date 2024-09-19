@@ -137,12 +137,12 @@ report_utils_run_report <- function(customer, dm, target_fullfilename, target_ge
                                      report_utils_cached_dm_filenames(customer))
 
   # track dependencies just for the clean up
-  report_utils_all_used_files[[1 + length(report_utils_all_used_files)]] <<- normalizePath(cachedDMFilesFullName[1])
-  report_utils_all_used_files[[1 + length(report_utils_all_used_files)]] <<- normalizePath(cachedDMFilesFullName[2])
-  report_utils_all_used_files[[1 + length(report_utils_all_used_files)]] <<- normalizePath(report_utils_hashfilename(cachedDMFilesFullName[1]))
-  report_utils_all_used_files[[1 + length(report_utils_all_used_files)]] <<- normalizePath(report_utils_hashfilename(cachedDMFilesFullName[2]))
-  report_utils_all_used_files[[1 + length(report_utils_all_used_files)]] <<- normalizePath(target_fullfilename)
-  report_utils_all_used_files[[1 + length(report_utils_all_used_files)]] <<- normalizePath(report_utils_hashfilename(target_fullfilename))
+  report_utils_all_used_files[[1 + length(report_utils_all_used_files)]] <<- normalizePath(cachedDMFilesFullName[1], mustWork = F)
+  report_utils_all_used_files[[1 + length(report_utils_all_used_files)]] <<- normalizePath(cachedDMFilesFullName[2], mustWork = F)
+  report_utils_all_used_files[[1 + length(report_utils_all_used_files)]] <<- normalizePath(report_utils_hashfilename(cachedDMFilesFullName[1]), mustWork = F)
+  report_utils_all_used_files[[1 + length(report_utils_all_used_files)]] <<- normalizePath(report_utils_hashfilename(cachedDMFilesFullName[2]), mustWork = F)
+  report_utils_all_used_files[[1 + length(report_utils_all_used_files)]] <<- normalizePath(target_fullfilename, mustWork = F)
+  report_utils_all_used_files[[1 + length(report_utils_all_used_files)]] <<- normalizePath(report_utils_hashfilename(target_fullfilename), mustWork = F)
 
   # make sure cached source exist, otherwise re-create from dm data
   if (!all(sapply(cachedDMFilesFullName, file.exists))) {
@@ -190,8 +190,8 @@ report_utils_run_report <- function(customer, dm, target_fullfilename, target_ge
     report_utils_write_hashfiles(target_fullfilename, target_generator_hash)
   } else {
     # Touch target
-    Sys.setFileTime(normalizePath(target_fullfilename), lubridate::now())
-    Sys.setFileTime(report_utils_hashfilename(normalizePath(target_fullfilename)), lubridate::now())
+    Sys.setFileTime(normalizePath(target_fullfilename, mustWork = F), lubridate::now())
+    Sys.setFileTime(report_utils_hashfilename(normalizePath(target_fullfilename, mustWork = F)), lubridate::now())
 
     cat("Skipped re-generation of", basename(target_fullfilename), fill = T)
   }

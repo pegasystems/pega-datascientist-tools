@@ -864,10 +864,6 @@ There are a total of **{n_unique_models}** Adaptive Models in the latest snapsho
 In the standard configuration there is one Adaptive model per treatment/action for a configuration.
 
 ```{python}
-datamart.model_summary(context_keys=["Configuration","Channel","Direction"]).collect()
-```
-
-```{python}
 action_dim_agg = [pl.col("Name").n_unique().alias("Actions")]
 if polars_col_exists(last_data, "Treatment"):
     action_dim_agg += [pl.col("Treatment").n_unique().alias("Unique Treatments")]
@@ -875,7 +871,9 @@ else:
     action_dim_agg += [pl.lit(0).alias("Unique Treatments")]
 
 # TODO work this into a get_model_overview function in the ADMDatamart
-# note there already is a perhaps useful model_summary in there
+# note there already is a perhaps useful model_summary in there which returns
+# some but not all the info we need here
+# datamart.model_summary(context_keys=["Configuration","Channel","Direction"]).collect()
 
 model_overview = (
     last_data.group_by(
@@ -2003,70 +2001,69 @@ Is most volume driven by models that have a good predictive performance? Ideally
 The plot below shows this relation. Horizontally the model performance (the AUC, ranging from 50 to 100 as Pega usually scales this), descretized into a number of ranges, and vertically the percentage of responses.
 
 A lot of volume on the first bins, where the performance is minimal, means that a lot of immature models are used. This is sub-optimal in terms of targeting. Ideally there is a smooth curve with a peak in the 60-80 range of AUC. Much higher AUC’s are possibly indicative of immature models or even outcome leakers (although that is effectively prevented by the standard delayed learning pattern). AUC’s below 60 are not uncommon but should be investigated - consider different predictors or outcomes.
+
 ```{python}
 # | error: true
-to_plot = "Performance"
 df = (
-    datamart.modelData.with_columns(pl.col(to_plot) * 100)
-    .group_by([to_plot, "Channel", "Direction"])
-    .agg(pl.sum("ResponseCount"))
-    .with_columns(pl.col(to_plot).round(2))
+    datamart
+    .modelData
+    .with_columns(
+        (pl.col("Performance")*100).cut(breaks=[p for p in range(50, 100, 3)]).alias("PerformanceBinned"),
+        pl.format(
+            "{}/{}",
+            pl.when(pl.col("Channel").is_not_null() & (pl.col("Channel") != ""))
+            .then(pl.col("Channel"))
+            .otherwise(pl.lit("")),
+            pl.when(
+                pl.col("Direction").is_not_null() & (pl.col("Direction") != "")
+            )
+            .then(pl.col("Direction"))
+            .otherwise(pl.lit("")),
+        ).alias("ChannelDirection"),
+    )
+    .group_by(["ChannelDirection", "PerformanceBinned"]).agg(
+        pl.sum("ResponseCount"), 
+        (pl.min("Performance")*100).round(2).alias("break_label"),
+    )
+    .with_columns((
+        pl.col("ResponseCount") / (pl.col("ResponseCount").sum().over("ChannelDirection"))).alias("Proportion")
+    )
+    .sort(["ChannelDirection", "PerformanceBinned", "Proportion"])
     .collect()
 )
 
-breaks = [percentile for percentile in range(50, 100, 3)]
-df = df.with_columns(pl.col("Performance").cut(breaks=breaks).alias("PerformanceBin"))
+channels = df["ChannelDirection"].unique().sort()
 
-grouped = df.group_by(["Channel", "PerformanceBin"]).agg(
-    pl.sum("ResponseCount"), pl.min(to_plot).alias("break_label")
-)
-out = (
-    grouped.sort(["Channel", "break_label"])
-    .select(
-        [
-            pl.col("Channel").cast(pl.Utf8),
-            "PerformanceBin",
-            "ResponseCount",
-            pl.col("ResponseCount").sum().over("Channel").alias("sum"),
-        ]
-    )
-    .with_columns([(pl.col("ResponseCount") / pl.col("sum")).alias("Volume")])
-)
-
-fig = px.bar(
-    out.to_pandas(use_pyarrow_extension_array=True),
-    x="PerformanceBin",
-    y="Volume",
-    color="Channel",
-    template="pega",
-    barmode="overlay",
-)
-for bar in fig.data:
-    bar.visible = "legendonly"
-
-channels = out["Channel"].unique()
+fig = go.Figure()
 for channel_num, channel in enumerate(channels):
-    channel_df = out.filter(pl.col("Channel") == channel)
+    channel_df = df.filter(pl.col("ChannelDirection") == channel)
     fig.add_traces(
         go.Scatter(
-            x=channel_df["PerformanceBin"],
-            y=channel_df["Volume"],
+            x=channel_df["PerformanceBinned"],
+            y=channel_df["Proportion"],
             line_shape="spline",
-            marker_color=fig.data[channel_num].marker.color,
             name=channel,
         )
     )
 
-
-fig.update_yaxes(tickformat=",.0%")
-fig.update_layout(
-    title="Performance vs Volume",
-    xaxis_title="Model Performance",
-    yaxis_title="Percentage of Responses",
+fig = (
+    fig
+    .update_yaxes(tickformat=",.0%")
+    .update_xaxes(
+        type='category', 
+        categoryorder='array', 
+        categoryarray=df['PerformanceBinned'].unique().sort().to_list())
+    .update_layout(
+        template="pega",
+        title="Performance vs Volume",
+        xaxis_title="Model Performance",
+        yaxis_title="Percentage of Responses",
+    )
 )
 
 cdh_utils.legend_color_order(fig).show()
 ```
+
 
 ## Positives vs. Number of Models
 Ideally, all models have received plenty of responses which will make them “mature” and makes sure they are as predictive as possible.
@@ -2087,51 +2084,51 @@ fig.update_layout(
     yaxis_title="Percentage of Models",
 )
 
-# TODO remove this override and use cdhutils function again
-# when we've bumped up the pdstools version
-def legend_color_order(fig):
-    """Orders legend colors alphabetically in order to provide pega color
-    consistency among different categories"""
+# # TODO remove this override and use cdhutils function again
+# # when we've bumped up the pdstools version
+# def legend_color_order(fig):
+#     """Orders legend colors alphabetically in order to provide pega color
+#     consistency among different categories"""
 
-    colorway = [
-        "#001F5F",  # dark blue
-        "#10A5AC",
-        "#F76923",  # orange
-        "#661D34",  # wine
-        "#86CAC6",  # mint
-        "#005154",  # forest
-        "#86CAC6",  # mint
-        "#5F67B9",  # violet
-        "#FFC836",  # yellow
-        "#E63690",  # pink
-        "#AC1361",  # berry
-        "#63666F",  # dark grey
-        "#A7A9B4",  # medium grey
-        "#D0D1DB",  # light grey
-    ]
-    colors = []
-    for trace in fig.data:
-        if trace.legendgroup is not None:
-            colors.append(trace.legendgroup)
-    colors.sort()
+#     colorway = [
+#         "#001F5F",  # dark blue
+#         "#10A5AC",
+#         "#F76923",  # orange
+#         "#661D34",  # wine
+#         "#86CAC6",  # mint
+#         "#005154",  # forest
+#         "#86CAC6",  # mint
+#         "#5F67B9",  # violet
+#         "#FFC836",  # yellow
+#         "#E63690",  # pink
+#         "#AC1361",  # berry
+#         "#63666F",  # dark grey
+#         "#A7A9B4",  # medium grey
+#         "#D0D1DB",  # light grey
+#     ]
+#     colors = []
+#     for trace in fig.data:
+#         if trace.legendgroup is not None:
+#             colors.append(trace.legendgroup)
+#     colors.sort()
 
-    # https://github.com/pegasystems/pega-datascientist-tools/issues/201
-    if len(colors) >= len(colorway):
-        return fig
+#     # https://github.com/pegasystems/pega-datascientist-tools/issues/201
+#     if len(colors) >= len(colorway):
+#         return fig
 
-    indexed_colors = {k: v for v, k in enumerate(colors)}
-    for trace in fig.data:
-        if trace.legendgroup is not None:
-            try:
-                trace.marker.color = colorway[indexed_colors[trace.legendgroup]]
-                trace.line.color = colorway[indexed_colors[trace.legendgroup]]
-            except AttributeError:  # pragma: no cover
-                pass
+#     indexed_colors = {k: v for v, k in enumerate(colors)}
+#     for trace in fig.data:
+#         if trace.legendgroup is not None:
+#             try:
+#                 trace.marker.color = colorway[indexed_colors[trace.legendgroup]]
+#                 trace.line.color = colorway[indexed_colors[trace.legendgroup]]
+#             except AttributeError:  # pragma: no cover
+#                 pass
 
-    return fig
+#     return fig
 
-# fig = cdh_utils.legend_color_order(fig)
-fig = legend_color_order(fig)
+fig = cdh_utils.legend_color_order(fig)
+# fig = legend_color_order(fig)
 
 fig.show()
 ```
