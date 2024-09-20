@@ -228,8 +228,8 @@ test_that("Active score range old datamart", {
   expect_equal(activeRange$is_AUC_activerange, rep(F, 5)) # reported AUC never matches active range AUC
 })
 
-test_that("Feature Importance Unit", {
-  context("Feature Importance Unit")
+test_that("Feature Importance Excel Unit Test", {
+  context("Feature Importance Excel Unit Test")
 
   dm <- list(
     modeldata = data.table(
@@ -240,7 +240,6 @@ test_that("Feature Importance Unit", {
       BinPositives = c(10, 20, 5, 40, 2, 1, 1, 2),
       BinNegatives = c(100, 100, 200, 500, 10, 20, 5, 8),
       BinResponseCount = c(110, 120, 205, 540, 12, 21, 6, 10),
-      Performance = c(0.5),
       PredictorName = c("P1", "P1","P1","P1","P2","P2","P2","P2"),
       PredictorCategory = "PC",
       ModelID = c("a", "a", "b", "b", "a", "a", "b", "b")
@@ -263,11 +262,46 @@ test_that("Feature Importance Unit", {
 
   print(varimp)
 
-  expect_equal(varimp$PredictorName[1], "P1")
-  expect_equal(varimp$PredictorName[2], "P2")
-
   expect_equal(varimp$Importance[1], 100)
   expect_equal(varimp$Importance[2], 92.8576025)
+})
+
+test_that("Feature Importance Python Unit Test", {
+  context("Feature Importance Python Unit Test")
+
+  dm <- list(
+    modeldata = data.table(
+      ModelID = c("001", "002"),
+      Configuration = c("c1")
+    ),
+    predictordata = data.table(
+      BinPositives = c(2, 7, 11, 6),
+      BinNegatives = c(18, 23, 1, 4),
+      BinResponseCount = c(20, 30, 12, 10),
+      PredictorName = c("Age", "Age", "CreditScore", "CreditScore"),
+      PredictorCategory = "PC",
+      ModelID = c("001", "001", "002", "002")
+    )
+  )
+
+  # Unscaled
+  varimp <- admVarImp(dm, filter=function(x){x}, debug=T, facets="Configuration", scaled=F)
+
+  print(varimp)
+
+  expect_equal(varimp$PredictorName[1], "CreditScore")
+  expect_equal(varimp$PredictorName[2], "Age")
+
+  expect_equal(round(varimp$Importance[1],7), 0.8276812)
+  expect_equal(round(varimp$Importance[2],7), 0.4125036)
+
+  # Scaled
+  varimp <- admVarImp(dm, filter=function(x){x}, debug=T, facets="Configuration")
+
+  print(varimp)
+
+  expect_equal(varimp$Importance[1], 100)
+  expect_equal(round(varimp$Importance[2], 7), 49.8384683)
 })
 
 test_that("Feature Importance", {

@@ -638,10 +638,13 @@ ADMDatamart <- function(modeldata = NULL,
 #' @param datamart Data frame with the ADM datamart data. Model data is only
 #'   used when there are facets, so the model part could in principle be NULL.
 #' @param facets Optional list of names from the model data to aggregate
-#' up to.
+#' up to. If not given will split by Model ID. Further aggregation would be
+#' done by the calling function.
 #' @param filter Optional filter for the predictor data. Defaults to filter
 #' out the classifiers, so operates on both active and inactive predictors.
 #' See examples.
+#' @param scaled Defaults to TRUE to scale so the max is at 100. Set to FALSE to
+#' skip scaling and return the raw values.
 #'
 #' @return A \code{data.table}) with \code{PredictorName}, \code{Importance}
 #' and \code{Rank} plus columns for each of the \code{facets} if supplied.
@@ -667,7 +670,7 @@ admVarImp <- function(datamart, facets = NULL, filter = function(x) {filterClass
   standardizeFieldCasing(dmPredictors)
 
   # Log odds per bin, then the bin weight is the distance to the weighted mean
-  bins <- dmPredictors[, c("BinPositives", "BinNegatives", "BinResponseCount", "Performance", "PredictorName", "PredictorCategory", "ModelID"), with=F]
+  bins <- dmPredictors[, c("BinPositives", "BinNegatives", "BinResponseCount", "PredictorName", "PredictorCategory", "ModelID"), with=F]
   bins[, BinLogOdds := log(BinPositives+1/.N) - log(BinNegatives+1/.N), by=c("PredictorName", "ModelID")] # laplace smoothing = 1/#bins
   bins[, AvgLogOdds := weighted.mean(BinLogOdds, BinResponseCount), by=c("PredictorName", "ModelID")]
   bins[, BinDiffLogOdds := abs(BinLogOdds - AvgLogOdds)]
@@ -679,8 +682,9 @@ admVarImp <- function(datamart, facets = NULL, filter = function(x) {filterClass
   # The feature importance per predictor then is just the weighted average of these distances to the mean
   featureImportance <-
     bins[, list(Importance = weighted.mean(BinDiffLogOdds, BinResponseCount, na.rm=T),
-                Performance = first(as.numeric(Performance)), # numeric cast should not be necessary but sometimes data is odd
-                ResponseCount = sum(BinResponseCount)), by=c("PredictorName", "PredictorCategory", "ModelID")]
+                Performance = auc_from_bincounts(BinPositives, BinNegatives),
+                ResponseCount = sum(BinResponseCount)),
+         by=c("PredictorName", "PredictorCategory", "ModelID")]
   featureImportance[, Importance := ifelse(is.na(Importance), 0, Importance)]
 
   if (debug) {

@@ -764,13 +764,16 @@ def LogOdds(
     N = Positives.count()
     return (
         (
-            (Positives + 1.0 / N).log() - (Negatives + 1.0 / N).log()
+            ((Positives + 1 / N).log() - (Positives.sum() + 1).log())
+            - ((Negatives + 1 / N).log() - (Negatives.sum() + 1).log())
         )
         .alias("LogOdds")
     )
 
 
 def featureImportance(over=["PredictorName", "ModelID"]):
+    # this is too simplistic
+    # make the signature more similar to the R version of varImp
     varImp = weighted_average_polars(
         LogOdds(
             pl.col("BinPositives"), pl.col("BinResponseCount") - pl.col("BinPositives")
@@ -779,6 +782,7 @@ def featureImportance(over=["PredictorName", "ModelID"]):
     ).alias("FeatureImportance")
     if over is not None:
         varImp = varImp.over(over)
+    # no scaling ?!
     return varImp
 
 

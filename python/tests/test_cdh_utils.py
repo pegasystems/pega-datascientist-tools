@@ -297,6 +297,7 @@ def test_log_odds():
     )
     output = input.with_columns(cdh_utils.LogOdds().round(2))
 
+    # These values seem off
     log_odds_list = [1.65, -0.81, -0.23, 0.43, 0.87]
     expected_output = input.with_columns(
         pl.Series(name="LogOdds", values=log_odds_list)
