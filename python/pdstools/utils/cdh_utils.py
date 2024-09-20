@@ -764,16 +764,12 @@ def LogOdds(
     N = Positives.count()
     return (
         (
-            ((Positives + 1 / N).log() - (Positives + 1).sum().log())
-            - ((Negatives + 1 / N).log() - (Negatives + 1).sum().log())
+            (Positives + 1.0 / N).log() - (Negatives + 1.0 / N).log()
         )
-        .round(2)
         .alias("LogOdds")
     )
 
 
-# TODO: reconsider this. Feature importance now stored in datamart
-# perhaps we should not bother to calculate it ourselves.
 def featureImportance(over=["PredictorName", "ModelID"]):
     varImp = weighted_average_polars(
         LogOdds(

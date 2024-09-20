@@ -655,13 +655,12 @@ ADMDatamart <- function(modeldata = NULL,
 #'
 #'   varimp <- admVarImp(dm, filter = filterActiveOnly)
 #' }
-admVarImp <- function(datamart, facets = NULL, filter = function(x) {filterClassifierOnly(x, reverse=T)})
+admVarImp <- function(datamart, facets = NULL, filter = function(x) {filterClassifierOnly(x, reverse=T)}, debug=F, scaled=T)
 {
   EntryType <- BinLogOdds <- BinPositives <- BinNegatives <- AvgLogOdds <- NULL # Trick to silence warnings from R CMD Check
   BinResponseCount <- BinDiffLogOdds <- Performance <- Importance <- NULL
   ResponseCount <- ImportanceRank <- PerformanceRank <- NULL
 
-  dmModels <- datamart$modeldata
   dmPredictors <- filter(datamart$predictordata)
 
   # Normalize field names
@@ -669,9 +668,13 @@ admVarImp <- function(datamart, facets = NULL, filter = function(x) {filterClass
 
   # Log odds per bin, then the bin weight is the distance to the weighted mean
   bins <- dmPredictors[, c("BinPositives", "BinNegatives", "BinResponseCount", "Performance", "PredictorName", "PredictorCategory", "ModelID"), with=F]
-  bins[, BinLogOdds := log(BinPositives+1) - log(BinNegatives+1)]
+  bins[, BinLogOdds := log(BinPositives+1/.N) - log(BinNegatives+1/.N), by=c("PredictorName", "ModelID")] # laplace smoothing = 1/#bins
   bins[, AvgLogOdds := weighted.mean(BinLogOdds, BinResponseCount), by=c("PredictorName", "ModelID")]
   bins[, BinDiffLogOdds := abs(BinLogOdds - AvgLogOdds)]
+
+  if (debug) {
+    print(bins[order(PredictorName, ModelID)])
+  }
 
   # The feature importance per predictor then is just the weighted average of these distances to the mean
   featureImportance <-
@@ -680,9 +683,13 @@ admVarImp <- function(datamart, facets = NULL, filter = function(x) {filterClass
                 ResponseCount = sum(BinResponseCount)), by=c("PredictorName", "PredictorCategory", "ModelID")]
   featureImportance[, Importance := ifelse(is.na(Importance), 0, Importance)]
 
+  if (debug) {
+    print(featureImportance[order(PredictorName, ModelID)])
+  }
 
-  # Now join in any facets - if there are any
+  # Now join in any facets - if there are any. If not, will split by Model ID.
   if (!is.null(facets)) {
+    dmModels <- datamart$modeldata
     standardizeFieldCasing(dmModels)
 
     featureImportance <- merge(featureImportance,
@@ -694,22 +701,33 @@ admVarImp <- function(datamart, facets = NULL, filter = function(x) {filterClass
                                                            ResponseCount = sum(ResponseCount)),
                                                     by=c("PredictorName", "PredictorCategory", facets)]
 
-    if (nrow(aggregateFeatureImportance) > 0) {
-      aggregateFeatureImportance[, Importance := Importance*100.0/max(Importance), by=facets]
-    } else {
-      aggregateFeatureImportance[, Importance := 1.0, by=facets]
+    if (debug) {
+      print(aggregateFeatureImportance[order(PredictorName)])
     }
+
+    if (scaled) {
+      if (nrow(aggregateFeatureImportance) > 0) {
+        aggregateFeatureImportance[, Importance := Importance*100.0/max(Importance), by=facets]
+      } else {
+        aggregateFeatureImportance[, Importance := 100.0, by=facets]
+      }
+    }
+
     aggregateFeatureImportance[, ImportanceRank := frank(-Importance, ties.method = "dense"), by=facets]
     aggregateFeatureImportance[, PerformanceRank := frank(-Performance, ties.method = "dense"), by=facets]
     setorder(aggregateFeatureImportance, ImportanceRank)
 
     return(aggregateFeatureImportance)
   } else {
-    if (nrow(featureImportance) > 0) {
-      featureImportance[, Importance := Importance*100.0/max(Importance), by="ModelID"]
-    } else {
-      featureImportance[, Importance := 1.0, by="ModelID"]
+
+    if (scaled) {
+      if (nrow(featureImportance) > 0) {
+        featureImportance[, Importance := Importance*100.0/max(Importance), by="ModelID"]
+      } else {
+        featureImportance[, Importance := 100.0, by="ModelID"]
+      }
     }
+
     featureImportance[, ImportanceRank := frank(-Importance, ties.method = "dense"), by="ModelID"]
     featureImportance[, PerformanceRank := frank(-Performance, ties.method = "dense"), by="ModelID"]
     setorder(featureImportance, ImportanceRank)

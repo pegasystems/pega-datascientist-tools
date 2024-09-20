@@ -228,6 +228,48 @@ test_that("Active score range old datamart", {
   expect_equal(activeRange$is_AUC_activerange, rep(F, 5)) # reported AUC never matches active range AUC
 })
 
+test_that("Feature Importance Unit", {
+  context("Feature Importance Unit")
+
+  dm <- list(
+    modeldata = data.table(
+      ModelID = c("a", "b"),
+      Configuration = c("c1")
+    ),
+    predictordata = data.table(
+      BinPositives = c(10, 20, 5, 40, 2, 1, 1, 2),
+      BinNegatives = c(100, 100, 200, 500, 10, 20, 5, 8),
+      BinResponseCount = c(110, 120, 205, 540, 12, 21, 6, 10),
+      Performance = c(0.5),
+      PredictorName = c("P1", "P1","P1","P1","P2","P2","P2","P2"),
+      PredictorCategory = "PC",
+      ModelID = c("a", "a", "b", "b", "a", "a", "b", "b")
+    )
+  )
+
+  # Unscaled
+  varimp <- admVarImp(dm, filter=function(x){x}, debug=T, facets="Configuration", scaled=F)
+
+  print(varimp)
+
+  expect_equal(varimp$PredictorName[1], "P1")
+  expect_equal(varimp$PredictorName[2], "P2")
+
+  expect_equal(varimp$Importance[1], 0.408486321)
+  expect_equal(varimp$Importance[2], 0.379310604)
+
+  # Scaled
+  varimp <- admVarImp(dm, filter=function(x){x}, debug=T, facets="Configuration")
+
+  print(varimp)
+
+  expect_equal(varimp$PredictorName[1], "P1")
+  expect_equal(varimp$PredictorName[2], "P2")
+
+  expect_equal(varimp$Importance[1], 100)
+  expect_equal(varimp$Importance[2], 92.8576025)
+})
+
 test_that("Feature Importance", {
   context("Feature Importance")
 
