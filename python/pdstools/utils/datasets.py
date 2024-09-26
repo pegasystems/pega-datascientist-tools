@@ -1,5 +1,5 @@
 from ..adm.ADMTrees import ADMTrees
-from ..adm.new_ADMDatamart import ADMDatamart
+from ..adm.ADMDatamart import ADMDatamart
 from ..valuefinder.ValueFinder import ValueFinder
 
 

@@ -21,7 +21,7 @@ from ..utils.cdh_utils import from_prpc_date_time
 
 def read_ds_export(
     filename: str,
-    path: os.StrPath = ".",
+    path: Union[str, os.PathLike] = ".",
     verbose: bool = True,
     **reading_opts,
 ) -> Optional[pl.LazyFrame]:
@@ -441,12 +441,12 @@ def cache_to_file(
 
 
 def read_dataflow_output(
-    files: Union[Iterable[str]],
+    files: Union[Iterable[str], str],
     cache_file_name: Optional[str] = None,
     *,
     extension: Literal["json"] = "json",
     compression: Literal["gzip"] = "gzip",
-    cache_directory: os.StrPath = "cache",
+    cache_directory: Union[str, os.PathLike] = "cache",
 ):
     """Reads the file output of a dataflow run.
 
@@ -517,4 +517,4 @@ def read_dataflow_output(
     cached_data = pl.scan_parquet(cache_file)
     combined_data = pl.concat([cached_data, new_data], how="diagonal")
     combined_data.collect().write_parquet(cache_file)
-    return combined_data
+    return combined_data.drop("file")

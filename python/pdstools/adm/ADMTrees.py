@@ -26,7 +26,7 @@ from ..utils.types import QUERY
 if TYPE_CHECKING:
     import pydot
 
-    from .new_ADMDatamart import ADMDatamart
+    from .ADMDatamart import ADMDatamart
 
 logger = logging.getLogger(__name__)
 

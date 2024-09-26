@@ -74,10 +74,10 @@ class MissingDependencies(Exception):
         else:
             message = f"Missing dependencies: {deps}."
 
-        message += f"\nPlease install them using your favorite package manager (e.g. uv pip install {' '.join(deps)})"
+        message += f"\nPlease install {'it'if len(deps)==1 else 'them'} using your favorite package manager (e.g. uv pip install {' '.join(deps)})"
 
         if deps_group:
-            message += f",\n\nNOTE: these dependencies are also shipped with the optional dependency group {deps_group}, \nso you can install them automatically with pdstools as well (e.g. uv pip install pdstools['{deps_group}'])."
+            message += f",\n\nNOTE: these dependencies are also shipped with the optional dependency group '{deps_group}', \nso you can install them automatically with pdstools as well (e.g. uv pip install pdstools['{deps_group}'])."
         else:
             message += "."
 

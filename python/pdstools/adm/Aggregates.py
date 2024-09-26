@@ -6,7 +6,7 @@ from ..utils import cdh_utils
 from ..utils.types import QUERY
 
 if TYPE_CHECKING:
-    from .new_ADMDatamart import ADMDatamart
+    from .ADMDatamart import ADMDatamart
 
 
 class Aggregates:
@@ -33,6 +33,9 @@ class Aggregates:
         _type_
             _description_
         """
+        if data is None and not hasattr(self.datamart, table):
+            raise ValueError(f"{table} not available in the datamart")
+
         df: pl.LazyFrame = data if data is not None else getattr(self.datamart, table)
         if df.collect_schema()["SnapshotTime"] == pl.Null:
             return df

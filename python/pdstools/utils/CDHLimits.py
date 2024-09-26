@@ -1,7 +1,8 @@
-from enum import Enum
-from collections import namedtuple
 import math
+from collections import namedtuple
+from enum import Enum
 from typing import Union
+
 from . import NBAD
 
 
@@ -18,31 +19,24 @@ class CDHLimits(object):
         "Metrics",
         [
             # cross ref service lims and perhaps notifications
-            
             "Number_of_Issues",
             "Number_of_Groups_per_Issue",
-            
             "Number_of_Treatments",
             "Number_of_Treatments_per_Channel",
             "Number_of_Treatments_per_Channel_per_Action",
-            
             "Number_of_Actions",
             "Number_of_Actions_per_Group",
-            
             "Number_of_Channels",
             "Configurations_per_Channel",
             "Standard_NBAD_Channel_Names",
             "Standard_NBAD_Direction_Names",
             "Standard_NBAD_Configuration_Names",
-
             "Number_of_Predictors",
             "Number_of_Active_Predictors_per_Model",
             "Model_Performance",
             "Engagement_Lift",
-
             "Number_of_Responses",
             "Number_of_Positive_Responses",
-
         ],
     )
 
@@ -54,24 +48,13 @@ class CDHLimits(object):
     )
     lims = {
         Metrics.Number_of_Issues: num_limit(1, 5, 25, None),
-        Metrics.Number_of_Groups_per_Issue: num_limit(
-            1, 5, 25, None
-        ),
-
+        Metrics.Number_of_Groups_per_Issue: num_limit(1, 5, 25, None),
         Metrics.Number_of_Treatments: num_limit(1, 2500, 5000, 5000),
         Metrics.Number_of_Treatments_per_Channel: num_limit(1, 1000, 2500, 2500),
-        Metrics.Number_of_Treatments_per_Channel_per_Action: num_limit(
-            1, 1, 5, None
-        ),
-
+        Metrics.Number_of_Treatments_per_Channel_per_Action: num_limit(1, 1, 5, None),
         Metrics.Number_of_Actions: num_limit(10, 1000, 2500, 2500),
-        Metrics.Number_of_Actions_per_Group: num_limit(
-            1, 100, 250, None
-        ),
-
-        Metrics.Number_of_Channels: num_limit(
-            1, 2, None, None
-        ),
+        Metrics.Number_of_Actions_per_Group: num_limit(1, 100, 250, None),
+        Metrics.Number_of_Channels: num_limit(1, 2, None, None),
         Metrics.Configurations_per_Channel: num_limit(1, 1, 2, None),
         Metrics.Standard_NBAD_Direction_Names: set(
             [x.direction for x in NBAD.standardNBADModelConfigurations]
@@ -82,14 +65,15 @@ class CDHLimits(object):
         Metrics.Standard_NBAD_Configuration_Names: set(
             [x.model_name for x in NBAD.standardNBADModelConfigurations]
         ),
-
-        Metrics.Number_of_Predictors: num_limit(10, 200, 700, 2000), # official limits are different
-        Metrics.Number_of_Active_Predictors_per_Model: num_limit(2, 5, 100, None), # no official limits
-        Metrics.Model_Performance: num_limit(52, 55, 80, 90), # no official limits
-        Metrics.Engagement_Lift: num_limit(0.0, 0.2, 2.0, None), # no official limits
-        
+        Metrics.Number_of_Predictors: num_limit(
+            10, 200, 700, 2000
+        ),  # official limits are different
+        Metrics.Number_of_Active_Predictors_per_Model: num_limit(
+            2, 5, 100, None
+        ),  # no official limits
+        Metrics.Model_Performance: num_limit(52, 55, 80, 90),  # no official limits
+        Metrics.Engagement_Lift: num_limit(0.0, 0.2, 2.0, None),  # no official limits
         # predictor/model related
-
         Metrics.Number_of_Responses: num_limit(1.0, 200, None, None),
         Metrics.Number_of_Positive_Responses: num_limit(1.0, 200, None, None),
     }
@@ -126,4 +110,3 @@ class CDHLimits(object):
             return self.Status.Good if value in lims else self.Status.Warning
 
         return self.Status.Unknown
-

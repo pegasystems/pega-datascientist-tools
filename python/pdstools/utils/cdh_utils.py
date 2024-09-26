@@ -36,14 +36,14 @@ def _apply_query(df: T, query: Optional[QUERY] = None) -> T:
         }
     elif isinstance(query, Dict):
         col_names = set(query.keys())
-        query = [pl.col(k).is_in(v) for k, v in query]
+        query = [pl.col(k).is_in(v) for k, v in query.items()]
     else:
         ValueError("Unsupported query type")
     col_diff = col_names - set(df.collect_schema().names())
     if col_diff:
         raise ValueError(f"Columns not found: {col_diff}")
     filtered_df = df.filter(*query)
-    if filtered_df.lazy().select(pl.first().count()).collect().item() == 0:
+    if filtered_df.lazy().select(pl.first().len()).collect().item() == 0:
         raise ValueError("The given query resulted in no more remaining data.")
     return filtered_df
 

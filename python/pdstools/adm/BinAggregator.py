@@ -1,3 +1,4 @@
+import logging
 from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 import polars as pl
@@ -8,11 +9,10 @@ from ..utils.namespaces import LazyNamespace
 if TYPE_CHECKING:
     import plotly.graph_objects as go
 
-    from .new_ADMDatamart import ADMDatamart
+    from .ADMDatamart import ADMDatamart
 
 Figure = Union[Any, "go.Figure"]  # So that this still imports without plotly installed
-
-# from IPython.display import display # for better display in notebooks rather than print of dataframes
+logger = logging.getLogger(__name__)
 
 
 class BinAggregator(LazyNamespace):
@@ -22,9 +22,12 @@ class BinAggregator(LazyNamespace):
     """
 
     def __init__(self, dm: "ADMDatamart") -> None:
-        data = dm.aggregates.last(table="combined_data")
-        self.all_predictorbinning = self.normalize_all_binnings(data)
-        super().__init__()
+        try:
+            data = dm.aggregates.last(table="combined_data")
+            self.all_predictorbinning = self.normalize_all_binnings(data)
+            super().__init__()
+        except Exception as e:
+            logger.info(e)
 
     def roll_up(  # TODO: overload this
         self,

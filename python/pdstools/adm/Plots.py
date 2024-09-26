@@ -35,7 +35,7 @@ except ImportError as e:
 if TYPE_CHECKING:
     import plotly.graph_objects as go
 
-    from .new_ADMDatamart import ADMDatamart
+    from .ADMDatamart import ADMDatamart
 COLORSCALE_TYPES = Union[List[Tuple[float, str]], List[str]]
 
 Figure = Union[Any, "go.Figure"]
@@ -68,6 +68,8 @@ def requires(
         ) -> Union[Figure, pl.LazyFrame]:
             # Validation logic (unchanged)
             if model_columns:
+                if self.datamart.model_data is None:
+                    raise ValueError("Missing data: model_data")
                 missing = {
                     c
                     for c in model_columns
@@ -77,6 +79,8 @@ def requires(
                     raise ValueError(f"Missing required model columns:{missing}")
 
             if predictor_columns:
+                if self.datamart.predictor_data is None:
+                    raise ValueError("Missing data: predictor_data")
                 missing = {
                     c
                     for c in predictor_columns
@@ -86,6 +90,8 @@ def requires(
                     raise ValueError(f"Missing required predictor columns:{missing}")
 
             if combined_columns:
+                if self.datamart.combined_data is None:
+                    raise ValueError("Missing data: combined_data")
                 missing = {
                     c
                     for c in combined_columns
@@ -268,6 +274,8 @@ class Plots(LazyNamespace):
             "Positives": ":.d",
             "ResponseCount": ":.d",
         }
+        if self.datamart.model_data is None:
+            raise ValueError("Visualisation requires model_data")
 
         df = (
             cdh_utils._apply_query(
@@ -354,6 +362,9 @@ class Plots(LazyNamespace):
         return_df : bool, optional
             Whether to return a DataFrame instead of the graph, by default False
         """
+        if self.datamart.model_data is None:
+            raise ValueError("Visualisation requires model_data")
+
         df = cdh_utils._apply_query(self.datamart.model_data, query).select(
             {"ModelID", "Name", metric, by, facet}
         )
@@ -547,6 +558,7 @@ class Plots(LazyNamespace):
             )
             .filter(pl.col("ModelID") == model_id)
             .select(pl.col("PredictorName").unique())
+            .sort("PredictorName")
             .collect()["PredictorName"]
         ):
             fig = self.predictor_binning(model_id=model_id, predictor_name=predictor)
@@ -760,11 +772,21 @@ class Plots(LazyNamespace):
                 Contribution=(pl.col("Performance") / pl.sum("Performance").over(by))
                 * 100
             )
+            .sort("PredictorCategory")
         )
         if return_df:
             return df
 
-        # TODO: plot
+        fig = px.bar(
+            df.to_pandas(),
+            x="Contribution",
+            y=by,
+            color="PredictorCategory",
+            orientation="h",
+            template="pega",
+            title="Contribution of different sources",
+        )
+        return fig
 
     @requires(
         combined_columns={
@@ -793,7 +815,33 @@ class Plots(LazyNamespace):
 
         if return_df:
             return df
-        # TODO: plot
+
+        title = "over all models"
+        plot_df = df.collect().to_pandas(use_pyarrow_extension_array=True)
+        plot_df.set_index(plot_df.columns[0], inplace=True)
+        fig = px.imshow(
+            plot_df.T,
+            text_auto=".3f",
+            aspect="auto",
+            # color_continuous_scale=kwargs.get(
+            #     "colorscale",
+            #     [
+            #         (0, "#d91c29"),
+            #         (kwargs.get("midpoint", 0.01), "#F76923"),
+            #         (kwargs.get("acceptable", 0.6) / 2, "#20aa50"),
+            #         (0.8, "#20aa50"),
+            #         (1, "#0000FF"),
+            #     ],
+            # ),
+            title=f"Top predictors {title}",
+            range_color=[0.5, 1],
+        )
+
+        fig.update_yaxes(dtick=1, automargin=True)
+        fig.update_xaxes(
+            dtick=1,
+        )
+        return fig
 
     def response_gain(): ...  # TODO: more generic plot_gains function?
 

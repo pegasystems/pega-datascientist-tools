@@ -11,7 +11,7 @@ from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
 
 if TYPE_CHECKING:
-    from .new_ADMDatamart import ADMDatamart
+    from .ADMDatamart import ADMDatamart
 logger = logging.getLogger(__name__)
 
 

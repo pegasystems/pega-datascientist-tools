@@ -3,7 +3,6 @@ from typing import Any, Dict, List, Optional, Union
 import plotly.express as px
 import plotly.graph_objs as go
 
-# from datetime import datetime
 import polars as pl
 from plotly.graph_objects import Figure
 
