@@ -22,10 +22,11 @@ class BinAggregator(LazyNamespace):
     """
 
     def __init__(self, dm: "ADMDatamart") -> None:
+        super().__init__()
+
         try:
             data = dm.aggregates.last(table="combined_data")
             self.all_predictorbinning = self.normalize_all_binnings(data)
-            super().__init__()
         except Exception as e:
             logger.info(e)
 

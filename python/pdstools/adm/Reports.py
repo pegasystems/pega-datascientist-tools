@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class Reports(LazyNamespace):
-    dependencies = ["pyyaml"]
+    dependencies = ["yaml"]
     dependency_group = "healthcheck"
 
     def __init__(self, datamart: "ADMDatamart"):

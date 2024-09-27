@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime
 import logging
 import os
+from functools import cached_property
 from pathlib import Path
 from typing import Callable, Iterable, List, Literal, Optional, Tuple, Union
 
@@ -209,3 +210,40 @@ class ADMDatamart:
             )
 
         return modeldata_cache, predictordata_cache
+
+    @cached_property
+    def unique_channels(self):
+        return (
+            self.model_data.select(pl.col("Channel").unique().sort())
+            .collect()["Channel"]
+            .to_list()
+        )
+
+    @cached_property
+    def unique_configurations(self):
+        return (
+            self.model_data.select(pl.col("Configuration").unique().sort())
+            .collect()["Configuration"]
+            .to_list()
+        )
+
+    @cached_property
+    def unique_channel_direction(self):
+        return (
+            self.model_data.select(
+                pl.concat_str(pl.col("Channel"), pl.col("Direction"), separator="/")
+                .unique()
+                .alias("ChannelDirection")
+                .sort()
+            )
+            .collect()["ChannelDirection"]
+            .to_list()
+        )
+
+    @cached_property
+    def unique_predictor_categories(self):
+        return (
+            self.predictor_data.select(pl.col("PredictorCategory").unique().sort())
+            .collect()["PredictorCategory"]
+            .to_list()
+        )

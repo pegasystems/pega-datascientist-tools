@@ -52,6 +52,7 @@ def requires(
     def decorator(
         func: Callable[Concatenate[T, P], Union[Figure, pl.LazyFrame]],
     ) -> Callable[Concatenate[T, P], Union[Figure, pl.LazyFrame]]:
+        
         @overload
         def wrapper(
             self: T, *args: P.args, return_df: Literal[False] = ..., **kwargs: P.kwargs
