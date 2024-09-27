@@ -40,7 +40,7 @@ version = {attr="pdstools.__version__"}
 
 [project.optional-dependencies]
 adm = ['plotly>=5.5.0']
-api = ['httpx']
+api = ['httpx', 'pydantic']
 healthcheck = ['pdstools[adm]', 'great_tables']
 app = ['pdstools[healthcheck]', 'streamlit>=1.23', 'quarto', 'papermill', 'itables', 'jinja2>=3.1', 'xlsxwriter>=3.0', 'tabulate', 'st-pages']
 all = ['pdstools[app, api]']
