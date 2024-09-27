@@ -4,7 +4,7 @@ import datetime
 import logging
 import os
 from pathlib import Path
-from typing import Callable, Iterable, Literal, Optional, Tuple, Union
+from typing import Callable, Iterable, List, Literal, Optional, Tuple, Union
 
 import polars as pl
 
@@ -36,7 +36,7 @@ class ADMDatamart:
         query: Optional[QUERY] = None,
         extract_pyname_keys: bool = True,
     ) -> None:
-        self.context_keys: list = [
+        self.context_keys: List[str] = [
             "Channel",
             "Direction",
             "Issue",
@@ -49,7 +49,7 @@ class ADMDatamart:
         self.agb = AGB(datamart=self)
         self.generate = Reports(datamart=self)
         self.bin_aggregator = BinAggregator(dm=self)
-        self.cdh_guidelines = CDHGuidelines
+        self.cdh_guidelines = CDHGuidelines()
 
         self.model_data = self._validate_model_data(
             model_df, query=query, extract_pyname_keys=extract_pyname_keys

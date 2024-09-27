@@ -8,7 +8,17 @@ import zipfile
 from io import StringIO
 from os import PathLike
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 import numpy as np
 import polars as pl
@@ -19,6 +29,13 @@ from .table_definitions import PegaDefaultTables
 from .types import QUERY
 
 T = TypeVar("T", pl.DataFrame, pl.LazyFrame)
+if TYPE_CHECKING:
+    try:
+        import plotly.express as px
+
+        Figure = Union["px.Figure", Any]
+    except ImportError:
+        Figure = Union[Any]
 
 
 def _apply_query(df: T, query: Optional[QUERY] = None) -> T:
@@ -38,7 +55,7 @@ def _apply_query(df: T, query: Optional[QUERY] = None) -> T:
         col_names = set(query.keys())
         query = [pl.col(k).is_in(v) for k, v in query.items()]
     else:
-        ValueError("Unsupported query type")
+        raise ValueError("Unsupported query type")
     col_diff = col_names - set(df.collect_schema().names())
     if col_diff:
         raise ValueError(f"Columns not found: {col_diff}")
@@ -254,7 +271,7 @@ def get_type_mapping(df, definition, verbose=False, **timestamp_opts):
                     types.append(parse_pega_date_time_formats(col, **timestamp_opts))
                 else:
                     types.append(pl.col(col).cast(new_type))
-        except:
+        except Exception:
             if verbose:
                 warnings.warn(
                     f"Column {col} not in default table schema, can't set type."
@@ -346,7 +363,7 @@ def auc_from_probs(
     if nlabels < 2:
         return 0.5
     if nlabels > 2:
-        raise Exception("'Groundtruth' has more than two levels.")
+        raise ValueError("'Groundtruth' has more than two levels.")
 
     df = pl.DataFrame({"truth": groundtruth, "probs": probs}, strict=False)
     binned = df.group_by(probs="probs").agg(
@@ -395,8 +412,8 @@ def auc_from_bincounts(
     FPR = np.cumsum(neg[binorder]) / np.sum(neg)
     TPR = np.cumsum(pos[binorder]) / np.sum(pos)
 
-    Area = (np.diff(FPR, prepend=0)) * (TPR + np.insert(np.roll(TPR, 1)[1:], 0, 0)) / 2
-    return safe_range_auc(np.sum(Area))
+    area = (np.diff(FPR, prepend=0)) * (TPR + np.insert(np.roll(TPR, 1)[1:], 0, 0)) / 2
+    return safe_range_auc(np.sum(area))
 
 
 def aucpr_from_probs(
@@ -424,7 +441,7 @@ def aucpr_from_probs(
     if nlabels < 2:
         return 0.0
     if nlabels > 2:
-        raise Exception("'Groundtruth' has more than two levels.")
+        raise ValueError("'Groundtruth' has more than two levels.")
 
     df = pl.DataFrame({"truth": groundtruth, "probs": probs})
     binned = df.group_by(probs="probs").agg(
@@ -474,8 +491,8 @@ def aucpr_from_bincounts(
     precision = np.cumsum(pos[o]) / np.cumsum(pos[o] + neg[o])
     prevrecall = np.insert(recall[0 : (len(recall) - 1)], 0, 0)
     prevprecision = np.insert(precision[0 : (len(precision) - 1)], 0, 0)
-    Area = (recall - prevrecall) * (precision + prevprecision) / 2
-    return np.sum(Area[1:])
+    area = (recall - prevrecall) * (precision + prevprecision) / 2
+    return np.sum(area[1:])
 
 
 def auc_to_gini(auc: float) -> float:
@@ -498,7 +515,7 @@ def auc_to_gini(auc: float) -> float:
     return 2 * safe_range_auc(auc) - 1
 
 
-def _capitalize(fields: Iterable[str]) -> List[str]:
+def _capitalize(fields: Union[str, Iterable[str]]) -> List[str]:
     """Applies automatic capitalization, aligned with the R couterpart.
 
     Parameters
@@ -511,7 +528,7 @@ def _capitalize(fields: Iterable[str]) -> List[str]:
     fields : list
         The input list, but each value properly capitalized
     """
-    capitalizeEndWords = [
+    capitalize_endwords = [
         "ID",
         "Key",
         "Name",
@@ -558,7 +575,7 @@ def _capitalize(fields: Iterable[str]) -> List[str]:
     fields = list(
         map(lambda x: x.replace("configurationname", "configuration"), fields)
     )
-    for word in capitalizeEndWords:
+    for word in capitalize_endwords:
         fields = [re.sub(word, word, field, flags=re.I) for field in fields]
         fields = [field[:1].upper() + field[1:] for field in fields]
     return fields
@@ -702,7 +719,7 @@ def overlap_lists_polars(col: pl.Series, row_validity: pl.Series) -> List[float]
 
 
 def z_ratio(
-    posCol: pl.Expr = pl.col("BinPositives"), negCol: pl.Expr = pl.col("BinNegatives")
+    pos_col: pl.Expr = pl.col("BinPositives"), neg_col: pl.Expr = pl.col("BinNegatives")
 ) -> pl.Expr:
     """Calculates the Z-Ratio for predictor bins.
 
@@ -726,28 +743,28 @@ def z_ratio(
     >>> df.group_by(['ModelID', 'PredictorName']).agg([zRatio()]).explode()
     """
 
-    def get_fracs(posCol=pl.col("BinPositives"), negCol=pl.col("BinNegatives")):
-        return posCol / posCol.sum(), negCol / negCol.sum()
+    def get_fracs(pos_col=pl.col("BinPositives"), neg_col=pl.col("BinNegatives")):
+        return pos_col / pos_col.sum(), neg_col / neg_col.sum()
 
     def z_ratio_impl(
-        posFractionCol=pl.col("posFraction"),
-        negFractionCol=pl.col("negFraction"),
-        PositivesCol=pl.sum("BinPositives"),
-        NegativesCol=pl.sum("BinNegatives"),
+        pos_fraction_col=pl.col("posFraction"),
+        neg_fraction_col=pl.col("negFraction"),
+        positives_col=pl.sum("BinPositives"),
+        negatives_col=pl.sum("BinNegatives"),
     ):
         return (
-            (posFractionCol - negFractionCol)
+            (pos_fraction_col - neg_fraction_col)
             / (
-                (posFractionCol * (1 - posFractionCol) / PositivesCol)
-                + (negFractionCol * (1 - negFractionCol) / NegativesCol)
+                (pos_fraction_col * (1 - pos_fraction_col) / positives_col)
+                + (neg_fraction_col * (1 - neg_fraction_col) / negatives_col)
             ).sqrt()
         ).alias("ZRatio")
 
-    return z_ratio_impl(*get_fracs(posCol, negCol), posCol.sum(), negCol.sum())
+    return z_ratio_impl(*get_fracs(pos_col, neg_col), pos_col.sum(), neg_col.sum())
 
 
 def lift(
-    posCol: pl.Expr = pl.col("BinPositives"), negCol: pl.Expr = pl.col("BinNegatives")
+    pos_col: pl.Expr = pl.col("BinPositives"), neg_col: pl.Expr = pl.col("BinNegatives")
 ) -> pl.Expr:
     """Calculates the Lift for predictor bins.
 
@@ -767,26 +784,26 @@ def lift(
     >>> df.group_by(['ModelID', 'PredictorName']).agg([lift()]).explode()
     """
 
-    def liftImpl(binPos, binNeg, totalPos, totalNeg):
+    def lift_impl(bin_pos, bin_neg, total_pos, total_neg):
         return (
             # TODO not sure how polars (mis)behaves when there are no positives at all
             # I would hope for a NaN but base python doesn't do that. Polars perhaps.
             # Stijn: It does have proper None value support, may work like you say
-            binPos * (totalPos + totalNeg) / ((binPos + binNeg) * totalPos)
+            bin_pos * (total_pos + total_neg) / ((bin_pos + bin_neg) * total_pos)
         ).alias("Lift")
 
-    return liftImpl(posCol, negCol, posCol.sum(), negCol.sum())
+    return lift_impl(pos_col, neg_col, pos_col.sum(), neg_col.sum())
 
 
 def log_odds(
-    Positives=pl.col("Positives"),
-    Negatives=pl.col("ResponseCount") - pl.col("Positives"),
+    positives=pl.col("Positives"),
+    negatives=pl.col("ResponseCount") - pl.col("Positives"),
 ):
-    N = Positives.count()
+    N = positives.count()
     return (
         (
-            ((Positives + 1 / N).log() - (Positives + 1).sum().log())
-            - ((Negatives + 1 / N).log() - (Negatives + 1).sum().log())
+            ((positives + 1 / N).log() - (positives + 1).sum().log())
+            - ((negatives + 1 / N).log() - (negatives + 1).sum().log())
         )
         .round(2)
         .alias("LogOdds")
@@ -796,15 +813,15 @@ def log_odds(
 # TODO: reconsider this. Feature importance now stored in datamart
 # perhaps we should not bother to calculate it ourselves.
 def feature_importance(over=["PredictorName", "ModelID"]):
-    varImp = weighted_average_polars(
+    var_imp = weighted_average_polars(
         log_odds(
             pl.col("BinPositives"), pl.col("BinResponseCount") - pl.col("BinPositives")
         ),
         "BinResponseCount",
     ).alias("FeatureImportance")
     if over is not None:
-        varImp = varImp.over(over)
-    return varImp
+        var_imp = var_imp.over(over)
+    return var_imp
 
 
 def gains_table(df, value: str, index=None, by=None):
@@ -838,8 +855,8 @@ def gains_table(df, value: str, index=None, by=None):
     >>> gains_data = gains_table(df, 'ResponseCount', by=['Channel','Direction])
     """
 
-    sortExpr = pl.col(value) if index is None else pl.col(value) / pl.col(index)
-    indexExpr = (
+    sort_expr = pl.col(value) if index is None else pl.col(value) / pl.col(index)
+    index_expr = (
         (pl.int_range(1, pl.count() + 1) / pl.count())
         if index is None
         else (pl.cum_sum(index) / pl.sum(index))
@@ -850,23 +867,23 @@ def gains_table(df, value: str, index=None, by=None):
             [
                 pl.DataFrame(data={"cum_x": [0.0], "cum_y": [0.0]}).lazy(),
                 df.lazy()
-                .sort(sortExpr, descending=True)
+                .sort(sort_expr, descending=True)
                 .select(
-                    indexExpr.cast(pl.Float64).alias("cum_x"),
+                    index_expr.cast(pl.Float64).alias("cum_x"),
                     (pl.cum_sum(value) / pl.sum(value)).cast(pl.Float64).alias("cum_y"),
                 ),
             ]
         )
     else:
         by_as_list = by if isinstance(by, list) else [by]
-        sortExpr = by_as_list + [sortExpr]
+        sort_expr = by_as_list + [sort_expr]
         gains_df = (
             df.lazy()
-            .sort(sortExpr, descending=True)
+            .sort(sort_expr, descending=True)
             .select(
                 by_as_list
                 + [
-                    indexExpr.over(by).cast(pl.Float64).alias("cum_x"),
+                    index_expr.over(by).cast(pl.Float64).alias("cum_x"),
                     (pl.cum_sum(value) / pl.sum(value))
                     .over(by)
                     .cast(pl.Float64)
@@ -991,7 +1008,7 @@ def get_latest_pdstools_version():
     try:
         response = requests.get("https://pypi.org/pypi/pdstools/json")
         return response.json()["info"]["version"]
-    except:
+    except Exception:
         return None
 
 

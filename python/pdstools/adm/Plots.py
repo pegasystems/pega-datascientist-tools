@@ -208,7 +208,7 @@ class Plots(LazyNamespace):
             "SuccessRate",
             "ResponseCount",
             *self.datamart.context_keys,
-            facet,
+            facet if facet not in self.datamart.context_keys else None,
         )
 
         df = cdh_utils._apply_query(df, query)
@@ -664,6 +664,7 @@ class Plots(LazyNamespace):
         if len(order) > 0:
             df[y] = df[y].astype("category")
             df[y] = df[y].cat.set_categories(order.to_list())
+
         fig = px.box(
             df.sort_values([y]),
             x=metric,
@@ -696,7 +697,7 @@ class Plots(LazyNamespace):
             "PredictorCategory",
         }
     )
-    def predidctor_category_performance(
+    def predictor_category_performance(
         self,
         *,
         metric: str = "Performance",
@@ -823,16 +824,9 @@ class Plots(LazyNamespace):
             plot_df.T,
             text_auto=".3f",
             aspect="auto",
-            # color_continuous_scale=kwargs.get(
-            #     "colorscale",
-            #     [
-            #         (0, "#d91c29"),
-            #         (kwargs.get("midpoint", 0.01), "#F76923"),
-            #         (kwargs.get("acceptable", 0.6) / 2, "#20aa50"),
-            #         (0.8, "#20aa50"),
-            #         (1, "#0000FF"),
-            #     ],
-            # ),
+            color_continuous_scale=self.datamart.cdh_guidelines.colorscales.get(
+                "Performance"
+            ),
             title=f"Top predictors {title}",
             range_color=[0.5, 1],
         )
@@ -857,8 +851,6 @@ class Plots(LazyNamespace):
             "percentage_without_responses",
         ] = "Performance",
         *,
-        acceptable_value: Optional[float] = None,
-        average_value: Optional[float] = None,
         by: str = "Name",
         query: Optional[QUERY] = None,
         return_df: bool = False,
@@ -886,27 +878,11 @@ class Plots(LazyNamespace):
 
         context_keys = [px.Constant("All contexts")] + group_by
 
-        if metric == "Performance":
-            colorscale: COLORSCALE_TYPES = [
-                (0, "#d91c29"),
-                ((average_value or 0.01), "#F76923"),
-                ((acceptable_value or 0.6) / 2, "#20aa50"),
-                (0.8, "#20aa50"),
-                (1, "#0000FF"),
-            ]
-        elif metric == "SuccessRate":
-            colorscale = [
-                (0, "#d91c29"),
-                ((average_value or 0.01), "#F76923"),
-                (acceptable_value or 0.5, "#F76923"),
-                (1, "#20aa50"),
-            ]
-        else:
-            if average_value or acceptable_value:
-                print(
-                    "Average and/or acceptable values only impact the colors of the Performance and SuccessRate metrics!"
-                )
-            colorscale = ["#d91c29", "#F76923", "#20aa50"]
+        colorscale = self.datamart.cdh_guidelines.colorscales.get(metric, None) or [
+            "#d91c29",
+            "#F76923",
+            "#20aa50",
+        ]
 
         label_map = {
             "ResponseCount": "Total number of responses",
