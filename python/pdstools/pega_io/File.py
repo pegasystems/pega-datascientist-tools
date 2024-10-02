@@ -382,7 +382,7 @@ def cache_to_file(
     path: os.PathLike,
     name: str,
     cache_type: Literal["parquet"] = "parquet",
-    compression: pl.type_aliases.ParquetCompression = "uncompressed",
+    compression: pl._typing.ParquetCompression = "uncompressed",
 ) -> pathlib.Path: ...
 
 
@@ -392,7 +392,7 @@ def cache_to_file(
     path: os.PathLike,
     name: str,
     cache_type: Literal["ipc"] = "ipc",
-    compression: pl.type_aliases.IpcCompression = "uncompressed",
+    compression: pl._typing.IpcCompression = "uncompressed",
 ) -> pathlib.Path: ...
 
 
@@ -402,7 +402,7 @@ def cache_to_file(
     name: str,
     cache_type: Literal["ipc", "parquet"] = "ipc",
     compression: Union[
-        pl.type_aliases.ParquetCompression, pl.type_aliases.IpcCompression
+        pl._typing.ParquetCompression, pl._typing.IpcCompression
     ] = "uncompressed",
 ) -> pathlib.Path:
     """Very simple convenience function to cache data.
