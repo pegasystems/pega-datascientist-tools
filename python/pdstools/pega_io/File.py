@@ -429,13 +429,16 @@ def cache_to_file(
     """
 
     outpath = pathlib.Path(path).joinpath(pathlib.Path(name))
+    if not os.path.exists(path):
+        os.mkdir(path)
+
     if isinstance(df, pl.LazyFrame):
         df = df.collect()
     if cache_type == "ipc":
-        outpath = outpath.joinpath(".arrow")
+        outpath = outpath.with_suffix(".arrow")
         df.write_ipc(outpath, compression=compression)
     if cache_type == "parquet":
-        outpath = outpath.joinpath(".parquet")
+        outpath = outpath.with_suffix(".parquet")
         df.write_parquet(outpath, compression=compression)
     return outpath
 
