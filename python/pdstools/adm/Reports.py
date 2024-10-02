@@ -187,8 +187,6 @@ class Reports(LazyNamespace):
             shutil.copy(output_path, final_path)
             return final_path
 
-        except Exception as e:
-            raise e
         finally:
             if not keep_temp_files and temp_dir.exists() and temp_dir.is_dir():
                 shutil.rmtree(temp_dir, ignore_errors=True)
@@ -296,6 +294,8 @@ class Reports(LazyNamespace):
 
         for line in iter(process.stdout.readline, ""):
             line = line.strip()
+            if verbose:
+                print(line)
             logger.info(line)
 
         return_code = process.wait()
