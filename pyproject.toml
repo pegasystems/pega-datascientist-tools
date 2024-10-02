@@ -32,8 +32,8 @@ keywords = [
     "datascientist",
     "tools",
 ]
-requires-python = ">=3.8"
-dependencies = ['polars', 'typing_extensions']
+requires-python = ">=3.9"
+dependencies = ['polars>=1.9', 'typing_extensions']
 
 [tool.setuptools.dynamic]
 version = {attr="pdstools.__version__"}
