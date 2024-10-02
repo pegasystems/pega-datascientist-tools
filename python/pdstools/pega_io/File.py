@@ -382,7 +382,7 @@ def cache_to_file(
     path: os.PathLike,
     name: str,
     cache_type: Literal["parquet"] = "parquet",
-    compression: pl._typing.ParquetCompression = "uncompressed",
+    compression: pl.type_aliases.ParquetCompression = "uncompressed",
 ) -> pathlib.Path: ...
 
 
@@ -392,7 +392,7 @@ def cache_to_file(
     path: os.PathLike,
     name: str,
     cache_type: Literal["ipc"] = "ipc",
-    compression: pl._typing.IpcCompression = "uncompressed",
+    compression: pl.type_aliases.IpcCompression = "uncompressed",
 ) -> pathlib.Path: ...
 
 
@@ -402,7 +402,7 @@ def cache_to_file(
     name: str,
     cache_type: Literal["ipc", "parquet"] = "ipc",
     compression: Union[
-        pl._typing.ParquetCompression, pl._typing.IpcCompression
+        pl.type_aliases.ParquetCompression, pl.type_aliases.IpcCompression
     ] = "uncompressed",
 ) -> pathlib.Path:
     """Very simple convenience function to cache data.
@@ -481,7 +481,7 @@ def read_dataflow_output(
         The extension of the files, by default "json"
     compression : Literal["gzip"]
         The compression of the files, by default "gzip"
-    cache_directory : os.StrPath
+    cache_directory : os.PathLike
         The file path to cache the previously read files
 
     Usage
