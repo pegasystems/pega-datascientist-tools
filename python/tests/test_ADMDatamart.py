@@ -2,19 +2,19 @@
 Testing the functionality of the ADMDatamart functions
 """
 
-import sys
-import pytest
-import zipfile
-import polars as pl
-from polars.testing import assert_frame_equal
 import itertools
-from pandas.errors import UndefinedVariableError
 import pathlib
+import sys
+import zipfile
+
+import polars as pl
+import pytest
+from pandas.errors import UndefinedVariableError
+from polars.testing import assert_frame_equal
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(f"{str(basePath)}/python")
-from pdstools import ADMDatamart, cdh_utils
-from pdstools import errors
+from pdstools import ADMDatamart, cdh_utils, errors
 
 
 @pl.api.register_lazyframe_namespace("shape")
@@ -139,7 +139,8 @@ def data():
                 "2022-03-01 05:00:00",
                 "2022-03-01 05:00:00",
             ],
-        }
+        },
+        strict=False,
     )
 
 
@@ -238,9 +239,10 @@ def test_set_types(test):
                 "2022-03-01 05:00:00",
                 "2022-14-01 05:00:00",
             ],
-        }
+        },
+        strict=False,
     )
-    with pytest.raises(pl.ComputeError):
+    with pytest.raises((pl.ComputeError, pl.InvalidOperationError)):
         test._set_types(
             df,
             timestamp_fmt="%Y%m%dT%H%M%S",
@@ -262,8 +264,8 @@ def test_set_types(test):
         pl.Datetime,
     ]
 
-    assert df2["Positives"].to_list() == [None, None, 3]
-    assert df2["Negatives"].to_list() == [0.0, None, None]
+    assert df2["Positives"].to_list() == [1, 2, 3]
+    assert df2["Negatives"].to_list() == [0, 2, 4]
     assert df2["Issue"].to_list() == ["Issue1", "Issue2", None]
     import datetime
 
@@ -437,15 +439,15 @@ def test_get_AGB_models(sample_with_agb):
 def test_create_sign_df():
     from pdstools import datasets
 
-    dm = datasets.CDHSample()
+    dm = datasets.cdh_sample()
     dm._create_sign_df(dm.combinedData).collect()
     dm._create_sign_df(dm.combinedData, pivot=False).collect()
     dm._create_sign_df(dm.combinedData, mask=False).collect()
     # TODO: make this a good test rather than test for no fail
 
 
-def test_model_summary():
-    pass
+def test_model_summary(test):
+    test.model_summary()
 
 
 def test_pivot_df(test):

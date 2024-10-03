@@ -3,10 +3,11 @@ Testing the functionality of the Prediction class
 """
 
 import datetime
-import sys
-import pytest
-import polars as pl
 import pathlib
+import sys
+
+import polars as pl
+import pytest
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(f"{str(basePath)}/python")
@@ -14,7 +15,7 @@ from pdstools import Prediction, cdh_utils
 
 mock_prediction_data = pl.DataFrame(
     {
-        "pySnapShotTime": cdh_utils.toPRPCDateTime(datetime.datetime.now())[
+        "pySnapShotTime": cdh_utils.to_prpc_date_time(datetime.datetime.now())[
             0:15
         ],  # Polars doesn't like time zones like GMT+0200
         "pyModelId": ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTWEBPROPENSITY"] * 4
@@ -54,13 +55,13 @@ def test2(test):
         pl.concat(
             [
                 mock_prediction_data.with_columns(
-                    pySnapShotTime=pl.lit(cdh_utils.toPRPCDateTime(today)[0:15])
+                    pySnapShotTime=pl.lit(cdh_utils.to_prpc_date_time(today)[0:15])
                 ),
                 mock_prediction_data.with_columns(
                     pySnapShotTime=pl.lit(
-                        cdh_utils.toPRPCDateTime(today + datetime.timedelta(days=-1))[
-                            0:15
-                        ]
+                        cdh_utils.to_prpc_date_time(
+                            today + datetime.timedelta(days=-1)
+                        )[0:15]
                     )
                 ),
             ],
@@ -114,9 +115,20 @@ def test_summary_by_channel_validity(test):
 def test_summary_by_channel_ia(test):
     summary = test.summary_by_channel().collect()
     assert summary["usesImpactAnalyzer"].to_list() == [True, True]
-    
-    test = Prediction(mock_prediction_data.filter((pl.col("pyDataUsage") != "NBA") | (pl.col("pyModelId") == "DATA-DECISION-REQUEST-CUSTOMER!PREDICTWEBPROPENSITY")))
-    assert test.summary_by_channel().collect()["usesImpactAnalyzer"].to_list() == [False, True]
+
+    test = Prediction(
+        mock_prediction_data.filter(
+            (pl.col("pyDataUsage") != "NBA")
+            | (
+                pl.col("pyModelId")
+                == "DATA-DECISION-REQUEST-CUSTOMER!PREDICTWEBPROPENSITY"
+            )
+        )
+    )
+    assert test.summary_by_channel().collect()["usesImpactAnalyzer"].to_list() == [
+        False,
+        True,
+    ]
 
 
 def test_summary_by_channel_lift(test):
@@ -201,14 +213,20 @@ def test_overall_summary_controlpct(test):
         == 15.92593
     )
     assert (
-        round(test.overall_summary().collect()["TestPercentage"].item(), 5)
-        == 34.07407
+        round(test.overall_summary().collect()["TestPercentage"].item(), 5) == 34.07407
     )
 
 
 def test_overall_summary_ia(test):
     assert test.overall_summary().collect().select(pl.col("usesImpactAnalyzer")).item()
 
-    test = Prediction(mock_prediction_data.filter((pl.col("pyDataUsage") != "NBA") | (pl.col("pyModelId") == "DATA-DECISION-REQUEST-CUSTOMER!PREDICTWEBPROPENSITY")))
+    test = Prediction(
+        mock_prediction_data.filter(
+            (pl.col("pyDataUsage") != "NBA")
+            | (
+                pl.col("pyModelId")
+                == "DATA-DECISION-REQUEST-CUSTOMER!PREDICTWEBPROPENSITY"
+            )
+        )
+    )
     assert test.overall_summary().collect()["usesImpactAnalyzer"].to_list() == [True]
-    

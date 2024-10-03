@@ -1,17 +1,17 @@
-import sys
-import os
 import pathlib
-from pandas import read_excel, ExcelFile
+import sys
+
+from pandas import ExcelFile
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(f"{str(basePath)}/python")
-from pdstools import ADMDatamart, datasets
 import pytest
+from pdstools import ADMDatamart, datasets
 
 
 @pytest.fixture
 def sample():
-    return datasets.CDHSample()
+    return datasets.cdh_sample()
 
 
 @pytest.fixture

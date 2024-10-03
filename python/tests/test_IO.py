@@ -3,11 +3,10 @@ Testing the functionality of the io functions
 """
 
 import os
+import pathlib
 import sys
 
 import polars as pl
-
-import pathlib
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(f"{str(basePath)}/python")
@@ -34,7 +33,7 @@ class Shape:
 
 @pytest.fixture
 def test_data():
-    return pega_io.readDSExport(
+    return pega_io.read_ds_export(
         "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
         f"{basePath}/data",
     )
@@ -68,14 +67,14 @@ def test_wrong_filename():
 # Tests for readZippedFile function
 def test_only_imports_zips():
     with pytest.raises(zipfile.BadZipFile):
-        pega_io.readZippedFile(
+        pega_io.read_zipped_file(
             os.path.join(f"{basePath}/data", "pr_data_dm_admmart_mdl_fact.csv")
         )
 
 
 def test_import_produces_polars():
     assert isinstance(
-        pega_io.readDSExport(
+        pega_io.read_ds_export(
             "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
             f"{basePath}/data",
         ),
@@ -84,7 +83,7 @@ def test_import_produces_polars():
 
 
 def test_import_produces_bytes():
-    ret = pega_io.readZippedFile(
+    ret = pega_io.read_zipped_file(
         os.path.join(
             f"{basePath}/data",
             "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
@@ -99,7 +98,7 @@ def test_import_produces_bytes():
 def test_read_json(test_data):
     temp_filename = "data.json"
     test_data.collect().write_ndjson(temp_filename)
-    assert pega_io.readDSExport(
+    assert pega_io.read_ds_export(
         "data.json",
         ".",
     ).shape == (20, 23)
@@ -107,21 +106,21 @@ def test_read_json(test_data):
 
 
 def test_read_modelData():
-    assert pega_io.readDSExport(
+    assert pega_io.read_ds_export(
         "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
         f"{basePath}/data",
     ).shape == (20, 23)
 
 
 def test_read_predictorData():
-    assert pega_io.readDSExport(
+    assert pega_io.read_ds_export(
         "Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210101T010000_GMT.zip",
         f"{basePath}/data",
     ).shape == (1755, 35)
 
 
 def test_polars_zip_from_url():
-    df = pega_io.readDSExport(
+    df = pega_io.read_ds_export(
         "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
         "https://raw.githubusercontent.com/pegasystems/cdh-datascientist-tools/master/data",
     )
@@ -141,75 +140,75 @@ def polars_checks(df):
 
 def test_lazyframe_returns_itself(test_data):
     input = test_data
-    assert pega_io.readDSExport(input).collect().equals(input.collect())
+    assert pega_io.read_ds_export(input).collect().equals(input.collect())
 
 
 def test_dataframe_returns_itself(test_data):
     input = test_data
-    assert pega_io.readDSExport(input.collect()).collect().equals(input.collect())
+    assert pega_io.read_ds_export(input.collect()).collect().equals(input.collect())
 
 
 def test_pandasdataframe_returns_lazyframe(test_data):
     input = test_data.collect().to_pandas()
-    assert pega_io.readDSExport(input).collect().equals(test_data.collect())
+    assert pega_io.read_ds_export(input).collect().equals(test_data.collect())
 
 
 def test_import_parquet(test_data):
     temp_filename = "data.parquet"
     test_data.collect().write_parquet(temp_filename)
     path = "."
-    assert polars_checks(pega_io.readDSExport(path=path, filename=temp_filename))
+    assert polars_checks(pega_io.read_ds_export(path=path, filename=temp_filename))
     os.remove(temp_filename)
 
 
 def test_import_csv():
     path = f"{basePath}/data"
     models = "pr_data_dm_admmart_mdl_fact.csv"
-    assert polars_checks(pega_io.readDSExport(path=path, filename=models))
+    assert polars_checks(pega_io.read_ds_export(path=path, filename=models))
 
 
 def test_csv_from_url():
     path = "https://raw.githubusercontent.com/pegasystems/cdh-datascientist-tools/master/data"
     models = "pr_data_dm_admmart_mdl_fact.csv"
-    assert polars_checks(pega_io.readDSExport(path=path, filename=models))
+    assert polars_checks(pega_io.read_ds_export(path=path, filename=models))
 
 
 def test_cdh_sample_models_from_url():
     path = "https://raw.githubusercontent.com/pegasystems/cdh-datascientist-tools/master/data"
     models = "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip"
-    assert polars_checks(pega_io.readDSExport(path=path, filename=models))
+    assert polars_checks(pega_io.read_ds_export(path=path, filename=models))
 
 
 def test_cdh_sample_models_locally():
     path = f"{basePath}/data"
     models = "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip"
-    assert polars_checks(pega_io.readDSExport(path=path, filename=models))
+    assert polars_checks(pega_io.read_ds_export(path=path, filename=models))
 
 
 def test_cdh_sample_autodiscovered_locally():
     path = f"{basePath}/data"
-    assert polars_checks(pega_io.readDSExport(path=path, filename="modelData"))
+    assert polars_checks(pega_io.read_ds_export(path=path, filename="modelData"))
 
 
 def test_file_not_found_in_good_dir():
-    assert pega_io.readDSExport(path=f"{basePath}/data", filename="models") == None
+    assert pega_io.read_ds_export(path=f"{basePath}/data", filename="models") == None
 
 
 def test_file_not_found_in_bad_dir():
     with pytest.raises(FileNotFoundError):
-        pega_io.readDSExport(path="data1", filename="modelData")
+        pega_io.read_ds_export(path="data1", filename="modelData")
 
 
 def test_import_csv_pandas():
     path = f"{basePath}/data"
     models = "pr_data_dm_admmart_mdl_fact.csv"
-    assert polars_checks(pega_io.readDSExport(path=path, filename=models))
+    assert polars_checks(pega_io.read_ds_export(path=path, filename=models))
 
 
 def test_import_zipped_json_pandas():
     path = f"{basePath}/data"
     models = "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip"
-    assert polars_checks(pega_io.readDSExport(path=path, filename=models))
+    assert polars_checks(pega_io.read_ds_export(path=path, filename=models))
 
 
 def test_import_not_supported_extension(test_data):
@@ -217,7 +216,7 @@ def test_import_not_supported_extension(test_data):
         temp_filename = "data.xlsx"
         test_data.collect().write_excel(temp_filename)
         path = "."
-        pega_io.readDSExport(filename=temp_filename, path=path)
+        pega_io.read_ds_export(filename=temp_filename, path=path)
     os.remove(temp_filename)
 
 
@@ -225,7 +224,7 @@ def test_import_file_verbose(test_data):
     temp_filename = "data.arrow"
     test_data.collect().write_ipc(temp_filename)
     path = "."
-    assert polars_checks(pega_io.readDSExport(filename=temp_filename, path=path))
+    assert polars_checks(pega_io.read_ds_export(filename=temp_filename, path=path))
     os.remove(temp_filename)
 
 
@@ -238,7 +237,7 @@ def test_getMatches():
 
     target = "wrong_target_name"
     with pytest.raises(ValueError):
-        pega_io.getMatches(files_dir, target)
+        pega_io.find_files(files_dir, target)
 
 
 def test_cache_to_file():
@@ -252,9 +251,9 @@ def test_cache_to_file():
     cached_path = pega_io.cache_to_file(input_df, path=os.getcwd(), name="cache_test")
 
     assert (
-        pega_io.readDSExport(input_df)
+        pega_io.read_ds_export(input_df)
         .collect()
-        .equals(pega_io.readDSExport(cached_path).collect())
+        .equals(pega_io.read_ds_export(cached_path).collect())
     )
 
     # test for cache_type="ipc"
@@ -263,9 +262,9 @@ def test_cache_to_file():
     )
 
     assert (
-        pega_io.readDSExport(input_df)
+        pega_io.read_ds_export(input_df)
         .collect()
-        .equals(pega_io.readDSExport(cached_path_arrow).collect())
+        .equals(pega_io.read_ds_export(cached_path_arrow).collect())
     )
     # test for cache_type="parquet"
     cached_path_parquet = pega_io.cache_to_file(
@@ -273,9 +272,9 @@ def test_cache_to_file():
     )
 
     assert (
-        pega_io.readDSExport(input_df)
+        pega_io.read_ds_export(input_df)
         .collect()
-        .equals(pega_io.readDSExport(cached_path_parquet).collect())
+        .equals(pega_io.read_ds_export(cached_path_parquet).collect())
     )
     for file in [cached_path_parquet, cached_path_arrow]:
         os.remove(file)
