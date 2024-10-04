@@ -1,3 +1,5 @@
+from typing import List
+from functools import cached_property
 import polars as pl
 
 header = ["metric", "min", "best_practice_min", "best_practice_max", "max"]
@@ -104,3 +106,15 @@ class CDHGuidelines:
         self.configurations = configurations
         self.predictions = predictions
         self.colorscales = colorscales
+
+    @cached_property
+    def standard_configurations(self) -> List[str]:
+        return self.configurations["model_name"].unique().to_list()
+
+    @cached_property
+    def standard_directions(self) -> List[str]:
+        return self.configurations["direction"].unique().to_list()
+
+    @cached_property
+    def standard_channels(self) -> List[str]:
+        return self.configurations["channel"].unique().to_list()

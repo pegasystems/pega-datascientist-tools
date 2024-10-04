@@ -36,10 +36,9 @@ from pdstools import (
     datasets,
     ADMDatamart,
     cdh_utils,
-    CDHLimits,
-    defaultPredictorCategorization,
 )
 from pdstools.utils import pega_template
+from pdstools.adm.CDH_Guidelines import CDHGuidelines
 
 # from plotly.offline import iplot
 from great_tables import GT, style, md, html, loc
@@ -50,7 +49,8 @@ import polars as pl
 import numpy as np
 import math
 
-lims = CDHLimits()
+cdh_guidelines = CDHGuidelines()
+limits = cdh_guidelines.limits
 
 # Convenience wrapper functions for quarto, to create nice tables and for plotly charts
 
@@ -135,139 +135,121 @@ def fig_set_xaxis_modelperformance(fig, label="Model Performance"):
 
 def table_style_predictor_count(gt, flds):
     for col in flds:
-        gt = gt.tab_style(
-            style=style.fill(color="orange"),
-            locations=loc.body(
-                columns=col,
-                rows=(pl.col(col) < 200) | (pl.col(col) > 700) & (pl.col(col) > 0),
-            ),
-        ).tab_style(
-            style=style.fill(color="orangered"),
-            locations=loc.body(
-                columns=col,
-                rows=(pl.col(col) == 0),
-            ),
-        )
+        if col in source_table.columns:
+            values = source_table[col].to_list()
+            
+            warning_rows = [
+                i for i, v in enumerate(values)
+                if (v < 200 or v > 700) and v > 0
+            ]
+            
+            error_rows = [
+                i for i, v in enumerate(values)
+                if v == 0
+            ]
+            
+            gt = gt.tab_style(
+                style=style.fill(color="orange"),
+                locations=loc.body(columns=col, rows=warning_rows),
+            )
+            
+            gt = gt.tab_style(
+                style=style.fill(color="orangered"),
+                locations=loc.body(columns=col, rows=error_rows),
+            )
+    
     return gt
 
 
-def table_standard_formatting(source_table, title=None, rowname_col=None):
-    def table_style_std_metrics(gt, col_name, metric, skip_warnings=False):
+def table_standard_formatting(source_table, title=None, rowname_col=None, cdh_guidelines=None):
+    if cdh_guidelines is None:
+        cdh_guidelines = CDHGuidelines()
+
+    def apply_metric_style(gt, col_name, metric):
         if col_name in source_table.columns:
-            status = list(
-                map(
-                    lambda x: lims.check_limits(metric, x),
-                    source_table[col_name].to_list(),
-                )
-            )
-            error_rows = [
-                s[0] for s in enumerate(status.copy()) if s[1] == CDHLimits.Status.Bad
-            ]
-            if not skip_warnings:
-                warning_rows = [
-                    s[0]
-                    for s in enumerate(status.copy())
-                    if s[1] == CDHLimits.Status.Warning
+            limits = cdh_guidelines.limits.filter(pl.col("metric") == metric)
+            if not limits.is_empty():
+                min_val = limits["min"][0]
+                max_val = limits["max"][0]
+                best_practice_min = limits["best_practice_min"][0]
+                best_practice_max = limits["best_practice_max"][0]
+
+                values = source_table[col_name].to_list()
+                bad_rows = [
+                    i for i, v in enumerate(values)
+                    if v < min_val or (max_val is not None and v > max_val)
                 ]
+                warning_rows = [
+                    i for i, v in enumerate(values)
+                    if (v >= min_val and v < best_practice_min) or
+                    (best_practice_max is not None and max_val is not None and v > best_practice_max and v <= max_val)
+                ]
+
+                gt = gt.tab_style(
+                    style=style.fill(color="orangered"),
+                    locations=loc.body(columns=col_name, rows=bad_rows),
+                )
                 gt = gt.tab_style(
                     style=style.fill(color="orange"),
                     locations=loc.body(columns=col_name, rows=warning_rows),
                 )
-            # info_rows = [s[0] for s in enumerate(status.copy()) if s[1] == CDHLimits.Status.Info ]
-            # "Good", "Bad", "Warning", "Unknown"
+        return gt
+
+    def apply_standard_name_style(gt, col_name, standard_list):
+        if col_name in source_table.columns:
+            values = source_table[col_name].to_list()
+            non_standard_rows = [
+                i for i, v in enumerate(values)
+                if v not in standard_list
+            ]
             gt = gt.tab_style(
-                style=style.fill(color="orangered"),
-                locations=loc.body(columns=col_name, rows=error_rows),
+                style=style.fill(color="orange"),
+                locations=loc.body(columns=col_name, rows=non_standard_rows),
             )
         return gt
 
-    # TODO
-    # "ContextNotDefinedError" should be Bad in Channel and Direction
-    # table_style_response_count should be metrics in the limits class
-
-    def table_style_response_count(gt, flds):
-        for col in flds:
-            if col in source_table.columns:
-                gt = (
-                    gt.fmt_number(columns=col, compact=True)
-                    .tab_style(
-                        style=style.fill(color="orangered"),
-                        locations=loc.body(
-                            columns=col,
-                            # CDHLimits.Metrics.Number_of_Responses.min
-                            rows=pl.col(col) < 1,
-                        ),
-                    )
-                    .tab_style(
-                        style=style.fill(color="orange"),
-                        locations=loc.body(
-                            columns=col,
-                            # CDHLimits.Metrics.Number_of_Responses.best_practice_min
-                            rows=(pl.col(col) >= 1) & (pl.col(col) < 200),
-                        ),
-                    )
-                )
+    def apply_configuration_style(gt, col_name):
+        if col_name in source_table.columns:
+            values = source_table[col_name].to_list()
+            multiple_config_rows = [
+                i for i, v in enumerate(values)
+                if v.count(",") > 1
+            ]
+            gt = gt.tab_style(
+                style=style.fill(color="yellow"),
+                locations=loc.body(columns=col_name, rows=multiple_config_rows),
+            )
         return gt
 
-    def table_style_configurations(gt, flds):
-        for col in flds:
-            if col in source_table.columns:
-                gt = gt.tab_style(
-                    style=style.fill(color="yellow"),
-                    locations=loc.body(
-                        columns=col,
-                        rows=pl.col(col)
-                        .cast(pl.String)
-                        .str.count_matches(",", literal=True)
-                        > 1,
-                    ),
-                )
-        return gt
+    gt = GT(source_table, rowname_col=rowname_col).tab_options(table_font_size=8)
 
-    gt = (
-        GT(source_table, rowname_col=rowname_col)
-        .tab_options(table_font_size=8)
-    )
+    if title is not None:
+        gt = gt.tab_header(title=title)
 
+    # Apply formatting and styling
+    gt = apply_metric_style(gt, "Performance", "Model Performance")
+    gt = apply_metric_style(gt, "Total Number of Actions", "Actions")
+    gt = apply_metric_style(gt, "Total Number of Treatments", "Treatments")
+    gt = apply_metric_style(gt, "Used Actions", "Actions")
+    gt = apply_metric_style(gt, "Used Treatments", "Treatments")
+    gt = apply_metric_style(gt, "Issues", "Issues")
+    gt = apply_metric_style(gt, "ResponseCount", "Responses")
+    gt = apply_metric_style(gt, "Positives", "Positive Responses")
+
+    gt = apply_standard_name_style(gt, "Channel", cdh_guidelines.standard_channels)
+    gt = apply_standard_name_style(gt, "Direction", cdh_guidelines.standard_directions)
+
+    gt = apply_configuration_style(gt, "Configuration")
+
+    # Apply number formatting
     if "Performance" in source_table.columns:
-        gt = gt.fmt_number(
-            decimals=2,
-            columns=["Performance"],
-        )
+        gt = gt.fmt_number(decimals=2, columns=["Performance"])
     if "CTR" in source_table.columns:
         gt = gt.cols_label(CTR="Base Rate").fmt_percent(decimals=2, columns=["CTR"])
     if "ResponseCount" in source_table.columns:
         gt = gt.cols_label(ResponseCount="Total Responses")
     if "Positives" in source_table.columns:
         gt = gt.cols_label(Positives="Total Positives")
-    if title is not None:
-        gt = gt.tab_header(title=title)
-    gt = table_style_std_metrics(
-        gt, "Channel", CDHLimits.Metrics.Standard_NBAD_Channel_Names, skip_warnings=True
-    )
-    gt = table_style_std_metrics(
-        gt,
-        "Direction",
-        CDHLimits.Metrics.Standard_NBAD_Direction_Names,
-        skip_warnings=True,
-    )
-    gt = table_style_response_count(gt, ["Positives", "ResponseCount"])
-    gt = table_style_std_metrics(gt, "Performance", CDHLimits.Metrics.Model_Performance)
-    gt = table_style_configurations(gt, ["Configuration"])
-    gt = table_style_std_metrics(
-        gt, "Total Number of Actions", CDHLimits.Metrics.Number_of_Actions
-    )
-    gt = table_style_std_metrics(
-        gt, "Total Number of Treatments", CDHLimits.Metrics.Number_of_Treatments
-    )
-    gt = table_style_std_metrics(
-        gt, "Used Actions", CDHLimits.Metrics.Number_of_Actions
-    )
-    gt = table_style_std_metrics(
-        gt, "Used Treatments", CDHLimits.Metrics.Number_of_Treatments
-    )
-    gt = table_style_std_metrics(gt, "Issues", CDHLimits.Metrics.Number_of_Issues)
-    # gt = table_style_std_metrics(gt, 'Groups', CDHLimits.Metrics.Number_of_Groups)
 
     return gt
 
@@ -336,7 +318,7 @@ def reset_datamart(dm):
     global datamart_all_columns
     datamart = dm
     last_data = (
-        dm.last(strategy="lazy")
+        dm.aggregates.last()
         .with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
         .with_columns(
             [
@@ -351,10 +333,10 @@ def reset_datamart(dm):
             ]
         )
     ).collect()
-    if dm.predictorData is not None:
-        datamart_all_columns = dm.combinedData.columns
+    if dm.predictor_data is not None:
+        datamart_all_columns = dm.combined_data.collect_schema().names()
     else:
-        datamart_all_columns = dm.modelData.columns
+        datamart_all_columns = dm.model_data.collect_schema().names()
 
 if len(kwargs) > 0:
     # Calling through function (in streamlit or in a notebook)
@@ -370,7 +352,7 @@ elif len(datafolder) > 0 or len(modelfilename) > 0 or len(predictorfilename) > 0
     ).fillMissing())
 else:
     # fall back to sample data
-    reset_datamart(datasets.CDHSample())
+    reset_datamart(datasets.cdh_sample())
 
 ```
 
@@ -385,7 +367,7 @@ We provide guidance and best practices where possible. However these are  generi
 # some ADM metrics, e.g. overall AUC, CTR, some other things.
 # TODO for the overall AUC chart would be nicer to color the
 # bubbles by channel/direction
-fig = datamart.plotPerformanceSuccessRateBubbleChart()
+fig = datamart.plot.bubble_chart()
 
 fig.layout.coloraxis.colorscale = pega_template.success
 
@@ -423,7 +405,7 @@ The "OmniChannel" percentage is an indicator of the overlap of actions between c
 
 ```{python}
 channel_overview = (
-    datamart.summary_by_channel()
+    datamart.aggregates.summary_by_channel()
     .with_columns(
         NBAD=pl.when(pl.col("usesNBAD"))
         .then(
@@ -552,7 +534,7 @@ def nUniqueValues(fld):
     fld = polars_subset_to_existing_cols(fld)
     if len(fld) == 0:
         return 0
-    return datamart.modelData.select(pl.col(fld)).drop_nulls().collect().n_unique()
+    return datamart.model_data.select(pl.col(fld)).drop_nulls().collect().n_unique()
 
 
 def maxByHierarchy(fld, grouping):
@@ -565,7 +547,7 @@ def maxByHierarchy(fld, grouping):
     if len(grouping) == 0:
         return 0
     return (
-        datamart.modelData.group_by(grouping)
+        datamart.model_data.group_by(grouping)
         .agg(pl.col(fld).drop_nulls().n_unique())
         .select(fld)
         .drop_nulls()
@@ -585,7 +567,7 @@ def avgByHierarchy(fld, grouping):
     if len(grouping) == 0:
         return 0
     return (
-        datamart.modelData.group_by(grouping)
+        datamart.model_data.group_by(grouping)
         .agg(pl.col(fld).drop_nulls().n_unique())
         .select(fld)
         .drop_nulls()
@@ -602,7 +584,7 @@ def sampleValues(fld, n=6):
     if len(fld) == 0:
         return "-"
     return (
-        datamart.modelData.select(
+        datamart.model_data.select(
             pl.concat_str(fld, separator="/").alias("__SampleValues__")
         )
         .drop_nulls()
@@ -612,6 +594,8 @@ def sampleValues(fld, n=6):
         .sort()
         .to_list()[:n]
     )
+
+cdh_guidelines = CDHGuidelines()
 
 df = pl.DataFrame(
     {
@@ -648,53 +632,107 @@ df = pl.DataFrame(
             "-",
             sampleValues(["Channel", "Direction"]),
         ],
-        "Best Practice": [
-            lims.get_limits(CDHLimits.Metrics.Number_of_Actions).best_practice_min, 
-            lims.get_limits(CDHLimits.Metrics.Number_of_Actions_per_Group).best_practice_min, 
-            lims.get_limits(CDHLimits.Metrics.Number_of_Treatments).best_practice_min, 
-            lims.get_limits(CDHLimits.Metrics.Number_of_Treatments_per_Channel).best_practice_min, 
-            lims.get_limits(CDHLimits.Metrics.Number_of_Treatments_per_Channel_per_Action).best_practice_min, 
-            lims.get_limits(CDHLimits.Metrics.Number_of_Issues).best_practice_min, 
-            lims.get_limits(CDHLimits.Metrics.Number_of_Groups_per_Issue).best_practice_min, 
-            lims.get_limits(CDHLimits.Metrics.Number_of_Groups_per_Issue).best_practice_min, 
-            lims.get_limits(CDHLimits.Metrics.Number_of_Channels).best_practice_min, 
-        ],
-        "Cloud Service Limit": [
-            lims.get_limits(CDHLimits.Metrics.Number_of_Actions).best_practice_max,
-            lims.get_limits(CDHLimits.Metrics.Number_of_Actions_per_Group).best_practice_max, 
-            lims.get_limits(CDHLimits.Metrics.Number_of_Treatments).best_practice_max, 
-            lims.get_limits(CDHLimits.Metrics.Number_of_Treatments_per_Channel).best_practice_max, 
-            lims.get_limits(CDHLimits.Metrics.Number_of_Treatments_per_Channel_per_Action).best_practice_max, 
-            lims.get_limits(CDHLimits.Metrics.Number_of_Issues).best_practice_max, 
-            lims.get_limits(CDHLimits.Metrics.Number_of_Groups_per_Issue).best_practice_max, 
-            lims.get_limits(CDHLimits.Metrics.Number_of_Groups_per_Issue).best_practice_max, 
-            lims.get_limits(CDHLimits.Metrics.Number_of_Channels).best_practice_max, 
-        ],
     },
     strict=False,
 )
 
-display(
+# Add "Best Practice" and "Cloud Service Limit" columns
+limits_data = {
+    "Actions": cdh_guidelines.limits.filter(pl.col("metric") == "Actions"),
+    "Actions per Group": cdh_guidelines.limits.filter(pl.col("metric") == "Actions per Group"),
+    "Treatments": cdh_guidelines.limits.filter(pl.col("metric") == "Treatments"),
+    "Treatments per Channel": cdh_guidelines.limits.filter(pl.col("metric") == "Treatments per Channel"),
+    "Treatments per Channel per Action": cdh_guidelines.limits.filter(pl.col("metric") == "Treatments per Channel per Action"),
+    "Issues": cdh_guidelines.limits.filter(pl.col("metric") == "Issues"),
+    "Groups per Issue": cdh_guidelines.limits.filter(pl.col("metric") == "Groups per Issue"),
+    "Channels": cdh_guidelines.limits.filter(pl.col("metric") == "Channels"),
+}
+
+df = df.with_columns([
+    pl.Series("Best Practice", [
+        limits_data["Actions"]["best_practice_min"][0],
+        limits_data["Actions per Group"]["best_practice_min"][0],
+        limits_data["Treatments"]["best_practice_min"][0],
+        limits_data["Treatments per Channel"]["best_practice_min"][0],
+        limits_data["Treatments per Channel per Action"]["best_practice_min"][0],
+        limits_data["Issues"]["best_practice_min"][0],
+        limits_data["Groups per Issue"]["best_practice_min"][0],
+        limits_data["Groups per Issue"]["best_practice_min"][0],
+        limits_data["Channels"]["best_practice_min"][0],
+    ]),
+    pl.Series("Cloud Service Limit", [
+        limits_data["Actions"]["best_practice_max"][0],
+        limits_data["Actions per Group"]["best_practice_max"][0],
+        limits_data["Treatments"]["best_practice_max"][0],
+        limits_data["Treatments per Channel"]["best_practice_max"][0],
+        limits_data["Treatments per Channel per Action"]["best_practice_max"][0],
+        limits_data["Issues"]["best_practice_max"][0],
+        limits_data["Groups per Issue"]["best_practice_max"][0],
+        limits_data["Groups per Issue"]["best_practice_max"][0],
+        limits_data["Channels"]["best_practice_max"][0],
+    ])
+])
+
+def style_action_overview(gt):
+    values = gt.data["Number"].to_list()
+    best_practice = gt.data["Best Practice"].to_list()
+    cloud_limit = gt.data["Cloud Service Limit"].to_list()
+
+    error_rows = [
+        i for i, v in enumerate(values)
+        if v == 0
+    ]
+    
+    warning_rows = [
+        i for i, v in enumerate(values)
+        if v > 0 and (v < best_practice[i] or (cloud_limit[i] is not None and v > cloud_limit[i]))
+    ]
+
+    gt = gt.tab_style(
+        style=style.fill(color="orangered"),
+        locations=loc.body(columns="Number", rows=error_rows),
+    )
+    
+    gt = gt.tab_style(
+        style=style.fill(color="orange"),
+        locations=loc.body(columns="Number", rows=warning_rows),
+    )
+
+    return gt
+
+gt = (
     GT(df)
     .tab_options(table_font_size=8)
-    .tab_header(
-        title="Action Overview",
-    )
-    .tab_style(
-        style=style.fill(color="orangered"),
-        locations=loc.body(
-            columns="Number",
-            rows=pl.col("Number") == 0,
-        ),
-    )
-    .tab_style(
-        style=style.fill(color="orange"),
-        locations=loc.body(
-            columns="Number",
-            rows=(pl.col("Number") > 0) & ((pl.col("Number") < pl.col("Best Practice")) | (pl.col("Number") > pl.col("Cloud Service Limit"))),
-        ),
-    )
+    .tab_header(title="Action Overview")
 )
+
+# Apply styling
+values = df["Number"].to_list()
+best_practice = df["Best Practice"].to_list()
+cloud_limit = df["Cloud Service Limit"].to_list()
+
+error_rows = [
+    i for i, v in enumerate(values)
+    if v == 0
+]
+
+warning_rows = [
+    i for i, v in enumerate(values)
+    if v > 0 and (v < best_practice[i] or (cloud_limit[i] is not None and v > cloud_limit[i]))
+]
+
+gt = gt.tab_style(
+    style=style.fill(color="orangered"),
+    locations=loc.body(columns="Number", rows=error_rows),
+)
+
+gt = gt.tab_style(
+    style=style.fill(color="orange"),
+    locations=loc.body(columns="Number", rows=warning_rows),
+)
+
+# Display the table
+display(gt)
 ```
 
 
@@ -796,7 +834,7 @@ Showing the success rates of all actions in an interactive
 tree map. Green is higher, red are lower success rates.
 
 ```{python}
-fig = datamart.plotTreeMap(
+fig = datamart.plot.tree_map(
     color_var="SuccessRate",
     group_by_col=None,
     levels=polars_subset_to_existing_cols(

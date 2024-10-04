@@ -1,9 +1,10 @@
-from typing import TYPE_CHECKING, Literal, Optional
+from typing import TYPE_CHECKING, Dict, Literal, Optional
 
 import polars as pl
 
 from ..utils import cdh_utils
 from ..utils.types import QUERY
+from .CDH_Guidelines import CDHGuidelines
 
 if TYPE_CHECKING:
     from .ADMDatamart import ADMDatamart
@@ -290,4 +291,270 @@ class Aggregates:
             .head(top_n)
             .select("PredictorName"),
             on="PredictorName",
+        )
+
+    def summary_by_channel(
+        self,
+        custom_channels: Dict[str, str] = None,
+        by_period: str = None,
+        keep_lists: bool = False,
+    ) -> pl.LazyFrame:
+        """Summarize ADM models per channel
+
+        Parameters
+        ----------
+        custom_channels : Dict[str, str], optional
+            Optional list with custom channel/direction name mappings. Defaults to None.
+        by_period : str, optional
+            Optional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. If provided, creates a new Period column with the truncated date/time. Defaults to None.
+        keep_lists : bool, optional
+            Internal flag to keep some columns (action and treatment names etc) as full lists.
+
+        Returns
+        -------
+        pl.LazyFrame
+            Dataframe with summary per channel (and optionally a period)
+        """
+        if not custom_channels:
+            custom_channels = {}
+
+        if by_period is not None:
+            period_expr = [
+                pl.col("SnapshotTime")
+                .dt.truncate(by_period)
+                .cast(pl.Date)
+                .alias("Period")
+            ]
+        else:
+            period_expr = []
+        cdh_guidelines = CDHGuidelines()
+
+        # Removes whitespace and capitalizes names for matching
+        def name_normalizer(x):
+            return pl.col(x).str.replace_all(r"[ \-_]", "").str.to_uppercase()
+
+        directionMapping = pl.DataFrame(
+            # Standard directions have a 1:1 mapping to channel groups
+            {
+                "Direction": cdh_guidelines.standard_directions,
+                "DirectionGroup": cdh_guidelines.standard_directions,
+            }
+        ).with_columns(normalizedDirection=name_normalizer("Direction"))
+
+        channelGroupMapping = (
+            pl.concat(
+                [
+                    pl.DataFrame(
+                        # Standard channels have a 1:1 mapping to channel groups
+                        {
+                            "Channel": cdh_guidelines.standard_channels,
+                            "ChannelGroup": cdh_guidelines.standard_channels,
+                        }
+                    ),
+                    pl.DataFrame(
+                        # feels like a convoluted way to put a dict into a polars dataframe
+                        # but that is just what this does in the end
+                        {
+                            "Channel": custom_channels.keys(),
+                            "ChannelGroup": [
+                                custom_channels[c] for c in custom_channels.keys()
+                            ],
+                        }
+                    ),
+                ],
+                how="diagonal",
+            )
+            .with_columns(normalizedChannel=name_normalizer("Channel"))
+            .unique()
+            .sort(["ChannelGroup", "Channel"])
+        )
+
+        actionIdentifierExpr = pl.concat_str(["Issue", "Group", "Name"], separator="/")
+        activeActionExpr = (pl.col("ResponseCount").sum() > 0).over(
+            ["Issue", "Group", "Name"]
+        )
+
+        # all these expressions needed because not every customer has Treatments and
+        # polars can't aggregate literals, so we have to be careful to pass on explicit
+        # values when there are no treatments
+        columns = self.datamart.model_data.collect_schema().names()
+        treatmentIdentifierExpr = (
+            pl.concat_str(["Issue", "Group", "Name", "Treatment"], separator="/")
+            if "Treatment" in columns
+            else pl.lit("")
+        )
+        activeTreatmentExpr = (
+            (
+                (pl.col("ResponseCount").sum() > 0)
+                & (pl.col("Treatment").is_not_null())
+            ).over(["Issue", "Group", "Name", "Treatment"])
+            if "Treatment" in columns
+            else pl.lit(False)
+        )
+        uniqueTreatmentExpr = (
+            treatmentIdentifierExpr.unique() if "Treatment" in columns else pl.lit([])
+        )
+        uniqueTreatmentCountExpr = (
+            treatmentIdentifierExpr.n_unique() if "Treatment" in columns else pl.lit(0)
+        )
+        uniqueUsedTreatmentExpr = (
+            treatmentIdentifierExpr.filter(pl.col("isUsedTreatment")).unique()
+            if "Treatment" in columns
+            else pl.lit([])
+        )
+        uniqueUsedTreatmentCountExpr = (
+            treatmentIdentifierExpr.filter(pl.col("isUsedTreatment")).n_unique()
+            if "Treatment" in columns
+            else pl.lit(0)
+        )
+        channel_summary = (
+            self.datamart.model_data.with_columns(
+                [
+                    activeActionExpr.alias("isUsedAction"),
+                    activeTreatmentExpr.alias("isUsedTreatment"),
+                ]
+                + period_expr
+            )
+            # .filter(
+            #     pl.col("Configuration").cast(pl.Utf8).str.to_uppercase()
+            #     # TODO maybe not here...
+            #     != "OMNIADAPTIVEMODEL"
+            # )
+            # .with_columns(
+            #     OriginalChannelDirection=pl.concat_str(
+            #         ["Channel", "Direction"], separator="/"
+            #     )
+            # )
+            .with_columns(
+                normalizedChannel=name_normalizer("Channel"),
+                normalizedDirection=name_normalizer("Direction"),
+            )
+            .join(
+                channelGroupMapping.lazy(),
+                on="normalizedChannel",
+                how="left",
+                # suffix="_standard",
+            )
+            .join(
+                directionMapping.lazy(),
+                on="normalizedDirection",
+                how="left",
+                # suffix="_standard",
+            )
+            .with_columns(
+                ChannelDirectionGroup=pl.when(
+                    pl.col("ChannelGroup").is_not_null()
+                    & pl.col("DirectionGroup").is_not_null()
+                )
+                .then(pl.concat_str(["ChannelGroup", "DirectionGroup"], separator="/"))
+                .otherwise(pl.lit("Other")),
+            )
+            .group_by(
+                [
+                    "Channel",
+                    "Direction",
+                    "ChannelDirectionGroup",
+                ]
+                + (["Period"] if by_period is not None else [])
+            )
+            .agg(
+                pl.col("SnapshotTime").min().cast(pl.Date).alias("DateRange Min"),
+                pl.col("SnapshotTime").max().cast(pl.Date).alias("DateRange Max"),
+                # pl.col("OriginalChannelDirection"),
+                pl.col("Positives").sum(),
+                pl.col("ResponseCount").sum(),
+                (cdh_utils.weighted_performance_polars() * 100).alias("Performance"),
+                pl.col("Configuration").cast(pl.Utf8),
+                pl.col("Configuration")
+                .cast(pl.Utf8)
+                .str.to_uppercase()
+                .is_in([x.upper() for x in cdh_guidelines.standard_configurations])
+                .alias("isNBADModelConfiguration"),
+                actionIdentifierExpr.n_unique().alias("Total Number of Actions"),
+                uniqueTreatmentCountExpr.alias("Total Number of Treatments"),
+                # TODO use last update property instead
+                (actionIdentifierExpr.filter(pl.col("isUsedAction")).n_unique()).alias(
+                    "Used Actions"
+                ),
+                uniqueUsedTreatmentCountExpr.alias("Used Treatments"),
+                # keep lists of unique values for aggregation over channels
+                AllIssues=pl.col("Issue").unique(),
+                AllGroups=pl.concat_str(["Issue", "Group"], separator="/").unique(),
+                AllActions=actionIdentifierExpr.unique(),
+                AllTreatments=uniqueTreatmentExpr,
+                AllUsedActions=actionIdentifierExpr.filter(
+                    pl.col("isUsedAction")
+                ).unique(),
+                AllUsedTreatments=uniqueUsedTreatmentExpr,
+            )
+            .with_columns(
+                pl.when(pl.col("Used Actions").is_not_null())
+                .then(pl.col("Used Actions"))
+                .otherwise(pl.lit(0))
+                .alias("Used Actions"),
+                pl.when(pl.col("Used Treatments").is_not_null())
+                .then(pl.col("Used Treatments"))
+                .otherwise(pl.lit(0))
+                .alias("Used Treatments"),
+                ChannelDirection=pl.format(
+                    "{}/{}",
+                    pl.when(pl.col("Channel").is_not_null() & (pl.col("Channel") != ""))
+                    .then(pl.col("Channel"))
+                    .otherwise(pl.lit("")),
+                    pl.when(
+                        pl.col("Direction").is_not_null() & (pl.col("Direction") != "")
+                    )
+                    .then(pl.col("Direction"))
+                    .otherwise(pl.lit("")),
+                ),
+                isValid=(pl.col("Positives") > 200) & (pl.col("ResponseCount") > 1000),
+                Configuration=pl.col("Configuration")
+                .list.unique()
+                .list.sort()
+                .list.join(", "),
+                Issues=pl.col("AllIssues").list.len(),
+                Groups=pl.col("AllGroups").list.len(),
+                # TODO: NBAD detection is not entirely correct: if the only standard model is omniadaptive, we
+                # miss it, because that one got filtered out early on
+                usesNBAD=pl.col("isNBADModelConfiguration").list.any(),
+                usesNBADOnly=pl.col("isNBADModelConfiguration").list.any()
+                & pl.col("isNBADModelConfiguration").list.all(),
+            )
+            .sort(
+                [
+                    # NB channel direction group isn't unique per se so make sure to have a fully defined order
+                    "ChannelDirectionGroup",
+                    "Channel",
+                    "Direction",
+                ]
+                + (["Period"] if by_period is not None else [])
+            )
+        )
+
+        item_overlap_actions = channel_summary.select(
+            ["AllActions", "isValid"]
+        ).collect()
+
+        return channel_summary.with_columns(
+            pl.Series(
+                cdh_utils.overlap_lists_polars(
+                    item_overlap_actions["AllActions"],
+                    item_overlap_actions["isValid"],
+                )
+            ).alias("OmniChannel Actions"),
+            CTR=(pl.col("Positives")) / (pl.col("ResponseCount")),
+        ).drop(
+            ["isNBADModelConfiguration"]
+            + (
+                []
+                if keep_lists
+                else [
+                    "AllIssues",
+                    "AllGroups",
+                    "AllActions",
+                    "AllUsedActions",
+                    "AllTreatments",
+                    "AllUsedTreatments",
+                ]
+            )
         )
