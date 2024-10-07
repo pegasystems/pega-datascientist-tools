@@ -32,7 +32,7 @@ class Shape:
 
 
 @pytest.fixture
-def test_data():
+def test_data() -> pl.LazyFrame:
     return pega_io.read_ds_export(
         "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
         f"{basePath}/data",
@@ -41,26 +41,27 @@ def test_data():
 
 # Tests for get_latest_file function
 def test_find_default_model():
-    file = pega_io.get_latest_file(path=f"{basePath}/data", target="modelData")
+    file = pega_io.get_latest_file(path=f"{basePath}/data", target="model_data")
     assert os.path.join(file) == os.path.join(
         f"{basePath}/data", "pr_data_dm_admmart_mdl_fact.csv"
     )
 
 
 def test_find_default_predictors():
-    file = pega_io.get_latest_file(path=f"{basePath}/data", target="predictorData")
+    file = pega_io.get_latest_file(path=f"{basePath}/data", target="predictor_data")
     assert os.path.join(file) == os.path.join(
-        f"{basePath}/data", "pr_data_dm_admmart_pred.csv"
+        f"{basePath}/data",
+        "Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210101T010000_GMT.zip",
     )
 
 
 def test_file_not_found():
     with pytest.raises(FileNotFoundError):
-        pega_io.get_latest_file(path="data1", target="predictorData")
+        pega_io.get_latest_file(path="data1", target="predictor_data")
 
 
 def test_wrong_filename():
-    file = pega_io.get_latest_file(path=f"{basePath}/data", target="combinedData")
+    file = pega_io.get_latest_file(path=f"{basePath}/data", target="combined_data")
     assert file == "Target not found"
 
 
@@ -138,21 +139,6 @@ def polars_checks(df):
         return True
 
 
-def test_lazyframe_returns_itself(test_data):
-    input = test_data
-    assert pega_io.read_ds_export(input).collect().equals(input.collect())
-
-
-def test_dataframe_returns_itself(test_data):
-    input = test_data
-    assert pega_io.read_ds_export(input.collect()).collect().equals(input.collect())
-
-
-def test_pandasdataframe_returns_lazyframe(test_data):
-    input = test_data.collect().to_pandas()
-    assert pega_io.read_ds_export(input).collect().equals(test_data.collect())
-
-
 def test_import_parquet(test_data):
     temp_filename = "data.parquet"
     test_data.collect().write_parquet(temp_filename)
@@ -187,7 +173,7 @@ def test_cdh_sample_models_locally():
 
 def test_cdh_sample_autodiscovered_locally():
     path = f"{basePath}/data"
-    assert polars_checks(pega_io.read_ds_export(path=path, filename="modelData"))
+    assert polars_checks(pega_io.read_ds_export(path=path, filename="model_data"))
 
 
 def test_file_not_found_in_good_dir():
@@ -196,7 +182,7 @@ def test_file_not_found_in_good_dir():
 
 def test_file_not_found_in_bad_dir():
     with pytest.raises(FileNotFoundError):
-        pega_io.read_ds_export(path="data1", filename="modelData")
+        pega_io.read_ds_export(path="data1", filename="model_data")
 
 
 def test_import_csv_pandas():
@@ -230,7 +216,7 @@ def test_import_file_verbose(test_data):
 
 def test_getMatches():
     files_dir = f"{basePath}/data"
-    target = "ValueFinder"
+    target = "value_finder"
     expected_outcome = "Data-Insights_pyValueFinder_20210824T112615_GMT.zip"
     outcome = pathlib.Path(pega_io.get_latest_file(files_dir, target)).name
     assert outcome == expected_outcome
@@ -250,31 +236,19 @@ def test_cache_to_file():
 
     cached_path = pega_io.cache_to_file(input_df, path=os.getcwd(), name="cache_test")
 
-    assert (
-        pega_io.read_ds_export(input_df)
-        .collect()
-        .equals(pega_io.read_ds_export(cached_path).collect())
-    )
+    assert input_df.collect().equals(pl.scan_ipc(cached_path).collect())
 
     # test for cache_type="ipc"
     cached_path_arrow = pega_io.cache_to_file(
         input_df, path=os.getcwd(), name="cache_test", cache_type="ipc"
     )
 
-    assert (
-        pega_io.read_ds_export(input_df)
-        .collect()
-        .equals(pega_io.read_ds_export(cached_path_arrow).collect())
-    )
+    assert input_df.collect().equals(pl.read_ipc(cached_path_arrow))
     # test for cache_type="parquet"
     cached_path_parquet = pega_io.cache_to_file(
         input_df, path=os.getcwd(), name="cache_test", cache_type="parquet"
     )
 
-    assert (
-        pega_io.read_ds_export(input_df)
-        .collect()
-        .equals(pega_io.read_ds_export(cached_path_parquet).collect())
-    )
+    assert input_df.collect().equals(pl.read_parquet(cached_path_parquet))
     for file in [cached_path_parquet, cached_path_arrow]:
         os.remove(file)
