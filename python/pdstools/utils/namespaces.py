@@ -43,18 +43,18 @@ class LazyNamespace(metaclass=LazyNamespaceMeta):
 
     def _check_dependencies(self):
         not_installed = []
-        if not self.dependencies:
+        if not hasattr(self, "dependencies") or not self.dependencies:
             return []
         for package in self.dependencies:
             if package in sys.modules:
                 logger.debug(f"{package} is already imported.")
-            elif importlib.util.find_spec(package) is not None:
+            elif importlib.util.find_spec(package) is not None:  # pragma: no cover
                 logger.debug(f"{package} is installed, but not imported.")
             else:
                 logger.debug(f"{package} is NOT installed.")
                 not_installed.append(package)
         if not_installed:
-            raise MissingDependencies(
+            raise MissingDependenciesException(
                 not_installed,
                 self.__class__.__name__,
                 self.dependency_group if hasattr(self, "dependency_group") else None,
@@ -62,7 +62,7 @@ class LazyNamespace(metaclass=LazyNamespaceMeta):
         return not_installed
 
 
-class MissingDependencies(Exception):
+class MissingDependenciesException(Exception):
     def __init__(
         self,
         deps: List[str],

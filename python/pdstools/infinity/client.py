@@ -1,4 +1,4 @@
-from ..utils.namespaces import MissingDependencies
+from ..utils.namespaces import MissingDependenciesException
 from .internal._base_client import AsyncAPIClient, SyncAPIClient
 
 instructions = """To initialize the Infinity API client, please use one of the constructor methods: 
@@ -25,7 +25,9 @@ class Infinity(SyncAPIClient):
         try:
             import pydantic
         except ImportError:
-            raise MissingDependencies(["pydantic"], "the Infinity API client", "api")
+            raise MissingDependenciesException(
+                ["pydantic"], "the Infinity API client", "api"
+            )
 
         super().__init__(*args, **kwargs)
 
