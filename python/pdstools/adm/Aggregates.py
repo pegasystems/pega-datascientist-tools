@@ -6,7 +6,7 @@ from ..utils import cdh_utils
 from ..utils.types import QUERY
 from .CDH_Guidelines import CDHGuidelines
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from .ADMDatamart import ADMDatamart
 
 
@@ -295,8 +295,8 @@ class Aggregates:
 
     def summary_by_channel(
         self,
-        custom_channels: Dict[str, str] = None,
-        by_period: str = None,
+        custom_channels: Optional[Dict[str, str]] = None,
+        by_period: Optional[str] = None,
         keep_lists: bool = False,
     ) -> pl.LazyFrame:
         """Summarize ADM models per channel
@@ -315,6 +315,9 @@ class Aggregates:
         pl.LazyFrame
             Dataframe with summary per channel (and optionally a period)
         """
+        if self.datamart.model_data is None:
+            raise ValueError("Summary by channel needs model data")
+
         if not custom_channels:
             custom_channels = {}
 
