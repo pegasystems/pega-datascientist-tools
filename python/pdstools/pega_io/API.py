@@ -14,7 +14,7 @@ def _read_client_credential_file(credential_file: PathLike):  # pragma: no cover
         return outputdict
 
 
-def get_url(credential_file: PathLike):
+def get_url(credential_file: PathLike):  # pragma: no cover
     """Returns the URL of the Infinity instance in the credential file"""
     url = _read_client_credential_file(credential_file)["Authorization endpoint"]
     return url.rsplit("/prweb")[0]
