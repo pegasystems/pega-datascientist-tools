@@ -25,7 +25,6 @@ import polars as pl
 import pytz
 import requests
 
-from .table_definitions import PegaDefaultTables
 from .types import QUERY
 
 T = TypeVar("T", pl.DataFrame, pl.LazyFrame)
@@ -221,6 +220,7 @@ def parse_pega_date_time_formats(
         .dt.replace_time_zone(None)
         .dt.cast_time_unit("ns")
     )
+
 
 def safe_range_auc(auc: float) -> float:
     """Internal helper to keep auc a safe number between 0.5 and 1.0 always.
@@ -727,6 +727,63 @@ def feature_importance(over=["PredictorName", "ModelID"]):
     if over is not None:
         var_imp = var_imp.over(over)
     return var_imp
+
+
+def apply_schema_types(df, definition, verbose=False, **timestamp_opts):
+    """
+    This function is used to convert the data types of columns in a DataFrame to a desired types.
+    The desired types are defined in a `PegaDefaultTables` class.
+
+    Parameters
+    ----------
+    df : pl.LazyFrame
+        The DataFrame whose columns' data types need to be converted.
+    definition : PegaDefaultTables
+        A `PegaDefaultTables` object that contains the desired data types for the columns.
+    verbose : bool
+        If True, the function will print a message when a column is not in the default table schema.
+    timestamp_opts : str
+        Additional arguments for timestamp parsing.
+
+    Returns
+    -------
+    List
+        A list with polars expressions for casting data types.
+    """
+
+    def get_mapping(columns, reverse=False):
+        if not reverse:
+            return dict(zip(columns, _capitalize(columns)))
+        else:
+            return dict(zip(_capitalize(columns), columns))
+
+    schema = df.collect_schema()
+    named = get_mapping(schema.names())
+    typed = get_mapping(
+        [col for col in dir(definition) if not col.startswith("__")], reverse=True
+    )
+
+    types = []
+    for col, renamedCol in named.items():
+        try:
+            new_type = getattr(definition, typed[renamedCol])
+            original_type = schema[col].base_type()
+            if original_type == pl.Null:
+                if verbose:
+                    warnings.warn(f"Warning: {col} column is Null data type.")
+            elif original_type != new_type:
+                if original_type == pl.Categorical and new_type in pl.NUMERIC_DTYPES:
+                    types.append(pl.col(col).cast(pl.Utf8).cast(new_type))
+                elif new_type == pl.Datetime and original_type != pl.Date:
+                    types.append(parse_pega_date_time_formats(col, **timestamp_opts))
+                else:
+                    types.append(pl.col(col).cast(new_type))
+        except Exception:
+            if verbose:
+                warnings.warn(
+                    f"Column {col} not in default table schema, can't set type."
+                )
+    return df.with_columns(types)
 
 
 def gains_table(df, value: str, index=None, by=None):
