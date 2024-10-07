@@ -95,7 +95,7 @@ def expand_nested_deps(extras: Dict[str, Set[str]]) -> Dict[str, Set[str]]:
 
         for nested_extra in nested_extras:
             if nested_extra in processed:
-                continue
+                continue  # pragma: no cover
 
             processed.add(nested_extra)
             if nested_extra in extras:
@@ -117,7 +117,7 @@ def expand_nested_deps(extras: Dict[str, Set[str]]) -> Dict[str, Set[str]]:
 def grouped_dependencies() -> Dict[str, Set[str]]:
     extras: Dict[str, Set[str]] = {"required": set()}
     requires = importlib.metadata.distribution(package_name).requires
-    if not requires:
+    if not requires:  # pragma: no cover
         return {}
     for dependency in requires:
         split = dependency.split("; extra == ")
@@ -146,7 +146,7 @@ def _get_dependency_version(dep_name: str) -> str:
     elif sys.version_info >= (3, 8):
         # importlib.metadata was introduced in Python 3.8
         module_version = importlib.metadata.version(dep_name)
-    else:
+    else:  # pragma: no cover
         module_version = "<version not detected>"
 
     return module_version
