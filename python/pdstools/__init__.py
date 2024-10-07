@@ -12,7 +12,7 @@ from pathlib import Path
 from .adm.ADMDatamart import ADMDatamart
 
 # from .utils.polars_ext import *
-# from .utils.show_versions import show_versions
+from .utils.show_versions import show_versions
 # from .valuefinder.ValueFinder import ValueFinder
 from .infinity import Infinity
 
