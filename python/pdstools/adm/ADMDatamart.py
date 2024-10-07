@@ -14,6 +14,7 @@ from ..pega_io.File import read_dataflow_output, read_ds_export
 from ..utils import cdh_utils
 from ..utils.cdh_utils import _polars_capitalize
 from ..utils.types import QUERY
+from . import Schema
 from .ADMTrees import AGB
 from .Aggregates import Aggregates
 from .BinAggregator import BinAggregator
@@ -142,6 +143,8 @@ class ADMDatamart:
         )
         if not isinstance(schema["SnapshotTime"], pl.Datetime):
             df = df.with_columns(SnapshotTime=cdh_utils.parse_pega_date_time_formats())
+
+        df = cdh_utils.apply_schema_types(df, Schema.ADMModelSnapshot)
 
         return cdh_utils._apply_query(df, query)
 
