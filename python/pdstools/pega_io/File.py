@@ -279,7 +279,7 @@ def read_multi_zip(
     for file in tqdm(files, desc="Reading files...", disable=not verbose):
         data = pl.read_ndjson(gzip.open(file).read())
         if add_original_file_name:
-            data = data.with_columns(file=file)
+            data = data.with_columns(file=pl.lit(file))
         table.append(data)
     df = pl.concat(table, how="diagonal")
     if verbose:
@@ -494,10 +494,14 @@ def read_dataflow_output(
     """
     if isinstance(files, str):
         files = glob(files)
+    original_files = list(files)
+
+    def has_cache():
+        return os.path.isfile(cache_file) if cache_file_name else False
 
     if cache_file_name:
         cache_file = Path(cache_directory) / f"{cache_file_name}.parquet"
-        if os.path.isfile(cache_file):
+        if has_cache():
             cached_data = pl.scan_parquet(cache_file)
             files = (
                 pl.LazyFrame({"file": files})
@@ -506,18 +510,29 @@ def read_dataflow_output(
                 .to_list()
             )
             if not files:
-                return cached_data.drop("file")
+                return (
+                    cached_data.filter(pl.col("file").is_in(original_files))
+                    .drop("file")
+                    .lazy()
+                )
 
-    new_data = read_multi_zip(
-        files=files,
-        zip_type=compression,
-        add_original_file_name=True,
-    )
+    if files:
+        new_data = read_multi_zip(
+            files=files,
+            zip_type=compression,
+            add_original_file_name=True,
+        )
+
+    if has_cache():
+        cached_data = pl.scan_parquet(cache_file)
+        combined_data = pl.concat([cached_data, new_data], how="diagonal")
+    else:
+        combined_data = new_data
 
     if not cache_file_name:
-        return new_data
+        return new_data.filter(pl.col("file").is_in(original_files)).lazy()
 
-    cached_data = pl.scan_parquet(cache_file)
-    combined_data = pl.concat([cached_data, new_data], how="diagonal")
     combined_data.collect().write_parquet(cache_file)
-    return combined_data.drop("file")
+    return (
+        combined_data.filter(pl.col("file").is_in(original_files)).drop("file").lazy()
+    )
