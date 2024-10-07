@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import importlib
-import importlib.metadata
 import re
 import sys
-from importlib import metadata
 from typing import Dict, Optional, Set
 
 from .. import __version__
@@ -116,10 +114,11 @@ def expand_nested_deps(extras: Dict[str, Set[str]]) -> Dict[str, Set[str]]:
     return expanded
 
 
-def grouped_dependencies():
+def grouped_dependencies() -> Dict[str, Set[str]]:
     extras: Dict[str, Set[str]] = {"required": set()}
-    requires = metadata.distribution(package_name).requires
-
+    requires = importlib.metadata.distribution(package_name).requires
+    if not requires:
+        return {}
     for dependency in requires:
         split = dependency.split("; extra == ")
 
