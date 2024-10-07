@@ -5,7 +5,7 @@ plotly>=5.5.0
 requests
 pydot
 tqdm
-polars~=1.0
+polars>=1.9
 pyarrow
 pyyaml
 aioboto3>=11.0
