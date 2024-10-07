@@ -213,28 +213,27 @@ class ADMDatamart:
 
     @cached_property
     def unique_channels(self):
-        return (
-            self.model_data.select(pl.col("Channel").unique().sort())
-            .collect()["Channel"]
-            .to_list()
+        return set(
+            self.model_data.select(pl.col("Channel").unique().sort()).collect()[
+                "Channel"
+            ]
         )
 
     @cached_property
     def unique_configurations(self):
-        return (
-            self.model_data.select(pl.col("Configuration").unique().sort())
+        return set(
+            self.model_data.select(pl.col("Configuration").unique())
             .collect()["Configuration"]
             .to_list()
         )
 
     @cached_property
     def unique_channel_direction(self):
-        return (
+        return set(
             self.model_data.select(
                 pl.concat_str(pl.col("Channel"), pl.col("Direction"), separator="/")
                 .unique()
                 .alias("ChannelDirection")
-                .sort()
             )
             .collect()["ChannelDirection"]
             .to_list()
@@ -242,8 +241,8 @@ class ADMDatamart:
 
     @cached_property
     def unique_predictor_categories(self):
-        return (
-            self.predictor_data.select(pl.col("PredictorCategory").unique().sort())
-            .collect()["PredictorCategory"]
-            .to_list()
+        return set(
+            self.predictor_data.select(
+                pl.col("PredictorCategory").unique().sort()
+            ).collect()["PredictorCategory"]
         )
