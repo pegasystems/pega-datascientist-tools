@@ -8,6 +8,7 @@ import sys
 
 import numpy as np
 import polars as pl
+import pytest
 from pytz import timezone
 
 basePath = pathlib.Path(__file__).parent.parent.parent
@@ -364,6 +365,10 @@ def test_PredictorCategorization():
     )
     assert df.get_column("PredictorCategory").to_list() == ["Customer", "Primary"]
 
+    assert cdh_utils.default_predictor_categorization().meta.eq(
+        cdh_utils.default_predictor_categorization("PredictorName")
+    )
+
 
 def test_gains_table():
     # Only "y" values
@@ -534,19 +539,69 @@ def test_gains_table():
         1.0,
     ]
 
-    # df = pl.DataFrame(
-    #     {"Positives" : [100, 10, 20, 500, 5000, 30, 10000, 15000, 20],
-    #      "Count" : [1, 1, 2, 1, 1, 4, 1, 1, 1],
-    #      "Dimension" : ['A', 'B', 'B', 'A', 'A', 'B', 'A', 'A', 'B']}
-    # )
-    # gains = cdh_utils.gains_table(df, "Positives", index="Count", by = "Dimension")
-    # print(gains)
-    # assert gains.get_column("cum_x").to_list() == [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 0.0, 0.5, 0.75, 0.875, 1.0]
-    # assert gains.get_column("cum_y").round(5).to_list() == [0, 0.49020, 0.81699, 0.98039, 0.99673, 1, 0.0, 0.375, 0.625, 0.875, 1.0]
-
 
 def test_legend_color_order():
-    input_fig = datasets.cdh_sample().plotPerformanceSuccessRateBubbleChart()
+    input_fig = datasets.cdh_sample().plot.bubble_chart()
     output_fig = cdh_utils.legend_color_order(input_fig)
 
     assert output_fig.data[0].marker.color == "#001F5F"
+
+
+def test_apply_query():
+    df = pl.DataFrame({"categories": ["A", "B", "C", "C"], "values": [1, 3, 5, 2]})
+
+    assert df.equals(cdh_utils._apply_query(df))
+
+    assert cdh_utils._apply_query(df, query=pl.col("categories") == "C")[
+        "categories"
+    ].unique().to_list() == ["C"]
+
+    assert cdh_utils._apply_query(df, query=[pl.col("categories") == "C"])[
+        "categories"
+    ].unique().to_list() == ["C"]
+
+    assert cdh_utils._apply_query(df, query={"categories": ["C"]})[
+        "categories"
+    ].unique().to_list() == ["C"]
+
+    with pytest.raises(ValueError):  # should raise; lists need to be expressions
+        cdh_utils._apply_query(df, query=[{"categories": ["C"]}])
+
+    with pytest.raises(ValueError):  # should raise; string is not a query
+        cdh_utils._apply_query(df, query="ABC")
+
+    with pytest.raises(ValueError):  # should raise: 'unknown' is not a column
+        cdh_utils._apply_query(df, query={"unknown": ["A"]})
+
+    with pytest.raises(ValueError):  # should raise: 'D' not in 'categories'
+        cdh_utils._apply_query(df, query={"categories": ["D"]})
+
+
+def test_extract_keys():
+    non_string = pl.DataFrame({"Name": [1, 2, 3]})
+    assert cdh_utils._extract_keys(non_string).equals(non_string)
+
+    empty_df = pl.DataFrame({"Name": []}, schema={"Name": pl.Utf8})
+    assert cdh_utils._extract_keys(empty_df).is_empty()
+
+    df = pl.DataFrame({"Name": ["TEST"]})
+    assert not cdh_utils._extract_keys(df, capitalize=False).is_empty()
+
+    df = pl.DataFrame({"Name": ["TEST"]})
+    assert not cdh_utils._extract_keys(df, capitalize=True).is_empty()
+
+    df = pl.DataFrame({"Name": ["TEST"]})
+    assert cdh_utils._extract_keys(df, capitalize=True).equals(df)
+
+    df = pl.DataFrame({"Name": ['{"pyName":"A","pyTreatment":"B"}']})
+    assert cdh_utils._extract_keys(df, capitalize=False).to_dict(as_series=False) == {
+        "Name": ['{"pyName":"A","pyTreatment":"B"}'],
+        "pyName": ["A"],
+        "pyTreatment": ["B"],
+    }
+    df = pl.DataFrame({"Name": ['{"pyName":"A","pyTreatment":"B"}']})
+    assert cdh_utils._extract_keys(df, capitalize=True).to_dict(as_series=False) == {
+        "Name": ["A"],
+        "Treatment": ["B"],
+    }
+

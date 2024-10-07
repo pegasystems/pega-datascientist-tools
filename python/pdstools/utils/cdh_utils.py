@@ -29,7 +29,7 @@ from .table_definitions import PegaDefaultTables
 from .types import QUERY
 
 T = TypeVar("T", pl.DataFrame, pl.LazyFrame)
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     try:
         import plotly.express as px
 
@@ -59,7 +59,7 @@ def _apply_query(df: T, query: Optional[QUERY] = None) -> T:
     col_diff = col_names - set(df.collect_schema().names())
     if col_diff:
         raise ValueError(f"Columns not found: {col_diff}")
-    filtered_df = df.filter(*query)
+    filtered_df = df.filter(query)
     if filtered_df.lazy().select(pl.first().len()).collect().item() == 0:
         raise ValueError("The given query resulted in no more remaining data.")
     return filtered_df
@@ -221,101 +221,6 @@ def parse_pega_date_time_formats(
         .dt.replace_time_zone(None)
         .dt.cast_time_unit("ns")
     )
-
-
-def get_type_mapping(df, definition, verbose=False, **timestamp_opts):
-    """
-    This function is used to convert the data types of columns in a DataFrame to a desired types.
-    The desired types are defined in a `PegaDefaultTables` class.
-
-    Parameters
-    ----------
-    df : pl.LazyFrame
-        The DataFrame whose columns' data types need to be converted.
-    definition : PegaDefaultTables
-        A `PegaDefaultTables` object that contains the desired data types for the columns.
-    verbose : bool
-        If True, the function will print a message when a column is not in the default table schema.
-    timestamp_opts : str
-        Additional arguments for timestamp parsing.
-
-    Returns
-    -------
-    List
-        A list with polars expressions for casting data types.
-    """
-
-    def get_mapping(columns, reverse=False):
-        if not reverse:
-            return dict(zip(columns, _capitalize(columns)))
-        else:
-            return dict(zip(_capitalize(columns), columns))
-
-    named = get_mapping(df.columns)
-    typed = get_mapping(
-        [col for col in dir(definition) if not col.startswith("__")], reverse=True
-    )
-
-    types = []
-    for col, renamed_col in named.items():
-        try:
-            new_type = getattr(definition, typed[renamed_col])
-            original_type = df.schema[col].base_type()
-            if original_type == pl.Null:
-                if verbose:
-                    warnings.warn(f"Warning: {col} column is Null data type.")
-            elif original_type != new_type:
-                if original_type == pl.Categorical and new_type in pl.NUMERIC_DTYPES:
-                    types.append(pl.col(col).cast(pl.Utf8).cast(new_type))
-                elif new_type == pl.Datetime and original_type != pl.Date:
-                    types.append(parse_pega_date_time_formats(col, **timestamp_opts))
-                else:
-                    types.append(pl.col(col).cast(new_type))
-        except Exception:
-            if verbose:
-                warnings.warn(
-                    f"Column {col} not in default table schema, can't set type."
-                )
-    return types
-
-
-def set_types(df, table="infer", verbose=False, **timestamp_opts):
-    if table == "infer":
-        table = infer_table_definition(df)
-
-    if table == "pyValueFinder":
-        definition = PegaDefaultTables.pyValueFinder()
-    elif table == "ADMModelSnapshot":
-        definition = PegaDefaultTables.ADMModelSnapshot()
-    elif table == "ADMPredictorBinningSnapshot":
-        definition = PegaDefaultTables.ADMPredictorBinningSnapshot()
-
-    else:
-        raise ValueError(table)
-
-    mapping = get_type_mapping(df, definition, verbose=verbose, **timestamp_opts)
-
-    if len(mapping) > 0:
-        return df.with_columns(mapping)
-    else:
-        return df
-
-
-def infer_table_definition(df):
-    cols = _capitalize(df.columns)
-    vf = ["Propensity", "Stage"]
-    predictors = ["PredictorName", "ModelID", "BinSymbol"]
-    models = ["ModelID", "Performance"]
-    if all(value in cols for value in vf):
-        return "pyValueFinder"
-    elif all(value in cols for value in predictors):
-        return "ADMPredictorBinningSnapshot"
-    elif all(value in cols for value in models):
-        return "ADMModelSnapshot"
-    else:
-        print("Could not find table definition.")
-        return cols
-
 
 def safe_range_auc(auc: float) -> float:
     """Internal helper to keep auc a safe number between 0.5 and 1.0 always.

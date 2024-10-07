@@ -31,8 +31,8 @@ class ADMDatamart:
 
     def __init__(
         self,
-        model_df: Optional[pl.LazyFrame],
-        predictor_df: Optional[pl.LazyFrame],
+        model_df: Optional[pl.LazyFrame] = None,
+        predictor_df: Optional[pl.LazyFrame] = None,
         *,
         query: Optional[QUERY] = None,
         extract_pyname_keys: bool = True,
