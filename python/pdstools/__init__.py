@@ -1,6 +1,6 @@
 """Pega Data Scientist Tools Python library"""
 
-__version__ = "3.4.8-beta"
+__version__ = "3.4.8"
 
 from polars import enable_string_cache
 
@@ -26,6 +26,34 @@ from .utils.table_definitions import PegaDefaultTables
 from .valuefinder.ValueFinder import ValueFinder
 
 if "streamlit" in sys.modules:
-    from .utils import streamlit_utils
+    from .utils import streamlit_utils as streamlit_utils
 
 __reports__ = Path(__file__).parents[0] / "reports"
+
+__all__ = [
+    "ADMDatamart",
+    "ADMTrees",
+    "MultiTrees",
+    "BinAggregator",
+    "DecisionData",
+    "API",
+    "S3",
+    "Anonymization",
+    "File",
+    "get_token",
+    "readDSExport",
+    "setupAzureOpenAI",
+    "Prediction",
+    "NBAD",
+    "cdh_utils",
+    "datasets",
+    "errors",
+    "defaultPredictorCategorization",
+    "CDHLimits",
+    "CDHSample",
+    "SampleTrees",
+    "SampleValueFinder",
+    "show_versions",
+    "PegaDefaultTables",
+    "ValueFinder",
+]
