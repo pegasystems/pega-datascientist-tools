@@ -3,16 +3,17 @@ from __future__ import annotations
 import importlib
 import re
 import sys
-from typing import Dict, Optional, Set
+from typing import Dict, Set
 
 from .. import __version__
 
 package_name = "pdstools"
 
 
-def show_versions() -> None:
+def show_versions(print_output: bool = True) -> None:
     """
     Print or return version of pdstools and dependencies.
+
     Parameters
     ----------
     print_output : bool, optional
