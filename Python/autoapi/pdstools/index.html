@@ -317,6 +317,7 @@
 <li class="toctree-l4"><a class="reference internal" href="utils/cdh_utils/index.html">pdstools.utils.cdh_utils</a></li>
 <li class="toctree-l4"><a class="reference internal" href="utils/datasets/index.html">pdstools.utils.datasets</a></li>
 <li class="toctree-l4"><a class="reference internal" href="utils/errors/index.html">pdstools.utils.errors</a></li>
+<li class="toctree-l4"><a class="reference internal" href="utils/hds_utils_experimental/index.html">pdstools.utils.hds_utils_experimental</a></li>
 <li class="toctree-l4"><a class="reference internal" href="utils/pega_template/index.html">pdstools.utils.pega_template</a></li>
 <li class="toctree-l4"><a class="reference internal" href="utils/polars_ext/index.html">pdstools.utils.polars_ext</a></li>
 <li class="toctree-l4"><a class="reference internal" href="utils/show_versions/index.html">pdstools.utils.show_versions</a></li>
@@ -393,21 +394,6 @@
 </ul>
 </div>
 </section>
-<section id="attributes">
-<h2>Attributes<a class="headerlink" href="#attributes" title="Link to this heading">¶</a></h2>
-<div class="table-wrapper autosummary longtable docutils container">
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.__version__" title="pdstools.__version__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__version__</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.__reports__" title="pdstools.__reports__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__reports__</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-</tbody>
-</table>
-</div>
-</section>
 <section id="classes">
 <h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
 <div class="table-wrapper autosummary longtable docutils container">
@@ -431,13 +417,10 @@
 <tr class="row-even"><td><p><a class="reference internal" href="#pdstools.CDHLimits" title="pdstools.CDHLimits"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CDHLimits</span></code></a></p></td>
 <td><p>A singleton container for best practice limits for CDH.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.Sample" title="pdstools.Sample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sample</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.PegaDefaultTables" title="pdstools.PegaDefaultTables"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PegaDefaultTables</span></code></a></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.PegaDefaultTables" title="pdstools.PegaDefaultTables"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PegaDefaultTables</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.ValueFinder" title="pdstools.ValueFinder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueFinder</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.ValueFinder" title="pdstools.ValueFinder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueFinder</span></code></a></p></td>
 <td><p>Class to analyze Value Finder datasets.</p></td>
 </tr>
 </tbody>
@@ -479,11 +462,6 @@
 </section>
 <section id="package-contents">
 <h2>Package Contents<a class="headerlink" href="#package-contents" title="Link to this heading">¶</a></h2>
-<dl class="py data">
-<dt class="sig sig-object py" id="pdstools.__version__">
-<span class="sig-name descname"><span class="pre">__version__</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'3.4.8-beta'</span></em><a class="headerlink" href="#pdstools.__version__" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="py class">
 <dt class="sig sig-object py" id="pdstools.ADMDatamart">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ADMDatamart</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">pathlib.Path</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Path('.')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">import_strategy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'eager'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'lazy'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'eager'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'modelData'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictor_filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'predictorData'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pdstools.utils.types.any_frame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictor_df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pdstools.utils.types.any_frame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">polars.Expr</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drop_cols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_cols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">['Channel',</span> <span class="pre">'Direction',</span> <span class="pre">'Issue',</span> <span class="pre">'Group']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extract_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictorCategorization</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">cdh_utils.defaultPredictorCategorization</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plotting_engine</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Any</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'plotly'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">reading_opts</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.ADMDatamart" title="Link to this definition">¶</a></dt>
@@ -2231,41 +2209,6 @@ but note these apply to Pega Cloud only.</p>
 <span class="sig-name descname"><span class="pre">SampleValueFinder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.SampleValueFinder" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="py class">
-<dt class="sig sig-object py" id="pdstools.Sample">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ldf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.Sample" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>ldf</strong> (<em>polars.LazyFrame</em>)</p>
-</dd>
-</dl>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.Sample._ldf">
-<span class="sig-name descname"><span class="pre">_ldf</span></span><a class="headerlink" href="#pdstools.Sample._ldf" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.Sample.sample">
-<span class="sig-name descname"><span class="pre">sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.Sample.sample" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.Sample.height">
-<span class="sig-name descname"><span class="pre">height</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.Sample.height" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.Sample.shape">
-<span class="sig-name descname"><span class="pre">shape</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.Sample.shape" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pdstools.Sample.item">
-<span class="sig-name descname"><span class="pre">item</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.Sample.item" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.show_versions">
 <span class="sig-name descname"><span class="pre">show_versions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">print_output</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#pdstools.show_versions" title="Link to this definition">¶</a></dt>
@@ -3075,11 +3018,6 @@ or based on the quantile of the propensity</p></li>
 
 </dd></dl>
 
-<dl class="py data">
-<dt class="sig sig-object py" id="pdstools.__reports__">
-<span class="sig-name descname"><span class="pre">__reports__</span></span><a class="headerlink" href="#pdstools.__reports__" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
 </section>
 </section>
 
@@ -3147,11 +3085,9 @@ or based on the quantile of the propensity</p></li>
             <ul>
 <li><a class="reference internal" href="#">pdstools</a><ul>
 <li><a class="reference internal" href="#subpackages">Subpackages</a></li>
-<li><a class="reference internal" href="#attributes">Attributes</a></li>
 <li><a class="reference internal" href="#classes">Classes</a></li>
 <li><a class="reference internal" href="#functions">Functions</a></li>
 <li><a class="reference internal" href="#package-contents">Package Contents</a><ul>
-<li><a class="reference internal" href="#pdstools.__version__"><code class="docutils literal notranslate"><span class="pre">__version__</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart"><code class="docutils literal notranslate"><span class="pre">ADMDatamart</span></code></a><ul>
 <li><a class="reference internal" href="#pdstools.ADMDatamart.modelData"><code class="docutils literal notranslate"><span class="pre">modelData</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ADMDatamart.predictorData"><code class="docutils literal notranslate"><span class="pre">predictorData</span></code></a></li>
@@ -3303,14 +3239,6 @@ or based on the quantile of the propensity</p></li>
 <li><a class="reference internal" href="#pdstools.CDHSample"><code class="docutils literal notranslate"><span class="pre">CDHSample()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.SampleTrees"><code class="docutils literal notranslate"><span class="pre">SampleTrees()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.SampleValueFinder"><code class="docutils literal notranslate"><span class="pre">SampleValueFinder()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.Sample"><code class="docutils literal notranslate"><span class="pre">Sample</span></code></a><ul>
-<li><a class="reference internal" href="#pdstools.Sample._ldf"><code class="docutils literal notranslate"><span class="pre">_ldf</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.Sample.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.Sample.height"><code class="docutils literal notranslate"><span class="pre">height()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.Sample.shape"><code class="docutils literal notranslate"><span class="pre">shape()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.Sample.item"><code class="docutils literal notranslate"><span class="pre">item()</span></code></a></li>
-</ul>
-</li>
 <li><a class="reference internal" href="#pdstools.show_versions"><code class="docutils literal notranslate"><span class="pre">show_versions()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.PegaDefaultTables"><code class="docutils literal notranslate"><span class="pre">PegaDefaultTables</span></code></a><ul>
 <li><a class="reference internal" href="#pdstools.PegaDefaultTables.ADMModelSnapshot"><code class="docutils literal notranslate"><span class="pre">ADMModelSnapshot</span></code></a><ul>
@@ -3438,7 +3366,6 @@ or based on the quantile of the propensity</p></li>
 <li><a class="reference internal" href="#pdstools.ValueFinder.plotFunnelChart"><code class="docutils literal notranslate"><span class="pre">plotFunnelChart()</span></code></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#pdstools.__reports__"><code class="docutils literal notranslate"><span class="pre">__reports__</span></code></a></li>
 </ul>
 </li>
 </ul>
