@@ -22,7 +22,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest, windows-latest, macOS-latest]
-        python-version: [3.9.x, 3.10.x, 3.11.x, 3.12.x, "3.13"]
+        python-version: [3.9.x, 3.10.x, 3.11.x, 3.12.x]
         exclude:
           - os: windows-latest
             python-version: 3.9.x
@@ -30,16 +30,16 @@ jobs:
             python-version: 3.10.x
           - os: windows-latest
             python-version: 3.11.x
-          - os: windows-latest
-            python-version: 3.12.x
+          # - os: windows-latest
+          #   python-version: 3.12.x
           - os: macOS-latest
             python-version: 3.9.x
           - os: macOS-latest
             python-version: 3.10.x
           - os: macOS-latest
             python-version: 3.11.x
-          - os: macOS-latest
-            python-version: 3.12.x
+          # - os: macOS-latest
+          #   python-version: 3.12.x
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
 
