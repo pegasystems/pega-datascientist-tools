@@ -7,6 +7,7 @@ import pytest
 import zipfile
 import polars as pl
 from polars.testing import assert_frame_equal
+from polars.exceptions import ComputeError, InvalidOperationError, ColumnNotFoundError
 import itertools
 from pandas.errors import UndefinedVariableError
 import pathlib
@@ -90,7 +91,7 @@ def test_import_utils_with_importing(test):
         name="Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip",
     )
     assert isinstance(output, pl.LazyFrame)
-    assert len(output.columns) == 10
+    assert len(output.collect_schema().names()) == 10
     assert output.select(pl.len()).collect().item() == 20
     assert renamed == {
         "Channel",
@@ -139,7 +140,8 @@ def data():
                 "2022-03-01 05:00:00",
                 "2022-03-01 05:00:00",
             ],
-        }
+        },
+        strict=False,
     )
 
 
@@ -168,7 +170,7 @@ def test_import_no_subset(test, data):
         subset=False,
         typesetting_table="ADMModelSnapshot",
     )[0]
-    assert "Junk" in output.columns
+    assert "Junk" in output.collect_schema().names()
 
 
 def test_extract_treatment(test, data):
@@ -217,7 +219,7 @@ def test_apply_query(test, data):
         for frame1, frame2 in itertools.combinations(frames, 2)
     ]
 
-    with pytest.raises(pl.ColumnNotFoundError):
+    with pytest.raises(ColumnNotFoundError):
         test._apply_query(data, pl.col("TEST") > 0)
 
     with pytest.raises(ValueError):
@@ -238,9 +240,10 @@ def test_set_types(test):
                 "2022-03-01 05:00:00",
                 "2022-14-01 05:00:00",
             ],
-        }
+        },
+        strict=False,
     )
-    with pytest.raises(pl.ComputeError):
+    with pytest.raises((ComputeError, InvalidOperationError)):
         test._set_types(
             df,
             timestamp_fmt="%Y%m%dT%H%M%S",
@@ -262,8 +265,8 @@ def test_set_types(test):
         pl.Datetime,
     ]
 
-    assert df2["Positives"].to_list() == [None, None, 3]
-    assert df2["Negatives"].to_list() == [0.0, None, None]
+    assert df2["Positives"].to_list() == [1, 2, 3]
+    assert df2["Negatives"].to_list() == [0, 2, 4]
     assert df2["Issue"].to_list() == ["Issue1", "Issue2", None]
     import datetime
 
@@ -444,8 +447,8 @@ def test_create_sign_df():
     # TODO: make this a good test rather than test for no fail
 
 
-def test_model_summary():
-    pass
+def test_model_summary(test):
+    test.model_summary()
 
 
 def test_pivot_df(test):

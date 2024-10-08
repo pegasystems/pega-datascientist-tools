@@ -92,7 +92,7 @@ def _extract_keys(
         The dataframe to extract the keys from
     """
     # Checking for the 'column is None/Null' case
-    if df.schema[col] != pl.Utf8:
+    if df.collect_schema()[col] != pl.Utf8:
         return df
 
     if import_strategy != "eager":
@@ -212,7 +212,7 @@ def getTypeMapping(df, definition, verbose=False, **timestamp_opts):
         else:
             return dict(zip(_capitalize(columns), columns))
 
-    named = getMapping(df.columns)
+    named = getMapping(df.collect_schema().names())
     typed = getMapping(
         [col for col in dir(definition) if not col.startswith("__")], reverse=True
     )
@@ -221,7 +221,7 @@ def getTypeMapping(df, definition, verbose=False, **timestamp_opts):
     for col, renamedCol in named.items():
         try:
             new_type = getattr(definition, typed[renamedCol])
-            original_type = df.schema[col].base_type()
+            original_type = df.collect_schema()[col].base_type()
             if original_type == pl.Null:
                 if verbose:
                     warnings.warn(f"Warning: {col} column is Null data type.")
@@ -263,7 +263,7 @@ def set_types(df, table="infer", verbose=False, **timestamp_opts):
 
 
 def inferTableDefinition(df):
-    cols = _capitalize(df.columns)
+    cols = _capitalize(df.collect_schema().names())
     vf = ["Propensity", "Stage"]
     predictors = ["PredictorName", "ModelID", "BinSymbol"]
     models = ["ModelID", "Performance"]
@@ -326,8 +326,8 @@ def auc_from_probs(
     if nlabels > 2:
         raise Exception("'Groundtruth' has more than two levels.")
 
-    df = pl.DataFrame({"truth": groundtruth, "probs": probs})
-    binned = df.group_by(by="probs").agg(
+    df = pl.DataFrame({"truth": groundtruth, "probs": probs}, strict=False)
+    binned = df.group_by(probs="probs").agg(
         [
             (pl.col("truth") == 1).sum().alias("pos"),
             (pl.col("truth") == 0).sum().alias("neg"),
@@ -405,7 +405,7 @@ def aucpr_from_probs(
         raise Exception("'Groundtruth' has more than two levels.")
 
     df = pl.DataFrame({"truth": groundtruth, "probs": probs})
-    binned = df.group_by(by="probs").agg(
+    binned = df.group_by(probs="probs").agg(
         [
             (pl.col("truth") == 1).sum().alias("pos"),
             (pl.col("truth") == 0).sum().alias("neg"),
@@ -543,11 +543,12 @@ def _capitalize(fields: list) -> list:
 
 
 def _polarsCapitalize(df: pl.LazyFrame):
+    df_cols = df.collect_schema().names()
     return df.rename(
         dict(
             zip(
-                df.columns,
-                _capitalize(df.columns),
+                df_cols,
+                _capitalize(df_cols),
             )
         )
     )
