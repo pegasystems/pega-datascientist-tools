@@ -379,7 +379,7 @@ def find_files(files_dir, target):
 @overload
 def cache_to_file(
     df: Union[pl.DataFrame, pl.LazyFrame],
-    path: os.PathLike,
+    path: Union[str, os.PathLike],
     name: str,
     cache_type: Literal["parquet"] = "parquet",
     compression: pl._typing.ParquetCompression = "uncompressed",
@@ -389,7 +389,7 @@ def cache_to_file(
 @overload
 def cache_to_file(
     df: Union[pl.DataFrame, pl.LazyFrame],
-    path: os.PathLike,
+    path: Union[str, os.PathLike],
     name: str,
     cache_type: Literal["ipc"] = "ipc",
     compression: pl._typing.IpcCompression = "uncompressed",
@@ -398,7 +398,7 @@ def cache_to_file(
 
 def cache_to_file(
     df: Union[pl.DataFrame, pl.LazyFrame],
-    path: os.PathLike,
+    path: Union[str, os.PathLike],
     name: str,
     cache_type: Literal["ipc", "parquet"] = "ipc",
     compression: Union[
