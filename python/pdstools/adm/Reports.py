@@ -84,13 +84,19 @@ class Reports(LazyNamespace):
         try:
             qmd_file = "ModelReport.qmd"
             self._copy_quarto_file(qmd_file, temp_dir)
-            self.datamart.save_data(temp_dir)
+            model_file_path, predictor_file_path = self.datamart.save_data(temp_dir)
             output_file_paths = []
             for i, model_id in enumerate(model_ids):
                 output_filename = self._get_output_filename(
                     name, "ModelReport", model_id, output_type
                 )
-                self._write_params_file(temp_dir, model_id, only_active_predictors)
+                params = {
+                    "report_type": "ModelReport",
+                    "model_id": model_id,
+                    "only_active_predictors": only_active_predictors,
+                }
+
+                self._write_params_file(temp_dir, params)
                 self._run_quarto_command(
                     temp_dir,
                     qmd_file,
@@ -224,19 +230,40 @@ class Reports(LazyNamespace):
         if not predictordata_files:
             logger.warning("No cached predictor data found.")
 
-    def _write_params_file(self, temp_dir, model_id, only_active_predictors):
+    def _write_params_file(self, temp_dir: Path, params: Dict) -> None:
         """Write parameters to a YAML file."""
         import yaml
 
-        params = {
-            "kwargs": {
-                "subset": False,
-                "model_id": model_id,
-                "only_active_predictors": only_active_predictors,
-            },
-        }
+        report_type = params.get("report_type")
+
+        if report_type == "ModelReport":
+            yaml_params = {
+                "kwargs": {
+                    # "subset": False,
+                    "model_id": params.get("model_id"),
+                    "only_active_predictors": params.get("only_active_predictors"),
+                },
+            }
+        elif report_type == "HealthCheck":
+            yaml_params = {
+                "kwargs": {
+                    "model_file_path": (
+                        str(params.get("model_file_path"))
+                        if params.get("model_file_path")
+                        else None
+                    ),
+                    "predictor_file_path": (
+                        str(params.get("predictor_file_path"))
+                        if params.get("predictor_file_path")
+                        else None
+                    ),
+                },
+            }
+        else:
+            raise ValueError(f"Unknown report_type: {report_type}")
+
         with open(temp_dir / "params.yaml", "w") as f:
-            yaml.dump(params, f)
+            yaml.dump(yaml_params, f)
 
     def _run_quarto_command(
         self,
@@ -279,8 +306,8 @@ class Reports(LazyNamespace):
             output_type,
             "--output",
             output_filename,
-            "--execute-params",
-            "params.yaml",
+            # "--execute-params",
+            # "params.yaml",
         ]
 
         process = subprocess.Popen(

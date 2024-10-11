@@ -43,6 +43,7 @@ from pdstools.adm.CDH_Guidelines import CDHGuidelines
 # from plotly.offline import iplot
 from great_tables import GT, style, md, html, loc
 import plotly.express as px
+from plotly.subplots import make_subplots
 import plotly.graph_objs as go
 import polars as pl
 
@@ -88,8 +89,9 @@ def quarto_callout_no_predictor_data_warning(extra=""):
     quarto_callout_important(f"Predictor Data is not available. {extra}")
 
 
-def polars_col_exists(df, col):
-    return col in df.columns and df.schema[col] != pl.Null
+def polars_col_exists(lazy_frame: pl.LazyFrame, col: str) -> bool:
+    schema = lazy_frame.collect_schema()
+    return col in schema.names() and schema[col] != pl.Null
 
 
 def polars_subset_to_existing_cols(cols):
@@ -97,7 +99,7 @@ def polars_subset_to_existing_cols(cols):
 
 
 def fig_update_facet_height(fig, n_cols=2, base_height=250, step_height=270):
-    n_rows = math.ceil(len(fig.layout.annotations) / n_cols)
+    n_rows = max(math.ceil(len(fig.layout.annotations) / n_cols), 1)
     height = base_height + (n_rows * step_height)
     return fig.for_each_annotation(
         lambda a: a.update(text=a.text.split("=")[1])
@@ -133,31 +135,21 @@ def fig_set_xaxis_modelperformance(fig, label="Model Performance"):
 #         color = ""
 #     return "background-color: %s" % color
 
-def table_style_predictor_count(gt, flds):
+def table_style_predictor_count(gt: GT, flds):
     for col in flds:
-        if col in source_table.columns:
-            values = source_table[col].to_list()
-            
-            warning_rows = [
-                i for i, v in enumerate(values)
-                if (v < 200 or v > 700) and v > 0
-            ]
-            
-            error_rows = [
-                i for i, v in enumerate(values)
-                if v == 0
-            ]
-            
-            gt = gt.tab_style(
-                style=style.fill(color="orange"),
-                locations=loc.body(columns=col, rows=warning_rows),
-            )
-            
-            gt = gt.tab_style(
-                style=style.fill(color="orangered"),
-                locations=loc.body(columns=col, rows=error_rows),
-            )
-    
+        gt = gt.tab_style(
+            style=style.fill(color="orange"),
+            locations=loc.body(
+                columns=col,
+                rows=(pl.col(col) < 200) | (pl.col(col) > 700) & (pl.col(col) > 0),
+            ),
+        ).tab_style(
+            style=style.fill(color="orangered"),
+            locations=loc.body(
+                columns=col,
+                rows=(pl.col(col) == 0),
+            ),
+        )
     return gt
 
 
@@ -291,7 +283,7 @@ configuration_responses_threshold = 10000
 responsecount_analysis_query = (
     pl.col("ResponseCount") > responsecount_analysis_threshold
 )
-predictor_analysis_query = pl.col("ResponseCount") > predictor_analysis_threshold
+predictor_analysis_query = pl.col("ResponseCountBin") > predictor_analysis_threshold
 ```
 
 ```{python}
@@ -741,10 +733,10 @@ unused_channels = channel_overview.filter(pl.col.isValid.not_()).select(["Channe
 if unused_channels.shape[0] > 0:
     reset_datamart(
         ADMDatamart(
-            model_df=datamart.modelData.join(
+            model_df=datamart.model_data.join(
                 unused_channels.lazy(), on=["Channel", "Direction"], how="anti"
             ),
-            predictor_df=datamart.predictorData,
+            predictor_df=datamart.predictor_data,
         )
     )
 ```
@@ -835,13 +827,8 @@ tree map. Green is higher, red are lower success rates.
 
 ```{python}
 fig = datamart.plot.tree_map(
-    color_var="SuccessRate",
-    group_by_col=None,
-    levels=polars_subset_to_existing_cols(
-        ["Configuration", "Channel", "Direction", "Issue", "Group", "Name", "Treatment"]
-    ),
-    colorscale=pega_template.success,
-    title="All Action Success Rates",
+    metric="SuccessRate",
+    by="Treatment",
     query=responsecount_analysis_query,
 )
 
@@ -859,21 +846,17 @@ Showing how the overall channel success rates evolved over the time that the dat
 :::
 
 ```{python}
-facets = "Configuration"
-unique_count = datamart.modelData.select(pl.concat_str(facets.split("/"), separator="/").n_unique()).collect().item()
 # TODO: the faceting errors out when there are many configurations and too few facet columns resulting in very small facet rows
-facet_cols = max(2, int(unique_count**0.5))
 
+facets = datamart.unique_configurations
+facet_cols = max(2, int(len(facets)**0.5))
+by = pl.concat_str(pl.col("Channel"), pl.col("Direction"), separator="/")
 try:
-    fig = datamart.plotOverTime(
-        "SuccessRate",
-        by="Channel/Direction",
-        # TODO this function does not have a proper title argument
-        facets=facets,
-        facet_col_wrap=facet_cols,
-        query=responsecount_analysis_query,
+    fig = datamart.plot.over_time(
+        metric="SuccessRate",
+        facet="Configuration",
+        by = by,
     )
-
     fig = fig_update_facet_height(fig, facet_cols, 200, 250)
     fig = (
         fig.update_yaxes(matches=None, title="", showticklabels=True)
@@ -884,7 +867,7 @@ try:
 
     fig.show()
 except ValueError as e:
-    print(f"Error {str(e)}\nPossibly too many facets: {unique_count} for {facet_cols} columns.")
+    print(f"Error {str(e)}\nPossibly too many facets: {len(facets)} for {facet_cols} columns.")
 ```
 
 # Overview of Adaptive Models
@@ -958,7 +941,7 @@ If there are any model configurations that have fewer than {configuration_respon
 )
 
 configuration_overview = (
-    datamart.modelData
+    datamart.model_data
     # first, take max per model ID
     .group_by("Configuration").agg(
         pl.max("ResponseCount").alias("Responses"), pl.max("Positives")
@@ -997,10 +980,10 @@ if (unused_configurations.shape[0] > 0) and (
 
     reset_datamart(
         ADMDatamart(
-            model_df=datamart.modelData.join(
+            model_df=datamart.model_data.join(
                 unused_configurations.lazy(), on=["Configuration"], how="anti"
             ),
-            predictor_df=datamart.predictorData,
+            predictor_df=datamart.predictor_data,
         )
     )
 ```
@@ -1042,30 +1025,21 @@ This “Bubble Chart” - similar to the standard ADM models overview in Pega Pr
 
 ```{python}
 facet_cols = 2
-facet = "Configuration/Channel/Direction"
-
 try:
-    fig = datamart.plotPerformanceSuccessRateBubbleChart(
-        facets=facet, facet_col_wrap=facet_cols
+    facet = pl.concat_str(
+        pl.col("Configuration"), pl.col("Channel"), pl.col("Direction"), separator="/"
     )
-
-    fig.layout.coloraxis.colorscale = pega_template.success
-
+    fig = datamart.plot.bubble_chart(facet=facet, facet_col_wrap=facet_cols)
     fig = fig_set_xaxis_modelperformance(fig, label="")
     fig = fig_update_facet_height(fig)
-
     fig = (
         fig
-        .update_layout(title="All ADM Models", font=dict(size=10))
+        .update_layout(title="All ADM Models", font=dict(size=9))
         .for_each_annotation(lambda a: a.update(text="<br>".join(a.text.split("/", 1))))
         .update_yaxes(tickformat=",.2%", title="")
         .update_coloraxes(showscale=False)
-        # .update_coloraxes(
-        #     showscale=True,
-        #     colorbar_len=1 / math.ceil(len(fig.layout.annotations) / facet_cols),
-        # )
     )
-
+    fig.layout.coloraxis.colorscale = pega_template.success
     fig.show()
 except ValueError as e:
     print(f"Error {str(e)}\nPossibly no valid data.")
@@ -1082,32 +1056,19 @@ The trend chart shows how model performance evolves over time. Note that ADM is 
 :::
 
 ```{python}
-datamart.modelData.select(pl.col("Configuration").n_unique()).collect()
-```
-
-
-```{python}
-facets = "Configuration"
-unique_count = datamart.modelData.select(pl.concat_str(facets.split("/"), separator="/").n_unique()).collect().item()
-# TODO: the faceting errors out when there are many configurations and too few facet columns resulting in very small facet rows
-facet_cols = max(2, int(unique_count**0.5))
-
+facet="Configuration"
+by=pl.concat_str(pl.col("Channel"), pl.col("Direction"), separator="/").alias("Channel/Direction")
 try:
-    fig = datamart.plotOverTime(
-        "weighted_performance", by="Channel/Direction", 
-        facets=facets, 
-        facet_col_wrap=facet_cols
-    )
+    fig = datamart.plot.over_time(metric="Performance", facet=facet, by=by)
     fig = fig_update_facet_height(fig, facet_cols, 200, 250)
     fig = (
         fig.update_layout(title="Trend of Model Performance")
         .update_yaxes(showticklabels=True, title="")
         .update_xaxes(title="")
     )
-
     fig.show()
 except ValueError as e:
-    print(f"Error {str(e)}\nPossibly too many facets: {unique_count} for {facet_cols} columns.")
+    print(f"Error {str(e)}\nPossibly too many facets: {len(facets)} for {facet_cols} columns.")
 
 
 ```
@@ -1119,12 +1080,9 @@ Using an interactive treemap to visualize the performance. Red is lower performa
 It can be interesting to see which issues, groups or channels can be better predicted than others. Identifying categories of items for which the predictions are poor can help to drive the search for better predictors, for example.
 
 ```{python}
-fig = datamart.plotTreeMap(
-    color_var="performance_weighted",
-    group_by_col=None,
-    levels=polars_subset_to_existing_cols(
-        ["Configuration", "Channel", "Direction", "Issue", "Group", "Name", "Treatment"]
-    ),
+fig = datamart.plot.tree_map(
+    metric="Performance",
+    by="Treatment",
 )
 
 fig = fig.update_layout(
@@ -1148,12 +1106,9 @@ If there are actions that have a much higher response count than the rest see wh
 
 
 ```{python}
-fig = datamart.plotTreeMap(
-    color_var="responsecount",
-    levels=polars_subset_to_existing_cols(
-        ["Configuration", "Channel", "Direction", "Issue", "Group", "Name", "Treatment"]
-    ),
-    colorscale=pega_template.negative_positive,
+fig = datamart.plot.tree_map(
+    metric="ResponseCount",
+    by="Treatment",
 )
 
 fig = fig.update_layout(
@@ -1168,7 +1123,7 @@ fig.show()
 ```{python}
 # | output: asis
 # | echo: false
-if datamart.predictorData is None:
+if datamart.predictor_data is None:
     quarto_callout_no_predictor_data_warning(
         "All the below analyses based on predictor data will be empty."
     )
@@ -1189,15 +1144,15 @@ This shows the total number of predictors per model configuration (this includes
 Note that the total number of predictors in the model data does not always equate the data from the more detailed view split by category below.
 
 ```{python}
-if datamart.predictorData is not None:
+if datamart.predictor_data is not None:
     context_aggregations = []
-    if polars_col_exists(datamart.combinedData, "Channel"):
+    if polars_col_exists(datamart.combined_data, "Channel"):
         context_aggregations += [pl.col("Channel").unique().alias("Used in (Channels)")]
-    if polars_col_exists(datamart.combinedData, "Issue"):
+    if polars_col_exists(datamart.combined_data, "Issue"):
         context_aggregations += [pl.col("Issue").unique().alias("Used for (Issues)")]
 
     predictors_per_configuration = (
-        datamart.combinedData.filter(pl.col("EntryType") != "Classifier")
+        datamart.combined_data.filter(pl.col("EntryType") != "Classifier")
         .group_by("Configuration")
         .agg(
             [pl.col("PredictorName").unique().count().alias("Predictor Count")]
@@ -1236,9 +1191,9 @@ The numbers here can differ from the totals above, these ones are leading.
 :::
 
 ```{python}
-if datamart.predictorData is not None:
+if datamart.predictor_data is not None:
     predictors_per_category = (
-        datamart.combinedData.filter(pl.col("EntryType") != "Classifier")
+        datamart.combined_data.filter(pl.col("EntryType") != "Classifier")
         .group_by(["Configuration", "PredictorCategory"])
         .agg([pl.col("PredictorName").n_unique().alias("Predictor Count")])
         .sort(["Configuration", "PredictorCategory"])
@@ -1246,7 +1201,7 @@ if datamart.predictorData is not None:
         .pivot(
             values="Predictor Count",
             index="Configuration",
-            columns="PredictorCategory",
+            on="PredictorCategory",
             maintain_order=True,
         )
         .fill_null(0)
@@ -1291,14 +1246,18 @@ univariate predictor performance.
 #     else "Performance"
 # )
 
-if datamart.predictorData is not None:
-    figs = datamart.plotPredictorPerformance(
+if datamart.predictor_data is not None:
+    facets = datamart.unique_configurations
+    partition_col = "Configuration"
+    figs = datamart.plot.partitioned_plot(
+        datamart.plot.predictor_performance,
+        metric="Performance",
         top_n=30,
-        facets="Configuration",
-        separate=True,
         active_only=False,
-        to_plot="Performance",
         query=predictor_analysis_query,
+        facets=facets,
+        partition_col=partition_col,
+        show_plots=False,
     )
     if not isinstance(figs, list):
         figs = [figs]
@@ -1321,16 +1280,27 @@ Aggregating up to the category of the predictors. This gives a view at a glance 
 ```{python}
 # | error: true
 
-if datamart.predictorData is not None:
-    facets = "Configuration/Channel/Direction"
-    facet_cols = 3
-    fig = datamart.plotPredictorCategoryPerformance(
-        facets=facets, facet_col_wrap=facet_cols
+if datamart.predictor_data is not None:
+    facet = pl.concat_str(
+        pl.col("Configuration"), pl.col("Channel"), pl.col("Direction"), separator="/"
     )
-    fig = fig_update_facet_height(fig, facet_cols, 200, 150)
+    facet_cols = 3
+    facets = datamart.unique_configuration_channel_direction
+    fig = datamart.plot.predictor_category_performance(
+        facet=facet,
+    )
     fig.update_layout(font=dict(size=10))
     fig.for_each_annotation(lambda a: a.update(text="<br>".join(a.text.split("/"))))
+    legend_items = [item['name'] for item in fig.data]
+    legend_items.reverse()
 
+    fig.update_yaxes(
+        categoryorder='array',
+        categoryarray=legend_items,
+        automargin=True,
+        dtick=1
+    )
+    fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
     fig.show()
 else:
     quarto_callout_no_predictor_data_warning()
@@ -1346,12 +1316,12 @@ Although the same could be achieved using the standard **plotPredictorImportance
 """ By dividing a predictor category's weighted performance to the sum of all predictor categories weighted performance in a configuration, creates a plot that displays relative importance of categories in a configuration.
 Changes the Predictor performance range from 50-100 to 0-100 in order to increase visibilty of performance differences among categories."""
 
-if datamart.predictorData is not None:
-    fig = datamart.plotPredictorContribution()
+if datamart.predictor_data is not None:
+    fig = datamart.plot.predictor_contribution()
     height = 200 + (
         math.ceil(
             len(
-                datamart.modelData.select(pl.col("Configuration").unique())
+                datamart.model_data.select(pl.col("Configuration").unique())
                 .collect()["Configuration"]
                 .to_list()
             )
@@ -1383,9 +1353,9 @@ If predictors perform poorly across all models, that may be because of data sour
 # weighted performance
 # TODO apply highlighting in the std way like in the R version
 
-if datamart.predictorData is not None:
+if datamart.predictor_data is not None:
     bad_predictors = (
-        datamart.predictorData.filter(pl.col("PredictorName") != "Classifier")
+        datamart.predictor_data.filter(pl.col("PredictorName") != "Classifier")
         .group_by("PredictorName")
         .agg(
             [
@@ -1443,11 +1413,11 @@ Showing the number of active and inactive predictors per model.
 :::
 
 ```{python}
-if datamart.predictorData is not None:
-    facets = ["Configuration"]
+if datamart.predictor_data is not None:
     facet_cols = 2
-    fig = datamart.plotPredictorCount(facets=facets)
+    fig = datamart.plot.predictor_count(by="Type", facet="Configuration")
     fig = fig_update_facet_height(fig, facet_cols, 250, 150)
+    fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
     fig.update_yaxes(categoryorder="array", automargin=True, dtick=1)
     fig.show()
 else:
@@ -1463,17 +1433,13 @@ Note that this view is really only useful when there is a limited number of acti
 ```{python}
 index_cols = polars_subset_to_existing_cols(["Issue", "Group", "Name", "Treatment"])
 
-if datamart.predictorData is not None:
-    unique_configurations = (
-        datamart.combinedData.collect().get_column("Configuration").unique().to_list()
-    )
-    for conf in unique_configurations:
+if datamart.predictor_data is not None:
+    for conf in datamart.unique_configurations:
         try:
-            fig = datamart.plotPredictorPerformanceHeatmap(
-                top_n=barchart_max_bars,
-                by="/".join(index_cols),
+            fig = datamart.plot.predictor_performance_heatmap(
+                top_predictors=barchart_max_bars,
+                by=pl.concat_str(pl.col("Issue"), pl.col("Group"), pl.col("Name"), separator="/"),
                 query=pl.col("Configuration") == conf,
-                tickangle=45,
             )
             fig.update_layout(
                 # TODO: make this a proper call to some abbreviation function
@@ -1488,7 +1454,8 @@ if datamart.predictorData is not None:
                 font=dict(size=8),
                 title=f"Top predictors over {conf}",
             )
-
+            fig.update_yaxes(dtick=1, automargin=True)
+            fig.update_xaxes(dtick=1, tickangle=kwargs.get("tickangle", None))
             fig.update(layout_coloraxis_showscale=False)
 
             fig.show()
@@ -1510,7 +1477,7 @@ Missing % is number of missing vs all responses, really just a filter on model d
 This TreeMap only shows the fields that have any missing values.
 
 ```{python}
-if datamart.predictorData is not None:
+if datamart.predictor_data is not None:
     path = polars_subset_to_existing_cols(
         ["Configuration", "PredictorCategory", "PredictorName"]
     )
@@ -1518,7 +1485,7 @@ if datamart.predictorData is not None:
     path = [px.Constant("All Models")] + path
 
     missing = (
-        datamart.last(table="combinedData")
+        datamart.aggregates.last(table="combined_data")
         .filter(pl.col("PredictorName") != "Classifier")
         .group_by(gb_cols)
         .agg(
@@ -1534,7 +1501,7 @@ if datamart.predictorData is not None:
             )
         )
         .filter((~pl.col("Percentage without responses").is_nan()))
-    )
+    ).collect()
 
     hover_data = {
         "Percentage without responses": ":.2%",
@@ -1581,34 +1548,32 @@ maturity_criteria = [
     pl.col("Name")
     .filter(
         pl.col("ResponseCount")
-        < lims.get_limits(CDHLimits.Metrics.Number_of_Responses).min
+        < limits.filter(metric="Responses")["min"][0]
     )
-    .count()
+    .len()
     .alias("Models that have never been used"),
     pl.col("Name")
     .filter(
         (
             pl.col("Positives")
-            < lims.get_limits(CDHLimits.Metrics.Number_of_Positive_Responses).min
+            < limits.filter(metric="Positive Responses")["min"][0]
         )
         & (
             pl.col("ResponseCount")
-            >= lims.get_limits(CDHLimits.Metrics.Number_of_Responses).min
+            >= limits.filter(metric="Responses")["min"][0]
         )
     )
     .count()
-    .alias("Models that have have been used but never received a positive response"),
+    .alias("Models that have been used but never received a positive response"),
     pl.col("Name")
     .filter(
         (
             pl.col("Positives")
-            < lims.get_limits(
-                CDHLimits.Metrics.Number_of_Positive_Responses
-            ).best_practice_min
+            < limits.filter(metric="Positive Responses")["best_practice_min"][0]
         )
         & (
             pl.col("Positives")
-            >= lims.get_limits(CDHLimits.Metrics.Number_of_Positive_Responses).min
+            >= limits.filter(metric="Positive Responses")["min"][0]
         )
     )
     .count()
@@ -1618,9 +1583,7 @@ maturity_criteria = [
         (pl.col("Performance") == 0.5)
         & (
             pl.col("Positives")
-            >= lims.get_limits(
-                CDHLimits.Metrics.Number_of_Positive_Responses
-            ).best_practice_min
+            >= limits.filter(metric="Positive Responses")["best_practice_min"][0]
         )
     )
     .count()
@@ -1633,9 +1596,7 @@ maturity_criteria = [
         & (pl.col("Performance") < 0.52)
         & (
             pl.col("Positives")
-            >= lims.get_limits(
-                CDHLimits.Metrics.Number_of_Positive_Responses
-            ).best_practice_min
+            >= limits.filter(metric="Positive Responses")["best_practice_min"][0]
         )
     )
     .count()
@@ -1647,9 +1608,7 @@ maturity_criteria = [
         (pl.col("Performance") >= 0.52)
         & (
             pl.col("Positives")
-            >= lims.get_limits(
-                CDHLimits.Metrics.Number_of_Positive_Responses
-            ).best_practice_min
+            >= limits.filter(metric="Positive Responses")["best_practice_min"][0]
         )
     )
     .count()
@@ -1658,7 +1617,7 @@ maturity_criteria = [
 
 maturity_overview = (
     last_data.select([pl.lit(1).alias("Dummy")] + maturity_criteria)
-    .melt(id_vars="Dummy", variable_name="Category", value_name="Number of Models")
+    .unpivot(index="Dummy", variable_name="Category", value_name="Number of Models")
     .drop("Dummy")
 )
 
@@ -1713,7 +1672,7 @@ facet_cols = 3
 facet = "Channel/Direction"
 
 df = (
-    datamart.modelData.with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
+    datamart.model_data.with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
     .with_columns(pl.col(pl.Utf8).fill_null("Missing"))
     .group_by(by)
     .agg(
@@ -1728,7 +1687,7 @@ df = df.with_columns(
 
 # df.collect()
 fig = px.line(
-    df.melt(id_vars=by+[facet], variable_name="Category", value_name="Number of Models").sort(["SnapshotTime"]).collect(),
+    df.unpivot(index=by+[facet], variable_name="Category", value_name="Number of Models").sort(["SnapshotTime"]).collect(),
     x="SnapshotTime",
     y="Number of Models",
     color="Category",
@@ -1758,17 +1717,18 @@ fig.show()
 
 ```{python}
 facets = "Configuration"
-unique_count = datamart.modelData.select(pl.concat_str(facets.split("/"), separator="/").n_unique()).collect().item()
+unique_count = len(datamart.unique_configurations)
 # TODO: the faceting errors out when there are many configurations and too few facet columns resulting in very small facet rows
-facet_cols = max(2, int(unique_count**0.5))
+facet_col_wrap = max(2, int(unique_count**0.5))
 
 try:
-    response_counts = datamart.plotOverTime(
+    response_counts = datamart.plot.over_time(
         "ResponseCount",
-        by="Channel/Direction",
-        facets=facets,
-        facet_col_wrap=facet_cols,
-        mode="Cumulative",
+        by="Channel",
+        cumulative=True,
+        facet="Configuration",
+        facet_col_wrap=facet_col_wrap
+
     )
 
     response_counts = fig_update_facet_height(response_counts, facet_cols, 200, 250)
@@ -1883,7 +1843,7 @@ def plot_gains(df, value: str, index=None, by=None):
     return fig
 
 
-fig = plot_gains(datamart.last(), "ResponseCount", by=["Channel", "Direction"])
+fig = plot_gains(datamart.aggregates.last(), "ResponseCount", by=["Channel", "Direction"])
 fig = (
     fig.update_layout(title="Cumulative Responses")
     .update_yaxes(title="% of Responses")
@@ -1904,7 +1864,7 @@ fig.show()
 ```
 
 ```{python}
-fig = plot_gains(datamart.last(), "Positives", by=["Channel", "Direction"])
+fig = plot_gains(datamart.aggregates.last(), "Positives", by=["Channel", "Direction"])
 fig = (
     fig.update_layout(title="Cumulative Positives")
     .update_yaxes(title="% of Positives")
@@ -2044,7 +2004,7 @@ A lot of volume on the first bins, where the performance is minimal, means that 
 # | error: true
 df = (
     datamart
-    .modelData
+    .model_data
     .with_columns(
         (pl.col("Performance")*100).cut(breaks=[p for p in range(50, 100, 3)]).alias("PerformanceBinned"),
         pl.format(
@@ -2114,13 +2074,7 @@ Having many on the left-hand side (with very low or perhaps no positives) may or
 # TODO this seems to be very large/expensive for some Data
 # not sure why exactly but we've seen 
 # PanicException: polars' maximum length reached. Consider installing 'polars-u64-idx'.: TryFromIntError(())
-fig = datamart.plotModelsByPositives()
-
-fig.update_layout(
-    title="Positives vs Number of Models",
-    xaxis_title="Number of Positives",
-    yaxis_title="Percentage of Models",
-)
+fig = datamart.plot.models_by_positives()
 
 # # TODO remove this override and use cdhutils function again
 # # when we've bumped up the pdstools version
@@ -2191,12 +2145,12 @@ So when one of the graphs shows more volume on the left, that is to be interpret
 # | error: true
 
 # TODO: fix this. Also looks like a lot of code.
-if datamart.predictorData is not None:
+if datamart.predictor_data is not None:
     to_plot = "Propensity"
-    if to_plot == "Propensity" and to_plot not in datamart.predictorData.columns:
+    if to_plot == "Propensity" and to_plot not in datamart.predictor_data.columns:
         to_plot = "BinPropensity"
     df = (
-        datamart.combinedData.filter(pl.col("PredictorName") != "Classifier")
+        datamart.combined_data.filter(pl.col("PredictorName") != "Classifier")
         .group_by([to_plot, "Channel", "Direction"])
         .agg(pl.sum("BinResponseCount"))
         .with_columns(pl.col(to_plot).round(4).cast(pl.Float64))

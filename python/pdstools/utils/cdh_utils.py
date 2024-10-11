@@ -63,7 +63,18 @@ def _apply_query(df: F, query: Optional[QUERY] = None) -> F:
         raise ValueError("The given query resulted in no more remaining data.")
     return filtered_df
 
-
+def _combine_queries(existing_query: QUERY, new_query: pl.Expr) -> QUERY:
+    if isinstance(existing_query, pl.Expr):
+        return existing_query & new_query
+    elif isinstance(existing_query, List):
+        return existing_query + [new_query]
+    elif isinstance(existing_query, Dict):
+        # Convert the dictionary to a list of expressions
+        existing_exprs = [pl.col(k).is_in(v) for k, v in existing_query.items()]
+        return existing_exprs + [new_query]
+    else:
+        raise ValueError("Unsupported query type")
+    
 def default_predictor_categorization(
     x: Union[str, pl.Expr] = pl.col("PredictorName"),
 ) -> pl.Expr:
@@ -750,7 +761,9 @@ def lift(
             # TODO not sure how polars (mis)behaves when there are no positives at all
             # I would hope for a NaN but base python doesn't do that. Polars perhaps.
             # Stijn: It does have proper None value support, may work like you say
-            bin_pos * (total_pos + total_neg) / ((bin_pos + bin_neg) * total_pos)
+            bin_pos
+            * (total_pos + total_neg)
+            / ((bin_pos + bin_neg) * total_pos)
         ).alias("Lift")
 
     return lift_impl(pos_col, neg_col, pos_col.sum(), neg_col.sum())

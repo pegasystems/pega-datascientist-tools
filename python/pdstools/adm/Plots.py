@@ -7,6 +7,7 @@ from typing import (
     Callable,
     Iterable,
     List,
+    Set,
     Literal,
     Optional,
     Tuple,
@@ -183,7 +184,7 @@ class Plots(LazyNamespace):
         *,
         last: bool = True,
         query: Optional[QUERY] = None,
-        facet: Optional[str] = None,
+        facet: Optional[Union[str, pl.Expr]] = None,
         return_df: bool = False,
         **kwargs,
     ):
@@ -195,8 +196,8 @@ class Plots(LazyNamespace):
             Whether to only include the latest snapshot, by default True
         query : Optional[QUERY], optional
             The query to apply to the data, by default None
-        facet : Optional[str], optional
-            Whether to facet the plot into subplots, by default None
+        facet : Optional[Union[str, pl.Expr]], optional
+            Column name or Polars expression to facet the plot into subplots, by default None
         return_df : bool, optional
             Whether to return a dataframe instead of a plot, by default False
         """
@@ -208,8 +209,16 @@ class Plots(LazyNamespace):
             "SuccessRate",
             "ResponseCount",
             *self.datamart.context_keys,
-            facet if facet not in self.datamart.context_keys else None,
         )
+
+        if facet is not None:
+            if isinstance(facet, pl.Expr):
+                facet_name = facet.meta.output_name()
+                df = df.with_columns(facet)
+            else:
+                facet_name = facet
+        else:
+            facet_name = None
 
         df = cdh_utils._apply_query(df, query)
 
@@ -224,8 +233,8 @@ class Plots(LazyNamespace):
             y="SuccessRate",
             color="Performance",
             size="ResponseCount",
-            facet_col=facet,
-            facet_col_wrap=kwargs.pop("facet_col_wrap", 5),
+            facet_col=facet_name,
+            facet_col_wrap=kwargs.pop("facet_col_wrap", 2),
             hover_name="Name",
             hover_data=["ModelID"] + self.datamart.context_keys,
             title=f'Bubble Chart {title} {kwargs.get("title_text","")}',
@@ -241,13 +250,14 @@ class Plots(LazyNamespace):
     def over_time(
         self,
         metric: str = "Performance",
-        by: str = "ModelID",
+        by: Union[pl.Expr, str] = "ModelID",
         *,
         every: Union[str, timedelta] = "1d",
         cumulative: bool = False,
         query: Optional[QUERY] = None,
         facet: Optional[str] = None,
         return_df: bool = False,
+        **kwargs,
     ):
         """Statistics over time
 
@@ -255,7 +265,7 @@ class Plots(LazyNamespace):
         ----------
         metric : str, optional
             The metric to plot, by default "Performance"
-        by : str, optional
+        by : Union[pl.Expr, str], optional
             The column to group by, by default "ModelID"
         every : Union[str, timedelta], optional
             By what time period to group, by default "1d"
@@ -268,6 +278,11 @@ class Plots(LazyNamespace):
         return_df : bool, optional
             Whether to return a dataframe instead of a plot, by default False
         """
+        if not isinstance(by, pl.Expr):
+            by = pl.col(by)
+
+        by_col = by.meta.output_name()
+
         metric_formatting = {
             "SuccessRate_weighted_average": ":.4%",
             "Performance_weighted_average": ":.1%",
@@ -277,56 +292,73 @@ class Plots(LazyNamespace):
         if self.datamart.model_data is None:
             raise ValueError("Visualisation requires model_data")
 
+        columns_to_select: Set[str] = {"SnapshotTime", metric, "ResponseCount"}
+        columns_to_select.update(by.meta.root_names())
+        if facet:
+            columns_to_select.add(facet)
+
         df = (
             cdh_utils._apply_query(
                 self.datamart.model_data.sort(by="SnapshotTime"), query
             )
             .sort("SnapshotTime")
-            .select("SnapshotTime", metric, by, facet, "ResponseCount")
+            .select(list(columns_to_select))
         )
 
-        cols = df.collect_schema().names()
-        missing = {"SnapshotTime", metric, by, facet} - set(cols) - {None}
-
-        if missing:
-            raise pl.exceptions.ColumnNotFoundError(missing)
-
+        grouping_columns = list(set(by.meta.root_names()))
+        df = df.with_columns(by)
+        if facet:
+            grouping_columns = [by_col, facet]
+        else:
+            grouping_columns = [by_col]
         if metric in ["Performance", "SuccessRate"]:  # we need to weigh these
             df = (
-                df.group_by_dynamic("SnapshotTime", every=every, group_by=by)
+                df.group_by_dynamic(
+                    "SnapshotTime", every=every, group_by=grouping_columns
+                )
                 .agg(
                     cdh_utils.weighted_average_polars(
                         metric, "ResponseCount"
                     ).name.suffix("_weighted_average")
                 )
-                .sort("SnapshotTime", by)
+                .sort("SnapshotTime", by_col)
             )
             metric += "_weighted_average"
         elif cumulative:
-            df = df.group_by(by, "SnapshotTime").agg(pl.sum(metric))
+            df = (
+                df.group_by(grouping_columns + ["SnapshotTime"])
+                .agg(pl.sum(metric))
+                .sort(grouping_columns + ["SnapshotTime"])
+            )
         else:
             df = (
                 df.with_columns(
-                    Delta=pl.col(metric).cast(pl.Int64).diff().over("ModelID")
+                    Delta=pl.col(metric).cast(pl.Int64).diff().over(grouping_columns)
                 )
-                .group_by_dynamic("SnapshotTime", every=every, group_by=by)
+                .group_by_dynamic(
+                    "SnapshotTime", every=every, group_by=grouping_columns
+                )
                 .agg(Increase=pl.sum("Delta"))
             )
+
         if return_df:
             return df
 
         title = "over all models" if facet is None else f"per {facet}"
-
+        facet_col_wrap = kwargs.pop("round", 5)
         fig = px.line(
             df.collect().to_pandas(use_pyarrow_extension_array=False),
             x="SnapshotTime",
             y=metric,
-            color=by,
-            hover_data={by: ":.d", metric: metric_formatting[metric]},
+            color=by_col,
+            hover_data={
+                by_col: ":.d",
+                metric: metric_formatting[metric],
+            },
             markers=True,
-            title=f"{metric} over time, per {by} {title}",
+            title=f"{metric} over time, per {by_col} {title}",
             facet_col=facet,
-            facet_col_wrap=5,
+            facet_col_wrap=facet_col_wrap,
             template="pega",
         )
         if metric in ["SuccessRate"]:
@@ -703,43 +735,74 @@ class Plots(LazyNamespace):
         metric: str = "Performance",
         active_only: bool = False,
         query: Optional[QUERY] = None,
-        facet: Optional[str] = None,
+        facet: Optional[Union[pl.Expr, str]] = None,
         return_df: bool = False,
     ):
         metric = "PerformanceBin" if metric == "Performance" else metric
+
+        # Determine columns to select and grouping
+        select_columns = {
+            "ModelID",
+            "Configuration",
+            "Channel",
+            "Direction",
+            "PredictorName",
+            "ResponseCountBin",
+            "Type",
+            "PredictorCategory",
+            metric,
+        } | set(self.datamart.context_keys)
+
+        groups = [pl.col("ModelID"), pl.col("PredictorCategory")]
+
+        if isinstance(facet, str):
+            select_columns.add(facet)
+            groups.insert(0, pl.col(facet))
+        elif facet is not None:
+            select_columns |= set(facet.meta.root_names())
+            groups.insert(0, facet)
+            facet_col = facet.meta.output_name()
+
         df = cdh_utils._apply_query(
             self.datamart.aggregates.last(table="combined_data")
-            .select(
-                {
-                    "ModelID",
-                    "Configuration",
-                    "Channel",
-                    "Direction",
-                    "PredictorName",
-                    "ResponseCountBin",
-                    "Type",
-                    "PredictorCategory",
-                    metric,
-                    facet,
-                }
-                | set(
-                    self.datamart.context_keys,
-                )
-            )
+            .select(select_columns)
             .filter(pl.col("PredictorName") != "Classifier"),
             query=query,
         )
+
         if active_only:
             df = df.filter(pl.col("EntryType") == "Active")
 
-        groups = ([facet] if facet else []) + ["ModelID", "PredictorCategory"]
         df = df.group_by(groups).agg(
             PerformanceBin=cdh_utils.weighted_average_polars(
                 "PerformanceBin", "ResponseCountBin"
             )
         )
+
         if return_df:
             return df
+        y = "PredictorCategory"
+        order = df.collect().get_column("PredictorCategory").unique().to_list()
+        order.sort()
+        fig = px.box(
+            df.sort(y).collect(),
+            x=metric,
+            y=y,
+            color="PredictorCategory",
+            template="pega",
+            facet_col=facet_col,
+            # title=f"{title_prefix} {title_suffix}",
+            facet_col_wrap=3,
+            labels={"PredictorName": "Predictor Name", "PerformanceBin": "Performance"},
+        )
+        fig.update_yaxes(
+            categoryorder="array", categoryarray=order, automargin=True, dtick=1
+        )
+
+        fig.update_layout(
+            boxgap=0, boxgroupgap=0, legend_title_text="Predictor category"
+        )
+        return fig
 
     @requires(
         combined_columns={
@@ -763,7 +826,7 @@ class Plots(LazyNamespace):
             )
             .filter(pl.col("PredictorName") != "Classifier")
             .with_columns((pl.col("PerformanceBin") - 0.5) * 2)
-            .group_by("PredictorCategory")
+            .group_by(by, "PredictorCategory")
             .agg(
                 Performance=cdh_utils.weighted_average_polars(
                     "PerformanceBin", "BinResponseCount"
@@ -779,7 +842,7 @@ class Plots(LazyNamespace):
             return df
 
         fig = px.bar(
-            df.to_pandas(),
+            df.collect(),
             x="Contribution",
             y=by,
             color="PredictorCategory",
@@ -802,7 +865,7 @@ class Plots(LazyNamespace):
         self,
         *,
         top_predictors: int = 20,
-        by: str = "Name",
+        by: Union[QUERY, str] = "Name",
         active_only: bool = False,
         query: Optional[QUERY] = None,
         return_df: bool = False,
@@ -839,7 +902,62 @@ class Plots(LazyNamespace):
 
     def response_gain(): ...  # TODO: more generic plot_gains function?
 
-    def models_by_positives(): ...  # TODO: more generic plot gains function?
+    def models_by_positives(
+        self,
+        by: Union[QUERY, str] = "Channel",
+        query: Optional[QUERY] = None,
+        return_df: bool = False,
+    ):  # TODO: more generic plot gains function?
+
+        df = (
+            cdh_utils._apply_query(self.datamart.aggregates.last(), query=query)
+            .select([by, "Positives", "ModelID"])
+            .collect()
+        )
+        models_by_positives = (
+            df.with_columns(
+                PositivesBin=df["Positives"].cut(
+                    breaks=list(range(0, 210, 10)),
+                )
+            )
+            .lazy()
+            .group_by([by, "PositivesBin"])
+            .agg([pl.min("Positives"), pl.n_unique("ModelID").alias("ModelCount")])
+            .with_columns(
+                (pl.col("ModelCount") / (pl.sum("ModelCount").over(by))).alias(
+                    "cumModels"
+                )
+            )
+            .sort("Positives")
+        ).collect()
+        if return_df:
+            return models_by_positives
+
+        title = "Positives vs Number of Models"
+        fig = px.line(
+            models_by_positives.filter(pl.col("ModelCount") > 0)
+            .with_columns(pl.col(by).fill_null("NA"))
+            .to_pandas(use_pyarrow_extension_array=True),
+            x="PositivesBin",
+            y="cumModels",
+            color=by,
+            markers=True,
+            title=title,
+            labels={"cumModels": "Percentage of Models", "PositivesBin": "Positives"},
+            template="pega",
+            category_orders={
+                "PositivesBin": models_by_positives.select("Positives", "PositivesBin")
+                .unique()
+                .sort("Positives")["PositivesBin"]
+                .to_list()
+            },
+        )
+        fig.update_layout(
+            xaxis_title="Number of Positives",
+            yaxis_title="Percentage of Models",
+        )
+
+        return fig
 
     def tree_map(
         self,
@@ -918,17 +1036,19 @@ class Plots(LazyNamespace):
         self,
         *,
         by: str = "Type",
+        facet: str = "Configuration",
         query: Optional[QUERY] = None,
         return_df: bool = False,
     ):
-        df = self.datamart.aggregates.predictor_counts(by=by, query=query)
+        df = self.datamart.aggregates.predictor_counts(by=by, facet=facet, query=query)
         if return_df:
             return df
 
         return px.box(
             df.collect().to_pandas(use_pyarrow_extension_array=True),
-            x="Predictor Count",
+            x="PredictorCount",
             y="Type",
+            facet_col=facet,
             color="EntryType",
             template="pega",
             title="Predictor Count across all models",
@@ -1005,7 +1125,7 @@ class Plots(LazyNamespace):
             title=f"Propensity Lift for {predictor_name}",
             template="pega",
             custom_data=["PredictorName", "BinSymbol"],
-            facet_col_wrap=3,  # will be ignored when there is a row facet
+            facet_col_wrap=3,
         )
         fig.update_traces(
             hovertemplate="<br>".join(
@@ -1032,3 +1152,28 @@ class Plots(LazyNamespace):
             lambda a: a.update(text=a.text.split("=")[-1])
         )  # split plotly facet label, show only right side
         return fig
+
+    def partitioned_plot(
+        self,
+        func: Callable,
+        facets: Set,
+        partition_col: str = "Configuration",
+        show_plots: bool = True,
+        *args,
+        **kwargs,
+    ):
+        existing_query = kwargs.get("query")
+
+        for facet in facets:
+            new_query = pl.col(partition_col).eq(facet)
+            if existing_query is not None:
+                combined_query = cdh_utils._combine_queries(existing_query, new_query)
+            else:
+                combined_query = new_query
+            kwargs["query"] = combined_query
+            figs = []
+            fig = func(*args, **kwargs)
+            figs.append(fig)
+            if show_plots:
+                fig.show()
+        return figs

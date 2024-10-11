@@ -111,21 +111,28 @@ class Aggregates:
         unique_predictors = df.select(pl.col("PredictorName").unique()).collect()[
             "PredictorName"
         ]
+        if isinstance(by, str):
+            by_col = pl.col(by)
+            by_name = by
+        else:
+            by_col = by
+            by_name = by.meta.output_name()
+        action_predictor = by_col.meta.root_names() + ["PredictorName"]
         q = (
             (
                 df.filter(pl.col("ResponseCount") > 0)
                 .with_columns(
                     pl.col("PerformanceBin").fill_nan(0.5),  # should we do this?
                 )
-                .unique(subset=[by, "PredictorName"], keep="first")
-                .group_by(by, "PredictorName")
+                .unique(subset=action_predictor, keep="first")
+                .group_by(action_predictor)
                 .agg(
                     cdh_utils.weighted_average_polars(
                         "PerformanceBin", "ResponseCountBin"
                     )
                 )
             )
-            .group_by(by)
+            .group_by(by_col)
             .agg(
                 [
                     (
@@ -137,11 +144,11 @@ class Aggregates:
                     for predictor in unique_predictors
                 ]
             )
-            .with_columns(pl.all().exclude(by).list.max())
-        ).sort(pl.mean_horizontal(pl.all().exclude(by)), descending=True)
+            .with_columns(pl.all().exclude(by_name).list.max())
+        ).sort(pl.mean_horizontal(pl.all().exclude(by_name)), descending=True)
 
         column_order = (
-            q.select(pl.all().exclude(by).mean())
+            q.select(pl.all().exclude(by_name).mean())
             .collect()
             .transpose(include_header=True)
         ).sort("column_0", descending=True)["column"]
@@ -151,7 +158,7 @@ class Aggregates:
         if top_groups:
             q = q.head(top_groups)
 
-        return q.select(by, *column_order)
+        return q.select(by_name, *column_order)
 
     def model_summary(
         self, by: str = "Name", query: Optional[QUERY] = None
@@ -181,7 +188,7 @@ class Aggregates:
             raise ValueError("The 'by' column specified should be a context key.")
 
         group_by = (
-            self.datamart.context_keys[: self.datamart.context_keys.index(by)]
+            self.datamart.context_keys[: self.datamart.context_keys.index(by) + 1]
             if by != "ModelID"
             else by
         )
@@ -206,7 +213,13 @@ class Aggregates:
             )
         )
 
-    def predictor_counts(self, *, by: str = "Type", query: Optional[QUERY] = None):
+    def predictor_counts(
+        self,
+        *,
+        facet: str = "Configuration",
+        by: str = "Type",
+        query: Optional[QUERY] = None,
+    ):
         """Returns the count of each predictor grouped by a certain column
 
         Parameters
@@ -225,7 +238,7 @@ class Aggregates:
             cdh_utils._apply_query(
                 self.datamart.aggregates.last(table="combined_data"), query=query
             )
-            .select("Name", "EntryType", "PredictorName", by)
+            .select("Name", "EntryType", "PredictorName", by, facet)
             .filter(pl.col("PredictorName") != "Classifier")
             .group_by(pl.all().exclude("PredictorName"))
             .agg(PredictorCount=pl.n_unique("PredictorName"))
@@ -236,10 +249,13 @@ class Aggregates:
             .with_columns(pl.lit("Overall").alias(by))
         )
 
+        # Collect schema once and use it for casting both DataFrames
+        schema = df.collect_schema()
+
         return (
-            pl.concat([df, overall.select(df.columns)])
+            pl.concat([df.cast(schema), overall.select(schema.names()).cast(schema)])
             .with_columns(pl.col("PredictorCount").cast(pl.Int64))
-            .sort(["Name", "EntryType", by])
+            .sort(["Name", "EntryType", by, facet])
         )
 
     @staticmethod
@@ -334,7 +350,12 @@ class Aggregates:
 
         # Removes whitespace and capitalizes names for matching
         def name_normalizer(x):
-            return pl.col(x).str.replace_all(r"[ \-_]", "").str.to_uppercase()
+            return (
+                pl.col(x)
+                .cast(pl.Utf8)
+                .str.replace_all(r"[ \-_]", "")
+                .str.to_uppercase()
+            )
 
         directionMapping = pl.DataFrame(
             # Standard directions have a 1:1 mapping to channel groups

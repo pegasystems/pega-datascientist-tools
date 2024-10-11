@@ -39,6 +39,7 @@ class ADMDatamart:
         extract_pyname_keys: bool = True,
     ) -> None:
         self.context_keys: List[str] = [
+            "Configuration",
             "Channel",
             "Direction",
             "Issue",
@@ -235,6 +236,23 @@ class ADMDatamart:
         return set(
             self.model_data.select(
                 pl.concat_str(pl.col("Channel"), pl.col("Direction"), separator="/")
+                .unique()
+                .alias("ChannelDirection")
+            )
+            .collect()["ChannelDirection"]
+            .to_list()
+        )
+
+    @cached_property
+    def unique_configuration_channel_direction(self):
+        return set(
+            self.model_data.select(
+                pl.concat_str(
+                    pl.col("Configuration"),
+                    pl.col("Channel"),
+                    pl.col("Direction"),
+                    separator="/",
+                )
                 .unique()
                 .alias("ChannelDirection")
             )
