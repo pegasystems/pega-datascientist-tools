@@ -20,7 +20,7 @@ import polars as pl
 from tqdm import tqdm
 
 from ..utils import cdh_utils
-from ..utils.namespaces import MissingDependencies
+from ..utils.namespaces import MissingDependenciesException
 from ..utils.types import QUERY
 
 if TYPE_CHECKING:
@@ -254,7 +254,7 @@ class ADMTreesModel:
         logger.info("Reading model...")
         self._read_model(file, **kwargs)
         self.nospaces = True
-        if self.trees is None:
+        if self.trees is None:  # pragma: no cover
             raise ValueError("Import unsuccessful.")
 
     def _read_model(self, file, **kwargs):
@@ -685,7 +685,7 @@ class ADMTreesModel:
             import plotly.graph_objects as go
             from plotly.subplots import make_subplots
         except ImportError:
-            raise MissingDependencies(["plotly"], "AGB")
+            raise MissingDependenciesException(["plotly"], "AGB")
         figlist = []
         for (name,), data in self.gains_per_split.group_by("predictor"):
             if (subset is not None and name in subset) or subset is None:
@@ -881,7 +881,7 @@ class ADMTreesModel:
         try:
             import pydot
         except ImportError:
-            raise MissingDependencies(["pydot"], "AGB")
+            raise MissingDependenciesException(["pydot"], "AGB")
         if isinstance(highlighted, dict):
             highlighted = self.get_visited_nodes(tree_number, highlighted)[0]
         else:
@@ -1028,7 +1028,7 @@ class ADMTreesModel:
             import plotly.graph_objects as go
             from plotly.subplots import make_subplots
         except ImportError:
-            raise MissingDependencies(["plotly"], "AGB")
+            raise MissingDependenciesException(["plotly"], "AGB")
         scores = (
             self.get_all_visited_nodes(x)
             .sort("treeID")
@@ -1109,7 +1109,7 @@ class ADMTreesModel:
             import plotly.graph_objects as go
             from plotly.subplots import make_subplots
         except ImportError:
-            raise MissingDependencies(["plotly"], "AGB")
+            raise MissingDependenciesException(["plotly"], "AGB")
         if predictor_categorization is not None:
             to_plot = self.compute_categorization_over_time(predictor_categorization)[0]
         else:
@@ -1221,7 +1221,7 @@ class MultiTrees:
             import plotly.graph_objects as go
             from plotly.subplots import make_subplots
         except ImportError:
-            raise MissingDependencies(["plotly"], "AGB")
+            raise MissingDependenciesException(["plotly"], "AGB")
         df = self.compute_over_time(predictor_categorization).to_pandas(
             use_pyarrow_extension_array=True
         )
