@@ -1,5 +1,5 @@
-from ..adm.ADMTrees import ADMTrees
 from ..adm.ADMDatamart import ADMDatamart
+from ..adm.ADMTrees import ADMTrees
 from ..valuefinder.ValueFinder import ValueFinder
 
 
@@ -21,9 +21,12 @@ def sample_trees():
     )
 
 
-def sample_value_finder(verbose=True):
-    return ValueFinder(
-        path="https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data",
+def sample_value_finder(
+    n_customers: float | None = None, threshold: float | None = None
+):
+    return ValueFinder.from_ds_export(
+        base_path="https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data",
         filename="Data-Insights_pyValueFinder_20210824T112615_GMT.zip",
-        verbose=verbose,
+        n_customers=n_customers,
+        threshold=threshold,
     )

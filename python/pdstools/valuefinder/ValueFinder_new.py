@@ -19,13 +19,11 @@ class ValueFinder:
         self,
         df: pl.LazyFrame,
         *,
-        query: Optional[QUERY] = None,
         n_customers: Optional[int] = None,
         threshold: Optional[float] = None,
     ):
         self.df: pl.LazyFrame = cdh_utils._apply_schema_types(df, Schema.pyValueFinder)
         self.df = cdh_utils._polars_capitalize(self.df)
-        self.df = cdh_utils._apply_query(self.df, query)
 
         self.set_threshold(threshold)
         self.n_customers: int = n_customers or int(
@@ -46,7 +44,7 @@ class ValueFinder:
     @classmethod
     def from_ds_export(
         cls,
-        filename: Optional[str] = None,
+        filename: str,
         base_path: Union[os.PathLike, str] = ".",
         *,
         query: Optional[QUERY] = None,
@@ -57,7 +55,8 @@ class ValueFinder:
         if df is None:
             raise ValueError(f"Could not find {filename} in {base_path}")
 
-        return cls(df=df, query=query, n_customers=n_customers, threshold=threshold)
+        df = cdh_utils._apply_query(df, query)
+        return cls(df=df, n_customers=n_customers, threshold=threshold)
 
     @classmethod
     def from_dataflow_export(
@@ -79,10 +78,12 @@ class ValueFinder:
             compression=compression,
             cache_directory=cache_directory,
         )
+        if df is None:
+            raise ValueError(f"Could not find {files}")
 
-        return cls(
-            df=df, query=query, n_customers=n_customers, threshold=threshold
-        )  # pragma: no cover
+        df = cdh_utils._apply_query(df, query)
+
+        return cls(df=df, n_customers=n_customers, threshold=threshold)
 
     def set_threshold(self, new_threshold: Optional[float] = None):
         if new_threshold:

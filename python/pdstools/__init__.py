@@ -10,10 +10,6 @@ import sys
 from pathlib import Path
 
 from .adm.ADMDatamart import ADMDatamart
-
-# from .utils.polars_ext import *
-from .utils.show_versions import show_versions
-# from .valuefinder.ValueFinder import ValueFinder
 from .infinity import Infinity
 
 # from .adm.ADMTrees import ADMTrees, MultiTrees
@@ -25,6 +21,10 @@ from .pega_io import read_ds_export
 from .utils import cdh_utils, datasets
 from .utils.cdh_utils import default_predictor_categorization
 from .utils.datasets import cdh_sample, sample_trees, sample_value_finder
+
+# from .utils.polars_ext import *
+from .utils.show_versions import show_versions
+from .valuefinder.ValueFinder import ValueFinder
 
 if "streamlit" in sys.modules:
     from .utils import streamlit_utils

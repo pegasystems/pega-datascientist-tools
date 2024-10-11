@@ -35,4 +35,4 @@ def test_import_SampleTrees():
 
 def test_import_SampleValueFinder():
     vf = datasets.sample_value_finder()
-    assert vf.df.shape == (27133, 11)
+    assert vf.df.shape == (27133, 98)
