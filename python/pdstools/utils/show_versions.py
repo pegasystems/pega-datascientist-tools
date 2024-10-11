@@ -3,14 +3,22 @@ from __future__ import annotations
 import importlib
 import re
 import sys
-from typing import Dict, Set
+from typing import Dict, Literal, Set, Union, overload
 
 from .. import __version__
 
 package_name = "pdstools"
 
 
-def show_versions(print_output: bool = True) -> None:
+@overload
+def show_versions(print_output: Literal[True] = True) -> None: ...
+
+
+@overload
+def show_versions(print_output: Literal[False] = False) -> str: ...
+
+
+def show_versions(print_output: bool = True) -> Union[None, str]:
     """
     Print or return version of pdstools and dependencies.
 
@@ -30,29 +38,21 @@ def show_versions(print_output: bool = True) -> None:
     --------
     >>> from pdstools import show_versions
     >>> show_versions()
-    ---Version info---
-    pdstools: 3.1.0
-    Platform: macOS-12.6.4-x86_64-i386-64bit
-    Python: 3.11.0 (v3.11.0:deaf509e8f, Oct 24 2022, 14:43:23) [Clang 13.0.0 (clang-1300.0.29.30)]
+    --- Version info ---
+    pdstools: 4.0.0-alpha
+    Platform: macOS-14.7-arm64-arm-64bit
+    Python: 3.12.4 (main, Jun  6 2024, 18:26:44) [Clang 15.0.0 (clang-1500.3.9.4)]
 
-    ---Dependencies---
-    plotly: 5.13.1
-    requests: 2.28.1
-    pydot: 1.4.2
-    polars: 0.17.0
-    pyarrow: 11.0.0.dev52
-    tqdm: 4.64.1
-    pyyaml: <not installed>
-    aioboto3: 11.0.1
+    --- Dependencies ---
+    typing_extensions: 4.12.2
+    polars>=1.9: 1.9.0
 
-    ---Streamlit app dependencies---
-    streamlit: 1.20.0
-    quarto: 0.1.0
-    papermill: 2.4.0
-    itables: 1.5.1
-    pandas: 1.5.3
-    jinja2: 3.1.2
-    xlsxwriter: 3.0
+    --- Dependency group: adm ---
+    plotly>=5.5.0: 5.24.1
+
+    --- Dependency group: api ---
+    pydantic: 2.9.2
+    httpx: 0.27.2
     """
 
     # note: we import 'platform' here as a micro-optimisation for initial import
@@ -60,7 +60,7 @@ def show_versions(print_output: bool = True) -> None:
 
     info = []
     info.append("--- Version info ---")
-    info.append(f"pdstools: {__version__}")
+    info.append(f"{package_name}: {__version__}")
     info.append(f"Platform: {platform.platform()}")
     info.append(f"Python: {sys.version}")
 
@@ -144,10 +144,8 @@ def _get_dependency_version(dep_name: str) -> str:
 
     if hasattr(module, "__version__"):
         module_version = module.__version__
-    elif sys.version_info >= (3, 8):
+    else:
         # importlib.metadata was introduced in Python 3.8
         module_version = importlib.metadata.version(dep_name)
-    else:  # pragma: no cover
-        module_version = "<version not detected>"
 
     return module_version
