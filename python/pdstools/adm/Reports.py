@@ -91,6 +91,8 @@ class Reports(LazyNamespace):
                     name, "ModelReport", model_id, output_type
                 )
                 params = {
+                    "model_file_path": model_file_path,
+                    "predictor_file_path": predictor_file_path,
                     "report_type": "ModelReport",
                     "model_id": model_id,
                     "only_active_predictors": only_active_predictors,
@@ -109,11 +111,8 @@ class Reports(LazyNamespace):
                 output_file_paths.append(output_path)
                 if progress_callback:
                     progress_callback(i + 1, len(model_ids))
-            base_file_name = kwargs.get(
-                base_file_name,
-            )  # TODO: strip this, let's just use a default name?
             file_data, file_name = cdh_utils.process_files_to_bytes(
-                output_file_paths, base_file_name
+                output_file_paths, base_file_name=output_path
             )
             output_path = working_dir / file_name
             with open(output_path, "wb") as f:
@@ -176,8 +175,14 @@ class Reports(LazyNamespace):
             )
 
             self._copy_quarto_file(qmd_file, temp_dir)
-            self.datamart.save_data(temp_dir)
-            self._write_params_file(temp_dir, None, None)
+            model_file_path, predictor_file_path = self.datamart.save_data(temp_dir)
+            params = {
+                "report_type": "HealthCheck",
+                "model_file_path": model_file_path,
+                "predictor_file_path": predictor_file_path,
+            }
+
+            self._write_params_file(temp_dir, params)
             self._run_quarto_command(
                 temp_dir,
                 qmd_file,
@@ -306,8 +311,8 @@ class Reports(LazyNamespace):
             output_type,
             "--output",
             output_filename,
-            # "--execute-params",
-            # "params.yaml",
+            "--execute-params",
+            "params.yaml",
         ]
 
         process = subprocess.Popen(

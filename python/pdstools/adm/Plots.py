@@ -201,25 +201,36 @@ class Plots(LazyNamespace):
         return_df : bool, optional
             Whether to return a dataframe instead of a plot, by default False
         """
-        df = (
-            self.datamart.aggregates.last() if last else self.datamart.model_data
-        ).select(
+        columns_to_select = [
             "ModelID",
-            (pl.col("Performance") * pl.lit(100)).round(kwargs.pop("round", 5)),
+            "Performance",
             "SuccessRate",
             "ResponseCount",
             *self.datamart.context_keys,
-        )
-
+        ]
         if facet is not None:
             if isinstance(facet, pl.Expr):
+                facet_columns = facet.meta.root_names()
+                columns_to_select.extend(
+                    col for col in facet_columns if col not in columns_to_select
+                )
                 facet_name = facet.meta.output_name()
-                df = df.with_columns(facet)
             else:
+                if facet not in columns_to_select:
+                    columns_to_select.append(facet)
                 facet_name = facet
         else:
             facet_name = None
+        df = (
+            (self.datamart.aggregates.last() if last else self.datamart.model_data)
+            .select(*columns_to_select)
+            .with_columns(
+                (pl.col("Performance") * pl.lit(100)).round(kwargs.pop("round", 5))
+            )
+        )
 
+        if facet is not None and isinstance(facet, pl.Expr):
+            df = df.with_columns(facet.alias(facet_name))
         df = cdh_utils._apply_query(df, query)
 
         if return_df:
@@ -645,30 +656,33 @@ class Plots(LazyNamespace):
         """
 
         metric = "PerformanceBin" if metric == "Performance" else metric
-
-        df = cdh_utils._apply_query(
-            self.datamart.aggregates.last(table="combined_data")
-            .select(
-                {
-                    "Channel",
-                    "PredictorName",
-                    "ModelID",
-                    "Name",
-                    "ResponseCountBin",
-                    "Type",
-                    "PredictorCategory",
-                    metric,
-                    facet,
-                }
-                | set(
-                    self.datamart.context_keys,
+        try:
+            df = cdh_utils._apply_query(
+                self.datamart.aggregates.last(table="combined_data")
+                .select(
+                    {
+                        "Channel",
+                        "PredictorName",
+                        "ModelID",
+                        "Name",
+                        "ResponseCountBin",
+                        "Type",
+                        "PredictorCategory",
+                        "Configuration",
+                        metric,
+                        facet,
+                    }
+                    | set(
+                        self.datamart.context_keys,
+                    )
                 )
+                .filter(pl.col("PredictorName") != "Classifier")
+                .unique(subset=["ModelID", "PredictorName"], keep="first")
+                .rename({"PredictorCategory": "Legend"}),
+                query=query,
             )
-            .filter(pl.col("PredictorName") != "Classifier")
-            .unique(subset=["ModelID", "PredictorName"], keep="first")
-            .rename({"PredictorCategory": "Legend"}),
-            query=query,
-        )
+        except ValueError:
+            return None
         if active_only:
             df = df.filter(pl.col("EntryType") == "Active")
         if top_n:
@@ -1164,7 +1178,7 @@ class Plots(LazyNamespace):
         **kwargs,
     ):
         existing_query = kwargs.get("query")
-
+        figs = []
         for facet in facets:
             new_query = pl.col(partition_col).eq(facet)
             if existing_query is not None:
@@ -1172,9 +1186,8 @@ class Plots(LazyNamespace):
             else:
                 combined_query = new_query
             kwargs["query"] = combined_query
-            figs = []
             fig = func(*args, **kwargs)
             figs.append(fig)
-            if show_plots:
+            if show_plots and fig is not None:
                 fig.show()
         return figs

@@ -36,6 +36,7 @@ from pdstools import (
     datasets,
     ADMDatamart,
     cdh_utils,
+    read_ds_export,
 )
 from pdstools.utils import pega_template
 from pdstools.adm.CDH_Guidelines import CDHGuidelines
@@ -332,7 +333,9 @@ def reset_datamart(dm):
 
 if len(kwargs) > 0:
     # Calling through function (in streamlit or in a notebook)
-    reset_datamart(ADMDatamart(**kwargs, include_cols="pyFeatureImportance").fillMissing())
+    model_df = read_ds_export(kwargs["model_file_path"])
+    predictor_df = read_ds_export(kwargs["predictor_file_path"])
+    reset_datamart(ADMDatamart(model_df=model_df, predictor_df=predictor_df))
 elif len(datafolder) > 0 or len(modelfilename) > 0 or len(predictorfilename) > 0:
     # Run through this qmd file
     reset_datamart(ADMDatamart(
@@ -341,7 +344,7 @@ elif len(datafolder) > 0 or len(modelfilename) > 0 or len(predictorfilename) > 0
         predictor_filename="" if len(predictorfilename) == 0 else predictorfilename,
         extract_keys=True,
         include_cols="pyFeatureImportance",
-    ).fillMissing())
+    ))
 else:
     # fall back to sample data
     reset_datamart(datasets.cdh_sample())
