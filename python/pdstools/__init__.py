@@ -17,7 +17,7 @@ from .infinity import Infinity
 # from .pega_io import API, S3, Anonymization, File, get_token, read_ds_export
 # from .prediction import Prediction
 # from .utils import cdh_utils, datasets, errors
-from .pega_io import read_ds_export
+from .pega_io import Anonymization, read_ds_export
 from .utils import cdh_utils, datasets
 from .utils.cdh_utils import default_predictor_categorization
 from .utils.datasets import cdh_sample, sample_trees, sample_value_finder

@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 
 import polars as pl
 import polars.selectors as cs
-from tqdm.auto import tqdm
+from tqdm.auto import tqdm # type: ignore[import-untyped]
 
 
 class Anonymization:
