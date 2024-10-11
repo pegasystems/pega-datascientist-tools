@@ -34,7 +34,7 @@ import subprocess
 import datetime
 
 from pdstools import datasets, ADMDatamart
-from pdstools.utils.cdh_utils import zRatio, lift
+from pdstools.utils.cdh_utils import z_ratio, lift
 import polars as pl
 from IPython.display import display, Markdown
 from great_tables import GT, style, md, html, loc
@@ -71,12 +71,12 @@ def quarto_callout_important(info):
     )
 
 
-def polars_col_exists(df, col):
-    return col in df.columns and df.schema[col] != pl.Null
+# def polars_col_exists(df, col):
+#     return col in df.collect_schema().names() and df.schema[col] != pl.Null
 
 
-def polars_subset_to_existing_cols(cols):
-    return [col for col in cols if col in datamart_all_columns]
+# def polars_subset_to_existing_cols(cols):
+#     return [col for col in cols if col in datamart_all_columns]
 
 ```
 
@@ -122,18 +122,18 @@ elif len(datafolder) > 0 or len(modelfilename) > 0 or len(predictorfilename) > 0
 else:
     # fall back to sample data
     model_id = "bd70a915-697a-5d43-ab2c-53b0557c85a0"
-    datamart = datasets.CDHSample(query=pl.col("ModelID") == model_id)
+    datamart = datasets.cdh_sample(query=pl.col("ModelID") == model_id)
 
 # TODO ensure this is only one predictor snapshot, just in case? although it would be
 # neat to show predictor evolution, if available
 
 # Simple way to make sure Treatment is set and not null
-if polars_col_exists(datamart.modelData, "Treatment"):
-    datamart.modelData = datamart.modelData.with_columns(
+if "Treatment" in datamart.model_data.collect_schema().names():
+    datamart.model_data = datamart.model_data.with_columns(
         pl.col("Treatment").fill_null("-")
     )
 else:
-    datamart.modelData = datamart.modelData.with_columns(pl.lit("-").alias("Treatment"))
+    datamart.model_data = datamart.model_data.with_columns(pl.lit("-").alias("Treatment"))
 
 if only_active_predictors:
     status_filter = pl.col("EntryType") == "Active"
@@ -146,21 +146,21 @@ else:
 
 ```{python}
 channel_name = (
-    datamart.last(strategy="lazy")
+    datamart.aggregates.last()
     .select(pl.format("{}/{}", "Direction", "Channel"))
     .unique()
     .collect()
     .item(0, 0)
 )
 model_name_in_context = (
-    datamart.last(strategy="lazy")
+    datamart.aggregates.last()
     .select(pl.format("{}/{}/{}/{}", "Issue", "Group", "Name", "Treatment"))
     .unique()
     .collect()
     .item(0, 0)
 )
 model_name = (
-    datamart.last(strategy="lazy")
+    datamart.aggregates.last()
     .select(pl.format("{}/{}", "Name", "Treatment"))
     .unique()
     .collect()
@@ -185,7 +185,7 @@ quarto_print(
 
 
 ```{python}
-fig = datamart.plotScoreDistribution(modelids=[model_id])
+fig = datamart.plot.score_distribution(model_id=model_id)
 
 # Customize some of the default styling of the plot
 
@@ -210,7 +210,7 @@ or Box. It is preferable to view them from a browser.
 
 ```{python}
 classifier = (
-    datamart.last("predictorData", strategy="lazy")
+    datamart.aggregates.last(table="predictor_data")
     .filter(pl.col("EntryType") == "Classifier")
     .sort("BinIndex")
 )
@@ -295,7 +295,7 @@ human_friendly_scoredistribution = (
         .round(2)
         .alias("Cum. Total (%)"),
         (100 * pl.col("BinPropensity")).round(3).alias("Propensity (%)"),
-        zRatio(pl.col("BinPositives"), pl.col("BinNegatives"))
+        z_ratio(pl.col("BinPositives"), pl.col("BinNegatives"))
         .round(3)
         .alias("Z Ratio"),
         (lift(pl.col("BinPositives"), pl.col("BinNegatives")) * 100)
@@ -419,7 +419,7 @@ px.bar(
 # But maybe .data[0] gives the trace
 
 fig = (
-    datamart.plotOverTime("weighted_performance")
+    datamart.plot.over_time("Performance")
     .update_layout(
         title="Model Performance Trend",
         yaxis_title="ROC-AUC",
@@ -436,7 +436,7 @@ fig.show()
 
 ```{python}
 fig = (
-    datamart.plotOverTime("SuccessRate")
+    datamart.plot.over_time("SuccessRate")
     .update_layout(
         title="Success Rate Trend",
         yaxis_title="Success Rate",
@@ -463,10 +463,7 @@ for a particular customer.
 ```{python}
 # | error: true
 
-# TODO facets are meaningless but plotPredictorCategoryPerformance fails when
-# not giving any
-
-fig = datamart.plotPredictorCategoryPerformance(facets="Channel")
+fig = datamart.plot.predictor_category_performance()
 
 fig.update_layout(
     title="Predictor Performance per Category",
@@ -477,6 +474,7 @@ fig.update_layout(
 )
 
 fig.show()
+
 ```
 
 # Predictor Overview
@@ -499,7 +497,7 @@ negatives is not available.
 # See https://github.com/pegasystems/pega-datascientist-tools/issues/127
 
 predictors_summary_info = (
-    datamart.last("predictorData", strategy="lazy")
+    datamart.aggregates.last(table="predictor_data")
     .sort(["PredictorName", "BinIndex"])
     .group_by(
         "PredictorName",
@@ -734,7 +732,7 @@ def show_single_predictor(pred):
     quarto_print(f"## {pred}")
 
     predictor_binning_data = (
-        datamart.last("predictorData", strategy="lazy")
+        datamart.aggregates.last(table="predictor_data")
         .filter(pl.col("PredictorName") == pred)
         .sort("BinIndex")
     )
@@ -771,7 +769,7 @@ def show_single_predictor(pred):
 
     # Predictor binning
 
-    fig = datamart.plotPredictorBinning(modelids=[model_id], predictors=[pred])
+    fig = datamart.plot.predictor_binning(model_id=model_id, predictor_name=pred)
 
     # Customize some of the default styling of the plot
 
@@ -805,7 +803,7 @@ def show_single_predictor(pred):
         pl.col("BinSymbol").alias("Bin"),
         pl.col("BinResponseCount").alias("Responses"),
         pl.col("BinPositives").alias("Positives"),
-        zRatio(pl.col("BinPositives"), pl.col("BinNegatives"))
+        z_ratio(pl.col("BinPositives"), pl.col("BinNegatives"))
         .round(3)
         .alias("Z Ratio"),
         ((lift(pl.col("BinPositives"), pl.col("BinNegatives")) - 1.0) * 100)
