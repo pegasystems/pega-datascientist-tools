@@ -208,9 +208,14 @@ or Box. It is preferable to view them from a browser.
 
 ## Model Performance
 
+
 ```{python}
+
+# unfortunately, return_df on the previous plot doesnt give all the columns we'd need
+
 classifier = (
     datamart.aggregates.last(table="predictor_data")
+    .filter(pl.col("ModelID") == model_id)
     .filter(pl.col("EntryType") == "Classifier")
     .sort("BinIndex")
 )
@@ -222,10 +227,9 @@ quarto_print(
 The model performance is **{auc_roc}** measured as AUC-ROC. This number is calculated from the “active” bins of the Classifier.
 """
 )
-
 ```
 
-The classifier maps the model scores (average of the log odds of the active predictors) to a propensity value. The “acti ve” bins are the ones that can be reached from the current binning of the active predictors.
+The classifier maps the model scores (average of the log odds of the active predictors) to a propensity value. The “active” bins are the ones that can be reached from the current binning of the active predictors.
 
 See the [ADM Explained](https://pegasystems.github.io/pega-datascientist-tools/Python/articles/ADMExplained.html) article for more information on how ADM exactly works.
 
@@ -498,6 +502,7 @@ negatives is not available.
 
 predictors_summary_info = (
     datamart.aggregates.last(table="predictor_data")
+    .filter(pl.col("ModelID") == model_id)
     .sort(["PredictorName", "BinIndex"])
     .group_by(
         "PredictorName",
@@ -626,13 +631,13 @@ def plotBinningLift(
         binning = binning.lazy()
 
     # Add Lift column if not present
-    if "Lift" not in binning.columns:
+    if "Lift" not in binning.collect_schema().names():
         binning = binning.with_columns(
             (lift(pl.col("BinPositives"), pl.col("BinNegatives")) - 1.0).alias("Lift")
         )
 
     # Optionally a shading expression
-    if "BinPositives" in binning.columns:
+    if "BinPositives" in binning.collect_schema().names():
         shading_expr = pl.col("BinPositives") <= 5
     else:
         shading_expr = pl.lit(False)
@@ -733,6 +738,7 @@ def show_single_predictor(pred):
 
     predictor_binning_data = (
         datamart.aggregates.last(table="predictor_data")
+        .filter(pl.col("ModelID") == model_id)
         .filter(pl.col("PredictorName") == pred)
         .sort("BinIndex")
     )
