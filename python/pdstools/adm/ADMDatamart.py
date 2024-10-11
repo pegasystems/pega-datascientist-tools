@@ -69,7 +69,7 @@ class ADMDatamart:
         predictor_filename: Optional[str] = None,
         base_path: Union[os.PathLike, str] = ".",
         *,
-        query: Optional[Union[pl.Expr, Iterable[pl.Expr]]] = None,
+        query: Optional[QUERY] = None,
         extract_pyname_keys: bool = True,
     ):
         model_df = read_ds_export(model_filename or "model_data", base_path)
@@ -87,7 +87,7 @@ class ADMDatamart:
         model_data_files: Union[Iterable[str], str],
         predictor_data_files: Union[Iterable[str], str],
         *,
-        query: Optional[Union[pl.Expr, Iterable[pl.Expr]]] = None,
+        query: Optional[QUERY] = None,
         extract_pyname_keys: bool = True,
         cache_file_prefix: str = "",
         extension: Literal["json"] = "json",
@@ -144,7 +144,7 @@ class ADMDatamart:
         if not isinstance(schema["SnapshotTime"], pl.Datetime):
             df = df.with_columns(SnapshotTime=cdh_utils.parse_pega_date_time_formats())
 
-        df = cdh_utils.apply_schema_types(df, Schema.ADMModelSnapshot)
+        df = cdh_utils._apply_schema_types(df, Schema.ADMModelSnapshot)
 
         return cdh_utils._apply_query(df, query)
 

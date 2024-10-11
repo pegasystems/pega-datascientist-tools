@@ -27,7 +27,7 @@ import requests
 
 from .types import QUERY
 
-T = TypeVar("T", pl.DataFrame, pl.LazyFrame)
+F = TypeVar("F", pl.DataFrame, pl.LazyFrame)
 if TYPE_CHECKING:  # pragma: no cover
     try:
         import plotly.express as px
@@ -37,7 +37,7 @@ if TYPE_CHECKING:  # pragma: no cover
         Figure = Union[Any]
 
 
-def _apply_query(df: T, query: Optional[QUERY] = None) -> T:
+def _apply_query(df: F, query: Optional[QUERY] = None) -> F:
     if query is None:
         return df
 
@@ -102,10 +102,10 @@ def default_predictor_categorization(
 
 
 def _extract_keys(
-    df: T,
+    df: F,
     col="Name",
     capitalize=True,
-) -> T:
+) -> F:
     """Extracts keys out of the pyName column
 
     This is not a lazy operation as we don't know the possible keys
@@ -473,6 +473,41 @@ def _capitalize(fields: Union[str, Iterable[str]]) -> List[str]:
         "ResponseCountPercentage",
         "ConfigurationName",
         "Configuration",
+        "SMS",
+        "Relevant",
+        "Proposition",
+        "Active",
+        "Description",
+        "Reference",
+        "Date",
+        "Performance",
+        "Identifier",
+        "Component",
+        "Prediction",
+        "Outcome",
+        "Hash",
+        "URL",
+        "Cap",
+        "Template",
+        "Issue",
+        "Group",
+        "Control",
+        "Evidence",
+        "Propensity",
+        "Paid",
+        "Subject",
+        "Email",
+        "Web",
+        "Context",
+        "Limit",
+        "Stage",
+        "Omni",
+        "Execution",
+        "Enabled",
+        "Message",
+        "Offline",
+        "Update",
+        "Strategy",
     ]
     if not isinstance(fields, list):
         fields = [fields]
@@ -486,13 +521,34 @@ def _capitalize(fields: Union[str, Iterable[str]]) -> List[str]:
     return fields
 
 
-def _polars_capitalize(df: T) -> T:
+def _polars_capitalize(df: F) -> F:
     cols = df.collect_schema().names()
+    renamed_cols = _capitalize(cols)
+
+    def deduplicate(columns: List[str]):
+        seen: Dict[str, int] = {}
+        new_columns: List[str] = []
+        for column in columns:
+            if column not in seen:
+                seen[column] = 1
+            else:
+                seen[column] += 1
+            if seen[column] == 1:
+                new_columns.append(column)
+            elif (count := seen[column]) > 1:
+                new_columns.append(column + f"_{count}")
+            else:
+                raise ValueError(f"While deduplicating:{column}")
+        return new_columns
+
+    if len(renamed_cols) != len(set(renamed_cols)):
+        renamed_cols = deduplicate(renamed_cols)
+
     return df.rename(
         dict(
             zip(
                 cols,
-                _capitalize(cols),
+                renamed_cols,
             )
         )
     )
@@ -729,7 +785,7 @@ def feature_importance(over=["PredictorName", "ModelID"]):
     return var_imp
 
 
-def apply_schema_types(df, definition, verbose=False, **timestamp_opts):
+def _apply_schema_types(df: F, definition, verbose=False, **timestamp_opts) -> F:
     """
     This function is used to convert the data types of columns in a DataFrame to a desired types.
     The desired types are defined in a `PegaDefaultTables` class.
@@ -772,7 +828,10 @@ def apply_schema_types(df, definition, verbose=False, **timestamp_opts):
                 if verbose:
                     warnings.warn(f"Warning: {col} column is Null data type.")
             elif original_type != new_type:
-                if original_type == pl.Categorical and new_type in pl.NUMERIC_DTYPES:
+                if (
+                    original_type == pl.Categorical
+                    and new_type in pl.selectors.numeric()
+                ):
                     types.append(pl.col(col).cast(pl.Utf8).cast(new_type))
                 elif new_type == pl.Datetime and original_type != pl.Date:
                     types.append(parse_pega_date_time_formats(col, **timestamp_opts))
@@ -859,6 +918,32 @@ def gains_table(df, value: str, index=None, by=None):
         ).sort(by_as_list + ["cum_x"])
 
     return gains_df.collect()
+
+
+def lazy_sample(df: F, n_rows: int, with_replacement: bool = True) -> F:
+    if with_replacement:
+        return df.select(pl.all().sample(n=n_rows, with_replacement=with_replacement))
+
+    from functools import partial
+
+    def sample_it(s: pl.Series, n) -> pl.Series:
+        import numpy as np
+
+        s_len = s.len()
+        if s_len < n:
+            return pl.Series(values=[True] * s_len, dtype=pl.Boolean)
+        else:
+            return pl.Series(
+                values=np.random.binomial(1, n / s_len, s_len),
+                dtype=pl.Boolean,
+            )
+
+    func = partial(sample_it, n=n_rows)
+    return (
+        df.with_columns(pl.first().map_batches(func).alias("_sample"))
+        .filter(pl.col("_sample"))
+        .drop("_sample")
+    )
 
 
 # TODO: perhaps the color / plot utils should move into a separate file
