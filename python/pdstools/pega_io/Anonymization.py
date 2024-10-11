@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 
 import polars as pl
 import polars.selectors as cs
-from tqdm.auto import tqdm # type: ignore[import-untyped]
+from tqdm.auto import tqdm  # type: ignore[import-untyped]
 
 
 class Anonymization:
@@ -133,7 +133,7 @@ class Anonymization:
             The inferred types can be either "numeric" or "symbolic".
         """
         types = dict()
-        for col in df.columns:
+        for col in df.collect_schema().names():
             try:
                 ser = df.get_column(col)
                 try:
@@ -270,18 +270,19 @@ class Anonymization:
         df = pl.concat(
             [pl.scan_parquet(f) for f in chunked_files], how="diagonal_relaxed"
         )
+        schema = df.collect_schema()
 
         symb_nonanonymised = [
-            key for key in df.columns if key.startswith(tuple(self.skip_col_prefix))
+            key for key in schema.names() if key.startswith(tuple(self.skip_col_prefix))
         ]
         nums = [
             key
-            for key, value in df.schema.items()
+            for key, value in schema.items()
             if (value in cs.NUMERIC_DTYPES and key not in symb_nonanonymised)
         ]
         symb = [
             key
-            for key in df.columns
+            for key in schema.names()
             if (key not in nums and key not in symb_nonanonymised)
         ]
         if verbose:

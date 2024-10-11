@@ -152,7 +152,7 @@ def import_file(
             separator=reading_opts.get("sep", ","),
             infer_schema_length=reading_opts.pop("infer_schema_length", 10000),
             null_values=["", "NA", "N/A", "NULL"],
-            dtypes={"PYMODELID": pl.Utf8},
+            schema_overrides={"PYMODELID": pl.Utf8},
             try_parse_dates=True,
             ignore_errors=reading_opts.get("ignore_errors", False),
         )

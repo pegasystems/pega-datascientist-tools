@@ -5,7 +5,7 @@ import subprocess
 import sys
 from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace

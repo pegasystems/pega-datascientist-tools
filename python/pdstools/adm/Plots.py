@@ -755,6 +755,7 @@ class Plots(LazyNamespace):
 
         groups = [pl.col("ModelID"), pl.col("PredictorCategory")]
 
+        facet_col = None
         if isinstance(facet, str):
             select_columns.add(facet)
             groups.insert(0, pl.col(facet))

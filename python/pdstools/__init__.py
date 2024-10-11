@@ -12,7 +12,7 @@ from pathlib import Path
 from .adm.ADMDatamart import ADMDatamart
 from .infinity import Infinity
 
-# from .adm.ADMTrees import ADMTrees, MultiTrees
+from .adm.ADMTrees import ADMTrees, MultiTrees
 # from .decision_analyzer import DecisionData
 # from .pega_io import API, S3, Anonymization, File, get_token, read_ds_export
 # from .prediction import Prediction

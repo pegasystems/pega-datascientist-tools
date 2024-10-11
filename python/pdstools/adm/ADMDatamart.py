@@ -39,7 +39,6 @@ class ADMDatamart:
         extract_pyname_keys: bool = True,
     ) -> None:
         self.context_keys: List[str] = [
-            "Configuration",
             "Channel",
             "Direction",
             "Issue",

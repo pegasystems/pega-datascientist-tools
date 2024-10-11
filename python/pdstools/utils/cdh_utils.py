@@ -63,6 +63,7 @@ def _apply_query(df: F, query: Optional[QUERY] = None) -> F:
         raise ValueError("The given query resulted in no more remaining data.")
     return filtered_df
 
+
 def _combine_queries(existing_query: QUERY, new_query: pl.Expr) -> QUERY:
     if isinstance(existing_query, pl.Expr):
         return existing_query & new_query
@@ -74,7 +75,8 @@ def _combine_queries(existing_query: QUERY, new_query: pl.Expr) -> QUERY:
         return existing_exprs + [new_query]
     else:
         raise ValueError("Unsupported query type")
-    
+
+
 def default_predictor_categorization(
     x: Union[str, pl.Expr] = pl.col("PredictorName"),
 ) -> pl.Expr:
@@ -761,9 +763,7 @@ def lift(
             # TODO not sure how polars (mis)behaves when there are no positives at all
             # I would hope for a NaN but base python doesn't do that. Polars perhaps.
             # Stijn: It does have proper None value support, may work like you say
-            bin_pos
-            * (total_pos + total_neg)
-            / ((bin_pos + bin_neg) * total_pos)
+            bin_pos * (total_pos + total_neg) / ((bin_pos + bin_neg) * total_pos)
         ).alias("Lift")
 
     return lift_impl(pos_col, neg_col, pos_col.sum(), neg_col.sum())
@@ -851,7 +851,7 @@ def _apply_schema_types(df: F, definition, verbose=False, **timestamp_opts) -> F
                 else:
                     types.append(pl.col(col).cast(new_type))
         except Exception:
-            if verbose:
+            if verbose:  # pragma: no cover
                 warnings.warn(
                     f"Column {col} not in default table schema, can't set type."
                 )
@@ -891,7 +891,7 @@ def gains_table(df, value: str, index=None, by=None):
 
     sort_expr = pl.col(value) if index is None else pl.col(value) / pl.col(index)
     index_expr = (
-        (pl.int_range(1, pl.count() + 1) / pl.count())
+        (pl.int_range(1, pl.len() + 1) / pl.len())
         if index is None
         else (pl.cum_sum(index) / pl.sum(index))
     )
