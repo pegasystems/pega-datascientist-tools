@@ -2,21 +2,21 @@
 Testing that none of the docs examples produce errors.
 """
 
-import pytest
-import sys
-
 import pathlib
 import platform
+import sys
+
+import pytest
 from testbook import testbook
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(f"{str(basePath)}/python")
 
+
 @pytest.mark.parametrize(
     "relative_filepath",
     [
         # TODO shouldn't we have all the notebooks here? like *.ipynb?
-
         "examples/datamart/Example_ADM_Analysis.ipynb",
         "examples/adm/AGBModelVisualisation.ipynb",
         # "examples/adm/ADMBinningInsights.ipynb",
@@ -26,7 +26,7 @@ sys.path.append(f"{str(basePath)}/python")
 def test_notebook(relative_filepath):
     file = str(basePath / relative_filepath)
 
-    if platform.system() == "Windows":
+    if platform.system() == "Windows":  # pragma: no cover
         pythonPath = "python"
     else:
         pythonPath = str(basePath / "python")

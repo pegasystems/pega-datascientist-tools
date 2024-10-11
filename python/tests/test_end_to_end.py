@@ -22,7 +22,6 @@ def sample():
         predictor_filename="Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip",
     )
 
-
 @pl.api.register_lazyframe_namespace("shape")
 class Shape:
     """Get the shape of a lazy dataframe.
