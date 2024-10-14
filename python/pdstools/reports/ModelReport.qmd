@@ -103,22 +103,23 @@ kwargs = dict()
 ```{python}
 # Predictor data for one model ID
 if len(kwargs) > 0:
-    # streamlit call
+    # streamlit call TODO fix this for v4
     model_id = kwargs["model_id"]
     datamart = ADMDatamart(
-        **kwargs, include_cols="pyFeatureImportance", query=pl.col("ModelID") == model_id
-    ).fillMissing()
+        **kwargs,
+        # include_cols="pyFeatureImportance",
+        query=pl.col("ModelID") == model_id,
+    ) #.fillMissing()
     only_active_predictors = kwargs["only_active_predictors"]
 elif len(datafolder) > 0 or len(modelfilename) > 0 or len(predictorfilename) > 0:
     # command line call
-    datamart = ADMDatamart(
-        datafolder,
+    datamart = ADMDatamart.from_ds_export(
+        base_path=datafolder,
         model_filename=modelfilename,
         predictor_filename=predictorfilename,
-        extract_keys=True,
-        include_cols=["pyFeatureImportance"],
+        extract_pyname_keys=True,
         query=pl.col("ModelID") == model_id,
-    ).fillMissing()
+    )  # .fillMissing()
 else:
     # fall back to sample data
     model_id = "bd70a915-697a-5d43-ab2c-53b0557c85a0"
@@ -133,14 +134,14 @@ if "Treatment" in datamart.model_data.collect_schema().names():
         pl.col("Treatment").fill_null("-")
     )
 else:
-    datamart.model_data = datamart.model_data.with_columns(pl.lit("-").alias("Treatment"))
+    datamart.model_data = datamart.model_data.with_columns(
+        pl.lit("-").alias("Treatment")
+    )
 
 if only_active_predictors:
     status_filter = pl.col("EntryType") == "Active"
 else:
     status_filter = pl.col("EntryType") != "Classifier"
-
-
 ```
 
 
