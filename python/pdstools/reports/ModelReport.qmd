@@ -33,7 +33,7 @@ import re
 import subprocess
 import datetime
 
-from pdstools import datasets, ADMDatamart
+from pdstools import datasets, ADMDatamart, read_ds_export
 from pdstools.utils.cdh_utils import z_ratio, lift
 import polars as pl
 from IPython.display import display, Markdown
@@ -105,12 +105,12 @@ kwargs = dict()
 if len(kwargs) > 0:
     # streamlit call TODO fix this for v4
     model_id = kwargs["model_id"]
-    datamart = ADMDatamart(
-        **kwargs,
-        # include_cols="pyFeatureImportance",
-        query=pl.col("ModelID") == model_id,
-    ) #.fillMissing()
     only_active_predictors = kwargs["only_active_predictors"]
+    model_df = read_ds_export(kwargs["model_file_path"])
+    predictor_df = read_ds_export(kwargs["predictor_file_path"])
+    datamart = ADMDatamart(
+        model_df=model_df, predictor_df=predictor_df, query=pl.col("ModelID") == model_id
+    )#.fillMissing()
 elif len(datafolder) > 0 or len(modelfilename) > 0 or len(predictorfilename) > 0:
     # command line call
     datamart = ADMDatamart.from_ds_export(

@@ -356,7 +356,7 @@ class Plots(LazyNamespace):
             return df
 
         title = "over all models" if facet is None else f"per {facet}"
-        facet_col_wrap = kwargs.pop("round", 5)
+        facet_col_wrap = kwargs.pop("facet_col_wrap", 5)
         fig = px.line(
             df.collect().to_pandas(use_pyarrow_extension_array=False),
             x="SnapshotTime",
@@ -1064,6 +1064,7 @@ class Plots(LazyNamespace):
             x="PredictorCount",
             y="Type",
             facet_col=facet,
+            facet_col_wrap=2,
             color="EntryType",
             template="pega",
             title="Predictor Count across all models",

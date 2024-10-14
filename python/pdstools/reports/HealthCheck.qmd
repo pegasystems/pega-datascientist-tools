@@ -852,15 +852,16 @@ Showing how the overall channel success rates evolved over the time that the dat
 # TODO: the faceting errors out when there are many configurations and too few facet columns resulting in very small facet rows
 
 facets = datamart.unique_configurations
-facet_cols = max(2, int(len(facets)**0.5))
+facet_col_wrap = max(2, int(len(facets)**0.5))
 by = pl.concat_str(pl.col("Channel"), pl.col("Direction"), separator="/")
 try:
     fig = datamart.plot.over_time(
         metric="SuccessRate",
         facet="Configuration",
         by = by,
+        facet_col_wrap=facet_col_wrap,
     )
-    fig = fig_update_facet_height(fig, facet_cols, 200, 250)
+    fig = fig_update_facet_height(fig, facet_col_wrap, 200, 250)
     fig = (
         fig.update_yaxes(matches=None, title="", showticklabels=True)
         .update_xaxes(showticklabels=True, title="")
@@ -870,7 +871,7 @@ try:
 
     fig.show()
 except ValueError as e:
-    print(f"Error {str(e)}\nPossibly too many facets: {len(facets)} for {facet_cols} columns.")
+    print(f"Error {str(e)}\nPossibly too many facets: {len(facets)} for {facet_col_wrap} columns.")
 ```
 
 # Overview of Adaptive Models
@@ -1059,11 +1060,17 @@ The trend chart shows how model performance evolves over time. Note that ADM is 
 :::
 
 ```{python}
-facet="Configuration"
-by=pl.concat_str(pl.col("Channel"), pl.col("Direction"), separator="/").alias("Channel/Direction")
+facet = "Configuration"
+facets = datamart.unique_configurations
+by = pl.concat_str(pl.col("Channel"), pl.col("Direction"), separator="/").alias(
+    "Channel/Direction"
+)
+facet_col_wrap = max(2, int(len(facets) ** 0.5))
 try:
-    fig = datamart.plot.over_time(metric="Performance", facet=facet, by=by)
-    fig = fig_update_facet_height(fig, facet_cols, 200, 250)
+    fig = datamart.plot.over_time(
+        metric="Performance", facet=facet, by=by, facet_col_wrap=facet_col_wrap
+    )
+    fig = fig_update_facet_height(fig, facet_col_wrap, 200, 250)
     fig = (
         fig.update_layout(title="Trend of Model Performance")
         .update_yaxes(showticklabels=True, title="")
@@ -1071,9 +1078,9 @@ try:
     )
     fig.show()
 except ValueError as e:
-    print(f"Error {str(e)}\nPossibly too many facets: {len(facets)} for {facet_cols} columns.")
-
-
+    print(
+        f"Error {str(e)}\nPossibly too many facets: {len(facets)} for {facet_col_wrap} columns."
+    )
 ```
 
 ### Model performance of all the actions

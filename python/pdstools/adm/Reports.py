@@ -91,8 +91,8 @@ class Reports(LazyNamespace):
                     name, "ModelReport", model_id, output_type
                 )
                 params = {
-                    "model_file_path": model_file_path,
-                    "predictor_file_path": predictor_file_path,
+                    "model_file_path": str(model_file_path),
+                    "predictor_file_path": str(predictor_file_path),
                     "report_type": "ModelReport",
                     "model_id": model_id,
                     "only_active_predictors": only_active_predictors,
@@ -239,33 +239,7 @@ class Reports(LazyNamespace):
         """Write parameters to a YAML file."""
         import yaml
 
-        report_type = params.get("report_type")
-
-        if report_type == "ModelReport":
-            yaml_params = {
-                "kwargs": {
-                    # "subset": False,
-                    "model_id": params.get("model_id"),
-                    "only_active_predictors": params.get("only_active_predictors"),
-                },
-            }
-        elif report_type == "HealthCheck":
-            yaml_params = {
-                "kwargs": {
-                    "model_file_path": (
-                        str(params.get("model_file_path"))
-                        if params.get("model_file_path")
-                        else None
-                    ),
-                    "predictor_file_path": (
-                        str(params.get("predictor_file_path"))
-                        if params.get("predictor_file_path")
-                        else None
-                    ),
-                },
-            }
-        else:
-            raise ValueError(f"Unknown report_type: {report_type}")
+        yaml_params = {"kwargs": {key: value for key, value in params.items()}}
 
         with open(temp_dir / "params.yaml", "w") as f:
             yaml.dump(yaml_params, f)
