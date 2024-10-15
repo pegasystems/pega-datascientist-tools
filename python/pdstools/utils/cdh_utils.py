@@ -763,7 +763,9 @@ def lift(
             # TODO not sure how polars (mis)behaves when there are no positives at all
             # I would hope for a NaN but base python doesn't do that. Polars perhaps.
             # Stijn: It does have proper None value support, may work like you say
-            bin_pos * (total_pos + total_neg) / ((bin_pos + bin_neg) * total_pos)
+            bin_pos
+            * (total_pos + total_neg)
+            / ((bin_pos + bin_neg) * total_pos)
         ).alias("Lift")
 
     return lift_impl(pos_col, neg_col, pos_col.sum(), neg_col.sum())
@@ -1031,24 +1033,24 @@ def process_files_to_bytes(
         - bytes: The content of the single file or the created zip file, or empty bytes if no files.
         - str: The file name (either base_file_name or a generated zip file name), or an empty string if no files.
     """
-    file_paths = [Path(fp) for fp in file_paths]
+    path_list: List[Path] = [Path(fp) for fp in file_paths]
     base_file_name = Path(base_file_name)
 
-    if not file_paths:
+    if not path_list:
         return b"", ""
 
-    if len(file_paths) == 1:
+    if len(path_list) == 1:
         try:
-            with file_paths[0].open("rb") as file:
+            with path_list[0].open("rb") as file:
                 return file.read(), base_file_name.name
         except IOError as e:
-            print(f"Error reading file {file_paths[0]}: {e}")
+            print(f"Error reading file {path_list[0]}: {e}")
             return b"", ""
 
     # Multiple files
     in_memory_zip = io.BytesIO()
     with zipfile.ZipFile(in_memory_zip, "w") as zipf:
-        for file_path in file_paths:
+        for file_path in path_list:
             try:
                 zipf.write(
                     file_path,
@@ -1090,7 +1092,7 @@ def setup_logger():
 def create_working_and_temp_dir(
     name: Optional[str] = None,
     working_dir: Optional[PathLike] = None,
-):
+)-> Tuple[Path, Path]:
     """Creates a working directory for saving files and a temp_dir"""
     # Create a temporary directory in working_dir
     working_dir = Path(working_dir) if working_dir else Path.cwd()

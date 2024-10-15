@@ -183,10 +183,10 @@ class Plots(LazyNamespace):
         self,
         *,
         last: bool = True,
+        rounding: int = 5,
         query: Optional[QUERY] = None,
         facet: Optional[Union[str, pl.Expr]] = None,
         return_df: bool = False,
-        **kwargs,
     ):
         """The Bubble Chart, as seen in Prediction Studio
 
@@ -194,6 +194,8 @@ class Plots(LazyNamespace):
         ----------
         last : bool, optional
             Whether to only include the latest snapshot, by default True
+        rounding: int, optional
+            To how many digits to round the performance number
         query : Optional[QUERY], optional
             The query to apply to the data, by default None
         facet : Optional[Union[str, pl.Expr]], optional
@@ -224,19 +226,16 @@ class Plots(LazyNamespace):
         df = (
             (self.datamart.aggregates.last() if last else self.datamart.model_data)
             .select(*columns_to_select)
-            .with_columns(
-                (pl.col("Performance") * pl.lit(100)).round(kwargs.pop("round", 5))
-            )
+            .with_columns((pl.col("Performance") * pl.lit(100)).round(rounding))
         )
 
-        if facet is not None and isinstance(facet, pl.Expr):
+        if facet_name is not None and isinstance(facet, pl.Expr):
             df = df.with_columns(facet.alias(facet_name))
         df = cdh_utils._apply_query(df, query)
 
         if return_df:
             return df
 
-        bubble_size = kwargs.pop("bubble_size", 1)
         title = "over all models"
         fig = px.scatter(
             df.collect().to_pandas(use_pyarrow_extension_array=False),
@@ -245,14 +244,14 @@ class Plots(LazyNamespace):
             color="Performance",
             size="ResponseCount",
             facet_col=facet_name,
-            facet_col_wrap=kwargs.pop("facet_col_wrap", 2),
+            facet_col_wrap=2,
             hover_name="Name",
             hover_data=["ModelID"] + self.datamart.context_keys,
-            title=f'Bubble Chart {title} {kwargs.get("title_text","")}',
+            title=f"Bubble Chart {title}",
             template="pega",
             facet_row_spacing=0.01,
         )
-        fig = add_bottom_left_text_to_bubble_plot(fig, df, bubble_size)
+        fig = add_bottom_left_text_to_bubble_plot(fig, df, 1)
         fig.update_traces(marker=dict(line=dict(color="black")))
         fig.update_yaxes(tickformat=".3%")
         return fig
@@ -268,7 +267,6 @@ class Plots(LazyNamespace):
         query: Optional[QUERY] = None,
         facet: Optional[str] = None,
         return_df: bool = False,
-        **kwargs,
     ):
         """Statistics over time
 
@@ -354,11 +352,13 @@ class Plots(LazyNamespace):
 
         if return_df:
             return df
+        final_df = df.collect()
+        unique_facet_values = final_df.select(facet).shape[0]
+        facet_col_wrap = max(2, int(unique_facet_values**0.5))
 
         title = "over all models" if facet is None else f"per {facet}"
-        facet_col_wrap = kwargs.pop("facet_col_wrap", 5)
         fig = px.line(
-            df.collect().to_pandas(use_pyarrow_extension_array=False),
+            final_df.to_pandas(use_pyarrow_extension_array=False),
             x="SnapshotTime",
             y=metric,
             color=by_col,
@@ -919,7 +919,7 @@ class Plots(LazyNamespace):
 
     def models_by_positives(
         self,
-        by: Union[QUERY, str] = "Channel",
+        by: str = "Channel",
         query: Optional[QUERY] = None,
         return_df: bool = False,
     ):  # TODO: more generic plot gains function?

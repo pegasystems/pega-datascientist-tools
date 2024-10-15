@@ -7,6 +7,8 @@ from os import PathLike
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional
 
+import polars as pl
+
 from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
 
@@ -114,7 +116,7 @@ class Reports(LazyNamespace):
             file_data, file_name = cdh_utils.process_files_to_bytes(
                 output_file_paths, base_file_name=output_path
             )
-            output_path = working_dir / file_name
+            output_path = working_dir.joinpath(file_name)
             with open(output_path, "wb") as f:
                 f.write(file_data)
             if not output_path.exists():
@@ -137,6 +139,7 @@ class Reports(LazyNamespace):
         *,
         output_type: str = "html",
         keep_temp_files: bool = False,
+        verbose: bool = False,
     ) -> Path:
         """
         Generates Health Check report based on the provided parameters.
@@ -151,7 +154,8 @@ class Reports(LazyNamespace):
             The type of the output file (e.g., "html", "pdf").
         keep_temp_files : bool, optional
             If True, the temporary directory with temp files will not be deleted after report generation.
-
+        verbose: bool, optional
+            If True, prints detailed logs during execution.
 
         Returns
         -------
@@ -178,8 +182,8 @@ class Reports(LazyNamespace):
             model_file_path, predictor_file_path = self.datamart.save_data(temp_dir)
             params = {
                 "report_type": "HealthCheck",
-                "model_file_path": model_file_path,
-                "predictor_file_path": predictor_file_path,
+                "model_file_path": str(model_file_path),
+                "predictor_file_path": str(predictor_file_path),
             }
 
             self._write_params_file(temp_dir, params)
@@ -298,11 +302,14 @@ class Reports(LazyNamespace):
             bufsize=1,  # Line buffered
         )
 
-        for line in iter(process.stdout.readline, ""):
-            line = line.strip()
-            if verbose:
-                print(line)
-            logger.info(line)
+        if process.stdout is not None:
+            for line in iter(process.stdout.readline, ""):
+                line = line.strip()
+                if verbose:
+                    print(line)
+                logger.info(line)
+        else:
+            logger.warning("subprocess.stdout is None, unable to read output")
 
         return_code = process.wait()
         message = f"Quarto process exited with return code {return_code}"
@@ -345,3 +352,56 @@ class Reports(LazyNamespace):
         raise FileNotFoundError(
             "Quarto executable not found. Please ensure Quarto is installed and in the system PATH."
         )
+
+    def excel(self, file: Path = Path("Tables.xlsx"), predictorBinning=False):
+        """Export aggregated data to an Excel file.
+
+        This method exports the last snapshots of model_data, predictor summary,
+        and optionally PredictorBinning data to separate sheets in an Excel file.
+        If a specific table is not available, it will be skipped without causing the export to fail.
+
+        Parameters
+        ----------
+        file: Path, optional:
+            The path where the Excel file will be saved.
+            Defaults to Path("Tables.xlsx").
+        predictorBinning: If True, include PredictorBinning data in the export.
+            This is the last snapshot of the raw data, so it can be big.
+            Defaults to False.
+
+        Returns: Path, optional
+            The path to the created Excel file if the export was successful,
+            None if no data was available to export.
+        """
+        from xlsxwriter import Workbook
+
+        tabs = {
+            "ModelData": self.datamart.aggregates.last(table="model_data"),
+            "PredictorSummary": self.datamart.aggregates.predictor_last_snapshot(),
+        }
+
+        if predictorBinning:
+            tabs["PredictorBinning"] = self.datamart.aggregates.last(
+                table="combined_data"
+            ).filter(pl.col("PredictorName") != "Classifier")
+
+        # Remove None values (tables that are not available)
+        tabs = {k: v for k, v in tabs.items() if v is not None}
+
+        if not tabs:
+            print("No data available to export.")
+            return None
+
+        with Workbook(
+            file, options={"nan_inf_to_errors": True, "remove_timezone": True}
+        ) as wb:
+            for tab, data in tabs.items():
+                data = data.with_columns(
+                    pl.col(pl.List(pl.Categorical), pl.List(pl.Utf8))
+                    .list.eval(pl.element().cast(pl.Utf8))
+                    .list.join(", ")
+                )
+                data.collect().write_excel(workbook=wb, worksheet=tab)
+
+        print(f"Data exported to {file}")
+        return file

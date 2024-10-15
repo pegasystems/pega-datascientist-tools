@@ -798,7 +798,6 @@ fig = px.bar(
     y="ModelID",
     color="SuccessRate",
     facet_col=facet,
-    facet_col_wrap=facet_cols,
     template="pega",
     text="Label",
     title=(
@@ -859,7 +858,6 @@ try:
         metric="SuccessRate",
         facet="Configuration",
         by = by,
-        facet_col_wrap=facet_col_wrap,
     )
     fig = fig_update_facet_height(fig, facet_col_wrap, 200, 250)
     fig = (
@@ -1028,12 +1026,11 @@ This “Bubble Chart” - similar to the standard ADM models overview in Pega Pr
 :::
 
 ```{python}
-facet_cols = 2
 try:
     facet = pl.concat_str(
         pl.col("Configuration"), pl.col("Channel"), pl.col("Direction"), separator="/"
     )
-    fig = datamart.plot.bubble_chart(facet=facet, facet_col_wrap=facet_cols)
+    fig = datamart.plot.bubble_chart(facet=facet)
     fig = fig_set_xaxis_modelperformance(fig, label="")
     fig = fig_update_facet_height(fig)
     fig = (
@@ -1067,9 +1064,7 @@ by = pl.concat_str(pl.col("Channel"), pl.col("Direction"), separator="/").alias(
 )
 facet_col_wrap = max(2, int(len(facets) ** 0.5))
 try:
-    fig = datamart.plot.over_time(
-        metric="Performance", facet=facet, by=by, facet_col_wrap=facet_col_wrap
-    )
+    fig = datamart.plot.over_time(metric="Performance", facet=facet, by=by)
     fig = fig_update_facet_height(fig, facet_col_wrap, 200, 250)
     fig = (
         fig.update_layout(title="Trend of Model Performance")
@@ -1678,7 +1673,6 @@ Empty is defined as having no responses at all. Immature is defined as having < 
 
 ```{python}
 by = ["SnapshotTime", "Channel", "Direction"]
-facet_cols = 3
 facet = "Channel/Direction"
 
 df = (
@@ -1702,14 +1696,13 @@ fig = px.line(
     y="Number of Models",
     color="Category",
     facet_col=facet,
-    facet_col_wrap=facet_cols,
     template="pega",
     color_discrete_sequence=px.colors.sequential.Turbo,
 )
 
 fig.for_each_xaxis(lambda xaxis: xaxis.update(title=""))
 fig.update_layout(legend_title_text="Model Maturity")
-fig = fig_update_facet_height(fig, facet_cols, 200, 250)
+fig = fig_update_facet_height(fig, 3, 200, 250)
 
 fig.update_layout(legend=dict(
     yanchor="bottom",
@@ -1737,8 +1730,6 @@ try:
         by="Channel",
         cumulative=True,
         facet="Configuration",
-        facet_col_wrap=facet_col_wrap
-
     )
 
     response_counts = fig_update_facet_height(response_counts, facet_cols, 200, 250)
