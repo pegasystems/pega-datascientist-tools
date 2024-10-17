@@ -5,7 +5,7 @@ import subprocess
 import sys
 from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import polars as pl
 
@@ -353,35 +353,45 @@ class Reports(LazyNamespace):
             "Quarto executable not found. Please ensure Quarto is installed and in the system PATH."
         )
 
-    def excel(self, file: Path = Path("Tables.xlsx"), predictorBinning=False):
-        """Export aggregated data to an Excel file.
-
+    def excel(
+        self, name: Union[Path, str] = Path("Tables.xlsx"), predictor_binning=False
+    ):
+        """
+        Export aggregated data to an Excel file.
         This method exports the last snapshots of model_data, predictor summary,
-        and optionally PredictorBinning data to separate sheets in an Excel file.
+        and optionally predictor_binning data to separate sheets in an Excel file.
         If a specific table is not available, it will be skipped without causing the export to fail.
 
         Parameters
         ----------
-        file: Path, optional:
+        name: Union[Path, str], optional
             The path where the Excel file will be saved.
             Defaults to Path("Tables.xlsx").
-        predictorBinning: If True, include PredictorBinning data in the export.
+        predictor_binning: bool, optional
+            If True, include predictor_binning data in the export.
             This is the last snapshot of the raw data, so it can be big.
             Defaults to False.
 
-        Returns: Path, optional
+        Returns
+        -------
+        Union[Path, None]
             The path to the created Excel file if the export was successful,
             None if no data was available to export.
         """
         from xlsxwriter import Workbook
 
+        name = Path(name)
         tabs = {
-            "ModelData": self.datamart.aggregates.last(table="model_data"),
-            "PredictorSummary": self.datamart.aggregates.predictor_last_snapshot(),
+            "modeldata_last_snapshot": self.datamart.aggregates.last(table="model_data")
         }
 
-        if predictorBinning:
-            tabs["PredictorBinning"] = self.datamart.aggregates.last(
+        if self.datamart.predictor_data is not None:
+            tabs["predictor_last_snapshot"] = (
+                self.datamart.aggregates.predictor_last_snapshot()
+            )
+
+        if predictor_binning and self.datamart.predictor_data is not None:
+            tabs["predictor_binning"] = self.datamart.aggregates.last(
                 table="combined_data"
             ).filter(pl.col("PredictorName") != "Classifier")
 
@@ -393,7 +403,7 @@ class Reports(LazyNamespace):
             return None
 
         with Workbook(
-            file, options={"nan_inf_to_errors": True, "remove_timezone": True}
+            name, options={"nan_inf_to_errors": True, "remove_timezone": True}
         ) as wb:
             for tab, data in tabs.items():
                 data = data.with_columns(
@@ -403,5 +413,5 @@ class Reports(LazyNamespace):
                 )
                 data.collect().write_excel(workbook=wb, worksheet=tab)
 
-        print(f"Data exported to {file}")
-        return file
+        print(f"Data exported to {name}")
+        return name
