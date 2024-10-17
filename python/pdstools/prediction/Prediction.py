@@ -2,7 +2,7 @@ from typing import List, Optional
 
 import polars as pl
 
-from ..utils import NBAD, cdh_utils
+from ..utils import CDH_Guidelines, cdh_utils
 
 
 class Prediction:
@@ -28,11 +28,11 @@ class Prediction:
     )
 
     def getPredictionsChannelMapping(
-        self, custom_predictions: Optional[List[NBAD.NBAD_Prediction]] = None
+        self, custom_predictions: Optional[List[CDH_Guidelines.NBAD_Prediction]] = None
     ) -> pl.DataFrame:
         if not custom_predictions:
             custom_predictions = []
-        all_mappings = NBAD.standardNBADPredictions + custom_predictions
+        all_mappings = CDH_Guidelines.standardNBADPredictions + custom_predictions
         return pl.DataFrame(
             {
                 "Prediction": [x.model_name.upper() for x in all_mappings],
@@ -143,14 +143,14 @@ class Prediction:
 
     def summary_by_channel(
         self,
-        custom_predictions: Optional[List[NBAD.NBAD_Prediction]] = None,
+        custom_predictions: Optional[List[CDH_Guidelines.NBAD_Prediction]] = None,
         by_period: str = None,
     ) -> pl.LazyFrame:
         """Summarize prediction per channel
 
         Parameters
         ----------
-        custom_predictions : Optional[List[NBAD.NBAD_Prediction]], optional
+        custom_predictions : Optional[List[CDH_Guidelines.NBAD_Prediction]], optional
             Optional list with custom prediction name to channel mappings. Defaults to None.
         by_period : str, optional
             Optional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. If provided, creates a new Period column with the truncated date/time. Defaults to None.
@@ -260,14 +260,14 @@ class Prediction:
 
     def overall_summary(
         self,
-        custom_predictions: Optional[List[NBAD.NBAD_Prediction]] = None,
+        custom_predictions: Optional[List[CDH_Guidelines.NBAD_Prediction]] = None,
         by_period: str = None,
     ) -> pl.LazyFrame:
         """Overall prediction summary. Only valid prediction data is included.
 
         Parameters
         ----------
-        custom_predictions : Optional[List[NBAD.NBAD_Prediction]], optional
+        custom_predictions : Optional[List[CDH_Guidelines.NBAD_Prediction]], optional
             Optional list with custom prediction name to channel mappings. Defaults to None.
         by_period : str, optional
             Optional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. If provided, creates a new Period column with the truncated date/time. Defaults to None.

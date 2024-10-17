@@ -11,7 +11,8 @@ import pytest
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(f"{str(basePath)}/python")
-from pdstools import Prediction, cdh_utils
+
+from pdstools import cdh_utils, Prediction
 
 mock_prediction_data = pl.DataFrame(
     {

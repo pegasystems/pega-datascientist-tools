@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 
 from .adm.ADMDatamart import ADMDatamart
+from .prediction import Prediction
 from .infinity import Infinity
 
 from .adm.ADMTrees import ADMTrees, MultiTrees
@@ -44,7 +45,7 @@ __all__ = [
     "read_ds_export",
     "setupAzureOpenAI",
     "Prediction",
-    "NBAD",
+    # "NBAD",
     "cdh_utils",
     "datasets",
     "errors",
