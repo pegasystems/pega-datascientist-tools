@@ -2,25 +2,21 @@
 
 __version__ = "4.0.0-alpha"
 
-from polars import enable_string_cache
-
-enable_string_cache()
 
 import sys
 from pathlib import Path
 
 from .adm.ADMDatamart import ADMDatamart
+from .adm.ADMTrees import ADMTrees, MultiTrees
 from .adm.BinAggregator import BinAggregator
-from .prediction import Prediction
 from .infinity import Infinity
 
-from .adm.ADMTrees import ADMTrees, MultiTrees
-from .adm.CDH_Guidelines import CDHGuidelines
 # from .decision_analyzer import DecisionData
 # from .pega_io import API, S3, Anonymization, File, get_token, read_ds_export
 # from .prediction import Prediction
 # from .utils import cdh_utils, datasets, errors
 from .pega_io import Anonymization, read_ds_export
+from .prediction import Prediction
 from .utils import cdh_utils, datasets
 from .utils.cdh_utils import default_predictor_categorization
 from .utils.datasets import cdh_sample, sample_trees, sample_value_finder
@@ -31,6 +27,10 @@ from .valuefinder.ValueFinder import ValueFinder
 
 if "streamlit" in sys.modules:
     from .utils import streamlit_utils
+
+from polars import enable_string_cache
+
+enable_string_cache()
 
 __reports__ = Path(__file__).parents[0] / "reports"
 
