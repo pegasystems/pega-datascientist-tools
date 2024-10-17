@@ -353,7 +353,7 @@ class Plots(LazyNamespace):
         if return_df:
             return df
         final_df = df.collect()
-        unique_facet_values = final_df.select(facet).shape[0]
+        unique_facet_values = final_df.select(facet).unique().shape[0]
         facet_col_wrap = max(2, int(unique_facet_values**0.5))
 
         title = "over all models" if facet is None else f"per {facet}"
@@ -880,6 +880,7 @@ class Plots(LazyNamespace):
         self,
         *,
         top_predictors: int = 20,
+        top_groups: Optional[int] = None,
         by: Union[QUERY, str] = "Name",
         active_only: bool = False,
         query: Optional[QUERY] = None,
@@ -889,6 +890,7 @@ class Plots(LazyNamespace):
             query=query,
             by=by,
             top_predictors=top_predictors,
+            top_groups=top_groups,
             active_only=active_only,
         )
 

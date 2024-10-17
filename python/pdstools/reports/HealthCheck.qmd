@@ -798,6 +798,7 @@ fig = px.bar(
     y="ModelID",
     color="SuccessRate",
     facet_col=facet,
+    facet_col_wrap=facet_cols,
     template="pega",
     text="Label",
     title=(
@@ -1266,9 +1267,9 @@ if datamart.predictor_data is not None:
     )
     if not isinstance(figs, list):
         figs = [figs]
-    for fig in figs:
+    for fig, facet_name in zip(figs, facets):
         fig.update_traces(width=0.3)
-        fig.update_layout(font=dict(size=10), height=700, yaxis_title="")
+        fig.update_layout(title=facet_name,font=dict(size=10), height=700, yaxis_title="")
         fig.layout.xaxis.tickformat = ".d"
         # TODO fix title see https://github.com/pegasystems/pega-datascientist-tools/issues/167
 
