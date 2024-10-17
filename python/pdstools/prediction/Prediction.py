@@ -2,8 +2,8 @@ from typing import List, Optional
 
 import polars as pl
 
-from ..utils import CDH_Guidelines, cdh_utils
-
+from ..utils import cdh_utils
+from .. import CDHGuidelines
 
 class Prediction:
     predictions: pl.LazyFrame
@@ -28,11 +28,11 @@ class Prediction:
     )
 
     def getPredictionsChannelMapping(
-        self, custom_predictions: Optional[List[CDH_Guidelines.NBAD_Prediction]] = None
+        self, custom_predictions: Optional[List[CDHGuidelines.NBAD_Prediction]] = None
     ) -> pl.DataFrame:
         if not custom_predictions:
             custom_predictions = []
-        all_mappings = CDH_Guidelines.standardNBADPredictions + custom_predictions
+        all_mappings = CDHGuidelines.standardNBADPredictions + custom_predictions
         return pl.DataFrame(
             {
                 "Prediction": [x.model_name.upper() for x in all_mappings],

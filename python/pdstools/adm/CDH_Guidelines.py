@@ -22,8 +22,8 @@ data = {
     "Positive Responses": [1.0, 200, None, None],
 }
 
-limits = pl.DataFrame(data=data).transpose(include_header=True)
-limits.columns = header
+pega_cloud_limits = pl.DataFrame(data=data).transpose(include_header=True)
+pega_cloud_limits.columns = header
 
 NBAD_ModelConfiguration_header = [
     "model_name",
@@ -52,8 +52,8 @@ NBAD_ModelConfiguration_data = [
     ["OmniAdaptiveModel", "Multi-channel", "Multi-channel", True, True],
 ]
 
-configurations = pl.DataFrame(data=NBAD_ModelConfiguration_data, orient="row")
-configurations.columns = NBAD_ModelConfiguration_header
+standard_nbad_adm_configurations = pl.DataFrame(data=NBAD_ModelConfiguration_data, orient="row")
+standard_nbad_adm_configurations.columns = NBAD_ModelConfiguration_header
 
 NBAD_Prediction_header = [
     "model_name",
@@ -96,15 +96,15 @@ colorscales = {
     "other": ["#d91c29", "#F76923", "#20aa50"],
 }
 
-predictions = pl.DataFrame(data=NBAD_ModelConfiguration_data, orient="row")
-predictions.columns = NBAD_Prediction_header
+standard_nbad_predictions = pl.DataFrame(data=NBAD_ModelConfiguration_data, orient="row")
+standard_nbad_predictions.columns = NBAD_Prediction_header
 
 
 class CDHGuidelines:
     def __init__(self):
-        self.limits = limits
-        self.configurations = configurations
-        self.predictions = predictions
+        self.limits = pega_cloud_limits
+        self.configurations = standard_nbad_adm_configurations
+        self.predictions = standard_nbad_predictions
         self.colorscales = colorscales
 
     @cached_property
