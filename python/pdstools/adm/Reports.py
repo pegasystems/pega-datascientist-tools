@@ -353,7 +353,7 @@ class Reports(LazyNamespace):
             "Quarto executable not found. Please ensure Quarto is installed and in the system PATH."
         )
 
-    def excel(
+    def excel_report(
         self, name: Union[Path, str] = Path("Tables.xlsx"), predictor_binning=False
     ):
         """

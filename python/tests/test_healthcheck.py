@@ -34,7 +34,7 @@ def test_GenerateHealthCheck(sample):
 
 
 def test_ExportTables(sample):
-    excel = sample.generate.excel(predictor_binning=True)
+    excel = sample.generate.excel_report_report(predictor_binning=True)
     assert excel == pathlib.Path("./Tables.xlsx")
     assert excel.exists()
     spreadsheet = ExcelFile(excel)
@@ -50,7 +50,7 @@ def test_ExportTables(sample):
 
 
 def test_ExportTables_NoBinning(sample):
-    excel = sample.generate.excel(predictor_binning=False)
+    excel = sample.generate.excel_report_report(predictor_binning=False)
     assert excel == pathlib.Path("./Tables.xlsx")
     assert pathlib.Path(excel).exists()
     spreadsheet = ExcelFile(excel)
