@@ -3,7 +3,7 @@ from typing import List, Optional
 import polars as pl
 
 from ..utils import cdh_utils
-from .. import CDHGuidelines
+from ..adm.CDH_Guidelines import CDHGuidelines
 
 class Prediction:
     predictions: pl.LazyFrame
