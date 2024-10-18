@@ -178,6 +178,7 @@ def test_overall_summary_cols(test):
 
 
 def test_overall_summary_n_valid_channels(test):
+    print(test.overall_summary().collect())
     assert test.overall_summary().collect()["Number of Valid Channels"].item() == 2
 
 

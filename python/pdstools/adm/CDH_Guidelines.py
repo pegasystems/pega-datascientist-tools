@@ -1,8 +1,6 @@
-from typing import List
+from typing import List, Optional
 from functools import cached_property
 import polars as pl
-
-header = ["metric", "min", "best_practice_min", "best_practice_max", "max"]
 
 data = {
     "Issues": [1, 5, 25, None],
@@ -23,7 +21,13 @@ data = {
 }
 
 pega_cloud_limits = pl.DataFrame(data=data).transpose(include_header=True)
-pega_cloud_limits.columns = header
+pega_cloud_limits.columns = [
+    "metric",
+    "min",
+    "best_practice_min",
+    "best_practice_max",
+    "max",
+]
 
 NBAD_ModelConfiguration_header = [
     "model_name",
@@ -52,16 +56,19 @@ NBAD_ModelConfiguration_data = [
     ["OmniAdaptiveModel", "Multi-channel", "Multi-channel", True, True],
 ]
 
-standard_nbad_adm_configurations = pl.DataFrame(data=NBAD_ModelConfiguration_data, orient="row")
+standard_nbad_adm_configurations = pl.DataFrame(
+    data=NBAD_ModelConfiguration_data, orient="row"
+)
 standard_nbad_adm_configurations.columns = NBAD_ModelConfiguration_header
 
 NBAD_Prediction_header = [
-    "model_name",
-    "channel",
-    "direction",
-    "standard",
-    "multi_channel",
+    "Prediction",
+    "Channel",
+    "Direction",
+    "isStandardNBADPrediction",
+    "isMultiChannelPrediction",
 ]
+
 NBAD_Prediction_data = [
     ["PredictWebPropensity", "Web", "Inbound", True, False],
     ["PredictMobilePropensity", "Mobile", "Inbound", True, False],
@@ -96,25 +103,63 @@ colorscales = {
     "other": ["#d91c29", "#F76923", "#20aa50"],
 }
 
-standard_nbad_predictions = pl.DataFrame(data=NBAD_ModelConfiguration_data, orient="row")
-standard_nbad_predictions.columns = NBAD_Prediction_header
-
-
 class CDHGuidelines:
     def __init__(self):
-        self.limits = pega_cloud_limits
-        self.configurations = standard_nbad_adm_configurations
-        self.predictions = standard_nbad_predictions
+        # self.limits = pega_cloud_limits
+        # self.configurations = standard_nbad_adm_configurations
+        # self.predictions = NBAD_Prediction_data
         self.colorscales = colorscales
 
-    @cached_property
-    def standard_configurations(self) -> List[str]:
-        return self.configurations["model_name"].unique().to_list()
+    # @cached_property
+    # def standard_configurations(self) -> List[str]:
+    #     return self.configurations["model_name"].unique().to_list()
 
-    @cached_property
-    def standard_directions(self) -> List[str]:
-        return self.configurations["direction"].unique().to_list()
+    # @cached_property
+    # def standard_directions(self) -> List[str]:
+    #     return self.configurations["direction"].unique().to_list()
 
-    @cached_property
-    def standard_channels(self) -> List[str]:
-        return self.configurations["channel"].unique().to_list()
+    # @cached_property
+    # def standard_channels(self) -> List[str]:
+    #     return self.configurations["channel"].unique().to_list()
+
+    def _metric_value(self, series):
+        if series.shape[0] != 1:
+            return None
+        return series.item()
+
+    def min(self, metric: str):
+        return self._metric_value(
+            pega_cloud_limits.filter(pl.col("metric") == metric)["min"]
+        )
+
+    def best_practice_min(self, metric: str):
+        return self._metric_value(
+            pega_cloud_limits.filter(pl.col("metric") == metric)["best_practice_min"]
+        )
+
+    def best_practice_max(self, metric: str):
+        return self._metric_value(
+            pega_cloud_limits.filter(pl.col("metric") == metric)["best_practice_max"]
+        )
+
+    def max(self, metric: str):
+        return self._metric_value(
+            pega_cloud_limits.filter(pl.col("metric") == metric)["max"]
+        )
+    
+    def get_predictions_channel_mapping(
+        self, custom_predictions: Optional[List[List]] = None
+    ) -> pl.DataFrame:
+        if not custom_predictions:
+            custom_predictions = []
+        all_predictions = NBAD_Prediction_data + custom_predictions
+
+        df = pl.DataFrame(
+            data=all_predictions, orient="row"
+        ).with_columns(
+            pl.col("column_0").str.to_uppercase()
+        ).unique()
+
+        df.columns = NBAD_Prediction_header
+
+        return df
