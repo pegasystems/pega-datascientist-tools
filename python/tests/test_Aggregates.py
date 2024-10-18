@@ -39,10 +39,19 @@ def test_aggregate_predictor_counts(agg):
     assert agg.predictor_counts().collect().shape[0] == 78
     assert agg.predictor_counts().collect().shape[1] == 5
 
-# TODO expand testing, more variations etc
+# TODO expand testing, more variations etc, extra configs as arguments to the aggregator
 
 def test_aggregate_summary_by_channel(agg):
-    assert agg.summary_by_channel().collect().shape[0] == 3
-    assert agg.summary_by_channel().collect().shape[1] == 21
+    summary_by_channel = agg.summary_by_channel().collect()
+    assert summary_by_channel.shape[0] == 3
+    assert summary_by_channel.shape[1] == 21
+    assert summary_by_channel["Total Number of Actions"].to_list() == [24, 27, 19]
+
+def test_aggregate_overall_summary(agg):
+    overall_summary = agg.overall_summary().collect()
+    assert overall_summary.shape[0] == 1
+    assert overall_summary.shape[1] == 18
+    assert overall_summary["Number of Valid Channels"].item() == 3
+    assert overall_summary["Total Number of Treatments"].item() == 0
 
 

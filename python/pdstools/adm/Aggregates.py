@@ -13,6 +13,7 @@ if TYPE_CHECKING:  # pragma: no cover
 class Aggregates:
     def __init__(self, datamart: "ADMDatamart"):
         self.datamart = datamart
+        self.cdh_guidelines = CDHGuidelines()
 
     def last(
         self,
@@ -350,7 +351,6 @@ class Aggregates:
             ]
         else:
             period_expr = []
-        cdh_guidelines = CDHGuidelines()
 
         # Removes whitespace and capitalizes names for matching
         def name_normalizer(x):
@@ -364,8 +364,8 @@ class Aggregates:
         directionMapping = pl.DataFrame(
             # Standard directions have a 1:1 mapping to channel groups
             {
-                "Direction": cdh_guidelines.standard_directions,
-                "DirectionGroup": cdh_guidelines.standard_directions,
+                "Direction": self.cdh_guidelines.standard_directions,
+                "DirectionGroup": self.cdh_guidelines.standard_directions,
             }
         ).with_columns(normalizedDirection=name_normalizer("Direction"))
 
@@ -375,8 +375,8 @@ class Aggregates:
                     pl.DataFrame(
                         # Standard channels have a 1:1 mapping to channel groups
                         {
-                            "Channel": cdh_guidelines.standard_channels,
-                            "ChannelGroup": cdh_guidelines.standard_channels,
+                            "Channel": self.cdh_guidelines.standard_channels,
+                            "ChannelGroup": self.cdh_guidelines.standard_channels,
                         }
                     ),
                     pl.DataFrame(
@@ -423,7 +423,9 @@ class Aggregates:
             treatmentIdentifierExpr.unique() if "Treatment" in columns else pl.lit([])
         )
         uniqueTreatmentCountExpr = (
-            treatmentIdentifierExpr.n_unique() if "Treatment" in columns else pl.lit(0)
+            treatmentIdentifierExpr.drop_nulls().n_unique()
+            if "Treatment" in columns
+            else pl.lit(0)
         )
         uniqueUsedTreatmentExpr = (
             treatmentIdentifierExpr.filter(pl.col("isUsedTreatment")).unique()
@@ -431,7 +433,9 @@ class Aggregates:
             else pl.lit([])
         )
         uniqueUsedTreatmentCountExpr = (
-            treatmentIdentifierExpr.filter(pl.col("isUsedTreatment")).n_unique()
+            treatmentIdentifierExpr.filter(pl.col("isUsedTreatment"))
+            .drop_nulls()
+            .n_unique()
             if "Treatment" in columns
             else pl.lit(0)
         )
@@ -496,14 +500,18 @@ class Aggregates:
                 pl.col("Configuration")
                 .cast(pl.Utf8)
                 .str.to_uppercase()
-                .is_in([x.upper() for x in cdh_guidelines.standard_configurations])
+                .is_in([x.upper() for x in self.cdh_guidelines.standard_configurations])
                 .alias("isNBADModelConfiguration"),
-                actionIdentifierExpr.n_unique().alias("Total Number of Actions"),
+                actionIdentifierExpr.drop_nulls()
+                .n_unique()
+                .alias("Total Number of Actions"),
                 uniqueTreatmentCountExpr.alias("Total Number of Treatments"),
                 # TODO use last update property instead
-                (actionIdentifierExpr.filter(pl.col("isUsedAction")).n_unique()).alias(
-                    "Used Actions"
-                ),
+                (
+                    actionIdentifierExpr.filter(pl.col("isUsedAction"))
+                    .drop_nulls()
+                    .n_unique()
+                ).alias("Used Actions"),
                 uniqueUsedTreatmentCountExpr.alias("Used Treatments"),
                 # keep lists of unique values for aggregation over channels
                 AllIssues=pl.col("Issue").unique(),
@@ -587,5 +595,113 @@ class Aggregates:
             )
         )
 
+    def overall_summary(
+        self, custom_channels: Dict[str, str] = None, by_period: str = None
+    ) -> pl.LazyFrame:
+        """Overall ADM models summary. Only valid data is included.
 
-# Overall summary gone missing ?
+        Parameters
+        ----------
+        custom_channels : Dict[str, str], optional
+            Optional list with custom channel/direction name mappings. Defaults to None.
+        by_period : str, optional
+            Optional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. If provided, creates a new Period column with the truncated date/time. Defaults to None.
+
+        Returns
+        -------
+        pl.LazyFrame
+            Summary across all valid ADM models as a dataframe
+        """
+        totalTreatments = (
+            pl.col("AllTreatments").list.explode().drop_nulls().n_unique()
+            if "Treatment" in self.datamart.model_data.collect_schema().names()
+            else pl.lit(0)
+        )
+        totalUsedTreatments = (
+            pl.col("AllUsedTreatments").list.explode().drop_nulls().n_unique()
+            if "Treatment" in self.datamart.model_data.collect_schema().names()
+            else pl.lit(0)
+        )
+
+        # # Re-calculating here because the use of NBAD in the channel
+        # # summary does not currently take into account the omni adaptive model
+        # usesNBAD = (
+        #     self.datamart.model_data.select(
+        #         pl.col("Configuration")
+        #         .cast(pl.Utf8)
+        #         .str.to_uppercase()
+        #         .is_in(self.cdh_guidelines.standard_configurations)
+        #         .any()
+        #     )
+        #     .collect()
+        #     .item()
+        # )
+
+        # usesNBADOnly = (
+        #     self.datamart.model_data.select(
+        #         pl.col("Configuration")
+        #         .cast(pl.Utf8)
+        #         .str.to_uppercase()
+        #         .is_in(self.cdh_guidelines.standard_configurations)
+        #         .all()
+        #     )
+        #     .collect()
+        #     .item()
+        # )
+
+        return (
+            self.summary_by_channel(
+                custom_channels=custom_channels, by_period=by_period, keep_lists=True
+            )
+            .filter(pl.col("isValid"))
+            .group_by(["Period"] if by_period is not None else None)
+            .agg(
+                pl.col("DateRange Min").min(),
+                pl.col("DateRange Max").max(),
+                pl.len().alias("Number of Valid Channels"),
+                cdh_utils.weighted_performance_polars().alias("Performance"),
+                pl.col("Positives").sum(),
+                pl.col("ResponseCount").sum(),
+                pl.col("Performance")
+                .filter((pl.col("Performance") == pl.col("Performance").min()))
+                .first()
+                .alias("Minimum Performance"),
+                pl.col("ChannelDirection")
+                .filter((pl.col("Performance") == pl.col("Performance").min()))
+                .first()
+                .alias("Channel with Minimum Performance"),
+                pl.col("AllIssues")
+                .list.explode()
+                .drop_nulls()
+                .n_unique()
+                .alias("Issues"),
+                pl.col("AllGroups")
+                .list.explode()
+                .drop_nulls()
+                .n_unique()
+                .alias("Groups"),
+                pl.col("AllActions")
+                .list.explode()
+                .drop_nulls()
+                .n_unique()
+                .alias("Total Number of Actions"),
+                totalTreatments.alias("Total Number of Treatments"),
+                pl.col("AllUsedActions")
+                .list.explode()
+                .drop_nulls()
+                .n_unique()
+                .alias("Used Actions"),
+                totalUsedTreatments.alias("Used Treatments"),
+                # TODO there was something about OmniAdaptiveModel here - but I don't recall what was the issue
+                pl.col("usesNBAD").any(),
+                pl.col("usesNBADOnly").all(),
+                # pl.lit(usesNBAD).alias("usesNBAD"),
+                # ((pl.len() > 0) & pl.lit(usesNBAD and usesNBADOnly)).alias(
+                #     "usesNBADOnly"
+                # ),
+                pl.col("OmniChannel Actions").filter(pl.col.isValid).mean(),
+            )
+            .drop(["literal"] if by_period is None else [])  # created by null group
+            .with_columns(CTR=(pl.col("Positives")) / (pl.col("ResponseCount")))
+            .sort(["Period"] if by_period is not None else [])
+        )
