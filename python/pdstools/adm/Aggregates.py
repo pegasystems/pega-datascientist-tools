@@ -160,6 +160,8 @@ class Aggregates:
 
         return q.select(by_name, *column_order)
 
+    # TODO: how is this used, where? Overlap with other summary function?
+
     def model_summary(
         self, by: str = "Name", query: Optional[QUERY] = None
     ) -> pl.LazyFrame:
@@ -213,13 +215,15 @@ class Aggregates:
             )
         )
 
+    # TODO: how is this used? Shouldn't it be just a group-by on predictorname + category ? May need to be refactored a bit
+
     def predictor_counts(
         self,
         *,
         facet: str = "Configuration",
         by: str = "Type",
         query: Optional[QUERY] = None,
-    ):
+    ) -> pl.LazyFrame:
         """Returns the count of each predictor grouped by a certain column
 
         Parameters
@@ -582,3 +586,6 @@ class Aggregates:
                 ]
             )
         )
+
+
+# Overall summary gone missing ?

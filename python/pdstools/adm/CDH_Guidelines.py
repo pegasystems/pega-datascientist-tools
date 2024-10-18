@@ -2,7 +2,7 @@ from typing import List, Optional
 from functools import cached_property
 import polars as pl
 
-data = {
+_data = {
     "Issues": [1, 5, 25, None],
     "Groups per Issue": [1, 5, 25, None],
     "Treatments": [1, 2500, 5000, 5000],
@@ -20,8 +20,8 @@ data = {
     "Positive Responses": [1.0, 200, None, None],
 }
 
-pega_cloud_limits = pl.DataFrame(data=data).transpose(include_header=True)
-pega_cloud_limits.columns = [
+_pega_cloud_limits = pl.DataFrame(data=_data).transpose(include_header=True)
+_pega_cloud_limits.columns = [
     "metric",
     "min",
     "best_practice_min",
@@ -29,14 +29,14 @@ pega_cloud_limits.columns = [
     "max",
 ]
 
-NBAD_ModelConfiguration_header = [
+_NBAD_ModelConfiguration_header = [
     "model_name",
     "channel",
     "direction",
     "standard",
     "multi_channel",
 ]
-NBAD_ModelConfiguration_data = [
+_NBAD_ModelConfiguration_data = [
     ["Web_Click_Through_Rate", "Web", "Inbound", True, False],
     ["WebTreatmentClickModel", "Web", "Inbound", True, False],
     ["Mobile_Click_Through_Rate", "Mobile", "Inbound", True, False],
@@ -56,12 +56,12 @@ NBAD_ModelConfiguration_data = [
     ["OmniAdaptiveModel", "Multi-channel", "Multi-channel", True, True],
 ]
 
-standard_nbad_adm_configurations = pl.DataFrame(
-    data=NBAD_ModelConfiguration_data, orient="row"
+_standard_nbad_adm_configurations = pl.DataFrame(
+    data=_NBAD_ModelConfiguration_data, orient="row"
 )
-standard_nbad_adm_configurations.columns = NBAD_ModelConfiguration_header
+_standard_nbad_adm_configurations.columns = _NBAD_ModelConfiguration_header
 
-NBAD_Prediction_header = [
+_NBAD_Prediction_header = [
     "Prediction",
     "Channel",
     "Direction",
@@ -69,7 +69,7 @@ NBAD_Prediction_header = [
     "isMultiChannelPrediction",
 ]
 
-NBAD_Prediction_data = [
+_NBAD_Prediction_data = [
     ["PredictWebPropensity", "Web", "Inbound", True, False],
     ["PredictMobilePropensity", "Mobile", "Inbound", True, False],
     ["PredictOutboundEmailPropensity", "E-mail", "Outbound", True, False],
@@ -86,7 +86,7 @@ NBAD_Prediction_data = [
     ["PredictTreatmentPropensity", "Multi-channel", "Multi-channel", True, True],
 ]
 
-colorscales = {
+_colorscales = {
     "Performance": [
         (0, "#d91c29"),
         (0.01, "#F76923"),
@@ -108,19 +108,20 @@ class CDHGuidelines:
         # self.limits = pega_cloud_limits
         # self.configurations = standard_nbad_adm_configurations
         # self.predictions = NBAD_Prediction_data
-        self.colorscales = colorscales
+        self.colorscales = _colorscales
 
-    # @cached_property
-    # def standard_configurations(self) -> List[str]:
-    #     return self.configurations["model_name"].unique().to_list()
+    @cached_property
+    def standard_configurations(self) -> List[str]:
+        return sorted(list(set([x[0] for x in _NBAD_ModelConfiguration_data])))
 
-    # @cached_property
-    # def standard_directions(self) -> List[str]:
-    #     return self.configurations["direction"].unique().to_list()
+    @cached_property
+    def standard_channels(self) -> List[str]:
+        return sorted(list(set([x[1] for x in _NBAD_ModelConfiguration_data if not x[4]])))
 
-    # @cached_property
-    # def standard_channels(self) -> List[str]:
-    #     return self.configurations["channel"].unique().to_list()
+    @cached_property
+    def standard_directions(self) -> List[str]:
+        return sorted(list(set([x[2] for x in _NBAD_ModelConfiguration_data if not x[4]])))
+
 
     def _metric_value(self, series):
         if series.shape[0] != 1:
@@ -129,22 +130,22 @@ class CDHGuidelines:
 
     def min(self, metric: str):
         return self._metric_value(
-            pega_cloud_limits.filter(pl.col("metric") == metric)["min"]
+            _pega_cloud_limits.filter(pl.col("metric") == metric)["min"]
         )
 
     def best_practice_min(self, metric: str):
         return self._metric_value(
-            pega_cloud_limits.filter(pl.col("metric") == metric)["best_practice_min"]
+            _pega_cloud_limits.filter(pl.col("metric") == metric)["best_practice_min"]
         )
 
     def best_practice_max(self, metric: str):
         return self._metric_value(
-            pega_cloud_limits.filter(pl.col("metric") == metric)["best_practice_max"]
+            _pega_cloud_limits.filter(pl.col("metric") == metric)["best_practice_max"]
         )
 
     def max(self, metric: str):
         return self._metric_value(
-            pega_cloud_limits.filter(pl.col("metric") == metric)["max"]
+            _pega_cloud_limits.filter(pl.col("metric") == metric)["max"]
         )
     
     def get_predictions_channel_mapping(
@@ -152,7 +153,7 @@ class CDHGuidelines:
     ) -> pl.DataFrame:
         if not custom_predictions:
             custom_predictions = []
-        all_predictions = NBAD_Prediction_data + custom_predictions
+        all_predictions = _NBAD_Prediction_data + custom_predictions
 
         df = pl.DataFrame(
             data=all_predictions, orient="row"
@@ -160,6 +161,6 @@ class CDHGuidelines:
             pl.col("column_0").str.to_uppercase()
         ).unique()
 
-        df.columns = NBAD_Prediction_header
+        df.columns = _NBAD_Prediction_header
 
         return df
