@@ -700,7 +700,7 @@ class Plots(LazyNamespace):
         )
 
         if return_df:
-            return df
+            return df.rename({"Legend" : "PredictorCategory"})
 
         title_suffix = "over all models" if facet is None else f"per {facet}"
         title_prefix = metric

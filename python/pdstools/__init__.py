@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 
 from .adm.ADMDatamart import ADMDatamart
+from .adm.BinAggregator import BinAggregator
 from .prediction import Prediction
 from .infinity import Infinity
 

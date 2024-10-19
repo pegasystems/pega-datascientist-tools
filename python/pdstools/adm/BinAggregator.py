@@ -802,7 +802,7 @@ class BinAggregator(LazyNamespace):
             binning = binning.lazy()
 
         # Add Lift column if not present
-        if "Lift" not in binning.columns:
+        if "Lift" not in binning.collect_schema().names():
             binning = binning.with_columns(
                 (lift(pl.col("BinPositives"), pl.col("BinNegatives")) - 1.0).alias(
                     "Lift"
@@ -810,7 +810,7 @@ class BinAggregator(LazyNamespace):
             )
 
         # Optionally a shading expression
-        if "BinPositives" in binning.columns:
+        if "BinPositives" in binning.collect_schema().names():
             shading_expr = pl.col("BinPositives") <= 5
         else:
             shading_expr = pl.lit(False)

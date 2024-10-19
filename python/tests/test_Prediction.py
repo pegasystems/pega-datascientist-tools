@@ -73,6 +73,7 @@ def test2(test):
 
 def test_available(test):
     assert test.is_available
+    assert test.is_valid
 
 
 def test_summary_by_channel_cols(test):
