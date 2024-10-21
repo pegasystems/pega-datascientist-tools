@@ -8,7 +8,7 @@ import sys
 import pytest
 
 basePath = pathlib.Path(__file__).parent.parent.parent
-sys.path.append(f"{str(basePath)}/python")
+# sys.path.append(f"{str(basePath)}/python")
 from pdstools import ADMTrees
 from pdstools.adm.ADMTrees import ADMTreesModel
 
@@ -25,14 +25,14 @@ def test_has_models(tree_sample: ADMTreesModel):
 
 
 def test_plot_splits_per_variable(tree_sample: ADMTreesModel):
-    tree_sample.plot_splits_per_variable(show_all=False)
+    tree_sample.plot_splits_per_variable()
 
 
 def sample_x(trees):
     from random import sample
 
     x = {}
-    for variable, values in trees.allValuesPerSplit.items():
+    for variable, values in trees.all_values_per_split.items():
         if len(values) == 1:
             if "true" in values or "false" in values:
                 values = {"true", "false"}
@@ -60,8 +60,8 @@ def test_score(tree_sample, sampledX):
 
 
 def test_plotContributionPerTree(tree_sample, sampledX):
-    tree_sample.plotContributionPerTree(sampledX, show=False)
+    tree_sample.plot_contribution_per_tree(sampledX, show=False)
 
 
 def test_plotSplitsPerVariableType(tree_sample):
-    tree_sample.plotSplitsPerVariableType()
+    tree_sample.plot_splits_per_variable_type()
