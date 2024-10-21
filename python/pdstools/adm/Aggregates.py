@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING, Dict, Literal, Optional
+from pathlib import Path
 
 import polars as pl
 
@@ -258,7 +259,7 @@ class Aggregates:
         schema = df.collect_schema()
 
         return (
-            pl.concat([df.cast(schema), overall.select(schema.names()).cast(schema)])
+            pl.concat([df, overall.select(schema.names()).cast(schema)])
             .with_columns(pl.col("PredictorCount").cast(pl.Int64))
             .sort(["Name", "EntryType", by, facet])
         )
@@ -594,6 +595,72 @@ class Aggregates:
                 ]
             )
         )
+
+    def predictor_last_snapshot(self) -> Optional[pl.DataFrame]:
+        """
+        Generate a summary of the last snapshot of predictor data.
+
+        This method creates a summary of predictor data by joining the last snapshots
+        of predictor_data and model_data, then performing various aggregations and
+        calculations. It excludes the "Classifier" predictor from the analysis.
+
+        Returns
+        -------
+        pl.DataFrame or None
+            A Polars DataFrame containing the predictor summary if successful,
+            None if the required data is not available.
+        """
+        try:
+            model_identifiers = ["Configuration"] + self.datamart.context_keys
+
+            predictor_summary = (
+                self.last(table="predictor_data")
+                .filter(pl.col("PredictorName") != "Classifier")
+                .join(
+                    self.last(table="model_data")
+                    .select(["ModelID"] + model_identifiers)
+                    .unique(),
+                    on="ModelID",
+                    how="left",
+                )
+                .group_by(model_identifiers + ["ModelID", "PredictorName"])
+                .agg(
+                    pl.first("Type"),
+                    pl.first("Performance"),
+                    pl.count("BinIndex").alias("Bins"),
+                    pl.col("BinResponseCount")
+                    .where(pl.col("BinType") == "MISSING")
+                    .sum()
+                    .alias("Missing"),
+                    pl.col("BinResponseCount")
+                    .where(pl.col("BinType") == "RESIDUAL")
+                    .sum()
+                    .alias("Residual"),
+                    pl.first("Positives"),
+                    pl.first("ResponseCount"),
+                )
+                .group_by(model_identifiers + ["PredictorName"])
+                .agg(
+                    pl.first("Type"),
+                    cdh_utils.weighted_average_polars("Performance", "ResponseCount"),
+                    cdh_utils.weighted_average_polars("Bins", "ResponseCount"),
+                    ((pl.sum("Missing") / pl.sum("ResponseCount")) * 100).alias(
+                        "Missing %"
+                    ),
+                    ((pl.sum("Residual") / pl.sum("ResponseCount")) * 100).alias(
+                        "Residual %"
+                    ),
+                    pl.sum("Positives"),
+                    pl.sum("ResponseCount").alias("Responses"),
+                )
+                .fill_null(0)
+                .fill_nan(0)
+                .with_columns(pl.col("Bins").cast(pl.Int16))
+            )
+
+            return predictor_summary
+        except ValueError:
+            return None
 
     def overall_summary(
         self, custom_channels: Dict[str, str] = None, by_period: str = None
