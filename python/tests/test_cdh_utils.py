@@ -604,4 +604,61 @@ def test_extract_keys():
         "Name": ["A"],
         "Treatment": ["B"],
     }
-
+    df = pl.DataFrame(
+        {
+            "Name": [
+                '{"pyName":"Action1", "pyTreatment":"Treatment1"}',
+                '{"pyName":"Cosmetics", "Customer":"Anonymous"}',
+                '{"pyName":"Cosmetics", "Customer":"Known"}',
+                '{"pyName":"Cosmetics", "Customer":"Known"}',
+                '{"pyName":"Garden", "customer":"Known"}',
+                "GoldCard",
+            ],
+            "Treatment": ["a", "b", "c", "d", "e", "f"],
+        }
+    )
+    assert cdh_utils._extract_keys(df, capitalize=True).columns == [
+        "Name",
+        "Treatment",
+        "Customer",
+        "Customer_2",
+    ]
+    assert cdh_utils._extract_keys(df.lazy(), capitalize=True).collect().columns == [
+        "Name",
+        "Treatment",
+        "Customer",
+        "Customer_2",
+    ]
+    assert cdh_utils._extract_keys(df, capitalize=False).columns == [
+        "Name",
+        "Treatment",
+        "pyName",
+        "pyTreatment",
+        "Customer",
+        "customer",
+    ]
+    assert cdh_utils._extract_keys(df.lazy(), capitalize=False).collect().columns == [
+        "Name",
+        "Treatment",
+        "pyName",
+        "pyTreatment",
+        "Customer",
+        "customer",
+    ]
+    # Slight difference here: old version overwrote all values from overlapping columns
+    # with nulls when there was no entry for that column in that row in the keys. New
+    # version only overwrites when the key value is not null.
+    assert cdh_utils._extract_keys(df, capitalize=True).to_dict(as_series=False) == {
+        "Name": [
+            "Action1",
+            "Cosmetics",
+            "Cosmetics",
+            "Cosmetics",
+            "Garden",
+            "GoldCard",
+        ],
+         'Treatment': ['Treatment1', 'b', 'c', 'd', 'e', 'f'],
+        # "Treatment": ["Treatment1", None, None, None, None, None], # old behavior
+        "Customer": [None, "Anonymous", "Known", "Known", None, None],
+        "Customer_2": [None, None, None, None, "Known", None],
+    }

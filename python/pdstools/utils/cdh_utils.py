@@ -108,21 +108,15 @@ def default_predictor_categorization(
     ).alias("PredictorCategory")
 
 
-# TODO: we could make below much more efficient. We're now making everything
-# JSON then extracting. We could first detect if there is any JSON at all
-# ( startswith("{").any() ). Also could do the JSON extract on just the unique pyNames
-# that do start with a {. This could then be merged back with the original data.
-
-
 def _extract_keys(
     df: F,
-    col="Name",
-    capitalize=True,
+    key: str="Name",
+    capitalize: bool=True,
 ) -> F:
     """Extracts keys out of the pyName column
 
     This is not a lazy operation as we don't know the possible keys
-    in advance. For that reason, we select only the pyName column,
+    in advance. For that reason, we select only the key column,
     extract the keys from that, and then collect the resulting dataframe.
     This dataframe is then joined back to the original dataframe.
 
@@ -132,65 +126,88 @@ def _extract_keys(
 
     The data in column for which the JSON is extract is normalized a
     little by taking out non-space, non-printable characters. Not just
-    ASCII of course. This may be relatively expensive, see notes in
-    code about ideas to speed up.
+    ASCII of course. This may be relatively expensive.
+
+    JSON extraction only happens on the unique values so saves a lot
+    of time with multiple snapshots of the same models, it also only
+    processes rows for which the key column appears to be valid JSON.
+    It will break when you "trick" it with malformed JSON.
+
+    Column values for columns that are also encoded in the key column
+    will be overwritten with values from the key column, but only for
+    rows that are JSON. In previous versions all values were overwritten
+    resulting in many nulls.
 
     Parameters
     ----------
     df: Union[pl.DataFrame, pl.LazyFrame]
         The dataframe to extract the keys from
+    key: str
+        The column with embedded JSON
+    capitalize: bool
+        If True (default) normalizes the names of the embedded columns
+        otherwise keeps the names as-is.
     """
     # Checking for the 'column is None/Null' case
-    if df.collect_schema()[col] != pl.Utf8:
+    if df.collect_schema()[key] != pl.Utf8:
         return df
 
-    # Checking for the 'empty df' case
-    if len(df.lazy().select(col).head(1).collect()) == 0:
-        return df
-
-    # No-op in case we know there's no additional keys in the data
-    # if df.lazy().select(pl.col(col).first().str.starts_with('{').over(col))
-
-    def safe_name():
-        """To extract keys, we need JSON. If no JSON present, json_decode won't work.
-        Therefore, this method adds a dummy `pyName` struct in case it's not a string.
-
-        Returns
-        -------
-        pl.Expr
-            The expression to add the pyname column
-        """
-        return (
-            pl.when(~pl.col(col).cast(pl.Utf8).str.starts_with("{"))
-            .then(
-                pl.concat_str(
-                    [
-                        pl.lit('{"pyName":"'),
-                        # we need to protect the string in the extract column
-                        # against very wild content like emoticons that break
-                        # the json parsing
-                        # see https://www.regular-expressions.info/posixbrackets.html
-                        pl.col(col).str.replace_all(
-                            r"[^\p{L}\p{Nl}\p{Nd}\p{P}\p{Z}]", ""
-                        ),
-                        pl.lit('"}'),
-                    ]
-                )
-            )
-            .otherwise(pl.col(col).cast(pl.Utf8))
-        ).alias("tempName")
-
-    series = (
-        df.select(
-            safe_name().str.json_decode(infer_schema_length=None),
+    # Checking for the 'empty df' of 'not containing JSON' case
+    if (
+        len(
+            df.lazy()
+            .select(key)
+            .filter(pl.col(key).str.starts_with("{"))
+            .head(1)
+            .collect()
         )
-        .unnest("tempName")
+        == 0
+    ):
+        return df
+
+    keys_decoded = (
+        df.filter(pl.col(key).str.starts_with("{"))
+        .select(
+            pl.col(key).alias("__original").unique(maintain_order=True),
+        )
+        .select(
+            pl.col("__original"),
+            pl.col("__original")
+            .cast(pl.Utf8)
+            .alias("__keys")
+            .str.json_decode(infer_schema_length=None),
+            # safe_name("__original").str.json_decode(infer_schema_length=None),
+        )
+        .unnest("__keys")
         .lazy()
         .collect()
     )
-    if not capitalize:
-        return df.with_columns(series)
-    return df.with_columns(_polars_capitalize(series))
+    if capitalize:
+        keys_decoded = _polars_capitalize(keys_decoded)
+
+    overlap = set(df.collect_schema().names()).intersection(
+        keys_decoded.collect_schema().names()
+    )
+    return (
+        df.join(
+            keys_decoded.lazy() if isinstance(df, pl.LazyFrame) else keys_decoded,
+            left_on=key,
+            right_on="__original",
+            coalesce=True,
+            suffix="_decoded",
+            how="left",
+        )
+        # Overwrite values from columns that also appear in the decoded keys
+        .with_columns(
+            [
+                pl.when(pl.col(f"{c}_decoded").is_not_null())
+                .then(pl.col(f"{c}_decoded"))
+                .otherwise(pl.col(c))
+                .alias(c)
+                for c in overlap
+            ]
+        ).drop([f"{c}_decoded" for c in overlap])
+    )
 
 
 def parse_pega_date_time_formats(
@@ -763,7 +780,9 @@ def lift(
             # TODO not sure how polars (mis)behaves when there are no positives at all
             # I would hope for a NaN but base python doesn't do that. Polars perhaps.
             # Stijn: It does have proper None value support, may work like you say
-            bin_pos * (total_pos + total_neg) / ((bin_pos + bin_neg) * total_pos)
+            bin_pos
+            * (total_pos + total_neg)
+            / ((bin_pos + bin_neg) * total_pos)
         ).alias("Lift")
 
     return lift_impl(pos_col, neg_col, pos_col.sum(), neg_col.sum())
