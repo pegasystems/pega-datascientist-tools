@@ -1253,26 +1253,31 @@ univariate predictor performance.
 #     else "Performance"
 # )
 
-if datamart.predictorData is not None:
-    figs = datamart.plotPredictorPerformance(
-        top_n=30,
-        facets="Configuration",
-        separate=True,
-        active_only=False,
-        to_plot="Performance",
-        query=predictor_analysis_query,
-    )
-    if not isinstance(figs, list):
-        figs = [figs]
-    for fig in figs:
-        fig.update_traces(width=0.3)
-        fig.update_layout(font=dict(size=10), height=700, yaxis_title="")
-        fig.layout.xaxis.tickformat = ".d"
-        # TODO fix title see https://github.com/pegasystems/pega-datascientist-tools/issues/167
+try:
+    if datamart.predictorData is not None:
+        figs = datamart.plotPredictorPerformance(
+            top_n=30,
+            facets="Configuration",
+            separate=True,
+            active_only=False,
+            to_plot="Performance",
+            query=predictor_analysis_query,
+        )
+        if not isinstance(figs, list):
+            figs = [figs]
+        for fig in figs:
+            fig.update_traces(width=0.3)
+            fig.update_layout(font=dict(size=10), height=700, yaxis_title="")
+            fig.layout.xaxis.tickformat = ".d"
+            # TODO fix title see https://github.com/pegasystems/pega-datascientist-tools/issues/167
 
-        fig.show()
-else:
-    quarto_callout_no_predictor_data_warning()
+            fig.show()
+    else:
+        quarto_callout_no_predictor_data_warning()
+except ValueError as ve:  
+    print(f"Predictor Importance chart failed due to a ValueError: {ve}. This is likely caused by having too many configurations. Consider filtering down your dataset before generating the report.")  
+except Exception as e:  
+    print(f"Predictor Importance chart failed due to an unexpected error: {e}.") 
 ```
 
 ## Importance by Predictor Category 
@@ -1405,15 +1410,20 @@ Showing the number of active and inactive predictors per model.
 :::
 
 ```{python}
-if datamart.predictorData is not None:
-    facets = ["Configuration"]
-    facet_cols = 2
-    fig = datamart.plotPredictorCount(facets=facets)
-    fig = fig_update_facet_height(fig, facet_cols, 250, 150)
-    fig.update_yaxes(categoryorder="array", automargin=True, dtick=1)
-    fig.show()
-else:
-    quarto_callout_no_predictor_data_warning()
+try:  
+    if datamart.predictorData is not None:  
+        facets = ["Configuration"]  
+        facet_cols = 2  
+        fig = datamart.plotPredictorCount(facets=facets)  
+        fig = fig_update_facet_height(fig, facet_cols, 250, 150)  
+        fig.update_yaxes(categoryorder="array", automargin=True, dtick=1)  
+        fig.show()  
+    else:  
+        quarto_callout_no_predictor_data_warning()  
+except ValueError as ve:  
+    print(f"Predictor Count chart failed due to a ValueError: {ve}. This is likely caused by having too many configurations. Consider filtering down your dataset before generating the report.")  
+except Exception as e:  
+    print(f"Predictor Count chart failed due to an unexpected error: {e}.") 
 ```
 
 ## Predictor Performance across Actions
