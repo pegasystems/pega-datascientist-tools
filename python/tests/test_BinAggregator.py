@@ -2,23 +2,20 @@
 Testing the functionality of the BinAggregator
 """
 
-import pathlib
-import sys
-
 import polars as pl
 import pytest
 from plotly.graph_objects import Figure
 
-basePath = pathlib.Path(__file__).parent.parent.parent
-sys.path.append(f"{str(basePath)}/python")
+# basePath = pathlib.Path(__file__).parent.parent.parent
+# sys.path.append(f"{str(basePath)}/python")
 from pdstools import BinAggregator, datasets
+
 
 
 @pytest.fixture
 def cdhsample_binaggregator():
-    dm = datasets.cdh_sample(subset=False)
+    dm = datasets.cdh_sample()
     return BinAggregator(dm)
-
 
 def test_overall_num_rollup(cdhsample_binaggregator):
     assert isinstance(cdhsample_binaggregator.roll_up("Customer.Age"), Figure)
@@ -154,9 +151,9 @@ def test_combine_two_numbinnings(cdhsample_binaggregator):
     assert combined["Lift"].to_list() == pytest.approx([0.066667, -0.1, 2.0, 2.0], 1e-5)
     assert combined["BinCoverage"].to_list() == pytest.approx([1, 1, 1, 0.66667], 1e-5)
 
-
+@pytest.mark.skip(reason="query argument to binaggregator currently no longer supported")
 def test_subsetting():
-    dm = datasets.cdh_sample(subset=False)
+    dm = datasets.cdh_sample()
     ba = BinAggregator(dm, query=pl.col("Group").cast(pl.Utf8).str.contains("Loan"))
     result = ba.roll_up("Customer.Age", n=6, aggregation="Group", return_df=True)
     assert result.select(pl.col("Group").n_unique()).item() == 2

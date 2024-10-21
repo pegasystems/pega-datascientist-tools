@@ -11,7 +11,8 @@ import pytest
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 sys.path.append(f"{str(basePath)}/python")
-from pdstools import Prediction, cdh_utils
+
+from pdstools import cdh_utils, Prediction
 
 mock_prediction_data = pl.DataFrame(
     {
@@ -72,6 +73,7 @@ def test2(test):
 
 def test_available(test):
     assert test.is_available
+    assert test.is_valid
 
 
 def test_summary_by_channel_cols(test):
@@ -177,6 +179,7 @@ def test_overall_summary_cols(test):
 
 
 def test_overall_summary_n_valid_channels(test):
+    print(test.overall_summary().collect())
     assert test.overall_summary().collect()["Number of Valid Channels"].item() == 2
 
 

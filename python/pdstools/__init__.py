@@ -10,9 +10,12 @@ import sys
 from pathlib import Path
 
 from .adm.ADMDatamart import ADMDatamart
+from .adm.BinAggregator import BinAggregator
+from .prediction import Prediction
 from .infinity import Infinity
 
 from .adm.ADMTrees import ADMTrees, MultiTrees
+from .adm.CDH_Guidelines import CDHGuidelines
 # from .decision_analyzer import DecisionData
 # from .pega_io import API, S3, Anonymization, File, get_token, read_ds_export
 # from .prediction import Prediction
@@ -44,7 +47,7 @@ __all__ = [
     "read_ds_export",
     "setupAzureOpenAI",
     "Prediction",
-    "NBAD",
+    "CDHGuidelines",
     "cdh_utils",
     "datasets",
     "errors",
