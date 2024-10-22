@@ -50,7 +50,6 @@ class ADMDatamart:
         self.aggregates = Aggregates(datamart=self)
         self.agb = AGB(datamart=self)
         self.generate = Reports(datamart=self)
-        self.bin_aggregator = BinAggregator(dm=self)
         self.cdh_guidelines = CDHGuidelines()
 
         self.model_data = self._validate_model_data(
@@ -61,6 +60,8 @@ class ADMDatamart:
         self.combined_data = self.aggregates._combine_data(
             self.model_data, self.predictor_data
         )
+
+        self.bin_aggregator = BinAggregator(dm=self)  # attach after model_data
 
     @classmethod
     def from_ds_export(

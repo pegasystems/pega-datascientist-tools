@@ -50,6 +50,7 @@ from pdstools.utils.report_utils import (
     polars_subset_to_existing_cols,
     polars_col_exists,
     table_style_predictor_count,
+    quarto_callout_important
 )
 
 # from plotly.offline import iplot

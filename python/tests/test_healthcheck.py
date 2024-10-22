@@ -1,5 +1,4 @@
 import pathlib
-import sys
 
 from pandas import ExcelFile
 
@@ -10,12 +9,12 @@ from pdstools import ADMDatamart, datasets, read_ds_export
 
 
 @pytest.fixture
-def sample():
+def sample() -> ADMDatamart:
     return datasets.cdh_sample()
 
 
 @pytest.fixture
-def sample_without_predictor_binning():
+def sample_without_predictor_binning() -> ADMDatamart:
     """Fixture to serve as class to call functions from."""
     # Using from_ds_export automaticaly detects predictor_snapshot.
     model_df = read_ds_export(
@@ -34,7 +33,7 @@ def test_GenerateHealthCheck(sample):
 
 
 def test_ExportTables(sample):
-    excel = sample.generate.excel_report_report(predictor_binning=True)
+    excel = sample.generate.excel_report(predictor_binning=True)
     assert excel == pathlib.Path("./Tables.xlsx")
     assert excel.exists()
     spreadsheet = ExcelFile(excel)
@@ -50,7 +49,7 @@ def test_ExportTables(sample):
 
 
 def test_ExportTables_NoBinning(sample):
-    excel = sample.generate.excel_report_report(predictor_binning=False)
+    excel = sample.generate.excel_report(predictor_binning=False)
     assert excel == pathlib.Path("./Tables.xlsx")
     assert pathlib.Path(excel).exists()
     spreadsheet = ExcelFile(excel)
@@ -73,7 +72,7 @@ def test_GenerateHealthCheck_ModelDataOnly(sample_without_predictor_binning):
 
 
 def test_ExportTables_ModelDataOnly(sample_without_predictor_binning):
-    excel = sample_without_predictor_binning.generate.excel(
+    excel = sample_without_predictor_binning.generate.excel_report(
         name="ModelTables.xlsx", predictor_binning=True
     )
     assert excel == pathlib.Path("ModelTables.xlsx")
