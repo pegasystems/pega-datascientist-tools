@@ -10,6 +10,7 @@ on:
   pull_request: 
     paths:
       - python/**
+      - .github/workflows/**
 
 jobs:
   Tests:
