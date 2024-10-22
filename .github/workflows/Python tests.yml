@@ -3,21 +3,23 @@ name: Python tests
 on:
   push:
     branches:
-      - master
+      - main
     paths:
       - python/**
       - .github/workflows/**
-  pull_request: 
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - python/**
+      - reports/*.qmd
       - .github/workflows/**
 
 jobs:
   Tests:
     runs-on: ${{matrix.os}}
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false)  
 
     name: pdstools (Python ${{ matrix.python-version }}) on ${{ matrix.os }} 
-
 
     strategy:
       fail-fast: true
@@ -43,10 +45,21 @@ jobs:
             python-version: "3.12"
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-
+    
+  
     steps:
+      
       - uses: actions/checkout@v4
 
+      - name: Check for draft PR  
+        if: github.event_name == 'pull_request'  
+        run: |  
+          if [[ "${{ github.event.pull_request.draft }}" == "true" ]]; then  
+            echo "This is a draft PR, exiting."  
+            exit 1  
+          fi  
+        continue-on-error: true  
+          
       - name: Install uv
         uses: astral-sh/setup-uv@v3
         
