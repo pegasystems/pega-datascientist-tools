@@ -32,7 +32,7 @@ keywords = [
     "datascientist",
     "tools",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 
 [tool.setuptools.dynamic]
 version = {attr="pdstools.__version__"}
@@ -41,7 +41,7 @@ dependencies = {file = ["python/requirements.txt"]}
 [project.optional-dependencies]
 docs = ['sphinx','furo','sphinx-autoapi','nbsphinx','sphinx-copybutton','myst-parser']
 app = ['streamlit>=1.23', 'quarto', 'papermill', 'itables', 'jinja2>=3.1', 'xlsxwriter>=3.0', 'tabulate', 'st-pages']
-tests = ['testbook']
+tests = ['testbook', 'pytest', 'pytest-cov', 'xlsxwriter', 'scipy', 'ipykernel', 'XlsxWriter', 'openpyxl', 'ipython']
 
 [project.urls]
 "Homepage" = "https://github.com/pegasystems/pega-datascientist-tools"
