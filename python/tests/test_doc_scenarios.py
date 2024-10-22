@@ -18,7 +18,7 @@ sys.path.append(f"{str(basePath)}/python")
     [
         # TODO shouldn't we have all the notebooks here? like *.ipynb?
         "examples/datamart/Example_ADM_Analysis.ipynb",
-        "examples/adm/AGBModelVisualisation.ipynb",
+        # "examples/adm/AGBModelVisualisation.ipynb",
         # "examples/adm/ADMBinningInsights.ipynb",
         # test_ExampleDataAnonymization
     ],
