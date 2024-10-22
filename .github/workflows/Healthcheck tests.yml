@@ -26,8 +26,9 @@ jobs:
         run: |  
           if [[ "${{ github.event.pull_request.draft }}" == "true" ]]; then  
             echo "This is a draft PR, exiting."  
-            exit 0  
+            exit 1  
           fi  
+        continue-on-error: true  
 
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
