@@ -30,11 +30,11 @@ _pega_cloud_limits.columns = [
 ]
 
 _NBAD_ModelConfiguration_header = [
-    "model_name",
-    "channel",
-    "direction",
-    "standard",
-    "multi_channel",
+    "Configuration", #"model_name",
+    "Channel", # channel
+    "Direction", # direction
+    "isStandardConfiguration", # "standard",
+    "isMultiChannelConfiguration" #"multi_channel",
 ]
 _NBAD_ModelConfiguration_data = [
     ["Web_Click_Through_Rate", "Web", "Inbound", True, False],

@@ -28,6 +28,9 @@ from .valuefinder.ValueFinder import ValueFinder
 if "streamlit" in sys.modules:
     from .utils import streamlit_utils
 
+# if "quarto" in sys.modules:
+#     from .utils import report_utils
+
 from polars import enable_string_cache
 
 enable_string_cache()
@@ -60,6 +63,7 @@ __all__ = [
     "PegaDefaultTables",
     "ValueFinder",
     "streamlit_utils",
+    "report_utils",
     "pega_template",
     "Infinity",
 ]
