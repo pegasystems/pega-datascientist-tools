@@ -86,7 +86,7 @@ class Plots(LazyNamespace):
             x="Stage",
             color=by,
             text=by,
-            title=f"Distribution of {by if by != "Name" else "Action"}s over the stages",
+            title=f"Distribution of {by if by != 'Name' else 'Action'}s over the stages",
             template="none",
         )
 
@@ -223,7 +223,7 @@ class Plots(LazyNamespace):
             return thresholds
         elif quantiles is not None:
             return map(self.vf.aggregates.get_threshold_from_quantile, quantiles)
-        raise ValueError() #pragma: no cover
+        raise ValueError()  # pragma: no cover
 
     def pie_charts(
         self,
