@@ -3,7 +3,6 @@ Testing the functionality of the ADMDatamart functions
 """
 
 import pathlib
-import sys
 
 import pytest
 
@@ -25,7 +24,7 @@ def test_has_models(tree_sample: ADMTreesModel):
 
 
 def test_plot_splits_per_variable(tree_sample: ADMTreesModel):
-    tree_sample.plot_splits_per_variable()
+    tree_sample.plot_splits_per_variable(show=False)
 
 
 def sample_x(trees):
