@@ -4,8 +4,7 @@ mainly to confirm syntax
 """
 
 import pytest
-
-from pdstools import CDHGuidelines
+from pdstools.adm.CDH_Guidelines import CDHGuidelines
 
 
 @pytest.fixture
@@ -43,4 +42,4 @@ def test_predictions_w_extensions_mapping(guidance):
         ]
     )
     assert df.shape[0] == 16
-    assert 'StrangeChannel' in df['Channel'].to_list()
+    assert "StrangeChannel" in df["Channel"].to_list()
