@@ -1,12 +1,12 @@
 name: Python tests
 
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - python/**
-      - .github/workflows/**
+  # push:
+  #   branches:
+  #     - master
+  #   paths:
+  #     - python/**
+  #     - .github/workflows/**
   pull_request: 
     paths:
       - python/**
