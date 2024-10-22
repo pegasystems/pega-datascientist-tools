@@ -41,7 +41,7 @@ dependencies = {file = ["python/requirements.txt"]}
 [project.optional-dependencies]
 docs = ['sphinx','furo','sphinx-autoapi','nbsphinx','sphinx-copybutton','myst-parser']
 app = ['streamlit>=1.23', 'quarto', 'papermill', 'itables', 'jinja2>=3.1', 'xlsxwriter>=3.0', 'tabulate', 'st-pages']
-tests = ['testbook']
+tests = ['testbook', 'pytest', 'pytest-cov']
 
 [project.urls]
 "Homepage" = "https://github.com/pegasystems/pega-datascientist-tools"

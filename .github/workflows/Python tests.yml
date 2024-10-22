@@ -63,7 +63,7 @@ jobs:
             **/pyproject.toml
     
       - name: Install the project
-        run: uv sync --extra tests --extra pytest-cov
+        run: uv sync --extra tests 
     
       - name: Run tests
         run: uv run pytest --cov=./python/pdstools --cov-report=xml --cov-config=./python/tests/.coveragerc --ignore=python/tests/test_healthcheck.py
