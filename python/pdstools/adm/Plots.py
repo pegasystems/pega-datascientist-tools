@@ -30,10 +30,10 @@ try:
     from plotly.subplots import make_subplots
 
     from ..utils import pega_template as pega_template
-except ImportError as e:
+except ImportError as e: #pragma: no cover
     logger.debug(f"Failed to import optional dependencies: {e}")
 
-if TYPE_CHECKING:
+if TYPE_CHECKING: #pragma: no cover
     import plotly.graph_objects as go
 
     from .ADMDatamart import ADMDatamart

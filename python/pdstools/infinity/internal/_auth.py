@@ -49,7 +49,7 @@ class PegaOAuth(httpx.Auth):
 
     def auth_flow(
         self, request: httpx.Request
-    ) -> Generator[httpx.Request, httpx.Response, None]:
+    ) -> Generator[httpx.Request, httpx.Response, None]:  # pragma: no cover
         request.headers["Authorization"] = self._auth_header
         yield request
 

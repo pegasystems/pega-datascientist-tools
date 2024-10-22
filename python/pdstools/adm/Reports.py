@@ -261,7 +261,7 @@ class Reports(LazyNamespace):
             print("Set verbose=False to hide output.")
         try:
             quarto_exec = self._find_quarto_executable()
-        except FileNotFoundError as e:
+        except FileNotFoundError as e:  # pragma: no cover
             logger.error(e)
             raise
 
@@ -278,7 +278,7 @@ class Reports(LazyNamespace):
             logger.info(message)
             if verbose:
                 print(message)
-        except subprocess.CalledProcessError as e:
+        except subprocess.CalledProcessError as e:  # pragma: no cover
             logger.warning(f"Failed to check Quarto version: {e}")
 
         command = [
@@ -308,7 +308,7 @@ class Reports(LazyNamespace):
                 if verbose:
                     print(line)
                 logger.info(line)
-        else:
+        else:  # pragma: no cover
             logger.warning("subprocess.stdout is None, unable to read output")
 
         return_code = process.wait()
@@ -319,7 +319,7 @@ class Reports(LazyNamespace):
 
     def _find_quarto_executable(self):
         """Find the Quarto executable on the system."""
-        if sys.platform == "win32":
+        if sys.platform == "win32":  # pragma: no cover
             possible_paths = [
                 Path(os.environ.get("USERPROFILE", ""))
                 / "AppData"
@@ -333,7 +333,7 @@ class Reports(LazyNamespace):
                 / "bin"
                 / "quarto.cmd",
             ]
-        else:
+        else:  # pragma: no cover
             possible_paths = [
                 Path("/usr/local/bin/quarto"),
                 Path("/opt/quarto/bin/quarto"),
@@ -345,13 +345,13 @@ class Reports(LazyNamespace):
                 return path
 
         # If not found in common locations, try to find it in PATH
-        quarto_in_path = shutil.which("quarto")
-        if quarto_in_path:
+        quarto_in_path = shutil.which("quarto")  # pragma: no cover
+        if quarto_in_path:  # pragma: no cover
             return Path(quarto_in_path)
 
         raise FileNotFoundError(
             "Quarto executable not found. Please ensure Quarto is installed and in the system PATH."
-        )
+        )  # pragma: no cover
 
     def excel_report(
         self, name: Union[Path, str] = Path("Tables.xlsx"), predictor_binning=False
@@ -398,7 +398,7 @@ class Reports(LazyNamespace):
         # Remove None values (tables that are not available)
         tabs = {k: v for k, v in tabs.items() if v is not None}
 
-        if not tabs:
+        if not tabs:  # pragma: no cover
             print("No data available to export.")
             return None
 

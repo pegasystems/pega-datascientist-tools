@@ -3,6 +3,7 @@ from typing import Dict, List, Literal, Optional, TypedDict, Union
 import httpx
 from pydantic import AliasChoices, BaseModel, Field, Json
 
+from ...internal._exceptions import InternalServerError, InvalidInputs, PegaException
 from ...internal._resource import SyncAPIResource
 
 
@@ -48,10 +49,18 @@ class BuddyResponse(BaseModel):
     )
 
 
+class UnavailableBuddyError(PegaException):
+    """Request contains invalid inputs"""
+
+
+class NoAPIAccessError(PegaException):
+    """You do not have access to the API. Contact the administrator."""
+
+
 class KnowledgeBuddy(SyncAPIResource):
     def __init__(self, client):
         super().__init__(client)
-        self._client.custom_exception_hook = self.custom_exception_hook
+        self.custom_exception_hook = self.custom_exception_hook
 
     def question(
         self,
@@ -148,17 +157,13 @@ class KnowledgeBuddy(SyncAPIResource):
         params: Dict,
         response: httpx.Response,
     ) -> Union[None, Exception]:
-        # print(response.text)
         if "Buddy is not available to ask questions." in response.text:
-            # print(params)
-            return Exception("This buddy is not available in the system.")
+            return UnavailableBuddyError(base_url, endpoint, params, response)
         if response.status_code == 401 or response.status_code == 403:
-            return Exception(
-                "You do not have access to the API. Contact the administrator."
-            )
+            return NoAPIAccessError(base_url, endpoint, params, response)
         elif response.status_code == 400:
-            return Exception("Invalid inputs.")
+            return InvalidInputs(base_url, endpoint, params, response)
         elif response.status_code == 500:
-            return Exception(f"Internal server error.: {response.text}")
+            return InternalServerError(base_url, endpoint, params, response)
         else:
-            return None
+            return Exception(response.text)

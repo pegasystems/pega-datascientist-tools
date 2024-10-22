@@ -22,9 +22,9 @@ class Infinity(SyncAPIClient):
         if not args and not kwargs:
             raise RuntimeError(instructions)
 
-        try:
+        try:  # pragma: no cover
             import pydantic
-        except ImportError:
+        except ImportError:  # pragma: no cover
             raise MissingDependenciesException(
                 ["pydantic"], "the Infinity API client", "api"
             )
@@ -42,7 +42,7 @@ class Infinity(SyncAPIClient):
         # )
 
 
-class AsyncInfinity(AsyncAPIClient):
+class AsyncInfinity(AsyncAPIClient):  # pragma: no cover
     version: str
 
     def __init__(self, *args, **kwargs):

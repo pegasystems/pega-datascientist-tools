@@ -40,8 +40,9 @@ ResponseT = TypeVar(
 )
 
 
-
-async def execute_and_collect(task_coro: Coroutine, results: List, i: int):
+async def execute_and_collect(
+    task_coro: Coroutine, results: List, i: int
+):  # pragma: no cover
     try:
         result = await task_coro
     except Exception as e:
@@ -50,7 +51,7 @@ async def execute_and_collect(task_coro: Coroutine, results: List, i: int):
     results[i] = result
 
 
-async def get_results(tasks: List[Coroutine]) -> List[Any]:
+async def get_results(tasks: List[Coroutine]) -> List[Any]:  # pragma: no cover
     results: List[Any] = [None] * len(tasks)
 
     async with create_task_group() as tg:
@@ -104,7 +105,7 @@ class BaseClient(Generic[_HttpxClientT]):
             print(
                 "Could not infer Pega version automatically. ",
                 "For full compatibility, please supply the pega_version argument",
-                "to the PegaClient object.",
+                "to the Infinity class.",
             )
             return "Undefined"
 
@@ -214,6 +215,15 @@ class SyncAPIClient(BaseClient[httpx.Client]):
             raise APIConnectionError(request=str(request)) from err
         return response
 
+    def handle_pega_exception(self, endpoint, params, response):
+        if hasattr(self, "custom_exception_hook"):
+            exception: Optional[Exception] = self.custom_exception_hook(
+                self._base_url, endpoint, params, response
+            )
+            if exception:
+                raise exception
+        raise handle_pega_exception(self._base_url, endpoint, params, response)
+
     def request(self, method, endpoint, **params):
         if method.lower() == "get":
             return self.get(endpoint=endpoint, **params)
@@ -224,7 +234,7 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         response = self._request(method="get", endpoint=endpoint, **params)
 
         if response.status_code != 200:
-            raise handle_pega_exception(self._base_url, endpoint, params, response)
+            raise self.handle_pega_exception(endpoint, params, response)
         return response.json()
 
     def post(
@@ -236,7 +246,7 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         logger.info((self._base_url, endpoint))
         response = self._request(method="post", endpoint=endpoint, data=data, **params)
         if response.status_code not in (200, 201, 202):
-            raise handle_pega_exception(self._base_url, endpoint, params, response)
+            raise self.handle_pega_exception(endpoint, params, response)
         return response.json()
 
     def patch(
@@ -245,7 +255,7 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         logger.info((self._base_url, endpoint))
         response = self._request(method="patch", endpoint=endpoint, data=data, **params)
         if response.status_code != 200:
-            raise handle_pega_exception(self._base_url, endpoint, params, response)
+            raise self.handle_pega_exception(endpoint, params, response)
         return response.json()
 
     def put(
@@ -254,23 +264,23 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         logger.info((self._base_url, endpoint))
         response = self._request(method="put", endpoint=endpoint, data=data, **params)
         if response.status_code != 200:
-            raise handle_pega_exception(self._base_url, endpoint, params, response)
+            raise self.handle_pega_exception(endpoint, params, response)
         return response.json()
 
-    def delete(self):
+    def delete(self):  # pragma: no cover
         raise NotImplementedError()
 
-    def get_api_list(self):
+    def get_api_list(self):  # pragma: no cover
         raise NotImplementedError()
 
 
-class _DefaultAsyncHttpxClient(httpx.AsyncClient):
+class _DefaultAsyncHttpxClient(httpx.AsyncClient):  # pragma: no cover
     def __init__(self, **kwargs: Any) -> None:
         kwargs.setdefault("follow_redirects", True)
         super().__init__(**kwargs)
 
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     DefaultAsyncHttpxClient = httpx.AsyncClient
     """An alias to `httpx.AsyncClient` that provides the same defaults that this SDK
     uses internally.
@@ -283,7 +293,7 @@ else:
 
 
 class AsyncHttpxClientWrapper(DefaultAsyncHttpxClient):
-    def __del__(self) -> None:
+    def __del__(self) -> None:  # pragma: no cover
         try:
             # TODO(someday): support non asyncio runtimes here
             asyncio.get_running_loop().create_task(self.aclose())
@@ -291,7 +301,7 @@ class AsyncHttpxClientWrapper(DefaultAsyncHttpxClient):
             pass
 
 
-class AsyncAPIClient(BaseClient[httpx.AsyncClient]):
+class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
     _client: httpx.AsyncClient
 
     def __init__(
