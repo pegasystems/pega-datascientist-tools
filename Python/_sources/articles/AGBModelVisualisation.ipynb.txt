@@ -37,13 +37,16 @@
     "# Do not run if you're running the notebook seperately\n",
     "\n",
     "import plotly.io as pio\n",
-    "pio.renderers.default='notebook_connected'\n",
+    "\n",
+    "pio.renderers.default = \"notebook_connected\"\n",
     "\n",
     "import sys\n",
-    "sys.path.append('../../../')\n",
+    "\n",
+    "sys.path.append(\"../../../\")\n",
     "\n",
     "import warnings\n",
-    "warnings.simplefilter('ignore', SyntaxWarning)"
+    "\n",
+    "warnings.simplefilter(\"ignore\", SyntaxWarning)"
    ]
   },
   {
@@ -65,7 +68,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 2,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -81,7 +84,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 3,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -208,7 +211,7 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "preds = ['Customer.Age', 'Customer.LanguagePreference', 'pyName']\n",
+    "preds = [\"Customer.Age\", \"Customer.LanguagePreference\", \"pyName\"]\n",
     "Trees.plotSplitsPerVariable(subset=preds);"
    ]
   },
@@ -261,7 +264,14 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "Trees.plotTree(18, highlighted = {\"IH.MISSING.MISSING.Churned.pyHistoricalOutcomeCount\":2, \"IH.SMS.Outbound.Accept.pyHistoricalOutcomeCount\":0, \"pyName\": 'PremierChecking'});"
+    "Trees.plotTree(\n",
+    "    18,\n",
+    "    highlighted={\n",
+    "        \"IH.MISSING.MISSING.Churned.pyHistoricalOutcomeCount\": 2,\n",
+    "        \"IH.SMS.Outbound.Accept.pyHistoricalOutcomeCount\": 0,\n",
+    "        \"pyName\": \"PremierChecking\",\n",
+    "    },\n",
+    ");"
    ]
   },
   {
@@ -277,7 +287,11 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "x = {\"IH.MISSING.MISSING.Churned.pyHistoricalOutcomeCount\":2, \"IH.SMS.Outbound.Accept.pyHistoricalOutcomeCount\":0, \"pyName\": 'NotPremierChecking'}\n",
+    "x = {\n",
+    "    \"IH.MISSING.MISSING.Churned.pyHistoricalOutcomeCount\": 2,\n",
+    "    \"IH.SMS.Outbound.Accept.pyHistoricalOutcomeCount\": 0,\n",
+    "    \"pyName\": \"NotPremierChecking\",\n",
+    "}\n",
     "Trees.plotTree(18, highlighted=x);"
    ]
   },
@@ -294,7 +308,7 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "Trees.plotTree(30);"
+    "Trees.plotTree(15);"
    ]
   },
   {
@@ -314,24 +328,27 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 21,
    "metadata": {},
    "outputs": [],
    "source": [
     "def sampleX(trees):\n",
     "    from random import sample\n",
+    "\n",
     "    x = {}\n",
     "    for variable, values in trees.allValuesPerSplit.items():\n",
     "        if len(values) == 1:\n",
-    "            if 'true' in values or 'false' in values:\n",
-    "                values = {'true', 'false'}\n",
+    "            if \"true\" in values or \"false\" in values:\n",
+    "                values = {\"true\", \"false\"}\n",
     "            if isinstance(list(values)[0], str):\n",
-    "                try: \n",
+    "                try:\n",
     "                    float(list(values)[0])\n",
     "                except:\n",
-    "                    values = values.union({'Other'})\n",
-    "        x[variable]= sample(list(values), 1)[0]\n",
+    "                    values = values.union({\"Other\"})\n",
+    "        x[variable] = sample(list(values), 1)[0]\n",
     "    return x\n",
+    "\n",
+    "\n",
     "randomX = sampleX(Trees)"
    ]
   },
@@ -367,7 +384,8 @@
    "outputs": [],
    "source": [
     "import math\n",
-    "1/(1+math.exp(-scores['score'].sum()))"
+    "\n",
+    "1 / (1 + math.exp(-scores[\"score\"].sum()))"
    ]
   },
   {
@@ -411,11 +429,8 @@
   }
  ],
  "metadata": {
-  "interpreter": {
-   "hash": "7e1998ff7f8aa20ada591c520b972326324e5ea05489af9e422744c7c09f6dad"
-  },
   "kernelspec": {
-   "display_name": "Python 3.10.2 64-bit",
+   "display_name": ".venv",
    "language": "python",
    "name": "python3"
   },
@@ -429,7 +444,7 @@
    "name": "python",
    "nbconvert_exporter": "python",
    "pygments_lexer": "ipython3",
-   "version": "3.11.5"
+   "version": "3.10.15"
   },
   "orig_nbformat": 4
  },
