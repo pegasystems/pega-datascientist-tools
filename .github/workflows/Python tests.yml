@@ -14,8 +14,6 @@ on:
       - reports/*.qmd
       - .github/workflows/**
 
-
-
 jobs:
   Tests:
     runs-on: ${{matrix.os}}
