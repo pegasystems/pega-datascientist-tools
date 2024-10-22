@@ -12,6 +12,8 @@ on:
     paths:
       - python/**
       - reports/*.qmd
+      - .github/workflows/**
+
 
 
 jobs:
