@@ -2,8 +2,6 @@ name: Health Check tests
 
 on:
   push:
-    branches:
-      - master
     paths:
       - python/**
       - reports/*.qmd
