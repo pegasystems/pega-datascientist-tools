@@ -25,26 +25,24 @@ jobs:
         with:
           version: 1.3.450
           
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        
       - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-          cache: pip
+        run: uv python install 3.12
 
-      - name: Install dependencies
-        working-directory: python
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -r tests/test-requirements.txt
-          pip install papermill
-          pip install itables
-          pip install jinja2
-          ipython kernel install --name "python3" --user
-          sudo apt-get install -y pandoc
-          
-      - name: Install pdstools
-        run: pip install .
+      - name: Enable caching
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            **/pyproject.toml
+    
+      - name: Install the project
+        run: uv sync --extra healthcheck
+      
+      - name: Set up Pandoc
+        run: sudo apt-get install -y pandoc
 
       - name: Run Health Check
-        run: pytest python/tests/test_healthcheck.py
+        run: uv run pytest python/tests/test_healthcheck.py
