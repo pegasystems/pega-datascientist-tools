@@ -18,8 +18,6 @@ jobs:
 
     name: pdstools (Python ${{ matrix.python-version }}) on ${{ matrix.os }} 
 
-    if: github.event.pull_request.draft == false  
-
     strategy:
       fail-fast: true
       matrix:
@@ -46,8 +44,17 @@ jobs:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
+      
       - uses: actions/checkout@v4
 
+      - name: Check for draft PR  
+        if: github.event_name == 'pull_request'  
+        run: |  
+          if [[ "${{ github.event.pull_request.draft }}" == "true" ]]; then  
+            echo "This is a draft PR, exiting."  
+            exit 0  
+          fi  
+          
       - name: Install uv
         uses: astral-sh/setup-uv@v3
         

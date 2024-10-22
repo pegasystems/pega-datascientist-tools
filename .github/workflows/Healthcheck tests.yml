@@ -17,10 +17,16 @@ jobs:
     runs-on: ubuntu-latest
     name: Test Health Check
 
-    if: github.event.pull_request.draft == false  
-
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Check for draft PR  
+        if: github.event_name == 'pull_request'  
+        run: |  
+          if [[ "${{ github.event.pull_request.draft }}" == "true" ]]; then  
+            echo "This is a draft PR, exiting."  
+            exit 0  
+          fi  
 
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
