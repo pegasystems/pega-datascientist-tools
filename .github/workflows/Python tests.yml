@@ -2,19 +2,22 @@ name: Python tests
 
 on:
   push:
+    branches:
+      - main
     paths:
       - python/**
       - .github/workflows/**
-  pull_request: 
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - python/**
-      - .github/workflows/**
-    types: [opened, synchronize, reopened, ready_for_review]  
+      - reports/*.qmd
 
 
 jobs:
   Tests:
     runs-on: ${{matrix.os}}
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false)  
 
     name: pdstools (Python ${{ matrix.python-version }}) on ${{ matrix.os }} 
 
@@ -43,7 +46,6 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
     
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false)  
   
     steps:
       
