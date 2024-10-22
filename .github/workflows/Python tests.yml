@@ -44,40 +44,25 @@ jobs:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-      - name: Install Python ${{matrix.python-version}}
-        uses: actions/setup-python@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Enable caching
+        uses: astral-sh/setup-uv@v3
         with:
-          python-version: ${{matrix.python-version}}
-          allow-prereleases: true
-
-      - name: Upgrade pip
-        run: |
-          python3 -m pip install --upgrade pip
-
-      - name: Get pip cache dir
-        id: pip-cache
-        run: echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
-
-      - name: Cache dependencies
-        continue-on-error: true
-        uses: actions/cache@v3
-        with:
-          path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/*requirements.txt') }}-{{matrix.python-version}}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r python/requirements.txt
-          pip install -r python/tests/test-requirements.txt
-          ipython kernel install --name "python3" --user
-
+          enable-cache: true
+    
+      - name: Install the project
+        run: uv sync --extra tests --extra pytest-cov
+    
       - name: Run tests
-        run: pytest --cov=./python/pdstools --cov-report=xml --cov-config=./python/tests/.coveragerc --ignore=python/tests/test_healthcheck.py
+        run: uv run pytest --cov=./python/pdstools --cov-report=xml --cov-config=./python/tests/.coveragerc --ignore=python/tests/test_healthcheck.py
         
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4.0.1
