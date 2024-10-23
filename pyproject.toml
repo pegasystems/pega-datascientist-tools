@@ -45,7 +45,7 @@ healthcheck = ['pdstools[adm]', 'great_tables>=0.13', 'quarto','papermill', 'ita
 app = ['pdstools[healthcheck]', 'streamlit>=1.23', 'st-pages']
 all = ['pdstools[app, api]']
 docs = ['sphinx','furo','sphinx-autoapi','nbsphinx','sphinx-copybutton','myst-parser']
-tests = ['testbook', 'pytest', 'pytest-cov', 'pdstools[app, api]']
+tests = ['testbook', 'pytest', 'pytest-cov', 'pytest-httpx', 'pdstools[app, api]']
 
 [project.urls]
 "Homepage" = "https://github.com/pegasystems/pega-datascientist-tools"
