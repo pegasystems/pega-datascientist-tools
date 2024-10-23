@@ -8,18 +8,21 @@ from plotly.graph_objects import Figure
 
 # basePath = pathlib.Path(__file__).parent.parent.parent
 # sys.path.append(f"{str(basePath)}/python")
-from pdstools import BinAggregator, datasets
+from pdstools import BinAggregator, datasets, ADMDatamart
 
-
+dm = ADMDatamart(
+    model_df=datasets.cdh_sample().model_data,
+    predictor_df=datasets.cdh_sample().predictor_data,
+    query=((pl.col("Issue").is_in(["Sales"]))&(pl.col("Direction")=="Inbound"))
+)
 
 @pytest.fixture
 def cdhsample_binaggregator():
-    dm = datasets.cdh_sample()
     return BinAggregator(dm)
 
 def test_overall_num_rollup(cdhsample_binaggregator):
-    assert isinstance(cdhsample_binaggregator.roll_up("Customer.Age"), Figure)
-    rolled_up_binning = cdhsample_binaggregator.roll_up("Customer.Age", return_df=True)
+    assert isinstance(cdhsample_binaggregator.roll_up("Customer.AnnualIncome"), Figure)
+    rolled_up_binning = cdhsample_binaggregator.roll_up("Customer.AnnualIncome", return_df=True)
     assert rolled_up_binning.columns == [
         "PredictorName",
         "BinIndex",
@@ -32,37 +35,39 @@ def test_overall_num_rollup(cdhsample_binaggregator):
         "Models",
         "Topic",
     ]
-    assert rolled_up_binning["Models"].to_list() == [20] * 10
+    assert rolled_up_binning["Models"].to_list() == [4] * 10
     assert rolled_up_binning["BinCoverage"].to_list() == pytest.approx(
-        [19.8333333] + [20] * 7 + [19.5, 18.6666667], 1e-5
+        [3.994431] + [4] * 7 + [3.900718, 2.204945], 1e-5
     )
     assert rolled_up_binning["Lift"].to_list() == pytest.approx(
         [
-            0.42120621812754727,
-            0.0901427039270719,
-            -0.14888281428939504,
-            -0.20378680869690577,
-            -0.013911905947971337,
-            0.26038574790414176,
-            0.3732155566449165,
-            0.33113205,
-            0.3396226153846153,
-            0.353823625,
+            -0.107611,
+            -0.196807,
+            -0.166791,
+            0.731257,
+            0.943641,
+            0.943641,
+            0.943641,
+            0.943641,
+            0.967659,
+            1.111563,
+
         ],
-        1e-8,
+        1e-5,
     )
     assert rolled_up_binning["BinResponses"].to_list() == pytest.approx(
         [
-            2407.832060596152,
-            3929.821488827346,
-            6070.309319634542,
-            7844.387419462578,
-            6838.913967899006,
-            3774.6789587887847,
-            1469.6187810832494,
-            1001.5007948345176,
-            1001.5007948345176,
-            906.4364140393087,
+            2050.537142,
+            1984.863844,
+            1273.951683,
+            343.582104,
+            190.330366,
+            190.330366,
+            190.330366,
+            190.330366,
+            190.330366,
+            85.413398,
+
         ],
         1e-8,
     )
@@ -85,8 +90,8 @@ def test_overall_sym_rollup(cdhsample_binaggregator):
         "Models",
         "Topic",
     ]
-    assert rolled_up_binning["Models"].to_list() == [15] * 5
-    assert rolled_up_binning["BinCoverage"].to_list() == [15, 15, 0, 15, 15]
+    assert rolled_up_binning["Models"].to_list() == [3] * 5
+    assert rolled_up_binning["BinCoverage"].to_list() == [3, 3, 0, 3, 3]
     assert rolled_up_binning["BinSymbol"].to_list() == [
         "Unknown",
         "Single",
@@ -95,10 +100,20 @@ def test_overall_sym_rollup(cdhsample_binaggregator):
         "No Resp+",
     ]
     assert rolled_up_binning["Lift"].to_list() == pytest.approx(
-        [0.493990, 0.055068, 0.0, -0.19841, -0.253957], 1e-5
+        [0.392478,
+0.074237,
+0.0,
+-0.208895,
+-0.220171,
+], 1e-5
     )
     assert rolled_up_binning["BinResponses"].to_list() == pytest.approx(
-        [8092.0, 9581.5, 0.0, 9312.5, 9502.0], 1e-5
+        [1507.0,
+1757.0,
+0.0,
+1743.0,
+1683.0,
+], 1e-5
     )
 
 

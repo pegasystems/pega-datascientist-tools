@@ -313,7 +313,7 @@ class BinAggregator(LazyNamespace):
         symbins_pivot = symbins_long.pivot(
             values=["Lift"],
             index=["ModelID", "Lift_RESIDUAL"],
-            columns="Symbol",
+            on="Symbol",
         ).sort("ModelID")  # just for debugging/transparency
 
         if verbose:
@@ -346,8 +346,8 @@ class BinAggregator(LazyNamespace):
             print(symbins_pivot)
 
         # melt the pivot back to long form, but now all symbols are present for all models
-        molten = symbins_pivot.melt(
-            id_vars="PredictorName", variable_name="Symbol", value_name="Lift"
+        molten = symbins_pivot.unpivot(
+            index="PredictorName", variable_name="Symbol", value_name="Lift"
         )
         if "Lift" not in molten.columns:
             molten = molten.with_columns(Lift=pl.lit(0.0))
@@ -361,14 +361,14 @@ class BinAggregator(LazyNamespace):
             .join(
                 symbins_long.group_by("Symbol").agg(
                     BinResponses=pl.sum("BinResponses"),
-                    BinCoverage=pl.count(),  # nr of models that have this symbol
+                    BinCoverage=pl.len(),  # nr of models that have this symbol
                 ),
                 on="Symbol",
                 how="left",
             )
             # add a bin index
             .sort("Lift", descending=True)
-            .with_row_count(name="BinIndex", offset=1)
+            .with_row_index(name="BinIndex", offset=1)
             # put columns in exact same order as num binning
             .select(
                 "PredictorName",
@@ -383,14 +383,14 @@ class BinAggregator(LazyNamespace):
                 "Lift",
                 pl.col("BinResponses").fill_null(0),
                 pl.col("BinCoverage").fill_null(0),
-                pl.lit(symbins_pivot.select(pl.count()).item()).alias("Models"),
+                pl.lit(symbins_pivot.select(pl.len()).item()).alias("Models"),
             )
         )
 
         # Normalize the lift: sum of lift over all bins should be zero by definition
         # if normalize:
         #     aggregate_binning = aggregate_binning.with_columns(
-        #         (pl.col("Lift") - pl.sum("Lift") / pl.count()).alias("Lift"),
+        #         (pl.col("Lift") - pl.sum("Lift") / pl.len()).alias("Lift"),
         #     )
 
         return aggregate_binning
@@ -681,7 +681,7 @@ class BinAggregator(LazyNamespace):
         # Normalize the lift: sum of lift over all bins should be zero by definition
         # if normalize:
         #     target = target.with_columns(
-        #         (pl.col("Lift") - pl.sum("Lift") / pl.count()).alias("Lift")
+        #         (pl.col("Lift") - pl.sum("Lift") / pl.len()).alias("Lift")
         #     )
 
         model_count = 1 + target[0, "Models"]
@@ -689,7 +689,7 @@ class BinAggregator(LazyNamespace):
         return (
             # ok bizarre construct, I really just want to replace Models with an incremented value (same for all rows)
             target.drop("Models").with_columns(
-                pl.repeat(model_count, pl.count()).alias("Models")
+                pl.repeat(model_count, pl.len()).alias("Models")
             )
         )
 
