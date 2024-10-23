@@ -5,7 +5,7 @@ import subprocess
 import sys
 from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Union, Callable
 
 import polars as pl
 
@@ -32,10 +32,9 @@ class Reports(LazyNamespace):
         name: Optional[str] = None,
         working_dir: Optional[PathLike] = None,
         only_active_predictors: bool = False,
-        base_file_name: Optional[str] = None,
         output_type: str = "html",
         keep_temp_files: bool = False,
-        progress_callback=None,  #:  Callable[[int, int], None] = None,
+        progress_callback: Optional[Callable[[int, int], None]] = None,
     ) -> Path:
         """
         Generates model reports.
@@ -50,12 +49,13 @@ class Reports(LazyNamespace):
             The working directory for the output. If None, uses current working directory.
         only_active_predictors : bool, default=False
             Whether to only include active predictor details.
-        base_file_name : str, optional
-            The base file name for the generated reports. Defaults to None.
         output_type : str, default='html'
             The type of the output file (e.g., "html", "pdf").
         keep_temp_files : bool, optional
             If True, the temporary directory with temp files will not be deleted after report generation.
+        progress_callback : Callable[[int, int], None], optional
+            A callback function to report progress. Used only in the Streamlit app.
+            The function should accept two integers: the current progress and the total.
 
 
         Returns
@@ -192,6 +192,7 @@ class Reports(LazyNamespace):
                 qmd_file,
                 output_type,
                 output_filename,
+                verbose,
             )
 
             output_path = temp_dir / output_filename
@@ -206,7 +207,13 @@ class Reports(LazyNamespace):
             if not keep_temp_files and temp_dir.exists() and temp_dir.is_dir():
                 shutil.rmtree(temp_dir, ignore_errors=True)
 
-    def _get_output_filename(self, name, report_type, model_id, output_type):
+    def _get_output_filename(
+        self,
+        name: Optional[str],
+        report_type: str,
+        model_id: Optional[str],
+        output_type: str,
+    ) -> str:
         """Generate the output filename based on the report parameters."""
         name = name.replace(" ", "_") if name else None
         if report_type == "ModelReport":
@@ -221,13 +228,13 @@ class Reports(LazyNamespace):
             else f"{report_type}.{output_type}"
         )
 
-    def _copy_quarto_file(self, qmd_file, temp_dir):
+    def _copy_quarto_file(self, qmd_file: str, temp_dir: Path) -> None:
         """Copy the report quarto file to the temporary directory."""
         from pdstools import __reports__
 
         shutil.copy(__reports__ / qmd_file, temp_dir)
 
-    def _verify_cached_files(self, temp_dir):
+    def _verify_cached_files(self, temp_dir: Path) -> None:
         """Verify that cached data files exist."""
         modeldata_files = list(temp_dir.glob("cached_modelData*"))
         predictordata_files = list(temp_dir.glob("cached_predictorData*"))
@@ -315,7 +322,7 @@ class Reports(LazyNamespace):
 
         return return_code
 
-    def _find_quarto_executable(self):
+    def _find_quarto_executable(self) -> Path:
         """Find the Quarto executable on the system."""
         if sys.platform == "win32":  # pragma: no cover
             possible_paths = [
@@ -352,8 +359,10 @@ class Reports(LazyNamespace):
         )  # pragma: no cover
 
     def excel_report(
-        self, name: Union[Path, str] = Path("Tables.xlsx"), predictor_binning=False
-    ):
+        self,
+        name: Union[Path, str] = Path("Tables.xlsx"),
+        predictor_binning: bool = False,
+    ) -> Optional[Path]:
         """
         Export aggregated data to an Excel file.
         This method exports the last snapshots of model_data, predictor summary,
