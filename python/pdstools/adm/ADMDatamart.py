@@ -759,7 +759,6 @@ class ADMDatamart(Plots, Tables):
                 col_diff = set(query.meta.root_names()) - set(df_cols)
                 if len(col_diff) == 0:
                     return df.filter(query)
-
                 else:
                     raise ColumnNotFoundError(col_diff)
 
@@ -796,6 +795,10 @@ class ADMDatamart(Plots, Tables):
             for val in query.values():
                 if not type(val) == list:
                     raise ValueError("query values must be list")
+
+            col_diff = set(query.keys()) - set(df_cols)
+            if len(col_diff) > 0:
+                raise ColumnNotFoundError(col_diff)
 
             for col, val in query.items():
                 df = df.filter(pl.col(col).is_in(val))
