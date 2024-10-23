@@ -210,8 +210,6 @@ class Reports(LazyNamespace):
         """Generate the output filename based on the report parameters."""
         name = name.replace(" ", "_") if name else None
         if report_type == "ModelReport":
-            if not model_id:
-                raise ValueError("model_id is required for a model report.")
             return (
                 f"{report_type}_{name}_{model_id}.{output_type}"
                 if name
