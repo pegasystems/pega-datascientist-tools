@@ -2,6 +2,7 @@ import streamlit as st
 import json
 import polars as pl
 from pdstools.utils.streamlit_utils import filter_dataframe, model_and_row_counts
+from pdstools.utils.cdh_utils import _apply_query
 
 """# Add custom filters"""
 
@@ -22,17 +23,15 @@ if "dm" in st.session_state:
             expr_list.append(pl.Expr.from_json(json.dumps(val)))
 
     st.session_state["filters"] = filter_dataframe(
-        st.session_state["dm"].modelData, queries=expr_list
+        st.session_state["dm"].model_data, queries=expr_list
     )
     if "unfiltered_counts" not in st.session_state.keys():
         st.session_state["unfiltered_counts"] = model_and_row_counts(
-            st.session_state["dm"].modelData
+            st.session_state["dm"].model_data
         )
     if st.session_state["filters"] != []:
         filtered_modelid_count, filtered_row_count = model_and_row_counts(
-            st.session_state["dm"]._apply_query(
-                st.session_state["dm"].modelData, st.session_state["filters"]
-            )
+            _apply_query(st.session_state["dm"].model_data, st.session_state["filters"])
         )
         deserialize_exprs = {}
         for i, expr in enumerate(st.session_state["filters"]):

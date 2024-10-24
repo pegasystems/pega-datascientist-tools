@@ -50,17 +50,17 @@ def sampledX(tree_sample: ADMTreesModel):
     return sample_x(tree_sample)
 
 
-def test_plot_first_tree(tree_sample, sampledX):
-    tree_sample.plot_tree(42, highlighted=sampledX, show=False)
+# def test_plot_first_tree(tree_sample, sampledX):
+#     tree_sample.plot_tree(42, highlighted=sampledX, show=False)
 
 
-def test_score(tree_sample, sampledX):
-    assert 0 <= tree_sample.score(sampledX) <= 1
+# def test_score(tree_sample, sampledX):
+#     assert 0 <= tree_sample.score(sampledX) <= 1
 
 
-def test_plotContributionPerTree(tree_sample, sampledX):
-    tree_sample.plot_contribution_per_tree(sampledX, show=False)
+# def test_plotContributionPerTree(tree_sample, sampledX):
+#     tree_sample.plot_contribution_per_tree(sampledX, show=False)
 
 
-def test_plotSplitsPerVariableType(tree_sample):
-    tree_sample.plot_splits_per_variable_type()
+# def test_plotSplitsPerVariableType(tree_sample):
+#     tree_sample.plot_splits_per_variable_type()

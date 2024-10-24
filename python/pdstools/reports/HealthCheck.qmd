@@ -121,7 +121,6 @@ def fig_set_xaxis_modelperformance(fig, label="Model Performance"):
 # When neither is passed in, it falls back to the sample data.
 
 name = "ADM Models"  # TODO: what's this used for?
-filters = dict()  # TODO: not used?
 kwargs = dict()
 
 title = "ADM Model Overview"  # pass in customer name here
@@ -139,8 +138,6 @@ responsecount_analysis_threshold = (
 predictor_analysis_threshold = 200  # min number of responses for predictor analysis
 # channel_responses_threshold = 10000
 configuration_responses_threshold = 10000
-
-# globalQuery = None # TODO not used?
 
 responsecount_analysis_query = (
     pl.col("ResponseCount") > responsecount_analysis_threshold
@@ -194,18 +191,25 @@ def reset_datamart(dm):
 
 if len(kwargs) > 0:
     # Calling through function (in streamlit or in a notebook)
-    model_df = read_ds_export(kwargs["model_file_path"])
-    predictor_df = read_ds_export(kwargs["predictor_file_path"])
-    reset_datamart(ADMDatamart(model_df=model_df, predictor_df=predictor_df))
+    reset_datamart(
+        ADMDatamart.from_ds_export(
+            model_filename= kwargs["model_file_path"],
+            predictor_filename= kwargs["predictor_file_path"],
+            base_path=".",
+            query=kwargs["query"]
+        )
+    )
 elif len(datafolder) > 0 or len(modelfilename) > 0 or len(predictorfilename) > 0:
     # Run through this qmd file
-    reset_datamart(ADMDatamart(
-        path="." if len(datafolder) == 0 else datafolder,
-        model_filename="" if len(modelfilename) == 0 else modelfilename,
-        predictor_filename="" if len(predictorfilename) == 0 else predictorfilename,
-        extract_keys=True,
-        include_cols="pyFeatureImportance",
-    ))
+
+    reset_datamart(
+        ADMDatamart.from_ds_export(
+            model_filename=model_filename,
+            predictor_filename=predictor_filename,
+            base_path=".",
+            query=kwargs["query"]
+        )
+    )
 else:
     # fall back to sample data
     reset_datamart(datasets.cdh_sample())
