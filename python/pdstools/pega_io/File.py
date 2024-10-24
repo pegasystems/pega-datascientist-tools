@@ -20,7 +20,7 @@ from ..utils.cdh_utils import from_prpc_date_time
 
 
 def read_ds_export(
-    filename: str,
+    filename: Union[str, BytesIO],
     path: Union[str, os.PathLike] = ".",
     verbose: bool = True,
     **reading_opts,
@@ -41,11 +41,11 @@ def read_ds_export(
 
     Parameters
     ----------
-    filename : [pd.DataFrame, pl.DataFrame, str]
-        Either a Pandas/Polars DataFrame with the source data (for compatibility),
-        or a string, in which case it can either be:
-        - The name of the file (if a custom name) or
-        - Whether we want to look for 'modelData' or 'predictorData' in the path folder.
+    filename : Union[str, BytesIO]
+        Can be one of the following:
+        - A string with the full path to the file
+        - A string with the name of the file (to be searched in the given path)
+        - A BytesIO object containing the file data (e.g., from an uploaded file in a webapp)
     path : str, default = '.'
         The location of the file
     verbose : bool, default = True
@@ -62,11 +62,9 @@ def read_ds_export(
         The (lazy) dataframe
 
     Examples:
-        >>> df = readDSExport(filename = 'modelData', path = './datamart')
-        >>> df = readDSExport(filename = 'ModelSnapshot.json', path = 'data/ADMData')
-
-        >>> df = pd.read_csv('file.csv')
-        >>> df = readDSExport(filename = df)
+        >>> df = read_ds_export(filename='full/path/to/ModelSnapshot.json')
+        >>> df = read_ds_export(filename='ModelSnapshot.json', path='data/ADMData')
+        >>> df = read_ds_export(filename=uploaded_file)  # Where uploaded_file is a BytesIO object
 
     """
     file: Union[str, BytesIO]

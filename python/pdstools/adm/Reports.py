@@ -5,12 +5,13 @@ import subprocess
 import sys
 from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional, Union, Callable
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 
 import polars as pl
 
 from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
+from ..utils.types import QUERY
 
 if TYPE_CHECKING:
     from .ADMDatamart import ADMDatamart
@@ -31,6 +32,7 @@ class Reports(LazyNamespace):
         *,
         name: Optional[str] = None,
         working_dir: Optional[PathLike] = None,
+        query: Optional[QUERY] = None,
         only_active_predictors: bool = False,
         output_type: str = "html",
         keep_temp_files: bool = False,
@@ -98,6 +100,7 @@ class Reports(LazyNamespace):
                     "report_type": "ModelReport",
                     "model_id": model_id,
                     "only_active_predictors": only_active_predictors,
+                    "query": query,
                 }
 
                 self._write_params_file(temp_dir, params)
@@ -108,6 +111,7 @@ class Reports(LazyNamespace):
                     output_filename,
                 )
                 output_path = temp_dir / output_filename
+                print(f"{output_path=}")
                 if not output_path.exists():
                     raise ValueError(f"Failed to write the report: {output_filename}")
                 output_file_paths.append(output_path)
@@ -137,6 +141,7 @@ class Reports(LazyNamespace):
         name: Optional[str] = None,
         working_dir: Optional[os.PathLike] = None,
         *,
+        query: Optional[QUERY] = None,
         output_type: str = "html",
         keep_temp_files: bool = False,
         verbose: bool = False,
@@ -184,6 +189,7 @@ class Reports(LazyNamespace):
                 "report_type": "HealthCheck",
                 "model_file_path": str(model_file_path),
                 "predictor_file_path": str(predictor_file_path),
+                "query": query,
             }
 
             self._write_params_file(temp_dir, params)
@@ -362,6 +368,7 @@ class Reports(LazyNamespace):
         self,
         name: Union[Path, str] = Path("Tables.xlsx"),
         predictor_binning: bool = False,
+        query: Optional[QUERY] = None,
     ) -> Optional[Path]:
         """
         Export aggregated data to an Excel file.

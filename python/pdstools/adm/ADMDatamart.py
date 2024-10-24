@@ -202,15 +202,16 @@ class ADMDatamart:
         (Optional[Path], Optional[Path]):
             The paths to the model and predictor data files
         """
+        abs_path = Path(path).resolve()
         time = datetime.datetime.now().strftime("%Y%m%dT%H%M%S.%f")[:-3]
         modeldata_cache, predictordata_cache = None, None
         if self.model_data is not None:
             modeldata_cache = pega_io.cache_to_file(
-                self.model_data, path, name=f"cached_model_data_{time}"
+                self.model_data, abs_path, name=f"cached_model_data_{time}"
             )
         if self.predictor_data is not None:
             predictordata_cache = pega_io.cache_to_file(
-                self.predictor_data, path, name=f"cached_predictor_data_{time}"
+                self.predictor_data, abs_path, name=f"cached_predictor_data_{time}"
             )
 
         return modeldata_cache, predictordata_cache
