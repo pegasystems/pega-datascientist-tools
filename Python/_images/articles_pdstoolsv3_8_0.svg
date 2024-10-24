@@ -1,81 +1,81 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="4979pt" height="495pt" viewBox="0.00 0.00 4979.00 495.00">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="4981pt" height="495pt" viewBox="0.00 0.00 4981.00 495.00">
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 491)">
 <title>polars_query</title>
-<polygon fill="white" stroke="transparent" points="-4,4 -4,-491 4975,-491 4975,4 -4,4"/>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-491 4977,-491 4977,4 -4,4"/>
 <!-- p1 -->
 <g id="node1" class="node">
 <title>p1</title>
-<polygon fill="none" stroke="black" points="2674.5,-487 2296.5,-487 2296.5,-451 2674.5,-451 2674.5,-487"/>
-<text text-anchor="middle" x="2485.5" y="-465.3" font-family="Times,serif" font-size="14.00">FILTER BY col(&quot;Name&quot;).str.contains([String(Visa)])</text>
+<polygon fill="none" stroke="black" points="2675.5,-487 2297.5,-487 2297.5,-451 2675.5,-451 2675.5,-487"/>
+<text text-anchor="middle" x="2486.5" y="-465.3" font-family="Times,serif" font-size="14.00">FILTER BY col(&quot;Name&quot;).str.contains([String(Visa)])</text>
 </g>
 <!-- p2 -->
 <g id="node2" class="node">
 <title>p2</title>
-<polygon fill="none" stroke="black" points="2670.5,-415 2300.5,-415 2300.5,-377 2670.5,-377 2670.5,-415"/>
-<text text-anchor="middle" x="2485.5" y="-399.8" font-family="Times,serif" font-size="14.00">simple π 15/16</text>
-<text text-anchor="middle" x="2485.5" y="-384.8" font-family="Times,serif" font-size="14.00">[&quot;ResponseCount&quot;, &quot;Group&quot;, ... 13 other columns]</text>
+<polygon fill="none" stroke="black" points="2671,-415 2302,-415 2302,-377 2671,-377 2671,-415"/>
+<text text-anchor="middle" x="2486.5" y="-399.8" font-family="Times,serif" font-size="14.00">simple π 15/16</text>
+<text text-anchor="middle" x="2486.5" y="-384.8" font-family="Times,serif" font-size="14.00">[&quot;Performance&quot;, &quot;Positives&quot;, ... 13 other columns]</text>
 </g>
 <!-- p1&#45;&#45;p2 -->
 <g id="edge1" class="edge">
 <title>p1--p2</title>
-<path fill="none" stroke="black" d="M2485.5,-450.81C2485.5,-439.98 2485.5,-426.01 2485.5,-415.02"/>
+<path fill="none" stroke="black" d="M2486.5,-450.81C2486.5,-439.98 2486.5,-426.01 2486.5,-415.02"/>
 </g>
 <!-- p3 -->
 <g id="node3" class="node">
 <title>p3</title>
-<polygon fill="none" stroke="black" points="4971,-341 0,-341 0,-305 4971,-305 4971,-341"/>
-<text text-anchor="middle" x="2485.5" y="-319.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [when([(col(&quot;__POLARS_CSER_0xa1a67808544c6492&quot;).is_not_nan()) | (col(&quot;__POLARS_CSER_0xa1a67808544c6492&quot;).is_null())]).then(col(&quot;__POLARS_CSER_0xa1a67808544c6492&quot;)).otherwise(0.0).alias(&quot;SuccessRate&quot;), when([(col(&quot;Positives&quot;).min()) == (col(&quot;Positives&quot;).max())]).then(col(&quot;SnapshotTime&quot;).max()).otherwise(col(&quot;SnapshotTime&quot;).filter([(col(&quot;Positives&quot;).diff()) != (0.0)]).max()).over([col(&quot;ModelID&quot;)]).alias(&quot;Last_Positives&quot;), when([(col(&quot;ResponseCount&quot;).min()) == (col(&quot;ResponseCount&quot;).max())]).then(col(&quot;SnapshotTime&quot;).max()).otherwise(col(&quot;SnapshotTime&quot;).filter([(col(&quot;ResponseCount&quot;).diff()) != (0.0)]).max()).over([col(&quot;ModelID&quot;)]).alias(&quot;Last_ResponseCount&quot;)]</text>
+<polygon fill="none" stroke="black" points="4973,-341 0,-341 0,-305 4973,-305 4973,-341"/>
+<text text-anchor="middle" x="2486.5" y="-319.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [when([(col(&quot;__POLARS_CSER_0xb781e21666853ddc&quot;).is_not_nan()) | (col(&quot;__POLARS_CSER_0xb781e21666853ddc&quot;).is_null())]).then(col(&quot;__POLARS_CSER_0xb781e21666853ddc&quot;)).otherwise(0.0).alias(&quot;SuccessRate&quot;), when([(col(&quot;Positives&quot;).min()) == (col(&quot;Positives&quot;).max())]).then(col(&quot;SnapshotTime&quot;).max()).otherwise(col(&quot;SnapshotTime&quot;).filter([(col(&quot;Positives&quot;).diff()) != (0.0)]).max()).over([col(&quot;ModelID&quot;)]).alias(&quot;Last_Positives&quot;), when([(col(&quot;ResponseCount&quot;).min()) == (col(&quot;ResponseCount&quot;).max())]).then(col(&quot;SnapshotTime&quot;).max()).otherwise(col(&quot;SnapshotTime&quot;).filter([(col(&quot;ResponseCount&quot;).diff()) != (0.0)]).max()).over([col(&quot;ModelID&quot;)]).alias(&quot;Last_ResponseCount&quot;)]</text>
 </g>
 <!-- p2&#45;&#45;p3 -->
 <g id="edge2" class="edge">
 <title>p2--p3</title>
-<path fill="none" stroke="black" d="M2485.5,-376.72C2485.5,-365.7 2485.5,-351.78 2485.5,-341"/>
+<path fill="none" stroke="black" d="M2486.5,-376.72C2486.5,-365.7 2486.5,-351.78 2486.5,-341"/>
 </g>
 <!-- p4 -->
 <g id="node4" class="node">
 <title>p4</title>
-<polygon fill="none" stroke="black" points="2891,-269 2080,-269 2080,-233 2891,-233 2891,-269"/>
-<text text-anchor="middle" x="2485.5" y="-247.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [[(col(&quot;Positives&quot;)) / (col(&quot;ResponseCount&quot;))].alias(&quot;__POLARS_CSER_0xa1a67808544c6492&quot;)]</text>
+<polygon fill="none" stroke="black" points="2892.5,-269 2080.5,-269 2080.5,-233 2892.5,-233 2892.5,-269"/>
+<text text-anchor="middle" x="2486.5" y="-247.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [[(col(&quot;Positives&quot;)) / (col(&quot;ResponseCount&quot;))].alias(&quot;__POLARS_CSER_0xb781e21666853ddc&quot;)]</text>
 </g>
 <!-- p3&#45;&#45;p4 -->
 <g id="edge3" class="edge">
 <title>p3--p4</title>
-<path fill="none" stroke="black" d="M2485.5,-304.7C2485.5,-293.85 2485.5,-279.92 2485.5,-269.1"/>
+<path fill="none" stroke="black" d="M2486.5,-304.7C2486.5,-293.85 2486.5,-279.92 2486.5,-269.1"/>
 </g>
 <!-- p5 -->
 <g id="node5" class="node">
 <title>p5</title>
-<polygon fill="none" stroke="black" points="4890.5,-197 80.5,-197 80.5,-161 4890.5,-161 4890.5,-197"/>
-<text text-anchor="middle" x="2485.5" y="-175.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [col(&quot;ResponseCount&quot;).strict_cast(Float32), col(&quot;Group&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Direction&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Positives&quot;).strict_cast(Float32), col(&quot;Issue&quot;).strict_cast(Categorical(None, Physical)), when([(col(&quot;SnapshotTime&quot;).str.slice([dyn int: 4, dyn int: 1])) == (String(-))]).then(col(&quot;SnapshotTime&quot;).str.strptime([String(raise)]).dt.cast_time_unit()).otherwise(col(&quot;SnapshotTime&quot;).str.strptime([String(raise)]).dt.replace_time_zone([String(raise)]).dt.cast_time_unit()).alias(&quot;SnapshotTime&quot;), col(&quot;Configuration&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Channel&quot;).strict_cast(Categorical(None, Physical))]</text>
+<polygon fill="none" stroke="black" points="4891.5,-197 81.5,-197 81.5,-161 4891.5,-161 4891.5,-197"/>
+<text text-anchor="middle" x="2486.5" y="-175.3" font-family="Times,serif" font-size="14.00">WITH COLUMNS [col(&quot;Positives&quot;).strict_cast(Float32), col(&quot;Configuration&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Channel&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Issue&quot;).strict_cast(Categorical(None, Physical)), col(&quot;Direction&quot;).strict_cast(Categorical(None, Physical)), col(&quot;ResponseCount&quot;).strict_cast(Float32), col(&quot;Group&quot;).strict_cast(Categorical(None, Physical)), when([(col(&quot;SnapshotTime&quot;).str.slice([dyn int: 4, dyn int: 1])) == (String(-))]).then(col(&quot;SnapshotTime&quot;).str.strptime([String(raise)]).dt.cast_time_unit()).otherwise(col(&quot;SnapshotTime&quot;).str.strptime([String(raise)]).dt.replace_time_zone([String(raise)]).dt.cast_time_unit()).alias(&quot;SnapshotTime&quot;)]</text>
 </g>
 <!-- p4&#45;&#45;p5 -->
 <g id="edge4" class="edge">
 <title>p4--p5</title>
-<path fill="none" stroke="black" d="M2485.5,-232.7C2485.5,-221.85 2485.5,-207.92 2485.5,-197.1"/>
+<path fill="none" stroke="black" d="M2486.5,-232.7C2486.5,-221.85 2486.5,-207.92 2486.5,-197.1"/>
 </g>
 <!-- p6 -->
 <g id="node6" class="node">
 <title>p6</title>
-<polygon fill="none" stroke="black" points="2527.5,-125 2443.5,-125 2443.5,-89 2527.5,-89 2527.5,-125"/>
-<text text-anchor="middle" x="2485.5" y="-103.3" font-family="Times,serif" font-size="14.00">RENAME</text>
+<polygon fill="none" stroke="black" points="2528.5,-125 2444.5,-125 2444.5,-89 2528.5,-89 2528.5,-125"/>
+<text text-anchor="middle" x="2486.5" y="-103.3" font-family="Times,serif" font-size="14.00">RENAME</text>
 </g>
 <!-- p5&#45;&#45;p6 -->
 <g id="edge5" class="edge">
 <title>p5--p6</title>
-<path fill="none" stroke="black" d="M2485.5,-160.7C2485.5,-149.85 2485.5,-135.92 2485.5,-125.1"/>
+<path fill="none" stroke="black" d="M2486.5,-160.7C2486.5,-149.85 2486.5,-135.92 2486.5,-125.1"/>
 </g>
 <!-- p7 -->
 <g id="node7" class="node">
 <title>p7</title>
-<polygon fill="none" stroke="black" points="2641,-53 2330,-53 2330,0 2641,0 2641,-53"/>
-<text text-anchor="middle" x="2485.5" y="-37.8" font-family="Times,serif" font-size="14.00">TABLE</text>
-<text text-anchor="middle" x="2485.5" y="-22.8" font-family="Times,serif" font-size="14.00">π 12/27;</text>
-<text text-anchor="middle" x="2485.5" y="-7.8" font-family="Times,serif" font-size="14.00">σ col(&quot;Name&quot;).str.contains([String(Visa)])</text>
+<polygon fill="none" stroke="black" points="2642,-53 2331,-53 2331,0 2642,0 2642,-53"/>
+<text text-anchor="middle" x="2486.5" y="-37.8" font-family="Times,serif" font-size="14.00">TABLE</text>
+<text text-anchor="middle" x="2486.5" y="-22.8" font-family="Times,serif" font-size="14.00">π 12/27;</text>
+<text text-anchor="middle" x="2486.5" y="-7.8" font-family="Times,serif" font-size="14.00">σ col(&quot;Name&quot;).str.contains([String(Visa)])</text>
 </g>
 <!-- p6&#45;&#45;p7 -->
 <g id="edge6" class="edge">
 <title>p6--p7</title>
-<path fill="none" stroke="black" d="M2485.5,-88.97C2485.5,-78.51 2485.5,-64.9 2485.5,-53.16"/>
+<path fill="none" stroke="black" d="M2486.5,-88.97C2486.5,-78.51 2486.5,-64.9 2486.5,-53.16"/>
 </g>
 </g>
 </svg>
