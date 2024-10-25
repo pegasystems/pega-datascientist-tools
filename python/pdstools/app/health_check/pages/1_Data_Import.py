@@ -9,9 +9,8 @@ Select an option below to get started, or first configure some advanded options
 in the expanding section below."""
 )
 
-opts = {}
 with st.expander("Configure advanced options", expanded=True):
-    opts["extract_keys"] = st.checkbox(
+    extract_pyname_keys = st.checkbox(
         "Extract Treatments",
         True,
         help="""By default, ADM has a few "Context Keys" it uses to 
@@ -22,7 +21,7 @@ with st.expander("Configure advanced options", expanded=True):
     )
 
 
-streamlit_utils.import_datamart(**opts)
+streamlit_utils.import_datamart(extract_pyname_keys=extract_pyname_keys)
 for key in st.session_state.keys():
     if key not in ["dm", "params", "logger", "log_buffer"]:
         del st.session_state[key]

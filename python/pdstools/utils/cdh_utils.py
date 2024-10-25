@@ -44,18 +44,31 @@ def _apply_query(df: F, query: Optional[QUERY] = None) -> F:
     if isinstance(query, pl.Expr):
         col_names = set(query.meta.root_names())
         query = [query]
-    elif isinstance(query, List):
+    elif isinstance(query, (list, tuple)):
+        if not query:
+            return df
         if not all(isinstance(expr, pl.Expr) for expr in query):
-            raise ValueError("If query is a list, all items need to be Expressions.")
+            raise ValueError(
+                "If query is a list or tuple, all items need to be Expressions."
+            )
         col_names = {
             root_name for expr in query for root_name in expr.meta.root_names()
         }
-    elif isinstance(query, Dict):
+    elif isinstance(query, dict):
+        if not query:  # Handle empty dict
+            return df
         col_names = set(query.keys())
         query = [pl.col(k).is_in(v) for k, v in query.items()]
     else:
-        raise ValueError("Unsupported query type")
-    col_diff = col_names - set(df.collect_schema().names())
+        raise ValueError(f"Unsupported query type: {type(query)}")
+
+    # Check if any column names were extracted
+    if not col_names:
+        raise ValueError("No valid column names found in the query.")
+
+    # Check if all queried columns exist in the DataFrame
+    df_columns = set(df.collect_schema().names())
+    col_diff = col_names - df_columns
     if col_diff:
         raise ValueError(f"Columns not found: {col_diff}")
     filtered_df = df.filter(query)
@@ -110,8 +123,8 @@ def default_predictor_categorization(
 
 def _extract_keys(
     df: F,
-    key: str="Name",
-    capitalize: bool=True,
+    key: str = "Name",
+    capitalize: bool = True,
 ) -> F:
     """Extracts keys out of the pyName column
 
@@ -1109,7 +1122,7 @@ def setup_logger():
 def create_working_and_temp_dir(
     name: Optional[str] = None,
     working_dir: Optional[PathLike] = None,
-)-> Tuple[Path, Path]:
+) -> Tuple[Path, Path]:
     """Creates a working directory for saving files and a temp_dir"""
     # Create a temporary directory in working_dir
     working_dir = Path(working_dir) if working_dir else Path.cwd()
