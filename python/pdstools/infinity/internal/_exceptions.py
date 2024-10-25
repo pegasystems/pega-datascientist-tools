@@ -76,6 +76,11 @@ class ShadowCCExists(PegaException):
     def __str__(self):  # pragma: no cover
         return "Shadow or Challenger model already exists. Please delete/promote the existing challenger model before creating a new one."
 
+class NoMonitoringExportError(PegaException):
+    """The prediction studio export is not properly configured"""
+    
+    def __str__(self): #pragma: no cover
+        return "The export artefacts are not created. Navigate to Settings>Prediction Studio settings>Monitoring database export settings to create them."
 
 class InvalidRequest(PegaException):
     """Invalid request."""
@@ -102,6 +107,7 @@ class IncompatiblePegaVersionError(PegaException):  # pragma: no cover
 error_map = {
     "Error_NoMonitoringInfo": NoMonitoringInfo,
     "Error_ShadowCC_Exists": ShadowCCExists,
+    "pzData_Export_Error":NoMonitoringExportError
 }
 
 

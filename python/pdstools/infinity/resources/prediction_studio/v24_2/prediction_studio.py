@@ -3,7 +3,7 @@ from typing import Literal, Optional, Union, overload
 
 import polars as pl
 
-from ....internal._exceptions import PegaException
+from ....internal._exceptions import PegaException, NoMonitoringExportError
 from ....internal._pagination import PaginatedList
 from ..base import Notification, LocalModel
 from ..local_model_utils import ONNXModel
@@ -193,6 +193,8 @@ class PredictionStudio(PredictionStudioPrevious):
         endpoint = "/prweb/api/PredictionStudio/v1/datamart/export"
         try:
             response = self._client.post(endpoint)
+        except NoMonitoringExportError as e:
+            raise e
         except PegaException as e:
             raise ValueError("Error while triggering data mart export" + str(e)) from e
         return DatamartExport(client=self._client, **response)
