@@ -30,10 +30,10 @@ try:
     from plotly.subplots import make_subplots
 
     from ..utils import pega_template as pega_template
-except ImportError as e: #pragma: no cover
+except ImportError as e:  # pragma: no cover
     logger.debug(f"Failed to import optional dependencies: {e}")
 
-if TYPE_CHECKING: #pragma: no cover
+if TYPE_CHECKING:  # pragma: no cover
     import plotly.graph_objects as go
 
     from .ADMDatamart import ADMDatamart
@@ -700,7 +700,7 @@ class Plots(LazyNamespace):
         )
 
         if return_df:
-            return df.rename({"Legend" : "PredictorCategory"})
+            return df.rename({"Legend": "PredictorCategory"})
 
         title_suffix = "over all models" if facet is None else f"per {facet}"
         title_prefix = metric
@@ -1194,3 +1194,79 @@ class Plots(LazyNamespace):
             if show_plots and fig is not None:
                 fig.show()
         return figs
+
+    @requires(
+        predictor_columns={
+            "BinPropensity",
+        },
+        combined_columns={"Channel", "Direction"},
+    )
+    def propensity_distribution(
+        self,
+        query: Optional[QUERY] = None,
+        return_df: bool = False,
+    ):
+        to_plot = "BinPropensity"
+        df = cdh_utils._apply_query(
+            (
+                self.datamart.combined_data.filter(
+                    pl.col("PredictorName") != "Classifier"
+                )
+                .group_by([to_plot, "Channel", "Direction"])
+                .agg(pl.sum("BinResponseCount"))
+                .with_columns(pl.col(to_plot).round(4).cast(pl.Float64))
+                .collect()
+            ),
+            query,
+        )
+
+        custom_bins = [
+            0,
+            0.0005,
+            0.001,
+            0.002,
+            0.005,
+            0.01,
+            0.02,
+            0.05,
+            0.1,
+            0.2,
+            0.5,
+            0.8,
+            1.0,
+        ]
+        df_pl = df.with_columns(
+            pl.col(to_plot)
+            .fill_null(0)
+            .fill_nan(0)
+            .cut(breaks=custom_bins)
+            .alias(f"{to_plot}_range")
+        )
+
+        out = (
+            df_pl.group_by(["Channel", f"{to_plot}_range"])
+            .agg([pl.sum("BinResponseCount"), pl.min(to_plot).alias("break_label")])
+            .sort(["Channel", "break_label"])
+            .with_columns(
+                [
+                    (
+                        pl.col("BinResponseCount")
+                        / pl.col("BinResponseCount").sum().over("Channel")
+                    ).alias("Responses")
+                ]
+            )
+        )
+        if return_df:
+            return df
+        fig = px.bar(
+            out.to_pandas(use_pyarrow_extension_array=True),
+            x=f"{to_plot}_range",
+            y="Responses",
+            color="Channel",
+            template="pega",
+            barmode="overlay",
+        )
+        fig.update_xaxes(type="category")
+        fig.update_yaxes(tickformat=",.0%")
+
+        return fig

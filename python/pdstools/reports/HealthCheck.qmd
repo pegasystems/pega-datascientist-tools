@@ -1996,81 +1996,14 @@ So when one of the graphs shows more volume on the left, that is to be interpret
 
 ```{python}
 # | error: true
-
-# TODO: fix this. Also looks like a lot of code.
-if datamart.predictor_data is not None:
-    to_plot = "Propensity"
-    if to_plot == "Propensity" and to_plot not in datamart.predictor_data.columns:
-        to_plot = "BinPropensity"
-    df = (
-        datamart.combined_data.filter(pl.col("PredictorName") != "Classifier")
-        .group_by([to_plot, "Channel", "Direction"])
-        .agg(pl.sum("BinResponseCount"))
-        .with_columns(pl.col(to_plot).round(4).cast(pl.Float64))
-        .collect()
-    )
-    color_col = "Channel"
-    smallest_bin = 0
-
-    for color in df.get_column(color_col).unique().to_list():
-        color_df = df.filter(pl.col(color_col) == color)
-        propensity_list = list(
-            set(
-                color_df.select(to_plot)
-                .fill_null(0)
-                .fill_nan(0)
-                .filter(pl.col(to_plot) > 0)
-                .get_column(to_plot)
-                .to_list()
-            )
-        )
-        if len(propensity_list) > 0:
-            if np.percentile(propensity_list, 10) > smallest_bin:
-                smallest_bin = np.percentile(propensity_list, 10)
-                cut_off_value = np.percentile(
-                    propensity_list, [percentile for percentile in range(0, 101, 5)]
-                )
-
-    df_pl = df.with_columns(
-        pl.col(to_plot)
-        .fill_null(0)
-        .fill_nan(0)
-        .cut(breaks=cut_off_value)
-        .alias(f"{to_plot}_range")
-    )
-
-    grouped = df_pl.group_by(["Channel", f"{to_plot}_range"]).agg(
-        pl.sum("BinResponseCount"), pl.min(to_plot).alias("break_label")
-    )
-
-    out = (
-        grouped.sort(["Channel", "break_label"])
-        .select(
-            [
-                "Channel",
-                f"{to_plot}_range",
-                "break_label",
-                "BinResponseCount",
-                pl.col("BinResponseCount").sum().over("Channel").alias("sum"),
-            ]
-        )
-        .with_columns([(pl.col("BinResponseCount") / pl.col("sum")).alias("Responses")])
-    )
-
-    out = out.sort(["Channel", "break_label"])
-    fig = px.bar(
-        out.to_pandas(use_pyarrow_extension_array=True),
-        x=f"{to_plot}_range",
-        y="Responses",
-        color=color_col,
-        template="pega",
-        barmode="overlay",
-    )
-    fig.update_yaxes(tickformat=",.0%")
-
-    fig.show()
-else:
-    quarto_callout_no_predictor_data_warning()
+try:
+    if datamart.predictor_data is not None:
+        fig = datamart.plot.propensity_distribution()
+        fig.show()
+    else:
+        quarto_callout_no_predictor_data_warning()
+except e:
+    print(f"Propensity Distribution plot was not drawn because of error: {str(e)}")
     
 ```
 
