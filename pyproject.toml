@@ -39,14 +39,16 @@ dependencies = ['polars>=1.9', 'typing_extensions']
 version = {attr="pdstools.__version__"}
 
 [project.optional-dependencies]
-adm = ['plotly>=5.5.0']
+adm = ['plotly>=5.5.0', 'pydot']
+pega_io = ['aioboto3', 'polars_hash']
 api = ['httpx', 'pydantic']
-healthcheck = ['pdstools[adm]', 'great_tables>=0.13', 'quarto','papermill', 'itables', 'jinja2>=3.1', 'xlsxwriter>=3.0', 'tabulate']
+healthcheck = ['pdstools[adm]', 'great_tables>=0.13', 'quarto', 'papermill', 'itables', 'jinja2>=3.1', 'xlsxwriter>=3.0', 'tabulate']
 app = ['pdstools[healthcheck]', 'streamlit>=1.23', 'st-pages']
-onnx = ['scikit-learn==1.5.1', 'skl2onnx==1.17.0', 'onnx==1.16.1', 'onnxruntime==1.18.1']
-all = ['pdstools[app, api, onnx]']
+infinity = ['anyio','tqdm','pdstools[api, adm]']
+onnx = ['scikit-learn==1.5.1', 'skl2onnx==1.17.0', 'onnx==1.16.1', 'onnxruntime==1.18.1','pdstools[infinity]']
+all = ['pdstools[app, pega_io, onnx]']
 docs = ['sphinx','furo','sphinx-autoapi','nbsphinx','sphinx-copybutton','myst-parser']
-tests = ['testbook', 'pytest', 'pytest-cov', 'pytest-httpx', 'moto', 'pdstools[app, api, onnx]']
+tests = ['testbook', 'pytest', 'pytest-cov', 'pytest-httpx', 'moto', 'pdstools[all]']
 
 [project.urls]
 "Homepage" = "https://github.com/pegasystems/pega-datascientist-tools"

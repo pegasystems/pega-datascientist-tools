@@ -1,7 +1,7 @@
 from typing import Literal
 
 import polars as pl
-from pdstools import cdh_utils
+from .....utils import cdh_utils
 from pydantic import validate_call
 
 from ....internal._constants import METRIC

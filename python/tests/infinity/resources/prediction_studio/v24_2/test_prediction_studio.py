@@ -1,21 +1,21 @@
 import datetime
-from unittest.mock import MagicMock, patch
 
 import polars as pl
 import pytest
-
 from pdstools.infinity.internal._pagination import PaginatedList
 from pdstools.infinity.resources.prediction_studio.local_model_utils import (
     PMMLModel,
 )
 from pdstools.infinity.resources.prediction_studio.v24_2.model import Model
 from pdstools.infinity.resources.prediction_studio.v24_2.prediction import Prediction
-from pdstools.infinity.resources.prediction_studio.v24_2.prediction_studio import PredictionStudio
+from pdstools.infinity.resources.prediction_studio.v24_2.prediction_studio import (
+    PredictionStudio,
+)
 
 
 @pytest.fixture
-def prediction_studio_client():
-    client = MagicMock()
+def prediction_studio_client(mocker):
+    client = mocker.MagicMock()
     return PredictionStudio(client=client)
 
 
@@ -123,24 +123,24 @@ mock_response_notifications = {
 }
 
 
-def test_repository(prediction_studio_client):
+def test_repository(prediction_studio_client, mocker):
     mock_response = mock_response_repository
 
-    with patch.object(
+    mock_get = mocker.patch.object(
         prediction_studio_client._client, "get", return_value=mock_response
-    ) as mock_get:
-        result = prediction_studio_client.repository()
+    )
+    result = prediction_studio_client.repository()
 
-        mock_get.assert_called_once_with(
-            "/prweb/api/PredictionStudio/v3/predictions/repository"
-        )
+    mock_get.assert_called_once_with(
+        "/prweb/api/PredictionStudio/v3/predictions/repository"
+    )
 
-        # Assertions to verify the Repository object's attributes
-        assert result.name == "TestRepo"
-        assert result.type == "S3"
-        assert result.bucket_name == "test-bucket"
-        assert result.root_path == "/test-path"
-        assert result.datamart_export_location == "/datamart-export"
+    # Assertions to verify the Repository object's attributes
+    assert result.name == "TestRepo"
+    assert result.type == "S3"
+    assert result.bucket_name == "test-bucket"
+    assert result.root_path == "/test-path"
+    assert result.datamart_export_location == "/datamart-export"
 
 
 @pytest.mark.parametrize(
@@ -170,6 +170,7 @@ def test_repository(prediction_studio_client):
 )
 def test_list_models(
     prediction_studio_client,
+    mocker,
     return_df,
     mock_response,
     expected_type,
@@ -177,10 +178,10 @@ def test_list_models(
     expected_columns,
 ):
     method_to_patch = "get" if not return_df else "request"
-    with patch.object(
+    mocker.patch.object(
         prediction_studio_client._client, method_to_patch, return_value=mock_response
-    ):
-        result = prediction_studio_client.list_models(return_df=return_df)
+    )
+    result = prediction_studio_client.list_models(return_df=return_df)
 
     assert isinstance(result, expected_type)
 
@@ -207,15 +208,15 @@ def test_list_models(
         # Add more test cases as needed
     ],
 )
-def test_get_model(prediction_studio_client, fetch_type, fetch_value):
+def test_get_model(prediction_studio_client, mocker, fetch_type, fetch_value):
     mock_response = mock_response_model
-    with patch.object(
+    mocker.patch.object(
         prediction_studio_client._client, "request", return_value=mock_response
-    ):
-        if fetch_type == "id":
-            result = prediction_studio_client.get_model(model_id=fetch_value)
-        elif fetch_type == "label":
-            result = prediction_studio_client.get_model(label=fetch_value)
+    )
+    if fetch_type == "id":
+        result = prediction_studio_client.get_model(model_id=fetch_value)
+    elif fetch_type == "label":
+        result = prediction_studio_client.get_model(label=fetch_value)
 
     assert isinstance(result, Model)
 
@@ -241,6 +242,7 @@ def test_get_model(prediction_studio_client, fetch_type, fetch_value):
 )
 def test_list_predictions(
     prediction_studio_client,
+    mocker,
     return_df,
     expected_type,
     expected_length,
@@ -248,10 +250,10 @@ def test_list_predictions(
 ):
     mock_response = mock_response_predictions
     method_to_patch = "get" if not return_df else "request"
-    with patch.object(
+    mocker.patch.object(
         prediction_studio_client._client, method_to_patch, return_value=mock_response
-    ):
-        result = prediction_studio_client.list_predictions(return_df=return_df)
+    )
+    result = prediction_studio_client.list_predictions(return_df=return_df)
 
     assert isinstance(result, expected_type)
 
@@ -266,13 +268,15 @@ def test_list_predictions(
         (False, PaginatedList._Slice),
     ],
 )
-def test_list_predictions_token(prediction_studio_client, return_df, expected_type):
+def test_list_predictions_token(
+    prediction_studio_client, mocker, return_df, expected_type
+):
     mock_response = mock_response_predictions_token
     method_to_patch = "get" if not return_df else "request"
-    with patch.object(
+    mocker.patch.object(
         prediction_studio_client._client, method_to_patch, return_value=mock_response
-    ):
-        test = prediction_studio_client.list_predictions(return_df=return_df)[0:3]
+    )
+    test = prediction_studio_client.list_predictions(return_df=return_df)[0:3]
     assert isinstance(test, expected_type)
 
 
@@ -283,42 +287,40 @@ def test_list_predictions_token(prediction_studio_client, return_df, expected_ty
         ("label", "Predict Cards Acceptance"),
     ],
 )
-def test_get_predictions(prediction_studio_client, identifier_type, identifier_value):
+def test_get_predictions(
+    prediction_studio_client, mocker, identifier_type, identifier_value
+):
     mock_response = mock_response_predictions
-    with patch.object(
+    mock_request = mocker.patch.object(
         prediction_studio_client._client, "request", return_value=mock_response
-    ) as mock_request:
-        if identifier_type == "id":
-            result = prediction_studio_client.get_prediction(
-                prediction_id=identifier_value
-            )
-        else:
-            result = prediction_studio_client.get_prediction(label=identifier_value)
+    )
+    if identifier_type == "id":
+        result = prediction_studio_client.get_prediction(prediction_id=identifier_value)
+    else:
+        result = prediction_studio_client.get_prediction(label=identifier_value)
 
     mock_request.assert_called_once()
     assert isinstance(result, Prediction)
 
 
-def test_trigger_datamart(prediction_studio_client):
+def test_trigger_datamart(prediction_studio_client, mocker):
     mock_response = {
         "referenceId": "W-4002",
         "location": "/AWSFalcons/datamart/",
         "repositoryName": "AWSFalcons",
     }
 
-    with patch.object(
+    mock_get = mocker.patch.object(
         prediction_studio_client._client, "post", return_value=mock_response
-    ) as mock_get:
-        result = prediction_studio_client.trigger_datamart_export()
+    )
+    result = prediction_studio_client.trigger_datamart_export()
 
-        mock_get.assert_called_once_with(
-            "/prweb/api/PredictionStudio/v1/datamart/export"
-        )
+    mock_get.assert_called_once_with("/prweb/api/PredictionStudio/v1/datamart/export")
 
-        # Assertions to verify the Repository object's attributes
-        assert result.reference_id == "W-4002"
-        assert result.location == "/AWSFalcons/datamart/"
-        assert result.repository_name == "AWSFalcons"
+    # Assertions to verify the Repository object's attributes
+    assert result.reference_id == "W-4002"
+    assert result.location == "/AWSFalcons/datamart/"
+    assert result.repository_name == "AWSFalcons"
 
 
 @pytest.mark.parametrize(
@@ -348,6 +350,7 @@ def test_trigger_datamart(prediction_studio_client):
 )
 def test_trigger_datamart_export_status(
     prediction_studio_client,
+    mocker,
     mock_response,
     expected_status,
     expected_last_message,
@@ -358,49 +361,52 @@ def test_trigger_datamart_export_status(
         "location": "/AWSFalcons/datamart/",
         "repositoryName": "AWSFalcons",
     }
-    with patch.object(
+    mocker.patch.object(
         prediction_studio_client._client, "post", return_value=mock_response_export
-    ), patch.object(
+    )
+    mocker.patch.object(
         prediction_studio_client._client, "get", return_value=mock_response
-    ):
-        result = prediction_studio_client.trigger_datamart_export().get_export_status()
-        assert result["status"] == expected_status
-        assert result["last_message"] == expected_last_message
-        assert result["last_update_time"] == expected_last_update_time
+    )
+    result = prediction_studio_client.trigger_datamart_export().get_export_status()
+    assert result["status"] == expected_status
+    assert result["last_message"] == expected_last_message
+    assert result["last_update_time"] == expected_last_update_time
 
 
-def test_upload_model(prediction_studio_client):
+def test_upload_model(prediction_studio_client, mocker):
     mock_response = {
         "repositoryName": "AWSFalcons",
         "filePath": "model-staging/test.model",
     }
 
-    with patch.object(
+    mock_get = mocker.patch.object(
         prediction_studio_client._client, "post", return_value=mock_response
-    ) as mock_get:
-        result = prediction_studio_client.upload_model(
-            PMMLModel("python/tests/infinity/resources/prediction_studio/v24_2/artifacts/test.model"),
-            file_name="test.model",
-        )
+    )
+    result = prediction_studio_client.upload_model(
+        PMMLModel(
+            "python/tests/infinity/resources/prediction_studio/v24_2/artifacts/test.model"
+        ),
+        file_name="test.model",
+    )
 
-        mock_get.assert_called_once_with(
-            "/prweb/api/PredictionStudio/v1/model",
-            data={
-                "fileSource": "VGVzdCB1cGxvYWQgbW9kZWwgZmlsZQ==\n",
-                "fileName": "test.model",
-            },
-        )
+    mock_get.assert_called_once_with(
+        "/prweb/api/PredictionStudio/v1/model",
+        data={
+            "fileSource": "VGVzdCB1cGxvYWQgbW9kZWwgZmlsZQ==\n",
+            "fileName": "test.model",
+        },
+    )
 
-        # Assertions to verify the Repository object's attributes
-        assert result.repository_name == "AWSFalcons"
-        assert result.file_path == "model-staging/test.model"
-        assert (
-            str(result)
-            == "Model upload succesful. Use ChampionChallenger.add_model() to add this model to a prediction."
-        )
+    # Assertions to verify the Repository object's attributes
+    assert result.repository_name == "AWSFalcons"
+    assert result.file_path == "model-staging/test.model"
+    assert (
+        str(result)
+        == "Model upload succesful. Use ChampionChallenger.add_model() to add this model to a prediction."
+    )
 
 
-def test_model_categories(prediction_studio_client):
+def test_model_categories(prediction_studio_client, mocker):
     mock_response = {
         "categories": [
             {"categoryLabel": "Retention", "categoryName": "Retention"},
@@ -408,20 +414,20 @@ def test_model_categories(prediction_studio_client):
         ]
     }
 
-    with patch.object(
+    mock_get = mocker.patch.object(
         prediction_studio_client._client, "get", return_value=mock_response
-    ) as mock_get:
-        result = prediction_studio_client.get_model_categories()
+    )
+    result = prediction_studio_client.get_model_categories()
 
-        mock_get.assert_called_once_with(
-            "/prweb/api/PredictionStudio/v3/predictions/modelCategories"
-        )
+    mock_get.assert_called_once_with(
+        "/prweb/api/PredictionStudio/v3/predictions/modelCategories"
+    )
 
-        assert result[0] == {"categoryLabel": "Retention", "categoryName": "Retention"}
-        assert result[1] == {
-            "categoryLabel": "Acquisition",
-            "categoryName": "Acquisition",
-        }
+    assert result[0] == {"categoryLabel": "Retention", "categoryName": "Retention"}
+    assert result[1] == {
+        "categoryLabel": "Acquisition",
+        "categoryName": "Acquisition",
+    }
 
 
 @pytest.mark.parametrize(
@@ -450,11 +456,11 @@ def test_model_categories(prediction_studio_client):
     ],
 )
 def test_get_notifications(
-    prediction_studio_client, return_df, expected_type, additional_checks
+    prediction_studio_client, mocker, return_df, expected_type, additional_checks
 ):
     mock_response = mock_response_notifications
     method_to_patch = "get" if not return_df else "request"
-    with patch.object(
+    mocker.patch.object(
         prediction_studio_client._client, method_to_patch, return_value=mock_response
-    ):
-        result = prediction_studio_client.get_notifications(return_df=return_df)
+    )
+    prediction_studio_client.get_notifications(return_df=return_df)
