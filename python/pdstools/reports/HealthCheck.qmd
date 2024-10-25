@@ -517,6 +517,40 @@ gt = gt.tab_style(
 display(gt)
 ```
 
+## Issue/Group Hierarchy
+
+```{python}
+# TODO work in progress - action overview
+if "Issue" in datamart_all_columns and "Group" in datamart_all_columns:
+    df_action_hierarchy = (
+        datamart.model_data
+        .group_by(
+            ["Issue", "Group"]
+        )
+        # TODO actions/treatments/used actions/used treatments
+        # but only if available. Maybe a few examples too.
+        .agg(
+            pl.col("ModelID").n_unique().alias("Models"),
+            pl.col("Name").unique().head(5).alias("Example Values")
+        )
+        .sort(["Issue", "Group"])
+    ).with_columns(
+        pl.format("<b>{}</b", pl.col("Issue")).alias("Issue")
+    )
+
+    gt = table_standard_formatting(
+        df_action_hierarchy.collect(), 
+        title="Action Hierarchy",
+        rowname_col="Group", 
+        groupname_col="Issue"
+    ).tab_stubhead(label="Issue/Group")
+    
+    # .tab_style(style=style.fill(color="red"), locations=loc.stub(rows=pl.col("Issue")=="Sales"))
+
+    display(gt)
+```
+
+## Success Rates
 
 ```{python}
 unused_channels = df_channel_overview.filter(pl.col.isValid.not_()).select(["Channel", "Direction"])

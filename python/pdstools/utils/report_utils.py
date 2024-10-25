@@ -4,6 +4,7 @@ from great_tables import GT, style, md, html, loc
 from ..adm.CDH_Guidelines import CDHGuidelines
 import polars as pl
 
+
 def quarto_print(text):
     display(Markdown(text))
 
@@ -29,17 +30,24 @@ def quarto_callout_important(info):
         % info
     )
 
+
 def polars_col_exists(df, col):
     return col in df.columns and df.schema[col] != pl.Null
 
+
 def polars_subset_to_existing_cols(all_columns, cols):
     return [col for col in cols if col in all_columns]
-    
+
+
 def table_standard_formatting(
-    source_table, title=None, rowname_col=None, cdh_guidelines=CDHGuidelines(),
-    highlight_limits : Dict[str,str] = {},
-    highlight_lists : Dict[str,List[str]] = {},
-    highlight_configurations : List[str] = [],
+    source_table,
+    title=None,
+    rowname_col=None,
+    groupname_col=None,
+    cdh_guidelines=CDHGuidelines(),
+    highlight_limits: Dict[str, str] = {},
+    highlight_lists: Dict[str, List[str]] = {},
+    highlight_configurations: List[str] = [],
 ):
     def apply_metric_style(gt, col_name, metric):
         if col_name in source_table.columns:
@@ -50,13 +58,20 @@ def table_standard_formatting(
 
             values = source_table[col_name].to_list()
             bad_rows = [
-                i for i, v in enumerate(values)
+                i
+                for i, v in enumerate(values)
                 if v < min_val or (max_val is not None and v > max_val)
             ]
             warning_rows = [
-                i for i, v in enumerate(values)
-                if (v >= min_val and v < best_practice_min) or
-                (best_practice_max is not None and max_val is not None and v > best_practice_max and v <= max_val)
+                i
+                for i, v in enumerate(values)
+                if (v >= min_val and v < best_practice_min)
+                or (
+                    best_practice_max is not None
+                    and max_val is not None
+                    and v > best_practice_max
+                    and v <= max_val
+                )
             ]
 
             gt = gt.tab_style(
@@ -73,8 +88,7 @@ def table_standard_formatting(
         if col_name in source_table.columns:
             values = source_table[col_name].to_list()
             non_standard_rows = [
-                i for i, v in enumerate(values)
-                if v not in standard_list
+                i for i, v in enumerate(values) if v not in standard_list
             ]
             gt = gt.tab_style(
                 style=style.fill(color="yellow"),
@@ -85,24 +99,25 @@ def table_standard_formatting(
     def apply_configuration_style(gt, col_name):
         if col_name in source_table.columns:
             values = source_table[col_name].to_list()
-            multiple_config_rows = [
-                i for i, v in enumerate(values)
-                if v.count(",") > 1
-            ]
+            multiple_config_rows = [i for i, v in enumerate(values) if v.count(",") > 1]
             gt = gt.tab_style(
                 style=style.fill(color="yellow"),
                 locations=loc.body(columns=col_name, rows=multiple_config_rows),
             )
         return gt
 
-    gt = GT(source_table, rowname_col=rowname_col).tab_options(table_font_size=8)
+    gt = GT(source_table, rowname_col=rowname_col, groupname_col=groupname_col).tab_options(
+        table_font_size=8
+    )
 
     if title is not None:
         gt = gt.tab_header(title=title)
 
     for c in highlight_limits.keys():
         gt = apply_metric_style(gt, c, highlight_limits[c])
-        gt = gt.fmt_number(columns=c, decimals=0, compact=True) # default number formatting
+        gt = gt.fmt_number(
+            columns=c, decimals=0, compact=True
+        )  # default number formatting
 
     for c in highlight_lists.keys():
         gt = apply_standard_name_style(gt, c, highlight_lists[c])
@@ -111,6 +126,7 @@ def table_standard_formatting(
         gt = apply_configuration_style(gt, c)
 
     return gt
+
 
 def table_style_predictor_count(gt: GT, flds, cdh_guidelines=CDHGuidelines()):
     for col in flds:
@@ -128,6 +144,7 @@ def table_style_predictor_count(gt: GT, flds, cdh_guidelines=CDHGuidelines()):
             ),
         )
     return gt
+
 
 def n_unique_values(dm, all_dm_cols, fld):
     if not isinstance(fld, list):
@@ -157,6 +174,7 @@ def max_by_hierarchy(dm, all_dm_cols, fld, grouping):
         .item()
     )
 
+
 def avg_by_hierarchy(dm, all_dm_cols, fld, grouping):
     if not isinstance(fld, list):
         fld = [fld]
@@ -175,6 +193,7 @@ def avg_by_hierarchy(dm, all_dm_cols, fld, grouping):
         .collect()
         .item()
     )
+
 
 def sample_values(dm, all_dm_cols, fld, n=6):
     if not isinstance(fld, list):
