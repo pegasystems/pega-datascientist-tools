@@ -384,7 +384,7 @@ def test_upload_model(prediction_studio_client, mocker):
     )
     result = prediction_studio_client.upload_model(
         PMMLModel(
-            "python/tests/infinity/resources/prediction_studio/v24_2/artifacts/test.model"
+            "python/tests/prediction_studio/v24_2/artifacts/test.model"
         ),
         file_name="test.model",
     )
