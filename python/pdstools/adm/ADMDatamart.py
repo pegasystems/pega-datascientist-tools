@@ -177,17 +177,22 @@ class ADMDatamart:
 
     def apply_predictor_categorization(
         self,
+        df: Optional[pl.LazyFrame] = None,
         categorization: Optional[
             Union[pl.Expr, Callable[..., pl.Expr]]
         ] = cdh_utils.default_predictor_categorization,
     ):
         if callable(categorization):
             categorization = categorization()
-        if self.predictor_data:
+
+        if df is not None:
+            return df.with_columns(PredictorCategory=categorization)
+
+        if hasattr(self, "predictor_data") and self.predictor_data is not None:
             self.predictor_data = self.predictor_data.with_columns(
                 PredictorCategory=categorization
             )
-        if self.combined_data:
+        if hasattr(self, "combined_data") and self.combined_data is not None:
             self.combined_data = self.combined_data.with_columns(
                 PredictorCategory=categorization
             )
