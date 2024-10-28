@@ -171,21 +171,26 @@ class ADMDatamart:
         )
 
         if "PredictorCategory" not in schema.names():
-            df = self.apply_predictor_categorization(df)
+            self.apply_predictor_categorization(df)
         df = cdh_utils._apply_schema_types(df, Schema.ADMPredictorBinningSnapshot)
         return df
 
     def apply_predictor_categorization(
         self,
-        df: pl.LazyFrame,
         categorization: Optional[
             Union[pl.Expr, Callable[..., pl.Expr]]
         ] = cdh_utils.default_predictor_categorization,
-    ) -> pl.LazyFrame:
+    ):
         if callable(categorization):
             categorization = categorization()
-
-        return df.with_columns(PredictorCategory=categorization)
+        if self.predictor_data:
+            self.predictor_data = self.predictor_data.with_columns(
+                PredictorCategory=categorization
+            )
+        if self.combined_data:
+            self.combined_data = self.combined_data.with_columns(
+                PredictorCategory=categorization
+            )
 
     def save_data(
         self, path: Union[os.PathLike, str] = "."
