@@ -247,7 +247,11 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         response = self._request(method="post", endpoint=endpoint, data=data, **params)
         if response.status_code not in (200, 201, 202):
             raise self.handle_pega_exception(endpoint, params, response)
-        return response.json()
+
+        try:
+            return response.json()
+        except Exception:
+            return response
 
     def patch(
         self, endpoint, data: Union[httpx._types.RequestData, None] = None, **params
