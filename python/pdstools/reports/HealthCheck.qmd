@@ -121,7 +121,6 @@ def fig_set_xaxis_modelperformance(fig, label="Model Performance"):
 # When neither is passed in, it falls back to the sample data.
 
 name = "ADM Models"  # TODO: what's this used for?
-filters = dict()  # TODO: not used?
 kwargs = dict()
 
 title = "ADM Model Overview"  # pass in customer name here
@@ -139,8 +138,6 @@ responsecount_analysis_threshold = (
 predictor_analysis_threshold = 200  # min number of responses for predictor analysis
 # channel_responses_threshold = 10000
 configuration_responses_threshold = 10000
-
-# globalQuery = None # TODO not used?
 
 responsecount_analysis_query = (
     pl.col("ResponseCount") > responsecount_analysis_threshold
@@ -194,18 +191,25 @@ def reset_datamart(dm):
 
 if len(kwargs) > 0:
     # Calling through function (in streamlit or in a notebook)
-    model_df = read_ds_export(kwargs["model_file_path"])
-    predictor_df = read_ds_export(kwargs["predictor_file_path"])
-    reset_datamart(ADMDatamart(model_df=model_df, predictor_df=predictor_df))
+    reset_datamart(
+        ADMDatamart.from_ds_export(
+            model_filename= kwargs["model_file_path"],
+            predictor_filename= kwargs["predictor_file_path"],
+            base_path=".",
+            query=kwargs["query"]
+        )
+    )
 elif len(datafolder) > 0 or len(modelfilename) > 0 or len(predictorfilename) > 0:
     # Run through this qmd file
-    reset_datamart(ADMDatamart(
-        path="." if len(datafolder) == 0 else datafolder,
-        model_filename="" if len(modelfilename) == 0 else modelfilename,
-        predictor_filename="" if len(predictorfilename) == 0 else predictorfilename,
-        extract_keys=True,
-        include_cols="pyFeatureImportance",
-    ))
+
+    reset_datamart(
+        ADMDatamart.from_ds_export(
+            model_filename=model_filename,
+            predictor_filename=predictor_filename,
+            base_path=".",
+            query=kwargs["query"]
+        )
+    )
 else:
     # fall back to sample data
     reset_datamart(datasets.cdh_sample())
@@ -517,6 +521,40 @@ gt = gt.tab_style(
 display(gt)
 ```
 
+## Issue/Group Hierarchy
+
+```{python}
+# TODO work in progress - action overview
+if "Issue" in datamart_all_columns and "Group" in datamart_all_columns:
+    df_action_hierarchy = (
+        datamart.model_data
+        .group_by(
+            ["Issue", "Group"]
+        )
+        # TODO actions/treatments/used actions/used treatments
+        # but only if available. Maybe a few examples too.
+        .agg(
+            pl.col("ModelID").n_unique().alias("Models"),
+            pl.col("Name").unique().head(5).alias("Example Values")
+        )
+        .sort(["Issue", "Group"])
+    ).with_columns(
+        pl.format("<b>{}</b", pl.col("Issue")).alias("Issue")
+    )
+
+    gt = table_standard_formatting(
+        df_action_hierarchy.collect(), 
+        title="Action Hierarchy",
+        rowname_col="Group", 
+        groupname_col="Issue"
+    ).tab_stubhead(label="Issue/Group")
+    
+    # .tab_style(style=style.fill(color="red"), locations=loc.stub(rows=pl.col("Issue")=="Sales"))
+
+    display(gt)
+```
+
+## Success Rates
 
 ```{python}
 unused_channels = df_channel_overview.filter(pl.col.isValid.not_()).select(["Channel", "Direction"])
@@ -1958,81 +1996,14 @@ So when one of the graphs shows more volume on the left, that is to be interpret
 
 ```{python}
 # | error: true
-
-# TODO: fix this. Also looks like a lot of code.
-if datamart.predictor_data is not None:
-    to_plot = "Propensity"
-    if to_plot == "Propensity" and to_plot not in datamart.predictor_data.columns:
-        to_plot = "BinPropensity"
-    df = (
-        datamart.combined_data.filter(pl.col("PredictorName") != "Classifier")
-        .group_by([to_plot, "Channel", "Direction"])
-        .agg(pl.sum("BinResponseCount"))
-        .with_columns(pl.col(to_plot).round(4).cast(pl.Float64))
-        .collect()
-    )
-    color_col = "Channel"
-    smallest_bin = 0
-
-    for color in df.get_column(color_col).unique().to_list():
-        color_df = df.filter(pl.col(color_col) == color)
-        propensity_list = list(
-            set(
-                color_df.select(to_plot)
-                .fill_null(0)
-                .fill_nan(0)
-                .filter(pl.col(to_plot) > 0)
-                .get_column(to_plot)
-                .to_list()
-            )
-        )
-        if len(propensity_list) > 0:
-            if np.percentile(propensity_list, 10) > smallest_bin:
-                smallest_bin = np.percentile(propensity_list, 10)
-                cut_off_value = np.percentile(
-                    propensity_list, [percentile for percentile in range(0, 101, 5)]
-                )
-
-    df_pl = df.with_columns(
-        pl.col(to_plot)
-        .fill_null(0)
-        .fill_nan(0)
-        .cut(breaks=cut_off_value)
-        .alias(f"{to_plot}_range")
-    )
-
-    grouped = df_pl.group_by(["Channel", f"{to_plot}_range"]).agg(
-        pl.sum("BinResponseCount"), pl.min(to_plot).alias("break_label")
-    )
-
-    out = (
-        grouped.sort(["Channel", "break_label"])
-        .select(
-            [
-                "Channel",
-                f"{to_plot}_range",
-                "break_label",
-                "BinResponseCount",
-                pl.col("BinResponseCount").sum().over("Channel").alias("sum"),
-            ]
-        )
-        .with_columns([(pl.col("BinResponseCount") / pl.col("sum")).alias("Responses")])
-    )
-
-    out = out.sort(["Channel", "break_label"])
-    fig = px.bar(
-        out.to_pandas(use_pyarrow_extension_array=True),
-        x=f"{to_plot}_range",
-        y="Responses",
-        color=color_col,
-        template="pega",
-        barmode="overlay",
-    )
-    fig.update_yaxes(tickformat=",.0%")
-
-    fig.show()
-else:
-    quarto_callout_no_predictor_data_warning()
+try:
+    if datamart.predictor_data is not None:
+        fig = datamart.plot.propensity_distribution()
+        fig.show()
+    else:
+        quarto_callout_no_predictor_data_warning()
+except e:
+    print(f"Propensity Distribution plot was not drawn because of error: {str(e)}")
     
 ```
 

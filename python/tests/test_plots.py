@@ -216,3 +216,15 @@ def test_partitioned_plot(sample: ADMDatamart):
     assert isinstance(plots, list)
     assert len(plots) == len(facets)
     assert all(isinstance(plot, Figure) for plot in plots)
+
+
+def test_propensity_distribution(sample: ADMDatamart):
+    df = sample.plot.propensity_distribution(return_df=True).collect()
+    assert df.shape == (2612, 4)
+    expected_columns = ["BinPropensity", "Channel", "Direction", "BinResponseCount"]
+    assert df.columns == expected_columns
+    assert df["BinPropensity"].min() >= 0
+    assert df["BinPropensity"].max() <= 1
+
+    plot = sample.plot.predictor_count()
+    assert isinstance(plot, Figure)

@@ -14,21 +14,30 @@ from . import cdh_utils
 
 
 @st.cache_resource
-def cachedSample():
+def cached_sample():
     return datasets.cdh_sample()
 
 
 @st.cache_resource
-def cachedDatamart(*args, **kwargs):
-    print("Importing datamart.")
-    return ADMDatamart(*args, **kwargs)
+def cached_datamart(**kwargs):
+    with st.spinner("Loading datamart..."):
+        try:
+            datamart = ADMDatamart.from_ds_export(**kwargs)
+            if datamart is not None:
+                st.success("Datamart successfully loaded. You can proceed now.")
+                return datamart
+            else:
+                st.warning("Unable to load datamart.")
+                return None
+        except Exception as e:
+            st.error(f"An error occurred while importing the datamart: {str(e)}")
+            return None
 
 
-def import_datamart(**opts):
+def import_datamart(extract_pyname_keys: bool):
     st.session_state["params"] = {}
     st.write("### Data import")
-    if os.getcwd() == "/workspaces/pega-datascientist-tools":
-        opts["codespaces"] = True
+    codespaces = os.getcwd() == "/workspaces/pega-datascientist-tools"
     source = st.selectbox(
         "Select data source",
         options=[
@@ -39,16 +48,16 @@ def import_datamart(**opts):
         ],
     )
     if source == "CDH Sample":
-        st.session_state["dm"] = cachedSample()
+        st.session_state["dm"] = cached_sample()
     elif source == "Download from S3":
         raise NotImplementedError("Want to do this soon.")
     elif source == "Direct file upload":
-        return fromUploadedFile(**opts)
+        return from_uploaded_file(extract_pyname_keys, codespaces)
     elif source == "Direct file path":
-        return fromFilePath(**opts)
+        return from_file_path(extract_pyname_keys, codespaces)
 
 
-def fromUploadedFile(**opts):
+def from_uploaded_file(extract_pyname_keys, codespaces):
     model_file = st.file_uploader(
         "Upload Model Snapshot", type=["json", "zip", "parquet", "csv", "arrow"]
     )
@@ -56,7 +65,7 @@ def fromUploadedFile(**opts):
         "Upload Predictor Binning snapshot",
         type=["json", "zip", "parquet", "csv", "arrow"],
     )
-    if opts.get("codespaces", False) and model_file is None and predictor_file is None:
+    if codespaces and model_file is None and predictor_file is None:
         st.warning(
             """ Github Codespaces has a file size limit of 50MB for 'Direct Upload'. 
             If you're using Github Codespaces and your files exceed this size limit, kindly opt for the 'Direct file path' method.
@@ -65,8 +74,10 @@ def fromUploadedFile(**opts):
         )
     if model_file and predictor_file:
         try:
-            st.session_state["dm"] = cachedDatamart(
-                model_df=model_file, predictor_df=predictor_file, **opts
+            st.session_state["dm"] = cached_datamart(
+                model_filename=model_file,
+                predictor_filename=predictor_file,
+                extract_pyname_keys=extract_pyname_keys,
             )
         except Exception as e:
             st.write("Oh oh.", e)
@@ -81,32 +92,29 @@ def fromUploadedFile(**opts):
         model_analysis = st.checkbox("Only run model-based Health Check")
         if model_analysis:
             try:
-                st.session_state["dm"] = cachedDatamart(
-                    model_df=model_file, predictor_filename=None, **opts
+                st.session_state["dm"] = cached_datamart(
+                    model_filename=model_file, extract_pyname_keys=extract_pyname_keys
                 )
             except Exception as e:
                 st.write("Oh oh.", e)
 
 
-def fromFilePath(**opts):
+def from_file_path(extract_pyname_keys, codespaces):
     st.write(
         """If you've followed the instructions on how to get the ADMDatamart data,
     you can import the data simply by pointing the app to the directory
     where the original files are located, and we can find it automatically."""
     )
     placeholder = (
-        "/workspaces/pega-datascientist-tools"
-        if opts.get("codespaces", False)
-        else "/Users/Downloads"
+        "/workspaces/pega-datascientist-tools" if codespaces else "/Users/Downloads"
     )
     dir = st.text_input(
         "The folder of the Model Snapshot and Predictor Binning files:",
         placeholder=placeholder,
     )
-    import_strategy = "eager" if opts["extract_keys"] else "lazy"
     if dir != "":
         try:
-            model_matches = pega_io.get_latest_file(dir, target="modelData")
+            model_matches = pega_io.get_latest_file(dir, target="model_data")
         except FileNotFoundError:
             st.error(f"**Directory not found:** {dir}")
             st.stop()
@@ -126,7 +134,7 @@ def fromFilePath(**opts):
             box.write("## X")
             data.write("Could not find a model snapshot in the given folder.   ")
 
-        predictor_matches = pega_io.get_latest_file(dir, target="predictorData")
+        predictor_matches = pega_io.get_latest_file(dir, target="predictor_data")
         box, data = st.columns([1, 15])
         if predictor_matches is not None:
             box.write("## √")
@@ -155,26 +163,24 @@ def fromFilePath(**opts):
             )
             model_analysis = st.checkbox("Only run model-based Health Check")
             if model_analysis:
-                st.session_state["dm"] = cachedDatamart(
-                    path=dir,
+                st.session_state["dm"] = cached_datamart(
+                    base_path=dir,
                     model_filename=Path(model_matches).name,
                     predictor_filename=None,
-                    import_strategy=import_strategy,
-                    **opts,
+                    extract_pyname_keys=extract_pyname_keys,
                 )
         else:
-            st.session_state["dm"] = cachedDatamart(
-                path=dir,
+            st.session_state["dm"] = cached_datamart(
+                base_path=dir,
                 model_filename=Path(model_matches).name,
                 predictor_filename=Path(predictor_matches).name,
-                import_strategy=import_strategy,
-                **opts,
+                extract_pyname_keys=extract_pyname_keys,
             )
 
 
 def model_selection_df(df: pl.LazyFrame, context_keys: list):
     df = (
-        df.select(["ModelID", "Configuration"] + context_keys + ["Name"])
+        df.select(["ModelID", "Configuration"] + context_keys)
         .unique()
         .sort("Name")
         .select(pl.lit(False).alias("Generate Report"), pl.all())
@@ -340,7 +346,7 @@ def configure_predictor_categorization():
     st.plotly_chart(fig)
 
 
-@st.cache
+@st.cache_data
 def convert_df(df):
     return df.write_csv().encode("utf-8")
 

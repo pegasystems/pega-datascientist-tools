@@ -1,6 +1,7 @@
 from ..adm.ADMDatamart import ADMDatamart
 from ..adm.ADMTrees import ADMTrees
 from ..valuefinder.ValueFinder import ValueFinder
+from typing import Optional
 
 
 def cdh_sample(query=None):
@@ -22,7 +23,7 @@ def sample_trees():
 
 
 def sample_value_finder(
-    n_customers: float | None = None, threshold: float | None = None
+    n_customers: Optional[float] = None, threshold: Optional[float] = None
 ):
     return ValueFinder.from_ds_export(
         base_path="https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data",
