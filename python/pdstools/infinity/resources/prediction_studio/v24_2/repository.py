@@ -18,5 +18,5 @@ class Repository(RepositoryPrevious):
         self.datamart_export_location = datamart_export_location
 
     @property
-    def s3_url(self):
+    def s3_url(self): #TODO: implement
         return "s3://test"

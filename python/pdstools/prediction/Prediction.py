@@ -299,11 +299,11 @@ class Prediction:
                 pl.col("Positives").sum(),
                 pl.col("ResponseCount").sum(),
                 pl.col("Channel")
-                .where((pl.col("Lift") == pl.col("Lift").min()) & (pl.col("Lift") < 0))
+                .filter((pl.col("Lift") == pl.col("Lift").min()) & (pl.col("Lift") < 0))
                 .first()
                 .alias("Channel with Minimum Negative Lift"),
                 pl.col("Lift")
-                .where((pl.col("Lift") == pl.col("Lift").min()) & (pl.col("Lift") < 0))
+                .filter((pl.col("Lift") == pl.col("Lift").min()) & (pl.col("Lift") < 0))
                 .first()
                 .alias("Minimum Negative Lift"),
                 pl.col("usesImpactAnalyzer"),

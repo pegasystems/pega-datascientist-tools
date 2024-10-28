@@ -200,7 +200,7 @@ class Aggregates:
         return (
             df.group_by(group_by)
             .agg(
-                pl.count().alias("count"),
+                pl.len().alias("count"),
                 (pl.col("ResponseCount") == 0).sum().alias("Count_without_responses"),
                 pl.col("ResponseCount", "Positives").sum().name.suffix("_sum"),
                 pl.col(aggregate_columns).max().name.suffix("_max"),
@@ -629,11 +629,11 @@ class Aggregates:
                     pl.first("Performance"),
                     pl.count("BinIndex").alias("Bins"),
                     pl.col("BinResponseCount")
-                    .where(pl.col("BinType") == "MISSING")
+                    .filter(pl.col("BinType") == "MISSING")
                     .sum()
                     .alias("Missing"),
                     pl.col("BinResponseCount")
-                    .where(pl.col("BinType") == "RESIDUAL")
+                    .filter(pl.col("BinType") == "RESIDUAL")
                     .sum()
                     .alias("Residual"),
                     pl.first("Positives"),

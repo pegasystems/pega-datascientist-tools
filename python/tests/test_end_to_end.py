@@ -22,6 +22,7 @@ def sample():
         predictor_filename="Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip",
     )
 
+
 @pl.api.register_lazyframe_namespace("shape")
 class Shape:
     """Get the shape of a lazy dataframe.
@@ -32,7 +33,10 @@ class Shape:
     """
 
     def __new__(cls, ldf: pl.LazyFrame):
-        return (ldf.select(pl.first().len()).collect().item(), len(ldf.columns))
+        return (
+            ldf.select(pl.first().len()).collect().item(),
+            len(ldf.collect_schema().names()),
+        )
 
 
 def test_end_to_end(sample: ADMDatamart):

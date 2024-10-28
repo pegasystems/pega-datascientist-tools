@@ -99,8 +99,8 @@ def test_multiple_predictor_binning(sample: ADMDatamart):
 
 def test_predictor_performance(sample: ADMDatamart):
     df = sample.plot.predictor_performance(return_df=True)
-    assert "PredictorName" in df.columns
-    assert "PerformanceBin" in df.columns
+    assert "PredictorName" in df.collect_schema().names()
+    assert "PerformanceBin" in df.collect_schema().names()
     assert (
         round(df.select(pl.col("PerformanceBin").top_k(1)).collect().item(), 2) == 0.86
     )
