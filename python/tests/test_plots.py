@@ -1,4 +1,3 @@
-import datetime
 from pathlib import Path
 
 import plotly.express as px
@@ -100,9 +99,10 @@ def test_multiple_predictor_binning(sample: ADMDatamart):
 def test_predictor_performance(sample: ADMDatamart):
     df = sample.plot.predictor_performance(return_df=True)
     assert "PredictorName" in df.collect_schema().names()
-    assert "PerformanceBin" in df.collect_schema().names()
+    assert "PredictorPerformance" in df.collect_schema().names()
     assert (
-        round(df.select(pl.col("PerformanceBin").top_k(1)).collect().item(), 2) == 0.86
+        round(df.select(pl.col("PredictorPerformance").top_k(1)).collect().item(), 2)
+        == 0.86
     )
 
     plot = sample.plot.predictor_performance()
@@ -113,8 +113,8 @@ def test_predictor_category_performance(sample: ADMDatamart):
     df = sample.plot.predictor_category_performance(return_df=True).collect()
     assert df.shape == (60, 3)
     assert "PredictorCategory" in df.columns
-    assert "PerformanceBin" in df.columns
-    assert round(df.select(pl.col("PerformanceBin").top_k(1)).item(), 2) == 0.62
+    assert "PredictorPerformance" in df.columns
+    assert round(df.select(pl.col("PredictorPerformance").top_k(1)).item(), 2) == 0.62
 
     plot = sample.plot.predictor_category_performance()
     assert isinstance(plot, Figure)

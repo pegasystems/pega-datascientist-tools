@@ -655,7 +655,7 @@ class Plots(LazyNamespace):
             Whether to return a dataframe instead of a plot, by default False
         """
 
-        metric = "PerformanceBin" if metric == "Performance" else metric
+        metric = "PredictorPerformance" if metric == "Performance" else metric
         try:
             df = cdh_utils._apply_query(
                 self.datamart.aggregates.last(table="combined_data")
@@ -720,7 +720,10 @@ class Plots(LazyNamespace):
             title=f"{title_prefix} {title_suffix}",
             facet_col=facet,
             facet_col_wrap=5,
-            labels={"PredictorName": "Predictor Name", "PerformanceBin": "Performance"},
+            labels={
+                "PredictorName": "Predictor Name",
+                "PredictorPerformance": "Performance",
+            },
         )
         fig.update_yaxes(
             categoryorder="array", categoryarray=order, automargin=True, dtick=1
@@ -752,7 +755,7 @@ class Plots(LazyNamespace):
         facet: Optional[Union[pl.Expr, str]] = None,
         return_df: bool = False,
     ):
-        metric = "PerformanceBin" if metric == "Performance" else metric
+        metric = "PredictorPerformance" if metric == "Performance" else metric
 
         # Determine columns to select and grouping
         select_columns = {
@@ -789,8 +792,8 @@ class Plots(LazyNamespace):
             df = df.filter(pl.col("EntryType") == "Active")
 
         df = df.group_by(groups).agg(
-            PerformanceBin=cdh_utils.weighted_average_polars(
-                "PerformanceBin", "ResponseCountBin"
+            PredictorPerformance=cdh_utils.weighted_average_polars(
+                "PredictorPerformance", "ResponseCountBin"
             )
         )
 
@@ -808,7 +811,10 @@ class Plots(LazyNamespace):
             facet_col=facet_col,
             # title=f"{title_prefix} {title_suffix}",
             facet_col_wrap=3,
-            labels={"PredictorName": "Predictor Name", "PerformanceBin": "Performance"},
+            labels={
+                "PredictorName": "Predictor Name",
+                "PredictorPerformance": "Performance",
+            },
         )
         fig.update_yaxes(
             categoryorder="array", categoryarray=order, automargin=True, dtick=1
@@ -822,7 +828,7 @@ class Plots(LazyNamespace):
     @requires(
         combined_columns={
             "PredictorName",
-            "PerformanceBin",
+            "PredictorPerformance",
             "BinResponseCount",
             "PredictorCategory",
         }
@@ -840,11 +846,11 @@ class Plots(LazyNamespace):
                 query,
             )
             .filter(pl.col("PredictorName") != "Classifier")
-            .with_columns((pl.col("PerformanceBin") - 0.5) * 2)
+            .with_columns((pl.col("PredictorPerformance") - 0.5) * 2)
             .group_by(by, "PredictorCategory")
             .agg(
                 Performance=cdh_utils.weighted_average_polars(
-                    "PerformanceBin", "BinResponseCount"
+                    "PredictorPerformance", "BinResponseCount"
                 )
             )
             .with_columns(
@@ -872,7 +878,7 @@ class Plots(LazyNamespace):
             "PredictorName",
             "Name",
             "Performance",
-            "PerformanceBin",
+            "PredictorPerformance",
             "ResponseCountBin",
         }
     )

@@ -322,11 +322,11 @@ def configure_predictor_categorization():
             df = df.filter(filter)
     df = (
         df.filter(pl.col("PredictorName") != "Classifier")
-        .with_columns((pl.col("PerformanceBin") - 0.5) * 2)
+        .with_columns((pl.col("PredictorPerformance") - 0.5) * 2)
         .group_by("PredictorCategory")
         .agg(
             Performance=cdh_utils.weighted_average_polars(
-                "PerformanceBin", "BinResponseCount"
+                "PredictorPerformance", "BinResponseCount"
             )
         )
         .with_columns(

@@ -1,5 +1,4 @@
 from typing import TYPE_CHECKING, Dict, Literal, Optional
-from pathlib import Path
 
 import polars as pl
 
@@ -67,8 +66,10 @@ class Aggregates:
         """
         if model_df is None or predictor_df is None:
             return None
-        return self.last(data=model_df).join(
-            self.last(data=predictor_df), on="ModelID", suffix="Bin"
+        return (
+            self.last(data=model_df)
+            .join(self.last(data=predictor_df), on="ModelID", suffix="Bin")
+            .rename({"PerformanceBin": "PredictorPerformance"}, strict=False)
         )
 
     def predictor_performance_pivot(
@@ -124,13 +125,13 @@ class Aggregates:
             (
                 df.filter(pl.col("ResponseCount") > 0)
                 .with_columns(
-                    pl.col("PerformanceBin").fill_nan(0.5),  # should we do this?
+                    pl.col("PredictorPerformance").fill_nan(0.5),  # should we do this?
                 )
                 .unique(subset=action_predictor, keep="first")
                 .group_by(action_predictor)
                 .agg(
                     cdh_utils.weighted_average_polars(
-                        "PerformanceBin", "ResponseCountBin"
+                        "PredictorPerformance", "ResponseCountBin"
                     )
                 )
             )
@@ -139,7 +140,7 @@ class Aggregates:
                 [
                     (
                         pl.when(pl.col("PredictorName") == predictor)
-                        .then(pl.col("PerformanceBin"))
+                        .then(pl.col("PredictorPerformance"))
                         .otherwise(pl.lit(0.5))
                         .alias(predictor)
                     )
@@ -268,7 +269,7 @@ class Aggregates:
     def _top_n(
         df: pl.DataFrame,
         top_n: int,
-        metric: str = "PerformanceBin",
+        metric: str = "PredictorPerformance",
         facets: Optional[list] = None,
     ):
         """Subsets DataFrame to contain only top_n predictors.
