@@ -171,7 +171,7 @@ class ADMDatamart:
         )
 
         if "PredictorCategory" not in schema.names():
-            self.apply_predictor_categorization(df)
+            df = self.apply_predictor_categorization(df)
         df = cdh_utils._apply_schema_types(df, Schema.ADMPredictorBinningSnapshot)
         return df
 
