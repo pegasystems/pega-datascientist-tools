@@ -1,7 +1,5 @@
 import asyncio
 
-from tqdm.asyncio import tqdm
-
 from . import File
 
 
@@ -142,15 +140,19 @@ class S3Data:
 
             tasks = [createTask(f) for f in files]
 
-            _ = [
-                await task_
-                for task_ in tqdm.as_completed(
+            try:
+                from tqdm.asyncio import tqdm
+
+                iterable = tqdm.as_completed(
                     tasks,
                     total=len(tasks),
                     desc="Downloading files...",
                     disable=not verbose,
                 )
-            ]
+            except ImportError:
+                iterable = tasks
+
+            _ = [await task_ for task_ in iterable]
 
         if verbose:
             print(

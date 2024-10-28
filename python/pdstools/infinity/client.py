@@ -37,9 +37,9 @@ class Infinity(SyncAPIClient):
 
         self.knowledge_buddy = resources.KnowledgeBuddy(client=self)
 
-        # self.PredictionStudio = resources.PredictionStudio.get(self.version)(
-        #     client=self
-        # )
+        self.prediction_studio = resources.prediction_studio.get(self.version)(
+            client=self
+        )
 
 
 class AsyncInfinity(AsyncAPIClient):  # pragma: no cover

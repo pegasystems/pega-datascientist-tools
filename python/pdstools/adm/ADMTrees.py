@@ -17,7 +17,6 @@ from statistics import mean
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Union
 
 import polars as pl
-from tqdm import tqdm
 
 from ..utils import cdh_utils
 from ..utils.namespaces import MissingDependenciesException
@@ -32,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 class AGB:
-    def __init__(self, datamart: "ADMDatamart"): #pragma: no cover
+    def __init__(self, datamart: "ADMDatamart"):  # pragma: no cover
         self.datamart = datamart
 
     def discover_model_types(
@@ -149,7 +148,7 @@ class AGB:
             )
 
 
-class ADMTrees: #pragma: no cover
+class ADMTrees:  # pragma: no cover
     def __new__(cls, file, n_threads=6, verbose=True, **kwargs):
         if isinstance(file, pl.DataFrame):
             logger.info("DataFrame supplied.")
@@ -194,12 +193,19 @@ class ADMTrees: #pragma: no cover
             pl.concat_list(["Configuration", "SnapshotTime"]), "Modeldata"
         ).to_dict()
 
+        try:
+            import tqdm
+
+            iterable = tqdm(df2["Modeldata"])
+        except ImportError:
+            iterable = df2["Modeldata"]
+
         with multiprocessing.Pool(n_threads) as p:
             f = map if n_threads < 2 else p.imap
             out = dict(
                 zip(
                     map(tuple, df2["Configuration"].to_list()),
-                    list(f(ADMTrees, tqdm(df2["Modeldata"]))),
+                    list(f(ADMTrees, iterable)),
                 )
             )
         dict_per_config: Dict[Any, Any] = {key[0]: {} for key in out.keys()}

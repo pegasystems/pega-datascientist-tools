@@ -4,17 +4,16 @@ import os
 import pathlib
 import re
 import urllib
+import warnings
 import zipfile
+from datetime import datetime, timezone
 from glob import glob
 from io import BytesIO
 from pathlib import Path
 from typing import Iterable, List, Literal, Optional, Tuple, Union, overload
 
-import numpy as np
 import polars as pl
-import pytz
 import requests
-from tqdm import tqdm
 
 from ..utils.cdh_utils import from_prpc_date_time
 
@@ -271,14 +270,34 @@ def read_multi_zip(
     """
     import gzip
 
-    table = []
     if zip_type != "gzip":
         raise NotImplementedError("Only supports gzip for now")
-    for file in tqdm(files, desc="Reading files...", disable=not verbose):
+
+    table = []
+    total_files = len(files) if isinstance(files, (list, tuple)) else None
+
+    try:
+        from tqdm import tqdm
+
+        files_iterator = tqdm(
+            files, desc="Reading files...", disable=not verbose, total=total_files
+        )
+    except ImportError:
+        if verbose:
+            warnings.warn(
+                "tqdm is not installed. For a progress bar, install tqdm: pip install tqdm",
+                UserWarning,
+            )
+        files_iterator = files
+        if verbose:
+            print("Reading files...")
+
+    for file in files_iterator:
         data = pl.read_ndjson(gzip.open(file).read())
         if add_original_file_name:
             data = data.with_columns(file=pl.lit(file))
         table.append(data)
+
     df = pl.concat(table, how="diagonal")
     if verbose:
         print("Combining completed")
@@ -331,12 +350,10 @@ def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
         try:
             return from_prpc_date_time(re.search(r"\d.*GMT", x)[0].replace("_", " "))
         except:
-            return pytz.timezone("GMT").localize(
-                datetime.datetime.fromtimestamp(os.path.getctime(x))
-            )
+            return datetime.fromtimestamp(os.path.getctime(x), tz=timezone.utc)
 
-    dates = np.array([f(i) for i in paths])
-    return paths[np.argmax(dates)]
+    dates = pl.Series([f(i) for i in paths])
+    return paths[dates.arg_max()]
 
 
 def find_files(files_dir, target):
