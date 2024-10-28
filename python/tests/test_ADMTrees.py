@@ -5,11 +5,10 @@ Testing the functionality of the ADMDatamart functions
 import pathlib
 
 import pytest
-
-basePath = pathlib.Path(__file__).parent.parent.parent
-# sys.path.append(f"{str(basePath)}/python")
 from pdstools import ADMTrees
 from pdstools.adm.ADMTrees import ADMTreesModel
+
+basePath = pathlib.Path(__file__).parent.parent.parent
 
 
 @pytest.fixture

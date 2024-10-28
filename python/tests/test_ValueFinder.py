@@ -2,14 +2,8 @@
 Testing the functionality of the ValueFinder class
 """
 
-import pathlib
-import sys
-
 import polars as pl
 import pytest
-
-base_path = pathlib.Path(__file__).parent.parent.parent
-sys.path.append(f"{str(base_path)}/python")
 from pdstools import ValueFinder, datasets, read_ds_export
 
 
@@ -88,7 +82,7 @@ def test_empty_data_df():
 
 
 def test_save_data(vf: ValueFinder):
-    data = vf.save_data('cache')
+    data = vf.save_data("cache")
     print(data)
     ValueFinder(pl.scan_ipc(data))
 

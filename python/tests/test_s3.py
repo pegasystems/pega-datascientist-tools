@@ -1,14 +1,7 @@
 import os
-import pathlib
 import shutil
-import sys
 
 import aioboto3
-import pytest
-from moto import mock_aws
-
-basePath = pathlib.Path(__file__).parent.parent.parent
-sys.path.append(f"{str(basePath)}/python")
 from pdstools.pega_io.S3 import S3Data
 
 

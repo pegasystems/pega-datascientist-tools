@@ -2,16 +2,10 @@
 Testing the functionality of some end-to-end scenarios
 """
 
-import pathlib
-import sys
-
 import polars as pl
 import pytest
-from plotly.graph_objs._figure import Figure
-
-basePath = pathlib.Path(__file__).parent.parent.parent
-sys.path.append(f"{str(basePath)}/python")
 from pdstools import ADMDatamart
+from plotly.graph_objs._figure import Figure
 
 
 @pytest.fixture
@@ -48,7 +42,7 @@ def test_end_to_end(sample: ADMDatamart):
 
     assert sample.aggregates.last().shape == (68, 27)
     assert sample.aggregates.last(table="predictor_data").shape == (4576, 39)
-    assert sample.model_data.schema["SnapshotTime"] == pl.Datetime
+    assert sample.model_data.collect_schema()["SnapshotTime"] == pl.Datetime
 
     assert sample.context_keys == [
         "Channel",

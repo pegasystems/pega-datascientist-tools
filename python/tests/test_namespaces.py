@@ -1,10 +1,4 @@
-import pathlib
-import sys
-
 import pytest
-
-basePath = pathlib.Path(__file__).parent.parent.parent
-sys.path.append(f"{str(basePath)}/python")
 from pdstools.utils.namespaces import LazyNamespace, MissingDependenciesException
 
 

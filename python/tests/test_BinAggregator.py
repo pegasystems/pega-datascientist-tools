@@ -4,25 +4,26 @@ Testing the functionality of the BinAggregator
 
 import polars as pl
 import pytest
+from pdstools import ADMDatamart, BinAggregator, datasets
 from plotly.graph_objects import Figure
-
-# basePath = pathlib.Path(__file__).parent.parent.parent
-# sys.path.append(f"{str(basePath)}/python")
-from pdstools import BinAggregator, datasets, ADMDatamart
 
 dm = ADMDatamart(
     model_df=datasets.cdh_sample().model_data,
     predictor_df=datasets.cdh_sample().predictor_data,
-    query=((pl.col("Issue").is_in(["Sales"]))&(pl.col("Direction")=="Inbound"))
+    query=((pl.col("Issue").is_in(["Sales"])) & (pl.col("Direction") == "Inbound")),
 )
+
 
 @pytest.fixture
 def cdhsample_binaggregator():
     return BinAggregator(dm)
 
+
 def test_overall_num_rollup(cdhsample_binaggregator):
     assert isinstance(cdhsample_binaggregator.roll_up("Customer.AnnualIncome"), Figure)
-    rolled_up_binning = cdhsample_binaggregator.roll_up("Customer.AnnualIncome", return_df=True)
+    rolled_up_binning = cdhsample_binaggregator.roll_up(
+        "Customer.AnnualIncome", return_df=True
+    )
     assert rolled_up_binning.columns == [
         "PredictorName",
         "BinIndex",
@@ -51,7 +52,6 @@ def test_overall_num_rollup(cdhsample_binaggregator):
             0.943641,
             0.967659,
             1.111563,
-
         ],
         1e-5,
     )
@@ -67,7 +67,6 @@ def test_overall_num_rollup(cdhsample_binaggregator):
             190.330366,
             190.330366,
             85.413398,
-
         ],
         1e-8,
     )
@@ -100,20 +99,24 @@ def test_overall_sym_rollup(cdhsample_binaggregator):
         "No Resp+",
     ]
     assert rolled_up_binning["Lift"].to_list() == pytest.approx(
-        [0.392478,
-0.074237,
-0.0,
--0.208895,
--0.220171,
-], 1e-5
+        [
+            0.392478,
+            0.074237,
+            0.0,
+            -0.208895,
+            -0.220171,
+        ],
+        1e-5,
     )
     assert rolled_up_binning["BinResponses"].to_list() == pytest.approx(
-        [1507.0,
-1757.0,
-0.0,
-1743.0,
-1683.0,
-], 1e-5
+        [
+            1507.0,
+            1757.0,
+            0.0,
+            1743.0,
+            1683.0,
+        ],
+        1e-5,
     )
 
 
@@ -166,7 +169,10 @@ def test_combine_two_numbinnings(cdhsample_binaggregator):
     assert combined["Lift"].to_list() == pytest.approx([0.066667, -0.1, 2.0, 2.0], 1e-5)
     assert combined["BinCoverage"].to_list() == pytest.approx([1, 1, 1, 0.66667], 1e-5)
 
-@pytest.mark.skip(reason="query argument to binaggregator currently no longer supported")
+
+@pytest.mark.skip(
+    reason="query argument to binaggregator currently no longer supported"
+)
 def test_subsetting():
     dm = datasets.cdh_sample()
     ba = BinAggregator(dm, query=pl.col("Group").cast(pl.Utf8).str.contains("Loan"))

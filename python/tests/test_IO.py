@@ -4,16 +4,10 @@ Testing the functionality of the io functions
 
 import os
 import pathlib
-import sys
-
-import polars as pl
-
-basePath = pathlib.Path(__file__).parent.parent.parent
-sys.path.append(f"{str(basePath)}/python")
-import pathlib
 import zipfile
 from io import BytesIO
 
+import polars as pl
 import pytest
 from pdstools import pega_io
 

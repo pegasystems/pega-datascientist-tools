@@ -10,7 +10,6 @@ import polars as pl
 import pytest
 
 basePath = pathlib.Path(__file__).parent.parent.parent
-sys.path.append(f"{str(basePath)}/python")
 from pdstools import ADMDatamart
 
 

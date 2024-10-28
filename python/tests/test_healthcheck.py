@@ -1,10 +1,7 @@
 import pathlib
 
-from pandas import ExcelFile
-
-basePath = pathlib.Path(__file__).parent.parent.parent
-# sys.path.append(f"{str(basePath)}/python")
 import pytest
+from pandas import ExcelFile
 from pdstools import ADMDatamart, datasets, read_ds_export
 
 

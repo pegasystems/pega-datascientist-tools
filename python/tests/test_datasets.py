@@ -2,11 +2,6 @@
 Testing the functionality of the built-in datasets
 """
 
-import pathlib
-import sys
-
-basePath = pathlib.Path(__file__).parent.parent.parent
-sys.path.append(f"{str(basePath)}/python")
 import polars as pl
 from pdstools import datasets
 

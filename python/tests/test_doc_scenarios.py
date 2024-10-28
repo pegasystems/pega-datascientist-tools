@@ -2,15 +2,10 @@
 Testing that none of the docs examples produce errors.
 """
 
-import pathlib
 import platform
-import sys
 
 import pytest
 from testbook import testbook
-
-basePath = pathlib.Path(__file__).parent.parent.parent
-sys.path.append(f"{str(basePath)}/python")
 
 
 @pytest.mark.parametrize(

@@ -3,17 +3,12 @@ Testing the functionality of the cdh_utils functions
 """
 
 import datetime
-import pathlib
-import sys
 
 import numpy as np
 import polars as pl
 import pytest
-from pytz import timezone
-
-basePath = pathlib.Path(__file__).parent.parent.parent
-sys.path.append(f"{str(basePath)}/python")
 from pdstools import cdh_utils, datasets
+from pytz import timezone
 
 
 def test_safe_range_auc():
@@ -657,7 +652,7 @@ def test_extract_keys():
             "Garden",
             "GoldCard",
         ],
-         'Treatment': ['Treatment1', 'b', 'c', 'd', 'e', 'f'],
+        "Treatment": ["Treatment1", "b", "c", "d", "e", "f"],
         # "Treatment": ["Treatment1", None, None, None, None, None], # old behavior
         "Customer": [None, "Anonymous", "Known", "Known", None, None],
         "Customer_2": [None, None, None, None, "Known", None],
