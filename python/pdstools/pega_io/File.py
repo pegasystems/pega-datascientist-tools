@@ -348,7 +348,7 @@ def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
 
     def f(x):
         try:
-            return from_prpc_date_time(re.search(r"\d.*GMT", x)[0].replace("_", " "))
+            return from_prpc_date_time(re.search(r"\d.{0,15}*GMT", x)[0].replace("_", " "))
         except:
             return datetime.fromtimestamp(os.path.getctime(x), tz=timezone.utc)
 
