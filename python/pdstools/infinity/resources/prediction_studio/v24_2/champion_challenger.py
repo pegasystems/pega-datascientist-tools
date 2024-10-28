@@ -313,7 +313,7 @@ class ChampionChallenger(ChampionChallengerBase):
             "Ready for review",
             "Approved",
         ]
-        import tqdm  # TODO: make this fail gracefully when tqdm not installed
+        from tqdm import tqdm  # TODO: make this fail gracefully when tqdm not installed
 
         pbar = tqdm(total=len(status_order))
         model_status = None

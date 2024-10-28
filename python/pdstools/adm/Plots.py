@@ -7,9 +7,9 @@ from typing import (
     Callable,
     Iterable,
     List,
-    Set,
     Literal,
     Optional,
+    Set,
     Tuple,
     TypeVar,
     Union,
@@ -925,7 +925,6 @@ class Plots(LazyNamespace):
         query: Optional[QUERY] = None,
         return_df: bool = False,
     ):  # TODO: more generic plot gains function?
-
         df = (
             cdh_utils._apply_query(self.datamart.aggregates.last(), query=query)
             .select([by, "Positives", "ModelID"])
@@ -1257,7 +1256,7 @@ class Plots(LazyNamespace):
             )
         )
         if return_df:
-            return df
+            return df.lazy()
         fig = px.bar(
             out.to_pandas(use_pyarrow_extension_array=True),
             x=f"{to_plot}_range",

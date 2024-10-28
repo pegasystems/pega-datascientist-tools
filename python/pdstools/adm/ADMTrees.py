@@ -194,7 +194,7 @@ class ADMTrees:  # pragma: no cover
         ).to_dict()
 
         try:
-            import tqdm
+            from tqdm import tqdm
 
             iterable = tqdm(df2["Modeldata"])
         except ImportError:

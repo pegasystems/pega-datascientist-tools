@@ -224,6 +224,8 @@ class Anonymization:
             files = files[: self.file_limit]
 
         chunked_files = []
+        length = math.ceil(len(files) / self.batch_size)
+
         try:
             from tqdm.auto import tqdm  # type: ignore[import-untyped]
 
@@ -233,7 +235,6 @@ class Anonymization:
         except ImportError:
             iterable = self.chunker(files, self.batch_size)
 
-        length = math.ceil(len(files) / self.batch_size)
         for i, file_chunk in enumerate(iterable):
             chunked_files.append(self.chunk_to_parquet(file_chunk, i))
 
