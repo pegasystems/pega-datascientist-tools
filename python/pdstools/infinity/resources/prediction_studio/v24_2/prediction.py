@@ -1,20 +1,20 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from typing import Dict, List, Literal, Optional, Union, overload
 
 import polars as pl
-from .....utils import cdh_utils
 from pydantic import validate_call
 
+from .....utils import cdh_utils
 from ....internal._constants import METRIC
 from ....internal._exceptions import NoMonitoringInfo, PegaException, PegaMLopsError
 from ....internal._pagination import PaginatedList
 from ..base import Notification
+from ..types import NotificationCategory
 from ..v24_1.prediction import Prediction as PredictionPrevious
 from .champion_challenger import ChampionChallenger
 from .model import Model
-from ..types import NotificationCategory
 
 
 class Prediction(PredictionPrevious):
@@ -267,7 +267,7 @@ class Prediction(PredictionPrevious):
         self,
         *,
         metric: METRIC,
-        start_date: date,
+        start_date: Optional[date] = None,
         end_date: Optional[date] = None,
         frequency: Literal["Daily", "Weekly", "Monthly"] = "Daily",
     ) -> pl.DataFrame:
@@ -297,7 +297,11 @@ class Prediction(PredictionPrevious):
         NoMonitoringInfo
             If no monitoring data is available for the given parameters.
         """
-        start_date_str = start_date.strftime("%d/%m/%Y")
+        start_date_str = (
+            start_date.strftime("%d/%m/%Y")
+            if start_date
+            else (date.today() - timedelta(days=7)).strftime("%d/%m/%Y")
+        )
         end_date_str = end_date.strftime("%d/%m/%Y") if end_date else None
 
         endpoint = f"/prweb/api/PredictionStudio/v2/predictions/{self.prediction_id}/metric/{metric}"
