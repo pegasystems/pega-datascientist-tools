@@ -5,7 +5,6 @@ from typing import Dict, List, Optional
 
 import polars as pl
 import polars.selectors as cs
-from tqdm.auto import tqdm  # type: ignore[import-untyped]
 
 
 class Anonymization:
@@ -225,13 +224,17 @@ class Anonymization:
             files = files[: self.file_limit]
 
         chunked_files = []
+        try:
+            from tqdm.auto import tqdm  # type: ignore[import-untyped]
 
-        length = math.ceil(len(files) / self.batch_size)
-        for i, file_chunk in enumerate(
-            tqdm(
+            iterable = tqdm(
                 self.chunker(files, self.batch_size), total=length, disable=not verbose
             )
-        ):
+        except ImportError:
+            iterable = self.chunker(files, self.batch_size)
+
+        length = math.ceil(len(files) / self.batch_size)
+        for i, file_chunk in enumerate(iterable):
             chunked_files.append(self.chunk_to_parquet(file_chunk, i))
 
         return chunked_files

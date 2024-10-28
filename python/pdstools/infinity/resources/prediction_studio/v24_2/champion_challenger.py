@@ -6,12 +6,11 @@ from typing import Dict, List, Optional, Union
 
 import polars as pl
 from pydantic import validate_call
-from tqdm.auto import tqdm
 
 from ....internal._exceptions import PegaException, PegaMLopsError
 from ....internal._pagination import PaginatedList
-from ..types import AdmModelType
 from ..base import ChampionChallenger as ChampionChallengerBase
+from ..types import AdmModelType
 from .model import Model
 from .model_upload import UploadedModel
 
@@ -314,6 +313,8 @@ class ChampionChallenger(ChampionChallengerBase):
             "Ready for review",
             "Approved",
         ]
+        import tqdm  # TODO: make this fail gracefully when tqdm not installed
+
         pbar = tqdm(total=len(status_order))
         model_status = None
         while model_status != "Ready for review":
