@@ -55,6 +55,8 @@ class ADMDatamart:
         self.model_data = self._validate_model_data(
             model_df, query=query, extract_pyname_keys=extract_pyname_keys
         )
+
+        # TODO shouldnt we subset the predictor data to the model IDs also in the model data - if that is present
         self.predictor_data = self._validate_predictor_data(predictor_df)
 
         self.combined_data = self.aggregates._combine_data(

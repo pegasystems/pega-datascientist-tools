@@ -217,8 +217,8 @@ class Reports(LazyNamespace):
         self,
         name: Optional[str],
         report_type: str,
-        model_id: Optional[str],
-        output_type: str,
+        model_id: Optional[str] = None,
+        output_type: str = "html",
     ) -> str:
         """Generate the output filename based on the report parameters."""
         name = name.replace(" ", "_") if name else None
