@@ -321,7 +321,7 @@ def handle_file_upload():
 
 def handle_direct_file_path():
     st.write(
-        """You can import the data simply by pointing the app to the directory  
+        """You can import the data simply by pointing the app to the directory
         where the original files are located."""
     )
     dir = st.text_input(

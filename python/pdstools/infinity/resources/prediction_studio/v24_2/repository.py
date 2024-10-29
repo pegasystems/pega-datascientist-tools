@@ -9,7 +9,7 @@ class Repository(RepositoryPrevious):
         repository_name,
         bucket_name,
         root_path,
-        datamart_export_location
+        datamart_export_location,
     ):
         super().__init__(client=client, repository_name=repository_name)
         self.type = type
@@ -18,5 +18,5 @@ class Repository(RepositoryPrevious):
         self.datamart_export_location = datamart_export_location
 
     @property
-    def s3_url(self): #TODO: implement
+    def s3_url(self):  # TODO: implement
         return "s3://test"

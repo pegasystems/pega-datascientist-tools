@@ -383,16 +383,14 @@ def test_upload_model(prediction_studio_client, mocker):
         prediction_studio_client._client, "post", return_value=mock_response
     )
     result = prediction_studio_client.upload_model(
-        PMMLModel(
-            "python/tests/prediction_studio/v24_2/artifacts/test.model"
-        ),
+        PMMLModel("python/tests/prediction_studio/v24_2/artifacts/test.model"),
         file_name="test.model",
     )
 
     mock_get.assert_called_once_with(
         "/prweb/api/PredictionStudio/v1/model",
         data={
-            "fileSource": "VGVzdCB1cGxvYWQgbW9kZWwgZmlsZQ==\n",
+            "fileSource": "VGVzdCB1cGxvYWQgbW9kZWwgZmlsZQo=\n",
             "fileName": "test.model",
         },
     )

@@ -14,7 +14,16 @@ from dataclasses import dataclass
 from functools import cached_property, lru_cache
 from math import exp
 from statistics import mean
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+)
 
 import polars as pl
 
@@ -23,7 +32,7 @@ from ..utils.namespaces import MissingDependenciesException
 from ..utils.types import QUERY
 
 if TYPE_CHECKING:  # pragma: no cover
-    import pydot
+    import pydot  # type: ignore[import-untyped]
 
     from .ADMDatamart import ADMDatamart
 
@@ -186,7 +195,7 @@ class ADMTrees:  # pragma: no cover
         )
         if len(df) > 50 and n_threads == 1 and verbose:
             print(
-                f"""Decoding {len(df)} models, 
+                f"""Decoding {len(df)} models,
             setting n_threads to a higher value may speed up processing time."""
             )
         df2 = df.select(
@@ -201,7 +210,7 @@ class ADMTrees:  # pragma: no cover
             iterable = df2["Modeldata"]
 
         with multiprocessing.Pool(n_threads) as p:
-            f = map if n_threads < 2 else p.imap
+            f: Any = map if n_threads < 2 else p.imap
             out = dict(
                 zip(
                     map(tuple, df2["Configuration"].to_list()),
@@ -393,7 +402,7 @@ class ADMTreesModel:
 
         try:
             encoders = self.trees["model"]["model"]["inputsEncoder"]["encoders"]
-        except:
+        except KeyError:
             encoders = self.trees["model"]["inputsEncoder"]["encoders"]
         encoderkeys = collections.OrderedDict()
         for encoder in encoders:
@@ -438,23 +447,23 @@ class ADMTreesModel:
             self.properties = {
                 prop[0]: prop[1] for prop in self.trees.items() if prop[0] != "model"
             }
-        except:  # pragma: no cover
+        except Exception:  # pragma: no cover
             logger.info("Could not extract the properties.")
 
         try:
             self.learning_rate = self.properties["configuration"]["parameters"][
                 "learningRateEta"
             ]
-        except:  # pragma: no cover
+        except Exception:  # pragma: no cover
             logger.info("Could not find the learning rate in the model.")
 
         try:
             self.context_keys = self.properties["configuration"]["contextKeys"]
-        except:  # pragma: no cover
+        except Exception:  # pragma: no cover
             logger.info("Could not find context keys.")
             self.context_keys = kwargs.get("context_keys", None)
 
-    def _depth(self, d: Dict) -> Dict:
+    def _depth(self, d: Dict) -> int:
         """Calculates the depth of the tree, used in TreeStats."""
         if isinstance(d, dict):
             return 1 + (max(map(self._depth, d.values())) if d else 0)
@@ -515,9 +524,7 @@ class ADMTreesModel:
             The direction of the split (< or 'in')
             The value on which to split
         """
-        if isinstance(value, pl.Series):  # pragma: no cover
-            value = value["split"][0, 0]
-        if isinstance(value, tuple):  # pragma: no cover
+        if isinstance(value, (tuple, pl.Series)):  # pragma: no cover
             value = value[0]
         if self.nospaces:  # pragma: no cover
             variable, sign, *splitvalue = value.split(" ")
@@ -560,14 +567,14 @@ class ADMTreesModel:
         variable = variable.strip()
         return variable, sign, splitvalue
 
-    def get_predictors(self) -> Dict:
+    def get_predictors(self) -> Optional[Dict]:
         self.nospaces = True
         try:
             predictors = self.properties["configuration"]["predictors"]
-        except:  # pragma: no cover
+        except Exception:  # pragma: no cover
             try:
                 predictors = self.properties["predictors"]
-            except:
+            except Exception:
                 try:
                     predictors = []
                     for i in self.properties.split("=")[4].split(
@@ -579,7 +586,7 @@ class ADMTreesModel:
                             else:
                                 predictors += [i[:-2]]
 
-                except:
+                except Exception:
                     print("Could not find the predictors.")
                     return None
         predictors_dict = {}
@@ -590,7 +597,13 @@ class ADMTreesModel:
         return predictors_dict
 
     @lru_cache
-    def get_gains_per_split(self) -> Tuple[Dict, pl.DataFrame, dict]:
+    def get_gains_per_split(
+        self,
+    ) -> Tuple[
+        Dict,
+        Dict,
+        pl.DataFrame,
+    ]:
         """Function to compute the gains of each split in each tree."""
         self.predictors
 
@@ -604,8 +617,8 @@ class ADMTreesModel:
         }
         splitlist = [value for value in splitsPerTree.values() if value != []]
         gainslist = [value for value in gainsPerTree.values() if value != []]
-        total_split_list = functools.reduce(operator.iconcat, splitlist, [])
-        total_gains_list = functools.reduce(operator.iconcat, gainslist, [])
+        total_split_list: List = functools.reduce(operator.iconcat, splitlist, [])
+        total_gains_list: List = functools.reduce(operator.iconcat, gainslist, [])
         gainsPerSplit = pl.DataFrame(
             list(zip(total_split_list, total_gains_list)), schema=["split", "gains"]
         )
@@ -689,9 +702,8 @@ class ADMTreesModel:
         plt.figure
         """
         try:
-            import plotly.express as px
-            import plotly.graph_objects as go
-            from plotly.subplots import make_subplots
+            import plotly.graph_objects as go  # type: ignore[import-untyped]
+            from plotly.subplots import make_subplots  # type: ignore[import-untyped]
         except ImportError:  # pragma: no cover
             raise MissingDependenciesException(["plotly"], "AGB")
         figlist = []
@@ -746,7 +758,7 @@ class ADMTreesModel:
 
     def get_tree_stats(self) -> pl.DataFrame:
         """Generate a dataframe with useful stats for each tree"""
-        stats = {
+        stats: Dict[str, List] = {
             k: [] for k in ["treeID", "score", "depth", "nsplits", "gains", "meangains"]
         }
         for treeID, tree in enumerate(self.model):
@@ -763,7 +775,7 @@ class ADMTreesModel:
 
     def get_all_values_per_split(self) -> Dict:
         """Generate a dictionary with the possible values for each split"""
-        splitvalues = {}
+        splitvalues: Dict = {}
         for (name,), group in self.grouped_gains_per_split.group_by("predictor"):
             if name not in splitvalues.keys():
                 splitvalues[name] = set()
@@ -776,8 +788,8 @@ class ADMTreesModel:
         return splitvalues
 
     def get_nodes_recursively(
-        self, tree: Dict, nodelist: Dict, counter: Dict, childs: List
-    ) -> Tuple[Dict, List]:
+        self, tree: Dict, nodelist: Dict, counter: List, childs: Dict
+    ) -> Tuple[Dict, Dict]:
         """Recursively walks through each node, used for tree representation.
 
         Again, nodelist, counter and childs expects
@@ -940,7 +952,7 @@ class ADMTreesModel:
         if show:  # pragma: no cover
             try:
                 from IPython.display import Image, display
-            except:
+            except ImportError:
                 raise ValueError(
                     "IPython not installed, please install it using `pip install IPython`."
                 )
@@ -1032,9 +1044,8 @@ class ADMTreesModel:
     def plot_contribution_per_tree(self, x: Dict, show=True):
         """Plots the contribution of each tree towards the final propensity."""
         try:
-            import plotly.express as px
+            import plotly.express as px  # type: ignore[import-untyped]
             import plotly.graph_objects as go
-            from plotly.subplots import make_subplots
         except ImportError:  # pragma: no cover
             raise MissingDependenciesException(["plotly"], "AGB")
         scores = (
@@ -1114,8 +1125,6 @@ class ADMTreesModel:
     def plot_splits_per_variable_type(self, predictor_categorization=None, **kwargs):
         try:
             import plotly.express as px
-            import plotly.graph_objects as go
-            from plotly.subplots import make_subplots
         except ImportError:  # pragma: no cover
             raise MissingDependenciesException(["plotly"], "AGB")
         if predictor_categorization is not None:  # pragma: no cover
@@ -1226,8 +1235,6 @@ class MultiTrees:  # pragma: no cover
     def plot_splits_per_variable_type(self, predictor_categorization=None, **kwargs):
         try:
             import plotly.express as px
-            import plotly.graph_objects as go
-            from plotly.subplots import make_subplots
         except ImportError:
             raise MissingDependenciesException(["plotly"], "AGB")
         df = self.compute_over_time(predictor_categorization).to_pandas(

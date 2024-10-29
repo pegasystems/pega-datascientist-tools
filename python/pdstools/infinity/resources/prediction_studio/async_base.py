@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Dict, List, Literal, Optional, TypedDict, Union
+from typing import Dict, List, Literal, Optional, TypedDict
 
 
 from ...internal._exceptions import IncompatiblePegaVersionError
@@ -50,8 +50,7 @@ class Prediction(AsyncAPIResource, ABC):
         *,
         metric: Literal["Performance", "Total_responses", "Lift", "Success_rate"],
         timeframe: Literal["7d", "4w", "3m", "6m"],
-    ):
-        ...
+    ): ...
 
 
 class Repository(AsyncAPIResource, ABC):
@@ -66,9 +65,7 @@ class PredictionStudioBase(AsyncAPIResource, ABC):
     version: str
 
     @abstractmethod
-    def list_predictions(self) -> PaginatedList[Prediction]:
-        ...
+    def list_predictions(self) -> PaginatedList[Prediction]: ...
 
     @abstractmethod
-    def repository(self) -> Repository:
-        ...
+    def repository(self) -> Repository: ...

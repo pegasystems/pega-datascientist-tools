@@ -2,10 +2,14 @@
 Testing the functionality of some end-to-end scenarios
 """
 
+import pathlib
+
 import polars as pl
 import pytest
-from pdstools import ADMDatamart
 from plotly.graph_objs._figure import Figure
+from pdstools import ADMDatamart
+
+basePath = pathlib.Path(__file__).parent.parent.parent
 
 
 @pytest.fixture

@@ -15,7 +15,7 @@ name = "pdstools"
 dynamic = ["version"]
 description = "Open source tooling that helps Data Scientists to analyze Pega models and conduct impactful analyses."
 readme = "README.md"
-authors = [ { name = "Stijn Kas", email = "stijn.kas@pega.com" } ] 
+authors = [ { name = "Stijn Kas", email = "stijn.kas@pega.com" } ]
 license = {text = "Apache-2.0"}
 classifiers = [
     "License :: OSI Approved :: Apache Software License",
@@ -57,3 +57,6 @@ tests = ['testbook', 'pytest', 'pytest-cov', 'pytest-httpx', 'pytest-mock', 'mot
 
 [project.scripts]
 pdstools = 'pdstools.app.cli:main'
+
+[tool.mypy]
+mypy_path=['python/stubs']

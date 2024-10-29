@@ -1,6 +1,6 @@
 from typing import Dict, List
 from IPython.display import display, Markdown
-from great_tables import GT, style, md, html, loc
+from great_tables import GT, style, loc
 from ..adm.CDH_Guidelines import CDHGuidelines
 import polars as pl
 
@@ -106,9 +106,9 @@ def table_standard_formatting(
             )
         return gt
 
-    gt = GT(source_table, rowname_col=rowname_col, groupname_col=groupname_col).tab_options(
-        table_font_size=8
-    )
+    gt = GT(
+        source_table, rowname_col=rowname_col, groupname_col=groupname_col
+    ).tab_options(table_font_size=8)
 
     if title is not None:
         gt = gt.tab_header(title=title)

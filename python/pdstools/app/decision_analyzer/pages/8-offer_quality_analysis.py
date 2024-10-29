@@ -19,7 +19,7 @@ from utils import (
 "# Offer Quality Analysis"
 
 """
-**Value Finder** has a unique concept of attaching a propensity to every action even if it is 
+**Value Finder** has a unique concept of attaching a propensity to every action even if it is
 filtered out before Arbitration. **Decision Analyzer** does not have these propensities - as
 it is running from actual production data.
 

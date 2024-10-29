@@ -31,18 +31,18 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx_copybutton",
     "myst_parser",
-    "sphinx.ext.intersphinx"
+    "sphinx.ext.intersphinx",
     # "jupyter_sphinx",
     # "sphinx_gallery.gen_gallery",
 ]
 
 source_suffix = [".rst", ".md"]
 intersphinx_mapping = {
-    "polars":("https://pola-rs.github.io/polars/py-polars/html", None)
+    "polars": ("https://pola-rs.github.io/polars/py-polars/html", None)
 }
 
 add_module_names = False
-toc_object_entries_show_parents = 'hide'
+toc_object_entries_show_parents = "hide"
 
 # -- Autoapi settings --------------------------------------------------------
 autoapi_type = "python"
@@ -98,11 +98,10 @@ suppress_warnings = ["spub.duplicated_toc_entry"]
 
 # Overwriting nbsphinx in order to add remove_input cell tag (remove code cell,
 # keep output)
-from nbsphinx import RST_TEMPLATE
-from nbsphinx import setup
-import nbsphinx
-import re
+import re  # noqa: E402
 
+import nbsphinx  # noqa: E402
+from nbsphinx import RST_TEMPLATE, setup  # noqa: E402
 
 BLOCK_REGEX = r"(({{% block {block} -%}}\n)(.*?)({{% endblock {block} %}}\n))"
 PATCH_TEMPLATE = r"{{% block {block} -%}}\n{patch}{{% endblock {block} %}}\n"

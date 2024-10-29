@@ -25,7 +25,7 @@ from pdstools.decision_analyzer.utils import (
 """
 This analysis shows that if a (group of) action(s) is "winning", what
 it is winning from. A comparison, or reference, group needs to be
-defined. You can, for example, investigate that when *upsell actions* are 
+defined. You can, for example, investigate that when *upsell actions* are
 winning, what are they generally winning from. This analysis only applies
 to Arbitration.
 """
@@ -95,7 +95,6 @@ with st.session_state["sidebar"]:
 # st.write(st.session_state.to_dict().keys())
 
 if st.session_state.local_filters != []:
-
     groupby_cols = [st.session_state.scope] + (
         [scope_options[get_current_scope_index(scope_options) + 1]]
         if (get_current_scope_index(scope_options) + 1) < len(scope_options)

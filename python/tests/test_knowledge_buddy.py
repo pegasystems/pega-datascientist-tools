@@ -3,9 +3,6 @@ import re
 import pytest
 from pdstools.infinity import Infinity
 from pdstools.infinity.internal import _auth
-from pdstools.infinity.resources.knowledge_buddy.knowledge_buddy import (
-    UnavailableBuddyError,NoAPIAccessError
-)
 from pytest_httpx import HTTPXMock
 
 

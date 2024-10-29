@@ -30,11 +30,11 @@ _pega_cloud_limits.columns = [
 ]
 
 _NBAD_ModelConfiguration_header = [
-    "Configuration", #"model_name",
-    "Channel", # channel
-    "Direction", # direction
-    "isStandardConfiguration", # "standard",
-    "isMultiChannelConfiguration" #"multi_channel",
+    "Configuration",  # "model_name",
+    "Channel",  # channel
+    "Direction",  # direction
+    "isStandardConfiguration",  # "standard",
+    "isMultiChannelConfiguration",  # "multi_channel",
 ]
 _NBAD_ModelConfiguration_data = [
     ["Web_Click_Through_Rate", "Web", "Inbound", True, False],
@@ -103,6 +103,7 @@ _colorscales = {
     "other": ["#d91c29", "#F76923", "#20aa50"],
 }
 
+
 class CDHGuidelines:
     def __init__(self):
         # self.limits = pega_cloud_limits
@@ -116,12 +117,15 @@ class CDHGuidelines:
 
     @cached_property
     def standard_channels(self) -> List[str]:
-        return sorted(list(set([x[1] for x in _NBAD_ModelConfiguration_data if not x[4]])))
+        return sorted(
+            list(set([x[1] for x in _NBAD_ModelConfiguration_data if not x[4]]))
+        )
 
     @cached_property
     def standard_directions(self) -> List[str]:
-        return sorted(list(set([x[2] for x in _NBAD_ModelConfiguration_data if not x[4]])))
-
+        return sorted(
+            list(set([x[2] for x in _NBAD_ModelConfiguration_data if not x[4]]))
+        )
 
     def _metric_value(self, series):
         if series.shape[0] != 1:
@@ -147,7 +151,7 @@ class CDHGuidelines:
         return self._metric_value(
             _pega_cloud_limits.filter(pl.col("metric") == metric)["max"]
         )
-    
+
     def get_predictions_channel_mapping(
         self, custom_predictions: Optional[List[List]] = None
     ) -> pl.DataFrame:
@@ -155,11 +159,11 @@ class CDHGuidelines:
             custom_predictions = []
         all_predictions = _NBAD_Prediction_data + custom_predictions
 
-        df = pl.DataFrame(
-            data=all_predictions, orient="row"
-        ).with_columns(
-            pl.col("column_0").str.to_uppercase()
-        ).unique()
+        df = (
+            pl.DataFrame(data=all_predictions, orient="row")
+            .with_columns(pl.col("column_0").str.to_uppercase())
+            .unique()
+        )
 
         df.columns = _NBAD_Prediction_header
 

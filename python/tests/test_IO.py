@@ -11,6 +11,8 @@ import polars as pl
 import pytest
 from pdstools import pega_io
 
+basePath = pathlib.Path(__file__).parent.parent.parent
+
 
 @pl.api.register_lazyframe_namespace("shape")
 class Shape:
@@ -171,7 +173,7 @@ def test_cdh_sample_autodiscovered_locally():
 
 
 def test_file_not_found_in_good_dir():
-    assert pega_io.read_ds_export(path=f"{basePath}/data", filename="models") == None
+    assert pega_io.read_ds_export(path=f"{basePath}/data", filename="models") is None
 
 
 def test_file_not_found_in_bad_dir():

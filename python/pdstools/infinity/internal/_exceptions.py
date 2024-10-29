@@ -56,8 +56,10 @@ class APIConnectionError(Exception):
 class InvalidInputs(PegaException):
     """Request contains invalid inputs"""
 
+
 class InternalServerError(PegaException):
     """Internal server error"""
+
 
 class PegaMLopsError(Exception):
     """Custom exception for Pega MLOps errors."""
@@ -76,11 +78,13 @@ class ShadowCCExists(PegaException):
     def __str__(self):  # pragma: no cover
         return "Shadow or Challenger model already exists. Please delete/promote the existing challenger model before creating a new one."
 
+
 class NoMonitoringExportError(PegaException):
     """The prediction studio export is not properly configured"""
-    
-    def __str__(self): #pragma: no cover
+
+    def __str__(self):  # pragma: no cover
         return "The export artefacts are not created. Navigate to Settings>Prediction Studio settings>Monitoring database export settings to create them."
+
 
 class InvalidRequest(PegaException):
     """Invalid request."""
@@ -107,14 +111,13 @@ class IncompatiblePegaVersionError(PegaException):  # pragma: no cover
 error_map = {
     "Error_NoMonitoringInfo": NoMonitoringInfo,
     "Error_ShadowCC_Exists": ShadowCCExists,
-    "pzData_Export_Error":NoMonitoringExportError
+    "pzData_Export_Error": NoMonitoringExportError,
 }
 
 
 def handle_pega_exception(
     base_url: Union[URL, str], endpoint: str, params: Dict, response: Response
 ) -> Union[PegaException, Exception]:
-    
     try:
         content = response.json()
     except Exception:

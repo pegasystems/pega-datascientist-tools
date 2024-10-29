@@ -2,9 +2,13 @@
 Testing the functionality of the ValueFinder class
 """
 
+import pathlib
+
 import polars as pl
 import pytest
 from pdstools import ValueFinder, datasets, read_ds_export
+
+base_path = pathlib.Path(__file__).parent.parent.parent
 
 
 @pytest.fixture

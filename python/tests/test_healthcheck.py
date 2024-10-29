@@ -4,6 +4,8 @@ import pytest
 from pandas import ExcelFile
 from pdstools import ADMDatamart, datasets, read_ds_export
 
+basePath = pathlib.Path(__file__).parent.parent.parent
+
 
 @pytest.fixture
 def sample() -> ADMDatamart:

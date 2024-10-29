@@ -28,7 +28,7 @@ decision funnel, but also by what component.
 
 This helps answering questions like: Where do my “cards offers” get dropped? Wat gets filtered in which stage?
 
-The **Granularity** defines the breakdown of the chart. You can for example look at 
+The **Granularity** defines the breakdown of the chart. You can for example look at
 Groups, Issues, individual Actions or, if available, Treatments.
 """
 
@@ -105,7 +105,7 @@ with st.container(border=True):
     )
 
 """
-Decision Analyzer offers a unique perspective with all the details of what 
+Decision Analyzer offers a unique perspective with all the details of what
 action got dropped in which stage and by what component.
 
 """

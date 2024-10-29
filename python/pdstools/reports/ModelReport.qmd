@@ -3,7 +3,7 @@ title: "ADM Standalone Model Report"
 title-block-banner: true
 author: "Pega Data Scientist tools"
 date: today
-subtitle: > 
+subtitle: >
   Details of one ADM model instance
 execute:
   echo: false
@@ -694,7 +694,7 @@ def show_single_predictor(pred):
         table_standard_formatting(human_friendly_binning_table)
         .fmt_nanoplot(columns="Z Ratio", plot_type="bar", autoscale=False)
     )
-    
+
     quarto_print("   ")
     quarto_print("___")  # renders as horizontal line
 

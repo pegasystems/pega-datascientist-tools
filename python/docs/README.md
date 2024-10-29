@@ -1,10 +1,10 @@
 # Python documentation
 
-The python documentation is quite straightforward. It uses Sphinx to generate the docs, nbsphinx to convert the jupyter notebooks to markdown, and Furo as the Sphinx template. 
+The python documentation is quite straightforward. It uses Sphinx to generate the docs, nbsphinx to convert the jupyter notebooks to markdown, and Furo as the Sphinx template.
 
 These requirements are included in the docs-requirements.txt file. By installing it (`pip install -r docs-requirements.txt`) you should be able to generate the docs. This is provided you have Pandoc installed, which is not a pip package so can't be included in there.
 
-Building the docs is done through the Makefile: it 
+Building the docs is done through the Makefile: it
 - First moves the example files into the docs folder,
 - Then clears the top-level docs Python folder of any pre-existing docs
 - Then runs the sphinx-build command

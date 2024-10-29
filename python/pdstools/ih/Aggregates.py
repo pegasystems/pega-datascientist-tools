@@ -9,5 +9,3 @@ if TYPE_CHECKING:
 class Aggregates(LazyNamespace):
     def __init__(self, ih: "IH_Class"):
         self.ih = ih
-
-    

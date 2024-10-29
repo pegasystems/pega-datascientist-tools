@@ -1,4 +1,3 @@
-import datetime
 import logging
 import os
 import pathlib
@@ -304,7 +303,9 @@ def read_multi_zip(
     return df.lazy()
 
 
-def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
+def get_latest_file(
+    path: Union[str, os.PathLike], target: str, verbose: bool = False
+) -> str:
     """Convenience method to find the latest model snapshot.
     It has a set of default names to search for and finds all files who match it.
     Once it finds all matching files in the directory, it chooses the most recent one.
@@ -348,8 +349,10 @@ def get_latest_file(path: str, target: str, verbose: bool = False) -> str:
 
     def f(x):
         try:
-            return from_prpc_date_time(re.search(r"\d.{0,15}*GMT", x)[0].replace("_", " "))
-        except:
+            return from_prpc_date_time(
+                re.search(r"\d.{0,15}*GMT", x)[0].replace("_", " ")
+            )
+        except Exception:
             return datetime.fromtimestamp(os.path.getctime(x), tz=timezone.utc)
 
     dates = pl.Series([f(i) for i in paths])

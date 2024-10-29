@@ -4,13 +4,12 @@ Testing the functionality of the ADMDatamart functions
 
 import os
 import pathlib
-import sys
 
 import polars as pl
 import pytest
+from pdstools import ADMDatamart
 
 basePath = pathlib.Path(__file__).parent.parent.parent
-from pdstools import ADMDatamart
 
 
 @pytest.fixture
@@ -55,7 +54,7 @@ def test_write_then_load(sample: ADMDatamart):
 def test_init_without_model_data(sample: ADMDatamart):
     modeldata_cache, predictordata_cache = sample.save_data("cache2")
 
-    models_only = ADMDatamart(model_df=pl.scan_ipc(modeldata_cache))
-    predictors_only = ADMDatamart(predictor_df=pl.scan_ipc(predictordata_cache))
+    ADMDatamart(model_df=pl.scan_ipc(modeldata_cache))
+    ADMDatamart(predictor_df=pl.scan_ipc(predictordata_cache))
     os.remove(modeldata_cache)
     os.remove(predictordata_cache)

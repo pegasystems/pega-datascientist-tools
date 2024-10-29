@@ -6,7 +6,7 @@ import polars as pl
 from ..utils.cdh_utils import lift  # only temp needed
 from ..utils.namespaces import LazyNamespace
 
-if TYPE_CHECKING: # pragma: no cover
+if TYPE_CHECKING:  # pragma: no cover
     import plotly.graph_objects as go
 
     from .ADMDatamart import ADMDatamart

@@ -1,4 +1,4 @@
-from typing import List, Optional, Union, Tuple, TYPE_CHECKING, cast
+from typing import List, Optional, Union, Tuple
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -105,11 +105,7 @@ class Plot:
         ).update_xaxes(
             title="Decisions",
             # tickformat="",
-        ).update(
-            layout_coloraxis_showscale=False
-        ).update_layout(
-            **layout_args
-        )
+        ).update(layout_coloraxis_showscale=False).update_layout(**layout_args)
 
         return fig
 
@@ -209,7 +205,6 @@ class Plot:
     def plot_trend_chart(
         self, stage: str, scope: str, return_df=False
     ) -> Tuple[go.Figure, Optional[str]]:
-
         df = self._decision_data.getDistributionData(
             stage,
             scope,

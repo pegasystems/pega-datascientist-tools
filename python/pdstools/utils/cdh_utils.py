@@ -219,7 +219,8 @@ def _extract_keys(
                 .alias(c)
                 for c in overlap
             ]
-        ).drop([f"{c}_decoded" for c in overlap])
+        )
+        .drop([f"{c}_decoded" for c in overlap])
     )
 
 
@@ -793,9 +794,7 @@ def lift(
             # TODO not sure how polars (mis)behaves when there are no positives at all
             # I would hope for a NaN but base python doesn't do that. Polars perhaps.
             # Stijn: It does have proper None value support, may work like you say
-            bin_pos
-            * (total_pos + total_neg)
-            / ((bin_pos + bin_neg) * total_pos)
+            bin_pos * (total_pos + total_neg) / ((bin_pos + bin_neg) * total_pos)
         ).alias("Lift")
 
     return lift_impl(pos_col, neg_col, pos_col.sum(), neg_col.sum())

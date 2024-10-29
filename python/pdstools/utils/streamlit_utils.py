@@ -67,7 +67,7 @@ def from_uploaded_file(extract_pyname_keys, codespaces):
     )
     if codespaces and model_file is None and predictor_file is None:
         st.warning(
-            """ Github Codespaces has a file size limit of 50MB for 'Direct Upload'. 
+            """ Github Codespaces has a file size limit of 50MB for 'Direct Upload'.
             If you're using Github Codespaces and your files exceed this size limit, kindly opt for the 'Direct file path' method.
             Detailed instructions can be found [here](https://github.com/pegasystems/pega-datascientist-tools/wiki/ADM-Health-Check#what-are-the-steps-to-use-it)
             """
@@ -83,7 +83,7 @@ def from_uploaded_file(extract_pyname_keys, codespaces):
             st.write("Oh oh.", e)
     elif model_file is not None and predictor_file is None:
         st.warning(
-            """Please also upload the Predictor Binning file. 
+            """Please also upload the Predictor Binning file.
                 If you don't have access to a predictor binning file
                 and want to run the Health Check only on the model snapshot, check the
                 checkbox below.
@@ -120,8 +120,8 @@ def from_file_path(extract_pyname_keys, codespaces):
             st.stop()
         except NotADirectoryError:
             st.error(
-                f"""**Not a directory**:  
-            It looks like {dir} is a file.  
+                f"""**Not a directory**:
+            It looks like {dir} is a file.
             Please supply the path to the **folder** the files are in."""
             )
             st.stop()
@@ -147,7 +147,7 @@ def from_file_path(extract_pyname_keys, codespaces):
 
         if model_matches is None:
             st.write(
-                """If you can't get the files to automatically be detected, 
+                """If you can't get the files to automatically be detected,
     try uploading the files manually using a different data source."""
             )
 

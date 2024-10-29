@@ -58,6 +58,7 @@ __all__ = [
     "CDHLimits",
     "cdh_sample",
     "sample_trees",
+    "__version__",
     "sample_value_finder",
     "show_versions",
     "PegaDefaultTables",

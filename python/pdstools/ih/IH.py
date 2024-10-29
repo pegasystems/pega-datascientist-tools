@@ -9,6 +9,6 @@ class IH:
 
     def __init__(self, data: pl.LazyFrame):
         self.data = data
-        
+
         self.aggregates = Aggregates(ih=self)
-        self.plots=Plots(ih=self)
+        self.plots = Plots(ih=self)

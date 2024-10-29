@@ -16,7 +16,7 @@ from utils import ensure_data, find_lever_value
 "# What-If Analysis for Business Levers"
 
 """
-This interactive tool helps to discover the levers to make an 
+This interactive tool helps to discover the levers to make an
 action win. There is both a slider to do this manually
 and an automatic way to find the minimum lever value.
 """
