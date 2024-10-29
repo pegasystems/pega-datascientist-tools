@@ -656,7 +656,7 @@ tree map. Green is higher, red are lower success rates.
 ```{python}
 fig = datamart.plot.tree_map(
     metric="SuccessRate",
-    by="Treatment",
+    by=datamart.context_keys[-1],
     query=responsecount_analysis_query,
 )
 
@@ -929,7 +929,7 @@ It can be interesting to see which issues, groups or channels can be better pred
 ```{python}
 fig = datamart.plot.tree_map(
     metric="Performance",
-    by="Treatment",
+    by=datamart.context_keys[-1],
 )
 
 fig = fig.update_layout(
@@ -955,7 +955,7 @@ If there are actions that have a much higher response count than the rest see wh
 ```{python}
 fig = datamart.plot.tree_map(
     metric="ResponseCount",
-    by="Treatment",
+    by=datamart.context_keys[-1],
 )
 
 fig = fig.update_layout(
@@ -1111,12 +1111,13 @@ if datamart.predictor_data is not None:
     if not isinstance(figs, list):
         figs = [figs]
     for fig, facet_name in zip(figs, facets):
-        fig.update_traces(width=0.3)
-        fig.update_layout(title=facet_name,font=dict(size=10), height=700, yaxis_title="")
-        fig.layout.xaxis.tickformat = ".d"
-        # TODO fix title see https://github.com/pegasystems/pega-datascientist-tools/issues/167
+        if fig is not None:
+            fig.update_traces(width=0.3)
+            fig.update_layout(title=facet_name,font=dict(size=10), height=700, yaxis_title="")
+            fig.layout.xaxis.tickformat = ".d"
+            # TODO fix title see https://github.com/pegasystems/pega-datascientist-tools/issues/167
 
-        fig.show()
+            fig.show()
 else:
     quarto_callout_no_predictor_data_warning()
 ```
