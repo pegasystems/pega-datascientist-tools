@@ -183,7 +183,7 @@ class ADMDatamart:
         ] = cdh_utils.default_predictor_categorization,
     ):
         if callable(categorization):
-            categorization = categorization()
+            categorization:pl.Expr = categorization()
 
         if df is not None:
             return df.with_columns(PredictorCategory=categorization)

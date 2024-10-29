@@ -721,6 +721,9 @@ class Aggregates:
             self.summary_by_channel(
                 custom_channels=custom_channels, by_period=by_period, keep_lists=True
             )
+            .collect() 
+            # this is odd - maybe a Polars bug, when not doing this and the lazy later, getting a series length error on OmniChannel mean (not in prev versions)
+            # I'm even thinking this is an issue with filter on lazy dfs, pl version is 1.10.0
             .filter(pl.col("isValid"))
             .group_by(["Period"] if by_period is not None else None)
             .agg(
@@ -767,9 +770,9 @@ class Aggregates:
                 # ((pl.len() > 0) & pl.lit(usesNBAD and usesNBADOnly)).alias(
                 #     "usesNBADOnly"
                 # ),
-                pl.col("OmniChannel Actions").filter(pl.col.isValid).mean(),
+                pl.col("OmniChannel Actions").mean(),
             )
             .drop(["literal"] if by_period is None else [])  # created by null group
             .with_columns(CTR=(pl.col("Positives")) / (pl.col("ResponseCount")))
             .sort(["Period"] if by_period is not None else [])
-        )
+        ).lazy() # See above
