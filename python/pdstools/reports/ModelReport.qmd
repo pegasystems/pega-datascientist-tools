@@ -167,19 +167,23 @@ quarto_print(
 
 
 ```{python}
-fig = datamart.plot.score_distribution(model_id=model_id)
+try:
+    fig = datamart.plot.score_distribution(model_id=model_id)
 
-# Customize some of the default styling of the plot
+    # Customize some of the default styling of the plot
 
-fig.update_layout(
-    title=f"Classifier Score Distribution<br>{model_name}", xaxis_title=""
-)
-fig.data[0].opacity = 0.5
-fig.data[1].line.color = "#EF8B08"
-fig.data[1].line.width = 3
-fig.data[1].marker.color = "black"
+    fig.update_layout(
+        title=f"Classifier Score Distribution<br>{model_name}", xaxis_title=""
+    )
+    fig.data[0].opacity = 0.5
+    fig.data[1].line.color = "#EF8B08"
+    fig.data[1].line.width = 3
+    fig.data[1].marker.color = "black"
 
-fig.show()
+    fig.show()
+except ValueError as e:
+    print(f"Couldn't produce score distribution chart because of error: {e}")
+
 ```
 
 ::: {.callout-tip}

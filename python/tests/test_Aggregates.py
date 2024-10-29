@@ -43,7 +43,7 @@ def test_aggregate_predictor_counts(agg):
 def test_aggregate_summary_by_channel(agg):
     summary_by_channel = agg.summary_by_channel().collect()
     assert summary_by_channel.shape[0] == 3
-    assert summary_by_channel.shape[1] == 21
+    assert summary_by_channel.shape[1] == 23
     assert summary_by_channel["Total Number of Actions"].to_list() == [24, 27, 19]
 
 

@@ -654,15 +654,18 @@ Showing the success rates of all actions in an interactive
 tree map. Green is higher, red are lower success rates.
 
 ```{python}
-fig = datamart.plot.tree_map(
-    metric="SuccessRate",
-    by=datamart.context_keys[-1],
-    query=responsecount_analysis_query,
-)
+try:
+    fig = datamart.plot.tree_map(
+        metric="SuccessRate",
+        by=datamart.context_keys[-1],
+        query=responsecount_analysis_query,
+    )
 
-fig = fig.update_coloraxes(showscale=False).update_layout(autosize=True)
+    fig = fig.update_coloraxes(showscale=False).update_layout(autosize=True)
 
-fig.show()
+    fig.show()
+except Exception as e:  
+    print(f"Treemap failed because of the error: {e}")
 ```
 
 ## Success Rates over Time
@@ -2003,7 +2006,7 @@ try:
         fig.show()
     else:
         quarto_callout_no_predictor_data_warning()
-except e:
+except Exception as e: 
     print(f"Propensity Distribution plot was not drawn because of error: {str(e)}")
 
 ```

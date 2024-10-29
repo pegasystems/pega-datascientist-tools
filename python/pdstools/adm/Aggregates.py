@@ -341,20 +341,8 @@ class Aggregates:
         if self.datamart.model_data is None:
             raise ValueError("Summary by channel needs model data")
 
-        if not custom_channels:
-            custom_channels = {}
+        custom_channels = custom_channels or {}
 
-        if by_period is not None:
-            period_expr = [
-                pl.col("SnapshotTime")
-                .dt.truncate(by_period)
-                .cast(pl.Date)
-                .alias("Period")
-            ]
-        else:
-            period_expr = []
-
-        # Removes whitespace and capitalizes names for matching
         def name_normalizer(x):
             return (
                 pl.col(x)
@@ -364,7 +352,6 @@ class Aggregates:
             )
 
         directionMapping = pl.DataFrame(
-            # Standard directions have a 1:1 mapping to channel groups
             {
                 "Direction": self.cdh_guidelines.standard_directions,
                 "DirectionGroup": self.cdh_guidelines.standard_directions,
@@ -375,20 +362,15 @@ class Aggregates:
             pl.concat(
                 [
                     pl.DataFrame(
-                        # Standard channels have a 1:1 mapping to channel groups
                         {
                             "Channel": self.cdh_guidelines.standard_channels,
                             "ChannelGroup": self.cdh_guidelines.standard_channels,
                         }
                     ),
                     pl.DataFrame(
-                        # feels like a convoluted way to put a dict into a polars dataframe
-                        # but that is just what this does in the end
                         {
-                            "Channel": custom_channels.keys(),
-                            "ChannelGroup": [
-                                custom_channels[c] for c in custom_channels.keys()
-                            ],
+                            "Channel": list(custom_channels.keys()),
+                            "ChannelGroup": list(custom_channels.values()),
                         }
                     ),
                 ],
@@ -399,48 +381,43 @@ class Aggregates:
             .sort(["ChannelGroup", "Channel"])
         )
 
-        actionIdentifierExpr = pl.concat_str(["Issue", "Group", "Name"], separator="/")
-        activeActionExpr = (pl.col("ResponseCount").sum() > 0).over(
-            ["Issue", "Group", "Name"]
-        )
+        context_keys = self.datamart.context_keys
+        action_identifier = [
+            item for item in ["Issue", "Group", "Name"] if item in context_keys
+        ]
+        actionIdentifierExpr = pl.concat_str(action_identifier, separator="/")
 
-        # all these expressions needed because not every customer has Treatments and
-        # polars can't aggregate literals, so we have to be careful to pass on explicit
-        # values when there are no treatments
-        columns = self.datamart.model_data.collect_schema().names()
+        has_treatment = "Treatment" in context_keys
+        treatment_identifier = action_identifier + (
+            ["Treatment"] if has_treatment else []
+        )
         treatmentIdentifierExpr = (
-            pl.concat_str(["Issue", "Group", "Name", "Treatment"], separator="/")
-            if "Treatment" in columns
+            pl.concat_str(treatment_identifier, separator="/")
+            if has_treatment
             else pl.lit("")
         )
+
+        activeActionExpr = (pl.col("ResponseCount").sum() > 0).over(action_identifier)
         activeTreatmentExpr = (
             (
                 (pl.col("ResponseCount").sum() > 0)
                 & (pl.col("Treatment").is_not_null())
-            ).over(["Issue", "Group", "Name", "Treatment"])
-            if "Treatment" in columns
+            ).over(treatment_identifier)
+            if has_treatment
             else pl.lit(False)
         )
-        uniqueTreatmentExpr = (
-            treatmentIdentifierExpr.unique() if "Treatment" in columns else pl.lit([])
+
+        period_expr = (
+            [
+                pl.col("SnapshotTime")
+                .dt.truncate(by_period)
+                .cast(pl.Date)
+                .alias("Period")
+            ]
+            if by_period
+            else []
         )
-        uniqueTreatmentCountExpr = (
-            treatmentIdentifierExpr.drop_nulls().n_unique()
-            if "Treatment" in columns
-            else pl.lit(0)
-        )
-        uniqueUsedTreatmentExpr = (
-            treatmentIdentifierExpr.filter(pl.col("isUsedTreatment")).unique()
-            if "Treatment" in columns
-            else pl.lit([])
-        )
-        uniqueUsedTreatmentCountExpr = (
-            treatmentIdentifierExpr.filter(pl.col("isUsedTreatment"))
-            .drop_nulls()
-            .n_unique()
-            if "Treatment" in columns
-            else pl.lit(0)
-        )
+
         channel_summary = (
             self.datamart.model_data.with_columns(
                 [
@@ -463,18 +440,8 @@ class Aggregates:
                 normalizedChannel=name_normalizer("Channel"),
                 normalizedDirection=name_normalizer("Direction"),
             )
-            .join(
-                channelGroupMapping.lazy(),
-                on="normalizedChannel",
-                how="left",
-                # suffix="_standard",
-            )
-            .join(
-                directionMapping.lazy(),
-                on="normalizedDirection",
-                how="left",
-                # suffix="_standard",
-            )
+            .join(channelGroupMapping.lazy(), on="normalizedChannel", how="left")
+            .join(directionMapping.lazy(), on="normalizedDirection", how="left")
             .with_columns(
                 ChannelDirectionGroup=pl.when(
                     pl.col("ChannelGroup").is_not_null()
@@ -484,17 +451,12 @@ class Aggregates:
                 .otherwise(pl.lit("Other")),
             )
             .group_by(
-                [
-                    "Channel",
-                    "Direction",
-                    "ChannelDirectionGroup",
-                ]
-                + (["Period"] if by_period is not None else [])
+                ["Channel", "Direction", "ChannelDirectionGroup"]
+                + (["Period"] if by_period else [])
             )
             .agg(
                 pl.col("SnapshotTime").min().cast(pl.Date).alias("DateRange Min"),
                 pl.col("SnapshotTime").max().cast(pl.Date).alias("DateRange Max"),
-                # pl.col("OriginalChannelDirection"),
                 pl.col("Positives").sum(),
                 pl.col("ResponseCount").sum(),
                 (cdh_utils.weighted_performance_polars() * 100).alias("Performance"),
@@ -507,44 +469,49 @@ class Aggregates:
                 actionIdentifierExpr.drop_nulls()
                 .n_unique()
                 .alias("Total Number of Actions"),
-                uniqueTreatmentCountExpr.alias("Total Number of Treatments"),
-                # TODO use last update property instead
                 (
-                    actionIdentifierExpr.filter(pl.col("isUsedAction"))
+                    treatmentIdentifierExpr.drop_nulls().n_unique()
+                    if has_treatment
+                    else pl.lit(0)
+                ).alias("Total Number of Treatments"),
+                # TODO use last update property instead
+                actionIdentifierExpr.filter(pl.col("isUsedAction"))
+                .drop_nulls()
+                .n_unique()
+                .alias("Used Actions"),
+                (
+                    treatmentIdentifierExpr.filter(pl.col("isUsedTreatment"))
                     .drop_nulls()
                     .n_unique()
-                ).alias("Used Actions"),
-                uniqueUsedTreatmentCountExpr.alias("Used Treatments"),
+                    if has_treatment
+                    else pl.lit(0)
+                ).alias("Used Treatments"),
                 # keep lists of unique values for aggregation over channels
-                AllIssues=pl.col("Issue").unique(),
-                AllGroups=pl.concat_str(["Issue", "Group"], separator="/").unique(),
+                AllIssues=(
+                    pl.col("Issue").unique() if "Issue" in context_keys else pl.lit([])
+                ),
+                AllGroups=(
+                    pl.concat_str(["Issue", "Group"], separator="/").unique()
+                    if "Issue" in context_keys and "Group" in context_keys
+                    else pl.lit([])
+                ),
                 AllActions=actionIdentifierExpr.unique(),
-                AllTreatments=uniqueTreatmentExpr,
+                AllTreatments=(
+                    treatmentIdentifierExpr.unique() if has_treatment else pl.lit([])
+                ),
                 AllUsedActions=actionIdentifierExpr.filter(
                     pl.col("isUsedAction")
                 ).unique(),
-                AllUsedTreatments=uniqueUsedTreatmentExpr,
+                AllUsedTreatments=(
+                    treatmentIdentifierExpr.filter(pl.col("isUsedTreatment")).unique()
+                    if has_treatment
+                    else pl.lit([])
+                ),
             )
             .with_columns(
-                pl.when(pl.col("Used Actions").is_not_null())
-                .then(pl.col("Used Actions"))
-                .otherwise(pl.lit(0))
-                .alias("Used Actions"),
-                pl.when(pl.col("Used Treatments").is_not_null())
-                .then(pl.col("Used Treatments"))
-                .otherwise(pl.lit(0))
-                .alias("Used Treatments"),
-                ChannelDirection=pl.format(
-                    "{}/{}",
-                    pl.when(pl.col("Channel").is_not_null() & (pl.col("Channel") != ""))
-                    .then(pl.col("Channel"))
-                    .otherwise(pl.lit("")),
-                    pl.when(
-                        pl.col("Direction").is_not_null() & (pl.col("Direction") != "")
-                    )
-                    .then(pl.col("Direction"))
-                    .otherwise(pl.lit("")),
-                ),
+                Used_Actions=pl.col("Used Actions").fill_null(0),
+                Used_Treatments=pl.col("Used Treatments").fill_null(0),
+                ChannelDirection=pl.concat_str(["Channel", "Direction"], separator="/"),
                 isValid=(pl.col("Positives") > 200) & (pl.col("ResponseCount") > 1000),
                 Configuration=pl.col("Configuration")
                 .list.unique()
@@ -555,17 +522,11 @@ class Aggregates:
                 # TODO: NBAD detection is not entirely correct: if the only standard model is omniadaptive, we
                 # miss it, because that one got filtered out early on
                 usesNBAD=pl.col("isNBADModelConfiguration").list.any(),
-                usesNBADOnly=pl.col("isNBADModelConfiguration").list.any()
-                & pl.col("isNBADModelConfiguration").list.all(),
+                usesNBADOnly=pl.col("isNBADModelConfiguration").list.all(),
             )
             .sort(
-                [
-                    # NB channel direction group isn't unique per se so make sure to have a fully defined order
-                    "ChannelDirectionGroup",
-                    "Channel",
-                    "Direction",
-                ]
-                + (["Period"] if by_period is not None else [])
+                ["ChannelDirectionGroup", "Channel", "Direction"]
+                + (["Period"] if by_period else [])
             )
         )
 
@@ -580,7 +541,7 @@ class Aggregates:
                     item_overlap_actions["isValid"],
                 )
             ).alias("OmniChannel Actions"),
-            CTR=(pl.col("Positives")) / (pl.col("ResponseCount")),
+            CTR=pl.col("Positives") / pl.col("ResponseCount"),
         ).drop(
             ["isNBADModelConfiguration"]
             + (
@@ -721,7 +682,7 @@ class Aggregates:
             self.summary_by_channel(
                 custom_channels=custom_channels, by_period=by_period, keep_lists=True
             )
-            .collect() 
+            .collect()
             # this is odd - maybe a Polars bug, when not doing this and the lazy later, getting a series length error on OmniChannel mean (not in prev versions)
             # I'm even thinking this is an issue with filter on lazy dfs, pl version is 1.10.0
             .filter(pl.col("isValid"))
@@ -775,4 +736,4 @@ class Aggregates:
             .drop(["literal"] if by_period is None else [])  # created by null group
             .with_columns(CTR=(pl.col("Positives")) / (pl.col("ResponseCount")))
             .sort(["Period"] if by_period is not None else [])
-        ).lazy() # See above
+        ).lazy()  # See above
