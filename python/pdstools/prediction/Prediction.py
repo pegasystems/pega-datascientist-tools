@@ -169,6 +169,7 @@ class Prediction:
                 right_on="Prediction",
                 how="left",
             )
+            .rename({"ModelName" : "Prediction"})
             .with_columns(
                 [
                     pl.when(pl.col("Channel").is_null())
@@ -192,7 +193,7 @@ class Prediction:
             )
             .group_by(
                 [
-                    "ModelName",
+                    "Prediction",
                     "Channel",
                     "Direction",
                     "isStandardNBADPrediction",
@@ -241,7 +242,7 @@ class Prediction:
                 CTR=(pl.col("Positives")) / (pl.col("ResponseCount")),
                 isValid=self.prediction_validity_expr,
             )
-            .sort(["ModelName"] + (["Period"] if by_period is not None else []))
+            .sort(["Prediction"] + (["Period"] if by_period is not None else []))
         )
 
     # TODO rethink use of multi-channel. If the only valid predictions are multi-channel predictions

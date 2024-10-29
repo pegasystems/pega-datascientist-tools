@@ -36,6 +36,7 @@ class Reports(LazyNamespace):
         only_active_predictors: bool = False,
         output_type: str = "html",
         keep_temp_files: bool = False,
+        verbose: bool = False,
         progress_callback: Optional[Callable[[int, int], None]] = None,
     ) -> Path:
         """
@@ -55,6 +56,8 @@ class Reports(LazyNamespace):
             The type of the output file (e.g., "html", "pdf").
         keep_temp_files : bool, optional
             If True, the temporary directory with temp files will not be deleted after report generation.
+        verbose: bool, optional
+            If True, prints detailed logs during execution.
         progress_callback : Callable[[int, int], None], optional
             A callback function to report progress. Used only in the Streamlit app.
             The function should accept two integers: the current progress and the total.
@@ -109,6 +112,7 @@ class Reports(LazyNamespace):
                     qmd_file,
                     output_type,
                     output_filename,
+                    verbose,
                 )
                 output_path = temp_dir / output_filename
                 print(f"{output_path=}")
