@@ -71,11 +71,13 @@ class BaseClient(Generic[_HttpxClientT]):
         auth: Union[httpx.Auth, PegaOAuth],
         verify: bool = False,
         pega_version: Union[str, None] = None,
+        timeout: float = 20,
     ):
         self._base_url = self._enforce_trailing_slash(httpx.URL(base_url))
         self.auth = auth
         self.verify = verify
         self.pega_version = pega_version
+        self.timeout = timeout
 
     def _enforce_trailing_slash(self, url: httpx.URL) -> httpx.URL:
         if url.raw_path.endswith(b"/"):
@@ -115,6 +117,7 @@ class BaseClient(Generic[_HttpxClientT]):
         file_path: str,
         verify: bool = False,
         pega_version: Union[str, None] = None,
+        timeout: float = 20,
     ):
         creds = _read_client_credential_file(file_path)
         base_url = creds["Access token endpoint"].rsplit("/prweb")[0]
@@ -129,6 +132,7 @@ class BaseClient(Generic[_HttpxClientT]):
             ),
             verify=verify,
             pega_version=pega_version,
+            timeout=timeout,
         )
 
     @classmethod
@@ -140,6 +144,7 @@ class BaseClient(Generic[_HttpxClientT]):
         *,
         verify: bool = True,
         pega_version: Union[str, None] = None,
+        timeout: int = 20,
     ):
         base_url = base_url or os.environ.get("PEGA_BASE_URL")
         user_name = user_name or os.environ.get("PEGA_USERNAME")
@@ -161,6 +166,7 @@ class BaseClient(Generic[_HttpxClientT]):
             auth=auth,
             verify=verify,
             pega_version=pega_version,
+            timeout=timeout,
         )
 
 
@@ -173,6 +179,7 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         auth: Union[httpx.Auth, PegaOAuth],
         verify: bool = False,
         pega_version: Union[str, None] = None,
+        timeout: float = 20,
     ):
         super().__init__(
             base_url=base_url, auth=auth, verify=verify, pega_version=pega_version
@@ -181,7 +188,7 @@ class SyncAPIClient(BaseClient[httpx.Client]):
             base_url=self._base_url,
             auth=auth,
             verify=verify,
-            timeout=os.environ.get("TIMEOUT", 20),
+            timeout=timeout,
         )
 
     def _infer_version(self):
