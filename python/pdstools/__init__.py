@@ -1,6 +1,6 @@
 """Pega Data Scientist Tools Python library"""
 
-__version__ = "4.0.0-alpha"
+__version__ = "4.0.0a1"
 
 
 import sys
