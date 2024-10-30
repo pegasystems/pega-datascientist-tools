@@ -73,7 +73,7 @@ def test_available(test):
 def test_summary_by_channel_cols(test):
     summary = test.summary_by_channel().collect()
     assert summary.columns == [
-        "ModelName",
+        "Prediction",
         "Channel",
         "Direction",
         "isStandardNBADPrediction",
