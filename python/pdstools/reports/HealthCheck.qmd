@@ -664,7 +664,7 @@ try:
     fig = fig.update_coloraxes(showscale=False).update_layout(autosize=True)
 
     fig.show()
-except Exception as e:  
+except Exception as e:
     print(f"Treemap failed because of the error: {e}")
 ```
 
@@ -2007,7 +2007,7 @@ try:
         fig.show()
     else:
         quarto_callout_no_predictor_data_warning()
-except Exception as e: 
+except Exception as e:
     print(f"Propensity Distribution plot was not drawn because of error: {str(e)}")
 
 ```
