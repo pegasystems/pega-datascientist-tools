@@ -35,4 +35,3 @@ quarto render ${healthcheck_notebook_python} -P title:'ADM Health Check' -P subt
 cp "${pdstools_root_folder}/python/pdstools/reports/HealthCheck.html" "${output}"
 
 echo "Created ADM health check: ${output}"
-

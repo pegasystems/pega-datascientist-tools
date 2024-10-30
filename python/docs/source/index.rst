@@ -11,8 +11,8 @@ Welcome to the PDS Tools Python documentation
    :caption: Getting Started
 
    Installation <https://github.com/pegasystems/pega-datascientist-tools/wiki#installation>
-   Getting Started <https://github.com/pegasystems/pega-datascientist-tools/wiki>   
-   ADM Health Check <https://github.com/pegasystems/pega-datascientist-tools/wiki/ADM-Health-Check>   
+   Getting Started <https://github.com/pegasystems/pega-datascientist-tools/wiki>
+   ADM Health Check <https://github.com/pegasystems/pega-datascientist-tools/wiki/ADM-Health-Check>
 
 .. toctree::
    :maxdepth: 1

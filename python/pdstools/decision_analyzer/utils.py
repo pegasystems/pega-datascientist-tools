@@ -1,11 +1,10 @@
 import datetime
 import subprocess
-from bisect import bisect_left
 from typing import Dict, Iterable, List, Literal, Optional, Set, Type, Union
 
 import polars as pl
-from ..utils.cdh_utils import parsePegaDateTimeFormats
 
+from ..utils.cdh_utils import parse_pega_date_time_formats
 from .table_definition import DecisionAnalyzer, ExplainabilityExtract, TableConfig
 
 # As long as this is run once, anywhere, it's enabled globally.
@@ -192,11 +191,11 @@ def get_git_version_and_date():
     )
 
     # Get the date the tag was pushed
-    date_str = (  
-        subprocess.check_output(["git", "log", "-1", "--format=%ai", version])  
-        .decode()  
-        .strip()  
-    )  
+    date_str = (
+        subprocess.check_output(["git", "log", "-1", "--format=%ai", version])
+        .decode()
+        .strip()
+    )
     date = datetime.datetime.strptime(date_str.split()[0], "%Y-%m-%d")
     return version, date.strftime("%d %b %Y")
 
@@ -279,7 +278,6 @@ def find_lever_value(
     return (low + high) / 2
 
 
-
 def determine_extract_type(raw_data):
     return (
         "decision_analyzer"
@@ -311,7 +309,7 @@ def process(
     for name, _type in type_map.items():
         if df.select(name).dtypes[0] != _type:
             if _type == pl.Datetime:
-                df = df.with_columns(parsePegaDateTimeFormats(name))
+                df = df.with_columns(parse_pega_date_time_formats(name))
             else:
                 df = df.with_columns(pl.col(name).cast(_type))
     return df

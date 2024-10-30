@@ -12,8 +12,8 @@ Showing the *overall* effect of propensity, value, levers and context weights
 on the decisions made.
 
 Sensitivity is defined as the number of winning actions that change when
-omitting just this one arbitration factor. The percentages indicates how 
-many of the total (final) decisions would change. The percentages will 
+omitting just this one arbitration factor. The percentages indicates how
+many of the total (final) decisions would change. The percentages will
 usually not add up to 100%.
 """
 

@@ -11,10 +11,10 @@ from da_streamlit_utils import get_current_index, ensure_data
 "# Personalization Analysis"
 
 """
-Analysis of the number of actions per customer. Do we have enough options for people? Global filters can 
+Analysis of the number of actions per customer. Do we have enough options for people? Global filters can
 be applied like everywhere to look at e.g. a certain group of issues.
 
-As and when we have more different stages in the data, these analyses 
+As and when we have more different stages in the data, these analyses
 will automatically support those.
 
 The propensity pre-arbitration is not available in the actual Decision Analyser data as this is only calculated
@@ -23,7 +23,6 @@ in the Arbitration stage for the actions prioritized by AI.
 ensure_data()
 optionality_data = st.session_state.decision_data.get_optionality_data
 if st.session_state.decision_data.extract_type == "decision_analyzer":
-
     st.plotly_chart(
         st.session_state.decision_data.plot.plot_optionality_per_stage(),
         use_container_width=True,
@@ -63,7 +62,7 @@ with st.container(border=True):
 "## Optionality Trend chart"
 
 """
-Showing the number of unique actions over time - so you can spot significant 
+Showing the number of unique actions over time - so you can spot significant
 changes in the number of available actions
 """
 

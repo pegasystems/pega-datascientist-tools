@@ -18,7 +18,7 @@ from da_streamlit_utils import (
 """
 # Distribution of the Actions
 
-This is simply showing the overall distribution of the actions at the selected stage. This can help 
+This is simply showing the overall distribution of the actions at the selected stage. This can help
 answering questions like:
 
 * What are the most common offers? In which issues/groups?

@@ -6,7 +6,8 @@ from pathlib import Path
 import streamlit as st
 
 from pdstools.utils.streamlit_utils import model_selection_df
-from pdstools import show_versions
+from pdstools.utils.show_versions import show_versions
+from pdstools.utils.cdh_utils import _apply_query
 
 if "dm" not in st.session_state:
     st.warning("Please configure your files in the `data import` tab.")
@@ -28,7 +29,7 @@ with health_check:
             name = None
         output_type = st.selectbox("Select output type", ["html"], index=0)
         working_dir = Path(st.text_input("Change working directory", "healthCheckDir"))
-        delete_temp_files = st.checkbox("Remove temporary files", True)
+        keep_temp_files = st.checkbox("Keep temporary files", False)
 
     outfile = ""
     if "run" not in st.session_state:
@@ -41,16 +42,13 @@ with health_check:
                 f"Starting Health Check generation. Run ID: {st.session_state['runID']}"
             )
             with st.spinner("Generating Health Check..."):
-                outfile = (
-                    st.session_state["dm"]
-                    .applyGlobalQuery(st.session_state.get("filters", None))
-                    .generate_health_check(
-                        name=name,
-                        output_type=output_type,
-                        working_dir=working_dir,
-                        delete_temp_files=delete_temp_files,
-                        verbose=False,
-                    )
+                outfile = st.session_state["dm"].generate.health_check(
+                    name=name,
+                    working_dir=working_dir,
+                    query=st.session_state.get("filters", None),
+                    output_type=output_type,
+                    keep_temp_files=keep_temp_files,
+                    verbose=False,
                 )
                 if os.path.isfile(outfile):
                     file = open(outfile, "rb")
@@ -80,15 +78,15 @@ with health_check:
             False,
             help="Including binning data may cause issues due to the size of the full data!",
         )
-        if include_binning and st.session_state["dm"].predictorData is None:
+        if include_binning and st.session_state["dm"].predictor_data is None:
             st.warning("Please upload Predictor Snapshot to include binning!")
         if st.button("Create Tables"):
             with st.spinner("Creating Tables..."):
                 tablename = "ADMSnapshots.xlsx"
-                tables = (
-                    st.session_state["dm"]
-                    .applyGlobalQuery(st.session_state.get("filters", None))
-                    .exportTables(tablename)
+                tables = st.session_state["dm"].generate.excel_report(
+                    tablename,
+                    predictor_binning=include_binning,
+                    query=(st.session_state.get("filters", None)),
                 )
                 st.session_state["run"][st.session_state["runID"]]["tables"] = tablename
                 st.session_state["run"][st.session_state["runID"]]["tablefile"] = open(
@@ -111,8 +109,6 @@ with health_check:
             )
             with open(log_file_path, "w") as log_file:
                 log_file.write(st.session_state.log_buffer.getvalue())
-                log_file.write("\n\n--- Version Information ---\n")
-                log_file.write(show_versions(print_output=False))
             with open(log_file_path, "rb") as f:
                 btn = st.download_button(
                     label="Download error log",
@@ -125,26 +121,19 @@ with health_check:
         if "log_file_path" in locals() and os.path.isfile(log_file_path):
             os.remove(log_file_path)
 
-if st.session_state["dm"].predictorData is not None:
+if st.session_state["dm"].predictor_data is not None:
     with model_report:
         try:
             if "working_dir" not in locals():
                 working_dir = "healthCheckDir"
             if "model_selection_df" not in st.session_state:
-                if "filters" in st.session_state:
-                    st.session_state["model_selection_df"] = model_selection_df(
-                        df=st.session_state["dm"]._apply_query(
-                            st.session_state["dm"].combinedData,
-                            st.session_state["filters"],
-                        ),
-                        context_keys=st.session_state["dm"].context_keys,
-                    )
-                else:
-                    st.session_state["model_selection_df"] = model_selection_df(
-                        df=st.session_state["dm"].combinedData,
-                        context_keys=st.session_state["dm"].context_keys,
-                    )
-
+                st.session_state["model_selection_df"] = model_selection_df(
+                    df=_apply_query(
+                        st.session_state["dm"].combined_data,
+                        st.session_state.get("filters", None),
+                    ),
+                    context_keys=st.session_state["dm"].context_keys,
+                )
             st.write("Please choose the models for which you wish to generate a report")
             edited_df = st.data_editor(
                 st.session_state["model_selection_df"],
@@ -175,21 +164,17 @@ if st.session_state["dm"].predictorData is not None:
                                 progress, text=f"Generated {current} of {total}"
                             )
 
-                        outfile = (
-                            st.session_state["dm"]
-                            .applyGlobalQuery(st.session_state.get("filters", None))
-                            .generate_model_reports(
-                                name="",
-                                working_dir=working_dir,
-                                model_list=st.session_state["selected_models"],
-                                output_type="html",
-                                only_active_predictors=st.session_state[
-                                    "only_active_predictors"
-                                ],
-                                delete_temp_files=delete_temp_files,
-                                progress_callback=update_progress,
-                                verbose=False,
-                            )
+                        outfile = st.session_state["dm"].generate.model_reports(
+                            model_ids=st.session_state["selected_models"],
+                            name="",
+                            working_dir=working_dir,
+                            query=st.session_state.get("filters", None),
+                            only_active_predictors=st.session_state[
+                                "only_active_predictors"
+                            ],
+                            output_type="html",
+                            keep_temp_files=keep_temp_files,
+                            progress_callback=update_progress,
                         )
                         if os.path.isfile(outfile):
                             file = open(outfile, "rb")

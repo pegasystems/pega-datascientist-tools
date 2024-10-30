@@ -21,11 +21,11 @@ with col1:
     overview = st.session_state.decision_data.get_overview_stats
 
     f"""
-    In total, there are **{overview["Actions"]} actions** available in **{overview["Channels"]} channels**. The data 
-    was recorded over **{overview["Duration"].days} days** from **{overview["StartDate"]}** where **{overview["Decisions"]} decisions** 
+    In total, there are **{overview["Actions"]} actions** available in **{overview["Channels"]} channels**. The data
+    was recorded over **{overview["Duration"].days} days** from **{overview["StartDate"]}** where **{overview["Decisions"]} decisions**
     (**{round(overview["Decisions"]/overview["Duration"].days)}** decisions per day) were made for
-    in total **{overview["Customers"]} different customers**. For each decision there was an 
-    average of **{overview["avgOffersAtEligibility"]}** actions available in total and 
+    in total **{overview["Customers"]} different customers**. For each decision there was an
+    average of **{overview["avgOffersAtEligibility"]}** actions available in total and
     an average of  **{overview["avgOffersAtArbitration"]}** before arbitration.
 
     """

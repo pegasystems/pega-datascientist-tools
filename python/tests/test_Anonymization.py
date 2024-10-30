@@ -1,13 +1,11 @@
 import os
 import pathlib
-import sys
 
 import polars as pl
 import pytest
+from pdstools import Anonymization
 
 basePath = pathlib.Path(__file__).parent.parent.parent
-sys.path.append(f"{str(basePath)}/python")
-from pdstools import Anonymization
 
 
 @pytest.fixture

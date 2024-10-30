@@ -1,6 +1,5 @@
 import asyncio
-import aioboto3
-from tqdm.asyncio import tqdm
+
 from . import File
 
 
@@ -59,9 +58,9 @@ class S3Data:
 
         If `use_meta_files` is False, the logic is as simple as:
 
-        1. Import all files starting with the prefix 
-        (`'path/to/files'` gives 
-        `['path/to/files_001.json', 'path/to/files_002.json', etc]`, 
+        1. Import all files starting with the prefix
+        (`'path/to/files'` gives
+        `['path/to/files_001.json', 'path/to/files_002.json', etc]`,
         irrespective of whether a `.meta` file exists).
 
         Parameters
@@ -83,6 +82,11 @@ class S3Data:
 
         """
         import os
+
+        try:
+            import aioboto3
+        except ImportError:
+            raise ImportError("To use S3 functionality, please install aioboto3.")
 
         def createPathIfNotExists(path):
             if not os.path.exists(path):
@@ -136,15 +140,19 @@ class S3Data:
 
             tasks = [createTask(f) for f in files]
 
-            _ = [
-                await task_
-                for task_ in tqdm.as_completed(
+            try:
+                from tqdm.asyncio import tqdm
+
+                iterable = tqdm.as_completed(
                     tasks,
                     total=len(tasks),
                     desc="Downloading files...",
                     disable=not verbose,
                 )
-            ]
+            except ImportError:
+                iterable = tasks
+
+            _ = [await task_ for task_ in iterable]
 
         if verbose:
             print(
@@ -231,6 +239,6 @@ class S3Data:
             "predictorSnapshot", datamart_folder, verbose
         )
         return ADMDatamart(
-            model_df=File.readMultiZip(modelData, verbose=verbose),
-            predictor_df=File.readMultiZip(predictorData, verbose=verbose),
+            model_df=File.read_multi_zip(modelData, verbose=verbose),
+            predictor_df=File.read_multi_zip(predictorData, verbose=verbose),
         )

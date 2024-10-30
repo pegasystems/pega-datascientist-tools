@@ -3,17 +3,12 @@ Testing the functionality of the cdh_utils functions
 """
 
 import datetime
-import pathlib
-import sys
 
 import numpy as np
 import polars as pl
 import pytest
-from pytz import timezone
-
-basePath = pathlib.Path(__file__).parent.parent.parent
-sys.path.append(f"{str(basePath)}/python")
 from pdstools import cdh_utils, datasets
+from pytz import timezone
 
 
 def test_safe_range_auc():
@@ -96,36 +91,39 @@ def test_aucpr_from_bincounts():
 
 
 def test_auc2gini():
-    assert abs(cdh_utils.auc2GINI(0.8232) - 0.6464) < 1e-6
+    assert abs(cdh_utils.auc_to_gini(0.8232) - 0.6464) < 1e-6
 
 
 def test_fromPRPCDateTime():
     assert (
-        cdh_utils.fromPRPCDateTime("20180316T134127.847 GMT", True)
+        cdh_utils.from_prpc_date_time("20180316T134127.847 GMT", True)
         == "2018-03-16 13:41:27 GMT"
     )
-    assert cdh_utils.fromPRPCDateTime(
+    assert cdh_utils.from_prpc_date_time(
         "20180316T134127.847 GMT", False
     ) == datetime.datetime(2018, 3, 16, 13, 41, 27, 847, tzinfo=timezone("GMT"))
     assert (
-        cdh_utils.fromPRPCDateTime("20180316T134127.847345", True)
+        cdh_utils.from_prpc_date_time("20180316T134127.847345", True)
         == "2018-03-16 13:41:27 "
     )
     assert (
-        cdh_utils.fromPRPCDateTime("20180316T134127.8", True) == "2018-03-16 13:41:27 "
+        cdh_utils.from_prpc_date_time("20180316T134127.8", True)
+        == "2018-03-16 13:41:27 "
     )
-    assert cdh_utils.fromPRPCDateTime("20180316T134127", True) == "2018-03-16 13:41:27 "
+    assert (
+        cdh_utils.from_prpc_date_time("20180316T134127", True) == "2018-03-16 13:41:27 "
+    )
 
 
 def test_toPRPCDateTime():
     assert (
-        cdh_utils.toPRPCDateTime(
+        cdh_utils.to_prpc_date_time(
             datetime.datetime(2018, 3, 16, 13, 41, 27, 847000, tzinfo=timezone("GMT"))
         )
         == "20180316T134127.847 GMT+0000"
     )
     assert (
-        cdh_utils.toPRPCDateTime(
+        cdh_utils.to_prpc_date_time(
             datetime.datetime(
                 2018, 3, 16, 13, 41, 27, 847000, tzinfo=timezone("US/Eastern")
             )
@@ -133,7 +131,7 @@ def test_toPRPCDateTime():
         == "20180316T134127.847 GMT-0456"
     )
     assert (
-        cdh_utils.toPRPCDateTime(datetime.datetime(2018, 3, 16, 13, 41, 27, 847000))[
+        cdh_utils.to_prpc_date_time(datetime.datetime(2018, 3, 16, 13, 41, 27, 847000))[
             :-3
         ]
         == "20180316T134127.847 GMT+0000"[:-3]
@@ -259,7 +257,7 @@ def test_zRatio():
     )
 
     output = (
-        input.with_columns(cdh_utils.zRatio())
+        input.with_columns(cdh_utils.z_ratio())
         .with_columns(pl.col("ZRatio").round(2))
         .sort("Predictor_range")
     )
@@ -304,7 +302,7 @@ def test_log_odds():
             "ResponseCount": [5, 2215, 1930, 1094, 358],
         }
     )
-    output = input.with_columns(cdh_utils.LogOdds().round(2))
+    output = input.with_columns(cdh_utils.log_odds().round(2))
 
     log_odds_list = [1.65, -0.81, -0.23, 0.43, 0.87]
     expected_output = input.with_columns(
@@ -324,7 +322,7 @@ def test_featureImportance():
         }
     )
 
-    output = input.with_columns(cdh_utils.featureImportance().round(2)).sort(
+    output = input.with_columns(cdh_utils.feature_importance().round(2)).sort(
         "BinPositives"
     )
     importance_list = [-0.12, 0.28, -0.12, 0.28]
@@ -350,17 +348,21 @@ def test_capitalize_behavior():
 def test_PredictorCategorization():
     df = (
         pl.LazyFrame({"PredictorName": ["Customer.Variable", "Variable"]})
-        .with_columns(cdh_utils.defaultPredictorCategorization())
+        .with_columns(cdh_utils.default_predictor_categorization())
         .collect()
     )
     assert df.get_column("PredictorCategory").to_list() == ["Customer", "Primary"]
 
     df = (
         pl.LazyFrame({"Predictor": ["Customer.Variable", "Variable"]})
-        .with_columns(cdh_utils.defaultPredictorCategorization(x="Predictor"))
+        .with_columns(cdh_utils.default_predictor_categorization(x="Predictor"))
         .collect()
     )
     assert df.get_column("PredictorCategory").to_list() == ["Customer", "Primary"]
+
+    assert cdh_utils.default_predictor_categorization().meta.eq(
+        cdh_utils.default_predictor_categorization("PredictorName")
+    )
 
 
 def test_gains_table():
@@ -532,19 +534,126 @@ def test_gains_table():
         1.0,
     ]
 
-    # df = pl.DataFrame(
-    #     {"Positives" : [100, 10, 20, 500, 5000, 30, 10000, 15000, 20],
-    #      "Count" : [1, 1, 2, 1, 1, 4, 1, 1, 1],
-    #      "Dimension" : ['A', 'B', 'B', 'A', 'A', 'B', 'A', 'A', 'B']}
-    # )
-    # gains = cdh_utils.gains_table(df, "Positives", index="Count", by = "Dimension")
-    # print(gains)
-    # assert gains.get_column("cum_x").to_list() == [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 0.0, 0.5, 0.75, 0.875, 1.0]
-    # assert gains.get_column("cum_y").round(5).to_list() == [0, 0.49020, 0.81699, 0.98039, 0.99673, 1, 0.0, 0.375, 0.625, 0.875, 1.0]
-
 
 def test_legend_color_order():
-    input_fig = datasets.CDHSample().plotPerformanceSuccessRateBubbleChart()
+    input_fig = datasets.cdh_sample().plot.bubble_chart()
     output_fig = cdh_utils.legend_color_order(input_fig)
 
     assert output_fig.data[0].marker.color == "#001F5F"
+
+
+def test_apply_query():
+    df = pl.DataFrame({"categories": ["A", "B", "C", "C"], "values": [1, 3, 5, 2]})
+
+    assert df.equals(cdh_utils._apply_query(df))
+
+    assert cdh_utils._apply_query(df, query=pl.col("categories") == "C")[
+        "categories"
+    ].unique().to_list() == ["C"]
+
+    assert cdh_utils._apply_query(df, query=[pl.col("categories") == "C"])[
+        "categories"
+    ].unique().to_list() == ["C"]
+
+    assert cdh_utils._apply_query(df, query={"categories": ["C"]})[
+        "categories"
+    ].unique().to_list() == ["C"]
+
+    with pytest.raises(ValueError):  # should raise; lists need to be expressions
+        cdh_utils._apply_query(df, query=[{"categories": ["C"]}])
+
+    with pytest.raises(ValueError):  # should raise; string is not a query
+        cdh_utils._apply_query(df, query="ABC")
+
+    with pytest.raises(ValueError):  # should raise: 'unknown' is not a column
+        cdh_utils._apply_query(df, query={"unknown": ["A"]})
+
+    with pytest.raises(ValueError):  # should raise: 'D' not in 'categories'
+        cdh_utils._apply_query(df, query={"categories": ["D"]})
+
+
+def test_extract_keys():
+    non_string = pl.DataFrame({"Name": [1, 2, 3]})
+    assert cdh_utils._extract_keys(non_string).equals(non_string)
+
+    empty_df = pl.DataFrame({"Name": []}, schema={"Name": pl.Utf8})
+    assert cdh_utils._extract_keys(empty_df).is_empty()
+
+    df = pl.DataFrame({"Name": ["TEST"]})
+    assert not cdh_utils._extract_keys(df, capitalize=False).is_empty()
+
+    df = pl.DataFrame({"Name": ["TEST"]})
+    assert not cdh_utils._extract_keys(df, capitalize=True).is_empty()
+
+    df = pl.DataFrame({"Name": ["TEST"]})
+    assert cdh_utils._extract_keys(df, capitalize=True).equals(df)
+
+    df = pl.DataFrame({"Name": ['{"pyName":"A","pyTreatment":"B"}']})
+    assert cdh_utils._extract_keys(df, capitalize=False).to_dict(as_series=False) == {
+        "Name": ['{"pyName":"A","pyTreatment":"B"}'],
+        "pyName": ["A"],
+        "pyTreatment": ["B"],
+    }
+    df = pl.DataFrame({"Name": ['{"pyName":"A","pyTreatment":"B"}']})
+    assert cdh_utils._extract_keys(df, capitalize=True).to_dict(as_series=False) == {
+        "Name": ["A"],
+        "Treatment": ["B"],
+    }
+    df = pl.DataFrame(
+        {
+            "Name": [
+                '{"pyName":"Action1", "pyTreatment":"Treatment1"}',
+                '{"pyName":"Cosmetics", "Customer":"Anonymous"}',
+                '{"pyName":"Cosmetics", "Customer":"Known"}',
+                '{"pyName":"Cosmetics", "Customer":"Known"}',
+                '{"pyName":"Garden", "customer":"Known"}',
+                "GoldCard",
+            ],
+            "Treatment": ["a", "b", "c", "d", "e", "f"],
+        }
+    )
+    assert cdh_utils._extract_keys(df, capitalize=True).columns == [
+        "Name",
+        "Treatment",
+        "Customer",
+        "Customer_2",
+    ]
+    assert cdh_utils._extract_keys(df.lazy(), capitalize=True).collect().columns == [
+        "Name",
+        "Treatment",
+        "Customer",
+        "Customer_2",
+    ]
+    assert cdh_utils._extract_keys(df, capitalize=False).columns == [
+        "Name",
+        "Treatment",
+        "pyName",
+        "pyTreatment",
+        "Customer",
+        "customer",
+    ]
+    assert cdh_utils._extract_keys(df.lazy(), capitalize=False).collect().columns == [
+        "Name",
+        "Treatment",
+        "pyName",
+        "pyTreatment",
+        "Customer",
+        "customer",
+    ]
+    # Slight difference here: old version overwrote all values from overlapping columns
+    # with nulls when there was no entry for that column in that row in the keys. New
+    # version only overwrites when the key value is not null.
+    assert cdh_utils._extract_keys(df, capitalize=True).to_dict(as_series=False) == {
+        "Name": [
+            "Action1",
+            "Cosmetics",
+            "Cosmetics",
+            "Cosmetics",
+            "Garden",
+            "GoldCard",
+        ],
+        "Treatment": ["Treatment1", "b", "c", "d", "e", "f"],
+        # "Treatment": ["Treatment1", None, None, None, None, None], # old behavior
+        "Customer": [None, "Anonymous", "Known", "Known", None, None],
+        "Customer_2": [None, None, None, None, "Known", None],
+    }

@@ -11,9 +11,6 @@
   <a href="https://github.com/pegasystems/pega-datascientist-tools/actions">
     <img src="https://github.com/pegasystems/pega-datascientist-tools/workflows/Python%20tests/badge.svg" alt="Python tests">
   </a>
-  <a href="https://github.com/pegasystems/pega-datascientist-tools/actions">
-    <img src="https://github.com/pegasystems/pega-datascientist-tools/workflows/R%20tests/badge.svg" alt="R tests">
-  </a>
   <!-- Code coverage -->
   <a href="https://codecov.io/gh/pegasystems/pega-datascientist-tools">
     <img src="https://codecov.io/gh/pegasystems/pega-datascientist-tools/branch/master/graph/badge.svg"/>
@@ -38,7 +35,7 @@ Open source tooling that helps data scientists working with Pega AI to analyze P
 
 We release this under the Apache 2.0 license and welcome contributing back, preferably through pull requests, but just submitting an Issue or sending a note to the authors is fine too. Pega does not make any representation or warranty with respect to this free software.
 
-The tools help to do analysis on Pega decisioning and predictive analytics as used in solutions such as Customer Decision Hub or Process AI, pull data from the platform, easily build meaningful plots and more. Tooling exists in both R and Python, as an R package, a pip-installable Python package, notebooks and other scripts. See the [Graph Gallery](https://pegasystems.github.io/pega-datascientist-tools/Python/articles/graph_gallery.html) for a sample of the graphs you can build to help get insights from the platform. Or jump right into the examples in [Python examples](https://pegasystems.github.io/pega-datascientist-tools/Python/examples.html), [R vignettes](https://pegasystems.github.io/pega-datascientist-tools/R/articles/index.html), or [browse the example folder](https://github.com/pegasystems/pega-datascientist-tools/tree/master/examples).
+The tools help to do analysis on Pega decisioning and predictive analytics as used in solutions such as Customer Decision Hub or Process AI, pull data from the platform, easily build meaningful plots and more. There is a pip-installable Python package, notebooks and other scripts. See the [Graph Gallery](https://pegasystems.github.io/pega-datascientist-tools/Python/articles/graph_gallery.html) for a sample of the graphs you can build to help get insights from the platform or jump right into the [examples](https://pegasystems.github.io/pega-datascientist-tools/Python/examples.html), and [browse the examples folder](https://github.com/pegasystems/pega-datascientist-tools/tree/master/examples).
 
 # Getting Started
 
@@ -46,4 +43,4 @@ For instructions and information, see the [Pega Data Scientist Tools Wiki page](
 
 # Contributing
 
-We love feedback. If you have interesting analysis plots you would like to share, we are very interested in incoporating them. If you developed tools or library functions that may be of interest to others, consider sending us a pull request. See [Contributing](https://github.com/pegasystems/pega-datascientist-tools/wiki/Contributing) for guidance on developing the R and Python packages.
+We love feedback. If you have interesting analysis plots you would like to share, we are very interested in incoporating them. If you developed tools or library functions that may be of interest to others, consider sending us a pull request. See [Contributing](https://github.com/pegasystems/pega-datascientist-tools/wiki/Contributing) for guidelines.

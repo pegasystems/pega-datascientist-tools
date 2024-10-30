@@ -1,8 +1,0 @@
-pytest
-pytest-cov
-scipy
-testbook
-XlsxWriter
-openpyxl
-ipython 
-ipykernel

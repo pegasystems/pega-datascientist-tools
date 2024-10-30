@@ -12,10 +12,10 @@ exclude = ['/tests/*', '*.dist-info', '/docs/*']
 
 [project]
 name = "pdstools"
-dynamic = ["version", "dependencies"]
+dynamic = ["version"]
 description = "Open source tooling that helps Data Scientists to analyze Pega models and conduct impactful analyses."
 readme = "README.md"
-authors = [ { name = "Stijn Kas", email = "stijn.kas@pega.com" } ] 
+authors = [ { name = "Stijn Kas", email = "stijn.kas@pega.com" } ]
 license = {text = "Apache-2.0"}
 classifiers = [
     "License :: OSI Approved :: Apache Software License",
@@ -33,15 +33,21 @@ keywords = [
     "tools",
 ]
 requires-python = ">=3.9"
+dependencies = ['polars>=1.9', 'typing_extensions']
 
 [tool.setuptools.dynamic]
 version = {attr="pdstools.__version__"}
-dependencies = {file = ["python/requirements.txt"]}
 
 [project.optional-dependencies]
+adm = ['plotly>=5.5.0']
+pega_io = ['aioboto3', 'polars_hash']
+api = ['httpx', 'pydantic', 'anyio']
+healthcheck = ['pdstools[adm]', 'great_tables>=0.13', 'quarto', 'papermill', 'xlsxwriter>=3.0', 'pydot']
+app = ['pdstools[healthcheck]', 'streamlit>=1.23', 'st-pages']
+onnx = ['scikit-learn==1.5.1', 'skl2onnx==1.17.0', 'onnx==1.16.1', 'onnxruntime==1.18.1', 'pdstools[api]']
+all = ['pdstools[app, pega_io, onnx]']
 docs = ['sphinx','furo','sphinx-autoapi','nbsphinx','sphinx-copybutton','myst-parser']
-app = ['streamlit>=1.23', 'quarto', 'papermill', 'itables', 'jinja2>=3.1', 'xlsxwriter>=3.0', 'tabulate', 'st-pages']
-tests = ['testbook', 'pytest', 'pytest-cov', 'xlsxwriter', 'scipy', 'ipykernel', 'XlsxWriter', 'openpyxl', 'ipython']
+tests = ['testbook', 'pytest', 'pytest-cov', 'pytest-httpx', 'pytest-mock', 'moto', 'openpyxl', 'pdstools[all]', 'coverage']
 
 [project.urls]
 "Homepage" = "https://github.com/pegasystems/pega-datascientist-tools"
@@ -51,3 +57,6 @@ tests = ['testbook', 'pytest', 'pytest-cov', 'xlsxwriter', 'scipy', 'ipykernel',
 
 [project.scripts]
 pdstools = 'pdstools.app.cli:main'
+
+[tool.mypy]
+mypy_path=['python/stubs']

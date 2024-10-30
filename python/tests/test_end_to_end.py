@@ -1,14 +1,24 @@
 """
 Testing the functionality of some end-to-end scenarios
 """
-import sys
+
 import pathlib
 
-basePath = pathlib.Path(__file__).parent.parent.parent
-sys.path.append(f"{str(basePath)}/python")
 import polars as pl
-from pdstools import ADMDatamart
+import pytest
 from plotly.graph_objs._figure import Figure
+from pdstools import ADMDatamart
+
+basePath = pathlib.Path(__file__).parent.parent.parent
+
+
+@pytest.fixture
+def sample():
+    return ADMDatamart.from_ds_export(
+        base_path=f"{basePath}/data",
+        model_filename="Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip",
+        predictor_filename="Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip",
+    )
 
 
 @pl.api.register_lazyframe_namespace("shape")
@@ -21,136 +31,38 @@ class Shape:
     """
 
     def __new__(cls, ldf: pl.LazyFrame):
-        return (ldf.select(pl.first().len()).collect().item(), len(ldf.collect_schema().names()))
+        return (
+            ldf.select(pl.first().len()).collect().item(),
+            len(ldf.collect_schema().names()),
+        )
 
 
-def test_end_to_end():
-    datamart = ADMDatamart(f"{basePath}/data", timestamp_fmt="%Y-%m-%d %H:%M:%S")
-    assert datamart.modelData.shape == (1047, 15)
-    modelcols = {
-        "ModelID",
-        "Issue",
-        "Group",
+def test_end_to_end(sample: ADMDatamart):
+    assert sample.model_data.shape == (1047, 27)
+
+    assert sample.predictor_data.shape == (70735, 39)
+
+    assert sample.combined_data.shape == (4576, 65)
+
+    assert sample.aggregates.last().shape == (68, 27)
+    assert sample.aggregates.last(table="predictor_data").shape == (4576, 39)
+    assert sample.model_data.collect_schema()["SnapshotTime"] == pl.Datetime
+
+    assert sample.context_keys == [
         "Channel",
         "Direction",
-        "Last_Positives",
-        "Last_ResponseCount",
-        "Name",
-        "Positives",
-        "Configuration",
-        "ResponseCount",
-        "SnapshotTime",
-        "Performance",
-        "SuccessRate",
-        "Treatment",
-    }
-    assert set(datamart.modelData.columns) == modelcols
-
-    assert datamart.predictorData.shape == (70735, 19)
-    predcols = {
-        "ModelID",
-        "Positives",
-        "ResponseCount",
-        "SnapshotTime",
-        "PredictorName",
-        "PredictorCategory",
-        "Performance",
-        "EntryType",
-        "BinSymbol",
-        "BinIndex",
-        "BinType",
-        "BinPositives",
-        "BinNegatives",
-        "BinResponseCount",
-        "Type",
-        "BinPropensity",
-        "BinAdjustedPropensity",
-        "Contents",
-        "PredictorCategory",
-        "GroupIndex",
-    }
-    assert set(datamart.predictorData.columns) == predcols
-
-    assert datamart.combinedData.shape == (4576, 33)
-    assert set(datamart.combinedData.columns) == modelcols.union(predcols).union(
-        {"PerformanceBin", "PositivesBin", "ResponseCountBin", "SnapshotTimeBin"}
-    )
-
-    assert datamart.last().shape == (68, 15)
-    assert datamart.last("predictorData").shape == (4576, 19)
-    assert datamart.modelData.schema["SnapshotTime"] == pl.Datetime
-
-    assert datamart.context_keys == ["Channel", "Direction", "Issue", "Group"]
-    assert datamart.missing_model == {
-        "BinIndex",
-        "Type",
-        "PredictorName",
-        "PredictorCategory",
-        "BinSymbol",
-        "BinType",
-        "BinPositives",
-        "BinResponseCount",
-        "EntryType",
-        "BinNegatives",
-        "Contents",
-        "GroupIndex",
-    }
-
-    assert datamart.missing_preds == {
-        "Group",
         "Issue",
-        "Channel",
-        "Direction",
-        "Name",
-        "Configuration",
-        "Treatment",
-        "PredictorCategory",
-    }
-
-    assert datamart.renamed_model == {
-        "Configuration",
-        "ModelID",
-        "Treatment",
-        "SnapshotTime",
-        "Name",
         "Group",
-        "Performance",
-        "Direction",
-        "Positives",
-        "ResponseCount",
-        "Issue",
-        "Channel",
-    }
+        "Name",
+        "Treatment",
+    ]
 
-    assert datamart.renamed_preds == {
-        "Performance",
-        "ModelID",
-        "EntryType",
-        "BinIndex",
-        "Type",
-        "BinPositives",
-        "BinType",
-        "BinNegatives",
-        "Positives",
-        "ResponseCount",
-        "BinSymbol",
-        "SnapshotTime",
-        "BinResponseCount",
-        "PredictorName",
-        "Contents",
-        "GroupIndex",
-    }
-
-    assert isinstance(datamart.plotPerformanceSuccessRateBubbleChart(), Figure)
+    assert isinstance(sample.plot.bubble_chart(), Figure)
     assert (
-        len(datamart.plotPerformanceSuccessRateBubbleChart().data[0].x)
-        == datamart.last().shape[0]
+        len(sample.plot.bubble_chart().data[0].x) == sample.aggregates.last().shape[0]
     )
 
     query = (pl.col("ResponseCount") > 500) & (pl.col("Group") == "CreditCards")
-    queried = len(datamart.last().filter(query))
+    queried = len(sample.aggregates.last().filter(query).collect())
     assert queried == 19
-    assert (
-        len(datamart.plotPerformanceSuccessRateBubbleChart(query=query).data[0].x)
-        == queried
-    )
+    assert len(sample.plot.bubble_chart(query=query).data[0].x) == queried

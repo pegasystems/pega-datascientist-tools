@@ -1,18 +1,27 @@
 from __future__ import annotations
 
 import importlib
-import importlib.metadata
+import re
 import sys
-from typing import Optional
+from typing import Dict, Literal, Set, Union, overload
 
 from .. import __version__
 
-import importlib.metadata
+package_name = "pdstools"
 
 
-def show_versions(print_output: bool = True) -> Optional[str]:
+@overload
+def show_versions(print_output: Literal[True] = True) -> None: ...
+
+
+@overload
+def show_versions(print_output: Literal[False] = False) -> str: ...
+
+
+def show_versions(print_output: bool = True) -> Union[None, str]:
     """
     Print or return version of pdstools and dependencies.
+
     Parameters
     ----------
     print_output : bool, optional
@@ -29,49 +38,46 @@ def show_versions(print_output: bool = True) -> Optional[str]:
     --------
     >>> from pdstools import show_versions
     >>> show_versions()
-    ---Version info---
-    pdstools: 3.1.0
-    Platform: macOS-12.6.4-x86_64-i386-64bit
-    Python: 3.11.0 (v3.11.0:deaf509e8f, Oct 24 2022, 14:43:23) [Clang 13.0.0 (clang-1300.0.29.30)]
+    --- Version info ---
+    pdstools: 4.0.0-alpha
+    Platform: macOS-14.7-arm64-arm-64bit
+    Python: 3.12.4 (main, Jun  6 2024, 18:26:44) [Clang 15.0.0 (clang-1500.3.9.4)]
 
-    ---Dependencies---
-    plotly: 5.13.1
-    requests: 2.28.1
-    pydot: 1.4.2
-    polars: 0.17.0
-    pyarrow: 11.0.0.dev52
-    tqdm: 4.64.1
-    pyyaml: <not installed>
-    aioboto3: 11.0.1
+    --- Dependencies ---
+    typing_extensions: 4.12.2
+    polars>=1.9: 1.9.0
 
-    ---Streamlit app dependencies---
-    streamlit: 1.20.0
-    quarto: 0.1.0
-    papermill: 2.4.0
-    itables: 1.5.1
-    pandas: 1.5.3
-    jinja2: 3.1.2
-    xlsxwriter: 3.0
+    --- Dependency group: adm ---
+    plotly>=5.5.0: 5.24.1
+
+    --- Dependency group: api ---
+    pydantic: 2.9.2
+    httpx: 0.27.2
     """
 
     # note: we import 'platform' here as a micro-optimisation for initial import
     import platform
 
     info = []
-    info.append("---Version info---")
-    info.append(f"pdstools: {__version__}")
+    info.append("--- Version info ---")
+    info.append(f"{package_name}: {__version__}")
     info.append(f"Platform: {platform.platform()}")
     info.append(f"Python: {sys.version}")
 
-    info.append("\n---Dependencies---")
-    deps = _get_dependency_info()
-    for name, v in deps.items():
-        info.append(f"{name}: {v}")
+    deps = grouped_dependencies()
 
-    info.append("\n---Streamlit app dependencies---")
-    deps = _get_opt_dependency_info()
-    for name, v in deps.items():
-        info.append(f"{name}: {v}")
+    info.append("\n--- Dependencies ---")
+
+    required = deps.pop("required")
+    for d in required:
+        info.append(f"{d}: {_get_dependency_version(d)}")
+
+    for group, dependencies in deps.items():
+        info.append(f"\n--- Dependency group: {group} ---")
+
+        for d in dependencies:
+            info.append(f"{d}: {_get_dependency_version(d)}")
+
     version_info = "\n".join(info)
     if print_output:
         print(version_info)
@@ -80,36 +86,57 @@ def show_versions(print_output: bool = True) -> Optional[str]:
         return version_info
 
 
-def _get_dependency_info() -> dict[str, str]:
-    # see the list of dependencies in pyproject.toml
-    dependencies = [
-        "plotly",
-        "requests",
-        "pydot",
-        "polars",
-        "pyarrow",
-        "tqdm",
-        "pyyaml",
-        "aioboto3",
-    ]
-    return {name: _get_dependency_version(name) for name in dependencies}
+def expand_nested_deps(extras: Dict[str, Set[str]]) -> Dict[str, Set[str]]:
+    def expand_dep(dep: str, processed: Set[str]) -> Set[str]:
+        if not dep.startswith(f"{package_name}["):
+            return {dep}
+
+        nested_extras = dep.split("[")[1].split("]")[0].split(",")
+        result = set()
+
+        for nested_extra in nested_extras:
+            if nested_extra in processed:
+                continue  # pragma: no cover
+
+            processed.add(nested_extra)
+            if nested_extra in extras:
+                result.update(
+                    set().union(
+                        *(expand_dep(d, processed.copy()) for d in extras[nested_extra])
+                    )
+                )
+
+        return result if result else {dep}
+
+    expanded = {}
+    for extra, deps in extras.items():
+        expanded[extra] = set().union(*(expand_dep(dep, set()) for dep in deps))
+
+    return expanded
 
 
-def _get_opt_dependency_info() -> dict[str, str]:
-    # see the list of dependencies in pyproject.toml
-    opt_deps = [
-        "streamlit",
-        "quarto",
-        "papermill",
-        "itables",
-        "pandas",
-        "jinja2",
-        "xlsxwriter",
-    ]
-    return {name: _get_dependency_version(name) for name in opt_deps}
+def grouped_dependencies() -> Dict[str, Set[str]]:
+    extras: Dict[str, Set[str]] = {"required": set()}
+    requires = importlib.metadata.distribution(package_name).requires
+    if not requires:  # pragma: no cover
+        return {}
+    for dependency in requires:
+        split = dependency.split("; extra == ")
+
+        if len(split) == 1:
+            extras["required"].add(split[0])
+        else:
+            package, extra = split
+            extra = extra.strip('"')
+            if extra not in extras:
+                extras[extra] = set()
+            extras[extra].add(package)
+
+    return expand_nested_deps(extras)
 
 
 def _get_dependency_version(dep_name: str) -> str:
+    dep_name = re.sub("[<>=]", "|||", dep_name).split("|||")[0]
     try:
         module = importlib.import_module(dep_name)
     except ImportError:
@@ -117,10 +144,8 @@ def _get_dependency_version(dep_name: str) -> str:
 
     if hasattr(module, "__version__"):
         module_version = module.__version__
-    elif sys.version_info >= (3, 8):
+    else:
         # importlib.metadata was introduced in Python 3.8
         module_version = importlib.metadata.version(dep_name)
-    else:
-        module_version = "<version not detected>"
 
     return module_version

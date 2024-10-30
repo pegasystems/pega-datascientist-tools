@@ -1,33 +1,93 @@
-# -*- coding: utf-8 -*-
-"""
-cdhtools: Data Science add-ons for Pega.
-
-Various utilities to access and manipulate data from Pega for purposes
-of data analysis, reporting and monitoring.
-"""
-
 import datetime
 import io
 import logging
 import re
+import tempfile
 import warnings
 import zipfile
-import tempfile
 from io import StringIO
+from os import PathLike
 from pathlib import Path
-from typing import List, Tuple, Union, Optional
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
-import numpy as np
 import polars as pl
-import pytz
-import requests
 
-from .errors import NotEagerError
-from .table_definitions import PegaDefaultTables
-from .types import any_frame
+from .types import QUERY
+
+F = TypeVar("F", pl.DataFrame, pl.LazyFrame)
+if TYPE_CHECKING:  # pragma: no cover
+    try:
+        import plotly.express as px
+
+        Figure = Union["px.Figure", Any]
+    except ImportError:
+        Figure = Union[Any]
 
 
-def defaultPredictorCategorization(
+def _apply_query(df: F, query: Optional[QUERY] = None) -> F:
+    if query is None:
+        return df
+
+    if isinstance(query, pl.Expr):
+        col_names = set(query.meta.root_names())
+        query = [query]
+    elif isinstance(query, (list, tuple)):
+        if not query:
+            return df
+        if not all(isinstance(expr, pl.Expr) for expr in query):
+            raise ValueError(
+                "If query is a list or tuple, all items need to be Expressions."
+            )
+        col_names = {
+            root_name for expr in query for root_name in expr.meta.root_names()
+        }
+    elif isinstance(query, dict):
+        if not query:  # Handle empty dict
+            return df
+        col_names = set(query.keys())
+        query = [pl.col(k).is_in(v) for k, v in query.items()]
+    else:
+        raise ValueError(f"Unsupported query type: {type(query)}")
+
+    # Check if any column names were extracted
+    if not col_names:
+        raise ValueError("No valid column names found in the query.")
+
+    # Check if all queried columns exist in the DataFrame
+    df_columns = set(df.collect_schema().names())
+    col_diff = col_names - df_columns
+    if col_diff:
+        raise ValueError(f"Columns not found: {col_diff}")
+    filtered_df = df.filter(query)
+    if filtered_df.lazy().select(pl.first().len()).collect().item() == 0:
+        raise ValueError("The given query resulted in no more remaining data.")
+    return filtered_df
+
+
+def _combine_queries(existing_query: QUERY, new_query: pl.Expr) -> QUERY:
+    if isinstance(existing_query, pl.Expr):
+        return existing_query & new_query
+    elif isinstance(existing_query, List):
+        return existing_query + [new_query]
+    elif isinstance(existing_query, Dict):
+        # Convert the dictionary to a list of expressions
+        existing_exprs = [pl.col(k).is_in(v) for k, v in existing_query.items()]
+        return existing_exprs + [new_query]
+    else:
+        raise ValueError("Unsupported query type")
+
+
+def default_predictor_categorization(
     x: Union[str, pl.Expr] = pl.col("PredictorName"),
 ) -> pl.Expr:
     """Function to determine the 'category' of a predictor.
@@ -58,22 +118,15 @@ def defaultPredictorCategorization(
     ).alias("PredictorCategory")
 
 
-# TODO: we could make below much more efficient. We're now making everything
-# JSON then extracting. We could first detect if there is any JSON at all
-# ( startswith("{").any() ). Also could do the JSON extract on just the unique pyNames
-# that do start with a {. This could then be merged back with the original data.
-
-
 def _extract_keys(
-    df: any_frame,
-    col="Name",
-    capitalize=True,
-    import_strategy="eager",
-) -> any_frame:
+    df: F,
+    key: str = "Name",
+    capitalize: bool = True,
+) -> F:
     """Extracts keys out of the pyName column
 
     This is not a lazy operation as we don't know the possible keys
-    in advance. For that reason, we select only the pyName column,
+    in advance. For that reason, we select only the key column,
     extract the keys from that, and then collect the resulting dataframe.
     This dataframe is then joined back to the original dataframe.
 
@@ -83,63 +136,94 @@ def _extract_keys(
 
     The data in column for which the JSON is extract is normalized a
     little by taking out non-space, non-printable characters. Not just
-    ASCII of course. This may be relatively expensive, see notes in
-    code about ideas to speed up.
+    ASCII of course. This may be relatively expensive.
+
+    JSON extraction only happens on the unique values so saves a lot
+    of time with multiple snapshots of the same models, it also only
+    processes rows for which the key column appears to be valid JSON.
+    It will break when you "trick" it with malformed JSON.
+
+    Column values for columns that are also encoded in the key column
+    will be overwritten with values from the key column, but only for
+    rows that are JSON. In previous versions all values were overwritten
+    resulting in many nulls.
 
     Parameters
     ----------
     df: Union[pl.DataFrame, pl.LazyFrame]
         The dataframe to extract the keys from
+    key: str
+        The column with embedded JSON
+    capitalize: bool
+        If True (default) normalizes the names of the embedded columns
+        otherwise keeps the names as-is.
     """
     # Checking for the 'column is None/Null' case
-    if df.collect_schema()[col] != pl.Utf8:
+    if df.collect_schema()[key] != pl.Utf8:
         return df
 
-    if import_strategy != "eager":
-        raise NotEagerError("Extracting keys")
-
-    # Checking for the 'empty df' case
-    if len(df.select(col).head(1).collect()) == 0:
-        return df
-
-    def safeName():
-        return (
-            pl.when(~pl.col(col).cast(pl.Utf8).str.starts_with("{"))
-            .then(
-                pl.concat_str(
-                    [
-                        pl.lit('{"pyName":"'),
-                        # we need to protect the string in the extract column
-                        # against very wild content like emoticons that break
-                        # the json parsing
-                        # see https://www.regular-expressions.info/posixbrackets.html
-                        pl.col(col).str.replace_all(
-                            r"[^\p{L}\p{Nl}\p{Nd}\p{P}\p{Z}]", ""
-                        ),
-                        pl.lit('"}'),
-                    ]
-                )
-            )
-            .otherwise(pl.col(col).cast(pl.Utf8))
-        ).alias("tempName")
-
-    series = (
-        df.select(
-            safeName().str.json_decode(infer_schema_length=None),
+    # Checking for the 'empty df' of 'not containing JSON' case
+    if (
+        len(
+            df.lazy()
+            .select(key)
+            .filter(pl.col(key).str.starts_with("{"))
+            .head(1)
+            .collect()
         )
-        .unnest("tempName")
+        == 0
+    ):
+        return df
+
+    keys_decoded = (
+        df.filter(pl.col(key).str.starts_with("{"))
+        .select(
+            pl.col(key).alias("__original").unique(maintain_order=True),
+        )
+        .select(
+            pl.col("__original"),
+            pl.col("__original")
+            .cast(pl.Utf8)
+            .alias("__keys")
+            .str.json_decode(infer_schema_length=None),
+            # safe_name("__original").str.json_decode(infer_schema_length=None),
+        )
+        .unnest("__keys")
         .lazy()
         .collect()
     )
-    if not capitalize:
-        return df.with_columns(series)
-    return df.with_columns(_polarsCapitalize(series))
+    if capitalize:
+        keys_decoded = _polars_capitalize(keys_decoded)
+
+    overlap = set(df.collect_schema().names()).intersection(
+        keys_decoded.collect_schema().names()
+    )
+    return (
+        df.join(
+            keys_decoded.lazy() if isinstance(df, pl.LazyFrame) else keys_decoded,
+            left_on=key,
+            right_on="__original",
+            coalesce=True,
+            suffix="_decoded",
+            how="left",
+        )
+        # Overwrite values from columns that also appear in the decoded keys
+        .with_columns(
+            [
+                pl.when(pl.col(f"{c}_decoded").is_not_null())
+                .then(pl.col(f"{c}_decoded"))
+                .otherwise(pl.col(c))
+                .alias(c)
+                for c in overlap
+            ]
+        )
+        .drop([f"{c}_decoded" for c in overlap])
+    )
 
 
-def parsePegaDateTimeFormats(
-    timestampCol="SnapshotTime",
-    timestamp_fmt: str = None,
-    strict_conversion: bool = True,
+def parse_pega_date_time_formats(
+    timestamp_col="SnapshotTime",
+    timestamp_fmt: Optional[str] = None,
 ):
     """Parses Pega DateTime formats.
 
@@ -148,9 +232,11 @@ def parsePegaDateTimeFormats(
     - "%Y-%m-%d %H:%M:%S"
     - "%Y%m%dT%H%M%S.%f %Z"
 
-    If you want to parse a different timezone, then
-
     Removes timezones, and rounds to seconds, with a 'ns' time unit.
+
+    In the implementation, the third expression uses timestamp_fmt or %Y.
+    This is a bit of a hack, because if we pass None, it tries to infer automatically.
+    Inferring raises when it can't find an appropriate format, so that's not good.
 
     Parameters
     ----------
@@ -158,124 +244,23 @@ def parsePegaDateTimeFormats(
         The column to parse
     timestamp_fmt: str, default = None
         An optional format to use rather than the default formats
-    strict_conversion: bool, default = True
-        Whether to error on incorrect parses or just return Null values
     """
-    if timestamp_fmt is not None:
-        return pl.col(timestampCol).str.strptime(
-            pl.Datetime,
-            timestamp_fmt,
-            strict=strict_conversion,
+
+    return (
+        pl.coalesce(
+            pl.col(timestamp_col).str.to_datetime(
+                "%Y-%m-%d %H:%M:%S", strict=False, ambiguous="null"
+            ),
+            pl.col(timestamp_col).str.to_datetime(
+                "%Y%m%dT%H%M%S.%3f %Z", strict=False, ambiguous="null"
+            ),
+            pl.col(timestamp_col).str.to_datetime(
+                timestamp_fmt or "%Y", strict=False, ambiguous="null"
+            ),
         )
-    else:
-        return (
-            pl.when((pl.col(timestampCol).str.slice(4, 1) == pl.lit("-")))
-            .then(
-                pl.col(timestampCol)
-                .str.strptime(pl.Datetime, "%Y-%m-%d %H:%M:%S", strict=False)
-                .dt.cast_time_unit("ns")
-            )
-            .otherwise(
-                pl.col(timestampCol)
-                .str.strptime(pl.Datetime, "%Y%m%dT%H%M%S.%3f %Z", strict=False)
-                .dt.replace_time_zone(None)
-                .dt.cast_time_unit("ns")
-            )
-        ).alias(timestampCol)
-
-
-def getTypeMapping(df, definition, verbose=False, **timestamp_opts):
-    """
-    This function is used to convert the data types of columns in a DataFrame to a desired types.
-    The desired types are defined in a `PegaDefaultTables` class.
-
-    Parameters
-    ----------
-    df : pl.LazyFrame
-        The DataFrame whose columns' data types need to be converted.
-    definition : PegaDefaultTables
-        A `PegaDefaultTables` object that contains the desired data types for the columns.
-    verbose : bool
-        If True, the function will print a message when a column is not in the default table schema.
-    timestamp_opts : str
-        Additional arguments for timestamp parsing.
-
-    Returns
-    -------
-    List
-        A list with polars expressions for casting data types.
-    """
-
-    def getMapping(columns, reverse=False):
-        if not reverse:
-            return dict(zip(columns, _capitalize(columns)))
-        else:
-            return dict(zip(_capitalize(columns), columns))
-
-    named = getMapping(df.collect_schema().names())
-    typed = getMapping(
-        [col for col in dir(definition) if not col.startswith("__")], reverse=True
+        .dt.replace_time_zone(None)
+        .dt.cast_time_unit("ns")
     )
-
-    types = []
-    for col, renamedCol in named.items():
-        try:
-            new_type = getattr(definition, typed[renamedCol])
-            original_type = df.collect_schema()[col].base_type()
-            if original_type == pl.Null:
-                if verbose:
-                    warnings.warn(f"Warning: {col} column is Null data type.")
-            elif original_type != new_type:
-                if original_type == pl.Categorical and new_type in pl.NUMERIC_DTYPES:
-                    types.append(pl.col(col).cast(pl.Utf8).cast(new_type))
-                elif new_type == pl.Datetime and original_type != pl.Date:
-                    types.append(parsePegaDateTimeFormats(col, **timestamp_opts))
-                else:
-                    types.append(pl.col(col).cast(new_type))
-        except:
-            if verbose:
-                warnings.warn(
-                    f"Column {col} not in default table schema, can't set type."
-                )
-    return types
-
-
-def set_types(df, table="infer", verbose=False, **timestamp_opts):
-    if table == "infer":
-        table = inferTableDefinition(df)
-
-    if table == "pyValueFinder":
-        definition = PegaDefaultTables.pyValueFinder()
-    elif table == "ADMModelSnapshot":
-        definition = PegaDefaultTables.ADMModelSnapshot()
-    elif table == "ADMPredictorBinningSnapshot":
-        definition = PegaDefaultTables.ADMPredictorBinningSnapshot()
-
-    else:
-        raise ValueError(table)
-
-    mapping = getTypeMapping(df, definition, verbose=verbose, **timestamp_opts)
-
-    if len(mapping) > 0:
-        return df.with_columns(mapping)
-    else:
-        return df
-
-
-def inferTableDefinition(df):
-    cols = _capitalize(df.collect_schema().names())
-    vf = ["Propensity", "Stage"]
-    predictors = ["PredictorName", "ModelID", "BinSymbol"]
-    models = ["ModelID", "Performance"]
-    if all(value in cols for value in vf):
-        return "pyValueFinder"
-    elif all(value in cols for value in predictors):
-        return "ADMPredictorBinningSnapshot"
-    elif all(value in cols for value in models):
-        return "ADMModelSnapshot"
-    else:
-        print("Could not find table definition.")
-        return cols
 
 
 def safe_range_auc(auc: float) -> float:
@@ -291,6 +276,7 @@ def safe_range_auc(auc: float) -> float:
     float
         'Safe' AUC score, between 0.5 and 1.0
     """
+    import numpy as np
 
     if np.isnan(auc):
         return 0.5
@@ -320,11 +306,13 @@ def auc_from_probs(
     Examples:
         >>> auc_from_probs( [1,1,0], [0.6,0.2,0.2])
     """
+    import numpy as np
+
     nlabels = len(np.unique(groundtruth))
     if nlabels < 2:
         return 0.5
     if nlabels > 2:
-        raise Exception("'Groundtruth' has more than two levels.")
+        raise ValueError("'Groundtruth' has more than two levels.")
 
     df = pl.DataFrame({"truth": groundtruth, "probs": probs}, strict=False)
     binned = df.group_by(probs="probs").agg(
@@ -364,6 +352,8 @@ def auc_from_bincounts(
     Examples:
         >>> auc_from_bincounts([3,1,0], [2,0,1])
     """
+    import numpy as np
+
     pos = np.asarray(pos)
     neg = np.asarray(neg)
     if probs is None:
@@ -373,8 +363,8 @@ def auc_from_bincounts(
     FPR = np.cumsum(neg[binorder]) / np.sum(neg)
     TPR = np.cumsum(pos[binorder]) / np.sum(pos)
 
-    Area = (np.diff(FPR, prepend=0)) * (TPR + np.insert(np.roll(TPR, 1)[1:], 0, 0)) / 2
-    return safe_range_auc(np.sum(Area))
+    area = (np.diff(FPR, prepend=0)) * (TPR + np.insert(np.roll(TPR, 1)[1:], 0, 0)) / 2
+    return safe_range_auc(np.sum(area))
 
 
 def aucpr_from_probs(
@@ -398,11 +388,13 @@ def aucpr_from_probs(
     Examples:
         >>> auc_from_probs( [1,1,0], [0.6,0.2,0.2])
     """
+    import numpy as np
+
     nlabels = len(np.unique(groundtruth))
     if nlabels < 2:
         return 0.0
     if nlabels > 2:
-        raise Exception("'Groundtruth' has more than two levels.")
+        raise ValueError("'Groundtruth' has more than two levels.")
 
     df = pl.DataFrame({"truth": groundtruth, "probs": probs})
     binned = df.group_by(probs="probs").agg(
@@ -442,6 +434,8 @@ def aucpr_from_bincounts(
     Examples:
         >>> aucpr_from_bincounts([3,1,0], [2,0,1])
     """
+    import numpy as np
+
     pos = np.asarray(pos)
     neg = np.asarray(neg)
     if probs is None:
@@ -452,11 +446,11 @@ def aucpr_from_bincounts(
     precision = np.cumsum(pos[o]) / np.cumsum(pos[o] + neg[o])
     prevrecall = np.insert(recall[0 : (len(recall) - 1)], 0, 0)
     prevprecision = np.insert(precision[0 : (len(precision) - 1)], 0, 0)
-    Area = (recall - prevrecall) * (precision + prevprecision) / 2
-    return np.sum(Area[1:])
+    area = (recall - prevrecall) * (precision + prevprecision) / 2
+    return np.sum(area[1:])
 
 
-def auc2GINI(auc: float) -> float:
+def auc_to_gini(auc: float) -> float:
     """
     Convert AUC performance metric to GINI
 
@@ -476,7 +470,7 @@ def auc2GINI(auc: float) -> float:
     return 2 * safe_range_auc(auc) - 1
 
 
-def _capitalize(fields: list) -> list:
+def _capitalize(fields: Union[str, Iterable[str]]) -> List[str]:
     """Applies automatic capitalization, aligned with the R couterpart.
 
     Parameters
@@ -489,7 +483,7 @@ def _capitalize(fields: list) -> list:
     fields : list
         The input list, but each value properly capitalized
     """
-    capitalizeEndWords = [
+    capitalize_endwords = [
         "ID",
         "Key",
         "Name",
@@ -529,6 +523,41 @@ def _capitalize(fields: list) -> list:
         "ResponseCountPercentage",
         "ConfigurationName",
         "Configuration",
+        "SMS",
+        "Relevant",
+        "Proposition",
+        "Active",
+        "Description",
+        "Reference",
+        "Date",
+        "Performance",
+        "Identifier",
+        "Component",
+        "Prediction",
+        "Outcome",
+        "Hash",
+        "URL",
+        "Cap",
+        "Template",
+        "Issue",
+        "Group",
+        "Control",
+        "Evidence",
+        "Propensity",
+        "Paid",
+        "Subject",
+        "Email",
+        "Web",
+        "Context",
+        "Limit",
+        "Stage",
+        "Omni",
+        "Execution",
+        "Enabled",
+        "Message",
+        "Offline",
+        "Update",
+        "Strategy",
     ]
     if not isinstance(fields, list):
         fields = [fields]
@@ -536,25 +565,46 @@ def _capitalize(fields: list) -> list:
     fields = list(
         map(lambda x: x.replace("configurationname", "configuration"), fields)
     )
-    for word in capitalizeEndWords:
+    for word in capitalize_endwords:
         fields = [re.sub(word, word, field, flags=re.I) for field in fields]
         fields = [field[:1].upper() + field[1:] for field in fields]
     return fields
 
 
-def _polarsCapitalize(df: pl.LazyFrame):
-    df_cols = df.collect_schema().names()
+def _polars_capitalize(df: F) -> F:
+    cols = df.collect_schema().names()
+    renamed_cols = _capitalize(cols)
+
+    def deduplicate(columns: List[str]):
+        seen: Dict[str, int] = {}
+        new_columns: List[str] = []
+        for column in columns:
+            if column not in seen:
+                seen[column] = 1
+            else:
+                seen[column] += 1
+            if seen[column] == 1:
+                new_columns.append(column)
+            elif (count := seen[column]) > 1:
+                new_columns.append(column + f"_{count}")
+            else:
+                raise ValueError(f"While deduplicating:{column}")
+        return new_columns
+
+    if len(renamed_cols) != len(set(renamed_cols)):
+        renamed_cols = deduplicate(renamed_cols)
+
     return df.rename(
         dict(
             zip(
-                df_cols,
-                _capitalize(df_cols),
+                cols,
+                renamed_cols,
             )
         )
     )
 
 
-def fromPRPCDateTime(
+def from_prpc_date_time(
     x: str, return_string: bool = False
 ) -> Union[datetime.datetime, str]:
     """Convert from a Pega date-time string.
@@ -578,6 +628,7 @@ def fromPRPCDateTime(
         >>> fromPRPCDateTime("20180316T184127.846")
         >>> fromPRPCDateTime("20180316T184127.846", True)
     """
+    import pytz
 
     timezonesplits = x.split(" ")
 
@@ -611,7 +662,7 @@ def fromPRPCDateTime(
 # TODO: Polars doesn't like time zones like GMT+0200
 
 
-def toPRPCDateTime(dt: datetime.datetime) -> str:
+def to_prpc_date_time(dt: datetime.datetime) -> str:
     """Convert to a Pega date-time string
 
     Parameters
@@ -651,7 +702,7 @@ def weighted_average_polars(
 
 def weighted_performance_polars() -> pl.Expr:
     """Polars function to return a weighted performance"""
-    return weighted_average_polars("Performance", "ResponseCount")
+    return weighted_average_polars("Performance", "ResponseCount").fill_nan(0.5)
 
 
 def overlap_lists_polars(col: pl.Series, row_validity: pl.Series) -> List[float]:
@@ -679,8 +730,8 @@ def overlap_lists_polars(col: pl.Series, row_validity: pl.Series) -> List[float]
     return average_overlap
 
 
-def zRatio(
-    posCol: pl.Expr = pl.col("BinPositives"), negCol: pl.Expr = pl.col("BinNegatives")
+def z_ratio(
+    pos_col: pl.Expr = pl.col("BinPositives"), neg_col: pl.Expr = pl.col("BinNegatives")
 ) -> pl.Expr:
     """Calculates the Z-Ratio for predictor bins.
 
@@ -704,28 +755,28 @@ def zRatio(
     >>> df.group_by(['ModelID', 'PredictorName']).agg([zRatio()]).explode()
     """
 
-    def getFracs(posCol=pl.col("BinPositives"), negCol=pl.col("BinNegatives")):
-        return posCol / posCol.sum(), negCol / negCol.sum()
+    def get_fracs(pos_col=pl.col("BinPositives"), neg_col=pl.col("BinNegatives")):
+        return pos_col / pos_col.sum(), neg_col / neg_col.sum()
 
-    def zRatioimpl(
-        posFractionCol=pl.col("posFraction"),
-        negFractionCol=pl.col("negFraction"),
-        PositivesCol=pl.sum("BinPositives"),
-        NegativesCol=pl.sum("BinNegatives"),
+    def z_ratio_impl(
+        pos_fraction_col=pl.col("posFraction"),
+        neg_fraction_col=pl.col("negFraction"),
+        positives_col=pl.sum("BinPositives"),
+        negatives_col=pl.sum("BinNegatives"),
     ):
         return (
-            (posFractionCol - negFractionCol)
+            (pos_fraction_col - neg_fraction_col)
             / (
-                (posFractionCol * (1 - posFractionCol) / PositivesCol)
-                + (negFractionCol * (1 - negFractionCol) / NegativesCol)
+                (pos_fraction_col * (1 - pos_fraction_col) / positives_col)
+                + (neg_fraction_col * (1 - neg_fraction_col) / negatives_col)
             ).sqrt()
         ).alias("ZRatio")
 
-    return zRatioimpl(*getFracs(posCol, negCol), posCol.sum(), negCol.sum())
+    return z_ratio_impl(*get_fracs(pos_col, neg_col), pos_col.sum(), neg_col.sum())
 
 
 def lift(
-    posCol: pl.Expr = pl.col("BinPositives"), negCol: pl.Expr = pl.col("BinNegatives")
+    pos_col: pl.Expr = pl.col("BinPositives"), neg_col: pl.Expr = pl.col("BinNegatives")
 ) -> pl.Expr:
     """Calculates the Lift for predictor bins.
 
@@ -745,28 +796,26 @@ def lift(
     >>> df.group_by(['ModelID', 'PredictorName']).agg([lift()]).explode()
     """
 
-    def liftImpl(binPos, binNeg, totalPos, totalNeg):
+    def lift_impl(bin_pos, bin_neg, total_pos, total_neg):
         return (
             # TODO not sure how polars (mis)behaves when there are no positives at all
             # I would hope for a NaN but base python doesn't do that. Polars perhaps.
             # Stijn: It does have proper None value support, may work like you say
-            binPos
-            * (totalPos + totalNeg)
-            / ((binPos + binNeg) * totalPos)
+            bin_pos * (total_pos + total_neg) / ((bin_pos + bin_neg) * total_pos)
         ).alias("Lift")
 
-    return liftImpl(posCol, negCol, posCol.sum(), negCol.sum())
+    return lift_impl(pos_col, neg_col, pos_col.sum(), neg_col.sum())
 
 
-def LogOdds(
-    Positives=pl.col("Positives"),
-    Negatives=pl.col("ResponseCount") - pl.col("Positives"),
+def log_odds(
+    positives=pl.col("Positives"),
+    negatives=pl.col("ResponseCount") - pl.col("Positives"),
 ):
-    N = Positives.count()
+    N = positives.count()
     return (
         (
-            ((Positives + 1 / N).log() - (Positives + 1).sum().log())
-            - ((Negatives + 1 / N).log() - (Negatives + 1).sum().log())
+            ((positives + 1 / N).log() - (positives + 1).sum().log())
+            - ((negatives + 1 / N).log() - (negatives + 1).sum().log())
         )
         .round(2)
         .alias("LogOdds")
@@ -775,16 +824,76 @@ def LogOdds(
 
 # TODO: reconsider this. Feature importance now stored in datamart
 # perhaps we should not bother to calculate it ourselves.
-def featureImportance(over=["PredictorName", "ModelID"]):
-    varImp = weighted_average_polars(
-        LogOdds(
+def feature_importance(over=["PredictorName", "ModelID"]):
+    var_imp = weighted_average_polars(
+        log_odds(
             pl.col("BinPositives"), pl.col("BinResponseCount") - pl.col("BinPositives")
         ),
         "BinResponseCount",
     ).alias("FeatureImportance")
     if over is not None:
-        varImp = varImp.over(over)
-    return varImp
+        var_imp = var_imp.over(over)
+    return var_imp
+
+
+def _apply_schema_types(df: F, definition, verbose=False, **timestamp_opts) -> F:
+    """
+    This function is used to convert the data types of columns in a DataFrame to a desired types.
+    The desired types are defined in a `PegaDefaultTables` class.
+
+    Parameters
+    ----------
+    df : pl.LazyFrame
+        The DataFrame whose columns' data types need to be converted.
+    definition : PegaDefaultTables
+        A `PegaDefaultTables` object that contains the desired data types for the columns.
+    verbose : bool
+        If True, the function will print a message when a column is not in the default table schema.
+    timestamp_opts : str
+        Additional arguments for timestamp parsing.
+
+    Returns
+    -------
+    List
+        A list with polars expressions for casting data types.
+    """
+
+    def get_mapping(columns, reverse=False):
+        if not reverse:
+            return dict(zip(columns, _capitalize(columns)))
+        else:
+            return dict(zip(_capitalize(columns), columns))
+
+    schema = df.collect_schema()
+    named = get_mapping(schema.names())
+    typed = get_mapping(
+        [col for col in dir(definition) if not col.startswith("__")], reverse=True
+    )
+
+    types = []
+    for col, renamedCol in named.items():
+        try:
+            new_type = getattr(definition, typed[renamedCol])
+            original_type = schema[col].base_type()
+            if original_type == pl.Null:
+                if verbose:
+                    warnings.warn(f"Warning: {col} column is Null data type.")
+            elif original_type != new_type:
+                if (
+                    original_type == pl.Categorical
+                    and new_type in pl.selectors.numeric()
+                ):
+                    types.append(pl.col(col).cast(pl.Utf8).cast(new_type))
+                elif new_type == pl.Datetime and original_type != pl.Date:
+                    types.append(parse_pega_date_time_formats(col, **timestamp_opts))
+                else:
+                    types.append(pl.col(col).cast(new_type))
+        except Exception:
+            if verbose:  # pragma: no cover
+                warnings.warn(
+                    f"Column {col} not in default table schema, can't set type."
+                )
+    return df.with_columns(types)
 
 
 def gains_table(df, value: str, index=None, by=None):
@@ -818,9 +927,9 @@ def gains_table(df, value: str, index=None, by=None):
     >>> gains_data = gains_table(df, 'ResponseCount', by=['Channel','Direction])
     """
 
-    sortExpr = pl.col(value) if index is None else pl.col(value) / pl.col(index)
-    indexExpr = (
-        (pl.int_range(1, pl.count() + 1) / pl.count())
+    sort_expr = pl.col(value) if index is None else pl.col(value) / pl.col(index)
+    index_expr = (
+        (pl.int_range(1, pl.len() + 1) / pl.len())
         if index is None
         else (pl.cum_sum(index) / pl.sum(index))
     )
@@ -830,23 +939,23 @@ def gains_table(df, value: str, index=None, by=None):
             [
                 pl.DataFrame(data={"cum_x": [0.0], "cum_y": [0.0]}).lazy(),
                 df.lazy()
-                .sort(sortExpr, descending=True)
+                .sort(sort_expr, descending=True)
                 .select(
-                    indexExpr.cast(pl.Float64).alias("cum_x"),
+                    index_expr.cast(pl.Float64).alias("cum_x"),
                     (pl.cum_sum(value) / pl.sum(value)).cast(pl.Float64).alias("cum_y"),
                 ),
             ]
         )
     else:
         by_as_list = by if isinstance(by, list) else [by]
-        sortExpr = by_as_list + [sortExpr]
+        sort_expr = by_as_list + [sort_expr]
         gains_df = (
             df.lazy()
-            .sort(sortExpr, descending=True)
+            .sort(sort_expr, descending=True)
             .select(
                 by_as_list
                 + [
-                    indexExpr.over(by).cast(pl.Float64).alias("cum_x"),
+                    index_expr.over(by).cast(pl.Float64).alias("cum_x"),
                     (pl.cum_sum(value) / pl.sum(value))
                     .over(by)
                     .cast(pl.Float64)
@@ -860,6 +969,32 @@ def gains_table(df, value: str, index=None, by=None):
         ).sort(by_as_list + ["cum_x"])
 
     return gains_df.collect()
+
+
+def lazy_sample(df: F, n_rows: int, with_replacement: bool = True) -> F:
+    if with_replacement:
+        return df.select(pl.all().sample(n=n_rows, with_replacement=with_replacement))
+
+    from functools import partial
+
+    import numpy as np
+
+    def sample_it(s: pl.Series, n) -> pl.Series:
+        s_len = s.len()
+        if s_len < n:
+            return pl.Series(values=[True] * s_len, dtype=pl.Boolean)
+        else:
+            return pl.Series(
+                values=np.random.binomial(1, n / s_len, s_len),
+                dtype=pl.Boolean,
+            )
+
+    func = partial(sample_it, n=n_rows)
+    return (
+        df.with_columns(pl.first().map_batches(func).alias("_sample"))
+        .filter(pl.col("_sample"))
+        .drop("_sample")
+    )
 
 
 # TODO: perhaps the color / plot utils should move into a separate file
@@ -905,52 +1040,6 @@ def legend_color_order(fig):
     return fig
 
 
-def sync_reports(checkOnly: bool = False, autoUpdate: bool = False):
-    """Compares the report files in your local directory to the repo
-
-    If any of the files are different from the ones in GitHub,
-    will prompt you to update them.
-
-    Parameters
-    ----------
-    checkOnly : bool, default = False
-        If True, only checks, does not prompt to update
-    autoUpdate : bool, default = False
-        If True, doensn't prompt for update and goes ahead
-    """
-    import glob
-    import urllib
-
-    from pdstools import __reports__
-
-    files = [f for f in glob.glob(str(__reports__ / "*.qmd"))]
-    latest = {}
-    replacement = {}
-    for file in files:
-        name = file.rsplit("/")[-1]
-        path = f"http://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/python/pdstools/reports/{name}"
-        fileFromUrl = urllib.request.urlopen(path).read()
-        latest[file] = (
-            int.from_bytes(fileFromUrl) ^ int.from_bytes(open(file).read().encode())
-            == 0
-        )
-        if not latest[file]:
-            replacement[file] = fileFromUrl
-    if False in latest.values():
-        if not checkOnly and (
-            autoUpdate
-            or input("One or more files out of sync. Enter 'y' to update them:")
-        ):
-            for filename, file in replacement.items():
-                with open(filename, "w") as f:
-                    f.write(file.decode())
-            return True
-        else:
-            return False
-    else:
-        return True
-
-
 def process_files_to_bytes(
     file_paths: List[Union[str, Path]], base_file_name: Union[str, Path]
 ) -> Tuple[bytes, str]:
@@ -980,24 +1069,24 @@ def process_files_to_bytes(
         - bytes: The content of the single file or the created zip file, or empty bytes if no files.
         - str: The file name (either base_file_name or a generated zip file name), or an empty string if no files.
     """
-    file_paths = [Path(fp) for fp in file_paths]
+    path_list: List[Path] = [Path(fp) for fp in file_paths]
     base_file_name = Path(base_file_name)
 
-    if not file_paths:
+    if not path_list:
         return b"", ""
 
-    if len(file_paths) == 1:
+    if len(path_list) == 1:
         try:
-            with file_paths[0].open("rb") as file:
+            with path_list[0].open("rb") as file:
                 return file.read(), base_file_name.name
         except IOError as e:
-            print(f"Error reading file {file_paths[0]}: {e}")
+            print(f"Error reading file {path_list[0]}: {e}")
             return b"", ""
 
     # Multiple files
     in_memory_zip = io.BytesIO()
     with zipfile.ZipFile(in_memory_zip, "w") as zipf:
-        for file_path in file_paths:
+        for file_path in path_list:
             try:
                 zipf.write(
                     file_path,
@@ -1014,10 +1103,12 @@ def process_files_to_bytes(
 
 
 def get_latest_pdstools_version():
+    import requests
+
     try:
         response = requests.get("https://pypi.org/pypi/pdstools/json")
         return response.json()["info"]["version"]
-    except:
+    except Exception:
         return None
 
 
@@ -1038,8 +1129,8 @@ def setup_logger():
 
 def create_working_and_temp_dir(
     name: Optional[str] = None,
-    working_dir: Union[str, Path, None] = None,
-):
+    working_dir: Optional[PathLike] = None,
+) -> Tuple[Path, Path]:
     """Creates a working directory for saving files and a temp_dir"""
     # Create a temporary directory in working_dir
     working_dir = Path(working_dir) if working_dir else Path.cwd()

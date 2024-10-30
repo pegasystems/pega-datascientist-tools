@@ -1,10 +1,7 @@
 """Pega Data Scientist Tools Python library"""
 
-__version__ = "3.5.2"
+__version__ = "4.0.0a1"
 
-from polars import enable_string_cache
-
-enable_string_cache()
 
 import sys
 from pathlib import Path
@@ -12,48 +9,62 @@ from pathlib import Path
 from .adm.ADMDatamart import ADMDatamart
 from .adm.ADMTrees import ADMTrees, MultiTrees
 from .adm.BinAggregator import BinAggregator
-from .decision_analyzer import DecisionData
-from .pega_io import API, S3, Anonymization, File, get_token, readDSExport
-from .pega_io.API import setupAzureOpenAI
+from .infinity import Infinity
+
+# from .decision_analyzer import DecisionData
+# from .pega_io import API, S3, Anonymization, File, get_token, read_ds_export
+# from .prediction import Prediction
+# from .utils import cdh_utils, datasets, errors
+from .pega_io import Anonymization, read_ds_export
 from .prediction import Prediction
-from .utils import NBAD, cdh_utils, datasets, errors
-from .utils.cdh_utils import defaultPredictorCategorization
-from .utils.CDHLimits import CDHLimits
-from .utils.datasets import CDHSample, SampleTrees, SampleValueFinder
-from .utils.polars_ext import *
+from .utils import cdh_utils, datasets
+from .utils.cdh_utils import default_predictor_categorization
+from .utils.datasets import cdh_sample, sample_trees, sample_value_finder
+
+# from .utils.polars_ext import *
 from .utils.show_versions import show_versions
-from .utils.table_definitions import PegaDefaultTables
 from .valuefinder.ValueFinder import ValueFinder
 
 if "streamlit" in sys.modules:
-    from .utils import streamlit_utils as streamlit_utils
+    from .utils import streamlit_utils
+
+# if "quarto" in sys.modules:
+#     from .utils import report_utils
+
+from polars import enable_string_cache
+
+enable_string_cache()
 
 __reports__ = Path(__file__).parents[0] / "reports"
 
 __all__ = [
+    "API",
+    "S3",
     "ADMDatamart",
     "ADMTrees",
     "MultiTrees",
     "BinAggregator",
-    "DecisionData",
-    "API",
-    "S3",
     "Anonymization",
     "File",
     "get_token",
-    "readDSExport",
+    "read_ds_export",
     "setupAzureOpenAI",
     "Prediction",
-    "NBAD",
+    "CDHGuidelines",
     "cdh_utils",
     "datasets",
     "errors",
-    "defaultPredictorCategorization",
+    "default_predictor_categorization",
     "CDHLimits",
-    "CDHSample",
-    "SampleTrees",
-    "SampleValueFinder",
+    "cdh_sample",
+    "sample_trees",
+    "__version__",
+    "sample_value_finder",
     "show_versions",
     "PegaDefaultTables",
     "ValueFinder",
+    "streamlit_utils",
+    "report_utils",
+    "pega_template",
+    "Infinity",
 ]
