@@ -1297,6 +1297,7 @@ if datamart.predictor_data is not None:
         try:
             fig = datamart.plot.predictor_performance_heatmap(
                 top_predictors=barchart_max_bars,
+                top_groups=barchart_max_bars,
                 by=pl.concat_str(
                     pl.col("Issue"), pl.col("Group"), pl.col("Name"), separator="/"
                 ),
