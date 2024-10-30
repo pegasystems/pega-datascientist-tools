@@ -26,6 +26,55 @@ logger = logging.getLogger(__name__)
 
 
 class ADMDatamart:
+    """
+    The main class for interacting with ADM data from the Pega Datamart.
+
+    To initialize this class, either
+    1. Initialize directly with the model_df and predictor_df polars LazyFrames
+    2. Use one of the class methods: `from_ds_export`, `from_s3` or `from_dataflow_export`
+
+    This class will read in the data from different sources, properly structure them
+    from further analysis, and apply correct typing and useful renaming.
+
+    There is also a few "namespaces" that you can call from this class:
+    - `.plot` contains ready-made plots to analyze the data with
+    - `.aggregates` contains mostly internal data aggregations queries
+    - `.agb` contains analysis utilities for Adaptive Gradient Boosting models
+    - `.generate` leads to some ready-made reports, such as the Health Check
+    - `.bin_aggregator` allows you to compare the bins across various models
+
+    Parameters
+    ----------
+    model_df : pl.LazyFrame, optional
+        The Polars LazyFrame representation of the model snapshot table.
+    predictor_df : pl.LazyFrame, optional
+        The Polars LazyFrame represenation of the predictor binning table.
+    query : QUERY, optional
+        An optional query to apply to the input data.
+        For details, see :meth:`pdstools.cdh_utils._apply_query`.
+    extract_pyname_keys : bool, default = True
+        Whether to extract extra keys from the `pyName` column.
+
+    See Also
+    --------
+    pdstools.adm.Plots : The out of the box plots to run.
+    pdstools.adm.Reports : The Health Check and Model Report files to generate.
+    pdstools.cdh_utils._apply_query : The internal query mechansm to filter the data.
+
+    Examples
+    --------
+    >>> from pdstools import ADMDatamart
+    >>> from glob import glob
+    >>> dm = ADMDatamart(
+             model_df = pl.scan_parquet('models.parquet'),
+             predictor_df = pl.scan_parquet('predictors.parquet')
+             query = {"Configuration":["Web_Click_Through"]}
+             )
+    >>> dm = ADMDatamart.from_ds_export(base_path='/my_export_folder')
+    >>> dm = ADMDatamart.from_s3("pega_export")
+    >>> dm = ADMDatamart.from_dataflow_export(glob("data/models*"), glob("data/preds*"))
+    """
+
     model_data: Optional[pl.LazyFrame]
     predictor_data: Optional[pl.LazyFrame]
     combined_data: Optional[pl.LazyFrame]
@@ -185,7 +234,7 @@ class ADMDatamart:
         ] = cdh_utils.default_predictor_categorization,
     ):
         if callable(categorization):
-            categorization:pl.Expr = categorization()
+            categorization: pl.Expr = categorization()
 
         if df is not None:
             return df.with_columns(PredictorCategory=categorization)
