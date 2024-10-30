@@ -47,7 +47,7 @@ app = ['pdstools[healthcheck]', 'streamlit>=1.23', 'st-pages']
 onnx = ['scikit-learn==1.5.1', 'skl2onnx==1.17.0', 'onnx==1.16.1', 'onnxruntime==1.18.1', 'pdstools[api]']
 all = ['pdstools[app, pega_io, onnx]']
 docs = ['sphinx','furo','sphinx-autoapi','nbsphinx','sphinx-copybutton','myst-parser']
-tests = ['testbook', 'pytest', 'pytest-cov', 'pytest-httpx', 'pytest-mock', 'moto', 'pdstools[all]']
+tests = ['testbook', 'pytest', 'pytest-cov', 'pytest-httpx', 'pytest-mock', 'moto', 'openpyxl', 'pdstools[all]']
 
 [project.urls]
 "Homepage" = "https://github.com/pegasystems/pega-datascientist-tools"
