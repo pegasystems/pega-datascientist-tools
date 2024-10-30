@@ -19,6 +19,11 @@ repos:
       - id: ruff-format
         types_or: [ python, pyi ]
 
+  # - repo: https://github.com/numpy/numpydoc
+  #   rev: v1.8.0
+  #   hooks:
+  #     - id: numpydoc-validation
+
   # - repo: local
   #   hooks:
   #     - id: generate-stubs

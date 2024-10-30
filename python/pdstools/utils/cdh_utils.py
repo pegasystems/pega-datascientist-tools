@@ -20,10 +20,7 @@ from typing import (
     Union,
 )
 
-import numpy as np
 import polars as pl
-import pytz
-import requests
 
 from .types import QUERY
 
@@ -279,6 +276,7 @@ def safe_range_auc(auc: float) -> float:
     float
         'Safe' AUC score, between 0.5 and 1.0
     """
+    import numpy as np
 
     if np.isnan(auc):
         return 0.5
@@ -308,6 +306,8 @@ def auc_from_probs(
     Examples:
         >>> auc_from_probs( [1,1,0], [0.6,0.2,0.2])
     """
+    import numpy as np
+
     nlabels = len(np.unique(groundtruth))
     if nlabels < 2:
         return 0.5
@@ -352,6 +352,8 @@ def auc_from_bincounts(
     Examples:
         >>> auc_from_bincounts([3,1,0], [2,0,1])
     """
+    import numpy as np
+
     pos = np.asarray(pos)
     neg = np.asarray(neg)
     if probs is None:
@@ -386,6 +388,8 @@ def aucpr_from_probs(
     Examples:
         >>> auc_from_probs( [1,1,0], [0.6,0.2,0.2])
     """
+    import numpy as np
+
     nlabels = len(np.unique(groundtruth))
     if nlabels < 2:
         return 0.0
@@ -430,6 +434,8 @@ def aucpr_from_bincounts(
     Examples:
         >>> aucpr_from_bincounts([3,1,0], [2,0,1])
     """
+    import numpy as np
+
     pos = np.asarray(pos)
     neg = np.asarray(neg)
     if probs is None:
@@ -622,6 +628,7 @@ def from_prpc_date_time(
         >>> fromPRPCDateTime("20180316T184127.846")
         >>> fromPRPCDateTime("20180316T184127.846", True)
     """
+    import pytz
 
     timezonesplits = x.split(" ")
 
@@ -970,9 +977,9 @@ def lazy_sample(df: F, n_rows: int, with_replacement: bool = True) -> F:
 
     from functools import partial
 
-    def sample_it(s: pl.Series, n) -> pl.Series:
-        import numpy as np
+    import numpy as np
 
+    def sample_it(s: pl.Series, n) -> pl.Series:
         s_len = s.len()
         if s_len < n:
             return pl.Series(values=[True] * s_len, dtype=pl.Boolean)
@@ -1096,6 +1103,8 @@ def process_files_to_bytes(
 
 
 def get_latest_pdstools_version():
+    import requests
+
     try:
         response = requests.get("https://pypi.org/pypi/pdstools/json")
         return response.json()["info"]["version"]
