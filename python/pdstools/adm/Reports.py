@@ -30,8 +30,10 @@ class Reports(LazyNamespace):
         self,
         model_ids: List[str],
         *,
-        name: Optional[str] = None,
-        working_dir: Optional[PathLike] = None,
+        name: Optional[str] = None,  # TODO when ends with .html assume its the full name but this could be in _get_output_filename
+        title: str = "ADM Model Overview",
+        subtitle: str = "",
+        output_dir: Optional[PathLike] = None,
         query: Optional[QUERY] = None,
         only_active_predictors: bool = False,
         output_type: str = "html",
@@ -45,11 +47,11 @@ class Reports(LazyNamespace):
         Parameters
         ----------
         name : str, optional
-            The name of the report.
+            The file name of the report.
         model_list : List[str]
             The list of model IDs to generate reports for.
-        working_dir : Union[str, Path, None], optional
-            The working directory for the output. If None, uses current working directory.
+        output_dir : Union[str, Path, None], optional
+            The directory for the output. If None, uses current working directory.
         only_active_predictors : bool, default=False
             Whether to only include active predictor details.
         output_type : str, default='html'
@@ -86,7 +88,7 @@ class Reports(LazyNamespace):
             raise ValueError(
                 "model_list argument is None, not a list, or contains non-string elements for generate_model_reports. Please provide a list of model_id strings to generate reports."
             )
-        working_dir, temp_dir = cdh_utils.create_working_and_temp_dir(name, working_dir)
+        output_dir, temp_dir = cdh_utils.create_working_and_temp_dir(name, output_dir)
 
         try:
             qmd_file = "ModelReport.qmd"
@@ -97,16 +99,19 @@ class Reports(LazyNamespace):
                 output_filename = self._get_output_filename(
                     name, "ModelReport", model_id, output_type
                 )
-                params = {
-                    "model_file_path": str(model_file_path),
-                    "predictor_file_path": str(predictor_file_path),
-                    "report_type": "ModelReport",
-                    "model_id": model_id,
-                    "only_active_predictors": only_active_predictors,
-                    "query": query,
-                }
-
-                self._write_params_file(temp_dir, params)
+                self._write_params_file(
+                    temp_dir,
+                    {
+                        "report_type": "ModelReport",
+                        "model_file_path": str(model_file_path),
+                        "predictor_file_path": str(predictor_file_path),
+                        "model_id": model_id,
+                        "only_active_predictors": only_active_predictors,
+                        "query": query,
+                        "title": title,
+                        "subtitle": subtitle,
+                    },
+                )
                 self._run_quarto_command(
                     temp_dir,
                     qmd_file,
@@ -115,7 +120,12 @@ class Reports(LazyNamespace):
                     verbose,
                 )
                 output_path = temp_dir / output_filename
-                print(f"{output_path=}")
+                if verbose or not output_path.exists():
+                    print(f'datafolder = "{model_file_path.parent}"')
+                    print(f'modelfilename = "{model_file_path.name}"')
+                    print(f'predictorfilename = "{predictor_file_path.name}"')
+                    print(f'model_id = "{model_id}"')
+                    print(f'output_path = {output_path}')
                 if not output_path.exists():
                     raise ValueError(f"Failed to write the report: {output_filename}")
                 output_file_paths.append(output_path)
@@ -124,7 +134,7 @@ class Reports(LazyNamespace):
             file_data, file_name = cdh_utils.process_files_to_bytes(
                 output_file_paths, base_file_name=output_path
             )
-            output_path = working_dir.joinpath(file_name)
+            output_path = output_dir.joinpath(file_name)
             with open(output_path, "wb") as f:
                 f.write(file_data)
             if not output_path.exists():
@@ -142,8 +152,10 @@ class Reports(LazyNamespace):
 
     def health_check(
         self,
-        name: Optional[str] = None,
-        working_dir: Optional[os.PathLike] = None,
+        name: Optional[str] = None,  # TODO when ends with .html assume its the full name but this could be in _get_output_filename
+        title: str = "ADM Model Overview",
+        subtitle: str = "",
+        output_dir: Optional[os.PathLike] = None,
         *,
         query: Optional[QUERY] = None,
         output_type: str = "html",
@@ -156,9 +168,9 @@ class Reports(LazyNamespace):
         Parameters
         ----------
         name : str, optional
-            The name of the report.
-        working_dir : Union[str, Path, None], optional
-            The working directory for the output. If None, uses current working directory.
+            The file name of the report.
+        output_dir : Union[str, Path, None], optional
+            The directory for the output. If None, uses current working directory.
         output_type : str, default='html'
             The type of the output file (e.g., "html", "pdf").
         keep_temp_files : bool, optional
@@ -180,7 +192,7 @@ class Reports(LazyNamespace):
         subprocess.SubprocessError
             If there's an error in running external commands.
         """
-        working_dir, temp_dir = cdh_utils.create_working_and_temp_dir(name, working_dir)
+        output_dir, temp_dir = cdh_utils.create_working_and_temp_dir(name, output_dir)
         try:
             qmd_file = "HealthCheck.qmd"
             output_filename = self._get_output_filename(
@@ -189,14 +201,18 @@ class Reports(LazyNamespace):
 
             self._copy_quarto_file(qmd_file, temp_dir)
             model_file_path, predictor_file_path = self.datamart.save_data(temp_dir)
-            params = {
-                "report_type": "HealthCheck",
-                "model_file_path": str(model_file_path),
-                "predictor_file_path": str(predictor_file_path),
-                "query": query,
-            }
 
-            self._write_params_file(temp_dir, params)
+            self._write_params_file(
+                temp_dir,
+                {
+                    "report_type": "HealthCheck",
+                    "model_file_path": str(model_file_path),
+                    "predictor_file_path": str(predictor_file_path),
+                    "query": query,
+                    "title": title,
+                    "subtitle": subtitle,
+                },
+            )
             self._run_quarto_command(
                 temp_dir,
                 qmd_file,
@@ -206,10 +222,15 @@ class Reports(LazyNamespace):
             )
 
             output_path = temp_dir / output_filename
+            if verbose or not output_path.exists():
+                print(f'datafolder = "{model_file_path.parent}"')
+                print(f'modelfilename = "{model_file_path.name}"')
+                print(f'predictorfilename = "{predictor_file_path.name}"')
+                print(f'output_path = {output_path}')
             if not output_path.exists():
                 raise ValueError(f"Failed to generate report: {output_filename}")
 
-            final_path = working_dir / output_filename
+            final_path = output_dir / output_filename
             shutil.copy(output_path, final_path)
             return final_path
 
@@ -219,7 +240,7 @@ class Reports(LazyNamespace):
 
     def _get_output_filename(
         self,
-        name: Optional[str],
+        name: Optional[str],  # going to be the full file name
         report_type: str,
         model_id: Optional[str] = None,
         output_type: str = "html",

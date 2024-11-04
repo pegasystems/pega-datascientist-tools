@@ -146,6 +146,13 @@ predictor_analysis_query = pl.col("ResponseCountBin") > predictor_analysis_thres
 ```
 
 ```{python}
+if len(kwargs) > 0:
+    # Calling through function (in streamlit or in a notebook)
+    if "title" in kwargs and len(kwargs["title"]) > 0:
+        title = kwargs["title"]
+    if "subtitle" in kwargs and len(kwargs["subtitle"]) > 0:
+        title = kwargs["subtitle"]
+
 # | echo: false
 quarto_print(
     f"""

@@ -48,6 +48,7 @@ from pdstools.utils.report_utils import (
     quarto_print,
     quarto_callout_important,
     table_standard_formatting,
+    polars_subset_to_existing_cols,
     # n_unique_values,
     # max_by_hierarchy,
     # avg_by_hierarchy,
@@ -125,29 +126,56 @@ else:
     status_filter = pl.col("EntryType") != "Classifier"
 ```
 
-
 ```{python}
 channel_name = (
     datamart.aggregates.last()
-    .select(pl.format("{}/{}", "Direction", "Channel"))
+    .select(
+        pl.concat_str(
+            polars_subset_to_existing_cols(
+                datamart.aggregates.last().collect_schema().names(),
+                ["Direction", "Channel"],
+            )
+        )
+    )
     .unique()
     .collect()
     .item(0, 0)
 )
 model_name_in_context = (
     datamart.aggregates.last()
-    .select(pl.format("{}/{}/{}/{}", "Issue", "Group", "Name", "Treatment"))
+    .select(
+        pl.concat_str(
+            polars_subset_to_existing_cols(
+                datamart.aggregates.last().collect_schema().names(),
+                ["Issue", "Group", "Name", "Treatment"],
+            )
+        )
+    )
     .unique()
     .collect()
     .item(0, 0)
 )
 model_name = (
     datamart.aggregates.last()
-    .select(pl.format("{}/{}", "Name", "Treatment"))
+    .select(
+        pl.concat_str(
+            polars_subset_to_existing_cols(
+                datamart.aggregates.last().collect_schema().names(),
+                ["Name", "Treatment"],
+            )
+        )
+    )
     .unique()
     .collect()
     .item(0, 0)
 )
+
+if len(kwargs) > 0:
+    # Calling through function (in streamlit or in a notebook)
+    if "title" in kwargs and len(kwargs["title"]) > 0:
+        title = kwargs["title"]
+    if "subtitle" in kwargs and len(kwargs["subtitle"]) > 0:
+        title = kwargs["subtitle"]
 
 quarto_print(
     f"""
