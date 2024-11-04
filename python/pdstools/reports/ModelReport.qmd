@@ -110,15 +110,15 @@ else:
 # TODO ensure this is only one predictor snapshot, just in case? although it would be
 # neat to show predictor evolution, if available
 
-# Simple way to make sure Treatment is set and not null
-if "Treatment" in datamart.model_data.collect_schema().names():
-    datamart.model_data = datamart.model_data.with_columns(
-        pl.col("Treatment").fill_null("-")
-    )
-else:
-    datamart.model_data = datamart.model_data.with_columns(
-        pl.lit("-").alias("Treatment")
-    )
+# # Simple way to make sure Treatment is set and not null
+# if "Treatment" in datamart.model_data.collect_schema().names():
+#     datamart.model_data = datamart.model_data.with_columns(
+#         pl.col("Treatment").fill_null("-")
+#     )
+# else:
+#     datamart.model_data = datamart.model_data.with_columns(
+#         pl.lit("-").alias("Treatment")
+#     )
 
 if only_active_predictors:
     status_filter = pl.col("EntryType") == "Active"
@@ -134,12 +134,13 @@ channel_name = (
             polars_subset_to_existing_cols(
                 datamart.aggregates.last().collect_schema().names(),
                 ["Direction", "Channel"],
-            )
+            ),
+            separator="/", ignore_nulls=True
         )
     )
     .unique()
     .collect()
-    .item(0, 0)
+    .item()
 )
 model_name_in_context = (
     datamart.aggregates.last()
@@ -148,12 +149,13 @@ model_name_in_context = (
             polars_subset_to_existing_cols(
                 datamart.aggregates.last().collect_schema().names(),
                 ["Issue", "Group", "Name", "Treatment"],
-            )
+            ),
+            separator="/", ignore_nulls=True
         )
     )
     .unique()
     .collect()
-    .item(0, 0)
+    .item()
 )
 model_name = (
     datamart.aggregates.last()
@@ -162,12 +164,13 @@ model_name = (
             polars_subset_to_existing_cols(
                 datamart.aggregates.last().collect_schema().names(),
                 ["Name", "Treatment"],
-            )
+            ),
+            separator="/", ignore_nulls=True
         )
     )
     .unique()
     .collect()
-    .item(0, 0)
+    .item()
 )
 
 if len(kwargs) > 0:
@@ -192,6 +195,7 @@ quarto_print(
 """
 )
 ```
+
 
 
 ```{python}
