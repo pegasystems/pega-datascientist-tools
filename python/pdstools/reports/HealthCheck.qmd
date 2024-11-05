@@ -28,6 +28,7 @@ logging.disable()
 import re
 import subprocess
 import datetime
+import traceback
 
 from IPython.display import display, Markdown
 
@@ -130,6 +131,11 @@ datafolder = ""
 modelfilename = ""
 predictorfilename = ""
 
+datafolder = "/Users/perdo/Library/CloudStorage/OneDrive-SharedLibraries-PegasystemsInc/AI Chapter Data Sets - Documents/Customers/British Telecom Consumer/HC"
+modelfilename = "PR_DATA_DM_ADMMART_MDL_FACT.parquet"
+predictorfilename = "PR_DATA_DM_ADMMART_PRED.parquet"
+
+
 tables_max_rows = 200  # max number of rows for embedded tables
 barchart_max_bars = 20  # max number of bars showing in bar charts
 responsecount_analysis_threshold = (
@@ -174,6 +180,7 @@ def reset_datamart(dm):
     global datamart
     global last_data
     global datamart_all_columns
+
     datamart = dm
     last_data = (
         dm.aggregates.last()
@@ -211,10 +218,10 @@ elif len(datafolder) > 0 or len(modelfilename) > 0 or len(predictorfilename) > 0
 
     reset_datamart(
         ADMDatamart.from_ds_export(
-            model_filename=model_filename,
-            predictor_filename=predictor_filename,
-            base_path=".",
-            query=kwargs["query"]
+            model_filename=modelfilename,
+            predictor_filename=predictorfilename,
+            base_path=datafolder,
+            # query=kwargs["query"]
         )
     )
 else:
@@ -672,7 +679,9 @@ try:
 
     fig.show()
 except Exception as e:
-    print(f"Treemap failed because of the error: {e}")
+    traceback.print_exc()
+    print(f"Error in All Success Rates Treemap plot: {e}")
+
 ```
 
 ## Success Rates over Time
@@ -688,7 +697,7 @@ Showing how the overall channel success rates evolved over the time that the dat
 
 facets = datamart.unique_configurations
 facet_col_wrap = max(2, int(len(facets)**0.5))
-by = pl.concat_str(pl.col("Channel"), pl.col("Direction"), separator="/")
+by = pl.concat_str(["Channel", "Direction"], separator="/")
 try:
     fig = datamart.plot.over_time(
         metric="SuccessRate",
@@ -706,6 +715,9 @@ try:
     fig.show()
 except ValueError as e:
     print(f"Error {str(e)}\nPossibly too many facets: {len(facets)} for {facet_col_wrap} columns.")
+except Exception as e:
+    traceback.print_exc()
+    print(f"Error in Success Rates over Time plot: {e}")
 ```
 
 # Overview of Adaptive Models
@@ -896,6 +908,10 @@ try:
     fig.show()
 except ValueError as e:
     print(f"Error {str(e)}\nPossibly no valid data.")
+except Exception as e:
+    traceback.print_exc()
+    print(f"Error in Model Performance vs Action Success Rates plot: {e}")
+
 ```
 
 On the x-axis Model Performance measured in AUC-ROC, on the y-axis the Success Rate of the models (#positives / #responses).
@@ -928,6 +944,10 @@ except ValueError as e:
     print(
         f"Error {str(e)}\nPossibly too many facets: {len(facets)} for {facet_col_wrap} columns."
     )
+except Exception as e:
+    traceback.print_exc()
+    print(f"Error in Model Performance over Time plot: {e}")
+
 ```
 
 ### Model performance of all the actions
@@ -1332,9 +1352,9 @@ if datamart.predictor_data is not None:
         except ValueError as e:
             print(f'Plot was not drawn for {conf} because of an error:"{e}"')
         except Exception as e:
-            print(
-                f'Plot was not drawn for {conf} because of an unexpected error: "{e}"'
-            )
+            traceback.print_exc()
+            print(f"Error in Predictor Performance across Actions plot for {conf}: {e}")
+
 else:
     quarto_callout_no_predictor_data_warning()
 ```
@@ -1578,7 +1598,7 @@ fig.show()
 ```
 
 
-## Number of Responses over time
+## Number of Responses over Time
 
 
 ```{python}
@@ -1602,6 +1622,10 @@ try:
     response_counts.show()
 except ValueError as e:
     print(f"Error {str(e)}\nPossibly too many facets: {unique_count} for {facet_cols} columns.")
+except Exception as e:
+    traceback.print_exc()
+    print(f"Error in Number of Responses over time plot: {e}")
+
 ```
 
 # Which Models drive most of the Volume
@@ -2015,7 +2039,8 @@ try:
     else:
         quarto_callout_no_predictor_data_warning()
 except Exception as e:
-    print(f"Propensity Distribution plot was not drawn because of error: {str(e)}")
+    traceback.print_exc()
+    print(f"Error in Propensity Distribution plot: {e}")
 
 ```
 
