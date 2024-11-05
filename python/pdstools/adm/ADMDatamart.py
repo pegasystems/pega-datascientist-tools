@@ -249,7 +249,9 @@ class ADMDatamart:
             )
 
     def save_data(
-        self, path: Union[os.PathLike, str] = "."
+        self,
+        path: Union[os.PathLike, str] = ".",
+        selected_model_ids: Optional[List[str]] = None,
     ) -> Tuple[Optional[Path], Optional[Path]]:
         """Cache modelData and predictorData to files.
 
@@ -257,6 +259,8 @@ class ADMDatamart:
         ----------
         path : str
             Where to place the files
+        selected_model_ids : List[str]
+            Optional list of model IDs to restrict to
 
         Returns
         -------
@@ -267,13 +271,29 @@ class ADMDatamart:
         time = datetime.datetime.now().strftime("%Y%m%dT%H%M%S.%f")[:-3]
         modeldata_cache, predictordata_cache = None, None
         if self.model_data is not None:
-            modeldata_cache = pega_io.cache_to_file(
-                self.model_data, abs_path, name=f"cached_model_data_{time}"
-            )
+            if selected_model_ids is None:
+                modeldata_cache = pega_io.cache_to_file(
+                    self.model_data, abs_path, name=f"cached_model_data_{time}"
+                )
+            else:
+                modeldata_cache = pega_io.cache_to_file(
+                    self.model_data.filter(pl.col("ModelID").is_in(selected_model_ids)),
+                    abs_path,
+                    name=f"cached_model_data_{time}",
+                )
         if self.predictor_data is not None:
-            predictordata_cache = pega_io.cache_to_file(
-                self.predictor_data, abs_path, name=f"cached_predictor_data_{time}"
-            )
+            if selected_model_ids is None:
+                predictordata_cache = pega_io.cache_to_file(
+                    self.predictor_data, abs_path, name=f"cached_predictor_data_{time}"
+                )
+            else:
+                predictordata_cache = pega_io.cache_to_file(
+                    self.predictor_data.filter(
+                        pl.col("ModelID").is_in(selected_model_ids)
+                    ),
+                    abs_path,
+                    name=f"cached_predictor_data_{time}",
+                )
 
         return modeldata_cache, predictordata_cache
 

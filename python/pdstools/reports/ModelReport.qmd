@@ -32,6 +32,7 @@ from pathlib import Path
 import re
 import subprocess
 import datetime
+import traceback
 
 from pdstools import datasets, ADMDatamart, read_ds_export
 from pdstools.utils.cdh_utils import z_ratio, lift
@@ -48,6 +49,7 @@ from pdstools.utils.report_utils import (
     quarto_print,
     quarto_callout_important,
     table_standard_formatting,
+    polars_subset_to_existing_cols,
     # n_unique_values,
     # max_by_hierarchy,
     # avg_by_hierarchy,
@@ -109,15 +111,15 @@ else:
 # TODO ensure this is only one predictor snapshot, just in case? although it would be
 # neat to show predictor evolution, if available
 
-# Simple way to make sure Treatment is set and not null
-if "Treatment" in datamart.model_data.collect_schema().names():
-    datamart.model_data = datamart.model_data.with_columns(
-        pl.col("Treatment").fill_null("-")
-    )
-else:
-    datamart.model_data = datamart.model_data.with_columns(
-        pl.lit("-").alias("Treatment")
-    )
+# # Simple way to make sure Treatment is set and not null
+# if "Treatment" in datamart.model_data.collect_schema().names():
+#     datamart.model_data = datamart.model_data.with_columns(
+#         pl.col("Treatment").fill_null("-")
+#     )
+# else:
+#     datamart.model_data = datamart.model_data.with_columns(
+#         pl.lit("-").alias("Treatment")
+#     )
 
 if only_active_predictors:
     status_filter = pl.col("EntryType") == "Active"
@@ -125,29 +127,59 @@ else:
     status_filter = pl.col("EntryType") != "Classifier"
 ```
 
-
 ```{python}
 channel_name = (
     datamart.aggregates.last()
-    .select(pl.format("{}/{}", "Direction", "Channel"))
+    .select(
+        pl.concat_str(
+            polars_subset_to_existing_cols(
+                datamart.aggregates.last().collect_schema().names(),
+                ["Direction", "Channel"],
+            ),
+            separator="/", ignore_nulls=True
+        )
+    )
     .unique()
     .collect()
-    .item(0, 0)
+    .item()
 )
 model_name_in_context = (
     datamart.aggregates.last()
-    .select(pl.format("{}/{}/{}/{}", "Issue", "Group", "Name", "Treatment"))
+    .select(
+        pl.concat_str(
+            polars_subset_to_existing_cols(
+                datamart.aggregates.last().collect_schema().names(),
+                ["Issue", "Group", "Name", "Treatment"],
+            ),
+            separator="/", ignore_nulls=True
+        )
+    )
     .unique()
     .collect()
-    .item(0, 0)
+    .item()
 )
 model_name = (
     datamart.aggregates.last()
-    .select(pl.format("{}/{}", "Name", "Treatment"))
+    .select(
+        pl.concat_str(
+            polars_subset_to_existing_cols(
+                datamart.aggregates.last().collect_schema().names(),
+                ["Name", "Treatment"],
+            ),
+            separator="/", ignore_nulls=True
+        )
+    )
     .unique()
     .collect()
-    .item(0, 0)
+    .item()
 )
+
+if len(kwargs) > 0:
+    # Calling through function (in streamlit or in a notebook)
+    if "title" in kwargs and len(kwargs["title"]) > 0:
+        title = kwargs["title"]
+    if "subtitle" in kwargs and len(kwargs["subtitle"]) > 0:
+        subtitle = kwargs["subtitle"]
 
 quarto_print(
     f"""
@@ -166,6 +198,7 @@ quarto_print(
 ```
 
 
+
 ```{python}
 try:
     fig = datamart.plot.score_distribution(model_id=model_id)
@@ -181,8 +214,9 @@ try:
     fig.data[1].marker.color = "black"
 
     fig.show()
-except ValueError as e:
-    print(f"Couldn't produce score distribution chart because of error: {e}")
+except Exception as e:
+    traceback.print_exc()
+    print(f"Error in Score Distribution plot: {e}")
 
 ```
 
@@ -329,80 +363,95 @@ TODO: unfortunately the Python version has no notion of unreachable bins (yet) w
 # however it is so trivial, not really sure it should be. See also the other gains charts
 # in the health check.
 # TODO in HC there now is a beter way to plot gains, use that when it has progressed into PDS tools
-fig = (
-    px.area(
-        human_friendly_scoredistribution,
-        x="Cum. Total (%)",
-        y="Cum. Positives (%)",
-        title="Cumulative Gains",
-        template="pega",
+try:
+    fig = (
+        px.area(
+            human_friendly_scoredistribution,
+            x="Cum. Total (%)",
+            y="Cum. Positives (%)",
+            title="Cumulative Gains",
+            template="pega",
+        )
+        .add_shape(type="line", line=dict(dash="dash"), x0=0, x1=100, y0=0, y1=100)
+        .update_yaxes(
+            scaleanchor="x",
+            scaleratio=1,
+            constrain="domain",
+            title="% of Positive Responders",
+        )
+        .update_xaxes(constrain="domain", title="% of Population")
+        .update_layout(
+            autosize=False,
+            width=400,
+            height=400,
+        )
     )
-    .add_shape(type="line", line=dict(dash="dash"), x0=0, x1=100, y0=0, y1=100)
-    .update_yaxes(
-        scaleanchor="x",
-        scaleratio=1,
-        constrain="domain",
-        title="% of Positive Responders",
-    )
-    .update_xaxes(constrain="domain", title="% of Population")
-    .update_layout(
-        autosize=False,
-        width=400,
-        height=400,
-    )
-)
 
-fig.show()
+    fig.show()
+except Exception as e:
+    traceback.print_exc()
+    print(f"Error in Cumulative Gains plot: {e}")
+
 ```
 
 ```{python}
 # TODO perhaps this should move into the pdstools plot functions "plotCumulativeLift"
-fig = (
-    px.area(
-        human_friendly_scoredistribution,
-        x="Cum. Total (%)",
-        y="Lift (%)",
-        title="Lift",
-        template="pega",
+try:
+    fig = (
+        px.area(
+            human_friendly_scoredistribution,
+            x="Cum. Total (%)",
+            y="Lift (%)",
+            title="Lift",
+            template="pega",
+        )
+        .update_yaxes(
+            scaleanchor="x", scaleratio=0.01, constrain="domain", title="Propensity Lift"
+        )
+        .update_xaxes(constrain="domain", title="% of Population")
+        .update_layout(
+            autosize=False,
+            width=400,
+            height=400,
+        )
     )
-    .update_yaxes(
-        scaleanchor="x", scaleratio=0.01, constrain="domain", title="Propensity Lift"
-    )
-    .update_xaxes(constrain="domain", title="% of Population")
-    .update_layout(
-        autosize=False,
-        width=400,
-        height=400,
-    )
-)
 
-fig.show()
+    fig.show()
+except Exception as e:
+    traceback.print_exc()
+    print(f"Error in Lift plot: {e}")
 ```
 
 :::
 
 ```{python}
-px.bar(
-    classifier.melt(
-        id_vars=["BinSymbol", "BinIndex"],
-        value_vars=["BinPositives", "BinNegatives"],
-        value_name="Count",
-        variable_name="Response",
-    ).with_columns(
-        (pl.col("Count") / pl.col("Count").max()).over("Response").alias("Relative Count")
-    ).collect(),
-    x="BinIndex",
-    y="Relative Count",
-    color="Response",
-    barmode="group",
-    template="pega",
-    title="Class Separation",
-    height=400, width=600,
-    color_discrete_map={
-        'BinNegatives': 'orangered',
-        'BinPositives': 'green'
-    }
-).update_layout(xaxis_title=None).update_xaxes(showticklabels=False)
+try:
+    fig = px.bar(
+        classifier.melt(
+            id_vars=["BinSymbol", "BinIndex"],
+            value_vars=["BinPositives", "BinNegatives"],
+            value_name="Count",
+            variable_name="Response",
+        ).with_columns(
+            (pl.col("Count") / pl.col("Count").max()).over("Response").alias("Relative Count")
+        ).collect(),
+        x="BinIndex",
+        y="Relative Count",
+        color="Response",
+        barmode="group",
+        template="pega",
+        title="Class Separation",
+        height=400, width=600,
+        color_discrete_map={
+            'BinNegatives': 'orangered',
+            'BinPositives': 'green'
+        }
+    ).update_layout(xaxis_title=None).update_xaxes(showticklabels=False)
+    fig.show()
+except Exception as e:
+    traceback.print_exc()
+    print(f"Error in Class Separation plot: {e}")
+
 ```
 
 # Trend charts
@@ -413,39 +462,47 @@ px.bar(
 # TODO see if we can put the various trend charts in tabs - although this seems to require go not express, then gain .data[0] probably gives the go objects
 
 # But maybe .data[0] gives the trace
-
-fig = (
-    datamart.plot.over_time("Performance")
-    .update_layout(
-        title="Model Performance Trend",
-        yaxis_title="ROC-AUC",
-        xaxis_title="",
-        showlegend=False,
-        autosize=False,
-        width=400,
-        height=300,
+try:
+    fig = (
+        datamart.plot.over_time("Performance")
+        .update_layout(
+            title="Model Performance Trend",
+            yaxis_title="ROC-AUC",
+            xaxis_title="",
+            showlegend=False,
+            autosize=False,
+            width=400,
+            height=300,
+        )
     )
-)
 
-fig.show()
+    fig.show()
+except Exception as e:
+    traceback.print_exc()
+    print(f"Error in Model Performance Trend plot: {e}")
+
 ```
 
 ```{python}
-fig = (
-    datamart.plot.over_time("SuccessRate")
-    .update_layout(
-        title="Success Rate Trend",
-        yaxis_title="Success Rate",
-        xaxis_title="",
-        showlegend=False,
-        autosize=False,
-        width=400,
-        height=300,
+try:
+    fig = (
+        datamart.plot.over_time("SuccessRate")
+        .update_layout(
+            title="Success Rate Trend",
+            yaxis_title="Success Rate",
+            xaxis_title="",
+            showlegend=False,
+            autosize=False,
+            width=400,
+            height=300,
+        )
+        .update_yaxes(rangemode="tozero")
     )
-    .update_yaxes(rangemode="tozero")
-)
 
-fig.show()
+    fig.show()
+except Exception as e:
+    traceback.print_exc()
+    print(f"Error in Success Rate Trend plot: {e}")
 ```
 
 :::
@@ -459,17 +516,21 @@ for a particular customer.
 ```{python}
 # | error: true
 
-fig = datamart.plot.predictor_category_performance()
+try:
+    fig = datamart.plot.predictor_category_performance()
 
-fig.update_layout(
-    title="Predictor Performance per Category",
-    yaxis_title="",
-    showlegend=False,
-    height=300,
-    width=500,
-)
+    fig.update_layout(
+        title="Predictor Performance per Category",
+        yaxis_title="",
+        showlegend=False,
+        height=300,
+        width=500,
+    )
 
-fig.show()
+    fig.show()
+except Exception as e:
+    traceback.print_exc()
+    print(f"Error in Predictor Performance per Category plot: {e}")
 
 ```
 
@@ -651,32 +712,36 @@ def show_single_predictor(pred):
 
     # Predictor binning
 
-    fig = datamart.plot.predictor_binning(model_id=model_id, predictor_name=pred)
+    try:
+        fig = datamart.plot.predictor_binning(model_id=model_id, predictor_name=pred)
 
-    # Customize some of the default styling of the plot
+        # Customize some of the default styling of the plot
 
-    fig.update_layout(title="Predictor Binning", xaxis_title="")
-    # fig.layout.yaxis2.tickformat = ",.3%"
-    fig.data[0].opacity = 0.5
-    fig.data[1].line.color = "#EF8B08"
-    fig.data[1].line.width = 3
-    fig.data[1].marker.color = "black"
+        fig.update_layout(title="Predictor Binning", xaxis_title="")
+        # fig.layout.yaxis2.tickformat = ",.3%"
+        fig.data[0].opacity = 0.5
+        fig.data[1].line.color = "#EF8B08"
+        fig.data[1].line.width = 3
+        fig.data[1].marker.color = "black"
 
-    # Add line for base propensity, TODO consider putting back in the library
-    fig.add_hline(y=base_propensity, line_dash="dash", line_color="grey", yref="y2")
-    # fig.update_xaxes(type='category') # prevent plotly from trying to guess
+        # Add line for base propensity, TODO consider putting back in the library
+        fig.add_hline(y=base_propensity, line_dash="dash", line_color="grey", yref="y2")
+        # fig.update_xaxes(type='category') # prevent plotly from trying to guess
 
-    fig.update_layout(width=700, height=250)
-    fig.show()
+        fig.update_layout(width=700, height=250)
+        fig.show()
 
-    # Alternative view in the binning Lift plot
+        # Alternative view in the binning Lift plot
 
-    quarto_print("   ")
-    quarto_print("___")  # renders as horizontal line
+        quarto_print("   ")
+        quarto_print("___")  # renders as horizontal line
 
-    fig = datamart.plot.binning_lift(model_id=model_id, predictor_name=pred)
-    fig.update_layout(width=700, height=250)
-    fig.show()
+        fig = datamart.plot.binning_lift(model_id=model_id, predictor_name=pred)
+        fig.update_layout(width=700, height=250)
+        fig.show()
+    except Exception as e:
+        traceback.print_exc()
+        print(f"Error in Predictor Binning plot for {pred}: {e}")
 
     # Table with binning details
 

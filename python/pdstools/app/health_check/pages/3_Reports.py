@@ -44,7 +44,7 @@ with health_check:
             with st.spinner("Generating Health Check..."):
                 outfile = st.session_state["dm"].generate.health_check(
                     name=name,
-                    working_dir=working_dir,
+                    output_dir=working_dir,
                     query=st.session_state.get("filters", None),
                     output_type=output_type,
                     keep_temp_files=keep_temp_files,
@@ -167,7 +167,7 @@ if st.session_state["dm"].predictor_data is not None:
                         outfile = st.session_state["dm"].generate.model_reports(
                             model_ids=st.session_state["selected_models"],
                             name="",
-                            working_dir=working_dir,
+                            output_dir=working_dir,
                             query=st.session_state.get("filters", None),
                             only_active_predictors=st.session_state[
                                 "only_active_predictors"
