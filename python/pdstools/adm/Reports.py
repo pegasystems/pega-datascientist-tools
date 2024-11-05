@@ -30,7 +30,9 @@ class Reports(LazyNamespace):
         self,
         model_ids: List[str],
         *,
-        name: Optional[str] = None,  # TODO when ends with .html assume its the full name but this could be in _get_output_filename
+        name: Optional[
+            str
+        ] = None,  # TODO when ends with .html assume its the full name but this could be in _get_output_filename
         title: str = "ADM Model Overview",
         subtitle: str = "",
         output_dir: Optional[PathLike] = None,
@@ -93,7 +95,10 @@ class Reports(LazyNamespace):
         try:
             qmd_file = "ModelReport.qmd"
             self._copy_quarto_file(qmd_file, temp_dir)
-            model_file_path, predictor_file_path = self.datamart.save_data(temp_dir)
+            # TODO avoid copying if we the file paths are given already
+            model_file_path, predictor_file_path = self.datamart.save_data(
+                temp_dir, selected_model_ids=model_ids
+            )
             output_file_paths = []
             for i, model_id in enumerate(model_ids):
                 output_filename = self._get_output_filename(
@@ -125,7 +130,7 @@ class Reports(LazyNamespace):
                     print(f'modelfilename = "{model_file_path.name}"')
                     print(f'predictorfilename = "{predictor_file_path.name}"')
                     print(f'model_id = "{model_id}"')
-                    print(f'output_path = {output_path}')
+                    print(f"output_path = {output_path}")
                 if not output_path.exists():
                     raise ValueError(f"Failed to write the report: {output_filename}")
                 output_file_paths.append(output_path)
@@ -152,7 +157,9 @@ class Reports(LazyNamespace):
 
     def health_check(
         self,
-        name: Optional[str] = None,  # TODO when ends with .html assume its the full name but this could be in _get_output_filename
+        name: Optional[
+            str
+        ] = None,  # TODO when ends with .html assume its the full name but this could be in _get_output_filename
         title: str = "ADM Model Overview",
         subtitle: str = "",
         output_dir: Optional[os.PathLike] = None,
@@ -200,6 +207,7 @@ class Reports(LazyNamespace):
             )
 
             self._copy_quarto_file(qmd_file, temp_dir)
+            # TODO avoid copying if we the file paths are given already
             model_file_path, predictor_file_path = self.datamart.save_data(temp_dir)
 
             self._write_params_file(
@@ -226,7 +234,7 @@ class Reports(LazyNamespace):
                 print(f'datafolder = "{model_file_path.parent}"')
                 print(f'modelfilename = "{model_file_path.name}"')
                 print(f'predictorfilename = "{predictor_file_path.name}"')
-                print(f'output_path = {output_path}')
+                print(f"output_path = {output_path}")
             if not output_path.exists():
                 raise ValueError(f"Failed to generate report: {output_filename}")
 
