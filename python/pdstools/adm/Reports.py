@@ -36,22 +36,27 @@ class Reports(LazyNamespace):
         title: str = "ADM Model Overview",
         subtitle: str = "",
         output_dir: Optional[PathLike] = None,
-        query: Optional[QUERY] = None,
         only_active_predictors: bool = False,
         output_type: str = "html",
         keep_temp_files: bool = False,
         verbose: bool = False,
         progress_callback: Optional[Callable[[int, int], None]] = None,
+        model_file_path: Optional[PathLike] = None,
+        predictor_file_path: Optional[PathLike] = None,
     ) -> Path:
         """
         Generates model reports.
 
         Parameters
         ----------
-        name : str, optional
-            The file name of the report.
-        model_list : List[str]
+        model_ids : List[str]
             The list of model IDs to generate reports for.
+        name : str, optional
+            The (base) file name of the report.
+        title : str, optional
+            Title top put in the report, uses a default string if not given.
+        subtitle : str, optional
+            Subtitle top put in the report, empty if not given.
         output_dir : Union[str, Path, None], optional
             The directory for the output. If None, uses current working directory.
         only_active_predictors : bool, default=False
@@ -65,6 +70,10 @@ class Reports(LazyNamespace):
         progress_callback : Callable[[int, int], None], optional
             A callback function to report progress. Used only in the Streamlit app.
             The function should accept two integers: the current progress and the total.
+        model_file_path : Union[str, Path, None], optional
+            Optional name of the actual model data file, so it does not get copied
+        predictor_file_path : Union[str, Path, None], optional
+            Optional name of the actual predictor data file, so it does not get copied
 
 
         Returns
@@ -95,10 +104,18 @@ class Reports(LazyNamespace):
         try:
             qmd_file = "ModelReport.qmd"
             self._copy_quarto_file(qmd_file, temp_dir)
-            # TODO avoid copying if we the file paths are given already
-            model_file_path, predictor_file_path = self.datamart.save_data(
-                temp_dir, selected_model_ids=model_ids
-            )
+
+            # Copy data to a temp dir only if the files are not passed in already
+            if (
+                (model_file_path is None) and (self.datamart.model_data is not None)
+            ) or (
+                (predictor_file_path is None)
+                and (self.datamart.predictor_data is not None)
+            ):
+                model_file_path, predictor_file_path = self.datamart.save_data(
+                    temp_dir, selected_model_ids=model_ids
+                )
+
             output_file_paths = []
             for i, model_id in enumerate(model_ids):
                 output_filename = self._get_output_filename(
@@ -112,7 +129,6 @@ class Reports(LazyNamespace):
                         "predictor_file_path": str(predictor_file_path),
                         "model_id": model_id,
                         "only_active_predictors": only_active_predictors,
-                        "query": query,
                         "title": title,
                         "subtitle": subtitle,
                     },
@@ -126,9 +142,14 @@ class Reports(LazyNamespace):
                 )
                 output_path = temp_dir / output_filename
                 if verbose or not output_path.exists():
-                    print(f'datafolder = "{model_file_path.parent}"')
-                    print(f'modelfilename = "{model_file_path.name}"')
-                    print(f'predictorfilename = "{predictor_file_path.name}"')
+                    # print parameters so they can be copy/pasted into the quarto docs for debugging
+                    if model_file_path is not None:
+                        print(f'datafolder = "{model_file_path.parent}"')
+                        print(f'modelfilename = "{model_file_path.name}"')
+                    if predictor_file_path is not None:
+                        if model_file_path is None:
+                            print(f'datafolder = "{predictor_file_path.parent}"')
+                        print(f'predictorfilename = "{predictor_file_path.name}"')
                     print(f'model_id = "{model_id}"')
                     print(f"output_path = {output_path}")
                 if not output_path.exists():
@@ -168,6 +189,8 @@ class Reports(LazyNamespace):
         output_type: str = "html",
         keep_temp_files: bool = False,
         verbose: bool = False,
+        model_file_path: Optional[PathLike] = None,
+        predictor_file_path: Optional[PathLike] = None,
     ) -> Path:
         """
         Generates Health Check report based on the provided parameters.
@@ -175,7 +198,13 @@ class Reports(LazyNamespace):
         Parameters
         ----------
         name : str, optional
-            The file name of the report.
+            The (base) file name of the report.
+        title : str, optional
+            Title top put in the report, uses a default string if not given.
+        subtitle : str, optional
+            Subtitle top put in the report, empty if not given.
+        query : QUERY, optional
+            Optional extra filter on the datamart data
         output_dir : Union[str, Path, None], optional
             The directory for the output. If None, uses current working directory.
         output_type : str, default='html'
@@ -184,6 +213,10 @@ class Reports(LazyNamespace):
             If True, the temporary directory with temp files will not be deleted after report generation.
         verbose: bool, optional
             If True, prints detailed logs during execution.
+        model_file_path : Union[str, Path, None], optional
+            Optional name of the actual model data file, so it does not get copied
+        predictor_file_path : Union[str, Path, None], optional
+            Optional name of the actual predictor data file, so it does not get copied
 
         Returns
         -------
@@ -207,8 +240,15 @@ class Reports(LazyNamespace):
             )
 
             self._copy_quarto_file(qmd_file, temp_dir)
-            # TODO avoid copying if we the file paths are given already
-            model_file_path, predictor_file_path = self.datamart.save_data(temp_dir)
+
+            # Copy data to a temp dir only if the files are not passed in already
+            if (
+                (model_file_path is None) and (self.datamart.model_data is not None)
+            ) or (
+                (predictor_file_path is None)
+                and (self.datamart.predictor_data is not None)
+            ):
+                model_file_path, predictor_file_path = self.datamart.save_data(temp_dir)
 
             self._write_params_file(
                 temp_dir,
@@ -232,8 +272,13 @@ class Reports(LazyNamespace):
             output_path = temp_dir / output_filename
             if verbose or not output_path.exists():
                 print(f'datafolder = "{model_file_path.parent}"')
-                print(f'modelfilename = "{model_file_path.name}"')
-                print(f'predictorfilename = "{predictor_file_path.name}"')
+                if model_file_path is not None:
+                    print(f'datafolder = "{model_file_path.parent}"')
+                    print(f'modelfilename = "{model_file_path.name}"')
+                if predictor_file_path is not None:
+                    if model_file_path is None:
+                        print(f'datafolder = "{predictor_file_path.parent}"')
+                    print(f'predictorfilename = "{predictor_file_path.name}"')
                 print(f"output_path = {output_path}")
             if not output_path.exists():
                 raise ValueError(f"Failed to generate report: {output_filename}")

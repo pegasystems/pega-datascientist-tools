@@ -69,6 +69,10 @@ datafolder = ""
 modelfilename = ""
 predictorfilename = ""
 model_id = ""
+datafolder = "/Users/perdo/Library/CloudStorage/OneDrive-SharedLibraries-PegasystemsInc/AI Chapter Data Sets - Documents/Customers/CDHSample/HC"
+modelfilename = "PR_DATA_DM_ADMMART_MDL_FACT.parquet"
+predictorfilename = "PR_DATA_DM_ADMMART_PRED.parquet"
+model_id = "68e1d164-81e3-5da0-816c-0bbc3c20ac6c"
 
 only_active_predictors = True
 
