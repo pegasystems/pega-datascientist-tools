@@ -131,11 +131,6 @@ datafolder = ""
 modelfilename = ""
 predictorfilename = ""
 
-datafolder = "/Users/perdo/Library/CloudStorage/OneDrive-SharedLibraries-PegasystemsInc/AI Chapter Data Sets - Documents/Customers/British Telecom Consumer/HC"
-modelfilename = "PR_DATA_DM_ADMMART_MDL_FACT.parquet"
-predictorfilename = "PR_DATA_DM_ADMMART_PRED.parquet"
-
-
 tables_max_rows = 200  # max number of rows for embedded tables
 barchart_max_bars = 20  # max number of bars showing in bar charts
 responsecount_analysis_threshold = (
@@ -157,7 +152,7 @@ if len(kwargs) > 0:
     if "title" in kwargs and len(kwargs["title"]) > 0:
         title = kwargs["title"]
     if "subtitle" in kwargs and len(kwargs["subtitle"]) > 0:
-        title = kwargs["subtitle"]
+        subtitle = kwargs["subtitle"]
 
 # | echo: false
 quarto_print(

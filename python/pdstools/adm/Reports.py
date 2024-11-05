@@ -271,7 +271,6 @@ class Reports(LazyNamespace):
 
             output_path = temp_dir / output_filename
             if verbose or not output_path.exists():
-                print(f'datafolder = "{model_file_path.parent}"')
                 if model_file_path is not None:
                     print(f'datafolder = "{model_file_path.parent}"')
                     print(f'modelfilename = "{model_file_path.name}"')

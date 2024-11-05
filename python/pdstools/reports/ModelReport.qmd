@@ -179,7 +179,7 @@ if len(kwargs) > 0:
     if "title" in kwargs and len(kwargs["title"]) > 0:
         title = kwargs["title"]
     if "subtitle" in kwargs and len(kwargs["subtitle"]) > 0:
-        title = kwargs["subtitle"]
+        subtitle = kwargs["subtitle"]
 
 quarto_print(
     f"""
