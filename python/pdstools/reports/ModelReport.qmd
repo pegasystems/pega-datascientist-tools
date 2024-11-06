@@ -50,6 +50,7 @@ from pdstools.utils.report_utils import (
     quarto_callout_important,
     table_standard_formatting,
     polars_subset_to_existing_cols,
+    quarto_plot_exception,
     # n_unique_values,
     # max_by_hierarchy,
     # avg_by_hierarchy,
@@ -215,8 +216,7 @@ try:
 
     fig.show()
 except Exception as e:
-    traceback.print_exc()
-    print(f"Error in Score Distribution plot: {e}")
+    quarto_plot_exception("Classifier Score Distribution", e)
 
 ```
 
@@ -389,8 +389,7 @@ try:
 
     fig.show()
 except Exception as e:
-    traceback.print_exc()
-    print(f"Error in Cumulative Gains plot: {e}")
+    quarto_plot_exception("Cumulative Gains", e)
 
 ```
 
@@ -418,8 +417,8 @@ try:
 
     fig.show()
 except Exception as e:
-    traceback.print_exc()
-    print(f"Error in Lift plot: {e}")
+    quarto_plot_exception("Lift", e)
+
 ```
 
 :::
@@ -427,9 +426,9 @@ except Exception as e:
 ```{python}
 try:
     fig = px.bar(
-        classifier.melt(
-            id_vars=["BinSymbol", "BinIndex"],
-            value_vars=["BinPositives", "BinNegatives"],
+        classifier.unpivot(
+            index=["BinSymbol", "BinIndex"],
+            on=["BinPositives", "BinNegatives"],
             value_name="Count",
             variable_name="Response",
         ).with_columns(
@@ -449,8 +448,7 @@ try:
     ).update_layout(xaxis_title=None).update_xaxes(showticklabels=False)
     fig.show()
 except Exception as e:
-    traceback.print_exc()
-    print(f"Error in Class Separation plot: {e}")
+    quarto_plot_exception("Class Separation", e)
 
 ```
 
@@ -478,8 +476,7 @@ try:
 
     fig.show()
 except Exception as e:
-    traceback.print_exc()
-    print(f"Error in Model Performance Trend plot: {e}")
+    quarto_plot_exception("Model Performance Trend", e)
 
 ```
 
@@ -501,8 +498,7 @@ try:
 
     fig.show()
 except Exception as e:
-    traceback.print_exc()
-    print(f"Error in Success Rate Trend plot: {e}")
+    quarto_plot_exception("Success Rate Trend", e)
 ```
 
 :::
@@ -529,8 +525,7 @@ try:
 
     fig.show()
 except Exception as e:
-    traceback.print_exc()
-    print(f"Error in Predictor Performance per Category plot: {e}")
+    quarto_plot_exception("Predictor Performance per Category", e)
 
 ```
 
@@ -740,8 +735,7 @@ def show_single_predictor(pred):
         fig.update_layout(width=700, height=250)
         fig.show()
     except Exception as e:
-        traceback.print_exc()
-        print(f"Error in Predictor Binning plot for {pred}: {e}")
+        quarto_plot_exception(f"Error in Predictor Binning plot for {pred}", e)
 
     # Table with binning details
 
