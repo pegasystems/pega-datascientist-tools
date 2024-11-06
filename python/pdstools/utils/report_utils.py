@@ -1,3 +1,4 @@
+import traceback
 from typing import Dict, List
 from IPython.display import display, Markdown
 from great_tables import GT, style, loc
@@ -30,9 +31,20 @@ def quarto_callout_important(info):
         % info
     )
 
+def quarto_plot_exception(plot_name:str, e:Exception):
+    quarto_print(
+        """
+::: {.callout-important collapse="true"}
+## Error rendering %s plot: %s
+
+%s
+:::
+"""
+        % (plot_name, e, traceback.format_exc())
+    )
 
 def polars_col_exists(df, col):
-    return col in df.columns and df.schema[col] != pl.Null
+    return col in df.collect_schema().names() and df.schema[col] != pl.Null
 
 
 def polars_subset_to_existing_cols(all_columns, cols):
@@ -50,7 +62,7 @@ def table_standard_formatting(
     highlight_configurations: List[str] = [],
 ):
     def apply_metric_style(gt, col_name, metric):
-        if col_name in source_table.columns:
+        if col_name in source_table.collect_schema().names():
             min_val = cdh_guidelines.min(metric)
             max_val = cdh_guidelines.max(metric)
             best_practice_min = cdh_guidelines.best_practice_min(metric)
@@ -85,7 +97,7 @@ def table_standard_formatting(
         return gt
 
     def apply_standard_name_style(gt, col_name, standard_list):
-        if col_name in source_table.columns:
+        if col_name in source_table.collect_schema().names():
             values = source_table[col_name].to_list()
             non_standard_rows = [
                 i for i, v in enumerate(values) if v not in standard_list
@@ -97,7 +109,7 @@ def table_standard_formatting(
         return gt
 
     def apply_configuration_style(gt, col_name):
-        if col_name in source_table.columns:
+        if col_name in source_table.collect_schema().names():
             values = source_table[col_name].to_list()
             multiple_config_rows = [i for i, v in enumerate(values) if v.count(",") > 1]
             gt = gt.tab_style(

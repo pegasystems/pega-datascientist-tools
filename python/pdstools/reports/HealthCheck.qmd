@@ -32,7 +32,6 @@ import traceback
 
 from IPython.display import display, Markdown
 
-# sys.path.append("..")
 from pdstools import (
     datasets,
     ADMDatamart,
@@ -51,7 +50,8 @@ from pdstools.utils.report_utils import (
     polars_subset_to_existing_cols,
     polars_col_exists,
     table_style_predictor_count,
-    quarto_callout_important
+    quarto_callout_important,
+    quarto_plot_exception
 )
 
 # from plotly.offline import iplot
@@ -236,24 +236,27 @@ We provide guidance and best practices where possible. However these are  generi
 # some ADM metrics, e.g. overall AUC, CTR, some other things.
 # TODO for the overall AUC chart would be nicer to color the
 # bubbles by channel/direction
-fig = datamart.plot.bubble_chart()
+try:
+    fig = datamart.plot.bubble_chart()
 
-fig.layout.coloraxis.colorscale = pega_template.success
+    fig.layout.coloraxis.colorscale = pega_template.success
 
-fig = (
-    fig_set_xaxis_modelperformance(fig)
-    .update_layout(
-        autosize=True,
-        height=400,
-        title="All ADM Models",
-        xaxis_title="Model Performance",
-        yaxis_title="Success Rate",
+    fig = (
+        fig_set_xaxis_modelperformance(fig)
+        .update_layout(
+            autosize=True,
+            height=400,
+            title="All ADM Models",
+            xaxis_title="Model Performance",
+            yaxis_title="Success Rate",
+        )
+        .update_yaxes(tickformat=",.2%")
+        .update_coloraxes(showscale=False)
     )
-    .update_yaxes(tickformat=",.2%")
-    .update_coloraxes(showscale=False)
-)
 
-fig.show()
+    fig.show()
+except Exception as e:
+    quarto_plot_exception("All ADM Models", e)
 ```
 
 
@@ -627,34 +630,39 @@ for col in hover_columns:
 
 facet = "Channel/Direction"
 facet_cols = 3
-fig = px.bar(
-    df_success_rates.to_pandas(use_pyarrow_extension_array=True),
-    x="SuccessRate",
-    y="ModelID",
-    color="SuccessRate",
-    facet_col=facet,
-    facet_col_wrap=facet_cols,
-    template="pega",
-    text="Label",
-    title=(
-        "Success Rates per Channel<br><sup>%s</sup>"
-        % "/".join(polars_subset_to_existing_cols(datamart_all_columns, ["Name", "Treatment"]))
-    ),
-    hover_data=hover_data,
-)
 
-fig = fig_update_facet_height(fig, facet_cols, 200, 250)  # 200/250
-
-fig = (
-    fig.update_xaxes(tickformat=",.2%", tickangle=45, title="", matches=None)
-    .update_yaxes(
-        matches=None, showticklabels=False, visible=False, autorange="reversed"
+try:
+    fig = px.bar(
+        df_success_rates.to_pandas(use_pyarrow_extension_array=True),
+        x="SuccessRate",
+        y="ModelID",
+        color="SuccessRate",
+        facet_col=facet,
+        facet_col_wrap=facet_cols,
+        template="pega",
+        text="Label",
+        title=(
+            "Success Rates per Channel<br><sup>%s</sup>"
+            % "/".join(polars_subset_to_existing_cols(datamart_all_columns, ["Name", "Treatment"]))
+        ),
+        hover_data=hover_data,
     )
-    .update_traces(textposition="inside")
-    .update(layout_coloraxis_showscale=False)
-)
 
-display(fig)
+    fig = fig_update_facet_height(fig, facet_cols, 200, 250)  # 200/250
+
+    fig = (
+        fig.update_xaxes(tickformat=",.2%", tickangle=45, title="", matches=None)
+        .update_yaxes(
+            matches=None, showticklabels=False, visible=False, autorange="reversed"
+        )
+        .update_traces(textposition="inside")
+        .update(layout_coloraxis_showscale=False)
+    )
+
+    fig.show()
+except Exception as e:
+    quarto_plot_exception("Success Rates per Channel", e)
+
 ```
 
 ## All Success Rates
@@ -674,9 +682,7 @@ try:
 
     fig.show()
 except Exception as e:
-    traceback.print_exc()
-    print(f"Error in All Success Rates Treemap plot: {e}")
-
+    quarto_plot_exception("All Success Rates Treemap", e)
 ```
 
 ## Success Rates over Time
@@ -711,8 +717,7 @@ try:
 except ValueError as e:
     print(f"Error {str(e)}\nPossibly too many facets: {len(facets)} for {facet_col_wrap} columns.")
 except Exception as e:
-    traceback.print_exc()
-    print(f"Error in Success Rates over Time plot: {e}")
+    quarto_plot_exception("Success Rates over Time", e)
 ```
 
 # Overview of Adaptive Models
@@ -904,8 +909,7 @@ try:
 except ValueError as e:
     print(f"Error {str(e)}\nPossibly no valid data.")
 except Exception as e:
-    traceback.print_exc()
-    print(f"Error in Model Performance vs Action Success Rates plot: {e}")
+    quarto_plot_exception("Model Performance vs Action Success Rates", e)
 
 ```
 
@@ -940,8 +944,7 @@ except ValueError as e:
         f"Error {str(e)}\nPossibly too many facets: {len(facets)} for {facet_col_wrap} columns."
     )
 except Exception as e:
-    traceback.print_exc()
-    print(f"Error in Model Performance over Time plot: {e}")
+    quarto_plot_exception("Model Performance over Time", e)
 
 ```
 
@@ -952,16 +955,20 @@ Using an interactive treemap to visualize the performance. Red is lower performa
 It can be interesting to see which issues, groups or channels can be better predicted than others. Identifying categories of items for which the predictions are poor can help to drive the search for better predictors, for example.
 
 ```{python}
-fig = datamart.plot.tree_map(
-    metric="Performance",
-    by=datamart.context_keys[-1],
-)
+try:
+    fig = datamart.plot.tree_map(
+        metric="Performance",
+        by=datamart.context_keys[-1],
+    )
 
-fig = fig.update_layout(
-    title="Overview of Model Performance", showlegend=False
-).update_coloraxes(showscale=False)
+    fig = fig.update_layout(
+        title="Overview of Model Performance", showlegend=False
+    ).update_coloraxes(showscale=False)
 
-fig.show()
+    fig.show()
+except Exception as e:
+    quarto_plot_exception("Overview of Model Performance", e)
+
 ```
 
 ### Response counts for all the actions
@@ -978,16 +985,20 @@ If there are actions that have a much higher response count than the rest see wh
 
 
 ```{python}
-fig = datamart.plot.tree_map(
-    metric="ResponseCount",
-    by=datamart.context_keys[-1],
-)
+try:
+    fig = datamart.plot.tree_map(
+        metric="ResponseCount",
+        by=datamart.context_keys[-1],
+    )
 
-fig = fig.update_layout(
-    title="Overview of Response Counts", showlegend=False
-).update_coloraxes(showscale=False)
+    fig = fig.update_layout(
+        title="Overview of Response Counts", showlegend=False
+    ).update_coloraxes(showscale=False)
 
-fig.show()
+    fig.show()
+except Exception as e:
+    quarto_plot_exception("Overview of Response Counts", e)
+
 ```
 
 # Analysis of Predictors
@@ -1121,28 +1132,32 @@ univariate predictor performance.
 # )
 
 if datamart.predictor_data is not None:
-    facets = datamart.unique_configurations
-    partition_col = "Configuration"
-    figs = datamart.plot.partitioned_plot(
-        datamart.plot.predictor_performance,
-        metric="Performance",
-        top_n=30,
-        active_only=False,
-        query=predictor_analysis_query,
-        facets=facets,
-        partition_col=partition_col,
-        show_plots=False,
-    )
-    if not isinstance(figs, list):
-        figs = [figs]
-    for fig, facet_name in zip(figs, facets):
-        if fig is not None:
-            fig.update_traces(width=0.3)
-            fig.update_layout(title=facet_name,font=dict(size=10), height=700, yaxis_title="")
-            fig.layout.xaxis.tickformat = ".d"
-            # TODO fix title see https://github.com/pegasystems/pega-datascientist-tools/issues/167
+    try:
+        facets = datamart.unique_configurations
+        partition_col = "Configuration"
+        figs = datamart.plot.partitioned_plot(
+            datamart.plot.predictor_performance,
+            metric="Performance",
+            top_n=30,
+            active_only=False,
+            query=predictor_analysis_query,
+            facets=facets,
+            partition_col=partition_col,
+            show_plots=False,
+        )
+        if not isinstance(figs, list):
+            figs = [figs]
 
-            fig.show()
+        for fig, facet_name in zip(figs, facets):
+            if fig is not None:
+                fig.update_traces(width=0.3)
+                fig.update_layout(title=facet_name,font=dict(size=10), height=700, yaxis_title="")
+                fig.layout.xaxis.tickformat = ".d"
+                # TODO fix title see https://github.com/pegasystems/pega-datascientist-tools/issues/167
+
+                fig.show()
+    except Exception as e:
+        quarto_plot_exception("Predictor Importance across all models per configuration", e)
 else:
     quarto_callout_no_predictor_data_warning()
 ```
@@ -1161,22 +1176,26 @@ if datamart.predictor_data is not None:
     )
     facet_cols = 3
     facets = datamart.unique_configuration_channel_direction
-    fig = datamart.plot.predictor_category_performance(
-        facet=facet,
-    )
-    fig.update_layout(font=dict(size=10))
-    fig.for_each_annotation(lambda a: a.update(text="<br>".join(a.text.split("/"))))
-    legend_items = [item['name'] for item in fig.data]
-    legend_items.reverse()
 
-    fig.update_yaxes(
-        categoryorder='array',
-        categoryarray=legend_items,
-        automargin=True,
-        dtick=1
-    )
-    fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
-    fig.show()
+    try:
+        fig = datamart.plot.predictor_category_performance(
+            facet=facet,
+        )
+        fig.update_layout(font=dict(size=10))
+        fig.for_each_annotation(lambda a: a.update(text="<br>".join(a.text.split("/"))))
+        legend_items = [item['name'] for item in fig.data]
+        legend_items.reverse()
+
+        fig.update_yaxes(
+            categoryorder='array',
+            categoryarray=legend_items,
+            automargin=True,
+            dtick=1
+        )
+        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+        fig.show()
+    except Exception as e:
+        quarto_plot_exception("Predictor Category performance per Channel", e)
 else:
     quarto_callout_no_predictor_data_warning()
 
@@ -1192,24 +1211,27 @@ Although the same could be achieved using the standard **plotPredictorImportance
 Changes the Predictor performance range from 50-100 to 0-100 in order to increase visibilty of performance differences among categories."""
 
 if datamart.predictor_data is not None:
-    fig = datamart.plot.predictor_contribution()
-    height = 200 + (
-        math.ceil(
-            len(
-                datamart.model_data.select(pl.col("Configuration").unique())
-                .collect()["Configuration"]
-                .to_list()
+    try:
+        fig = datamart.plot.predictor_contribution()
+        height = 200 + (
+            math.ceil(
+                len(
+                    datamart.model_data.select(pl.col("Configuration").unique())
+                    .collect()["Configuration"]
+                    .to_list()
+                )
+                / 2
             )
-            / 2
+            * 50
         )
-        * 50
-    )
-    fig.update_layout(height=height)
-    fig.update_yaxes(
-        automargin=True,
-        dtick=1,
-    )
-    fig.show()
+        fig.update_layout(height=height)
+        fig.update_yaxes(
+            automargin=True,
+            dtick=1,
+        )
+        fig.show()
+    except Exception as e:
+        quarto_plot_exception("Relative Predictor Category importance", e)
 else:
     quarto_callout_no_predictor_data_warning()
 ```
@@ -1294,11 +1316,14 @@ Showing the number of active and inactive predictors per model.
 ```{python}
 if datamart.predictor_data is not None:
     facet_cols = 2
-    fig = datamart.plot.predictor_count(by="Type", facet="Configuration")
-    fig = fig_update_facet_height(fig, facet_cols, 250, 150)
-    fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
-    fig.update_yaxes(categoryorder="array", automargin=True, dtick=1)
-    fig.show()
+    try:
+        fig = datamart.plot.predictor_count(by="Type", facet="Configuration")
+        fig = fig_update_facet_height(fig, facet_cols, 250, 150)
+        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+        fig.update_yaxes(categoryorder="array", automargin=True, dtick=1)
+        fig.show()
+    except Exception as e:
+        quarto_plot_exception("Number of Active and Inactive Predictors", e)
 else:
     quarto_callout_no_predictor_data_warning()
 ```
@@ -1347,8 +1372,7 @@ if datamart.predictor_data is not None:
         except ValueError as e:
             print(f'Plot was not drawn for {conf} because of an error:"{e}"')
         except Exception as e:
-            traceback.print_exc()
-            print(f"Error in Predictor Performance across Actions plot for {conf}: {e}")
+            quarto_plot_exception("Predictor Performance across Actions", e)
 
 else:
     quarto_callout_no_predictor_data_warning()
@@ -1392,19 +1416,22 @@ if datamart.predictor_data is not None:
         "PredictorResponseCount": ":d",
     }
 
-    fig = px.treemap(
-        missing.to_pandas(),
-        path=path,
-        color="Percentage without responses",
-        template="pega",
-        hover_data=hover_data,
-        title="Predictor Missing Data",
-    )
+    try:
+        fig = px.treemap(
+            missing.to_pandas(),
+            path=path,
+            color="Percentage without responses",
+            template="pega",
+            hover_data=hover_data,
+            title="Predictor Missing Data",
+        )
 
-    fig.layout.coloraxis.colorscale = pega_template.positive_negative
-    fig.update_coloraxes(showscale=False)
+        fig.layout.coloraxis.colorscale = pega_template.positive_negative
+        fig.update_coloraxes(showscale=False)
 
-    fig.show()
+        fig.show()
+    except Exception as e:
+        quarto_plot_exception("Predictor Missing Data", e)
 else:
     quarto_callout_no_predictor_data_warning()
 
@@ -1568,28 +1595,32 @@ df = df.with_columns(
 ).with_columns(pl.col(facet).cast(pl.Utf8).fill_null("NA"))
 
 # df.collect()
-fig = px.line(
-    df.unpivot(index=by+[facet], variable_name="Category", value_name="Number of Models").sort(["SnapshotTime"]).collect(),
-    x="SnapshotTime",
-    y="Number of Models",
-    color="Category",
-    facet_col=facet,
-    template="pega",
-    color_discrete_sequence=px.colors.sequential.Turbo,
-)
 
-fig.for_each_xaxis(lambda xaxis: xaxis.update(title=""))
-fig.update_layout(legend_title_text="Model Maturity")
-fig = fig_update_facet_height(fig, 3, 200, 250)
+try:
+    fig = px.line(
+        df.unpivot(index=by+[facet], variable_name="Category", value_name="Number of Models").sort(["SnapshotTime"]).collect(),
+        x="SnapshotTime",
+        y="Number of Models",
+        color="Category",
+        facet_col=facet,
+        template="pega",
+        color_discrete_sequence=px.colors.sequential.Turbo,
+    )
 
-fig.update_layout(legend=dict(
-    yanchor="bottom",
-    y=-400,
-    xanchor="left",
-    x=0
-))
+    fig.for_each_xaxis(lambda xaxis: xaxis.update(title=""))
+    fig.update_layout(legend_title_text="Model Maturity")
+    fig = fig_update_facet_height(fig, 3, 200, 250)
 
-fig.show()
+    fig.update_layout(legend=dict(
+        yanchor="bottom",
+        y=-400,
+        xanchor="left",
+        x=0
+    ))
+
+    fig.show()
+except Exception as e:
+    quarto_plot_exception("Number of Empty/Immature Models over time", e)
 ```
 
 
@@ -1726,35 +1757,41 @@ def plot_gains(df, value: str, index=None, by=None):
     return fig
 
 
-fig = plot_gains(datamart.aggregates.last(), "ResponseCount", by=["Channel", "Direction"])
-fig = (
-    fig.update_layout(title="Cumulative Responses")
-    .update_yaxes(title="% of Responses")
-    .update_xaxes(title="Percentage of Models")
-)
+try:
+    fig = plot_gains(datamart.aggregates.last(), "ResponseCount", by=["Channel", "Direction"])
+    fig = (
+        fig.update_layout(title="Cumulative Responses")
+        .update_yaxes(title="% of Responses")
+        .update_xaxes(title="Percentage of Models")
+    )
 
-# .update_layout(legend=dict(
-#     orientation="h",
-#     yanchor="bottom",
-#     y=1.02,
-#     xanchor="right",
-#     x=1
-# ))
-# cdh_utils.legend_color_order(fig).show() # why?
+    # .update_layout(legend=dict(
+    #     orientation="h",
+    #     yanchor="bottom",
+    #     y=1.02,
+    #     xanchor="right",
+    #     x=1
+    # ))
+    # cdh_utils.legend_color_order(fig).show() # why?
 
-fig.show()
+    fig.show()
+except Exception as e:
+    quarto_plot_exception("Cumulative Responses", e)
 
 ```
 
 ```{python}
-fig = plot_gains(datamart.aggregates.last(), "Positives", by=["Channel", "Direction"])
-fig = (
-    fig.update_layout(title="Cumulative Positives")
-    .update_yaxes(title="% of Positives")
-    .update_xaxes(title="Percentage of Models")
-)
+try:
+    fig = plot_gains(datamart.aggregates.last(), "Positives", by=["Channel", "Direction"])
+    fig = (
+        fig.update_layout(title="Cumulative Positives")
+        .update_yaxes(title="% of Positives")
+        .update_xaxes(title="Percentage of Models")
+    )
 
-fig.show()
+    fig.show()
+except Exception as e:
+    quarto_plot_exception("Cumulative Positives", e)
 ```
 
 :::
@@ -1816,25 +1853,29 @@ for col in facet.split("/"):
 possible_color_vars = ["Channel", "Issue", "Name"]
 color = next((col for col in possible_color_vars if col in datamart_all_columns), None)
 
-fig = px.bar(
-    all_responses.to_pandas(use_pyarrow_extension_array=True),
-    x="all_responses",
-    y=facet,
-    color=color,
-    title=f"Top {barchart_max_bars} Highest Responses",
-    template="pega",
-    text=facet,
-    hover_data=hover_data,
-)
+try:
+    fig = px.bar(
+        all_responses.to_pandas(use_pyarrow_extension_array=True),
+        x="all_responses",
+        y=facet,
+        color=color,
+        title=f"Top {barchart_max_bars} Highest Responses",
+        template="pega",
+        text=facet,
+        hover_data=hover_data,
+    )
 
-fig = (
-    fig.update_yaxes(matches=None, showticklabels=False, visible=False)
-    .update_traces(textposition="inside")
-    # .for_each_annotation(lambda a: a.update(text=a.text.replace(facet, "")))
-    .update_layout(yaxis={"categoryorder": "total ascending"}, xaxis_title="Responses")
-)
+    fig = (
+        fig.update_yaxes(matches=None, showticklabels=False, visible=False)
+        .update_traces(textposition="inside")
+        # .for_each_annotation(lambda a: a.update(text=a.text.replace(facet, "")))
+        .update_layout(yaxis={"categoryorder": "total ascending"}, xaxis_title="Responses")
+    )
 
-cdh_utils.legend_color_order(fig).show()  # ?
+    cdh_utils.legend_color_order(fig).show()  # ?
+except Exception as e:
+    quarto_plot_exception(f"Top {barchart_max_bars} Highest Responses", e)
+
 ```
 
 ## Models with largest number of positive responses.
@@ -1854,26 +1895,30 @@ positives = response_counts.sort("positive_sum", descending=True).head(
     barchart_max_bars
 )
 
-fig = px.bar(
-    positives.to_pandas(use_pyarrow_extension_array=True),
-    x="positive_sum",
-    y=facet,
-    color=color,
-    title=f"Top {barchart_max_bars} Highest Positives",
-    template="pega",
-    text=facet,
-    hover_data=hover_data,
-)
+try:
+    fig = px.bar(
+        positives.to_pandas(use_pyarrow_extension_array=True),
+        x="positive_sum",
+        y=facet,
+        color=color,
+        title=f"Top {barchart_max_bars} Highest Positives",
+        template="pega",
+        text=facet,
+        hover_data=hover_data,
+    )
 
-fig = (
-    fig.update_yaxes(matches=None, showticklabels=False, visible=False)
-    .update_xaxes(matches=None)
-    .update_traces(textposition="inside")
-    # .for_each_annotation(lambda a: a.update(text=a.text.replace(facet, "")))
-    .update_layout(yaxis={"categoryorder": "total ascending"}, xaxis_title="Positives")
-)
+    fig = (
+        fig.update_yaxes(matches=None, showticklabels=False, visible=False)
+        .update_xaxes(matches=None)
+        .update_traces(textposition="inside")
+        # .for_each_annotation(lambda a: a.update(text=a.text.replace(facet, "")))
+        .update_layout(yaxis={"categoryorder": "total ascending"}, xaxis_title="Positives")
+    )
 
-cdh_utils.legend_color_order(fig).show()  # ?
+    cdh_utils.legend_color_order(fig).show()  # ?
+except Exception as e:
+    quarto_plot_exception(f"Top {barchart_max_bars} Highest Positives", e)
+
 ```
 
 ## Analysis of Performance vs Volume
@@ -1916,34 +1961,37 @@ df = (
 
 channels = df["ChannelDirection"].unique().sort()
 
-fig = go.Figure()
-for channel_num, channel in enumerate(channels):
-    channel_df = df.filter(pl.col("ChannelDirection") == channel)
-    fig.add_traces(
-        go.Scatter(
-            x=channel_df["PerformanceBinned"],
-            y=channel_df["Proportion"],
-            line_shape="spline",
-            name=channel,
+try:
+    fig = go.Figure()
+    for channel_num, channel in enumerate(channels):
+        channel_df = df.filter(pl.col("ChannelDirection") == channel)
+        fig.add_traces(
+            go.Scatter(
+                x=channel_df["PerformanceBinned"],
+                y=channel_df["Proportion"],
+                line_shape="spline",
+                name=channel,
+            )
+        )
+
+    fig = (
+        fig
+        .update_yaxes(tickformat=",.0%")
+        .update_xaxes(
+            type='category',
+            categoryorder='array',
+            categoryarray=df['PerformanceBinned'].unique().sort().to_list())
+        .update_layout(
+            template="pega",
+            title="Performance vs Volume",
+            xaxis_title="Model Performance",
+            yaxis_title="Percentage of Responses",
         )
     )
 
-fig = (
-    fig
-    .update_yaxes(tickformat=",.0%")
-    .update_xaxes(
-        type='category',
-        categoryorder='array',
-        categoryarray=df['PerformanceBinned'].unique().sort().to_list())
-    .update_layout(
-        template="pega",
-        title="Performance vs Volume",
-        xaxis_title="Model Performance",
-        yaxis_title="Percentage of Responses",
-    )
-)
-
-cdh_utils.legend_color_order(fig).show()
+    cdh_utils.legend_color_order(fig).show()
+except Exception as e:
+    quarto_plot_exception("Analysis of Performance vs Volume", e)
 ```
 
 
@@ -1958,55 +2006,59 @@ Having many on the left-hand side (with very low or perhaps no positives) may or
 # TODO this seems to be very large/expensive for some Data
 # not sure why exactly but we've seen
 # PanicException: polars' maximum length reached. Consider installing 'polars-u64-idx'.: TryFromIntError(())
-fig = datamart.plot.models_by_positives()
+try:
+    fig = datamart.plot.models_by_positives()
 
-# # TODO remove this override and use cdhutils function again
-# # when we've bumped up the pdstools version
-# def legend_color_order(fig):
-#     """Orders legend colors alphabetically in order to provide pega color
-#     consistency among different categories"""
+    # # TODO remove this override and use cdhutils function again
+    # # when we've bumped up the pdstools version
+    # def legend_color_order(fig):
+    #     """Orders legend colors alphabetically in order to provide pega color
+    #     consistency among different categories"""
 
-#     colorway = [
-#         "#001F5F",  # dark blue
-#         "#10A5AC",
-#         "#F76923",  # orange
-#         "#661D34",  # wine
-#         "#86CAC6",  # mint
-#         "#005154",  # forest
-#         "#86CAC6",  # mint
-#         "#5F67B9",  # violet
-#         "#FFC836",  # yellow
-#         "#E63690",  # pink
-#         "#AC1361",  # berry
-#         "#63666F",  # dark grey
-#         "#A7A9B4",  # medium grey
-#         "#D0D1DB",  # light grey
-#     ]
-#     colors = []
-#     for trace in fig.data:
-#         if trace.legendgroup is not None:
-#             colors.append(trace.legendgroup)
-#     colors.sort()
+    #     colorway = [
+    #         "#001F5F",  # dark blue
+    #         "#10A5AC",
+    #         "#F76923",  # orange
+    #         "#661D34",  # wine
+    #         "#86CAC6",  # mint
+    #         "#005154",  # forest
+    #         "#86CAC6",  # mint
+    #         "#5F67B9",  # violet
+    #         "#FFC836",  # yellow
+    #         "#E63690",  # pink
+    #         "#AC1361",  # berry
+    #         "#63666F",  # dark grey
+    #         "#A7A9B4",  # medium grey
+    #         "#D0D1DB",  # light grey
+    #     ]
+    #     colors = []
+    #     for trace in fig.data:
+    #         if trace.legendgroup is not None:
+    #             colors.append(trace.legendgroup)
+    #     colors.sort()
 
-#     # https://github.com/pegasystems/pega-datascientist-tools/issues/201
-#     if len(colors) >= len(colorway):
-#         return fig
+    #     # https://github.com/pegasystems/pega-datascientist-tools/issues/201
+    #     if len(colors) >= len(colorway):
+    #         return fig
 
-#     indexed_colors = {k: v for v, k in enumerate(colors)}
-#     for trace in fig.data:
-#         if trace.legendgroup is not None:
-#             try:
-#                 trace.marker.color = colorway[indexed_colors[trace.legendgroup]]
-#                 trace.line.color = colorway[indexed_colors[trace.legendgroup]]
-#             except AttributeError:  # pragma: no cover
-#                 pass
+    #     indexed_colors = {k: v for v, k in enumerate(colors)}
+    #     for trace in fig.data:
+    #         if trace.legendgroup is not None:
+    #             try:
+    #                 trace.marker.color = colorway[indexed_colors[trace.legendgroup]]
+    #                 trace.line.color = colorway[indexed_colors[trace.legendgroup]]
+    #             except AttributeError:  # pragma: no cover
+    #                 pass
 
-#     return fig
+    #     return fig
 
-fig = cdh_utils.legend_color_order(fig)
-# fig = legend_color_order(fig)
+    fig = cdh_utils.legend_color_order(fig)
+    # fig = legend_color_order(fig)
 
-fig.show()
+    fig.show()
+except Exception as e:
+    quarto_plot_exception("Positives vs. Number of Models", e)
+
 ```
 
 # Propensity Analysis
@@ -2034,8 +2086,7 @@ try:
     else:
         quarto_callout_no_predictor_data_warning()
 except Exception as e:
-    traceback.print_exc()
-    print(f"Error in Propensity Distribution plot: {e}")
+    quarto_plot_exception("Propensity Distribution", e)
 
 ```
 
