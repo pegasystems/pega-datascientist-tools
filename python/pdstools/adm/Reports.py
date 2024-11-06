@@ -317,15 +317,16 @@ class Reports(LazyNamespace):
 
         shutil.copy(__reports__ / qmd_file, temp_dir)
 
-    def _verify_cached_files(self, temp_dir: Path) -> None:
-        """Verify that cached data files exist."""
-        modeldata_files = list(temp_dir.glob("cached_modelData*"))
-        predictordata_files = list(temp_dir.glob("cached_predictorData*"))
+    # Never used?
+    # def _verify_cached_files(self, temp_dir: Path) -> None:
+    #     """Verify that cached data files exist."""
+    #     modeldata_files = list(temp_dir.glob("cached_modelData*"))
+    #     predictordata_files = list(temp_dir.glob("cached_predictorData*"))
 
-        if not modeldata_files:
-            raise FileNotFoundError("No cached model data found.")
-        if not predictordata_files:
-            logger.warning("No cached predictor data found.")
+    #     if not modeldata_files:
+    #         raise FileNotFoundError("No cached model data found.")
+    #     if not predictordata_files:
+    #         logger.warning("No cached predictor data found.")
 
     def _write_params_file(self, temp_dir: Path, params: Dict) -> None:
         """Write parameters to a YAML file."""
