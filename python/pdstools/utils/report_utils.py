@@ -3,7 +3,11 @@ from typing import Dict, List
 from IPython.display import display, Markdown
 from great_tables import GT, style, loc
 from ..adm.CDH_Guidelines import CDHGuidelines
+from ..utils.show_versions import show_versions
 import polars as pl
+import re
+import subprocess
+import datetime
 
 
 def quarto_print(text):
@@ -43,6 +47,9 @@ def quarto_plot_exception(plot_name:str, e:Exception):
         % (plot_name, e, traceback.format_exc())
     )
 
+def quarto_callout_no_predictor_data_warning(extra=""):
+    quarto_callout_important(f"Predictor Data is not available. {extra}")
+
 def polars_col_exists(df, col):
     return col in df.collect_schema().names() and df.schema[col] != pl.Null
 
@@ -54,6 +61,7 @@ def polars_subset_to_existing_cols(all_columns, cols):
 def table_standard_formatting(
     source_table,
     title=None,
+    subtitle=None,
     rowname_col=None,
     groupname_col=None,
     cdh_guidelines=CDHGuidelines(),
@@ -123,7 +131,7 @@ def table_standard_formatting(
     ).tab_options(table_font_size=8)
 
     if title is not None:
-        gt = gt.tab_header(title=title)
+        gt = gt.tab_header(title=title, subtitle=subtitle)
 
     for c in highlight_limits.keys():
         gt = apply_metric_style(gt, c, highlight_limits[c])
@@ -224,3 +232,38 @@ def sample_values(dm, all_dm_cols, fld, n=6):
         .sort()
         .to_list()[:n]
     )
+
+def show_credits(quarto_source: str):
+    def get_cmd_output(args):
+        result = (
+            subprocess.run(args, stdout=subprocess.PIPE).stdout.decode("utf-8").split("\n")
+        )
+        return result
+
+
+    def get_version_only(versionstr):
+        return re.sub("[^.0-9]", "", versionstr)
+
+
+    quarto_version = get_version_only(get_cmd_output(["quarto", "--version"])[0])
+    pandoc_version = get_version_only(get_cmd_output(["pandoc", "--version"])[0])
+    timestamp_str = datetime.datetime.now().strftime("%d %b %Y %H:%M:%S")
+
+    quarto_print(
+        f"""
+
+    | Tool | Version |
+    |-----|-----|
+    | Notebook | {quarto_source} |
+    | Quarto | {quarto_version} |
+    | Pandoc | {pandoc_version} |
+    | Created at | {timestamp_str} |
+
+    """
+    )
+
+    show_versions()
+
+    quarto_print("For more information please see the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools).")
+
+
