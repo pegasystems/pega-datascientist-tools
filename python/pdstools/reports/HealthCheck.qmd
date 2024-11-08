@@ -25,9 +25,6 @@ jupyter: python3
 import logging, sys
 
 logging.disable()
-import re
-import subprocess
-import datetime
 import traceback
 
 from IPython.display import display, Markdown
@@ -39,20 +36,7 @@ from pdstools import (
     read_ds_export,
 )
 from pdstools.adm.CDH_Guidelines import CDHGuidelines
-from pdstools.utils import pega_template
-from pdstools.utils.report_utils import (
-    quarto_print,
-    table_standard_formatting,
-    n_unique_values,
-    max_by_hierarchy,
-    avg_by_hierarchy,
-    sample_values,
-    polars_subset_to_existing_cols,
-    polars_col_exists,
-    table_style_predictor_count,
-    quarto_callout_important,
-    quarto_plot_exception
-)
+from pdstools.utils import pega_template, report_utils
 
 # from plotly.offline import iplot
 from great_tables import GT, style, md, html, loc
@@ -65,10 +49,6 @@ import numpy as np
 import math
 
 cdh_guidelines = CDHGuidelines()
-
-
-def quarto_callout_no_predictor_data_warning(extra=""):
-    quarto_callout_important(f"Predictor Data is not available. {extra}")
 
 
 def fig_update_facet_height(fig, n_cols=2, base_height=250, step_height=270):
@@ -155,7 +135,7 @@ if len(kwargs) > 0:
         subtitle = kwargs["subtitle"]
 
 # | echo: false
-quarto_print(
+report_utils.quarto_print(
     f"""
 # {title}
 
@@ -182,7 +162,7 @@ def reset_datamart(dm):
         .with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
         .with_columns(
             [
-                pl.col(pl.Utf8).fill_null("NA"),
+                pl.col(pl.Utf8).fill_null("NA"), # Hmmm would prefer to keep 'em as None
                 pl.col(pl.Null).fill_null("NA"),
                 pl.col("SuccessRate").fill_nan(0).fill_null(0),
                 pl.col("Performance").fill_nan(0).fill_null(0),
@@ -256,7 +236,7 @@ try:
 
     fig.show()
 except Exception as e:
-    quarto_plot_exception("All ADM Models", e)
+    report_utils.quarto_plot_exception("All ADM Models", e)
 ```
 
 
@@ -299,7 +279,7 @@ df_channel_overview = (
 )
 
 formatted_channel_overview = (
-    table_standard_formatting(
+    report_utils.table_standard_formatting(
         df_channel_overview,
         cdh_guidelines=cdh_guidelines,
         highlight_limits={
@@ -402,7 +382,7 @@ framework_usage = (
     )
 )
 
-quarto_print(
+report_utils.quarto_print(
     f"""
 The standard Pega Next Best Action Designer framework defines a number
 of standard Adaptive Models for channels. By looking at the names of the
@@ -449,30 +429,30 @@ df_action_overview = pl.DataFrame(
             "Channels",
         ],
         "Number": [
-            n_unique_values(datamart, datamart_all_columns, "Name"),
-            max_by_hierarchy(
+            report_utils.n_unique_values(datamart, datamart_all_columns, "Name"),
+            report_utils.max_by_hierarchy(
                 datamart, datamart_all_columns, "Name", ["Issue", "Group"]
             ),
-            n_unique_values(datamart, datamart_all_columns, "Treatment"),
-            max_by_hierarchy(
+            report_utils.n_unique_values(datamart, datamart_all_columns, "Treatment"),
+            report_utils.max_by_hierarchy(
                 datamart, datamart_all_columns, "Treatment", ["Channel", "Direction"]
             ),
-            max_by_hierarchy(datamart, datamart_all_columns, "Treatment", ["Name"]),
-            n_unique_values(datamart, datamart_all_columns, "Issue"),
-            avg_by_hierarchy(datamart, datamart_all_columns, "Group", ["Issue"]),
-            max_by_hierarchy(datamart, datamart_all_columns, "Group", ["Issue"]),
-            n_unique_values(datamart, datamart_all_columns, ["Channel", "Direction"]),
+            report_utils.max_by_hierarchy(datamart, datamart_all_columns, "Treatment", ["Name"]),
+            report_utils.n_unique_values(datamart, datamart_all_columns, "Issue"),
+            report_utils.avg_by_hierarchy(datamart, datamart_all_columns, "Group", ["Issue"]),
+            report_utils.max_by_hierarchy(datamart, datamart_all_columns, "Group", ["Issue"]),
+            report_utils.n_unique_values(datamart, datamart_all_columns, ["Channel", "Direction"]),
         ],
         "(Example) Values": [
-            sample_values(datamart, datamart_all_columns, "Name"),
+            report_utils.sample_values(datamart, datamart_all_columns, "Name"),
             "-",
-            sample_values(datamart, datamart_all_columns, "Treatment"),
+            report_utils.sample_values(datamart, datamart_all_columns, "Treatment"),
             "-",
             "-",
-            sample_values(datamart, datamart_all_columns, "Issue"),
-            sample_values(datamart, datamart_all_columns, "Group"),
+            report_utils.sample_values(datamart, datamart_all_columns, "Issue"),
+            report_utils.sample_values(datamart, datamart_all_columns, "Group"),
             "-",
-            sample_values(datamart, datamart_all_columns, ["Channel", "Direction"]),
+            report_utils.sample_values(datamart, datamart_all_columns, ["Channel", "Direction"]),
         ],
         "Best Practice": [
             cdh_guidelines.best_practice_min("Actions"),
@@ -501,7 +481,7 @@ df_action_overview = pl.DataFrame(
 )
 
 gt = (
-    table_standard_formatting(df_action_overview, title="Action Overview", cdh_guidelines=cdh_guidelines)
+    report_utils.table_standard_formatting(df_action_overview, title="Action Overview", cdh_guidelines=cdh_guidelines)
     .fmt_number(decimals=1, columns=["Number"])
     .fmt_number(decimals=0, columns=["Best Practice", "Cloud Service Limit"])
 )
@@ -554,7 +534,7 @@ if "Issue" in datamart_all_columns and "Group" in datamart_all_columns:
         pl.format("<b>{}</b", pl.col("Issue")).alias("Issue")
     )
 
-    gt = table_standard_formatting(
+    gt = report_utils.table_standard_formatting(
         df_action_hierarchy.collect(),
         title="Action Hierarchy",
         rowname_col="Group",
@@ -582,7 +562,7 @@ if unused_channels.shape[0] > 0:
 ```
 
 ```{python}
-quarto_print(
+report_utils.quarto_print(
     f"""
 Just showing the top {barchart_max_bars} here and limiting to the propositions that have received at least {responsecount_analysis_threshold} responses (the rates reported by the models are unreliable otherwise).
 """
@@ -599,7 +579,7 @@ Just showing the top {barchart_max_bars} here and limiting to the propositions t
 
 ```{python}
 facet = "Channel/Direction"
-hover_columns = polars_subset_to_existing_cols(
+hover_columns = report_utils.polars_subset_to_existing_cols(
     datamart_all_columns, ["Issue", "Group", "Name", "Treatment"]
 )
 
@@ -612,7 +592,7 @@ df_success_rates = (
     .with_columns(
         pl.col("SuccessRate").round(4),
         pl.concat_str(
-            polars_subset_to_existing_cols(datamart_all_columns, ["Name", "Treatment"]),
+            report_utils.polars_subset_to_existing_cols(datamart_all_columns, ["Name", "Treatment"]),
             separator="/",
         ).alias("Label"),
     )
@@ -643,7 +623,7 @@ try:
         text="Label",
         title=(
             "Success Rates per Channel<br><sup>%s</sup>"
-            % "/".join(polars_subset_to_existing_cols(datamart_all_columns, ["Name", "Treatment"]))
+            % "/".join(report_utils.polars_subset_to_existing_cols(datamart_all_columns, ["Name", "Treatment"]))
         ),
         hover_data=hover_data,
     )
@@ -661,7 +641,7 @@ try:
 
     fig.show()
 except Exception as e:
-    quarto_plot_exception("Success Rates per Channel", e)
+    report_utils.quarto_plot_exception("Success Rates per Channel", e)
 
 ```
 
@@ -682,7 +662,7 @@ try:
 
     fig.show()
 except Exception as e:
-    quarto_plot_exception("All Success Rates Treemap", e)
+    report_utils.quarto_plot_exception("All Success Rates Treemap", e)
 ```
 
 ## Success Rates over Time
@@ -717,7 +697,7 @@ try:
 except ValueError as e:
     print(f"Error {str(e)}\nPossibly too many facets: {len(facets)} for {facet_col_wrap} columns.")
 except Exception as e:
-    quarto_plot_exception("Success Rates over Time", e)
+    report_utils.quarto_plot_exception("Success Rates over Time", e)
 ```
 
 # Overview of Adaptive Models
@@ -725,7 +705,7 @@ except Exception as e:
 ```{python}
 n_unique_models = len(last_data.select("ModelID").unique())  # TODO or uniqueN ?
 
-quarto_print(
+report_utils.quarto_print(
     f"""
 There are a total of **{n_unique_models}** Adaptive Models in the latest snapshot.
 """
@@ -736,7 +716,7 @@ In the standard configuration there is one Adaptive model per treatment/action f
 
 ```{python}
 action_dim_agg = [pl.col("Name").n_unique().alias("Actions")]
-if polars_col_exists(last_data, "Treatment"):
+if report_utils.polars_col_exists(last_data, "Treatment"):
     action_dim_agg += [pl.col("Treatment").n_unique().alias("Unique Treatments")]
 else:
     action_dim_agg += [pl.lit(0).alias("Unique Treatments")]
@@ -749,7 +729,7 @@ else:
 model_overview = (
     last_data.group_by(
         ["Configuration"]
-        + polars_subset_to_existing_cols(datamart_all_columns, ["Channel", "Direction"])
+        + report_utils.polars_subset_to_existing_cols(datamart_all_columns, ["Channel", "Direction"])
     )
     .agg(
         [
@@ -772,7 +752,7 @@ model_overview = (
 )
 
 display(
-    table_standard_formatting(
+    report_utils.table_standard_formatting(
         model_overview, title="Model Overview",
         cdh_guidelines=cdh_guidelines,
         highlight_limits={
@@ -800,7 +780,7 @@ display(
 ```
 
 ```{python}
-quarto_print(
+report_utils.quarto_print(
     f"""
 If there are any model configurations that have fewer than {configuration_responses_threshold} responses in total or no positives at all, these will be excluded. However if no configurations would be left, we don't do that.
 """
@@ -828,7 +808,7 @@ unused_configurations = (
 if (unused_configurations.shape[0] > 0) & (
     unused_configurations.shape[0] != all_configurations.shape[0]
 ):
-    quarto_print(
+    report_utils.quarto_print(
         f"""
 In the detailed analyses after the model overview, the following configurations will be excluded:
     """
@@ -909,7 +889,7 @@ try:
 except ValueError as e:
     print(f"Error {str(e)}\nPossibly no valid data.")
 except Exception as e:
-    quarto_plot_exception("Model Performance vs Action Success Rates", e)
+    report_utils.quarto_plot_exception("Model Performance vs Action Success Rates", e)
 
 ```
 
@@ -944,7 +924,7 @@ except ValueError as e:
         f"Error {str(e)}\nPossibly too many facets: {len(facets)} for {facet_col_wrap} columns."
     )
 except Exception as e:
-    quarto_plot_exception("Model Performance over Time", e)
+    report_utils.quarto_plot_exception("Model Performance over Time", e)
 
 ```
 
@@ -967,7 +947,7 @@ try:
 
     fig.show()
 except Exception as e:
-    quarto_plot_exception("Overview of Model Performance", e)
+    report_utils.quarto_plot_exception("Overview of Model Performance", e)
 
 ```
 
@@ -997,7 +977,7 @@ try:
 
     fig.show()
 except Exception as e:
-    quarto_plot_exception("Overview of Response Counts", e)
+    report_utils.quarto_plot_exception("Overview of Response Counts", e)
 
 ```
 
@@ -1007,7 +987,7 @@ except Exception as e:
 # | output: asis
 # | echo: false
 if datamart.predictor_data is None:
-    quarto_callout_no_predictor_data_warning(
+    report_utils.quarto_callout_no_predictor_data_warning(
         "All the below analyses based on predictor data will be empty."
     )
 ```
@@ -1029,9 +1009,9 @@ Note that the total number of predictors in the model data does not always equat
 ```{python}
 if datamart.predictor_data is not None:
     context_aggregations = []
-    if polars_col_exists(datamart.combined_data, "Channel"):
+    if report_utils.polars_col_exists(datamart.combined_data, "Channel"):
         context_aggregations += [pl.col("Channel").unique().alias("Used in (Channels)")]
-    if polars_col_exists(datamart.combined_data, "Issue"):
+    if report_utils.polars_col_exists(datamart.combined_data, "Issue"):
         context_aggregations += [pl.col("Issue").unique().alias("Used for (Issues)")]
 
     predictors_per_configuration = (
@@ -1045,19 +1025,19 @@ if datamart.predictor_data is not None:
         .collect()
     )
 
-    gt = table_standard_formatting(
+    gt = report_utils.table_standard_formatting(
         predictors_per_configuration, "Number of Predictors per Configuration",
         cdh_guidelines=cdh_guidelines,
     ).tab_style(
         style=style.text(weight="bold"),
         locations=loc.body(columns="Predictor Count"),
     )
-    gt = table_style_predictor_count(gt, ["Predictor Count"], cdh_guidelines)
+    gt = report_utils.table_style_predictor_count(gt, ["Predictor Count"], cdh_guidelines)
 
     display(gt)
 
 else:
-    quarto_callout_no_predictor_data_warning()
+    report_utils.quarto_callout_no_predictor_data_warning()
 
 ```
 
@@ -1091,17 +1071,17 @@ if datamart.predictor_data is not None:
         .fill_null(0)
     )
 
-    gt = table_standard_formatting(
+    gt = report_utils.table_standard_formatting(
         predictors_per_category, "Number of Predictors per Predictor Category",
         cdh_guidelines=cdh_guidelines
     )
-    gt = table_style_predictor_count(
+    gt = report_utils.table_style_predictor_count(
         gt, [x for x in predictors_per_category.columns if not x in {"Configuration"}]
     )
 
     display(gt)
 else:
-    quarto_callout_no_predictor_data_warning()
+    report_utils.quarto_callout_no_predictor_data_warning()
 
 ```
 
@@ -1157,9 +1137,9 @@ if datamart.predictor_data is not None:
 
                 fig.show()
     except Exception as e:
-        quarto_plot_exception("Predictor Importance across all models per configuration", e)
+        report_utils.quarto_plot_exception("Predictor Importance across all models per configuration", e)
 else:
-    quarto_callout_no_predictor_data_warning()
+    report_utils.quarto_callout_no_predictor_data_warning()
 ```
 
 ## Importance by Predictor Category
@@ -1195,9 +1175,9 @@ if datamart.predictor_data is not None:
         fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
         fig.show()
     except Exception as e:
-        quarto_plot_exception("Predictor Category performance per Channel", e)
+        report_utils.quarto_plot_exception("Predictor Category performance per Channel", e)
 else:
-    quarto_callout_no_predictor_data_warning()
+    report_utils.quarto_callout_no_predictor_data_warning()
 
 ```
 
@@ -1231,9 +1211,9 @@ if datamart.predictor_data is not None:
         )
         fig.show()
     except Exception as e:
-        quarto_plot_exception("Relative Predictor Category importance", e)
+        report_utils.quarto_plot_exception("Relative Predictor Category importance", e)
 else:
-    quarto_callout_no_predictor_data_warning()
+    report_utils.quarto_callout_no_predictor_data_warning()
 ```
 
 ## Global Predictor Overview
@@ -1270,7 +1250,7 @@ if datamart.predictor_data is not None:
     # bad_predictors = bad_predictors.to_pandas(use_pyarrow_extension_array=False)
 
     display(
-        table_standard_formatting(
+        report_utils.table_standard_formatting(
             bad_predictors,
             title="Overview of Poor Predictors",
             # .with_columns(MeanPlotData=pl.col("Mean")),
@@ -1301,7 +1281,7 @@ if datamart.predictor_data is not None:
         # )
     )
 else:
-    quarto_callout_no_predictor_data_warning()
+    report_utils.quarto_callout_no_predictor_data_warning()
 ```
 
 ## Number of Active and Inactive Predictors
@@ -1323,9 +1303,9 @@ if datamart.predictor_data is not None:
         fig.update_yaxes(categoryorder="array", automargin=True, dtick=1)
         fig.show()
     except Exception as e:
-        quarto_plot_exception("Number of Active and Inactive Predictors", e)
+        report_utils.quarto_plot_exception("Number of Active and Inactive Predictors", e)
 else:
-    quarto_callout_no_predictor_data_warning()
+    report_utils.quarto_callout_no_predictor_data_warning()
 ```
 
 ## Predictor Performance across Actions
@@ -1335,7 +1315,7 @@ A view of predictor performance across all propositions, ordered so that the bes
 Note that this view is really only useful when there is a limited number of actions.
 
 ```{python}
-index_cols = polars_subset_to_existing_cols(
+index_cols = report_utils.polars_subset_to_existing_cols(
     datamart_all_columns, ["Issue", "Group", "Name", "Treatment"]
 )
 
@@ -1372,10 +1352,10 @@ if datamart.predictor_data is not None:
         except ValueError as e:
             print(f'Plot was not drawn for {conf} because of an error:"{e}"')
         except Exception as e:
-            quarto_plot_exception("Predictor Performance across Actions", e)
+            report_utils.quarto_plot_exception("Predictor Performance across Actions", e)
 
 else:
-    quarto_callout_no_predictor_data_warning()
+    report_utils.quarto_callout_no_predictor_data_warning()
 ```
 
 ## Missing values
@@ -1386,7 +1366,7 @@ This TreeMap only shows the fields that have any missing values.
 
 ```{python}
 if datamart.predictor_data is not None:
-    path = polars_subset_to_existing_cols(
+    path = report_utils.polars_subset_to_existing_cols(
         datamart_all_columns, ["Configuration", "PredictorCategory", "PredictorName"]
     )
     gb_cols = path
@@ -1431,9 +1411,9 @@ if datamart.predictor_data is not None:
 
         fig.show()
     except Exception as e:
-        quarto_plot_exception("Predictor Missing Data", e)
+        report_utils.quarto_plot_exception("Predictor Missing Data", e)
 else:
-    quarto_callout_no_predictor_data_warning()
+    report_utils.quarto_callout_no_predictor_data_warning()
 
 ```
 
@@ -1525,7 +1505,7 @@ maturity_overview = (
 )
 
 display(
-    table_standard_formatting(
+    report_utils.table_standard_formatting(
         maturity_overview,
         title="Model Maturity Overview",
         cdh_guidelines=cdh_guidelines,
@@ -1620,7 +1600,7 @@ try:
 
     fig.show()
 except Exception as e:
-    quarto_plot_exception("Number of Empty/Immature Models over time", e)
+    report_utils.quarto_plot_exception("Number of Empty/Immature Models over time", e)
 ```
 
 
@@ -1776,7 +1756,7 @@ try:
 
     fig.show()
 except Exception as e:
-    quarto_plot_exception("Cumulative Responses", e)
+    report_utils.quarto_plot_exception("Cumulative Responses", e)
 
 ```
 
@@ -1791,7 +1771,7 @@ try:
 
     fig.show()
 except Exception as e:
-    quarto_plot_exception("Cumulative Positives", e)
+    report_utils.quarto_plot_exception("Cumulative Positives", e)
 ```
 
 :::
@@ -1806,7 +1786,7 @@ TODO: swap to TreeMap here
 ```{python}
 # | echo: false
 
-quarto_print(
+report_utils.quarto_print(
     f"""
 Here we list the top {barchart_max_bars} models with the highest number of responses.
 """
@@ -1819,7 +1799,7 @@ Here we list the top {barchart_max_bars} models with the highest number of respo
 # code seems overly complex for what it is doing
 
 facet = "/".join(
-    polars_subset_to_existing_cols(
+    report_utils.polars_subset_to_existing_cols(
         datamart_all_columns,
         ["Configuration", "Issue", "Group", "Name", "Channel", "Direction"]
     )
@@ -1874,7 +1854,7 @@ try:
 
     cdh_utils.legend_color_order(fig).show()  # ?
 except Exception as e:
-    quarto_plot_exception(f"Top {barchart_max_bars} Highest Responses", e)
+    report_utils.quarto_plot_exception(f"Top {barchart_max_bars} Highest Responses", e)
 
 ```
 
@@ -1883,7 +1863,7 @@ except Exception as e:
 ```{python}
 # | echo: false
 
-quarto_print(
+report_utils.quarto_print(
     f"""
 And these are the {barchart_max_bars} models with the largest number of positives.
 """
@@ -1917,7 +1897,7 @@ try:
 
     cdh_utils.legend_color_order(fig).show()  # ?
 except Exception as e:
-    quarto_plot_exception(f"Top {barchart_max_bars} Highest Positives", e)
+    report_utils.quarto_plot_exception(f"Top {barchart_max_bars} Highest Positives", e)
 
 ```
 
@@ -1991,7 +1971,7 @@ try:
 
     cdh_utils.legend_color_order(fig).show()
 except Exception as e:
-    quarto_plot_exception("Analysis of Performance vs Volume", e)
+    report_utils.quarto_plot_exception("Analysis of Performance vs Volume", e)
 ```
 
 
@@ -2057,7 +2037,7 @@ try:
 
     fig.show()
 except Exception as e:
-    quarto_plot_exception("Positives vs. Number of Models", e)
+    report_utils.quarto_plot_exception("Positives vs. Number of Models", e)
 
 ```
 
@@ -2084,9 +2064,9 @@ try:
         fig = datamart.plot.propensity_distribution()
         fig.show()
     else:
-        quarto_callout_no_predictor_data_warning()
+        report_utils.quarto_callout_no_predictor_data_warning()
 except Exception as e:
-    quarto_plot_exception("Propensity Distribution", e)
+    report_utils.quarto_plot_exception("Propensity Distribution", e)
 
 ```
 
@@ -2097,47 +2077,8 @@ except Exception as e:
 # | echo: false
 
 # unfortunately no way to get the quarto source file name, so that is hardcoded
-quarto_source = "pega-datascientist-tools/python/pdstools/reports/HealthCheck.qmd"
-
-
-def get_cmd_output(args):
-    result = (
-        subprocess.run(args, stdout=subprocess.PIPE).stdout.decode("utf-8").split("\n")
-    )
-    return result
-
-
-def get_version_only(versionstr):
-    return re.sub("[^.0-9]", "", versionstr)
-
-
-quarto_version = get_version_only(get_cmd_output(["quarto", "--version"])[0])
-pandoc_version = get_version_only(get_cmd_output(["pandoc", "--version"])[0])
-timestamp_str = datetime.datetime.now().strftime("%d %b %Y %H:%M:%S")
-
-quarto_print(
-    f"""
-
-| Tool | Version |
-|-----|------|
-| Notebook | {quarto_source} |
-| Quarto | {quarto_version} |
-| Pandoc | {pandoc_version} |
-| Created at | {timestamp_str} |
-
-"""
-)
+report_utils.show_credits("pega-datascientist-tools/python/pdstools/reports/HealthCheck.qmd")
 
 ```
 
-Detailed version info for **pdstools**:
 
-```{python}
-# | echo: false
-
-from pdstools import show_versions
-
-show_versions()
-```
-
-For more information please see the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools).

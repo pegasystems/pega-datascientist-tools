@@ -29,9 +29,6 @@ jupyter: python3
 import sys
 import os.path
 from pathlib import Path
-import re
-import subprocess
-import datetime
 import traceback
 
 from pdstools import datasets, ADMDatamart, read_ds_export
@@ -45,20 +42,7 @@ from typing import Union, Optional, Literal
 
 # from pdstools.adm.CDH_Guidelines import CDHGuidelines
 # from pdstools.utils import pega_template
-from pdstools.utils.report_utils import (
-    quarto_print,
-    quarto_callout_important,
-    table_standard_formatting,
-    polars_subset_to_existing_cols,
-    quarto_plot_exception,
-    # n_unique_values,
-    # max_by_hierarchy,
-    # avg_by_hierarchy,
-    # sample_values,
-    # polars_subset_to_existing_cols,
-    # polars_col_exists,
-    # table_style_predictor_count,
-)
+from pdstools.utils import report_utils
 
 ```
 
@@ -133,7 +117,7 @@ channel_name = (
     datamart.aggregates.last()
     .select(
         pl.concat_str(
-            polars_subset_to_existing_cols(
+            report_utils.polars_subset_to_existing_cols(
                 datamart.aggregates.last().collect_schema().names(),
                 ["Direction", "Channel"],
             ),
@@ -148,7 +132,7 @@ model_name_in_context = (
     datamart.aggregates.last()
     .select(
         pl.concat_str(
-            polars_subset_to_existing_cols(
+            report_utils.polars_subset_to_existing_cols(
                 datamart.aggregates.last().collect_schema().names(),
                 ["Issue", "Group", "Name", "Treatment"],
             ),
@@ -163,7 +147,7 @@ model_name = (
     datamart.aggregates.last()
     .select(
         pl.concat_str(
-            polars_subset_to_existing_cols(
+            report_utils.polars_subset_to_existing_cols(
                 datamart.aggregates.last().collect_schema().names(),
                 ["Name", "Treatment"],
             ),
@@ -182,7 +166,7 @@ if len(kwargs) > 0:
     if "subtitle" in kwargs and len(kwargs["subtitle"]) > 0:
         subtitle = kwargs["subtitle"]
 
-quarto_print(
+report_utils.quarto_print(
     f"""
 # {title}
 
@@ -216,7 +200,7 @@ try:
 
     fig.show()
 except Exception as e:
-    quarto_plot_exception("Classifier Score Distribution", e)
+    report_utils.quarto_plot_exception("Classifier Score Distribution", e)
 
 ```
 
@@ -242,7 +226,7 @@ classifier = (
 
 auc_roc = round(classifier.select(pl.last("Performance")).collect().item(), 4)
 
-quarto_print(
+report_utils.quarto_print(
     f"""
 The model performance is **{auc_roc}** measured as AUC-ROC. This number is calculated from the “active” bins of the Classifier.
 """
@@ -256,7 +240,7 @@ See the [ADM Explained](https://pegasystems.github.io/pega-datascientist-tools/P
 ```{python}
 
 gt = (
-    table_standard_formatting(
+    report_utils.table_standard_formatting(
         classifier.collect().select(
             pl.last("ResponseCount"),
             pl.last("Positives"),
@@ -337,7 +321,7 @@ human_friendly_scoredistribution = (
 
 # TODO some of the formatting could be done in GT instead of in polars
 
-gt = table_standard_formatting(
+gt = report_utils.table_standard_formatting(
     human_friendly_scoredistribution, title="Score Distribution"
 )
 
@@ -389,7 +373,7 @@ try:
 
     fig.show()
 except Exception as e:
-    quarto_plot_exception("Cumulative Gains", e)
+    report_utils.quarto_plot_exception("Cumulative Gains", e)
 
 ```
 
@@ -417,7 +401,7 @@ try:
 
     fig.show()
 except Exception as e:
-    quarto_plot_exception("Lift", e)
+    report_utils.quarto_plot_exception("Lift", e)
 
 ```
 
@@ -448,7 +432,7 @@ try:
     ).update_layout(xaxis_title=None).update_xaxes(showticklabels=False)
     fig.show()
 except Exception as e:
-    quarto_plot_exception("Class Separation", e)
+    report_utils.quarto_plot_exception("Class Separation", e)
 
 ```
 
@@ -476,7 +460,7 @@ try:
 
     fig.show()
 except Exception as e:
-    quarto_plot_exception("Model Performance Trend", e)
+    report_utils.quarto_plot_exception("Model Performance Trend", e)
 
 ```
 
@@ -498,7 +482,7 @@ try:
 
     fig.show()
 except Exception as e:
-    quarto_plot_exception("Success Rate Trend", e)
+    report_utils.quarto_plot_exception("Success Rate Trend", e)
 ```
 
 :::
@@ -525,7 +509,7 @@ try:
 
     fig.show()
 except Exception as e:
-    quarto_plot_exception("Predictor Performance per Category", e)
+    report_utils.quarto_plot_exception("Predictor Performance per Category", e)
 
 ```
 
@@ -612,7 +596,7 @@ predictors_summary_info = (
 # TODO we can easily color the predictors by Category
 
 gt = (
-    table_standard_formatting(
+    report_utils.table_standard_formatting(
         predictors_summary_info.filter(pl.col("EntryType") != "Classifier").collect(),
         rowname_col="PredictorLink",
         title="Predictor Overview"
@@ -655,7 +639,7 @@ display(
 The predictors are listed in the same order as in the summary above.
 
 ```{python}
-quarto_print(
+report_utils.quarto_print(
     f"""
 Here we show **{'only the active' if only_active_predictors else 'all'}**
 predictors. This can be configured via a parameter to this report.
@@ -667,7 +651,7 @@ predictors. This can be configured via a parameter to this report.
 # | output: asis
 
 def show_single_predictor(pred):
-    quarto_print(f"## {pred}")
+    report_utils.quarto_print(f"## {pred}")
 
     predictor_binning_data = (
         datamart.aggregates.last(table="predictor_data")
@@ -687,7 +671,7 @@ def show_single_predictor(pred):
     # Predictor summary
 
     display(
-        table_standard_formatting(predictor_properties.collect())
+        report_utils.table_standard_formatting(predictor_properties.collect())
         .fmt_number(
             decimals=2,
             scale_by=100.0,
@@ -728,14 +712,14 @@ def show_single_predictor(pred):
 
         # Alternative view in the binning Lift plot
 
-        quarto_print("   ")
-        quarto_print("___")  # renders as horizontal line
+        report_utils.quarto_print("   ")
+        report_utils.quarto_print("___")  # renders as horizontal line
 
         fig = datamart.plot.binning_lift(model_id=model_id, predictor_name=pred)
         fig.update_layout(width=700, height=250)
         fig.show()
     except Exception as e:
-        quarto_plot_exception(f"Error in Predictor Binning plot for {pred}", e)
+        report_utils.quarto_plot_exception(f"Error in Predictor Binning plot for {pred}", e)
 
     # Table with binning details
 
@@ -754,12 +738,12 @@ def show_single_predictor(pred):
     ).collect()
 
     display(
-        table_standard_formatting(human_friendly_binning_table)
+        report_utils.table_standard_formatting(human_friendly_binning_table)
         .fmt_nanoplot(columns="Z Ratio", plot_type="bar", autoscale=False)
     )
 
-    quarto_print("   ")
-    quarto_print("___")  # renders as horizontal line
+    report_utils.quarto_print("   ")
+    report_utils.quarto_print("___")  # renders as horizontal line
 
 
 for pred in (
@@ -777,46 +761,6 @@ for pred in (
 # | echo: false
 
 # unfortunately no way to get the quarto source file name, so that is hardcoded
-quarto_source = "pega-datascientist-tools/python/pdstools/reports/ModelReport.qmd"
-
-
-def get_cmd_output(args):
-    result = (
-        subprocess.run(args, stdout=subprocess.PIPE).stdout.decode("utf-8").split("\n")
-    )
-    return result
-
-
-def get_version_only(versionstr):
-    return re.sub("[^.0-9]", "", versionstr)
-
-quarto_version = get_version_only(get_cmd_output(["quarto", "--version"])[0])
-pandoc_version = get_version_only(get_cmd_output(["pandoc", "--version"])[0])
-timestamp_str = datetime.datetime.now().strftime("%d %b %Y %H:%M:%S")
-
-quarto_print(
-    f"""
-
-| Tool | Version |
-|-----|------|
-| Notebook | {quarto_source} |
-| Quarto | {quarto_version} |
-| Pandoc | {pandoc_version} |
-| Created at | {timestamp_str} |
-
-"""
-)
+report_utils.show_credits("pega-datascientist-tools/python/pdstools/reports/ModelReport.qmd")
 
 ```
-
-Detailed version info for **pdstools**:
-
-```{python}
-# | echo: false
-
-from pdstools import show_versions
-
-show_versions()
-```
-
-For more information please see the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools).
