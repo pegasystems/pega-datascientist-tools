@@ -75,7 +75,9 @@ class DecisionData:
         # TODO subset against available fields in the data
         # TODO maybe we'll also need some aggregates per customer ID. Not certain, lets postpone, current dataset is not very representative.
 
-        available_columns = set(self.unfiltered_raw_decision_data.columns)
+        available_columns = set(
+            self.unfiltered_raw_decision_data.collect_schema().names()
+        )
         self.preaggregation_columns = {
             "pyIssue",
             "pyGroup",
@@ -304,7 +306,7 @@ class DecisionData:
         been added to generate more data.
         """
 
-        if "day" not in df.columns:
+        if "day" not in df.collect_schema().names():
             df = df.with_columns(day=pl.col("pxDecisionTime").dt.date())
 
         if self.extract_type == "explainability_extract":

@@ -162,7 +162,7 @@ def get_da_data_path():
 
 
 def validate_columns(df: pl.LazyFrame, extract_type: Dict[str, TableConfig]):
-    existing_columns = df.columns
+    existing_columns = df.collect_schema().names()
     required_columns = [
         col for col, properties in extract_type.items() if properties["required"]
     ]

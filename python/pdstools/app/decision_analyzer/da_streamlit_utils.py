@@ -31,7 +31,10 @@ def ensure_data():
 
 
 def ensure_getFilterComponentData():
-    return "pxComponentName" in st.session_state.decision_data.decision_data.columns
+    return (
+        "pxComponentName"
+        in st.session_state.decision_data.decision_data.collect_schema().names()
+    )
 
 
 # st.elements.utils._shown_default_value_warning = (
@@ -124,7 +127,7 @@ def get_data_filters(
             f"{filter_type}_multiselect"
         ]
 
-    columns = df.columns if columns == [] else columns
+    columns = df.collect_schema().names() if columns == [] else columns
 
     st.session_state[f"{filter_type}_multiselect"] = (
         st.session_state[f"{filter_type}multiselect"]

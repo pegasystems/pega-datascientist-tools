@@ -286,7 +286,7 @@ def find_lever_value(
 def determine_extract_type(raw_data):
     return (
         "decision_analyzer"
-        if "pxStrategyName" in raw_data.columns
+        if "pxStrategyName" in raw_data.collect_schema().names()
         else "explainability_extract"
     )
 
@@ -313,22 +313,25 @@ def process(
     )
     # cast types
     for name, _type in type_map.items():
-        if df.select(name).dtypes[0] != _type:
+        if df.select(name).collect_schema().dtypes()[0] != _type:
             if _type == pl.Datetime:
                 df = df.with_columns(parse_pega_date_time_formats(name))
             else:
                 df = df.with_columns(pl.col(name).cast(_type))
     # rename
     name_dict = {}
-    for col, properties in DecisionAnalyzer.items():
+    for col, properties in table_definition.items():
         name_dict[col] = properties["label"]
-    # Create pxEngagementStage
-    remapping_dict = {
-        str(value): key for key, values in audit_tag_mapping.items() for value in values
-    }
-    df = df.with_columns(
-        pxEngagementStage=pl.col("pxAuditTag").cast(pl.Utf8).replace(remapping_dict)
-    )
+    if table == "decision_analyzer":
+        # Create pxEngagementStage
+        remapping_dict = {
+            str(value): key
+            for key, values in audit_tag_mapping.items()
+            for value in values
+        }
+        df = df.with_columns(
+            pxEngagementStage=pl.col("pxAuditTag").cast(pl.Utf8).replace(remapping_dict)
+        )
     return df.rename(name_dict)
 
 
@@ -353,13 +356,14 @@ def get_schema(
     type_map: Dict[str, Type[pl.DataType]] = dict()
     checked_columns: Set[str] = set()
 
+    columns_in_df = df.collect_schema().names()
     for column, config in table_definition.items():
         df_col = None
         checked_columns = checked_columns.union({column, config["label"]})
-        if column in df.columns:
+        if column in columns_in_df:
             df_col = column
 
-        elif config["label"] in df.columns:
+        elif config["label"] in columns_in_df:
             df_col = config["label"]
 
         if df_col is not None and (  # If we've found a matching column
@@ -372,7 +376,7 @@ def get_schema(
             # Then we make it part of the type map, which we use to filter down
             type_map[df_col] = config["type"]
 
-    unknown_columns = [col for col in df.columns if col not in checked_columns]
+    unknown_columns = [col for col in columns_in_df if col not in checked_columns]
     if unknown_columns and raise_on_unknown:
         raise ValueError("Unknown columns found: ", unknown_columns)
 

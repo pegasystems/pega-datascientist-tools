@@ -189,6 +189,12 @@ DecisionAnalyzer: Dict[str, TableConfig] = {
 
 
 ExplainabilityExtract: Dict[str, TableConfig] = {
+    "pySubjectID": {
+        "label": "pySubjectID",
+        "default": True,
+        "type": pl.Utf8,
+        "required": False,
+    },
     "pxInteractionID": {
         "label": "pxInteractionID",
         "default": True,
