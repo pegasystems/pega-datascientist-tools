@@ -1,3 +1,4 @@
+from bisect import bisect_left
 from functools import cached_property
 from typing import List, Optional, Union
 
@@ -6,16 +7,16 @@ import polars as pl
 import polars.selectors as cs
 
 from .data_read_utils import validate_columns
+from .plots import Plot
+from .table_definition import audit_tag_mapping
 from .utils import (
     NBADScope_Mapping,
     apply_filter,
     determine_extract_type,
     get_table_definition,
-    process,
-    bisect_left,
     gini_coefficient,
+    process,
 )
-from .plots import Plot
 
 
 class DecisionData:
@@ -108,12 +109,7 @@ class DecisionData:
         # start with a superset in the right order.
         # TODO: support human-friendly names, to show "Final" as "Presented" for example
         elif self.extract_type == "decision_analyzer":
-            self.AvailableNBADStages = [
-                "Eligibility",
-                "Applicability",
-                "Suitability",
-            ] + self.AvailableNBADStages
-
+            self.AvailableNBADStages = list(audit_tag_mapping.keys())
             available_stages = (
                 self.unfiltered_raw_decision_data.select(
                     pl.col("pxEngagementStage").unique()
@@ -126,11 +122,9 @@ class DecisionData:
                 stage for stage in self.AvailableNBADStages if stage in available_stages
             ]
             self.NBADStages_RemainingView = ["Total Available"] + list(
-                map(lambda x: "After " + x, self.AvailableNBADStages)
+                map(lambda x: "After " + x, list(audit_tag_mapping.keys()))
             )
-            self.NBADStages_FilterView = self.AvailableNBADStages + ["Final"]
-            # "Final" is a specific value in DA data
-
+            self.NBADStages_FilterView = list(audit_tag_mapping.keys())
             self.NBADStages_Mapping = {
                 j: self.NBADStages_RemainingView[i]
                 for (i, j) in enumerate(self.NBADStages_FilterView)
@@ -233,7 +227,6 @@ class DecisionData:
         This pre-aggregation builds on the filter view and aggregates over
         the stages remaining.
         """
-        num_samples = 1  # TODO: when > 1 this breaks the .explode() I'm doing in some places(thresholding analysis e.g.), need to solve
         self.preaggregated_decision_data_remainingview = (
             self.aggregate_remaining_per_stage(
                 self.getPreaggregatedFilterView,
@@ -416,8 +409,7 @@ class DecisionData:
         rank_df = (
             apply_filter(self.sample, additional_filters)
             .with_columns(overrides)
-            # TODO generalize this to support stages from arbitration to final - there already is a function for that
-            .filter(pl.col("pxEngagementStage").is_in(["Arbitration", "Final"]))
+            .filter(pl.col("Priority").is_not_null())
             .with_columns(
                 prio_PVCL=(
                     pl.col("FinalPropensity")

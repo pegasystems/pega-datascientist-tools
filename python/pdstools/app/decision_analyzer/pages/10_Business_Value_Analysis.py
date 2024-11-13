@@ -1,7 +1,7 @@
 import polars as pl
 import streamlit as st
 
-from da_streamlit_utils import get_current_scope_index, st_plot_value_distribution
+from da_streamlit_utils import get_current_scope_index, st_value_distribution
 from utils import NBADScope_Mapping, ensure_data
 
 # TODO Finish up to show effect on proposition distribution (side to side)
@@ -30,7 +30,7 @@ valueData = st.session_state.decision_data.getValueDistributionData()
 
 with st.container(border=True):
     st.plotly_chart(
-        st_plot_value_distribution(valueData, st.session_state.scope),
+        st_value_distribution(valueData, st.session_state.scope),
         use_container_width=True,
     )
 

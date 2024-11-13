@@ -14,15 +14,15 @@ from pdstools.decision_analyzer.data_read_utils import (
 
 
 # from ...decision_analyzer.plots import (
-#     plot_propensity_vs_optionality,
-#     plot_optionality_per_stage,
-#     plot_offer_quality_piecharts,
-#     plot_action_variation,
-#     plot_optionality_trend,
-#     plot_prio_factor_boxplots,
-#     plot_rank_boxplot,
-#     plot_value_distribution,
-#     plot_trend_chart,
+#     propensity_vs_optionality,
+#     optionality_per_stage,
+#     offer_quality_piecharts,
+#     action_variation,
+#     optionality_trend,
+#     prio_factor_boxplots,
+#     rank_boxplot,
+#     value_distribution,
+#     trend_chart,
 # )
 def ensure_data():
     if "decision_data" not in st.session_state:
@@ -34,9 +34,9 @@ def ensure_getFilterComponentData():
     return "pxComponentName" in st.session_state.decision_data.decision_data.columns
 
 
-st.elements.utils._shown_default_value_warning = (
-    True  # to suppress default val+key warning in date filter
-)
+# st.elements.utils._shown_default_value_warning = (
+#     True  # to suppress default val+key warning in date filter
+# )
 polars_lazyframe_hashing = {
     pl.LazyFrame: lambda x: hash(x.explain(optimized=False)),
     pl.Expr: lambda x: str(x.inspect()),
@@ -266,34 +266,29 @@ def _create_page(relative_path, name):
 def get_pages(extract_type):
     if extract_type == "explainability_extract":
         pages = [
-            _create_page("home.py", "Home"),
-            _create_page("pages/1-Global_Filters.py", "Global Filters"),
-            _create_page("pages/2-Global_Dashboard.py", "Global Dashboard"),
-            _create_page("pages/3-action_Distribution.py", "Action Distribution"),
-            _create_page("pages/5-Global_Sensitivity.py", "Global Sensitivity"),
-            _create_page("pages/6-Win_Loss_Analysis.py", "Win Loss Analysis"),
+            _create_page("pages/4-Action_Funnel.py", "Action Funnel"),
+            _create_page("pages/8-Offer_Quality_Analysis.py", "Offer Quality Analysis"),
+            _create_page("pages/9-Thresholding_Analysis.py", "Thresholding Analysis"),
             _create_page(
-                "pages/7-Personalization_Analysis.py", "Personalization Analysis"
+                "pages/10-Business_Value_Analysis.py", "Business Value Analysis"
             ),
+            _create_page(
+                "pages/11-Business_Lever_Analysis.py", "Business Lever Analysis"
+            ),
+            _create_page("pages/12-Impact_Analysis.py", "Impact Analysis"),
         ]
     elif extract_type == "decision_analyzer":
         pages = [
-            _create_page("Home.py", "Home"),
-            _create_page("pages/1-Global_Filters.py", "Global Filters"),
-            _create_page("pages/2-Global_Dashboard.py", "Global Dashboard"),
-            _create_page("pages/3-Action_Distribution.py", "Action Distribution"),
-            _create_page("pages/4-Action_Funnel.py", "Action Funnel"),
-            _create_page("pages/5-Global_Sensitivity.py", "Global Sensitivity"),
-            _create_page("pages/6-Win_Loss_Analysis.py", "Win Loss Analysis"),
+            _create_page("pages/8-Offer_Quality_Analysis.py", "Offer Quality Analysis"),
+            _create_page("pages/9-Thresholding_Analysis.py", "Thresholding Analysis"),
             _create_page(
-                "pages/7-Personalization_Analysis.py", "Personalization Analysis"
+                "pages/10-Business_Value_Analysis.py", "Business Value Analysis"
             ),
+            _create_page(
+                "pages/11-Business_Lever_Analysis.py", "Business Lever Analysis"
+            ),
+            _create_page("pages/12-Impact_Analysis.py", "Impact Analysis"),
         ]
-        # Page("pages/8-Offer_Quality_Analysis.py", "Offer Quality Analysis"),
-        # Page("pages/9-Thresholding_Analysis.py", "Thresholding Analysis"),
-        # Page("pages/10-Business_Value_Analysis.py", "Business Value Analysis"),
-        # Page("pages/11-Business_Lever_Analysis.py", "Business Lever Analysis"),
-        # Page("pages/12-Impact_Analysis.py", "Impact Analysis"),
     return pages
 
 
@@ -309,7 +304,7 @@ def handle_sample_data(is_ec2):
     if is_ec2:
         path = Path("/s3-files/anonymized/anonymized")
     else:
-        path = Path(get_da_data_path(), "sample_data/anonymized")
+        path = Path(get_da_data_path(), "sample_data/cdh_sample/data")
     return read_data(path)
 
 
@@ -334,41 +329,41 @@ def handle_direct_file_path():
 
 
 # @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-# def st_plot_propensity_vs_optionality(df: pl.LazyFrame):
-#     return plot_propensity_vs_optionality(df)
+# def st_propensity_vs_optionality(df: pl.LazyFrame):
+#     return propensity_vs_optionality(df)
 
 
 # @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-# def st_plot_optionality_per_stage(df: pl.LazyFrame, NBADStages_Mapping):
-#     return plot_optionality_per_stage(df, NBADStages_Mapping)
+# def st_optionality_per_stage(df: pl.LazyFrame, NBADStages_Mapping):
+#     return optionality_per_stage(df, NBADStages_Mapping)
 
 
 # @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-# def st_plot_offer_quality_piecharts(
+# def st_offer_quality_piecharts(
 #     df: pl.LazyFrame, propensityTH, NBADStages_FilterView, NBADStages_Mapping
 # ):
-#     return plot_offer_quality_piecharts(
+#     return offer_quality_piecharts(
 #         df, propensityTH, NBADStages_FilterView, NBADStages_Mapping
 #     )
 
 
 # @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-# def st_plot_action_variation(df: pl.LazyFrame):
-#     return plot_action_variation(df)
+# def st_action_variation(df: pl.LazyFrame):
+#     return action_variation(df)
 
 
 # @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-# def st_plot_optionality_trend(df: pl.LazyFrame, NBADStages_Mapping):
-#     return plot_optionality_trend(df, NBADStages_Mapping)
+# def st_optionality_trend(df: pl.LazyFrame, NBADStages_Mapping):
+#     return optionality_trend(df, NBADStages_Mapping)
 
 
-# def st_plot_prio_factor_boxplots(
+# def st_prio_factor_boxplots(
 #     df: pl.LazyFrame,
 #     reference: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
 #     sample_size=10000,
 # ) -> Optional[go.Figure]:
 #     # Call the core function to generate the plot and check for warnings
-#     fig, warning_message = plot_prio_factor_boxplots(df, reference, sample_size)
+#     fig, warning_message = prio_factor_boxplots(df, reference, sample_size)
 
 #     if warning_message:
 #         st.warning(warning_message)
@@ -378,19 +373,19 @@ def handle_direct_file_path():
 
 
 # @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-# def st_plot_rank_boxplot(
+# def st_rank_boxplot(
 #     df: pl.LazyFrame, reference: Optional[Union[pl.Expr, List[pl.Expr]]] = None
 # ):
-#     return plot_rank_boxplot(df, reference)
+#     return rank_boxplot(df, reference)
 
 
 # @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-# def st_plot_value_distribution(value_data: pl.LazyFrame, scope: str):
-#     return plot_value_distribution(value_data, scope)
+# def st_value_distribution(value_data: pl.LazyFrame, scope: str):
+#     return value_distribution(value_data, scope)
 
 
-# def st_plot_trend_chart(df: pl.LazyFrame, scope: str) -> Optional[go.Figure]:
-#     fig, warning_message = plot_trend_chart(df, scope)
+# def st_trend_chart(df: pl.LazyFrame, scope: str) -> Optional[go.Figure]:
+#     fig, warning_message = trend_chart(df, scope)
 
 #     if warning_message:
 #         st.warning(warning_message)

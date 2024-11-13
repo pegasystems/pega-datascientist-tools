@@ -24,7 +24,7 @@ ensure_data()
 optionality_data = st.session_state.decision_data.get_optionality_data
 if st.session_state.decision_data.extract_type == "decision_analyzer":
     st.plotly_chart(
-        st.session_state.decision_data.plot.plot_optionality_per_stage(),
+        st.session_state.decision_data.plot.optionality_per_stage(),
         use_container_width=True,
     )
 
@@ -41,7 +41,7 @@ with st.container(border=True):
         st.session_state.optionality_stage = "Arbitration"
 
     st.plotly_chart(
-        st.session_state.decision_data.plot.plot_propensity_vs_optionality(
+        st.session_state.decision_data.plot.propensity_vs_optionality(
             stage=st.session_state.optionality_stage
         ),
         use_container_width=True,
@@ -75,7 +75,7 @@ optionality_data_with_trend_per_stage = (
     .sort("day")
 )
 
-fig, warning = st.session_state.decision_data.plot.plot_optionality_trend(
+fig, warning = st.session_state.decision_data.plot.optionality_trend(
     optionality_data_with_trend_per_stage,
     NBADStages_Mapping=st.session_state.decision_data.NBADStages_Mapping,
 )
@@ -95,7 +95,7 @@ is there a lot of variation in what we are offering?
 
 
 st.plotly_chart(
-    st.session_state.decision_data.plot.plot_action_variation(stage="Arbitration"),
+    st.session_state.decision_data.plot.action_variation(stage="Arbitration"),
     use_container_width=True,
 )
 action_variability_stats = st.session_state.decision_data.get_offer_variability_stats(

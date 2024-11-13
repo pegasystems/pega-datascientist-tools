@@ -33,7 +33,7 @@ with st.session_state["sidebar"]:
 # How often would it still be rank 1 under different prioritization schemes
 with st.container(border=True):
     st.plotly_chart(
-        st.session_state.decision_data.plot.plot_sensitivity(
+        st.session_state.decision_data.plot.sensitivity(
             st.session_state.win_rank,
         ),
         use_container_width=True,
@@ -50,7 +50,7 @@ with st.container(border=True):
         st.session_state.glob_sensitivity_scope = scope_options[0]
 
     st.plotly_chart(
-        st.session_state.decision_data.plot.plot_global_winloss_distribution(
+        st.session_state.decision_data.plot.global_winloss_distribution(
             level=st.session_state.glob_sensitivity_scope,
             win_rank=st.session_state.win_rank,
         ),

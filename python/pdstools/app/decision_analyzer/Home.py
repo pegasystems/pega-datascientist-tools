@@ -2,11 +2,9 @@ import os
 
 import polars as pl
 import streamlit as st
-from st_pages import show_pages
 
 from pdstools.app.decision_analyzer.da_streamlit_utils import (
     get_options,
-    get_pages,
     handle_direct_file_path,
     handle_file_upload,
     handle_sample_data,
@@ -70,7 +68,6 @@ elif source == "File Upload":
     raw_data = handle_file_upload()
 elif source == "Direct File Path":
     raw_data = handle_direct_file_path()
-
 if raw_data is not None:
     with st.spinner("Reading Data"):
         st.session_state.decision_data = DecisionData(raw_data)
@@ -78,6 +75,6 @@ if raw_data is not None:
 
         if "decision_data" in st.session_state:
             extract_type = st.session_state.decision_data.extract_type
-            pages = get_pages(extract_type)
-            show_pages(pages)
+            # pages = get_pages(extract_type)
+            # hide_pages(pages)
             st.success("Data reading is complete. You can proceed now.")

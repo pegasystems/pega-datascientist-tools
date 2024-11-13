@@ -13,7 +13,7 @@ class Plot:
     def __init__(self, decision_data):
         self._decision_data = decision_data
 
-    def plot_threshold_deciles(self, thresholding_name, return_df=False):
+    def threshold_deciles(self, thresholding_name, return_df=False):
         df = self._decision_data.whatever_preprocessing
         if return_df:
             return df
@@ -42,7 +42,7 @@ class Plot:
         return fig
 
     # @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-    def plot_distribution_as_treemap(
+    def distribution_as_treemap(
         self, df: pl.LazyFrame, stage: str, scope_options: List[str]
     ):
         NBADStages_Mapping = self._decision_data.NBADStages_Mapping
@@ -58,7 +58,7 @@ class Plot:
         return fig
 
     # @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-    def plot_sensitivity(
+    def sensitivity(
         self,
         win_rank: int = 1,
         hide_priority=True,
@@ -110,7 +110,7 @@ class Plot:
         return fig
 
     # @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-    def plot_global_winloss_distribution(self, level, win_rank, return_df=False):
+    def global_winloss_distribution(self, level, win_rank, return_df=False):
         # level, cat = getScope(level)
         df = self._decision_data.get_win_loss_distribution_data(level, win_rank)
         if return_df:
@@ -137,7 +137,7 @@ class Plot:
 
         return fig
 
-    def plot_propensity_vs_optionality(self, stage="Arbitration", return_df=False):
+    def propensity_vs_optionality(self, stage="Arbitration", return_df=False):
         plotData = (
             self._decision_data.get_optionality_data.filter(
                 pl.col("pxEngagementStage") == stage
@@ -174,7 +174,7 @@ class Plot:
         fig.layout.yaxis2.showgrid = False
         return fig
 
-    def plot_action_variation(self, stage="Final", return_df=False):
+    def action_variation(self, stage="Final", return_df=False):
         df = self._decision_data.getActionVariationData(stage)
         if return_df:
             return df
@@ -202,7 +202,7 @@ class Plot:
             .update_layout(width=500, height=500)
         )
 
-    def plot_trend_chart(
+    def trend_chart(
         self, stage: str, scope: str, return_df=False
     ) -> Tuple[go.Figure, Optional[str]]:
         df = self._decision_data.getDistributionData(
@@ -244,7 +244,7 @@ class Plot:
         return fig, warning_message
 
     # @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-    def plot_decision_funnel(
+    def decision_funnel(
         self,
         scope: str,
         NBADStages_Mapping: dict,
@@ -289,7 +289,7 @@ class Plot:
         )
         return fig
 
-    def plot_filtering_components(
+    def filtering_components(
         self,
         stages: List[str],
         top_n,
@@ -325,22 +325,22 @@ class Plot:
 
         # TODO generalize this
         # Ouch! TODO use the generic stuff from utils
-        order = ["Suitability", "Arbitration", "Eligibility", "Applicability"]
-        index = 0
-        for row in range(1, 3):
-            for col in range(1, 3):
-                fig.update_traces(
-                    textposition="auto",
-                    text=top_n_actions_dict[order[index]],
-                    row=row,
-                    col=col,
-                    showlegend=False,  # TODO: still showing...
-                )
-                index += 1
+        # order = ["Suitability", "Arbitration", "Eligibility", "Applicability"]
+        # index = 0
+        # for row in range(1, 3):
+        #     for col in range(1, 3):
+        #         fig.update_traces(
+        #             textposition="auto",
+        #             text=top_n_actions_dict[order[index]],
+        #             row=row,
+        #             col=col,
+        #             showlegend=False,  # TODO: still showing...
+        #         )
+        #         index += 1
 
-        fig.update_yaxes(showticklabels=False, matches=None, title="").update_xaxes(
-            title=""
-        )
+        # fig.update_yaxes(showticklabels=False, matches=None, title="").update_xaxes(
+        #     title=""
+        # )
 
         # Use annotations for global x and y titles (not per facet)
         fig.add_annotation(
@@ -376,7 +376,7 @@ class Plot:
         return fig
 
     # @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-    def plot_distribution(
+    def distribution(
         self,
         df: pl.LazyFrame,
         scope: str,
@@ -412,7 +412,7 @@ class Plot:
         return fig
 
     # @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-    def plot_prio_factor_boxplots(
+    def prio_factor_boxplots(
         self,
         reference: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
         sample_size=10000,
@@ -477,7 +477,7 @@ class Plot:
 
         return fig, None
 
-    def plot_rank_boxplot(
+    def rank_boxplot(
         self,
         reference: Optional[Union[pl.Expr, List[pl.Expr]]] = None,
         return_df=False,
@@ -495,7 +495,7 @@ class Plot:
         fig = px.box(ranks, x="pxRank", orientation="h", template="pega")
         return fig.update_layout(height=300, xaxis_title="Rank")
 
-    def plot_optionality_per_stage(self, return_df=False):
+    def optionality_per_stage(self, return_df=False):
         df = self._decision_data.get_optionality_data
         if return_df:
             return df
@@ -531,9 +531,7 @@ class Plot:
 
         return fig
 
-    def plot_optionality_trend(
-        self, df: pl.LazyFrame, NBADStages_Mapping, return_df=False
-    ):
+    def optionality_trend(self, df: pl.LazyFrame, NBADStages_Mapping, return_df=False):
         # Collect the data to inspect the unique days
         collected_df = df.collect()
         if return_df:
@@ -580,7 +578,7 @@ class Plot:
         return fig, warning
 
 
-def plot_offer_quality_piecharts(
+def offer_quality_piecharts(
     df: pl.LazyFrame,
     propensityTH,
     NBADStages_FilterView,
@@ -677,7 +675,7 @@ def getTrendChart(df: pl.LazyFrame, stage: str = "Final", return_df=False):
     return fig
 
 
-def plot_value_distribution(value_data: pl.LazyFrame, scope: str):
+def value_distribution(value_data: pl.LazyFrame, scope: str):
     fig = px.histogram(
         value_data.collect(),
         x="Value_max",

@@ -140,7 +140,7 @@ if st.session_state.local_filters != []:
         f"""Distribution of the {NBADScope_Mapping[st.session_state.scope]}s that the comparison group wins from in Arbitration"""
 
         st.plotly_chart(
-            st.session_state.decision_data.plot.plot_distribution(
+            st.session_state.decision_data.plot.distribution(
                 winning_from,
                 st.session_state.scope,
                 (
@@ -163,7 +163,7 @@ if st.session_state.local_filters != []:
         f"""Distribution of the {NBADScope_Mapping[st.session_state.scope]}s that the comparison group loses to in Arbitration"""
 
         st.plotly_chart(
-            st.session_state.decision_data.plot.plot_distribution(
+            st.session_state.decision_data.plot.distribution(
                 losing_to,
                 st.session_state.scope,
                 (
@@ -187,7 +187,7 @@ if st.session_state.local_filters != []:
 
         """
         st.plotly_chart(
-            st.session_state.decision_data.plot.plot_sensitivity(
+            st.session_state.decision_data.plot.sensitivity(
                 limit_xaxis_range=False,
             ),
             use_container_width=True,
@@ -200,11 +200,9 @@ if st.session_state.local_filters != []:
     same interactions.
     """
 
-    fig, warning_message = (
-        st.session_state.decision_data.plot.plot_prio_factor_boxplots(
-            reference=st.session_state["local_filters"],
-            sample_size=10000,
-        )
+    fig, warning_message = st.session_state.decision_data.plot.prio_factor_boxplots(
+        reference=st.session_state["local_filters"],
+        sample_size=10000,
     )
     if warning_message:
         st.warning(warning_message)
@@ -221,7 +219,7 @@ if st.session_state.local_filters != []:
     If the rank is low, the selected actions are not (often) winning.
     """
     st.plotly_chart(
-        st.session_state.decision_data.plot.plot_rank_boxplot(
+        st.session_state.decision_data.plot.rank_boxplot(
             reference=st.session_state["local_filters"],
         ),
         use_container_width=True,

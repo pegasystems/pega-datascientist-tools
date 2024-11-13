@@ -38,7 +38,7 @@ with col1:
     """
     # st.write(st.session_state.decision_data.getOptionalityData().explain(optimized=False))
     st.plotly_chart(
-        st.session_state.decision_data.plot.plot_propensity_vs_optionality(
+        st.session_state.decision_data.plot.propensity_vs_optionality(
             "Arbitration"
         ).update_layout(showlegend=False, height=300),
         use_container_width=True,
@@ -50,9 +50,9 @@ with col1:
     The personalization index is **{round(st.session_state.decision_data.get_offer_variability_stats("Final")["gini"],3)}**.
     """
     st.plotly_chart(
-        st.session_state.decision_data.plot.plot_action_variation(
-            "Final"
-        ).update_layout(width=300, height=300),
+        st.session_state.decision_data.plot.action_variation("Final").update_layout(
+            width=300, height=300
+        ),
         use_container_width=True,
     )
 
@@ -66,7 +66,7 @@ with col2:
     """
 
     st.plotly_chart(
-        st.session_state.decision_data.plot.plot_sensitivity(
+        st.session_state.decision_data.plot.sensitivity(
             win_rank=1,
             hide_priority=True,
         ).update_layout(
@@ -111,6 +111,6 @@ with col2:
     # st.dataframe(vf.head().collect())
 
     # st.plotly_chart(
-    #     plot_offer_quality_piecharts(vf, propensityTH=default_propensity_th, st.session_state.decision_data.NBADStages_FilterView, st.session_data.decision_data.NBADStages_Mapping),
+    #     offer_quality_piecharts(vf, propensityTH=default_propensity_th, st.session_state.decision_data.NBADStages_FilterView, st.session_data.decision_data.NBADStages_Mapping),
     #     use_container_width=True,
     # )

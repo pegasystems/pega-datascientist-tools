@@ -51,7 +51,7 @@ distribution_data = st.session_state.decision_data.getDistributionData(
     st.session_state.stage, scope_options
 )
 st.plotly_chart(
-    st.session_state.decision_data.plot.plot_distribution_as_treemap(
+    st.session_state.decision_data.plot.distribution_as_treemap(
         df=distribution_data,
         stage=st.session_state.stage,
         scope_options=scope_options,
@@ -70,7 +70,7 @@ with st.container(border=True):
     if "scope" not in st.session_state:
         st.session_state.scope = scope_options[0]
 
-    fig, warning_message = st.session_state.decision_data.plot.plot_trend_chart(
+    fig, warning_message = st.session_state.decision_data.plot.trend_chart(
         st.session_state.stage, st.session_state.scope
     )
     if warning_message:

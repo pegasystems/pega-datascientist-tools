@@ -5,7 +5,12 @@ from typing import Dict, Iterable, List, Literal, Optional, Set, Type, Union
 import polars as pl
 
 from ..utils.cdh_utils import parse_pega_date_time_formats
-from .table_definition import DecisionAnalyzer, ExplainabilityExtract, TableConfig
+from .table_definition import (
+    DecisionAnalyzer,
+    ExplainabilityExtract,
+    TableConfig,
+    audit_tag_mapping,
+)
 
 # As long as this is run once, anywhere, it's enabled globally.
 # Putting it here AND in the Home.py file should therefore be enough,
@@ -281,7 +286,7 @@ def find_lever_value(
 def determine_extract_type(raw_data):
     return (
         "decision_analyzer"
-        if "pxEngagementStage" in raw_data.columns
+        if "pxStrategyName" in raw_data.columns
         else "explainability_extract"
     )
 
@@ -306,13 +311,25 @@ def process(
         subset=subset,
         raise_on_unknown=raise_on_unknown,
     )
+    # cast types
     for name, _type in type_map.items():
         if df.select(name).dtypes[0] != _type:
             if _type == pl.Datetime:
                 df = df.with_columns(parse_pega_date_time_formats(name))
             else:
                 df = df.with_columns(pl.col(name).cast(_type))
-    return df
+    # rename
+    name_dict = {}
+    for col, properties in DecisionAnalyzer.items():
+        name_dict[col] = properties["label"]
+    # Create pxEngagementStage
+    remapping_dict = {
+        str(value): key for key, values in audit_tag_mapping.items() for value in values
+    }
+    df = df.with_columns(
+        pxEngagementStage=pl.col("pxAuditTag").cast(pl.Utf8).replace(remapping_dict)
+    )
+    return df.rename(name_dict)
 
 
 def get_table_definition(table: str):

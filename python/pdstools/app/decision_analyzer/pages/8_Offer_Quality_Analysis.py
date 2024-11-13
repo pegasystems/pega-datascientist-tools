@@ -1,6 +1,6 @@
 import streamlit as st
 
-from plots import getTrendChart, plot_offer_quality_piecharts
+from plots import getTrendChart, offer_quality_piecharts
 from da_streamlit_utils import (
     get_current_scope_index,
     get_current_stage_index,
@@ -104,7 +104,7 @@ vf = st.session_state.decision_data.get_offer_quality(
 # st.write(vf.head().collect())
 
 st.plotly_chart(
-    plot_offer_quality_piecharts(
+    offer_quality_piecharts(
         vf,
         propensityTH=propensityTH,
         NBADStages_FilterView=st.session_state.decision_data.NBADStages_FilterView,

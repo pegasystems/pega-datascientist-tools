@@ -88,7 +88,7 @@ with st.container(border=True):
         st.session_state.scope = scope_options[0]
 
     st.plotly_chart(
-        st.session_state.decision_data.plot.plot_decision_funnel(
+        st.session_state.decision_data.plot.decision_funnel(
             scope=st.session_state.scope,
             NBADStages_Mapping=st.session_state.decision_data.NBADStages_Mapping,
             additional_filters=st.session_state["local_filters"],
@@ -115,7 +115,7 @@ if not ensure_getFilterComponentData():
     st.stop()
 
 st.plotly_chart(
-    st.session_state.decision_data.plot.plot_filtering_components(
+    st.session_state.decision_data.plot.filtering_components(
         stages=stage_options,
         top_n=st.session_state.top_k,
         AvailableNBADStages=st.session_state.decision_data.AvailableNBADStages,

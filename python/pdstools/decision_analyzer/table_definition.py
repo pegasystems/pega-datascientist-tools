@@ -16,7 +16,12 @@ DecisionAnalyzer: Dict[str, TableConfig] = {
         "type": pl.Categorical,
         "required": True,
     },  # should be optional
-    # "pySubjectType": {"label": "pySubjectType", "default": False, "type": pl.Categorical},
+    "pySubjectType": {
+        "label": "pySubjectType",
+        "default": False,
+        "type": pl.Categorical,
+        "required": True,
+    },
     # "StrategicSegment": {"label": "StrategicSegment", "default": False, "type": pl.Categorical},
     "pxInteractionID": {
         "label": "pxInteractionID",
@@ -54,8 +59,18 @@ DecisionAnalyzer: Dict[str, TableConfig] = {
         "type": pl.Utf8,
         "required": True,
     },
-    # "pyTreatment": {"label": "pyTreatment", "default": False, "type": pl.Utf8},
-    # "PlacementType": {"label": "PlacementType", "default": False, "type": pl.Categorical},
+    "pyTreatment": {
+        "label": "pyTreatment",
+        "default": False,
+        "type": pl.Utf8,
+        "required": True,
+    },
+    "PlacementType": {
+        "label": "PlacementType",
+        "default": False,
+        "type": pl.Categorical,
+        "required": True,
+    },
     # "ChannelSubGroup": {"label": "ChannelSubGroup", "default": False, "type": pl.Categorical},
     # "ChannelGroup": {"label": "ChannelGroup", "default": False, "type": pl.Categorical},
     "pyChannel": {
@@ -70,8 +85,8 @@ DecisionAnalyzer: Dict[str, TableConfig] = {
         "type": pl.Categorical,
         "required": True,
     },
-    "pxEngagementStage": {
-        "label": "pxEngagementStage",
+    "pxAuditTag": {
+        "label": "pxAuditTag",
         "default": True,
         "type": pl.Categorical,
         "required": True,
@@ -91,12 +106,12 @@ DecisionAnalyzer: Dict[str, TableConfig] = {
     # "MktType": {"label": "MktType", "default": False, "type": pl.Categorical},
     # "MktValue": {"label": "MktValue", "default": False, "type": pl.Float64},
     # "pyReason": {"label": "pyReason", "default": False, "type": pl.Utf8},
-    "ModelControlGroup": {
-        "label": "ModelControlGroup",
-        "default": True,
-        "type": pl.Categorical,
-        "required": True,
-    },
+    # "ModelControlGroup": {
+    #     "label": "ModelControlGroup",
+    #     "default": True,
+    #     "type": pl.Categorical,
+    #     "required": True,
+    # },
     "Value": {
         "label": "Value",
         "default": True,
@@ -116,25 +131,60 @@ DecisionAnalyzer: Dict[str, TableConfig] = {
         "required": True,
     },
     # "ActionWeight": {"label": "ActionWeight", "default": False, "type": pl.Float64},
-    # "pyModelPropensity": {"label": "pyModelPropensity", "default": False, "type": pl.Float64},
+    "pyModelPropensity": {
+        "label": "pyModelPropensity",
+        "default": False,
+        "type": pl.Float64,
+        "required": True,
+    },
     "FinalPropensity": {
         "label": "FinalPropensity",
         "default": False,
         "type": pl.Float64,
         "required": True,
     },
-    # "pyPropensity": {"label": "pyPropensity", "default": False, "type": pl.Float64},
-    # "pyModelPositives":{"label": "pyModelPositives", "default": False, "type": pl.Float32},
-    # "pyModelPerformance":{"label": "pyModelPerformance", "default": False, "type": pl.Float32},
-    # "pyModelEvidence":{"label": "pyModelEvidence", "default": False, "type": pl.Float32},
-    "Priority": {
+    "pyPropensity": {
+        "label": "pyPropensity",
+        "default": False,
+        "type": pl.Float64,
+        "required": True,
+    },
+    "pyModelPositives": {
+        "label": "pyModelPositives",
+        "default": False,
+        "type": pl.Float32,
+        "required": True,
+    },
+    "pyModelPerformance": {
+        "label": "pyModelPerformance",
+        "default": False,
+        "type": pl.Float32,
+        "required": True,
+    },
+    "pyModelEvidence": {
+        "label": "pyModelEvidence",
+        "default": False,
+        "type": pl.Float32,
+        "required": True,
+    },
+    "pxPriority": {
         "label": "Priority",
         "default": False,
         "type": pl.Float32,
         "required": True,
     },
-    # "pyApplication":{"label": "pyApplication", "default": False, "type": pl.Float64},
-    # "pyApplicationVersion":{"label": "pyApplicationVersion", "default": False, "type": pl.Float64},
+    "pyApplication": {
+        "label": "pyApplication",
+        "default": False,
+        "type": pl.Float64,
+        "required": True,
+    },
+    "pyApplicationVersion": {
+        "label": "pyApplicationVersion",
+        "default": False,
+        "type": pl.Float64,
+        "required": True,
+    },
 }
 
 
@@ -220,4 +270,82 @@ ExplainabilityExtract: Dict[str, TableConfig] = {
         "type": pl.Utf8,
         "required": True,
     },
+}
+
+
+audit_tag_mapping = {
+    "Available Actions": ["Availability.Action"],
+    "Channel availability & Product associations": [
+        "ChannelAvailability.ActionLevel",
+        "ChannelAvailability.ActionLevel",
+        "EmergencyExclusions.Action",
+        "ProductAssociations.Unsellable",
+        "ProductAssociations.ExtensionPoint",
+        "PostActionImportExtensionPoint",
+    ],
+    "Engagement Policies": [
+        "EngagementPolicies.Eligibility",
+        "EngagementPolicies.Applicability",
+        "EngagementPolicies.Suitability",
+        "EngagementPolicies.Eligibility",
+        "EngagementPolicies.Applicability",
+        "EngagementPolicies.Suitability",
+        "EngagementPolicies.Eligibility",
+        "EngagementPolicies.Applicability",
+        "EngagementPolicies.Suitability",
+        "EngagementPolicies.ExtensionPoint",
+    ],
+    "Journeys & Contact Policies": [
+        "NBAPreProcessExtensionPoint",
+        "CustomerJourneys.EligibleJourneyStage",
+        "Channel enabled in NBA Designer",
+        "ContactPolicies.Constraints",
+        "Channel enabled in NBA Designer",
+        "ContactPolicies.ChannelLimits",
+    ],
+    "Action Propensity": [
+        "Propensity.ModelMaturity",
+        "Propensity.PropensityThreshold",
+    ],
+    "Available Treatments": [
+        "Treatments.TreatmentJoinToAction",
+        "Availability.Treatment",
+    ],
+    "Treatment Eligibility": [
+        "Treatments.Eligibility",
+        "ContactPolicies.ConstraintsTreatmentLevel",
+        "Channels.ExtensionPoint",
+        "Channels.ExtensionPoint",
+        "EmergencyExclusions.Treatment",
+        "EmergencyExclusions.Treatment",
+    ],
+    "Treatment Propensity": [
+        "Propensity.ExtensionPoint",
+        "Propensity.ModelMaturity",
+        "Propensity.PropensityThreshold",
+        "Propensity.ExtensionPoint",
+    ],
+    "Arbitration": ["Arbitration.PriorityThreshold"],
+    "Bundling": [
+        "NBAPostProcessExtensionPoint",
+        "FinalLimitsAndBundlingPreExtensionPoint",
+        "Bundling.InvalidFixedBundle",
+        "Bundling.InvalidBundle",
+    ],
+    "Contact Policies & Final Action processing": [
+        "ContactPolicies.ActionLimits",
+        "ContactPolicies.ActionLimits",
+        "ContactPolicies.ActionLimitsExtensionPoint",
+        "Arbitration.TopSelection",
+        "TreatmentPlacements",
+        "Channels.ExtensionPoint",
+        "Channels.ExtensionPoint",
+        "Channels.ExtensionPoint",
+        "Channels.ExtensionPoint",
+        "Channels.ExtensionPoint",
+        "ContactPolicies.ChannelLimits",
+        "ContactPolicies.ExtensionPoint",
+        "FinalLimitsAndBundlingPostExtensionPoint",
+    ],
+    "Final": ["Result.FinalResult"],
 }
