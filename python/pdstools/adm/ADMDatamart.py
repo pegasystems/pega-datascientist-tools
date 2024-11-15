@@ -51,7 +51,7 @@ class ADMDatamart:
         The Polars LazyFrame represenation of the predictor binning table.
     query : QUERY, optional
         An optional query to apply to the input data.
-        For details, see :meth:`pdstools.cdh_utils._apply_query`.
+        For details, see :meth:`pdstools.utils.cdh_utils._apply_query`.
     extract_pyname_keys : bool, default = True
         Whether to extract extra keys from the `pyName` column.
 
@@ -59,7 +59,7 @@ class ADMDatamart:
     --------
     pdstools.adm.Plots : The out of the box plots to run.
     pdstools.adm.Reports : The Health Check and Model Report files to generate.
-    pdstools.cdh_utils._apply_query : The internal query mechansm to filter the data.
+    pdstools.utils.cdh_utils._apply_query : The internal query mechansm to filter the data.
 
     Examples
     --------
@@ -78,6 +78,12 @@ class ADMDatamart:
     model_data: Optional[pl.LazyFrame]
     predictor_data: Optional[pl.LazyFrame]
     combined_data: Optional[pl.LazyFrame]
+    plot: Plots
+    aggregates: Aggregates
+    agb: AGB
+    generate: Reports
+    cdh_guidelines: CDHGuidelines
+    bin_aggregator: BinAggregator
 
     def __init__(
         self,
