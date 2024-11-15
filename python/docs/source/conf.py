@@ -39,9 +39,7 @@ extensions = [
 ]
 
 source_suffix = [".rst", ".md"]
-intersphinx_mapping = {
-    "polars": ("https://pola-rs.github.io/polars/py-polars/html", None)
-}
+intersphinx_mapping = {"polars": ("https://docs.pola.rs/api/python/stable", None)}
 
 add_module_names = False
 toc_object_entries_show_parents = "hide"
@@ -74,7 +72,7 @@ html_theme = "furo"
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ["_static"]
+# html_static_path = ["_static"]
 
 html_favicon = "../../../images/pegasystems-inc-vector-logo.svg"
 html_logo = "../../../images/pegasystems-inc-vector-logo.svg"
@@ -103,7 +101,8 @@ suppress_warnings = ["spub.duplicated_toc_entry"]
 import re  # noqa: E402
 
 import nbsphinx  # noqa: E402
-from nbsphinx import RST_TEMPLATE, setup  # noqa: E402
+from nbsphinx import RST_TEMPLATE  # noqa: E402
+from nbsphinx import setup as nbsphinx_setup  # noqa: E402
 
 BLOCK_REGEX = r"(({{% block {block} -%}}\n)(.*?)({{% endblock {block} %}}\n))"
 PATCH_TEMPLATE = r"{{% block {block} -%}}\n{patch}{{% endblock {block} %}}\n"
@@ -141,4 +140,19 @@ RST_TEMPLATE = remove_block_on_tag(
     "nboutput", ["remove_cell", "remove_output"], RST_TEMPLATE
 )
 nbsphinx.RST_TEMPLATE = RST_TEMPLATE
+
+
+# Exclude the logger from the documentation
+def skip_member(app, what, name, obj, skip, options):
+    if name == "logger":
+        return True
+    return skip
+
+
+def setup(app):
+    app.connect("autodoc-skip-member", skip_member)
+    # Call the nbsphinx setup function to ensure it is set up correctly
+    nbsphinx_setup(app)
+
+
 __all__ = ["setup"]
