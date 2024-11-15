@@ -46,6 +46,7 @@ healthcheck = ['pdstools[adm]', 'great_tables>=0.13', 'quarto', 'papermill', 'xl
 app = ['pdstools[healthcheck]', 'streamlit>=1.23', 'st-pages']
 onnx = ['scikit-learn==1.5.1', 'skl2onnx==1.17.0', 'onnx==1.16.1', 'onnxruntime==1.18.1', 'pdstools[api]']
 all = ['pdstools[app, pega_io, onnx]']
+dev = ['pre-commit']
 docs = ['sphinx','furo','sphinx-autoapi','nbsphinx','sphinx-copybutton','myst-parser']
 tests = ['testbook', 'pytest', 'pytest-cov', 'pytest-httpx', 'pytest-mock', 'moto', 'openpyxl', 'pdstools[all]', 'coverage']
 

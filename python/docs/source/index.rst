@@ -22,7 +22,6 @@ Welcome to the PDS Tools Python documentation
    articles/ADMBinningInsights
    articles/AGBModelVisualisation
    articles/vf_analysis
-   articles/Example_Data_Anonymization
    articles/explainability_extract
 
 .. toctree::

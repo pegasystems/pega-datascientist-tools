@@ -4,6 +4,8 @@
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+from datetime import datetime
+
 import plotly.io as pio
 
 pio.renderers.default = "notebook_connected"
@@ -11,11 +13,11 @@ pio.renderers.default = "notebook_connected"
 # -- Project information -----------------------------------------------------
 
 project = "pdstools"
-copyright = "2022, Pegasystems"
+copyright = f"{datetime.now().year}, Pegasystems"
 author = "Pegasystems"
 
 # The full version, including alpha/beta/rc tags
-release = "2.2.0"
+release = "4.0.0"
 
 
 # -- General configuration ---------------------------------------------------
