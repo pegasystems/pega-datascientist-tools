@@ -509,8 +509,8 @@ class Aggregates:
                 ),
             )
             .with_columns(
-                Used_Actions=pl.col("Used Actions").fill_null(0),
-                Used_Treatments=pl.col("Used Treatments").fill_null(0),
+                pl.col("Used Actions").fill_null(0),
+                pl.col("Used Treatments").fill_null(0),
                 ChannelDirection=pl.concat_str(["Channel", "Direction"], separator="/"),
                 isValid=(pl.col("Positives") > 200) & (pl.col("ResponseCount") > 1000),
                 Configuration=pl.col("Configuration")

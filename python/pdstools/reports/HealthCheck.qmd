@@ -105,7 +105,7 @@ name = "ADM Models"  # TODO: what's this used for?
 kwargs = dict()
 
 title = "ADM Model Overview"  # pass in customer name here
-subtitle = ""  # typically used to pass in a date range or other qualification of the data source
+subtitle = ""  # pass in a date range or other qualification of the data source
 
 datafolder = ""
 modelfilename = ""
@@ -411,7 +411,7 @@ In a standard setup, the offers/conversations are presented as treatments for ac
 
 Adaptive Models are created per treatment (at least in the default setup) and the recommendation is to stick the default context keys of the models.
 
-The recommended Service and data health limits for Pega Customer Decision Hub on Pega Cloud are published in https://docs.pega.com/bundle/customer-decision-hub-241/page/customer-decision-hub/cdh-portal/cloud-service-health-limits.html.
+The recommended [Service and data health limits for Pega Customer Decision Hub on Pega Cloud](https://docs.pega.com/bundle/customer-decision-hub-241/page/customer-decision-hub/cdh-portal/cloud-service-health-limits.html) are used here to highlight whether metrics are within limits. These limits may not apply for on-prem, non-CDH installs or for other reasons.
 
 
 ```{python}
@@ -677,25 +677,26 @@ Showing how the overall channel success rates evolved over the time that the dat
 # TODO: the faceting errors out when there are many configurations and too few facet columns resulting in very small facet rows
 
 facets = datamart.unique_configurations
-facet_col_wrap = max(2, int(len(facets)**0.5))
+facet_col_wrap = max(2, int(len(facets) ** 0.5))
 by = pl.concat_str(["Channel", "Direction"], separator="/")
 try:
     fig = datamart.plot.over_time(
         metric="SuccessRate",
         facet="Configuration",
-        by = by,
+        by=by,
     )
     fig = fig_update_facet_height(fig, facet_col_wrap, 200, 250)
     fig = (
-        fig.update_yaxes(matches=None, title="", showticklabels=True)
+        fig.update_yaxes(matches=None, title="", showticklabels=True, tickformat=".2%")
         .update_xaxes(showticklabels=True, title="")
-        # TODO title stuff doesnt need to be here if std plot supports it properly
-        .update_layout(title=f"Trend of Success Rates per Channel<br><sup>Query: {responsecount_analysis_query}</sup>")
+        .update_layout(title=f"Trend of Success Rates by Channel")
     )
 
     fig.show()
 except ValueError as e:
-    print(f"Error {str(e)}\nPossibly too many facets: {len(facets)} for {facet_col_wrap} columns.")
+    print(
+        f"Error {str(e)}\nPossibly too many facets: {len(facets)} for {facet_col_wrap} columns."
+    )
 except Exception as e:
     report_utils.quarto_plot_exception("Success Rates over Time", e)
 ```
@@ -915,7 +916,8 @@ try:
     fig = fig_update_facet_height(fig, facet_col_wrap, 200, 250)
     fig = (
         fig.update_layout(title="Trend of Model Performance")
-        .update_yaxes(showticklabels=True, title="")
+        # no need for a for_all_y or something?
+        .update_yaxes(showticklabels=True, title="", range=[50,100])
         .update_xaxes(title="")
     )
     fig.show()
@@ -1512,6 +1514,8 @@ display(
     )
 )
 
+# TODO: see if we can just combine the long descriptions below into one nice table view
+
 ```
 
 ### Models that have never been used
@@ -1776,131 +1780,6 @@ except Exception as e:
 
 :::
 
-
-## Models with largest number of responses (positive or negative)
-
-Zooming in into the models that drive most of the responses.
-
-TODO: swap to TreeMap here
-
-```{python}
-# | echo: false
-
-report_utils.quarto_print(
-    f"""
-Here we list the top {barchart_max_bars} models with the highest number of responses.
-"""
-)
-```
-
-```{python}
-# TODO better colors, shorter content in the bars
-# nicer colors perhaps - maybe a gradient
-# code seems overly complex for what it is doing
-
-facet = "/".join(
-    report_utils.polars_subset_to_existing_cols(
-        datamart_all_columns,
-        ["Configuration", "Issue", "Group", "Name", "Channel", "Direction"]
-    )
-)
-
-response_frequency_data = last_data
-
-for split_facet in facet.split("/"):
-    response_frequency_data = response_frequency_data.with_columns(
-        pl.col(split_facet).cast(pl.Utf8).fill_null("NA")
-    )
-response_frequency_data = response_frequency_data.with_columns(
-    pl.concat_str(facet.split("/"), separator="/").alias(facet)
-)
-
-response_counts = response_frequency_data.group_by([facet] + facet.split("/")).agg(
-    [
-        pl.sum("ResponseCount").alias("all_responses"),
-        pl.sum("Positives").alias("positive_sum"),
-    ]
-)
-
-all_responses = response_counts.sort("all_responses", descending=False).tail(
-    barchart_max_bars
-)
-hover_data = {facet: False}
-for col in facet.split("/"):
-    hover_data[col] = ":.d"
-
-# TODO we really want Channel+Direction everywhere where we just use Channel now
-possible_color_vars = ["Channel", "Issue", "Name"]
-color = next((col for col in possible_color_vars if col in datamart_all_columns), None)
-
-try:
-    fig = px.bar(
-        all_responses.to_pandas(use_pyarrow_extension_array=True),
-        x="all_responses",
-        y=facet,
-        color=color,
-        title=f"Top {barchart_max_bars} Highest Responses",
-        template="pega",
-        text=facet,
-        hover_data=hover_data,
-    )
-
-    fig = (
-        fig.update_yaxes(matches=None, showticklabels=False, visible=False)
-        .update_traces(textposition="inside")
-        # .for_each_annotation(lambda a: a.update(text=a.text.replace(facet, "")))
-        .update_layout(yaxis={"categoryorder": "total ascending"}, xaxis_title="Responses")
-    )
-
-    cdh_utils.legend_color_order(fig).show()  # ?
-except Exception as e:
-    report_utils.quarto_plot_exception(f"Top {barchart_max_bars} Highest Responses", e)
-
-```
-
-## Models with largest number of positive responses.
-
-```{python}
-# | echo: false
-
-report_utils.quarto_print(
-    f"""
-And these are the {barchart_max_bars} models with the largest number of positives.
-"""
-)
-```
-
-```{python}
-positives = response_counts.sort("positive_sum", descending=True).head(
-    barchart_max_bars
-)
-
-try:
-    fig = px.bar(
-        positives.to_pandas(use_pyarrow_extension_array=True),
-        x="positive_sum",
-        y=facet,
-        color=color,
-        title=f"Top {barchart_max_bars} Highest Positives",
-        template="pega",
-        text=facet,
-        hover_data=hover_data,
-    )
-
-    fig = (
-        fig.update_yaxes(matches=None, showticklabels=False, visible=False)
-        .update_xaxes(matches=None)
-        .update_traces(textposition="inside")
-        # .for_each_annotation(lambda a: a.update(text=a.text.replace(facet, "")))
-        .update_layout(yaxis={"categoryorder": "total ascending"}, xaxis_title="Positives")
-    )
-
-    cdh_utils.legend_color_order(fig).show()  # ?
-except Exception as e:
-    report_utils.quarto_plot_exception(f"Top {barchart_max_bars} Highest Positives", e)
-
-```
-
 ## Analysis of Performance vs Volume
 
 Is most volume driven by models that have a good predictive performance? Ideally yes, so the targeting of the customers is optimal. If a lot of volume is driven by models that are not very predictive, this could be a reason to look into the available predictor data.
@@ -1974,72 +1853,6 @@ except Exception as e:
     report_utils.quarto_plot_exception("Analysis of Performance vs Volume", e)
 ```
 
-
-## Positives vs. Number of Models
-Ideally, all models have received plenty of responses which will make them “mature” and makes sure they are as predictive as possible.
-
-Often we see that there is a significant percentage of models that are still relatively new and have not received much feedback (yet). Below graph shows the percentages of models that have fewer than 200 positives.
-
-Having many on the left-hand side (with very low or perhaps no positives) may or not be a problem. The models may still be there in the datamart but might represent actions/treatments that are not active.
-
-```{python}
-# TODO this seems to be very large/expensive for some Data
-# not sure why exactly but we've seen
-# PanicException: polars' maximum length reached. Consider installing 'polars-u64-idx'.: TryFromIntError(())
-try:
-    fig = datamart.plot.models_by_positives()
-
-    # # TODO remove this override and use cdhutils function again
-    # # when we've bumped up the pdstools version
-    # def legend_color_order(fig):
-    #     """Orders legend colors alphabetically in order to provide pega color
-    #     consistency among different categories"""
-
-    #     colorway = [
-    #         "#001F5F",  # dark blue
-    #         "#10A5AC",
-    #         "#F76923",  # orange
-    #         "#661D34",  # wine
-    #         "#86CAC6",  # mint
-    #         "#005154",  # forest
-    #         "#86CAC6",  # mint
-    #         "#5F67B9",  # violet
-    #         "#FFC836",  # yellow
-    #         "#E63690",  # pink
-    #         "#AC1361",  # berry
-    #         "#63666F",  # dark grey
-    #         "#A7A9B4",  # medium grey
-    #         "#D0D1DB",  # light grey
-    #     ]
-    #     colors = []
-    #     for trace in fig.data:
-    #         if trace.legendgroup is not None:
-    #             colors.append(trace.legendgroup)
-    #     colors.sort()
-
-    #     # https://github.com/pegasystems/pega-datascientist-tools/issues/201
-    #     if len(colors) >= len(colorway):
-    #         return fig
-
-    #     indexed_colors = {k: v for v, k in enumerate(colors)}
-    #     for trace in fig.data:
-    #         if trace.legendgroup is not None:
-    #             try:
-    #                 trace.marker.color = colorway[indexed_colors[trace.legendgroup]]
-    #                 trace.line.color = colorway[indexed_colors[trace.legendgroup]]
-    #             except AttributeError:  # pragma: no cover
-    #                 pass
-
-    #     return fig
-
-    fig = cdh_utils.legend_color_order(fig)
-    # fig = legend_color_order(fig)
-
-    fig.show()
-except Exception as e:
-    report_utils.quarto_plot_exception("Positives vs. Number of Models", e)
-
-```
 
 # Propensity Analysis
 

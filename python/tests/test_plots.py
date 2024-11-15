@@ -34,7 +34,7 @@ def test_bubble_chart(sample: ADMDatamart):
 def test_over_time(sample: ADMDatamart):
     df = sample.plot.over_time(return_df=True).collect()
     assert df.shape == (70, 3)
-    assert round(df.sort("ModelID").row(0)[2], 2) == 0.55
+    assert round(df.sort("ModelID").row(0)[2], 2) == 55.46
     plot = sample.plot.over_time()
     assert plot is not None
 

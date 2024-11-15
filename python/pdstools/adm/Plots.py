@@ -294,10 +294,16 @@ class Plots(LazyNamespace):
 
         metric_formatting = {
             "SuccessRate_weighted_average": ":.4%",
-            "Performance_weighted_average": ":.1%",
+            "Performance_weighted_average": ":.2", # is not a percentage!
             "Positives": ":.d",
             "ResponseCount": ":.d",
         }
+
+        if metric == "Performance":
+            metric_scaling:pl.Expr = pl.lit(100.0)
+        else:
+            metric_scaling:pl.Expr = pl.lit(1.0)
+
         if self.datamart.model_data is None:
             raise ValueError("Visualisation requires model_data")
 
@@ -326,9 +332,9 @@ class Plots(LazyNamespace):
                     "SnapshotTime", every=every, group_by=grouping_columns
                 )
                 .agg(
-                    cdh_utils.weighted_average_polars(
+                    (metric_scaling*cdh_utils.weighted_average_polars(
                         metric, "ResponseCount"
-                    ).name.suffix("_weighted_average")
+                    )).name.suffix("_weighted_average")
                 )
                 .sort("SnapshotTime", by_col)
             )
@@ -925,6 +931,8 @@ class Plots(LazyNamespace):
 
     def response_gain(): ...  # TODO: more generic plot_gains function?
 
+    # TODO anyone using this still?
+    # consider removing
     def models_by_positives(
         self,
         by: str = "Channel",
