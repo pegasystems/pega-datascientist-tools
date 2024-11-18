@@ -23,7 +23,7 @@ def read_ds_export(
     verbose: bool = False,
     **reading_opts,
 ) -> Optional[pl.LazyFrame]:
-    """Read a Pega dataset export file.
+    """Read in most out of the box Pega dataset export formats
     Accepts one of the following formats:
     - .csv
     - .json

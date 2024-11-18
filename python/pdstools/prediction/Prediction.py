@@ -2,11 +2,13 @@ from typing import List, Optional
 
 import polars as pl
 
-from ..utils import cdh_utils
 from ..adm.CDH_Guidelines import CDHGuidelines
+from ..utils import cdh_utils
 
 
 class Prediction:
+    """Monitor Pega Prediction Studio Predictions"""
+
     predictions: pl.LazyFrame
 
     # These are pretty strict conditions - many configurations appear not to satisfy these
@@ -29,6 +31,13 @@ class Prediction:
     )
 
     def __init__(self, df: pl.LazyFrame):
+        """Initialize the Prediction class
+
+        Parameters
+        ----------
+        df : pl.LazyFrame
+            The read in data as a Polars LazyFrame
+        """
         self.cdh_guidelines = CDHGuidelines()
 
         predictions_raw_data_prepped = (
@@ -169,7 +178,7 @@ class Prediction:
                 right_on="Prediction",
                 how="left",
             )
-            .rename({"ModelName" : "Prediction"})
+            .rename({"ModelName": "Prediction"})
             .with_columns(
                 [
                     pl.when(pl.col("Channel").is_null())

@@ -1,3 +1,4 @@
+__all__ = ["BinAggregator"]
 import logging
 from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
@@ -16,10 +17,11 @@ logger = logging.getLogger(__name__)
 
 
 class BinAggregator(LazyNamespace):
-    dependencies = ["plotly", "numpy"]
     """
     A class to generate rolled up insights from ADM predictor binning.
     """
+
+    dependencies = ["plotly", "numpy"]
 
     def __init__(self, dm: "ADMDatamart") -> None:
         super().__init__()

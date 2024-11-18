@@ -1,5 +1,7 @@
-from typing import List, Optional
+__all__ = ["CDHGuidelines"]
 from functools import cached_property
+from typing import List, Optional
+
 import polars as pl
 
 _data = {
@@ -113,18 +115,18 @@ class CDHGuidelines:
 
     @cached_property
     def standard_configurations(self) -> List[str]:
-        return sorted(list(set([x[0] for x in _NBAD_ModelConfiguration_data])))
+        return sorted(list(set([str(x[0]) for x in _NBAD_ModelConfiguration_data])))
 
     @cached_property
     def standard_channels(self) -> List[str]:
         return sorted(
-            list(set([x[1] for x in _NBAD_ModelConfiguration_data if not x[4]]))
+            list(set([str(x[1]) for x in _NBAD_ModelConfiguration_data if not x[4]]))
         )
 
     @cached_property
     def standard_directions(self) -> List[str]:
         return sorted(
-            list(set([x[2] for x in _NBAD_ModelConfiguration_data if not x[4]]))
+            list(set([str(x[2]) for x in _NBAD_ModelConfiguration_data if not x[4]]))
         )
 
     def _metric_value(self, series):

@@ -34,6 +34,8 @@ extensions = [
     "sphinx_copybutton",
     "myst_parser",
     "sphinx.ext.intersphinx",
+    "sphinxarg.ext",
+    # "sphinx_search.extension",
     # "jupyter_sphinx",
     # "sphinx_gallery.gen_gallery",
 ]

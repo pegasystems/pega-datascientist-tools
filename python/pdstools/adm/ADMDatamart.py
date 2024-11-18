@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__all__ = ["ADMDatamart"]
+
 import datetime
 import logging
 import os
@@ -27,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 class ADMDatamart:
     """
-    The main class for interacting with ADM data from the Pega Datamart.
+    Monitor and analyze ADM data from the Pega Datamart.
 
     To initialize this class, either
     1. Initialize directly with the model_df and predictor_df polars LazyFrames
@@ -37,6 +39,7 @@ class ADMDatamart:
     from further analysis, and apply correct typing and useful renaming.
 
     There is also a few "namespaces" that you can call from this class:
+
     - `.plot` contains ready-made plots to analyze the data with
     - `.aggregates` contains mostly internal data aggregations queries
     - `.agb` contains analysis utilities for Adaptive Gradient Boosting models
@@ -55,12 +58,6 @@ class ADMDatamart:
     extract_pyname_keys : bool, default = True
         Whether to extract extra keys from the `pyName` column.
 
-    See Also
-    --------
-    pdstools.adm.Plots : The out of the box plots to run.
-    pdstools.adm.Reports : The Health Check and Model Report files to generate.
-    pdstools.utils.cdh_utils._apply_query : The internal query mechansm to filter the data.
-
     Examples
     --------
     >>> from pdstools import ADMDatamart
@@ -73,6 +70,22 @@ class ADMDatamart:
     >>> dm = ADMDatamart.from_ds_export(base_path='/my_export_folder')
     >>> dm = ADMDatamart.from_s3("pega_export")
     >>> dm = ADMDatamart.from_dataflow_export(glob("data/models*"), glob("data/preds*"))
+
+    Note
+    ----
+    This class depends on two datasets:
+
+    - `pyModelSnapshots` corresponds to the `model_data` attribute
+    - `pyADMPredictorSnapshots` corresponds to the `predictor_data` attribute
+
+    For instructions on how to download these datasets, please refer to the following
+    article: https://docs.pega.com/bundle/platform/page/platform/decision-management/exporting-monitoring-database.html
+
+    See Also
+    --------
+    pdstools.adm.Plots : The out of the box plots on the Datamart data
+    pdstools.adm.Reports : Methods to generate the Health Check and Model Report
+    pdstools.utils.cdh_utils._apply_query : How to query the ADMDatamart class and methods
     """
 
     model_data: Optional[pl.LazyFrame]

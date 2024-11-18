@@ -20,7 +20,7 @@ def show_versions(print_output: Literal[False] = False) -> str: ...
 
 def show_versions(print_output: bool = True) -> Union[None, str]:
     """
-    Print or return version of pdstools and dependencies.
+    Get a list of currently installed versions of pdstools and its dependencies.
 
     Parameters
     ----------
@@ -149,3 +149,49 @@ def _get_dependency_version(dep_name: str) -> str:
         module_version = importlib.metadata.version(dep_name)
 
     return module_version
+
+
+def _dependency_table(public_only: bool = False):
+    import polars as pl
+
+    dependencies = grouped_dependencies()
+    required = dependencies.pop("required")
+    if public_only:
+        for private_dep_group in {"dev", "docs", "tests"}:
+            _ = dependencies.pop(private_dep_group)
+    deps = [
+        {"group": k, "deps": list(v.union(required))} for k, v in dependencies.items()
+    ]
+    pivot = (
+        pl.DataFrame(deps)
+        .explode("deps")
+        .pivot(values="deps", index="group", on="deps")
+    )
+    pivotted = pivot.with_columns(
+        pl.when(pl.col(col).is_not_null())
+        .then(pl.lit("√"))
+        .otherwise(pl.lit("X"))
+        .alias(col)
+        for col in pivot.columns
+        if col != "group"
+    )
+    return pivotted
+
+
+def dependency_great_table(public_only: bool = True):
+    import great_tables
+
+    dependency_table = _dependency_table(public_only=public_only)
+    required_deps = list(grouped_dependencies().get("required"))
+    optional_deps = list(set(dependency_table.collect_schema().names()))
+    optional_deps = [n for n in optional_deps if n not in [*required_deps, "required"]]
+    dependency_table = dependency_table.select(*required_deps, *optional_deps)
+    tab = (
+        great_tables.GT(dependency_table)
+        .tab_header("Optional dependencies")
+        .tab_options(column_labels_hidden=False)
+        .tab_stub(rowname_col="group")
+        .tab_spanner(label="Required", columns=list(required_deps))
+        .tab_spanner(label="Optional", columns=list(set(optional_deps)))
+    )
+    return tab

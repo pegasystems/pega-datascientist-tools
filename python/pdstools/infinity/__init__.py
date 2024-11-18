@@ -1,3 +1,9 @@
-from .client import Infinity
+"""
+My module docstring
 
-__all__ = ["Infinity"]
+Does this work?
+"""
+
+from .client import AsyncInfinity, Infinity
+
+__all__ = ["Infinity", "AsyncInfinity"]
