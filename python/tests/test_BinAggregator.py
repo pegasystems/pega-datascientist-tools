@@ -5,9 +5,8 @@ Testing the functionality of the BinAggregator
 import polars as pl
 import pytest
 from pdstools import datasets
+from pdstools.adm.BinAggregator import BinAggregator
 from plotly.graph_objects import Figure
-
-from python.pdstools.adm.BinAggregator import BinAggregator
 
 
 @pytest.fixture
