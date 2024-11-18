@@ -5,8 +5,7 @@ Testing the functionality of the ADMDatamart functions
 import pathlib
 
 import pytest
-from pdstools import ADMTrees
-from pdstools.adm.ADMTrees import ADMTreesModel
+from pdstools.adm.ADMTrees import ADMTrees, ADMTreesModel
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 
@@ -37,7 +36,7 @@ def sample_x(trees):
             if isinstance(list(values)[0], str):
                 try:
                     float(list(values)[0])
-                except:
+                except Exception:
                     print("FAILED ON ", values)
                     values = values.union({"Other"})
         x[variable] = sample(list(values), 1)[0]

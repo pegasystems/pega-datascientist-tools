@@ -6,7 +6,8 @@ import datetime
 
 import polars as pl
 import pytest
-from pdstools import Prediction, cdh_utils
+from pdstools import Prediction
+from pdstools.utils import cdh_utils
 
 mock_prediction_data = pl.DataFrame(
     {
