@@ -1,3 +1,10 @@
+# /// script
+# requires-python = ">=3.9"
+# dependencies = [
+#     "pdstools[app]",
+# ]
+# ///
+
 import argparse
 import sys
 from importlib import resources
@@ -23,6 +30,9 @@ def create_parser():
 
 def main():
     parser = create_parser()
+    if len(sys.argv) == 1:
+        # No arguments are provided, set default command to 'run health_check'
+        sys.argv.extend(["run", "health_check"])
     args, unknown = parser.parse_known_args()
     args.func(args, unknown)
 
