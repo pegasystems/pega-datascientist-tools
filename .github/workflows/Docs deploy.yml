@@ -10,6 +10,7 @@ on:
       - python/**
       - .github/workflows/**
       - examples/**
+      - pyproject.toml
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
