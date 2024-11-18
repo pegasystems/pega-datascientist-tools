@@ -23,6 +23,10 @@ repos:
     rev: 4.0.1
     hooks:
       - id: nb-clean
+        args:
+          - --preserve-cell-metadata
+          - nbsphinx
+          - --
 
   # - repo: https://github.com/numpy/numpydoc
   #   rev: v1.8.0
