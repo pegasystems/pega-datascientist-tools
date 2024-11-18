@@ -26,6 +26,7 @@ repos:
         args:
           - --preserve-cell-metadata
           - nbsphinx
+          - tags
           - --
 
   # - repo: https://github.com/numpy/numpydoc
