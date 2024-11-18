@@ -41,7 +41,10 @@ extensions = [
 ]
 
 source_suffix = [".rst", ".md"]
-intersphinx_mapping = {"polars": ("https://docs.pola.rs/api/python/stable", None)}
+intersphinx_mapping = {
+    "polars": ("https://docs.pola.rs/api/python/stable", None),
+    "python": ("https://docs.python.org/3", None),
+}
 
 add_module_names = False
 toc_object_entries_show_parents = "hide"
@@ -147,6 +150,8 @@ nbsphinx.RST_TEMPLATE = RST_TEMPLATE
 # Exclude the logger from the documentation
 def skip_member(app, what, name, obj, skip, options):
     if name == "logger":
+        return True
+    if name.startswith("_"):
         return True
     return skip
 
