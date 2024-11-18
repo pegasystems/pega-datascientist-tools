@@ -252,12 +252,13 @@ def show_credits(quarto_source: str):
     quarto_print(
         f"""
 
-    | Tool | Version |
-    |-----|-----|
-    | Notebook | {quarto_source} |
-    | Quarto | {quarto_version} |
-    | Pandoc | {pandoc_version} |
-    | Created at | {timestamp_str} |
+    This notebook: {quarto_source}
+    Quarto runtime: {quarto_version}
+    Pandoc: {pandoc_version}
+    
+    Document created at: {timestamp_str}
+
+    Additional details from 'pdstools.show_versions()':
 
     """
     )

@@ -20,7 +20,7 @@ from ..utils.cdh_utils import from_prpc_date_time
 def read_ds_export(
     filename: Union[str, BytesIO],
     path: Union[str, os.PathLike] = ".",
-    verbose: bool = True,
+    verbose: bool = False,
     **reading_opts,
 ) -> Optional[pl.LazyFrame]:
     """Read a Pega dataset export file.

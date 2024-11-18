@@ -130,6 +130,8 @@ class ADMDatamart:
         query: Optional[QUERY] = None,
         extract_pyname_keys: bool = True,
     ):
+        # "model_data"/"predictor_data" are magic keywords
+        # to automatically find data files in base_path
         model_df = read_ds_export(model_filename or "model_data", base_path)
         predictor_df = read_ds_export(predictor_filename or "predictor_data", base_path)
         return cls(
