@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.9"
 # dependencies = [
-#     "pdstools[app]",
+#     "pdstools[app]>=4.0",
 # ]
 # ///
 
@@ -14,7 +14,7 @@ def create_parser():
     parser = argparse.ArgumentParser(
         description="Command line utility to run pdstools apps."
     )
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    subparsers = parser.add_subparsers(dest="command")
 
     # Subparser for the 'run' command
     run_parser = subparsers.add_parser("run", help="Run the specified pdstools app")
@@ -23,17 +23,25 @@ def create_parser():
         choices=["health_check", "decision_analyzer"],
         help='The app to run: "health_check" or "decision_analyzer"',
         default="health_check",
+        nargs="?",  # This makes the 'app' argument optional, allowing the default to take effect
     )
     run_parser.set_defaults(func=run)
+
+    # Set 'run' as the default subcommand
+    parser.set_defaults(command="run", func=run, app="health_check")
+
     return parser
 
 
 def main():
     parser = create_parser()
-    if len(sys.argv) == 1:
-        # No arguments are provided, set default command to 'run health_check'
-        sys.argv.extend(["run", "health_check"])
     args, unknown = parser.parse_known_args()
+
+    # Manually handle the default command if none is provided
+    if args.command is None:
+        args.command = "run"
+        args.app = "health_check"
+
     args.func(args, unknown)
 
 
@@ -59,10 +67,8 @@ def run(args, unknown):
 
     if unknown:
         sys.argv.extend(unknown)
-
     if "--server.maxUploadSize" not in sys.argv:
         sys.argv.extend(["--server.maxUploadSize", "2000"])
-
     sys.exit(stcli.main())
 
 
