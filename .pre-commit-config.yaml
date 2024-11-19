@@ -19,6 +19,16 @@ repos:
       - id: ruff-format
         types_or: [ python, pyi ]
 
+  - repo: https://github.com/srstevenson/nb-clean
+    rev: 4.0.1
+    hooks:
+      - id: nb-clean
+        args:
+          - --preserve-cell-metadata
+          - nbsphinx
+          - tags
+          - --
+
   # - repo: https://github.com/numpy/numpydoc
   #   rev: v1.8.0
   #   hooks:

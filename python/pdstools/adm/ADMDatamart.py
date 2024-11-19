@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__all__ = ["ADMDatamart"]
+
 import datetime
 import logging
 import os
@@ -27,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 class ADMDatamart:
     """
-    The main class for interacting with ADM data from the Pega Datamart.
+    Monitor and analyze ADM data from the Pega Datamart.
 
     To initialize this class, either
     1. Initialize directly with the model_df and predictor_df polars LazyFrames
@@ -37,6 +39,7 @@ class ADMDatamart:
     from further analysis, and apply correct typing and useful renaming.
 
     There is also a few "namespaces" that you can call from this class:
+
     - `.plot` contains ready-made plots to analyze the data with
     - `.aggregates` contains mostly internal data aggregations queries
     - `.agb` contains analysis utilities for Adaptive Gradient Boosting models
@@ -51,15 +54,11 @@ class ADMDatamart:
         The Polars LazyFrame represenation of the predictor binning table.
     query : QUERY, optional
         An optional query to apply to the input data.
-        For details, see :meth:`pdstools.cdh_utils._apply_query`.
+        For details, see :meth:`pdstools.utils.cdh_utils._apply_query`.
     extract_pyname_keys : bool, default = True
         Whether to extract extra keys from the `pyName` column.
-
-    See Also
-    --------
-    pdstools.adm.Plots : The out of the box plots to run.
-    pdstools.adm.Reports : The Health Check and Model Report files to generate.
-    pdstools.cdh_utils._apply_query : The internal query mechansm to filter the data.
+        In older Pega versions, this contained pyTreatment among other
+        (customizable) fields. By default True
 
     Examples
     --------
@@ -73,11 +72,33 @@ class ADMDatamart:
     >>> dm = ADMDatamart.from_ds_export(base_path='/my_export_folder')
     >>> dm = ADMDatamart.from_s3("pega_export")
     >>> dm = ADMDatamart.from_dataflow_export(glob("data/models*"), glob("data/preds*"))
+
+    Note
+    ----
+    This class depends on two datasets:
+
+    - `pyModelSnapshots` corresponds to the `model_data` attribute
+    - `pyADMPredictorSnapshots` corresponds to the `predictor_data` attribute
+
+    For instructions on how to download these datasets, please refer to the following
+    article: https://docs.pega.com/bundle/platform/page/platform/decision-management/exporting-monitoring-database.html
+
+    See Also
+    --------
+    pdstools.adm.Plots : The out of the box plots on the Datamart data
+    pdstools.adm.Reports : Methods to generate the Health Check and Model Report
+    pdstools.utils.cdh_utils._apply_query : How to query the ADMDatamart class and methods
     """
 
     model_data: Optional[pl.LazyFrame]
     predictor_data: Optional[pl.LazyFrame]
     combined_data: Optional[pl.LazyFrame]
+    plot: Plots
+    aggregates: Aggregates
+    agb: AGB
+    generate: Reports
+    cdh_guidelines: CDHGuidelines
+    bin_aggregator: BinAggregator
 
     def __init__(
         self,
@@ -124,6 +145,54 @@ class ADMDatamart:
         query: Optional[QUERY] = None,
         extract_pyname_keys: bool = True,
     ):
+        """Import the ADMDatamart class from a Pega Dataset Export
+
+        Parameters
+        ----------
+        model_filename : Optional[str], optional
+            The full path or name (if base_path is given) to the model snapshot files,
+            by default None
+        predictor_filename : Optional[str], optional
+            The full path or name (if base_path is given) to the predictor binning
+            snapshot files, by default None
+        base_path : Union[os.PathLike, str], optional
+            A base path to provide so that we can automatically find the most recent
+            files for both the model and predictor snapshots, if model_filename and
+            predictor_filename are not given as full paths, by default "."
+        query : Optional[QUERY], optional
+            An optional argument to filter out selected data, by default None
+        extract_pyname_keys : bool, optional
+            Whether to extract additional keys from the `pyName` column, by default True
+
+        Returns
+        -------
+        ADMDatamart
+            The properly initialized ADMDatamart class
+
+        Examples
+        --------
+        >>> from pdstools import ADMDatamart
+
+        >>> # To automatically find the most recent files in the 'my_export_folder' dir:
+        >>> dm = ADMDatamart.from_ds_export(base_path='/my_export_folder')
+
+        >>> # To specify individual files:
+        >>> dm = ADMDatamart.from_ds_export(
+                model_df='/Downloads/model_snapshots.parquet',
+                predictor_df = '/Downloads/predictor_snapshots.parquet'
+                )
+
+        Note
+        ----
+        By default, the dataset export in Infinity returns a zip file per table.
+        You do not need to open up this zip file! You can simply point to the zip,
+        and this method will be able to read in the underlying data.
+
+        See Also
+        --------
+        pdstools.pega_io.File.read_ds_export : More information on file compatibility
+        pdstools.utils.cdh_utils._apply_query : How to query the ADMDatamart class and methods
+        """
         # "model_data"/"predictor_data" are magic keywords
         # to automatically find data files in base_path
         model_df = read_ds_export(model_filename or "model_data", base_path)
@@ -133,7 +202,9 @@ class ADMDatamart:
         )
 
     @classmethod
-    def from_s3(cls): ...
+    def from_s3(cls):
+        """Not implemented yet. Please let us know if you would like this functionality!"""
+        ...
 
     @classmethod
     def from_dataflow_export(
@@ -148,6 +219,56 @@ class ADMDatamart:
         compression: Literal["gzip"] = "gzip",
         cache_directory: Union[os.PathLike, str] = "cache",
     ):
+        """Read in data generated by a data flow, such as the Prediction Studio export.
+
+        Dataflows are able to export data from and to various sources.
+        As they are meant to be used in production, they are highly resiliant.
+        For every partition and every node, a dataflow will output a small json file
+        every few seconds. While this is great for production loads, it can be a bit
+        more tricky to read in the data for smaller-scale and ad-hoc analyses.
+
+        This method aims to make the ingestion of such highly partitioned data easier.
+        It reads in every individual small json file that the dataflow has output,
+        and caches them to a parquet file in the `cache_directory` folder.
+        As such, if you re-run this method later with more data added since the last
+        export, we will not read in from the (slow) dataflow files, but rather from the
+        (much faster) cache.
+
+        Parameters
+        ----------
+        model_data_files : Union[Iterable[str], str]
+            A list of files to read in as the model snapshots
+        predictor_data_files : Union[Iterable[str], str]
+            A list of files to read in as the predictor snapshots
+        query : Optional[QUERY], optional
+            A, by default None
+        extract_pyname_keys : bool, optional
+            Whether to extract extra keys from the pyName column, by default True
+        cache_file_prefix : str, optional
+            An optional prefix for the cache files, by default ""
+        extension : Literal[&quot;json&quot;], optional
+            The extension of the source data, by default "json"
+        compression : Literal[&quot;gzip&quot;], optional
+            The compression of the source files, by default "gzip"
+        cache_directory : Union[os.PathLike, str], optional
+            Where to store the cached files, by default "cache"
+
+        Returns
+        -------
+        ADMDatamart
+            An initialized instance of the datamart class
+
+        Examples
+        --------
+        >>> from pdstools import ADMDatamart
+        >>> import glob
+        >>> dm = ADMDatamart.from_dataflow_export(glob("data/models*"), glob("data/preds*"))
+
+        See also
+        --------
+        pdstools.utils.cdh_utils._apply_query : How to query the ADMDatamart class and methods
+        glob : Makes creating lists of files much easier
+        """
         model_data = read_dataflow_output(
             model_data_files,
             cache_file_prefix + "model_data",
@@ -176,6 +297,7 @@ class ADMDatamart:
         query: Optional[QUERY] = None,
         extract_pyname_keys: bool = True,
     ) -> Optional[pl.LazyFrame]:
+        """Internal method to validate model data"""
         if df is None:
             logger.info("No model data available.")
             return df
@@ -205,6 +327,7 @@ class ADMDatamart:
     def _validate_predictor_data(
         self, df: Optional[pl.LazyFrame]
     ) -> Optional[pl.LazyFrame]:
+        """Internal method to validate predictor data"""
         if df is None:
             logger.info("No predictor data available.")
             return df
@@ -235,6 +358,35 @@ class ADMDatamart:
             Union[pl.Expr, Callable[..., pl.Expr]]
         ] = cdh_utils.default_predictor_categorization,
     ):
+        """Apply a new predictor categorization to the datamart tables
+
+        In certain plots, we use the predictor categorization to indicate what 'kind'
+        a certain predictor is, such as IH, Customer, etc. Call this method with a
+        custom Polars Expression (or a method that returns one) - and it will be applied
+        to the predictor data (and the combined dataset too).
+
+        For a reference implementation of a custom predictor categorization,
+        refer to `pdstools.utils.cdh_utils.default_predictor_categorization`.
+
+        Parameters
+        ----------
+        df : Optional[pl.LazyFrame], optional
+            A Polars Lazyframe to apply the categorization to.
+            If not provided, applies it over the predictor data and combined datasets.
+            By default, None
+        categorization : Union[pl.Expr, Callable[..., pl.Expr]]
+            A polars Expression (or method that returns one) to apply the mapping with.
+            Should be based on Polars' when.then.otherwise syntax.
+            By default, `pdstools.utils.cdh_utils.default_predictor_categorization`
+
+        See also
+        --------
+        pdstools.utils.cdh_utils.default_predictor_categorization : The default
+
+        Examples
+        --------
+        >>> #TODO
+        """
         if callable(categorization):
             categorization: pl.Expr = categorization()
 
@@ -255,7 +407,7 @@ class ADMDatamart:
         path: Union[os.PathLike, str] = ".",
         selected_model_ids: Optional[List[str]] = None,
     ) -> Tuple[Optional[Path], Optional[Path]]:
-        """Cache modelData and predictorData to files.
+        """Caches model_data and predictor_data to files.
 
         Parameters
         ----------
@@ -301,6 +453,10 @@ class ADMDatamart:
 
     @cached_property
     def unique_channels(self):
+        """A consistently ordered set of unique channels in the data
+
+        Used for making the color schemes in different plots consistent
+        """
         return set(
             self.model_data.select(pl.col("Channel").unique().sort()).collect()[
                 "Channel"
@@ -309,6 +465,10 @@ class ADMDatamart:
 
     @cached_property
     def unique_configurations(self):
+        """A consistently ordered set of unique configurations in the data
+
+        Used for making the color schemes in different plots consistent
+        """
         return set(
             self.model_data.select(pl.col("Configuration").unique())
             .collect()["Configuration"]
@@ -317,6 +477,9 @@ class ADMDatamart:
 
     @cached_property
     def unique_channel_direction(self):
+        """A consistently ordered set of unique channel+direction combos in the data
+        Used for making the color schemes in different plots consistent
+        """
         return set(
             self.model_data.select(
                 pl.concat_str(pl.col("Channel"), pl.col("Direction"), separator="/")
@@ -329,6 +492,9 @@ class ADMDatamart:
 
     @cached_property
     def unique_configuration_channel_direction(self):
+        """A consistently ordered set of unique configuration+channel+direction
+        Used for making the color schemes in different plots consistent
+        """
         return set(
             self.model_data.select(
                 pl.concat_str(
@@ -346,6 +512,9 @@ class ADMDatamart:
 
     @cached_property
     def unique_predictor_categories(self):
+        """A consistently ordered set of unique predictor categories in the data
+        Used for making the color schemes in different plots consistent
+        """
         return set(
             self.predictor_data.select(
                 pl.col("PredictorCategory").unique().sort()

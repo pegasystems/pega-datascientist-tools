@@ -1,3 +1,4 @@
+__all__ = ["Plots"]
 import logging
 from datetime import timedelta
 from functools import wraps

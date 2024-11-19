@@ -4,6 +4,8 @@
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+from datetime import datetime
+
 import plotly.io as pio
 
 pio.renderers.default = "notebook_connected"
@@ -11,11 +13,11 @@ pio.renderers.default = "notebook_connected"
 # -- Project information -----------------------------------------------------
 
 project = "pdstools"
-copyright = "2022, Pegasystems"
+copyright = f"{datetime.now().year}, Pegasystems"
 author = "Pegasystems"
 
 # The full version, including alpha/beta/rc tags
-release = "2.2.0"
+release = "4.0.0"
 
 
 # -- General configuration ---------------------------------------------------
@@ -32,13 +34,16 @@ extensions = [
     "sphinx_copybutton",
     "myst_parser",
     "sphinx.ext.intersphinx",
+    "sphinxarg.ext",
+    # "sphinx_search.extension",
     # "jupyter_sphinx",
     # "sphinx_gallery.gen_gallery",
 ]
 
 source_suffix = [".rst", ".md"]
 intersphinx_mapping = {
-    "polars": ("https://pola-rs.github.io/polars/py-polars/html", None)
+    "polars": ("https://docs.pola.rs/api/python/stable", None),
+    "python": ("https://docs.python.org/3", None),
 }
 
 add_module_names = False
@@ -72,7 +77,7 @@ html_theme = "furo"
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ["_static"]
+# html_static_path = ["_static"]
 
 html_favicon = "../../../images/pegasystems-inc-vector-logo.svg"
 html_logo = "../../../images/pegasystems-inc-vector-logo.svg"
@@ -101,7 +106,8 @@ suppress_warnings = ["spub.duplicated_toc_entry"]
 import re  # noqa: E402
 
 import nbsphinx  # noqa: E402
-from nbsphinx import RST_TEMPLATE, setup  # noqa: E402
+from nbsphinx import RST_TEMPLATE  # noqa: E402
+from nbsphinx import setup as nbsphinx_setup  # noqa: E402
 
 BLOCK_REGEX = r"(({{% block {block} -%}}\n)(.*?)({{% endblock {block} %}}\n))"
 PATCH_TEMPLATE = r"{{% block {block} -%}}\n{patch}{{% endblock {block} %}}\n"
@@ -139,4 +145,21 @@ RST_TEMPLATE = remove_block_on_tag(
     "nboutput", ["remove_cell", "remove_output"], RST_TEMPLATE
 )
 nbsphinx.RST_TEMPLATE = RST_TEMPLATE
+
+
+# Exclude the logger from the documentation
+def skip_member(app, what, name, obj, skip, options):
+    if name == "logger":
+        return True
+    if name.startswith("_"):
+        return True
+    return skip
+
+
+def setup(app):
+    app.connect("autodoc-skip-member", skip_member)
+    # Call the nbsphinx setup function to ensure it is set up correctly
+    nbsphinx_setup(app)
+
+
 __all__ = ["setup"]

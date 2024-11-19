@@ -1,3 +1,6 @@
+__all__ = ["Infinity", "AsyncInfinity"]
+
+
 from importlib.util import find_spec
 
 from ..utils.namespaces import MissingDependenciesException
@@ -18,6 +21,8 @@ Security tab, this is likely due to insufficient permissions for your operator.
 
 
 class Infinity(SyncAPIClient):
+    """The Pega Infinity DX API client"""
+
     version: str
 
     def __init__(self, *args, **kwargs):

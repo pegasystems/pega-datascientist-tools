@@ -23,7 +23,7 @@ def sample_without_predictor_binning() -> ADMDatamart:
     return ADMDatamart(model_df=model_df)
 
 
-def test_GenerateHealthCheck(sample):
+def test_GenerateHealthCheck(sample: ADMDatamart):
     hc = sample.generate.health_check()
     assert hc == pathlib.Path("./HealthCheck.html").resolve()
     assert pathlib.Path(hc).exists()
@@ -31,7 +31,7 @@ def test_GenerateHealthCheck(sample):
     assert not pathlib.Path(hc).exists()
 
 
-def test_ExportTables(sample):
+def test_ExportTables(sample: ADMDatamart):
     excel = sample.generate.excel_report(predictor_binning=True)
     assert excel == pathlib.Path("./Tables.xlsx")
     assert excel.exists()
@@ -47,7 +47,7 @@ def test_ExportTables(sample):
     assert not pathlib.Path(excel).exists()
 
 
-def test_ExportTables_NoBinning(sample):
+def test_ExportTables_NoBinning(sample: ADMDatamart):
     excel = sample.generate.excel_report(predictor_binning=False)
     assert excel == pathlib.Path("./Tables.xlsx")
     assert pathlib.Path(excel).exists()
@@ -62,7 +62,9 @@ def test_ExportTables_NoBinning(sample):
     assert not pathlib.Path(excel).exists()
 
 
-def test_GenerateHealthCheck_ModelDataOnly(sample_without_predictor_binning):
+def test_GenerateHealthCheck_ModelDataOnly(
+    sample_without_predictor_binning: ADMDatamart,
+):
     hc = sample_without_predictor_binning.generate.health_check(name="MyOrg")
     assert hc == pathlib.Path("./HealthCheck_MyOrg.html").resolve()
     assert pathlib.Path(hc).exists()
@@ -70,7 +72,7 @@ def test_GenerateHealthCheck_ModelDataOnly(sample_without_predictor_binning):
     assert not pathlib.Path(hc).exists()
 
 
-def test_ExportTables_ModelDataOnly(sample_without_predictor_binning):
+def test_ExportTables_ModelDataOnly(sample_without_predictor_binning: ADMDatamart):
     excel = sample_without_predictor_binning.generate.excel_report(
         name="ModelTables.xlsx", predictor_binning=True
     )
@@ -85,7 +87,7 @@ def test_ExportTables_ModelDataOnly(sample_without_predictor_binning):
     pathlib.Path(excel).unlink()
 
 
-def test_GenerateModelReport(sample):
+def test_GenerateModelReport(sample: ADMDatamart):
     report = sample.generate.model_reports(
         model_ids=["bd70a915-697a-5d43-ab2c-53b0557c85a0"],
         name="MyOrg",
@@ -100,7 +102,7 @@ def test_GenerateModelReport(sample):
     assert not pathlib.Path(report).exists()
 
 
-def test_GenerateModelReport_Failing(sample_without_predictor_binning):
+def test_GenerateModelReport_Failing(sample_without_predictor_binning: ADMDatamart):
     with pytest.raises(Exception) as e_info:
         sample_without_predictor_binning.generate.model_reports(
             model_ids="bd70a915-697a-5d43-ab2c-53b0557c85a0", name="MyOrg"

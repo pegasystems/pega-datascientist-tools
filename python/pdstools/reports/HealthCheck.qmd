@@ -32,11 +32,10 @@ from IPython.display import display, Markdown
 from pdstools import (
     datasets,
     ADMDatamart,
-    cdh_utils,
     read_ds_export,
 )
 from pdstools.adm.CDH_Guidelines import CDHGuidelines
-from pdstools.utils import pega_template, report_utils
+from pdstools.utils import pega_template, report_utils, cdh_utils
 
 # from plotly.offline import iplot
 from great_tables import GT, style, md, html, loc
@@ -1893,5 +1892,3 @@ except Exception as e:
 report_utils.show_credits("pega-datascientist-tools/python/pdstools/reports/HealthCheck.qmd")
 
 ```
-
-

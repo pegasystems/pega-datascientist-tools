@@ -6,7 +6,8 @@ from typing import Iterable, Literal, Optional, Union
 
 import polars as pl
 
-from ..pega_io import cache_to_file, read_dataflow_output, read_ds_export
+from ..pega_io import read_dataflow_output, read_ds_export
+from ..pega_io.File import cache_to_file
 from ..utils import cdh_utils
 from ..utils.types import QUERY
 from . import Schema
@@ -15,6 +16,8 @@ from .Plots import Plots
 
 
 class ValueFinder:
+    """Analyze the Value Finder dataset for detailed insights"""
+
     def __init__(
         self,
         df: pl.LazyFrame,

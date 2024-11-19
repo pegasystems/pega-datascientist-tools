@@ -4,14 +4,13 @@
    contain the root `toctree` directive.
 
 Welcome to the PDS Tools Python documentation
-===========================================
+=============================================
 
 .. toctree::
    :maxdepth: 1
    :caption: Getting Started
 
-   Installation <https://github.com/pegasystems/pega-datascientist-tools/wiki#installation>
-   Getting Started <https://github.com/pegasystems/pega-datascientist-tools/wiki>
+   articles/GettingStarted
    ADM Health Check <https://github.com/pegasystems/pega-datascientist-tools/wiki/ADM-Health-Check>
 
 .. toctree::
@@ -22,7 +21,6 @@ Welcome to the PDS Tools Python documentation
    articles/ADMBinningInsights
    articles/AGBModelVisualisation
    articles/vf_analysis
-   articles/Example_Data_Anonymization
    articles/explainability_extract
 
 .. toctree::
@@ -39,13 +37,15 @@ Welcome to the PDS Tools Python documentation
    reference
 * :ref:`genindex`
 
-.. toctree::
-   :maxdepth: 1
-   :caption: Documentation
-
 Documentation index
 ===================
 
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Documentation
+
+   cli

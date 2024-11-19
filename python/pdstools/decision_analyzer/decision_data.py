@@ -2,7 +2,6 @@ from bisect import bisect_left
 from functools import cached_property
 from typing import List, Optional, Union
 
-import numpy as np
 import polars as pl
 import polars.selectors as cs
 
@@ -19,7 +18,7 @@ from .utils import (
 )
 
 
-class DecisionData:
+class DecisionAnalyzer:
     """
     Container data class for the raw decision data. Only one instance of this
     should exist and will be associated with the streamlit app state.
@@ -262,6 +261,8 @@ class DecisionData:
     @cached_property
     def sample(self):
         def _sample_it(s: pl.Series) -> pl.Series:
+            import numpy as np
+
             unique_ids = s.unique()  # should this be approximate?
             num_samples = min(len(unique_ids), 10000)
             sampled_ids = np.random.choice(unique_ids, num_samples, replace=False)

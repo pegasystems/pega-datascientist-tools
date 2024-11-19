@@ -4,19 +4,18 @@ Testing the functionality of the BinAggregator
 
 import polars as pl
 import pytest
-from pdstools import ADMDatamart, BinAggregator, datasets
+from pdstools import datasets
+from pdstools.adm.BinAggregator import BinAggregator
 from plotly.graph_objects import Figure
-
-dm = ADMDatamart(
-    model_df=datasets.cdh_sample().model_data,
-    predictor_df=datasets.cdh_sample().predictor_data,
-    query=((pl.col("Issue").is_in(["Sales"])) & (pl.col("Direction") == "Inbound")),
-)
 
 
 @pytest.fixture
 def cdhsample_binaggregator():
-    return BinAggregator(dm)
+    sample = datasets.cdh_sample(
+        query=((pl.col("Issue").is_in(["Sales"])) & (pl.col("Direction") == "Inbound"))
+    )
+
+    return sample.bin_aggregator
 
 
 def test_overall_num_rollup(cdhsample_binaggregator):
@@ -240,7 +239,7 @@ def test_plot_binning_lift(cdhsample_binaggregator):
 
 
 @pytest.mark.skip(reason="no way of currently testing this")
-def test_verbose_mode(cdhsample_binaggregator, capsys):
+def test_verbose_mode(cdhsample_binaggregator: BinAggregator, capsys):
     cdhsample_binaggregator.roll_up(
         ["Customer.Prefix", "Customer.Age"], n=6, aggregation="Group", verbose=True
     )

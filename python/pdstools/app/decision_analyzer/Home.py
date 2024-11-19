@@ -9,7 +9,7 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
     handle_file_upload,
     handle_sample_data,
 )
-from pdstools.decision_analyzer.decision_data import DecisionData
+from pdstools.decision_analyzer.decision_data import DecisionAnalyzer
 
 st.set_page_config(layout="wide")
 pl.enable_string_cache()  # Done here, but also put in ensure_data()
@@ -70,7 +70,7 @@ elif source == "Direct File Path":
     raw_data = handle_direct_file_path()
 if raw_data is not None:
     with st.spinner("Reading Data"):
-        st.session_state.decision_data = DecisionData(raw_data)
+        st.session_state.decision_data = DecisionAnalyzer(raw_data)
         del raw_data
 
         if "decision_data" in st.session_state:

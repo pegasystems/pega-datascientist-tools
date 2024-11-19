@@ -8,6 +8,11 @@ import polars.selectors as cs
 
 
 class Anonymization:
+    """A utility class to efficiently anonymize Pega Datasets
+
+    In particular, this class is aimed at anonymizing the Historical Dataset.
+    """
+
     def __init__(
         self,
         path_to_files: str,

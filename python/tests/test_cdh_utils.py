@@ -7,7 +7,8 @@ import datetime
 import numpy as np
 import polars as pl
 import pytest
-from pdstools import cdh_utils, datasets
+from pdstools import datasets
+from pdstools.utils import cdh_utils
 from pytz import timezone
 
 
