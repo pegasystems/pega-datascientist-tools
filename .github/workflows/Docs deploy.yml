@@ -2,15 +2,8 @@ name: Build & Deploy docs
 
 on:
  push:
-    # tags: Want to do this ultimately, but keeping it pushing for now
-    #   - 'v[0-9]+.[0-9]+.[0-9]+'
-    branches:
-      - master
-    paths:
-      - python/**
-      - .github/workflows/**
-      - examples/**
-      - pyproject.toml
+    tags: Want to do this ultimately, but keeping it pushing for now
+      - 'v[0-9]+.[0-9]+.[0-9]+'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
