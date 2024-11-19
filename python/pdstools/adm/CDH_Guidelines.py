@@ -159,7 +159,11 @@ class CDHGuidelines:
     ) -> pl.DataFrame:
         if not custom_predictions:
             custom_predictions = []
-        all_predictions = _NBAD_Prediction_data + custom_predictions
+        all_predictions = _NBAD_Prediction_data + [
+            prediction
+            for prediction in custom_predictions
+            if prediction[0].upper() not in {x[0].upper() for x in _NBAD_Prediction_data}
+        ]
 
         df = (
             pl.DataFrame(data=all_predictions, orient="row")
