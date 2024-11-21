@@ -81,7 +81,7 @@ jobs:
         run: uv run pytest --cov=./python/pdstools --cov-report=xml --cov-config=./python/tests/.coveragerc --ignore=python/tests/test_healthcheck.py --ignore=python/tests/test_ADMTrees.py
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v5.0.7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
