@@ -159,8 +159,7 @@ class BaseClient(Generic[_HttpxClientT]):
                 )
             )
         auth = httpx.BasicAuth(username=user_name, password=password)
-        if not base_url.endswith(("prweb", "prweb/")):
-            base_url = base_url.rsplit("/prweb")[0]
+        base_url = base_url.rsplit("/prweb")[0]
         return cls(
             base_url=base_url,
             auth=auth,
