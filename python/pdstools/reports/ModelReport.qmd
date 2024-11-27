@@ -217,20 +217,23 @@ or Box. It is preferable to view them from a browser.
 
 # unfortunately and TODO return_df on the previous plot doesnt give all the columns we'd need so we have to fetch the data separately
 
-classifier = (
-    datamart.aggregates.last(table="predictor_data")
-    .filter(pl.col("ModelID") == model_id)
-    .filter(pl.col("EntryType") == "Classifier")
-    .sort("BinIndex")
-)
+try:
+    classifier = (
+        datamart.aggregates.last(table="predictor_data")
+        .filter(pl.col("ModelID") == model_id)
+        .filter(pl.col("EntryType") == "Classifier")
+        .sort("BinIndex")
+    )
 
-auc_roc = round(classifier.select(pl.last("Performance")).collect().item(), 4)
+    auc_roc = round(classifier.select(pl.last("Performance")).collect().item(), 4)
 
-report_utils.quarto_print(
-    f"""
-The model performance is **{auc_roc}** measured as AUC-ROC. This number is calculated from the “active” bins of the Classifier.
-"""
-)
+    report_utils.quarto_print(
+        f"""
+    The model performance is **{auc_roc}** measured as AUC-ROC. This number is calculated from the “active” bins of the Classifier.
+    """
+    )
+except Exception as e:
+    report_utils.quarto_plot_exception("Model Performance", e)
 ```
 
 The classifier maps the model scores (average of the log odds of the active predictors) to a propensity value. The “active” bins are the ones that can be reached from the current binning of the active predictors.
@@ -238,37 +241,39 @@ The classifier maps the model scores (average of the log odds of the active pred
 See the [ADM Explained](https://pegasystems.github.io/pega-datascientist-tools/Python/articles/ADMExplained.html) article for more information on how ADM exactly works.
 
 ```{python}
+try:
+    gt = (
+        report_utils.table_standard_formatting(
+            classifier.collect().select(
+                pl.last("ResponseCount"),
+                pl.last("Positives"),
+                (pl.last("Positives") / pl.last("ResponseCount")).alias("Base Propensity"),
+                pl.last("Performance"),
+            ),
+            highlight_limits = {
+                "ResponseCount" : "Responses",
+                "Positives" : "Positive Responses",
+                "Performance" : "Model Performance"
+            }
+        )
+        .cols_label(
+            ResponseCount="Responses",
+        )
+        .fmt_number(
+            decimals=0,
+            columns=["ResponseCount", "Positives"],
+        )
+        .fmt_percent(decimals=3, columns="Base Propensity")
+        .fmt_number(
+            decimals=2,
+            scale_by=100,
+            columns=["Performance"],
+        )
+    )
 
-gt = (
-    report_utils.table_standard_formatting(
-        classifier.collect().select(
-            pl.last("ResponseCount"),
-            pl.last("Positives"),
-            (pl.last("Positives") / pl.last("ResponseCount")).alias("Base Propensity"),
-            pl.last("Performance"),
-        ),
-        highlight_limits = {
-            "ResponseCount" : "Responses",
-            "Positives" : "Positive Responses",
-            "Performance" : "Model Performance"
-        }
-    )
-    .cols_label(
-        ResponseCount="Responses",
-    )
-    .fmt_number(
-        decimals=0,
-        columns=["ResponseCount", "Positives"],
-    )
-    .fmt_percent(decimals=3, columns="Base Propensity")
-    .fmt_number(
-        decimals=2,
-        scale_by=100,
-        columns=["Performance"],
-    )
-)
-
-display(gt)
+    display(gt)
+except Exception as e:
+    report_utils.quarto_plot_exception("Model Performance", e)
 ```
 
 
@@ -290,43 +295,45 @@ The Python version has no notion of unreachable bins (yet), when it has we shoul
 
 ```{python}
 
-human_friendly_scoredistribution = (
-    classifier.select(
-        pl.col("BinIndex").alias("Index"),
-        pl.col("BinSymbol").alias("Bin"),
-        pl.col("BinResponseCount").alias("Responses"),
-        pl.col("BinPositives").alias("Positives"),
-        (100 * (pl.col("BinPositives").cum_sum(reverse=True)) / pl.sum("BinPositives"))
-        .round(2)
-        .alias("Cum. Positives (%)"),
-        (
-            100
-            * (pl.col("BinResponseCount").cum_sum(reverse=True))
-            / pl.sum("BinResponseCount")
+try:
+    human_friendly_scoredistribution = (
+        classifier.select(
+            pl.col("BinIndex").alias("Index"),
+            pl.col("BinSymbol").alias("Bin"),
+            pl.col("BinResponseCount").alias("Responses"),
+            pl.col("BinPositives").alias("Positives"),
+            (100 * (pl.col("BinPositives").cum_sum(reverse=True)) / pl.sum("BinPositives"))
+            .round(2)
+            .alias("Cum. Positives (%)"),
+            (
+                100
+                * (pl.col("BinResponseCount").cum_sum(reverse=True))
+                / pl.sum("BinResponseCount")
+            )
+            .round(2)
+            .alias("Cum. Total (%)"),
+            (100 * pl.col("BinPropensity")).round(3).alias("Propensity (%)"),
+            z_ratio(pl.col("BinPositives"), pl.col("BinNegatives"))
+            .round(3)
+            .alias("Z Ratio"),
+            (lift(pl.col("BinPositives"), pl.col("BinNegatives")) * 100)
+            .round(2)
+            .alias("Lift (%)"),
+            (pl.col("BinAdjustedPropensity") * 100)
+            .round(3)
+            .alias("Adjusted Propensity (%)"),
         )
-        .round(2)
-        .alias("Cum. Total (%)"),
-        (100 * pl.col("BinPropensity")).round(3).alias("Propensity (%)"),
-        z_ratio(pl.col("BinPositives"), pl.col("BinNegatives"))
-        .round(3)
-        .alias("Z Ratio"),
-        (lift(pl.col("BinPositives"), pl.col("BinNegatives")) * 100)
-        .round(2)
-        .alias("Lift (%)"),
-        (pl.col("BinAdjustedPropensity") * 100)
-        .round(3)
-        .alias("Adjusted Propensity (%)"),
+    ).collect()
+
+    # TODO some of the formatting could be done in GT instead of in polars
+
+    gt = report_utils.table_standard_formatting(
+        human_friendly_scoredistribution, title="Score Distribution"
     )
-).collect()
 
-# TODO some of the formatting could be done in GT instead of in polars
-
-gt = report_utils.table_standard_formatting(
-    human_friendly_scoredistribution, title="Score Distribution"
-)
-
-display(gt)
-
+    display(gt)
+except Exception as e:
+    report_utils.quarto_plot_exception("Score Distribution", e)
 ```
 
 
