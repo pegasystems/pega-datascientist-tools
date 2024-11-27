@@ -170,7 +170,8 @@ class Prediction:
             period_expr = []
 
         return (
-            self.predictions.join(
+            self.predictions.with_columns(pl.col("ModelName").str.to_uppercase())
+            .join(
                 self.cdh_guidelines.get_predictions_channel_mapping(
                     custom_predictions
                 ).lazy(),
@@ -249,6 +250,15 @@ class Prediction:
                     + pl.col("Negatives_NBA")
                 ),
                 CTR=(pl.col("Positives")) / (pl.col("ResponseCount")),
+                ChannelDirectionGroup=pl.when(
+                    pl.col("Channel").is_not_null()
+                    & pl.col("Direction").is_not_null()
+                    & pl.col("Channel").is_in(["Other", "Unknown", ""]).not_()
+                    & pl.col("Direction").is_in(["Other", "Unknown", ""]).not_()
+                    & pl.col("isMultiChannelPrediction").not_()
+                )
+                .then(pl.concat_str(["Channel", "Direction"], separator="/"))
+                .otherwise(pl.lit("Other")),
                 isValid=self.prediction_validity_expr,
             )
             .sort(["Prediction"] + (["Period"] if by_period is not None else []))
