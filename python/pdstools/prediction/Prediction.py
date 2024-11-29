@@ -2,14 +2,32 @@ from typing import List, Optional
 
 import polars as pl
 
+from python.pdstools.utils.namespaces import LazyNamespace
+
 from ..adm.CDH_Guidelines import CDHGuidelines
 from ..utils import cdh_utils
 
+class PredictionPlots(LazyNamespace):
+    dependencies = ["plotly"]
+
+    def __init__(self, prediction: "Prediction"):
+        self.prediction = prediction
+        super().__init__()
+
+    def lift_trend(return_df: bool = False):
+        pass
+
+    def performance_trend(return_df: bool = False):
+        pass
+
+    def ctr_trend(return_df: bool = False):
+        pass
 
 class Prediction:
     """Monitor Pega Prediction Studio Predictions"""
 
     predictions: pl.LazyFrame
+    plot: PredictionPlots
 
     # These are pretty strict conditions - many configurations appear not to satisfy these
     # perhaps the Total = Test + Control is no longer met when Impact Analyzer is around
@@ -39,6 +57,7 @@ class Prediction:
             The read in data as a Polars LazyFrame
         """
         self.cdh_guidelines = CDHGuidelines()
+        self.plot = PredictionPlots(prediction=self)
 
         predictions_raw_data_prepped = (
             df.filter(pl.col.pyModelType == "PREDICTION")

@@ -310,7 +310,7 @@ class Reports(LazyNamespace):
             # TODO consider passing in the output-dir property to the quarto project so quarto does the copying
             final_path = output_dir / output_filename
             shutil.copy(output_path, final_path)
-            
+
             return final_path
 
         finally:

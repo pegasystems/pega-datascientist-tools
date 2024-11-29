@@ -100,12 +100,13 @@ def fig_set_xaxis_modelperformance(fig, label="Model Performance"):
 # using the same argument names as the stand-alone model report.
 # When neither is passed in, it falls back to the sample data.
 
-name = "ADM Models"  # TODO: what's this used for?
 kwargs = dict()
 
-title = "ADM Model Overview"  # pass in customer name here
-subtitle = ""  # pass in a date range or other qualification of the data source
+title = "ADM Model Overview"
+subtitle = ""
 
+# Handy to debug/test the document from VScode, passing in the file names here
+# These parameters are overwritten when called externally
 datafolder = ""
 modelfilename = ""
 predictorfilename = ""

@@ -49,8 +49,8 @@ from pdstools.utils import report_utils
 ```{python}
 # | tags: [parameters]
 
+# Handy to debug/test the document from VScode, passing in the file names here
 # These parameters are overwritten when called externally
-
 datafolder = ""
 modelfilename = ""
 predictorfilename = ""
