@@ -13,6 +13,7 @@ import polars as pl
 from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
 from ..utils.types import QUERY
+from ..prediction import Prediction
 
 if TYPE_CHECKING:
     from .ADMDatamart import ADMDatamart
@@ -34,7 +35,7 @@ class Reports(LazyNamespace):
         name: Optional[
             str
         ] = None,  # TODO when ends with .html assume its the full name but this could be in _get_output_filename
-        title: str = "ADM Model Overview",
+        title: str = "ADM Model Report",
         subtitle: str = "",
         output_dir: Optional[PathLike] = None,
         only_active_predictors: bool = False,
@@ -124,7 +125,7 @@ class Reports(LazyNamespace):
                 )
                 self._write_params_file(
                     temp_dir,
-                    {
+                    params={
                         "report_type": "ModelReport",
                         "model_file_path": str(model_file_path),
                         "predictor_file_path": str(predictor_file_path),
@@ -132,6 +133,12 @@ class Reports(LazyNamespace):
                         "only_active_predictors": only_active_predictors,
                         "title": title,
                         "subtitle": subtitle,
+                    },
+                    project={"title": title, "type": "default"},
+                    analysis={
+                        "predictions": False,
+                        "predictors": (self.datamart.predictor_data is not None),
+                        "models": (self.datamart.model_data is not None),
                     },
                 )
                 self._run_quarto_command(
@@ -158,6 +165,8 @@ class Reports(LazyNamespace):
                 output_file_paths.append(output_path)
                 if progress_callback:
                     progress_callback(i + 1, len(model_ids))
+            # Is this just a difficult way to copy the file? Why not shutil.copy? Or
+            # even pass in the output-dir property to the quarto project?
             file_data, file_name = cdh_utils.process_files_to_bytes(
                 output_file_paths, base_file_name=output_path
             )
@@ -190,8 +199,10 @@ class Reports(LazyNamespace):
         output_type: str = "html",
         keep_temp_files: bool = False,
         verbose: bool = False,
+        predictions: Optional[Prediction] = None,
         model_file_path: Optional[PathLike] = None,
         predictor_file_path: Optional[PathLike] = None,
+        prediction_file_path: Optional[PathLike] = None,
     ) -> Path:
         """
         Generates Health Check report based on the provided parameters.
@@ -214,10 +225,16 @@ class Reports(LazyNamespace):
             If True, the temporary directory with temp files will not be deleted after report generation.
         verbose: bool, optional
             If True, prints detailed logs during execution.
+        predictions: Prediction, optional
+            Optional object with Predictions info. This is currently passed in to the
+            reporting through this health_check method but will be moving out into a
+            different call in the future.
         model_file_path : Union[str, Path, None], optional
             Optional name of the actual model data file, so it does not get copied
         predictor_file_path : Union[str, Path, None], optional
             Optional name of the actual predictor data file, so it does not get copied
+        prediction_file_path : Union[str, Path, None], optional
+            Optional name of the actual predictions data file, so it does not get copied
 
         Returns
         -------
@@ -253,13 +270,20 @@ class Reports(LazyNamespace):
 
             self._write_params_file(
                 temp_dir,
-                {
+                params={
                     "report_type": "HealthCheck",
                     "model_file_path": str(model_file_path),
                     "predictor_file_path": str(predictor_file_path),
+                    "prediction_file_path": str(prediction_file_path),
                     "query": query,
                     "title": title,
                     "subtitle": subtitle,
+                },
+                project={"title": title, "type": "default"},
+                analysis={
+                    "predictions": (predictions is not None),
+                    "predictors": (self.datamart.predictor_data is not None),
+                    "models": (self.datamart.model_data is not None),
                 },
             )
             self._run_quarto_command(
@@ -283,8 +307,10 @@ class Reports(LazyNamespace):
             if not output_path.exists():
                 raise ValueError(f"Failed to generate report: {output_filename}")
 
+            # TODO consider passing in the output-dir property to the quarto project so quarto does the copying
             final_path = output_dir / output_filename
             shutil.copy(output_path, final_path)
+            
             return final_path
 
         finally:
@@ -329,13 +355,19 @@ class Reports(LazyNamespace):
     #     if not predictordata_files:
     #         logger.warning("No cached predictor data found.")
 
-    def _write_params_file(self, temp_dir: Path, params: Dict) -> None:
+    def _write_params_file(
+        self, temp_dir: Path, params: Dict, project: Dict, analysis: Dict
+    ) -> None:
         """Write parameters to a YAML file."""
         import yaml
 
-        yaml_params = {"kwargs": {key: value for key, value in params.items()}}
+        yaml_params = {
+            "kwargs": params,
+            "project": project,
+            "analysis": analysis,
+        }
 
-        with open(temp_dir / "params.yaml", "w") as f:
+        with open(temp_dir / "_quarto.yaml", "w") as f:
             yaml.dump(yaml_params, f)
 
     def _run_quarto_command(
@@ -347,8 +379,6 @@ class Reports(LazyNamespace):
         verbose: bool = True,
     ) -> int:
         """Run the Quarto command to generate the report."""
-        if verbose:
-            print("Set verbose=False to hide output.")
         try:
             quarto_exec = self._find_quarto_executable()
         except FileNotFoundError as e:  # pragma: no cover
@@ -379,8 +409,6 @@ class Reports(LazyNamespace):
             output_type,
             "--output",
             output_filename,
-            "--execute-params",
-            "params.yaml",
         ]
 
         process = subprocess.Popen(
