@@ -19,6 +19,7 @@ format:
     fontsize: small
 jupyter: python3
 ---
+
 ```{python}
 # | code-fold: true
 # | output: false
@@ -89,27 +90,19 @@ def fig_set_xaxis_modelperformance(fig, label="Model Performance"):
 
 ```
 
-
-
 ```{python}
 # | tags: [parameters]
 # | echo: false
 
-# The kwargs argument is in support of the streamlit app specifically.
-# The folder/filename arguments are in support of calling from a command line,
-# using the same argument names as the stand-alone model report.
-# When neither is passed in, it falls back to the sample data.
-
-kwargs = dict()
+# Parameters will be overriden by quarto when a parameters yaml is provided
 
 title = "ADM Model Overview"
-subtitle = ""
+subtitle = "Sample data"
 
-# Handy to debug/test the document from VScode, passing in the file names here
-# These parameters are overwritten when called externally
-datafolder = ""
-modelfilename = ""
-predictorfilename = ""
+model_file_path = None
+prediction_file_path = None
+predictor_file_path = None
+query = None
 
 tables_max_rows = 200  # max number of rows for embedded tables
 barchart_max_bars = 20  # max number of bars showing in bar charts
@@ -119,20 +112,13 @@ responsecount_analysis_threshold = (
 predictor_analysis_threshold = 200  # min number of responses for predictor analysis
 # channel_responses_threshold = 10000
 configuration_responses_threshold = 10000
+```
 
+```{python}
 responsecount_analysis_query = (
     pl.col("ResponseCount") > responsecount_analysis_threshold
 )
 predictor_analysis_query = pl.col("ResponseCountBin") > predictor_analysis_threshold
-```
-
-```{python}
-if len(kwargs) > 0:
-    # Calling through function (in streamlit or in a notebook)
-    if "title" in kwargs and len(kwargs["title"]) > 0:
-        title = kwargs["title"]
-    if "subtitle" in kwargs and len(kwargs["subtitle"]) > 0:
-        subtitle = kwargs["subtitle"]
 
 # | echo: false
 report_utils.quarto_print(
@@ -145,7 +131,6 @@ report_utils.quarto_print(
 )
 
 ```
-
 
 ```{python}
 # | tags: [initialization]
@@ -178,25 +163,13 @@ def reset_datamart(dm):
     else:
         datamart_all_columns = dm.model_data.collect_schema().names()
 
-if len(kwargs) > 0:
-    # Calling through function (in streamlit or in a notebook)
+if model_file_path is not None:
     reset_datamart(
         ADMDatamart.from_ds_export(
-            model_filename= kwargs["model_file_path"],
-            predictor_filename= kwargs["predictor_file_path"],
+            model_filename=model_file_path,
+            predictor_filename=predictor_file_path,
             base_path=".",
-            query=kwargs["query"]
-        )
-    )
-elif len(datafolder) > 0 or len(modelfilename) > 0 or len(predictorfilename) > 0:
-    # Run through this qmd file
-
-    reset_datamart(
-        ADMDatamart.from_ds_export(
-            model_filename=modelfilename,
-            predictor_filename=predictorfilename,
-            base_path=datafolder,
-            # query=kwargs["query"]
+            query=query
         )
     )
 else:
@@ -205,11 +178,9 @@ else:
 
 ```
 
-This document gives a global overview of the Adaptive models and (if available) the predictors of the models. It is generated from a Python markdown (Quarto) file in the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools). This is open-source software and comes without guarantees. Off-line reports for individual
-models can be created as well, see [Wiki](https://github.com/pegasystems/pega-datascientist-tools/wiki).
+This document gives a global overview of the Adaptive models and (if available) the predictors of the models. It is generated from a Python markdown (Quarto) file in the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools). This is open-source software and comes without guarantees. Off-line reports for individual models can be created as well, see [Wiki](https://github.com/pegasystems/pega-datascientist-tools/wiki).
 
-We provide guidance and best practices where possible. However these are  generic guidelines and may or may not be applicable to the specific use case and situation of the implementation. The recommendations are strongly geared towards the CDH use cases and may not apply to, for example, Process AI.
-
+We provide guidance and best practices where possible. However these are generic guidelines and may or may not be applicable to the specific use case and situation of the implementation. The recommendations are strongly geared towards the CDH use cases and may not apply to, for example, Process AI.
 
 ```{python}
 # Start with a global bubble chart. Maybe later replace by
@@ -239,12 +210,8 @@ except Exception as e:
     report_utils.quarto_plot_exception("All ADM Models", e)
 ```
 
-
 ::: {.callout-tip title="Guidance"}
-The [Plotly](https://plotly.com/python/) charts have [user controls for panning,
-zooming etc](https://plotly.com/chart-studio-help/zoom-pan-hover-controls/) but
-note that these interactive plots do not render well in portals like Sharepoint
-or Box. It is preferable to view them from a browser.
+The [Plotly](https://plotly.com/python/) charts have [user controls for panning, zooming etc](https://plotly.com/chart-studio-help/zoom-pan-hover-controls/) but note that these interactive plots do not render well in portals like Sharepoint or Box. It is preferable to view them from a browser.
 :::
 
 # Overview of Channels
@@ -392,12 +359,12 @@ configurations it seems that the framework **{framework_usage}**.
 ```
 
 ::: {.callout-tip title="Guidance"}
-* Look out for channels supported by more than two model configurations, although there may be valid reasons to do so (e.g. different sets of predictors for certain issues)
-* Channels with no responses at all
-* Channels with no positive feedback
+-   Look out for channels supported by more than two model configurations, although there may be valid reasons to do so (e.g. different sets of predictors for certain issues)
+-   Channels with no responses at all
+-   Channels with no positive feedback
 :::
 
-::: {.callout-note}
+::: callout-note
 The total number of responses and positives are summed up over the models for that channel. If the models are configured differently, e.g. in a serial manner (shadow pattern for example) rather than in parallel (independently learning champion challenger setup) the actual counts per channel may be different. Ultimately, the real counts per channel can only be derived from interaction history data.
 :::
 
@@ -412,7 +379,6 @@ In a standard setup, the offers/conversations are presented as treatments for ac
 Adaptive Models are created per treatment (at least in the default setup) and the recommendation is to stick the default context keys of the models.
 
 The recommended [Service and data health limits for Pega Customer Decision Hub on Pega Cloud](https://docs.pega.com/bundle/customer-decision-hub-241/page/customer-decision-hub/cdh-portal/cloud-service-health-limits.html) are used here to highlight whether metrics are within limits. These limits may not apply for on-prem, non-CDH installs or for other reasons.
-
 
 ```{python}
 df_action_overview = pl.DataFrame(
@@ -569,13 +535,11 @@ Just showing the top {barchart_max_bars} here and limiting to the propositions t
 )
 ```
 
-
 ::: {.callout-tip title="Guidance"}
-- Look out for actions that stand out, having a far higher success rate than the rest. Check with business if that is expected.
+-   Look out for actions that stand out, having a far higher success rate than the rest. Check with business if that is expected.
 
-- Variation in the set of offers across customers is also an important metric but not one that can be derived from the Adaptive Model data - this requires analysis of the actual interactions.
+-   Variation in the set of offers across customers is also an important metric but not one that can be derived from the Adaptive Model data - this requires analysis of the actual interactions.
 :::
-
 
 ```{python}
 facet = "Channel/Direction"
@@ -647,8 +611,7 @@ except Exception as e:
 
 ## All Success Rates
 
-Showing the success rates of all actions in an interactive
-tree map. Green is higher, red are lower success rates.
+Showing the success rates of all actions in an interactive tree map. Green is higher, red are lower success rates.
 
 ```{python}
 try:
@@ -670,7 +633,7 @@ except Exception as e:
 Showing how the overall channel success rates evolved over the time that the data export covers. Split by Channel and model configuration. Usually there are separate model configurations for different channels but sometimes there are also additional model configurations for different outcomes (e.g. conversion) or different customers (e.g. anonymous).
 
 ::: {.callout-tip title="Guidance"}
-- There shouldn’t be too sudden changes over time
+-   There shouldn’t be too sudden changes over time
 :::
 
 ```{python}
@@ -842,32 +805,19 @@ if (unused_configurations.shape[0] > 0) and (
 This “Bubble Chart” - similar to the standard ADM models overview in Pega Prediction Studio - shows the relation between model performance and proposition success rates. The size of the bubbles indicates the number of responses.
 
 ::: {.callout-tip title="Guidance"}
+-   Bubbles stacked up against the left-hand vertical axis represent actions/treatments for which the models are not predictive. These models may be still be ramping up, or they may not have enough features to work with: consider if new/better predictors can be added.
 
--   Bubbles stacked up against the left-hand vertical axis represent
-    actions/treatments for which the models are not predictive. These
-    models may be still be ramping up, or they may not have
-    enough features to work with: consider if new/better predictors can
-    be added.
+-   Charts should not be empty or contain only a few bubbles. Such charts may represent channels or configurations not (or no longer) used.
 
--   Charts should not be empty or contain only a few bubbles. Such
-    charts may represent channels or configurations not (or no longer) used.
+-   Bubbles at the bottom of the charts represent propositions with very low success rates - they may not be compelling enough.
 
--   Bubbles at the bottom of the charts represent propositions with very
-    low success rates - they may not be compelling enough.
+-   In an ideal scenario you will see the larger bubbles more on the top-right, so more volume for propositions with higher success rates and better models.
 
--   In an ideal scenario you will see the larger bubbles more on the
-    top-right, so more volume for propositions with higher success rates
-    and better models.
+-   There should - very roughly - be a positive correlation between success rate and performance and between response counts and performance.
 
--   There should - very roughly - be a positive correlation between success
-    rate and performance and between response counts and performance.
+-   There should be variation in response counts (not all dots of equal size)
 
--   There should be variation in response counts (not all dots of equal
-    size)
-
--   For small volumes of good models, see if the engagement rules in the
-    Decision Strategy are overly restrictive or reconsider the
-    arbitration of the propositions so they get more (or less) exposure.
+-   For small volumes of good models, see if the engagement rules in the Decision Strategy are overly restrictive or reconsider the arbitration of the propositions so they get more (or less) exposure.
 :::
 
 ```{python}
@@ -901,7 +851,7 @@ On the x-axis Model Performance measured in AUC-ROC, on the y-axis the Success R
 The trend chart shows how model performance evolves over time. Note that ADM is by default configured to track performance over *all* time. You can configure a window for monitoring but this is not commonly done. In Pega Prediction Studio you can monitor models per month, year etc.
 
 ::: {.callout-tip title="Guidance"}
-- No abrupt changes but gradual upward trend is good
+-   No abrupt changes but gradual upward trend is good
 :::
 
 ```{python}
@@ -955,16 +905,13 @@ except Exception as e:
 
 ### Response counts for all the actions
 
-Using an interactive treemap to visualize the response counts.
-Different channels will have very different numbers but within one channel the relative differences in response counts give an indication how skewed the distribution is.
+Using an interactive treemap to visualize the response counts. Different channels will have very different numbers but within one channel the relative differences in response counts give an indication how skewed the distribution is.
 
 Warning : Currently treemap calculates mean response count moving upwards in the hierarchy.
 
 ::: {.callout-tip title="Guidance"}
-
 If there are actions that have a much higher response count than the rest see why that is. Possibly they are levered up for valid business reasons.
 :::
-
 
 ```{python}
 try:
@@ -1050,10 +997,10 @@ Split by category (defaults to the string before the first dot, can be overridde
 The numbers here can differ from the totals above, these ones are leading.
 
 ::: {.callout-tip title="Guidance"}
-- Total number of predictors per model 200 - 700 to stay within service limits
-- There should be some “IH” predictors but no more than ca 100 of them
-- No more than a few dozen Param predictors
-- Consistency in the numbers across configurations
+-   Total number of predictors per model 200 - 700 to stay within service limits
+-   There should be some “IH” predictors but no more than ca 100 of them
+-   No more than a few dozen Param predictors
+-   Consistency in the numbers across configurations
 :::
 
 ```{python}
@@ -1087,17 +1034,15 @@ else:
 
 ```
 
-
 ## Predictor Importance across all models per configuration
 
-Box plots of the predictor importance. Predictor importance is using the
-univariate predictor performance.
+Box plots of the predictor importance. Predictor importance is using the univariate predictor performance.
 
 ::: {.callout-tip title="Guidance"}
-* You expect most predictors to have a spread in the performance range, doing better for some actions than for others
-* Predictors only showing as a single bar (no range) are suspicious
-* A variation of predictors from different categories in the top 30
-* A min/max of the univariate AUC performance somewhere between 55 and 75
+-   You expect most predictors to have a spread in the performance range, doing better for some actions than for others
+-   Predictors only showing as a single bar (no range) are suspicious
+-   A variation of predictors from different categories in the top 30
+-   A min/max of the univariate AUC performance somewhere between 55 and 75
 :::
 
 ```{python}
@@ -1145,6 +1090,7 @@ else:
 ```
 
 ## Importance by Predictor Category
+
 Aggregating up to the category of the predictors. This gives a view at a glance of how well e.g. interaction history, external model scores or contextual data are doing overall.
 
 ### Predictor Category performance per Channel/Direction/Issue
@@ -1223,9 +1169,9 @@ else:
 If predictors perform poorly across all models, that may be because of data sourcing issues or because it just is not related to any of the model outcomes. See also the analysis of missing data.
 
 ::: {.callout-tip title="Guidance"}
-- Predictors that consistently perform poorly could potentially be removed.
-- Be sure to check for data problems
-- Note we advise to be careful with predictor removal. Only remove if there is clearly no future value to other propositions as well or if there is always a related predictor that performs better.
+-   Predictors that consistently perform poorly could potentially be removed.
+-   Be sure to check for data problems
+-   Note we advise to be careful with predictor removal. Only remove if there is clearly no future value to other propositions as well or if there is always a related predictor that performs better.
 :::
 
 ```{python}
@@ -1287,12 +1233,11 @@ else:
 ```
 
 ## Number of Active and Inactive Predictors
+
 Showing the number of active and inactive predictors per model.
 
 ::: {.callout-tip title="Guidance"}
-
-- We expect a few dozen active predictors for every model instance
-
+-   We expect a few dozen active predictors for every model instance
 :::
 
 ```{python}
@@ -1346,7 +1291,7 @@ if datamart.predictor_data is not None:
                 title=f"Top predictors over {conf}",
             )
             fig.update_yaxes(dtick=1, automargin=True)
-            fig.update_xaxes(dtick=1, tickangle=kwargs.get("tickangle", None))
+            fig.update_xaxes(dtick=1) #, tickangle=params.get("tickangle", None))
             fig.update(layout_coloraxis_showscale=False)
 
             fig.show()
@@ -1362,9 +1307,7 @@ else:
 
 ## Missing values
 
-If a predictor is low performing: are there too many missing values? This could point to a technical problem
-Missing % is number of missing vs all responses, really just a filter on model data
-This TreeMap only shows the fields that have any missing values.
+If a predictor is low performing: are there too many missing values? This could point to a technical problem Missing % is number of missing vs all responses, really just a filter on model data This TreeMap only shows the fields that have any missing values.
 
 ```{python}
 if datamart.predictor_data is not None:
@@ -1421,19 +1364,15 @@ else:
 
 ## Residuals
 
-TODO: similar to analysis of the MISSING bin we can do something for the
-Residual bin - the bin in categorical predictors that acts as an overflow
-bin. Too much in there is not good. Also, the sheer number of distinct
-values could be good to analyse, but we don't have that exactly.
+TODO: similar to analysis of the MISSING bin we can do something for the Residual bin - the bin in categorical predictors that acts as an overflow bin. Too much in there is not good. Also, the sheer number of distinct values could be good to analyse, but we don't have that exactly.
 
 # Responses
 
-In the sections below we check how many models have reached certain reliability (or “maturity”) thresholds. This is based on heuristics on both the number of positives (> 200 considered mature) and performance.
+In the sections below we check how many models have reached certain reliability (or “maturity”) thresholds. This is based on heuristics on both the number of positives (\> 200 considered mature) and performance.
 
 For the full list of models, export the data into an Excel sheet from Pega or from the PDS Tools app.
 
 All below lists are guidance. With new treatments/actions being introduced regularly, you would expect a small percentage of the models to be at their initial stages, but that percentage should be small.
-
 
 ```{python}
 
@@ -1548,16 +1487,14 @@ These models have received over 200 positives and do have a performance above th
 
 This could be because of lack of good predictors in the model.
 
-
 ## Number of Empty/Immature Models over time
 
-In the analysis below we count the number of models in each of the groups analysed before and show how that \ncount changes over time. The expectation is that the number of “non-empty” models increases steadily and the other lines are more or less stable.\n
-Empty is defined as having no responses at all. Immature is defined as having < 200 positives, and no performance means model performance is still the initial 0.5 value while having matured already according to the definition.
+In the analysis below we count the number of models in each of the groups analysed before and show how that \ncount changes over time. The expectation is that the number of “non-empty” models increases steadily and the other lines are more or less stable.\n Empty is defined as having no responses at all. Immature is defined as having \< 200 positives, and no performance means model performance is still the initial 0.5 value while having matured already according to the definition.
 
 ::: {.callout-tip title="Guidance"}
-- Empty models shouldnt be increasing too much
-- Good models (AUC 55-80) should increase or at least not decrease
-- Good models should be much higher than problem kids
+-   Empty models shouldnt be increasing too much
+-   Good models (AUC 55-80) should increase or at least not decrease
+-   Good models should be much higher than problem kids
 :::
 
 ```{python}
@@ -1607,9 +1544,7 @@ except Exception as e:
     report_utils.quarto_plot_exception("Number of Empty/Immature Models over time", e)
 ```
 
-
 ## Number of Responses over Time
-
 
 ```{python}
 facets = "Configuration"
@@ -1641,6 +1576,7 @@ except Exception as e:
 # Which Models drive most of the Volume
 
 ## Analysis of skewness of the Responses
+
 Showing the cumulative response count vs the number of models. Is there a larger percentage of models that take the vast majority of the responses?
 
 If this line strongly deviates from the diagonal it means that relatively few models drive the majority of the responses.
@@ -1650,11 +1586,10 @@ In the left-hand plot we look at all responses, which really means that we are l
 Very skewed results may be caused by prioritization elements like levers and weights and can be a reason to check in with business and verify that this is expected.
 
 ::: {.callout-tip title="Guidance"}
-- Area under this curve should be > 0.5 but not too close to 1, which means that most of the responses are driven by relatively few actions, but not too extreme
+-   Area under this curve should be \> 0.5 but not too close to 1, which means that most of the responses are driven by relatively few actions, but not too extreme
 :::
 
-::: {layout-ncol=2}
-
+::: {layout-ncol="2"}
 ```{python}
 # TODO move gains_table to PDS tools utils
 # TODO a corresponding GINI calculation would be nice
@@ -1777,7 +1712,6 @@ try:
 except Exception as e:
     report_utils.quarto_plot_exception("Cumulative Positives", e)
 ```
-
 :::
 
 ## Analysis of Performance vs Volume
@@ -1853,7 +1787,6 @@ except Exception as e:
     report_utils.quarto_plot_exception("Analysis of Performance vs Volume", e)
 ```
 
-
 # Propensity Analysis
 
 The distribution of propensities returned by the models is yet a different angle.
@@ -1884,7 +1817,6 @@ except Exception as e:
 ```
 
 # Credits
-
 
 ```{python}
 # | echo: false

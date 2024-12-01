@@ -49,45 +49,31 @@ from pdstools.utils import report_utils
 ```{python}
 # | tags: [parameters]
 
-# Handy to debug/test the document from VScode, passing in the file names here
-# These parameters are overwritten when called externally
-datafolder = ""
-modelfilename = ""
-predictorfilename = ""
-model_id = ""
+# Parameters will be overriden by quarto when a parameters yaml is provided
+
+title = "ADM Model Details"
+subtitle = "Sample data"
+
+model_file_path = None
+prediction_file_path = None
+predictor_file_path = None
+query = None
+model_id = None
 
 only_active_predictors = True
-
-title = "Demo Dataset"  # pass in customer name here
-subtitle = ""  # typically used to pass in a date range or other qualification of the data source
-
-kwargs = dict()
-
 
 ```
 
 ```{python}
-# Predictor data for one model ID
-if len(kwargs) > 0:
-    # streamlit call TODO fix this for v4
-    model_id = kwargs["model_id"]
-    only_active_predictors = kwargs["only_active_predictors"]
-    model_df = read_ds_export(kwargs["model_file_path"])
-    predictor_df = read_ds_export(kwargs["predictor_file_path"])
-    datamart = ADMDatamart(
-        model_df=model_df,
-        predictor_df=predictor_df,
-        query=pl.col("ModelID") == model_id,
-    )  # .fillMissing()
-elif len(datafolder) > 0 or len(modelfilename) > 0 or len(predictorfilename) > 0:
-    # command line call
+
+if model_id is not None and predictor_file_path is not None:
     datamart = ADMDatamart.from_ds_export(
-        base_path=datafolder,
-        model_filename=modelfilename,
-        predictor_filename=predictorfilename,
-        extract_pyname_keys=True,
+        model_filename=model_file_path,
+        predictor_filename=predictor_file_path,
         query=pl.col("ModelID") == model_id,
-    )  # .fillMissing()
+    )
+
+    # .fillMissing()
 else:
     # fall back to sample data
     model_id = "bd70a915-697a-5d43-ab2c-53b0557c85a0"
@@ -158,13 +144,6 @@ model_name = (
     .collect()
     .item()
 )
-
-if len(kwargs) > 0:
-    # Calling through function (in streamlit or in a notebook)
-    if "title" in kwargs and len(kwargs["title"]) > 0:
-        title = kwargs["title"]
-    if "subtitle" in kwargs and len(kwargs["subtitle"]) > 0:
-        subtitle = kwargs["subtitle"]
 
 report_utils.quarto_print(
     f"""

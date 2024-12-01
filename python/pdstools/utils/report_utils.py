@@ -4,6 +4,7 @@ from IPython.display import display, Markdown
 from great_tables import GT, style, loc
 from ..adm.CDH_Guidelines import CDHGuidelines
 from ..utils.show_versions import show_versions
+from ..adm.Reports import Reports
 import polars as pl
 import re
 import subprocess
@@ -234,30 +235,21 @@ def sample_values(dm, all_dm_cols, fld, n=6):
     )
 
 def show_credits(quarto_source: str):
-    def get_cmd_output(args):
-        result = (
-            subprocess.run(args, stdout=subprocess.PIPE).stdout.decode("utf-8").split("\n")
-        )
-        return result
+    _, quarto_version = Reports.get_quarto_with_version(verbose=False)
+    _, pandoc_version = Reports.get_pandoc_with_version(verbose=False)
 
-
-    def get_version_only(versionstr):
-        return re.sub("[^.0-9]", "", versionstr)
-
-
-    quarto_version = get_version_only(get_cmd_output(["quarto", "--version"])[0])
-    pandoc_version = get_version_only(get_cmd_output(["pandoc", "--version"])[0])
     timestamp_str = datetime.datetime.now().strftime("%d %b %Y %H:%M:%S")
 
     quarto_print(
         f"""
 
+    Document created at: {timestamp_str}
+
     This notebook: {quarto_source}
+    
     Quarto runtime: {quarto_version}
     Pandoc: {pandoc_version}
     
-    Document created at: {timestamp_str}
-
     Additional details from 'pdstools.show_versions()':
 
     """

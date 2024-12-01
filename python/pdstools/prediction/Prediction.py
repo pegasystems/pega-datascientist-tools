@@ -2,7 +2,7 @@ from typing import List, Optional
 
 import polars as pl
 
-from python.pdstools.utils.namespaces import LazyNamespace
+from ..utils.namespaces import LazyNamespace
 
 from ..adm.CDH_Guidelines import CDHGuidelines
 from ..utils import cdh_utils
