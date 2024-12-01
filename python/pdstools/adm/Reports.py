@@ -124,8 +124,10 @@ class Reports(LazyNamespace):
                 output_filename = self._get_output_filename(
                     name, "ModelReport", model_id, output_type
                 )
-                self._write_params_files(
-                    temp_dir,
+                self.run_quarto(
+                    qmd_file=qmd_file,
+                    output_filename=output_filename,
+                    output_type=output_type,
                     params={
                         "report_type": "ModelReport",
                         "model_file_path": str(model_file_path),
@@ -141,13 +143,8 @@ class Reports(LazyNamespace):
                         "predictors": (self.datamart.predictor_data is not None),
                         "models": (self.datamart.model_data is not None),
                     },
-                )
-                self._run_quarto_command(
-                    temp_dir,
-                    qmd_file,
-                    output_type,
-                    output_filename,
-                    verbose,
+                    temp_dir=temp_dir,
+                    verbose=verbose,
                 )
                 output_path = temp_dir / output_filename
                 if verbose or not output_path.exists():
@@ -269,8 +266,10 @@ class Reports(LazyNamespace):
             ):
                 model_file_path, predictor_file_path = self.datamart.save_data(temp_dir)
 
-            self._write_params_files(
-                temp_dir,
+            self.run_quarto(
+                qmd_file=qmd_file,
+                output_filename=output_filename,
+                output_type=output_type,
                 params={
                     "report_type": "HealthCheck",
                     "model_file_path": str(model_file_path),
@@ -286,13 +285,8 @@ class Reports(LazyNamespace):
                     "predictors": (self.datamart.predictor_data is not None),
                     "models": (self.datamart.model_data is not None),
                 },
-            )
-            self._run_quarto_command(
-                temp_dir,
-                qmd_file,
-                output_type,
-                output_filename,
-                verbose,
+                temp_dir=temp_dir,
+                verbose=verbose,
             )
 
             output_path = temp_dir / output_filename
@@ -484,14 +478,25 @@ class Reports(LazyNamespace):
         return Reports._get_executable_with_version("pandoc", verbose=verbose)
 
     @staticmethod
-    def _run_quarto_command(
-        temp_dir: Path,
+    def run_quarto(
         qmd_file: str,
-        output_type: str,
         output_filename: str,
+        output_type: str = "html",
+        params: Dict = {},
+        project: Dict = {"type": "default"},
+        analysis: Dict = {},
+        temp_dir: Path = Path("."),
         verbose: bool = False,
     ) -> int:
         """Run the Quarto command to generate the report."""
+
+        Reports._write_params_files(
+            temp_dir,
+            params=params,
+            project=project,
+            analysis=analysis,
+        )
+
         quarto_exec, _ = Reports.get_quarto_with_version(verbose)
 
         command = [
@@ -503,7 +508,7 @@ class Reports(LazyNamespace):
             "--output",
             output_filename,
             "--execute-params",
-            "params.yml"
+            "params.yml",
         ]
 
         if verbose:
