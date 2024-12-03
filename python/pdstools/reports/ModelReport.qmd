@@ -161,8 +161,6 @@ report_utils.quarto_print(
 )
 ```
 
-
-
 ```{python}
 try:
     fig = datamart.plot.score_distribution(model_id=model_id)
@@ -183,14 +181,11 @@ except Exception as e:
 
 ```
 
-::: {.callout-tip}
-The charts (built with [Plotly](https://plotly.com/python/)) have [user controls for panning,
-zooming etc](https://plotly.com/chart-studio-help/zoom-pan-hover-controls/). These interactive plots do not render well in portals like Sharepoint
-or Box. It is preferable to view them from a browser.
+::: callout-tip
+The charts (built with [Plotly](https://plotly.com/python/)) have [user controls for panning, zooming etc](https://plotly.com/chart-studio-help/zoom-pan-hover-controls/). These interactive plots do not render well in portals like Sharepoint or Box. It is preferable to view them from a browser.
 :::
 
 ## Model Performance
-
 
 ```{python}
 
@@ -255,20 +250,13 @@ except Exception as e:
     report_utils.quarto_plot_exception("Model Performance", e)
 ```
 
-
 ## Score Distribution
 
-The Score Distribution shows the volume and average propensity in every bin of
-the score ranges of the Classifier.
+The Score Distribution shows the volume and average propensity in every bin of the score ranges of the Classifier.
 
-Propensity is defined as $\frac{positives}{positives+negatives}$ per bin.
-The adjusted propensity that is returned is a small modification (*Laplace
-smoothing*) to this and calculated as
-$\frac{0.5+positives}{1+positives+negatives}$ so new models initially return a
-propensity of 0.5. This helps to address the cold start when introducing new
-actions.
+Propensity is defined as $\frac{positives}{positives+negatives}$ per bin. The adjusted propensity that is returned is a small modification (*Laplace smoothing*) to this and calculated as $\frac{0.5+positives}{1+positives+negatives}$ so new models initially return a propensity of 0.5. This helps to address the cold start when introducing new actions.
 
-::: {.callout-warning}
+::: callout-warning
 The Python version has no notion of unreachable bins (yet), when it has we should grey out the binning rows that fall outside of the active range
 :::
 
@@ -315,7 +303,6 @@ except Exception as e:
     report_utils.quarto_plot_exception("Score Distribution", e)
 ```
 
-
 ## Cumulative Gains and Lift charts
 
 Below are alternative ways to view the Classifier.
@@ -326,8 +313,7 @@ The Lift chart is derived from this and shows the ratio of the cumulative gain a
 
 TODO: unfortunately the Python version has no notion of unreachable bins (yet) which can cause really strange high lift values
 
-::: {layout-ncol=2}
-
+::: {layout-ncol="2"}
 ```{python}
 # TODO perhaps this should move into the pdstools plot functions "plotCumulativeGains"
 # however it is so trivial, not really sure it should be. See also the other gains charts
@@ -390,7 +376,6 @@ except Exception as e:
     report_utils.quarto_plot_exception("Lift", e)
 
 ```
-
 :::
 
 ```{python}
@@ -424,8 +409,7 @@ except Exception as e:
 
 # Trend charts
 
-::: {layout-ncol=2}
-
+::: {layout-ncol="2"}
 ```{python}
 # TODO see if we can put the various trend charts in tabs - although this seems to require go not express, then gain .data[0] probably gives the go objects
 
@@ -470,14 +454,11 @@ try:
 except Exception as e:
     report_utils.quarto_plot_exception("Success Rate Trend", e)
 ```
-
 :::
 
 # Performance by Predictor Category
 
-Showing the performance across all predictors. The predictor categories default
-to the text before the first dot. This can be customized when reading the data
-for a particular customer.
+Showing the performance across all predictors. The predictor categories default to the text before the first dot. This can be customized when reading the data for a particular customer.
 
 ```{python}
 # | error: true
@@ -501,17 +482,11 @@ except Exception as e:
 
 # Predictor Overview
 
-The predictors for this model are sorted by performance and grouped if they are
-correlated (shown with an indentation and a lighter color).
+The predictors for this model are sorted by performance and grouped if they are correlated (shown with an indentation and a lighter color).
 
-The negatives and positives counts are usually the same across all the
-predictors but will be different when predictors have been removed or added. IH
-predictors often have slightly lower counts.
+The negatives and positives counts are usually the same across all the predictors but will be different when predictors have been removed or added. IH predictors often have slightly lower counts.
 
-For Adaptive Gradient Boosting models ("AGB") the number of positives and
-negatives is not available.
-
-
+For Adaptive Gradient Boosting models ("AGB") the number of positives and negatives is not available.
 
 ```{python}
 # TODO add a list of correlated predictors as a list, to show in the

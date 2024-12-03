@@ -1,27 +1,175 @@
-from typing import List, Optional
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import polars as pl
+import logging
 
+from ..utils.types import QUERY
 from ..utils.namespaces import LazyNamespace
 
 from ..adm.CDH_Guidelines import CDHGuidelines
 from ..utils import cdh_utils
 
+logger = logging.getLogger(__name__)
+try:
+    import plotly.express as px
+    import plotly.graph_objects as go
+
+    from ..utils import pega_template as pega_template
+except ImportError as e:  # pragma: no cover
+    logger.debug(f"Failed to import optional dependencies: {e}")
+
+if TYPE_CHECKING:  # pragma: no cover
+    import plotly.graph_objects as go
+
+COLORSCALE_TYPES = Union[List[Tuple[float, str]], List[str]]
+
+Figure = Union[Any, "go.Figure"]
+
+# T = TypeVar("T", bound="Plots")
+# P = ParamSpec("P")
+
+
 class PredictionPlots(LazyNamespace):
     dependencies = ["plotly"]
 
-    def __init__(self, prediction: "Prediction"):
+    def __init__(self, prediction):
         self.prediction = prediction
         super().__init__()
 
-    def lift_trend(return_df: bool = False):
-        pass
+    def _prediction_trend(
+        self,
+        period: str,
+        query: Optional[QUERY],
+        return_df: bool,
+        metric: str,
+        title: str,
+        facet_row: str = None,
+        facet_col: str = None,
+    ):
+        plot_df = self.prediction.summary_by_channel(by_period=period).with_columns(
+            Prediction=pl.format("{} ({})", pl.col.Channel, pl.col.Prediction)
+        )
 
-    def performance_trend(return_df: bool = False):
-        pass
+        plot_df = cdh_utils._apply_query(plot_df, query)
 
-    def ctr_trend(return_df: bool = False):
-        pass
+        if return_df:
+            return plot_df
+
+        date_range = (
+            cdh_utils._apply_query(self.prediction.predictions, query)
+            .select(
+                pl.format(
+                    "{} to {}",
+                    pl.col("SnapshotTime").min().dt.to_string("%v"),
+                    pl.col("SnapshotTime").max().dt.to_string("%v"),
+                )
+            )
+            .collect()
+            .item()
+        )
+
+        plt = px.line(
+            plot_df.filter(pl.col("isMultiChannelPrediction").not_())
+            .filter(pl.col("Channel") != "Unknown")
+            .sort(["Period"])
+            .collect(),
+            x="Period",
+            y=metric,
+            facet_row=facet_row,
+            facet_col=facet_col,
+            color="Prediction",
+            title=f"{title}<br>{date_range}",
+            # template=pega
+        ).for_each_annotation(lambda a: a.update(text=""))
+
+        if facet_row is not None:
+            plt.update_yaxes(title="")
+        if facet_col is not None:
+            plt.update_xaxes(title="")
+
+        return plt
+
+    def performance_trend(
+        self,
+        period: str = "1d",
+        *,
+        query: Optional[QUERY] = None,
+        return_df: bool = False,
+    ):
+        result = self._prediction_trend(
+            query=query,
+            period=period,
+            return_df=return_df,
+            metric="Performance",
+            title="Prediction Performance",
+        )
+        return result
+
+    def lift_trend(
+        self,
+        period: str = "1d",
+        *,
+        query: Optional[QUERY] = None,
+        return_df: bool = False,
+    ):
+        result = self._prediction_trend(
+            period=period,
+            query=query,
+            return_df=return_df,
+            metric="Lift",
+            title="Prediction Lift",
+        )
+        if not return_df:
+            result = result.update_yaxes(tickformat=",.2%")
+        return result
+
+    def ctr_trend(
+        self,
+        period: str = "1d",
+        facetting=False,
+        *,
+        query: Optional[QUERY] = None,
+        return_df: bool = False,
+    ):
+        result = self._prediction_trend(
+            period=period,
+            query=query,
+            return_df=return_df,
+            metric="CTR",
+            title="Prediction CTR",
+            facet_row="Prediction" if facetting else None,
+        )
+        if not return_df:
+            result = result.update_yaxes(tickformat=",.3%")
+        return result
+
+    def responsecount_trend(
+        self,
+        period: str = "1d",
+        facetting=False,
+        *,
+        query: Optional[QUERY] = None,
+        return_df: bool = False,
+    ):
+        result = self._prediction_trend(
+            period=period,
+            query=query,
+            return_df=return_df,
+            metric="ResponseCount",
+            title="Prediction Responses",
+            facet_col="Prediction" if facetting else None,
+        )
+        if not return_df:
+            result.update_layout(yaxis_title="Responses")
+        return result
+
 
 class Prediction:
     """Monitor Pega Prediction Studio Predictions"""
