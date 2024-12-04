@@ -70,7 +70,6 @@ def test_summary_by_channel_cols(test):
         "Direction",
         "isStandardNBADPrediction",
         "isMultiChannelPrediction",
-        "Lift",
         "Performance",
         "Positives",
         "Negatives",
@@ -85,8 +84,12 @@ def test_summary_by_channel_cols(test):
         "ControlPercentage",
         "TestPercentage",
         "CTR",
+        "CTR_Test",
+        "CTR_Control",
+        "CTR_NBA",
         "ChannelDirectionGroup",
         "isValid",
+        "Lift"
     ]
 
 
@@ -230,3 +233,17 @@ def test_overall_summary_ia(test):
         )
     )
     assert test.overall_summary().collect()["usesImpactAnalyzer"].to_list() == [True]
+
+def test_plots():
+    prediction = Prediction.from_mock_data()
+
+    assert prediction.plot.performance_trend() is not None
+    assert prediction.plot.lift_trend() is not None
+    assert prediction.plot.responsecount_trend() is not None
+    assert prediction.plot.ctr_trend() is not None
+
+    assert prediction.plot.performance_trend("1w") is not None
+    assert isinstance(prediction.plot.lift_trend("2d", return_df=True), pl.LazyFrame)
+    assert prediction.plot.responsecount_trend("1m") is not None
+    assert prediction.plot.ctr_trend("5d") is not None
+
