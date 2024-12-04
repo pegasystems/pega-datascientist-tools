@@ -150,12 +150,9 @@ class Reports(LazyNamespace):
                 if verbose or not output_path.exists():
                     # print parameters so they can be copy/pasted into the quarto docs for debugging
                     if model_file_path is not None:
-                        print(f'datafolder = "{model_file_path.parent}"')
-                        print(f'modelfilename = "{model_file_path.name}"')
+                        print(f'model_file_path = "{model_file_path}"')
                     if predictor_file_path is not None:
-                        if model_file_path is None:
-                            print(f'datafolder = "{predictor_file_path.parent}"')
-                        print(f'predictorfilename = "{predictor_file_path.name}"')
+                        print(f'predictor_file_path = "{predictor_file_path}"')
                     print(f'model_id = "{model_id}"')
                     print(f"output_path = {output_path}")
                 if not output_path.exists():
@@ -292,12 +289,11 @@ class Reports(LazyNamespace):
             output_path = temp_dir / output_filename
             if verbose or not output_path.exists():
                 if model_file_path is not None:
-                    print(f'datafolder = "{model_file_path.parent}"')
-                    print(f'modelfilename = "{model_file_path.name}"')
+                    print(f'model_file_path = "{model_file_path}"')
                 if predictor_file_path is not None:
-                    if model_file_path is None:
-                        print(f'datafolder = "{predictor_file_path.parent}"')
-                    print(f'predictorfilename = "{predictor_file_path.name}"')
+                    print(f'predictor_file_path = "{predictor_file_path}"')
+                if prediction_file_path is not None:
+                    print(f'prediction_file_path = "{prediction_file_path}"')
                 print(f"output_path = {output_path}")
             if not output_path.exists():
                 raise ValueError(f"Failed to generate report: {output_filename}")

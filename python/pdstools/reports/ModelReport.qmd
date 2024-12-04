@@ -55,7 +55,6 @@ title = "ADM Model Details"
 subtitle = "Sample data"
 
 model_file_path = None
-prediction_file_path = None
 predictor_file_path = None
 query = None
 model_id = None
@@ -65,6 +64,16 @@ only_active_predictors = True
 ```
 
 ```{python}
+# Below needed because current Yaml lib reads None back in as the string None
+# TODO consider a different lib that supports roundtrip preservation like ruamel.yaml
+if model_file_path and model_file_path == "None":
+    model_file_path = None
+if predictor_file_path and predictor_file_path == "None":
+    predictor_file_path = None
+if query and query == "None":
+    query = None
+if model_id and model_id == "None":
+    model_id = None
 
 if model_id is not None and predictor_file_path is not None:
     datamart = ADMDatamart.from_ds_export(

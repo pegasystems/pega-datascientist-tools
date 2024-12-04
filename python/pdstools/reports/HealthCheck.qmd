@@ -33,6 +33,7 @@ from IPython.display import display, Markdown
 from pdstools import (
     datasets,
     ADMDatamart,
+    Prediction,
     read_ds_export,
 )
 from pdstools.adm.CDH_Guidelines import CDHGuidelines
@@ -99,6 +100,8 @@ def fig_set_xaxis_modelperformance(fig, label="Model Performance"):
 title = "ADM Model Overview"
 subtitle = "Sample data"
 
+# Insert the paths to your data files here to run the notebook from your IDE
+
 model_file_path = None
 prediction_file_path = None
 predictor_file_path = None
@@ -115,6 +118,18 @@ configuration_responses_threshold = 10000
 ```
 
 ```{python}
+# Below needed because current Yaml lib reads None back in as the string None
+# TODO consider a different lib that supports roundtrip preservation like ruamel.yaml
+if model_file_path and model_file_path == "None":
+    model_file_path = None
+if prediction_file_path and prediction_file_path == "None":
+    prediction_file_path = None
+if predictor_file_path and predictor_file_path == "None":
+    predictor_file_path = None
+if query and query == "None":
+    query = None
+
+
 responsecount_analysis_query = (
     pl.col("ResponseCount") > responsecount_analysis_threshold
 )
@@ -371,6 +386,86 @@ The total number of responses and positives are summed up over the models for th
 ## Exclude unused Channels
 
 Channels with very few or no responses will be excluded from subsequent analyses. They have been highlighted in the channel overview with a strike-through.
+
+# Overview of the Predictions
+
+When data from Prediction Studio is made available to this notebook, we show an overview of the predictions in the system. A Prediction is a construct around models that allows for different modeling patterns and supports an overall monitoring of engagement lift, Performance etc.
+
+Predictions monitor performance in a different way than ADM models do. The measurement of Lift depends on having a control group for which the arbitration priority is random rather than model driven.
+
+Lift is to be as the lift in engagement (clicks, accepts) and is defined as:
+
+$$Lift = \frac{CTR_{test} - CTR_{control}}{CTR_{control}}$$
+
+with "test" the model group and "control" random test group. A lift of 0% means the model group is doing just as well as a random group. A lift of 100% means it is giving two times the number of positive responses. Lift can be negative, up to -100%, which would mean the model group never results in any positive response. By default the size of the random group is 1-2%.
+
+```{python}
+if prediction_file_path:
+    predictions = Prediction(read_ds_export(prediction_file_path))
+
+    predictions_overview = predictions.summary_by_channel().collect()
+    gt = (
+        report_utils.table_standard_formatting(
+            predictions_overview,
+            title="Prediction Overview",
+            subtitle="by Channel",
+            cdh_guidelines=cdh_guidelines,
+            highlight_limits={
+                # "Actions": "Actions",
+                # "Unique Treatments": "Treatments",
+                "Positives": "Positive Responses",
+                "Negatives": "Responses",
+                "Positives_Test": "Positive Responses",
+                "Negatives_Test": "Responses",
+                "Positives_Control": "Positive Responses",
+                "Negatives_Control": "Responses",
+                "Positives_NBA": "Positive Responses",
+                "Negatives_NBA": "Responses",
+                "ResponseCount": "Responses",
+            },
+        )
+        .fmt_number(decimals=2, columns=["Performance"])
+        .fmt_percent(
+            decimals=2, columns=["CTR", "CTR_Test", "CTR_Control", "CTR_NBA", "Lift"]
+        )
+        .fmt_percent(
+            decimals=2,
+            scale_values=False,
+            columns=["TestPercentage", "ControlPercentage"],
+        )
+        .cols_label(
+            ResponseCount="Total Responses",
+            Positives="Total Positives",
+            Negatives="Total Negatives",
+            Positives_Test="Positives Test Group",
+            Negatives_Test="Negatives Test Group",
+            Positives_Control="Positives Control Group",
+            Negatives_Control="Negatives Control Group",
+            Positives_NBA="Positives NBA Group",
+            Negatives_NBA="Negatives NBA Group",
+            Performance="Overall Performance",
+            ControlPercentage="Control Group Size",
+            TestPercentage="Test Group Size",
+            CTR="Overall CTR",
+            CTR_Test="CTR Test Group",
+            CTR_Control="CTR Control Group",
+            CTR_NBA="CTR NBA Group",
+        )
+        .cols_hide(
+            [
+                "ChannelDirectionGroup",
+                "isStandardNBADPrediction",
+                "isMultiChannelPrediction",
+                "usesImpactAnalyzer",
+                "isValid",
+            ]
+        )
+    )
+
+    display(gt)
+else:
+    report_utils.quarto_callout_no_prediction_data_warning()
+```
 
 # Overview of the Actions
 

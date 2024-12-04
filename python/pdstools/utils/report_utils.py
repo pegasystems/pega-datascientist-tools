@@ -48,6 +48,9 @@ def quarto_plot_exception(plot_name:str, e:Exception):
         % (plot_name, e, traceback.format_exc())
     )
 
+def quarto_callout_no_prediction_data_warning(extra=""):
+    quarto_callout_important(f"Prediction Data is not available. {extra}")
+
 def quarto_callout_no_predictor_data_warning(extra=""):
     quarto_callout_important(f"Predictor Data is not available. {extra}")
 
