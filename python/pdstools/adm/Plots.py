@@ -1209,6 +1209,10 @@ class Plots(LazyNamespace):
                 fig.show()
         return figs
 
+
+    # TODO I took the propensity distrib plot out of the HC as 
+    # it wasn't very clear, also didn't look great visually.
+    
     @requires(
         predictor_columns={
             "BinPropensity",

@@ -194,7 +194,6 @@ class Reports(LazyNamespace):
         output_type: str = "html",
         keep_temp_files: bool = False,
         verbose: bool = False,
-        predictions: Optional[Prediction] = None,
         model_file_path: Optional[PathLike] = None,
         predictor_file_path: Optional[PathLike] = None,
         prediction_file_path: Optional[PathLike] = None,
@@ -220,10 +219,6 @@ class Reports(LazyNamespace):
             If True, the temporary directory with temp files will not be deleted after report generation.
         verbose: bool, optional
             If True, prints detailed logs during execution.
-        predictions: Prediction, optional
-            Optional object with Predictions info. This is currently passed in to the
-            reporting through this health_check method but will be moving out into a
-            different call in the future.
         model_file_path : Union[str, Path, None], optional
             Optional name of the actual model data file, so it does not get copied
         predictor_file_path : Union[str, Path, None], optional
@@ -278,7 +273,7 @@ class Reports(LazyNamespace):
                 },
                 project={"title": title, "type": "default"},
                 analysis={
-                    "predictions": (predictions is not None),
+                    "predictions": (prediction_file_path is not None),
                     "predictors": (self.datamart.predictor_data is not None),
                     "models": (self.datamart.model_data is not None),
                 },

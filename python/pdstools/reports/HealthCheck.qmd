@@ -391,13 +391,18 @@ Channels with very few or no responses will be excluded from subsequent analyses
 
 When data from Prediction Studio is made available to this notebook, we show an overview of the predictions in the system. A Prediction is a construct around models that allows for different modeling patterns and supports an overall monitoring of engagement lift, Performance etc.
 
+::: {.content-hidden when-meta="analysis.predictions"}
+However, Prediction Data is **not available**. This is either because the data is not captured or because Predictions are not used, for example when the NBAD framework is not used.
+:::
+
+::: {.content-hidden unless-meta="analysis.predictions"}
 Predictions monitor performance in a different way than ADM models do. The measurement of Lift depends on having a control group for which the arbitration priority is random rather than model driven.
 
-Lift is to be as the lift in engagement (clicks, accepts) and is defined as:
+Lift in Predictions is the lift in *engagement* (clicks, accepts) and is defined as:
 
 $$Lift = \frac{CTR_{test} - CTR_{control}}{CTR_{control}}$$
 
-with "test" the model group and "control" random test group. A lift of 0% means the model group is doing just as well as a random group. A lift of 100% means it is giving two times the number of positive responses. Lift can be negative, up to -100%, which would mean the model group never results in any positive response. By default the size of the random group is 1-2%.
+with "test" the model group and "control" random test group. A lift of 0% means the model group is doing no better than the random group. A lift of 100% means the models are giving two times the number of positive responses. Lift can be negative, up to -100%, which would mean the model group never results in any positive response. By default the size of the random group is 1-2% and is configured in Prediction Studio and Impact Analyzer (when using NBAD).
 
 ```{python}
 if prediction_file_path:
@@ -466,6 +471,7 @@ if prediction_file_path:
 else:
     report_utils.quarto_callout_no_prediction_data_warning()
 ```
+:::
 
 # Overview of the Actions
 
@@ -1027,6 +1033,14 @@ except Exception as e:
 
 # Analysis of Predictors
 
+This analysis looks at the predictors that are driving the models.
+
+::: {.content-hidden when-meta="analysis.predictors"}
+However, Predictor Data is **not available**. Predictor analysis is not available.
+:::
+
+::: {.content-hidden unless-meta="analysis.predictors"}
+
 ```{python}
 # | output: asis
 # | echo: false
@@ -1457,9 +1471,7 @@ else:
 
 ```
 
-## Residuals
-
-TODO: similar to analysis of the MISSING bin we can do something for the Residual bin - the bin in categorical predictors that acts as an overflow bin. Too much in there is not good. Also, the sheer number of distinct values could be good to analyse, but we don't have that exactly.
+:::
 
 # Responses
 
@@ -1880,35 +1892,6 @@ try:
     cdh_utils.legend_color_order(fig).show()
 except Exception as e:
     report_utils.quarto_plot_exception("Analysis of Performance vs Volume", e)
-```
-
-# Propensity Analysis
-
-The distribution of propensities returned by the models is yet a different angle.
-
-Higher propensities clearly indicate the offers are more attractive - people apparenty click/accept/convert more often.
-
-## Propensity Distribution
-
-In a more emphathetic setup, you would expect that the distribution of the propensities leans towards the right-hand side: more volume to more attractive offers, although the relation is of course more complex, we are not just blindly pushing the offers with the highest success rates, but take a personalized approach.
-
-Often however, multiple factors are included in the prioritization, changing this picture.
-
-Note that the propensity bins are not of equal width. Propensities are typically very low so with an equal width distribution, almost all volume would be in the first bins. The binning here is based on (roughly) equal volume across all data.
-
-So when one of the graphs shows more volume on the left, that is to be interpreted as relative to the other graphs.
-
-```{python}
-# | error: true
-try:
-    if datamart.predictor_data is not None:
-        fig = datamart.plot.propensity_distribution()
-        fig.show()
-    else:
-        report_utils.quarto_callout_no_predictor_data_warning()
-except Exception as e:
-    report_utils.quarto_plot_exception("Propensity Distribution", e)
-
 ```
 
 # Credits
