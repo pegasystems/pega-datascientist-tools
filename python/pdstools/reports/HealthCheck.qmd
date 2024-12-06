@@ -103,7 +103,7 @@ subtitle = "Sample data"
 # Insert the paths to your data files here to run the notebook from your IDE
 
 model_file_path = None
-prediction_file_path = "/Users/perdo/Library/CloudStorage/OneDrive-SharedLibraries-PegasystemsInc/AI Chapter Data Sets - Documents/Customers/Achmea/PDC/PR_DATA_DM_SNAPSHOTS.parquet"
+prediction_file_path = None
 predictor_file_path = None
 query = None
 
