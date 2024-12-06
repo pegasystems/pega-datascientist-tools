@@ -103,7 +103,7 @@ subtitle = "Sample data"
 # Insert the paths to your data files here to run the notebook from your IDE
 
 model_file_path = None
-prediction_file_path = None
+prediction_file_path = "/Users/perdo/Library/CloudStorage/OneDrive-SharedLibraries-PegasystemsInc/AI Chapter Data Sets - Documents/Customers/Achmea/PDC/PR_DATA_DM_SNAPSHOTS.parquet"
 predictor_file_path = None
 query = None
 
@@ -468,9 +468,27 @@ if prediction_file_path:
     )
 
     display(gt)
+
 else:
     report_utils.quarto_callout_no_prediction_data_warning()
 ```
+
+```{python}
+try:
+    plt = predictions.plot.lift_trend("1w")
+    plt.update_layout(autosize=True, height=400, )
+
+    plt.show()
+
+    plt = predictions.plot.responsecount_trend("1w")
+    plt.update_layout(autosize=True, height=400, )
+
+    plt.show()
+except Exception as e:
+    report_utils.quarto_plot_exception("Prediction Trend Charts", e)
+
+```
+
 :::
 
 # Overview of the Actions
