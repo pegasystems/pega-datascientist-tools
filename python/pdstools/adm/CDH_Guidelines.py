@@ -20,6 +20,7 @@ _data = {
     "Engagement Lift": [0.0, 0.2, 2.0, None],
     "Responses": [1.0, 200, None, None],
     "Positive Responses": [1.0, 200, None, None],
+    "Engagement Lift": [0.0, 1.0, None, None],
 }
 
 _pega_cloud_limits = pl.DataFrame(data=_data).transpose(include_header=True)

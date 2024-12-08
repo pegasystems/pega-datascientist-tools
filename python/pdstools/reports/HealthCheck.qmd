@@ -488,7 +488,6 @@ except Exception as e:
     report_utils.quarto_plot_exception("Prediction Trend Charts", e)
 
 ```
-
 :::
 
 # Overview of the Actions
@@ -1057,8 +1056,7 @@ This analysis looks at the predictors that are driving the models.
 However, Predictor Data is **not available**. Predictor analysis is not available.
 :::
 
-::: {.content-hidden unless-meta="analysis.predictors"}
-
+::::::: {.content-hidden unless-meta="analysis.predictors"}
 ```{python}
 # | output: asis
 # | echo: false
@@ -1488,8 +1486,7 @@ else:
     report_utils.quarto_callout_no_predictor_data_warning()
 
 ```
-
-:::
+:::::::
 
 # Responses
 

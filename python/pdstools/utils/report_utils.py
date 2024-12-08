@@ -6,8 +6,6 @@ from ..adm.CDH_Guidelines import CDHGuidelines
 from ..utils.show_versions import show_versions
 from ..adm.Reports import Reports
 import polars as pl
-import re
-import subprocess
 import datetime
 
 
@@ -36,7 +34,8 @@ def quarto_callout_important(info):
         % info
     )
 
-def quarto_plot_exception(plot_name:str, e:Exception):
+
+def quarto_plot_exception(plot_name: str, e: Exception):
     quarto_print(
         """
 ::: {.callout-important collapse="true"}
@@ -48,11 +47,14 @@ def quarto_plot_exception(plot_name:str, e:Exception):
         % (plot_name, e, traceback.format_exc())
     )
 
+
 def quarto_callout_no_prediction_data_warning(extra=""):
     quarto_callout_important(f"Prediction Data is not available. {extra}")
 
+
 def quarto_callout_no_predictor_data_warning(extra=""):
     quarto_callout_important(f"Predictor Data is not available. {extra}")
+
 
 def polars_col_exists(df, col):
     return col in df.collect_schema().names() and df.schema[col] != pl.Null
@@ -69,9 +71,11 @@ def table_standard_formatting(
     rowname_col=None,
     groupname_col=None,
     cdh_guidelines=CDHGuidelines(),
+    # TODO generalize highlight_lims so the dict can als be List[str] to str
     highlight_limits: Dict[str, str] = {},
     highlight_lists: Dict[str, List[str]] = {},
     highlight_configurations: List[str] = [],
+    color_styler=style.fill
 ):
     def apply_metric_style(gt, col_name, metric):
         if col_name in source_table.collect_schema().names():
@@ -84,26 +88,30 @@ def table_standard_formatting(
             bad_rows = [
                 i
                 for i, v in enumerate(values)
-                if v < min_val or (max_val is not None and v > max_val)
+                if (v is not None and min_val is not None and v < min_val)
+                or (v is not None and max_val is not None and v > max_val)
             ]
             warning_rows = [
                 i
                 for i, v in enumerate(values)
-                if (v >= min_val and v < best_practice_min)
+                if (v is not None and v >= min_val and v < best_practice_min)
                 or (
                     best_practice_max is not None
                     and max_val is not None
+                    and v is not None
                     and v > best_practice_max
                     and v <= max_val
                 )
             ]
+            # TODO consider that bad / warning rows are exclusive
+            # TODO consider adding an optional "good" color
 
             gt = gt.tab_style(
-                style=style.fill(color="orangered"),
+                style=color_styler(color="orangered"),
                 locations=loc.body(columns=col_name, rows=bad_rows),
             )
             gt = gt.tab_style(
-                style=style.fill(color="orange"),
+                style=color_styler(color="orange"),
                 locations=loc.body(columns=col_name, rows=warning_rows),
             )
         return gt
@@ -115,7 +123,7 @@ def table_standard_formatting(
                 i for i, v in enumerate(values) if v not in standard_list
             ]
             gt = gt.tab_style(
-                style=style.fill(color="yellow"),
+                style=color_styler(color="yellow"),
                 locations=loc.body(columns=col_name, rows=non_standard_rows),
             )
         return gt
@@ -125,7 +133,7 @@ def table_standard_formatting(
             values = source_table[col_name].to_list()
             multiple_config_rows = [i for i, v in enumerate(values) if v.count(",") > 1]
             gt = gt.tab_style(
-                style=style.fill(color="yellow"),
+                style=color_styler(color="yellow"),
                 locations=loc.body(columns=col_name, rows=multiple_config_rows),
             )
         return gt
@@ -152,16 +160,16 @@ def table_standard_formatting(
     return gt
 
 
-def table_style_predictor_count(gt: GT, flds, cdh_guidelines=CDHGuidelines()):
+def table_style_predictor_count(gt: GT, flds, cdh_guidelines=CDHGuidelines(), color_styler=style.fill):
     for col in flds:
         gt = gt.tab_style(
-            style=style.fill(color="orange"),
+            style=color_styler(color="orange"),
             locations=loc.body(
                 columns=col,
                 rows=(pl.col(col) < 200) | (pl.col(col) > 700) & (pl.col(col) > 0),
             ),
         ).tab_style(
-            style=style.fill(color="orangered"),
+            style=color_styler(color="orangered"),
             locations=loc.body(
                 columns=col,
                 rows=(pl.col(col) == 0),
@@ -237,6 +245,7 @@ def sample_values(dm, all_dm_cols, fld, n=6):
         .to_list()[:n]
     )
 
+
 def show_credits(quarto_source: str):
     _, quarto_version = Reports.get_quarto_with_version(verbose=False)
     _, pandoc_version = Reports.get_pandoc_with_version(verbose=False)
@@ -260,6 +269,6 @@ def show_credits(quarto_source: str):
 
     show_versions()
 
-    quarto_print("For more information please see the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools).")
-
-
+    quarto_print(
+        "For more information please see the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools)."
+    )
