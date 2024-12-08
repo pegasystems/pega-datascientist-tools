@@ -1,0 +1,7 @@
+analysis:
+  models: true
+  predictions: true
+  predictors: true
+project:
+  title: Sample Data
+  type: default

@@ -14,7 +14,7 @@ _data = {
     "Actions per Group": [1, 100, 250, None],
     "Channels": [1, 2, None, None],
     "Configurations per Channel": [1, 1, 2, None],
-    "Predictors": [10, 200, 700, 2000],
+    "Predictors": [50, 200, 700, 2000],
     "Active Predictors per Model": [2, 5, 100, None],
     "Model Performance": [52, 55, 80, 90],
     "Engagement Lift": [0.0, 0.2, 2.0, None],

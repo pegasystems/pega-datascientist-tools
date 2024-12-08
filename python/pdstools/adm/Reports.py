@@ -1,18 +1,20 @@
 __all__ = ["Reports"]
 import logging
 import os
+import re
 import shutil
 import subprocess
 import sys
 from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union
 
 import polars as pl
 
 from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
 from ..utils.types import QUERY
+from ..prediction import Prediction
 
 if TYPE_CHECKING:
     from .ADMDatamart import ADMDatamart
@@ -34,7 +36,7 @@ class Reports(LazyNamespace):
         name: Optional[
             str
         ] = None,  # TODO when ends with .html assume its the full name but this could be in _get_output_filename
-        title: str = "ADM Model Overview",
+        title: str = "ADM Model Report",
         subtitle: str = "",
         output_dir: Optional[PathLike] = None,
         only_active_predictors: bool = False,
@@ -122,9 +124,11 @@ class Reports(LazyNamespace):
                 output_filename = self._get_output_filename(
                     name, "ModelReport", model_id, output_type
                 )
-                self._write_params_file(
-                    temp_dir,
-                    {
+                self.run_quarto(
+                    qmd_file=qmd_file,
+                    output_filename=output_filename,
+                    output_type=output_type,
+                    params={
                         "report_type": "ModelReport",
                         "model_file_path": str(model_file_path),
                         "predictor_file_path": str(predictor_file_path),
@@ -133,24 +137,22 @@ class Reports(LazyNamespace):
                         "title": title,
                         "subtitle": subtitle,
                     },
-                )
-                self._run_quarto_command(
-                    temp_dir,
-                    qmd_file,
-                    output_type,
-                    output_filename,
-                    verbose,
+                    project={"title": title, "type": "default"},
+                    analysis={
+                        "predictions": False,
+                        "predictors": (self.datamart.predictor_data is not None),
+                        "models": (self.datamart.model_data is not None),
+                    },
+                    temp_dir=temp_dir,
+                    verbose=verbose,
                 )
                 output_path = temp_dir / output_filename
                 if verbose or not output_path.exists():
                     # print parameters so they can be copy/pasted into the quarto docs for debugging
                     if model_file_path is not None:
-                        print(f'datafolder = "{model_file_path.parent}"')
-                        print(f'modelfilename = "{model_file_path.name}"')
+                        print(f'model_file_path = "{model_file_path}"')
                     if predictor_file_path is not None:
-                        if model_file_path is None:
-                            print(f'datafolder = "{predictor_file_path.parent}"')
-                        print(f'predictorfilename = "{predictor_file_path.name}"')
+                        print(f'predictor_file_path = "{predictor_file_path}"')
                     print(f'model_id = "{model_id}"')
                     print(f"output_path = {output_path}")
                 if not output_path.exists():
@@ -158,6 +160,8 @@ class Reports(LazyNamespace):
                 output_file_paths.append(output_path)
                 if progress_callback:
                     progress_callback(i + 1, len(model_ids))
+            # Is this just a difficult way to copy the file? Why not shutil.copy? Or
+            # even pass in the output-dir property to the quarto project?
             file_data, file_name = cdh_utils.process_files_to_bytes(
                 output_file_paths, base_file_name=output_path
             )
@@ -192,6 +196,7 @@ class Reports(LazyNamespace):
         verbose: bool = False,
         model_file_path: Optional[PathLike] = None,
         predictor_file_path: Optional[PathLike] = None,
+        prediction_file_path: Optional[PathLike] = None,
     ) -> Path:
         """
         Generates Health Check report based on the provided parameters.
@@ -218,6 +223,8 @@ class Reports(LazyNamespace):
             Optional name of the actual model data file, so it does not get copied
         predictor_file_path : Union[str, Path, None], optional
             Optional name of the actual predictor data file, so it does not get copied
+        prediction_file_path : Union[str, Path, None], optional
+            Optional name of the actual predictions data file, so it does not get copied
 
         Returns
         -------
@@ -251,48 +258,53 @@ class Reports(LazyNamespace):
             ):
                 model_file_path, predictor_file_path = self.datamart.save_data(temp_dir)
 
-            self._write_params_file(
-                temp_dir,
-                {
+            self.run_quarto(
+                qmd_file=qmd_file,
+                output_filename=output_filename,
+                output_type=output_type,
+                params={
                     "report_type": "HealthCheck",
                     "model_file_path": str(model_file_path),
                     "predictor_file_path": str(predictor_file_path),
+                    "prediction_file_path": str(prediction_file_path),
                     "query": query,
                     "title": title,
                     "subtitle": subtitle,
                 },
-            )
-            self._run_quarto_command(
-                temp_dir,
-                qmd_file,
-                output_type,
-                output_filename,
-                verbose,
+                project={"title": title, "type": "default"},
+                analysis={
+                    "predictions": (prediction_file_path is not None),
+                    "predictors": (self.datamart.predictor_data is not None),
+                    "models": (self.datamart.model_data is not None),
+                },
+                temp_dir=temp_dir,
+                verbose=verbose,
             )
 
             output_path = temp_dir / output_filename
             if verbose or not output_path.exists():
                 if model_file_path is not None:
-                    print(f'datafolder = "{model_file_path.parent}"')
-                    print(f'modelfilename = "{model_file_path.name}"')
+                    print(f'model_file_path = "{model_file_path}"')
                 if predictor_file_path is not None:
-                    if model_file_path is None:
-                        print(f'datafolder = "{predictor_file_path.parent}"')
-                    print(f'predictorfilename = "{predictor_file_path.name}"')
+                    print(f'predictor_file_path = "{predictor_file_path}"')
+                if prediction_file_path is not None:
+                    print(f'prediction_file_path = "{prediction_file_path}"')
                 print(f"output_path = {output_path}")
             if not output_path.exists():
                 raise ValueError(f"Failed to generate report: {output_filename}")
 
+            # TODO consider passing in the output-dir property to the quarto project so quarto does the copying
             final_path = output_dir / output_filename
             shutil.copy(output_path, final_path)
+
             return final_path
 
         finally:
             if not keep_temp_files and temp_dir.exists() and temp_dir.is_dir():
                 shutil.rmtree(temp_dir, ignore_errors=True)
 
+    @staticmethod
     def _get_output_filename(
-        self,
         name: Optional[str],  # going to be the full file name
         report_type: str,
         model_id: Optional[str] = None,
@@ -312,7 +324,8 @@ class Reports(LazyNamespace):
             else f"{report_type}.{output_type}"
         )
 
-    def _copy_quarto_file(self, qmd_file: str, temp_dir: Path) -> None:
+    @staticmethod
+    def _copy_quarto_file(qmd_file: str, temp_dir: Path) -> None:
         """Copy the report quarto file to the temporary directory."""
         from pdstools import __reports__
 
@@ -329,47 +342,153 @@ class Reports(LazyNamespace):
     #     if not predictordata_files:
     #         logger.warning("No cached predictor data found.")
 
-    def _write_params_file(self, temp_dir: Path, params: Dict) -> None:
+    @staticmethod
+    def _write_params_files(
+        temp_dir: Path,
+        params: Dict = {},
+        project: Dict = {"type": "default"},
+        analysis: Dict = {},
+    ) -> None:
         """Write parameters to a YAML file."""
         import yaml
 
-        yaml_params = {"kwargs": {key: value for key, value in params.items()}}
+        # Parameters to python code
 
-        with open(temp_dir / "params.yaml", "w") as f:
-            yaml.dump(yaml_params, f)
+        with open(temp_dir / "params.yml", "w") as f:
+            yaml.dump(
+                params,
+                f,
+            )
 
-    def _run_quarto_command(
-        self,
-        temp_dir: Path,
-        qmd_file: str,
-        output_type: str,
-        output_filename: str,
-        verbose: bool = True,
-    ) -> int:
-        """Run the Quarto command to generate the report."""
-        if verbose:
-            print("Set verbose=False to hide output.")
+        # Project/rendering options to quarto
+
+        with open(temp_dir / "_quarto.yml", "w") as f:
+            yaml.dump(
+                {
+                    "project": project,
+                    "analysis": analysis,
+                },
+                f,
+            )
+
+    @staticmethod
+    def _find_executable(exec_name: str) -> Path:
+        """Find the executable on the system."""
+
+        # First find in path
+        exec_in_path = shutil.which(exec_name)  # pragma: no cover
+        if exec_in_path:  # pragma: no cover
+            return Path(exec_in_path)
+
+        # If not in path try find explicitly. TODO not sure this is wise
+        # maybe we should not try be smart and assume quarto/pandoc are
+        # properly installed.
+
+        if sys.platform == "win32":  # pragma: no cover
+            possible_paths = [
+                Path(
+                    os.environ.get("USERPROFILE", ""),
+                    "AppData",
+                    "Local",
+                    "Programs",
+                    f"{exec_name}",  # assume windows is still case insensitive (NTFS changes this...)
+                    "bin",
+                    f"{exec_name}.cmd",
+                ),
+                Path(
+                    os.environ.get("PROGRAMFILES", ""),
+                    f"{exec_name}",
+                    "bin",
+                    f"{exec_name}.cmd",
+                ),
+            ]
+        else:  # pragma: no cover
+            possible_paths = [
+                Path(f"/usr/local/bin/{exec_name}"),
+                Path(f"/opt/{exec_name}/bin/{exec_name}"),
+                Path(os.environ.get("HOME", ""), ".local", "bin", exec_name),
+            ]
+
+        for path in possible_paths:
+            if path.exists():
+                return path
+
+        raise FileNotFoundError(
+            "Quarto executable not found. Please ensure Quarto is installed and in the system PATH."
+        )  # pragma: no cover
+
+    # TODO not conviced about below. This isn't necessarily the same path resolution
+    # as the os does. What's wrong with just assuming quarto is in the path so we can
+    # just test for version w code like
+    # def get_cmd_output(args):
+    # result = (
+    #     subprocess.run(args, stdout=subprocess.PIPE).stdout.decode("utf-8").split("\n")
+    # )
+    # return result
+    # get_version_only(get_cmd_output(["quarto", "--version"])[0])
+
+    @staticmethod
+    def _get_executable_with_version(
+        exec_name: str, verbose: bool = False
+    ) -> Tuple[Path, str]:
+        def get_version_only(versionstr):
+            return re.sub("[^.0-9]", "", versionstr)
+
         try:
-            quarto_exec = self._find_quarto_executable()
+            executable = Reports._find_executable(exec_name=exec_name)
         except FileNotFoundError as e:  # pragma: no cover
             logger.error(e)
             raise
 
-        # Check Quarto version
+        # Check version
         try:
             version_result = subprocess.run(
-                [str(quarto_exec), "--version"],
+                [str(executable), "--version"],
                 capture_output=True,
                 text=True,
                 check=True,
             )
-            quarto_version = version_result.stdout.strip()
-            message = f"Quarto version: {quarto_version}"
+            version_string = get_version_only(
+                version_result.stdout.split("\n")[0].strip()
+            )
+            message = f"{exec_name} version: {version_string}"
             logger.info(message)
             if verbose:
                 print(message)
         except subprocess.CalledProcessError as e:  # pragma: no cover
-            logger.warning(f"Failed to check Quarto version: {e}")
+            logger.warning(f"Failed to check {exec_name} version: {e}")
+
+        return (executable, version_string)
+
+    @staticmethod
+    def get_quarto_with_version(verbose: bool = True) -> Tuple[Path, str]:
+        return Reports._get_executable_with_version("quarto", verbose=verbose)
+
+    @staticmethod
+    def get_pandoc_with_version(verbose: bool = True) -> Tuple[Path, str]:
+        return Reports._get_executable_with_version("pandoc", verbose=verbose)
+
+    @staticmethod
+    def run_quarto(
+        qmd_file: str,
+        output_filename: str,
+        output_type: str = "html",
+        params: Dict = {},
+        project: Dict = {"type": "default"},
+        analysis: Dict = {},
+        temp_dir: Path = Path("."),
+        verbose: bool = False,
+    ) -> int:
+        """Run the Quarto command to generate the report."""
+
+        Reports._write_params_files(
+            temp_dir,
+            params=params,
+            project=project,
+            analysis=analysis,
+        )
+
+        quarto_exec, _ = Reports.get_quarto_with_version(verbose)
 
         command = [
             str(quarto_exec),
@@ -380,8 +499,11 @@ class Reports(LazyNamespace):
             "--output",
             output_filename,
             "--execute-params",
-            "params.yaml",
+            "params.yml",
         ]
+
+        if verbose:
+            print(f"Executing: {' '.join(command)}")
 
         process = subprocess.Popen(
             command,
@@ -406,42 +528,6 @@ class Reports(LazyNamespace):
         logger.info(message)
 
         return return_code
-
-    def _find_quarto_executable(self) -> Path:
-        """Find the Quarto executable on the system."""
-        if sys.platform == "win32":  # pragma: no cover
-            possible_paths = [
-                Path(os.environ.get("USERPROFILE", ""))
-                / "AppData"
-                / "Local"
-                / "Programs"
-                / "Quarto"
-                / "bin"
-                / "quarto.cmd",
-                Path(os.environ.get("PROGRAMFILES", ""))
-                / "Quarto"
-                / "bin"
-                / "quarto.cmd",
-            ]
-        else:  # pragma: no cover
-            possible_paths = [
-                Path("/usr/local/bin/quarto"),
-                Path("/opt/quarto/bin/quarto"),
-                Path(os.environ.get("HOME", "")) / ".local" / "bin" / "quarto",
-            ]
-
-        for path in possible_paths:
-            if path.exists():
-                return path
-
-        # If not found in common locations, try to find it in PATH
-        quarto_in_path = shutil.which("quarto")  # pragma: no cover
-        if quarto_in_path:  # pragma: no cover
-            return Path(quarto_in_path)
-
-        raise FileNotFoundError(
-            "Quarto executable not found. Please ensure Quarto is installed and in the system PATH."
-        )  # pragma: no cover
 
     def excel_report(
         self,

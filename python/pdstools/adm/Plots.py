@@ -1143,7 +1143,7 @@ class Plots(LazyNamespace):
             return plot_df
 
         fig = px.bar(
-            plot_df.collect().to_pandas(use_pyarrow_extension_array=False),
+            plot_df.collect(), #.to_pandas(use_pyarrow_extension_array=False),
             x="Lift",
             y="BinSymbolAbbreviated",
             color="Direction",
@@ -1158,6 +1158,7 @@ class Plots(LazyNamespace):
             template="pega",
             custom_data=["PredictorName", "BinSymbol"],
             facet_col_wrap=3,
+            category_orders=plot_df.collect().to_dict(),
         )
         fig.update_traces(
             hovertemplate="<br>".join(
@@ -1175,7 +1176,6 @@ class Plots(LazyNamespace):
             type="category",
             categoryorder="array",
             automargin=True,
-            autorange="reversed",
             title="",
             dtick=1,  # show all bins
             matches=None,  # allow independent y-labels if there are row facets
@@ -1208,6 +1208,10 @@ class Plots(LazyNamespace):
             if show_plots and fig is not None:
                 fig.show()
         return figs
+
+
+    # TODO I took the propensity distrib plot out of the HC as 
+    # it wasn't very clear, also didn't look great visually.
 
     @requires(
         predictor_columns={
