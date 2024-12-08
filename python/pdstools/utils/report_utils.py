@@ -75,7 +75,7 @@ def table_standard_formatting(
     highlight_limits: Dict[str, str] = {},
     highlight_lists: Dict[str, List[str]] = {},
     highlight_configurations: List[str] = [],
-    color_styler=style.fill
+    color_styler=style.fill,
 ):
     def apply_metric_style(gt, col_name, metric):
         if col_name in source_table.collect_schema().names():
@@ -88,31 +88,51 @@ def table_standard_formatting(
             bad_rows = [
                 i
                 for i, v in enumerate(values)
-                if (v is not None and min_val is not None and v < min_val)
-                or (v is not None and max_val is not None and v > max_val)
+                if v is not None
+                and (
+                    (min_val is not None and v < min_val)
+                    or (max_val is not None and v > max_val)
+                )
             ]
             warning_rows = [
                 i
                 for i, v in enumerate(values)
-                if (v is not None and v >= min_val and v < best_practice_min)
-                or (
-                    best_practice_max is not None
-                    and max_val is not None
-                    and v is not None
-                    and v > best_practice_max
-                    and v <= max_val
+                if v is not None
+                and (
+                    (
+                        min_val is not None
+                        and best_practice_min is not None
+                        and v >= min_val
+                        and v < best_practice_min
+                    )
+                    or (
+                        max_val is not None
+                        and best_practice_max is not None
+                        and v >= max_val
+                        and v < best_practice_max
+                    )
                 )
             ]
+            good_rows = [
+                i
+                for i, v in enumerate(values)
+                if v is not None
+                and (best_practice_min is None or v >= best_practice_min)
+                and (best_practice_max is None or v <= best_practice_max)
+            ]
             # TODO consider that bad / warning rows are exclusive
-            # TODO consider adding an optional "good" color
 
             gt = gt.tab_style(
-                style=color_styler(color="orangered"),
-                locations=loc.body(columns=col_name, rows=bad_rows),
+                style=color_styler(color="green"),
+                locations=loc.body(columns=col_name, rows=good_rows),
             )
             gt = gt.tab_style(
                 style=color_styler(color="orange"),
                 locations=loc.body(columns=col_name, rows=warning_rows),
+            )
+            gt = gt.tab_style(
+                style=color_styler(color="orangered"),
+                locations=loc.body(columns=col_name, rows=bad_rows),
             )
         return gt
 
@@ -160,7 +180,9 @@ def table_standard_formatting(
     return gt
 
 
-def table_style_predictor_count(gt: GT, flds, cdh_guidelines=CDHGuidelines(), color_styler=style.fill):
+def table_style_predictor_count(
+    gt: GT, flds, cdh_guidelines=CDHGuidelines(), color_styler=style.fill
+):
     for col in flds:
         gt = gt.tab_style(
             style=color_styler(color="orange"),
