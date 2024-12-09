@@ -26,9 +26,7 @@ classifiers = [
 keywords = [
     "pega",
     "pegasystems",
-    "pds",
     "pdstools",
-    "cdhtools",
     "datascientist",
     "tools",
 ]
@@ -39,7 +37,7 @@ dependencies = ['polars>=1.9', 'typing_extensions']
 version = {attr="pdstools.__version__"}
 
 [project.optional-dependencies]
-adm = ['plotly>=5.5.0']
+adm = ['plotly[express]>=6.0.0rc0', 'requests']
 pega_io = ['aioboto3', 'polars_hash']
 api = ['httpx', 'pydantic', 'anyio']
 healthcheck = ['pdstools[adm]', 'great_tables>=0.13', 'quarto', 'papermill', 'xlsxwriter>=3.0', 'pydot']
