@@ -1,9 +1,13 @@
 name: Build & Deploy docs
 
 on:
- push:
-    tags: Want to do this ultimately, but keeping it pushing for now
-      - 'V[0-9]+.[0-9]+.[0-9]+'
+  push:
+    tags:
+      - '*'  # This will trigger on any tag push, regardless of changes
+    branches:
+      - master # This branch filter applies only to the paths below
+    paths:
+      - '.github/workflows/**'  # This path filter only applies to branch pushes, not tags
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
