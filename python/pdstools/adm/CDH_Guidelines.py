@@ -7,8 +7,8 @@ import polars as pl
 _data = {
     "Issues": [1, 5, 25, None],
     "Groups per Issue": [1, 5, 25, None],
-    "Treatments": [1, 2500, 5000, 5000],
-    "Treatments per Channel": [1, 1000, 2500, 2500],
+    "Treatments": [2, 2500, 5000, 5000],
+    "Treatments per Channel": [2, 1000, 2500, 2500],
     "Treatments per Channel per Action": [1, 1, 5, None],
     "Actions": [10, 1000, 2500, 2500],
     "Actions per Group": [1, 100, 250, None],
@@ -16,11 +16,15 @@ _data = {
     "Configurations per Channel": [1, 1, 2, None],
     "Predictors": [50, 200, 700, 2000],
     "Active Predictors per Model": [2, 5, 100, None],
+
+    # below are not part of the standard cloud limits but used in the reports
+    
     "Model Performance": [52, 55, 80, 90],
-    "Engagement Lift": [0.0, 0.2, 2.0, None],
     "Responses": [1.0, 200, None, None],
     "Positive Responses": [1.0, 200, None, None],
     "Engagement Lift": [0.0, 1.0, None, None],
+    "CTR": [0.0, 0.000001, 0.999999, 1.0],
+    "OmniChannel": [0.0, 0.5, 1.0, 1.0],
 }
 
 _pega_cloud_limits = pl.DataFrame(data=_data).transpose(include_header=True)

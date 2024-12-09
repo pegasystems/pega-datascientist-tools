@@ -265,24 +265,21 @@ formatted_channel_overview = (
         df_channel_overview,
         cdh_guidelines=cdh_guidelines,
         highlight_limits={
-            "Positives": "Positive Responses",
-            "Performance": "Model Performance",
-            "ResponseCount": "Responses",
-            "Total Number of Actions": "Actions",
-            "Used Actions": "Actions",
-            "Total Number of Treatments": "Treatments",
-            "Used Treatments": "Treatments",
+            "Positive Responses": "Positives",
+            "Model Performance": "Performance",
+            "Responses": "ResponseCount",
+            "Actions": ["Total Number of Actions", "Used Actions"],
+            "Treatments": ["Total Number of Treatments", "Used Treatments"],
             "Issues": "Issues",
+            "OmniChannel": "OmniChannel Actions",
+            "CTR" : "CTR",
         },
-        highlight_lists = {
-            "Channel" : cdh_guidelines.standard_channels,
-            "Direction" : cdh_guidelines.standard_directions,
+        highlight_lists={
+            "Channel": cdh_guidelines.standard_channels,
+            "Direction": cdh_guidelines.standard_directions,
         },
-        highlight_configurations = ["Configuration"],
+        highlight_configurations=["Configuration"],
     )
-    .fmt_percent(decimals=0, columns=["OmniChannel Actions"])
-    .fmt_number(decimals=2, columns=["Performance"])
-    .fmt_percent(decimals=2, columns=["CTR"])
     .cols_label(
         CTR="Base Rate",
         ResponseCount="Total Responses",
@@ -418,20 +415,23 @@ if prediction_file_path:
             highlight_limits={
                 # "Actions": "Actions",
                 # "Unique Treatments": "Treatments",
-                "Positives": "Positive Responses",
-                "Negatives": "Responses",
-                "Positives_Test": "Positive Responses",
-                "Negatives_Test": "Responses",
-                "Positives_Control": "Positive Responses",
-                "Negatives_Control": "Responses",
-                "Positives_NBA": "Positive Responses",
-                "Negatives_NBA": "Responses",
-                "ResponseCount": "Responses",
+                "Positive Responses": [
+                    "Positives",
+                    "Positives_Test",
+                    "Positives_Control",
+                    "Positives_NBA",
+                ],
+                "Responses": [
+                    "ResponseCount",
+                    "Negatives",
+                    "Negatives_Test",
+                    "Negatives_Control",
+                    "Negatives_NBA",
+                ],
+                "Model Performance": "Performance",
+                "CTR": ["CTR", "CTR_Test", "CTR_Control", "CTR_NBA"],
+                "Engagement Lift": "Lift",
             },
-        )
-        .fmt_number(decimals=2, columns=["Performance"])
-        .fmt_percent(
-            decimals=2, columns=["CTR", "CTR_Test", "CTR_Control", "CTR_NBA", "Lift"]
         )
         .fmt_percent(
             decimals=2,
@@ -811,7 +811,9 @@ else:
 model_overview = (
     last_data.group_by(
         ["Configuration"]
-        + report_utils.polars_subset_to_existing_cols(datamart_all_columns, ["Channel", "Direction"])
+        + report_utils.polars_subset_to_existing_cols(
+            datamart_all_columns, ["Channel", "Direction"]
+        )
     )
     .agg(
         [
@@ -835,18 +837,19 @@ model_overview = (
 
 display(
     report_utils.table_standard_formatting(
-        model_overview, title="Model Overview",
+        model_overview,
+        title="Model Overview",
         cdh_guidelines=cdh_guidelines,
         highlight_limits={
             "Actions": "Actions",
-            "Unique Treatments": "Treatments",
-            "Positives": "Positive Responses",
-            "ResponseCount": "Responses",
+            "Treatments": "Unique Treatments",
+            "Positive Responses": "Positives",
+            "Responses": "ResponseCount",
         },
-        highlight_lists = {
-            "Channel" : cdh_guidelines.standard_channels,
-            "Direction" : cdh_guidelines.standard_directions,
-            "Configuration" : cdh_guidelines.standard_configurations,
+        highlight_lists={
+            "Channel": cdh_guidelines.standard_channels,
+            "Direction": cdh_guidelines.standard_directions,
+            "Configuration": cdh_guidelines.standard_configurations,
         },
     )
     .tab_style(
@@ -1301,7 +1304,7 @@ If predictors perform poorly across all models, that may be because of data sour
 
 ```{python}
 # weighted performance
-# TODO apply highlighting in the std way like in the R version
+
 
 if datamart.predictor_data is not None:
     bad_predictors = (
@@ -1329,7 +1332,7 @@ if datamart.predictor_data is not None:
             # .with_columns(MeanPlotData=pl.col("Mean")),
             rowname_col="PredictorName",
             cdh_guidelines=cdh_guidelines,
-            highlight_limits = {"Response Count" : "Responses"}
+            highlight_limits = {"Responses" : "Response Count"}
         )
         .tab_options(container_height="400px", container_overflow_y=True)
         .tab_spanner(
