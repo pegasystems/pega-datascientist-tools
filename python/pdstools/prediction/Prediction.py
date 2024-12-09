@@ -201,7 +201,6 @@ class PredictionPlots(LazyNamespace):
             result.update_layout(yaxis_title="Responses")
         return result
 
-
 class Prediction:
     """Monitor Pega Prediction Studio Predictions"""
 

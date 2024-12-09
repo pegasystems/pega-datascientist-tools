@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import Iterable, List, Literal, Optional, Tuple, Union, overload
 
 import polars as pl
-import requests
 
 from ..utils.cdh_utils import from_prpc_date_time
 
@@ -94,6 +93,8 @@ def read_ds_export(
         logging.debug("Could not find file in directory, checking if URL")
 
         try:
+            import requests
+
             response = requests.get(f"{path}/{filename}")
             logging.info(f"Response: {response}")
             if response.status_code == 200:
@@ -101,6 +102,11 @@ def read_ds_export(
                 file = f"{path}/{filename}"
                 file = BytesIO(urllib.request.urlopen(file).read())
                 _, extension = os.path.splitext(filename)
+
+        except ImportError:
+            warnings.warn(
+                "Unable to import `requests`, so not able to check for remote files. If you're trying to read in a file from the internet (or, for instance, using the built-in cdh_sample method), try installing the 'requests' package (`uv pip install requests`)"
+            )
 
         except Exception as e:
             logging.info(e)
@@ -162,19 +168,19 @@ def import_file(
 
     if extension == ".json":
         try:
-            if isinstance(file, BytesIO):
-                from pyarrow import json
+            # if isinstance(file, BytesIO):
+            #     from pyarrow import json
 
-                return pl.LazyFrame(
-                    json.read_json(
-                        file,
-                    )
-                )
-            else:
-                return pl.scan_ndjson(
-                    file,
-                    infer_schema_length=reading_opts.pop("infer_schema_length", 10000),
-                )
+            #     return pl.LazyFrame(
+            #         json.read_json(
+            #             file,
+            #         )
+            #     )
+            # else:
+            return pl.scan_ndjson(
+                file,
+                infer_schema_length=reading_opts.pop("infer_schema_length", 10000),
+            )
         except Exception:  # pragma: no cover
             try:
                 return pl.read_json(file).lazy()

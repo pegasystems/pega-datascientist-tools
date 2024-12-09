@@ -34,3 +34,4 @@ python/*.ipynb_checkpoints/*
 **/META-INF/*
 r/tests/testthat/d/tmp2
 **/cache
+.venv

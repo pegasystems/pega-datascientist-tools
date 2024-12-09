@@ -354,8 +354,8 @@ class ADMDatamart:
     def apply_predictor_categorization(
         self,
         df: Optional[pl.LazyFrame] = None,
-        categorization: Optional[
-            Union[pl.Expr, Callable[..., pl.Expr]]
+        categorization: Union[
+            pl.Expr, Callable[..., pl.Expr]
         ] = cdh_utils.default_predictor_categorization,
     ):
         """Apply a new predictor categorization to the datamart tables
@@ -381,25 +381,35 @@ class ADMDatamart:
 
         See also
         --------
-        pdstools.utils.cdh_utils.default_predictor_categorization : The default
+        pdstools.utils.cdh_utils.default_predictor_categorization : The default method
 
         Examples
         --------
-        >>> #TODO
+        >>> dm = ADMDatamart(my_data) #uses the OOTB predictor categorization
+
+        >>> dm.apply_predictor_categorization(categorization=pl.when(
+        >>> pl.col("PredictorName").cast(pl.Utf8).str.contains("Propensity")
+        >>> ).then(pl.lit("External Model")
+        >>> ).otherwise(pl.lit("Adaptive Model)")
+
+        >>> # Now, every subsequent plot will use the custom categorization
         """
-        if callable(categorization):
-            categorization: pl.Expr = categorization()
+
+        categorization_expr: pl.Expr = (
+            categorization() if callable(categorization) else categorization
+        )
+
 
         if df is not None:
-            return df.with_columns(PredictorCategory=categorization)
+            return df.with_columns(PredictorCategory=categorization_expr)
 
         if hasattr(self, "predictor_data") and self.predictor_data is not None:
             self.predictor_data = self.predictor_data.with_columns(
-                PredictorCategory=categorization
+                PredictorCategory=categorization_expr
             )
         if hasattr(self, "combined_data") and self.combined_data is not None:
             self.combined_data = self.combined_data.with_columns(
-                PredictorCategory=categorization
+                PredictorCategory=categorization_expr
             )
 
     def save_data(
