@@ -45,4 +45,4 @@ def __getattr__(name: str):
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 
-__all__ = ["Infinity", "MissingDependenciesException"]
+__all__ = ["Infinity"]

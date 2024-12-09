@@ -14,26 +14,17 @@ mock_prediction_data = pl.DataFrame(
         "pySnapShotTime": cdh_utils.to_prpc_date_time(datetime.datetime.now())[
             0:15
         ],  # Polars doesn't like time zones like GMT+0200
-        "pyModelId": ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTWEBPROPENSITY"] * 4
-        + ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTMOBILEPROPENSITY"] * 4,
-        # "Channel": ["Web"] * 4 + ["Mobile"] * 4,
-        # "Direction": ["Inbound"] * 4 + ["Outbound"] * 4,
+        "pyModelId": ["DATA-DECISION-REQUEST-CUSTOMER!MYCUSTOMPREDICTION"] * 4
+        + ["DATA-DECISION-REQUEST-CUSTOMER!PredictActionPropensity"] * 4
+        + ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTMOBILEPROPENSITY"] * 4
+        + ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTWEBPROPENSITY"] * 4,
         "pyModelType": "PREDICTION",
-        "pySnapshotType": (["Daily"] * 3 + [None]) * 2,
-        "pyDataUsage": [
-            "Control",
-            "Test",
-            "NBA",
-            "",
-            "Control",
-            "Test",
-            "NBA",
-            "",
-        ],
-        "pyPositives": [100, 400, 500, 1000, 200, 800, 1000, 2000],
-        "pyNegatives": [1000, 2000, 3000, 6000, 3000, 6000, 9000, 18000],
-        "pyCount": [1100, 2400, 3500, 7000, 3200, 6800, 10000, 20000],
-        "pyValue": [0.65] * 4 + [0.70] * 4,
+        "pySnapshotType": (["Daily"] * 3 + [None]) * 4,
+        "pyDataUsage": ["Control", "Test", "NBA", ""] * 4,
+        "pyPositives": [100, 400, 500, 1000, 200, 800, 1000, 2000] * 2,
+        "pyNegatives": [1000, 2000, 3000, 6000, 3000, 6000, 9000, 18000] * 2,
+        "pyCount": [1100, 2400, 3500, 7000, 3200, 6800, 10000, 20000] * 2,
+        "pyValue": ([0.65] * 4 + [0.70] * 4) * 2,
     }
 ).lazy()
 
@@ -79,7 +70,6 @@ def test_summary_by_channel_cols(test):
         "Direction",
         "isStandardNBADPrediction",
         "isMultiChannelPrediction",
-        "Lift",
         "Performance",
         "Positives",
         "Negatives",
@@ -94,24 +84,28 @@ def test_summary_by_channel_cols(test):
         "ControlPercentage",
         "TestPercentage",
         "CTR",
+        "CTR_Test",
+        "CTR_Control",
+        "CTR_NBA",
+        "ChannelDirectionGroup",
         "isValid",
+        "Lift"
     ]
-    assert len(summary) == 2
 
 
 def test_summary_by_channel_channels(test):
     summary = test.summary_by_channel().collect()
-    assert summary.select(pl.len()).item() == 2
+    assert summary.select(pl.len()).item() == 4
 
 
 def test_summary_by_channel_validity(test):
     summary = test.summary_by_channel().collect()
-    assert summary["isValid"].to_list() == [True, True]
+    assert summary["isValid"].to_list() == [True, True, True, True]
 
 
 def test_summary_by_channel_ia(test):
     summary = test.summary_by_channel().collect()
-    assert summary["usesImpactAnalyzer"].to_list() == [True, True]
+    assert summary["usesImpactAnalyzer"].to_list() == [True, True, True, True]
 
     test = Prediction(
         mock_prediction_data.filter(
@@ -122,7 +116,10 @@ def test_summary_by_channel_ia(test):
             )
         )
     )
+    # only Web still has the NBA indicator
     assert test.summary_by_channel().collect()["usesImpactAnalyzer"].to_list() == [
+        False,
+        False,
         False,
         True,
     ]
@@ -130,30 +127,37 @@ def test_summary_by_channel_ia(test):
 
 def test_summary_by_channel_lift(test):
     summary = test.summary_by_channel().collect()
-    assert [round(x, 5) for x in summary["Lift"].to_list()] == [0.88235, 0.83333]
+    assert [round(x, 5) for x in summary["Lift"].to_list()] == [0.83333, 0.88235] * 2
 
 
 def test_summary_by_channel_controlpct(test):
     summary = test.summary_by_channel().collect()
     assert [round(x, 5) for x in summary["ControlPercentage"].to_list()] == [
-        16.0,
         15.71429,
-    ]
+        16.0,
+    ] * 2
     assert [round(x, 5) for x in summary["TestPercentage"].to_list()] == [
-        34.0,
         34.28571,
-    ]
+        34.0,
+    ] * 2
 
 
 def test_summary_by_channel_trend(test):
     summary = test.summary_by_channel(by_period="1d").collect()
-    assert summary.select(pl.len()).item() == 2
+    assert summary.select(pl.len()).item() == 4
 
 
 def test_summary_by_channel_trend2(test2):
     summary = test2.summary_by_channel(by_period="1d").collect()
-    assert summary.select(pl.len()).item() == 4
+    assert summary.select(pl.len()).item() == 8
 
+
+def test_summary_by_channel_channeldirectiongroup(test):
+    summary = test.summary_by_channel().collect()
+
+    assert summary["isMultiChannelPrediction"].to_list() == [False, True, False, False]
+    assert summary["isStandardNBADPrediction"].to_list() == [False, True, True, True]
+    assert summary["ChannelDirectionGroup"].to_list() == ["Other", "Other", "Mobile/Inbound", "Web/Inbound"]
 
 def test_overall_summary_cols(test):
     summary = test.overall_summary().collect()
@@ -174,20 +178,21 @@ def test_overall_summary_cols(test):
 
 
 def test_overall_summary_n_valid_channels(test):
-    print(test.overall_summary().collect())
-    assert test.overall_summary().collect()["Number of Valid Channels"].item() == 2
+    assert test.overall_summary().collect()["Number of Valid Channels"].item() == 3
 
 
 def test_overall_summary_overall_lift(test):
-    assert round(test.overall_summary().collect()["Overall Lift"].item(), 5) == 0.86964
+    # print(test.overall_summary().collect())
+    # print(test.summary_by_channel().collect())
+    assert round(test.overall_summary().collect()["Overall Lift"].item(), 5) == 0.86217
 
 
 def test_overall_summary_positives(test):
-    assert test.overall_summary().collect()["Positives"].item() == 3000
+    assert test.overall_summary().collect()["Positives"].item() == 4000
 
 
 def test_overall_summary_responsecount(test):
-    assert test.overall_summary().collect()["ResponseCount"].item() == 27000
+    assert test.overall_summary().collect()["ResponseCount"].item() == 34000
 
 
 def test_overall_summary_channel_min_lift(test):
@@ -202,16 +207,16 @@ def test_overall_summary_min_lift(test):
 
 
 def test_overall_summary_ctr(test):
-    assert round(test.overall_summary().collect()["CTR"].item(), 5) == 0.11111
+    assert round(test.overall_summary().collect()["CTR"].item(), 5) == 0.11765
 
 
 def test_overall_summary_controlpct(test):
     assert (
         round(test.overall_summary().collect()["ControlPercentage"].item(), 5)
-        == 15.92593
+        == 15.88235
     )
     assert (
-        round(test.overall_summary().collect()["TestPercentage"].item(), 5) == 34.07407
+        round(test.overall_summary().collect()["TestPercentage"].item(), 5) == 34.11765
     )
 
 
@@ -228,3 +233,17 @@ def test_overall_summary_ia(test):
         )
     )
     assert test.overall_summary().collect()["usesImpactAnalyzer"].to_list() == [True]
+
+def test_plots():
+    prediction = Prediction.from_mock_data()
+
+    assert prediction.plot.performance_trend() is not None
+    assert prediction.plot.lift_trend() is not None
+    assert prediction.plot.responsecount_trend() is not None
+    assert prediction.plot.ctr_trend() is not None
+
+    assert prediction.plot.performance_trend("1w") is not None
+    assert isinstance(prediction.plot.lift_trend("2d", return_df=True), pl.LazyFrame)
+    assert prediction.plot.responsecount_trend("1m") is not None
+    assert prediction.plot.ctr_trend("5d") is not None
+

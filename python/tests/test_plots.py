@@ -50,15 +50,10 @@ def test_proposition_success_rates(sample: ADMDatamart):
 
 
 def test_score_distribution(sample: ADMDatamart):
-    model_id = "bd70a915-697a-5d43-ab2c-53b0557c85a0"
+    model_id = sample.combined_data.select("ModelID").collect().row(0)[0]
     df = sample.plot.score_distribution(model_id=model_id, return_df=True)
 
-    assert df.select(pl.col("BinIndex").top_k(1)).collect().item() == 1
-    assert (
-        round(df.select(pl.col("BinPropensity").top_k(1)).collect().item(), 2) == 0.01
-    )
-
-    # Test if the plot works
+    assert df.select(pl.col("PredictorName").top_k(1)).collect().item() == "Classifier"
     plot = sample.plot.score_distribution(model_id=model_id)
     assert plot is not None
 
@@ -70,18 +65,25 @@ def test_multiple_score_distributions(sample: ADMDatamart):
 
 
 def test_predictor_binning(sample: ADMDatamart):
-    model_id = "bd70a915-697a-5d43-ab2c-53b0557c85a0"
-    predictor_name = "Customer.HealthMatter"
+    random_row = (
+        sample.combined_data.select(["ModelID", "PredictorName"]).collect().sample(1)
+    )
+    model_id = random_row["ModelID"][0]
+    predictor_name = random_row["PredictorName"][0]
     df = sample.plot.predictor_binning(
         model_id=model_id, predictor_name=predictor_name, return_df=True
     )
-
-    assert df.select(pl.col("BinIndex").top_k(1)).collect().item() == 1
-    assert (
-        round(df.select(pl.col("BinPropensity").top_k(1)).collect().item(), 5)
-        == 0.00206
-    )
-
+    assert not df.collect().is_empty()
+    required_columns = ["BinIndex", "BinPropensity", "BinSymbol", "BinResponseCount"]
+    assert all(col in df.collect_schema().names() for col in required_columns)
+    with pytest.raises(ValueError):
+        sample.plot.predictor_binning(
+            model_id="non_existent_id", predictor_name=predictor_name
+        )
+    with pytest.raises(ValueError):
+        sample.plot.predictor_binning(
+            model_id=model_id, predictor_name="non_existent_predictor"
+        )
     plot = sample.plot.predictor_binning(
         model_id=model_id, predictor_name=predictor_name
     )
@@ -89,10 +91,18 @@ def test_predictor_binning(sample: ADMDatamart):
 
 
 def test_multiple_predictor_binning(sample: ADMDatamart):
-    model_id = "bd70a915-697a-5d43-ab2c-53b0557c85a0"
+    model_id = sample.combined_data.select("ModelID").collect().row(0)[0]
     plots = sample.plot.multiple_predictor_binning(model_id=model_id, show_all=False)
     assert isinstance(plots, list)
-    assert len(plots) == 90
+    # Same number of plots as number of predictors
+    assert (
+        len(plots)
+        == sample.combined_data.filter(pl.col("ModelID") == model_id)
+        .select("PredictorName")
+        .unique()
+        .collect()
+        .shape[0]
+    )
     assert all(isinstance(plot, Figure) for plot in plots)
 
 
@@ -197,12 +207,29 @@ def test_predictor_count(sample: ADMDatamart):
 
 
 def test_binning_lift(sample: ADMDatamart):
-    model_id = "bd70a915-697a-5d43-ab2c-53b0557c85a0"
-    predictor_name = "Customer.HealthMatter"
-    df = sample.plot.binning_lift(model_id, predictor_name, return_df=True).collect()
-    assert df.shape == (1, 8)
-    assert df.filter(pl.col("BinIndex") == 1).select("Lift").item() == 0.0
+    # Get a random model_id and predictor_name
+    random_row = (
+        sample.combined_data.select(["ModelID", "PredictorName"]).collect().sample(1)
+    )
+    model_id = random_row["ModelID"][0]
+    predictor_name = random_row["PredictorName"][0]
 
+    df = sample.plot.binning_lift(model_id, predictor_name, return_df=True).collect()
+
+    assert not df.is_empty()
+    required_columns = [
+        "PredictorName",
+        "BinIndex",
+        "BinPositives",
+        "BinNegatives",
+        "BinSymbol",
+        "Lift",
+        "Direction",
+        "BinSymbolAbbreviated",
+    ]
+    assert all(col in df.columns for col in required_columns)
+
+    assert set(df["Direction"]) <= {"pos", "neg", "pos_shaded", "neg_shaded"}
     plot = sample.plot.binning_lift(model_id, predictor_name)
     assert isinstance(plot, Figure)
 

@@ -399,6 +399,7 @@ class ADMDatamart:
             categorization() if callable(categorization) else categorization
         )
 
+
         if df is not None:
             return df.with_columns(PredictorCategory=categorization_expr)
 

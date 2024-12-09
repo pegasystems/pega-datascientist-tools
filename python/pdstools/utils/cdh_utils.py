@@ -227,10 +227,11 @@ def parse_pega_date_time_formats(
 ):
     """Parses Pega DateTime formats.
 
-    Supports the two most commonly used formats:
+    Supports commonly used formats:
 
     - "%Y-%m-%d %H:%M:%S"
     - "%Y%m%dT%H%M%S.%f %Z"
+    - "%d-%b-%y"
 
     Removes timezones, and rounds to seconds, with a 'ns' time unit.
 
@@ -253,6 +254,9 @@ def parse_pega_date_time_formats(
             ),
             pl.col(timestamp_col).str.to_datetime(
                 "%Y%m%dT%H%M%S.%3f %Z", strict=False, ambiguous="null"
+            ),
+            pl.col(timestamp_col).str.to_datetime(
+                "%d-%b-%y", strict=False, ambiguous="null"
             ),
             pl.col(timestamp_col).str.to_datetime(
                 timestamp_fmt or "%Y", strict=False, ambiguous="null"

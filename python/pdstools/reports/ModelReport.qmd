@@ -49,45 +49,40 @@ from pdstools.utils import report_utils
 ```{python}
 # | tags: [parameters]
 
-# These parameters are overwritten when called externally
+# Parameters will be overriden by quarto when a parameters yaml is provided
 
-datafolder = ""
-modelfilename = ""
-predictorfilename = ""
-model_id = ""
+title = "ADM Model Details"
+subtitle = "Sample data"
+
+model_file_path = None
+predictor_file_path = None
+query = None
+model_id = None
 
 only_active_predictors = True
-
-title = "Demo Dataset"  # pass in customer name here
-subtitle = ""  # typically used to pass in a date range or other qualification of the data source
-
-kwargs = dict()
-
 
 ```
 
 ```{python}
-# Predictor data for one model ID
-if len(kwargs) > 0:
-    # streamlit call TODO fix this for v4
-    model_id = kwargs["model_id"]
-    only_active_predictors = kwargs["only_active_predictors"]
-    model_df = read_ds_export(kwargs["model_file_path"])
-    predictor_df = read_ds_export(kwargs["predictor_file_path"])
-    datamart = ADMDatamart(
-        model_df=model_df,
-        predictor_df=predictor_df,
-        query=pl.col("ModelID") == model_id,
-    )  # .fillMissing()
-elif len(datafolder) > 0 or len(modelfilename) > 0 or len(predictorfilename) > 0:
-    # command line call
+# Below needed because current Yaml lib reads None back in as the string None
+# TODO consider a different lib that supports roundtrip preservation like ruamel.yaml
+if model_file_path and model_file_path == "None":
+    model_file_path = None
+if predictor_file_path and predictor_file_path == "None":
+    predictor_file_path = None
+if query and query == "None":
+    query = None
+if model_id and model_id == "None":
+    model_id = None
+
+if model_id is not None and predictor_file_path is not None:
     datamart = ADMDatamart.from_ds_export(
-        base_path=datafolder,
-        model_filename=modelfilename,
-        predictor_filename=predictorfilename,
-        extract_pyname_keys=True,
+        model_filename=model_file_path,
+        predictor_filename=predictor_file_path,
         query=pl.col("ModelID") == model_id,
-    )  # .fillMissing()
+    )
+
+    # .fillMissing()
 else:
     # fall back to sample data
     model_id = "bd70a915-697a-5d43-ab2c-53b0557c85a0"
@@ -159,13 +154,6 @@ model_name = (
     .item()
 )
 
-if len(kwargs) > 0:
-    # Calling through function (in streamlit or in a notebook)
-    if "title" in kwargs and len(kwargs["title"]) > 0:
-        title = kwargs["title"]
-    if "subtitle" in kwargs and len(kwargs["subtitle"]) > 0:
-        subtitle = kwargs["subtitle"]
-
 report_utils.quarto_print(
     f"""
 # {title}
@@ -181,8 +169,6 @@ report_utils.quarto_print(
 """
 )
 ```
-
-
 
 ```{python}
 try:
@@ -204,33 +190,33 @@ except Exception as e:
 
 ```
 
-::: {.callout-tip}
-The charts (built with [Plotly](https://plotly.com/python/)) have [user controls for panning,
-zooming etc](https://plotly.com/chart-studio-help/zoom-pan-hover-controls/). These interactive plots do not render well in portals like Sharepoint
-or Box. It is preferable to view them from a browser.
+::: callout-tip
+The charts (built with [Plotly](https://plotly.com/python/)) have [user controls for panning, zooming etc](https://plotly.com/chart-studio-help/zoom-pan-hover-controls/). These interactive plots do not render well in portals like Sharepoint or Box. It is preferable to view them from a browser.
 :::
 
 ## Model Performance
-
 
 ```{python}
 
 # unfortunately and TODO return_df on the previous plot doesnt give all the columns we'd need so we have to fetch the data separately
 
-classifier = (
-    datamart.aggregates.last(table="predictor_data")
-    .filter(pl.col("ModelID") == model_id)
-    .filter(pl.col("EntryType") == "Classifier")
-    .sort("BinIndex")
-)
+try:
+    classifier = (
+        datamart.aggregates.last(table="predictor_data")
+        .filter(pl.col("ModelID") == model_id)
+        .filter(pl.col("EntryType") == "Classifier")
+        .sort("BinIndex")
+    )
 
-auc_roc = round(classifier.select(pl.last("Performance")).collect().item(), 4)
+    auc_roc = round(classifier.select(pl.last("Performance")).collect().item(), 4)
 
-report_utils.quarto_print(
-    f"""
-The model performance is **{auc_roc}** measured as AUC-ROC. This number is calculated from the “active” bins of the Classifier.
-"""
-)
+    report_utils.quarto_print(
+        f"""
+    The model performance is **{auc_roc}** measured as AUC-ROC. This number is calculated from the “active” bins of the Classifier.
+    """
+    )
+except Exception as e:
+    report_utils.quarto_plot_exception("Model Performance", e)
 ```
 
 The classifier maps the model scores (average of the log odds of the active predictors) to a propensity value. The “active” bins are the ones that can be reached from the current binning of the active predictors.
@@ -238,97 +224,85 @@ The classifier maps the model scores (average of the log odds of the active pred
 See the [ADM Explained](https://pegasystems.github.io/pega-datascientist-tools/Python/articles/ADMExplained.html) article for more information on how ADM exactly works.
 
 ```{python}
+try:
+    gt = (
+        report_utils.table_standard_formatting(
+            classifier.collect().select(
+                pl.last("ResponseCount"),
+                pl.last("Positives"),
+                (pl.last("Positives") / pl.last("ResponseCount")).alias(
+                    "Base Propensity"
+                ),
+                pl.last("Performance") * 100,
+            ),
+            highlight_limits={
+                "Responses": "ResponseCount",
+                "Positive Responses": "Positives",
+                "Model Performance": "Performance",
+                "CTR": "Base Propensity",
+            },
+        ).cols_label(
+            ResponseCount="Responses",
+        )
+    )
 
-gt = (
-    report_utils.table_standard_formatting(
-        classifier.collect().select(
-            pl.last("ResponseCount"),
-            pl.last("Positives"),
-            (pl.last("Positives") / pl.last("ResponseCount")).alias("Base Propensity"),
-            pl.last("Performance"),
-        ),
-        highlight_limits = {
-            "ResponseCount" : "Responses",
-            "Positives" : "Positive Responses",
-            "Performance" : "Model Performance"
-        }
-    )
-    .cols_label(
-        ResponseCount="Responses",
-    )
-    .fmt_number(
-        decimals=0,
-        columns=["ResponseCount", "Positives"],
-    )
-    .fmt_percent(decimals=3, columns="Base Propensity")
-    .fmt_number(
-        decimals=2,
-        scale_by=100,
-        columns=["Performance"],
-    )
-)
-
-display(gt)
+    display(gt)
+except Exception as e:
+    report_utils.quarto_plot_exception("Model Performance", e)
 ```
-
 
 ## Score Distribution
 
-The Score Distribution shows the volume and average propensity in every bin of
-the score ranges of the Classifier.
+The Score Distribution shows the volume and average propensity in every bin of the score ranges of the Classifier.
 
-Propensity is defined as $\frac{positives}{positives+negatives}$ per bin.
-The adjusted propensity that is returned is a small modification (*Laplace
-smoothing*) to this and calculated as
-$\frac{0.5+positives}{1+positives+negatives}$ so new models initially return a
-propensity of 0.5. This helps to address the cold start when introducing new
-actions.
+Propensity is defined as $\frac{positives}{positives+negatives}$ per bin. The adjusted propensity that is returned is a small modification (*Laplace smoothing*) to this and calculated as $\frac{0.5+positives}{1+positives+negatives}$ so new models initially return a propensity of 0.5. This helps to address the cold start when introducing new actions.
 
-::: {.callout-warning}
+::: callout-warning
 The Python version has no notion of unreachable bins (yet), when it has we should grey out the binning rows that fall outside of the active range
 :::
 
 ```{python}
 
-human_friendly_scoredistribution = (
-    classifier.select(
-        pl.col("BinIndex").alias("Index"),
-        pl.col("BinSymbol").alias("Bin"),
-        pl.col("BinResponseCount").alias("Responses"),
-        pl.col("BinPositives").alias("Positives"),
-        (100 * (pl.col("BinPositives").cum_sum(reverse=True)) / pl.sum("BinPositives"))
-        .round(2)
-        .alias("Cum. Positives (%)"),
-        (
-            100
-            * (pl.col("BinResponseCount").cum_sum(reverse=True))
-            / pl.sum("BinResponseCount")
+try:
+    human_friendly_scoredistribution = (
+        classifier.select(
+            pl.col("BinIndex").alias("Index"),
+            pl.col("BinSymbol").alias("Bin"),
+            pl.col("BinResponseCount").alias("Responses"),
+            pl.col("BinPositives").alias("Positives"),
+            (100 * (pl.col("BinPositives").cum_sum(reverse=True)) / pl.sum("BinPositives"))
+            .round(2)
+            .alias("Cum. Positives (%)"),
+            (
+                100
+                * (pl.col("BinResponseCount").cum_sum(reverse=True))
+                / pl.sum("BinResponseCount")
+            )
+            .round(2)
+            .alias("Cum. Total (%)"),
+            (100 * pl.col("BinPropensity")).round(3).alias("Propensity (%)"),
+            z_ratio(pl.col("BinPositives"), pl.col("BinNegatives"))
+            .round(3)
+            .alias("Z Ratio"),
+            (lift(pl.col("BinPositives"), pl.col("BinNegatives")) * 100)
+            .round(2)
+            .alias("Lift (%)"),
+            (pl.col("BinAdjustedPropensity") * 100)
+            .round(3)
+            .alias("Adjusted Propensity (%)"),
         )
-        .round(2)
-        .alias("Cum. Total (%)"),
-        (100 * pl.col("BinPropensity")).round(3).alias("Propensity (%)"),
-        z_ratio(pl.col("BinPositives"), pl.col("BinNegatives"))
-        .round(3)
-        .alias("Z Ratio"),
-        (lift(pl.col("BinPositives"), pl.col("BinNegatives")) * 100)
-        .round(2)
-        .alias("Lift (%)"),
-        (pl.col("BinAdjustedPropensity") * 100)
-        .round(3)
-        .alias("Adjusted Propensity (%)"),
+    ).collect()
+
+    # TODO some of the formatting could be done in GT instead of in polars
+
+    gt = report_utils.table_standard_formatting(
+        human_friendly_scoredistribution, title="Score Distribution"
     )
-).collect()
 
-# TODO some of the formatting could be done in GT instead of in polars
-
-gt = report_utils.table_standard_formatting(
-    human_friendly_scoredistribution, title="Score Distribution"
-)
-
-display(gt)
-
+    display(gt)
+except Exception as e:
+    report_utils.quarto_plot_exception("Score Distribution", e)
 ```
-
 
 ## Cumulative Gains and Lift charts
 
@@ -340,8 +314,7 @@ The Lift chart is derived from this and shows the ratio of the cumulative gain a
 
 TODO: unfortunately the Python version has no notion of unreachable bins (yet) which can cause really strange high lift values
 
-::: {layout-ncol=2}
-
+::: {layout-ncol="2"}
 ```{python}
 # TODO perhaps this should move into the pdstools plot functions "plotCumulativeGains"
 # however it is so trivial, not really sure it should be. See also the other gains charts
@@ -404,7 +377,6 @@ except Exception as e:
     report_utils.quarto_plot_exception("Lift", e)
 
 ```
-
 :::
 
 ```{python}
@@ -438,8 +410,7 @@ except Exception as e:
 
 # Trend charts
 
-::: {layout-ncol=2}
-
+::: {layout-ncol="2"}
 ```{python}
 # TODO see if we can put the various trend charts in tabs - although this seems to require go not express, then gain .data[0] probably gives the go objects
 
@@ -484,14 +455,11 @@ try:
 except Exception as e:
     report_utils.quarto_plot_exception("Success Rate Trend", e)
 ```
-
 :::
 
 # Performance by Predictor Category
 
-Showing the performance across all predictors. The predictor categories default
-to the text before the first dot. This can be customized when reading the data
-for a particular customer.
+Showing the performance across all predictors. The predictor categories default to the text before the first dot. This can be customized when reading the data for a particular customer.
 
 ```{python}
 # | error: true
@@ -515,17 +483,11 @@ except Exception as e:
 
 # Predictor Overview
 
-The predictors for this model are sorted by performance and grouped if they are
-correlated (shown with an indentation and a lighter color).
+The predictors for this model are sorted by performance and grouped if they are correlated (shown with an indentation and a lighter color).
 
-The negatives and positives counts are usually the same across all the
-predictors but will be different when predictors have been removed or added. IH
-predictors often have slightly lower counts.
+The negatives and positives counts are usually the same across all the predictors but will be different when predictors have been removed or added. IH predictors often have slightly lower counts.
 
-For Adaptive Gradient Boosting models ("AGB") the number of positives and
-negatives is not available.
-
-
+For Adaptive Gradient Boosting models ("AGB") the number of positives and negatives is not available.
 
 ```{python}
 # TODO add a list of correlated predictors as a list, to show in the
