@@ -50,32 +50,79 @@ def test_proposition_success_rates(sample: ADMDatamart):
 
 
 def test_score_distribution(sample: ADMDatamart):
-    model_id = sample.combined_data.select("ModelID").collect().row(0)[0]
+    model_id = (
+        sample.aggregates.last(table="combined_data")
+        .filter(pl.col("PredictorName") == "Classifier")
+        .select("ModelID")
+        .collect()
+        .row(0)[0]
+    )
+
     df = sample.plot.score_distribution(model_id=model_id, return_df=True)
 
-    assert df.select(pl.col("PredictorName").top_k(1)).collect().item() == "Classifier"
+    required_columns = {"BinIndex", "BinSymbol", "BinResponseCount", "BinPropensity"}
+    assert all(col in df.collect_schema().names() for col in required_columns)
+
+    assert df.filter(pl.col("PredictorName") != "Classifier").collect().is_empty()
+
+    collected_df = df.collect()
+    bin_indices = collected_df["BinIndex"].to_list()
+    assert bin_indices == sorted(bin_indices)
+
+    with pytest.raises(ValueError, match="There is no data for the provided modelid"):
+        sample.plot.score_distribution(model_id="invalid_id")
+
     plot = sample.plot.score_distribution(model_id=model_id)
     assert plot is not None
 
 
 def test_multiple_score_distributions(sample: ADMDatamart):
-    plot = sample.plot.multiple_score_distributions(show_all=False)
-    assert len(plot) == 20
-    assert all(plot is not None for plot in plot)
+    model_ids = (
+        sample.aggregates.last(table="combined_data")
+        .filter(pl.col("PredictorName") == "Classifier")
+        .select(pl.col("ModelID").unique())
+        .collect()
+    )
+
+    assert not model_ids.is_empty()
+
+    plots = sample.plot.multiple_score_distributions(show_all=False)
+
+    assert len(plots) == len(model_ids)
+
+    assert all(isinstance(plot, Figure) for plot in plots)
+
+    # Verify each plot has the required traces
+    for plot in plots:
+        assert len(plot.data) == 2
+        assert plot.data[0].type == "bar"  # Responses
+        assert plot.data[1].type == "scatter"  # Propensity
 
 
 def test_predictor_binning(sample: ADMDatamart):
-    random_row = (
-        sample.combined_data.select(["ModelID", "PredictorName"]).collect().sample(1)
+    first_row = (
+        sample.combined_data.select(["ModelID", "PredictorName"])
+        .filter(pl.col("PredictorName") != "Classifier")
+        .collect()
+        .row(0)
     )
-    model_id = random_row["ModelID"][0]
-    predictor_name = random_row["PredictorName"][0]
+    model_id = first_row[0]
+    predictor_name = first_row[1]
+
     df = sample.plot.predictor_binning(
         model_id=model_id, predictor_name=predictor_name, return_df=True
     )
+
     assert not df.collect().is_empty()
+
     required_columns = ["BinIndex", "BinPropensity", "BinSymbol", "BinResponseCount"]
     assert all(col in df.collect_schema().names() for col in required_columns)
+
+    collected_df = df.collect()
+    bin_indices = collected_df["BinIndex"].to_list()
+    assert bin_indices == sorted(bin_indices)
+
+    # Test error handling for invalid inputs
     with pytest.raises(ValueError):
         sample.plot.predictor_binning(
             model_id="non_existent_id", predictor_name=predictor_name
@@ -84,26 +131,42 @@ def test_predictor_binning(sample: ADMDatamart):
         sample.plot.predictor_binning(
             model_id=model_id, predictor_name="non_existent_predictor"
         )
+
     plot = sample.plot.predictor_binning(
         model_id=model_id, predictor_name=predictor_name
     )
-    assert plot is not None
+    assert isinstance(plot, Figure)
+
+    assert len(plot.data) == 2
+    assert plot.data[0].type == "bar"  # Responses
+    assert plot.data[1].type == "scatter"  # Propensity
 
 
 def test_multiple_predictor_binning(sample: ADMDatamart):
     model_id = sample.combined_data.select("ModelID").collect().row(0)[0]
-    plots = sample.plot.multiple_predictor_binning(model_id=model_id, show_all=False)
-    assert isinstance(plots, list)
-    # Same number of plots as number of predictors
-    assert (
-        len(plots)
-        == sample.combined_data.filter(pl.col("ModelID") == model_id)
+
+    expected_predictor_count = (
+        sample.combined_data.filter(pl.col("ModelID") == model_id)
         .select("PredictorName")
         .unique()
         .collect()
         .shape[0]
     )
+
+    plots = sample.plot.multiple_predictor_binning(model_id=model_id, show_all=False)
+
+    assert isinstance(plots, list)
+
+    assert len(plots) == expected_predictor_count
+
     assert all(isinstance(plot, Figure) for plot in plots)
+
+    for plot in plots:
+        assert len(plot.data) == 2
+        assert plot.data[0].type == "bar"  # Responses
+        assert plot.data[1].type == "scatter"  # Propensity
+
+    sample.plot.multiple_predictor_binning(model_id="invalid_id", show_all=False) == []
 
 
 def test_predictor_performance(sample: ADMDatamart):
