@@ -460,8 +460,7 @@ class Aggregates:
             .agg(
                 pl.col("SnapshotTime").min().cast(pl.Date).alias("DateRange Min"),
                 pl.col("SnapshotTime").max().cast(pl.Date).alias("DateRange Max"),
-                pl.col("Positives").sum(),
-                pl.col("ResponseCount").sum(),
+                pl.sum(["Positives", "ResponseCount"]),
                 (cdh_utils.weighted_performance_polars() * 100).alias("Performance"),
                 pl.col("Configuration").cast(pl.Utf8),
                 pl.col("Configuration")
@@ -469,6 +468,12 @@ class Aggregates:
                 .str.to_uppercase()
                 .is_in([x.upper() for x in self.cdh_guidelines.standard_configurations])
                 .alias("isNBADModelConfiguration"),
+                (pl.col("ModelTechnique") == "GradientBoost")
+                .any(ignore_nulls=False)
+                .alias("usesAGB"),
+                (pl.col("ModelTechnique") == "GradientBoost")
+                .all(ignore_nulls=False)
+                .alias("usesAGBOnly"),
                 actionIdentifierExpr.drop_nulls()
                 .n_unique()
                 .alias("Total Number of Actions"),
@@ -730,6 +735,8 @@ class Aggregates:
                 # TODO there was something about OmniAdaptiveModel here - but I don't recall what was the issue
                 pl.col("usesNBAD").any(),
                 pl.col("usesNBADOnly").all(),
+                pl.col("usesAGB").any(),
+                pl.col("usesAGBOnly").all(),
                 # pl.lit(usesNBAD).alias("usesNBAD"),
                 # ((pl.len() > 0) & pl.lit(usesNBAD and usesNBADOnly)).alias(
                 #     "usesNBADOnly"

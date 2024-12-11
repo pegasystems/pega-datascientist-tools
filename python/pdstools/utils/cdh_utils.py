@@ -562,6 +562,7 @@ def _capitalize(fields: Union[str, Iterable[str]]) -> List[str]:
         "Offline",
         "Update",
         "Strategy",
+        "ModelTechnique"
     ]
     if not isinstance(fields, list):
         fields = [fields]

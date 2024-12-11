@@ -1470,8 +1470,11 @@ if datamart.predictor_data is not None:
     }
 
     try:
+        # TODO see about this warning that we're getting
+        # The default of observed=False is deprecated...
+
         fig = px.treemap(
-            missing.to_pandas(),
+            missing, 
             path=path,
             color="Percentage without responses",
             template="pega",

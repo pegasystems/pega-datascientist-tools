@@ -124,6 +124,15 @@ def table_standard_formatting(
     highlight_configurations: List[str] = [],
     rag_styler: callable = rag_background_styler,
 ):
+    def apply_style(gt, rag, rows):
+        style = rag_styler(rag)
+        if style is not None:
+            gt = gt.tab_style(
+                style=style,
+                locations=loc.body(columns=col_name, rows=rows),
+            )
+        return gt
+
     def apply_rag_styling(gt, col_name, metric):
         if col_name in source_table.collect_schema().names():
             min_val = cdh_guidelines.min(metric)
@@ -169,40 +178,9 @@ def table_standard_formatting(
             ]
             # TODO consider that bad / warning rows are exclusive
 
-            def apply_style(gt, rag, rows):
-                style = rag_styler(rag)
-                if style is not None:
-                    gt = gt.tab_style(
-                        style=style,
-                        locations=loc.body(columns=col_name, rows=rows),
-                    )
-                return gt
-
             gt = apply_style(gt, "green", good_rows)
             gt = apply_style(gt, "amber", warning_rows)
             gt = apply_style(gt, "red", bad_rows)
-        return gt
-
-    def apply_standard_name_style(gt, col_name, standard_list):
-        if col_name in source_table.collect_schema().names():
-            values = source_table[col_name].to_list()
-            non_standard_rows = [
-                i for i, v in enumerate(values) if v not in standard_list
-            ]
-            gt = gt.tab_style(
-                style=rag_styler("yellow"),
-                locations=loc.body(columns=col_name, rows=non_standard_rows),
-            )
-        return gt
-
-    def apply_configuration_style(gt, col_name):
-        if col_name in source_table.collect_schema().names():
-            values = source_table[col_name].to_list()
-            multiple_config_rows = [i for i, v in enumerate(values) if v.count(",") > 1]
-            gt = gt.tab_style(
-                style=rag_styler("yellow"),
-                locations=loc.body(columns=col_name, rows=multiple_config_rows),
-            )
         return gt
 
     gt = (
@@ -260,11 +238,22 @@ def table_standard_formatting(
             case _:
                 gt = metric_styling_default(gt, cols)
 
-    for metric in highlight_lists.keys():
-        gt = apply_standard_name_style(gt, metric, highlight_lists[metric])
+    # Highlight columns with non-standard values
+    # TODO consider stripping spaces and discarding case etc so email matches E-Mail
+    for col_name in highlight_lists.keys():
+        if col_name in source_table.collect_schema().names():
+            values = source_table[col_name].to_list()
+            non_standard_rows = [
+                i for i, v in enumerate(values) if v not in highlight_lists[col_name]
+            ]
+            gt = apply_style(gt, "yellow", non_standard_rows)
 
-    for metric in highlight_configurations:
-        gt = apply_configuration_style(gt, metric)
+    # Highlight column with more than one element (assuming its a comma-separated string)
+    for col_name in highlight_configurations:
+        if col_name in source_table.collect_schema().names():
+            values = source_table[col_name].to_list()
+            multiple_config_rows = [i for i, v in enumerate(values) if v.count(",") > 1]
+            gt = apply_style(gt, "yellow", multiple_config_rows)
 
     return gt
 
