@@ -241,13 +241,20 @@ The "OmniChannel" percentage is an indicator of the overlap of actions between c
 df_channel_overview = (
     datamart.aggregates.summary_by_channel()
     .with_columns(
-        NBAD=pl.when(pl.col("usesNBAD"))
-        .then(
-            pl.when(pl.col("usesNBADOnly"))
-            .then(pl.lit("Yes"))
-            .otherwise(pl.lit("With additional configurations"))
-        )
-        .otherwise(pl.lit("No"))
+        NBAD=pl.when(pl.col("usesNBAD").is_null())
+        .then(pl.lit("?"))
+        .when(pl.col("usesNBADOnly"))
+        .then(pl.lit("Yes"))
+        .when(pl.col("usesNBAD"))
+        .then(pl.lit("With additional configurations"))
+        .otherwise(pl.lit("No")),
+        AGB=pl.when(pl.col("usesAGB").is_null())
+        .then(pl.lit("?"))
+        .when(pl.col("usesAGBOnly"))
+        .then(pl.lit("Always"))
+        .when(pl.col("usesAGB"))
+        .then(pl.lit("Yes"))
+        .otherwise(pl.lit("No")),
     )
     .drop(
         [
@@ -272,7 +279,7 @@ formatted_channel_overview = (
             "Treatments": ["Total Number of Treatments", "Used Treatments"],
             "Issues": "Issues",
             "OmniChannel": "OmniChannel Actions",
-            "CTR" : "CTR",
+            "CTR": "CTR",
         },
         highlight_lists={
             "Channel": cdh_guidelines.standard_channels,
@@ -289,7 +296,7 @@ formatted_channel_overview = (
     )
     .tab_spanner(
         label=html("<b>ADM Models</b>"),
-        columns=["Positives", "ResponseCount", "Performance", "Configuration"],
+        columns=["Positives", "ResponseCount", "Performance", "Configuration", "AGB"],
     )
     .tab_spanner(
         label=html("<b>NBAD Setup</b>"),
@@ -322,6 +329,8 @@ display(
             "isValid",
             "usesNBAD",
             "usesNBADOnly",
+            "usesAGB",
+            "usesAGBOnly",
         ]
     )
     .tab_style(
@@ -339,9 +348,12 @@ display(
             "Performance",
             "Configuration",
             "CTR",
+            "AGB",
             "isValid",
             "usesNBAD",
             "usesNBADOnly",
+            "usesAGB",
+            "usesAGBOnly",
         ]
     ).tab_style(
         style=style.text(decorate="line-through"),

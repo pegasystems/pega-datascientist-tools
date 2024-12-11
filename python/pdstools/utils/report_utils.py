@@ -192,51 +192,42 @@ def table_standard_formatting(
     if title is not None:
         gt = gt.tab_header(title=title, subtitle=subtitle)
 
-    def metric_styling_model_performance(gt, cols):
-        return gt.fmt_number(
-            decimals=2,
-            columns=cols,
-        )
-
-    def metric_styling_percentage(gt, cols):
-        return gt.fmt_percent(
-            decimals=0,
-            columns=cols,
-        )
-
-    def metric_styling_ctr(gt, cols):
-        return gt.fmt_percent(
-            decimals=3,
-            columns=cols,
-        )
-
-    def metric_styling_default(gt, cols):
-        return gt.fmt_number(
-            decimals=0,
-            compact=True,
-            columns=cols,
-        )
-
     for metric in highlight_limits.keys():
         cols = highlight_limits[metric]
         if isinstance(cols, str):
             cols = [cols]
+        # Highlight colors
         for col_name in cols:
             gt = apply_rag_styling(gt, col_name=col_name, metric=metric)
-            # gt = gt.fmt_number(
-            #     columns=col_name, decimals=0, compact=True
-            # )  # default number formatting applied to everything - consider being smarter, in config
+
+        # Value formatting
         match metric:
             case "Model Performance":
-                gt = metric_styling_model_performance(gt, cols)
+                gt = gt.fmt_number(
+                    decimals=2,
+                    columns=cols,
+                )
             case "Engagement Lift":
-                gt = metric_styling_percentage(gt, cols)
+                gt = gt.fmt_percent(
+                    decimals=0,
+                    columns=cols,
+                )
             case "OmniChannel":
-                gt = metric_styling_percentage(gt, cols)
+                gt = gt.fmt_percent(
+                    decimals=0,
+                    columns=cols,
+                )
             case "CTR":
-                gt = metric_styling_ctr(gt, cols)
+                gt = gt.fmt_percent(
+                    decimals=3,
+                    columns=cols,
+                )
             case _:
-                gt = metric_styling_default(gt, cols)
+                gt = gt.fmt_number(
+                    decimals=0,
+                    compact=True,
+                    columns=cols,
+                )
 
     # Highlight columns with non-standard values
     # TODO consider stripping spaces and discarding case etc so email matches E-Mail
