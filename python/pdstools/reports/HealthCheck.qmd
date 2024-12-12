@@ -1032,20 +1032,15 @@ if datamart.predictor_data is None:
     )
 ```
 
-This analysis looks at the predictors that are driving the models.
-
-The predictors are categorized (by color) by their “source”.
-
-This is something that can be configured when reading the data. By default it simply takes the first part before the dot in the predictor name, so this typically distinguishes between e.g. *Customer*, *Account*, *IH* and parameterized (*Param.*) predictors.
-
-You can customize this (when reading in the data) to add patterns to identify for example external scores.
-
 
 ## Number of Predictors per Predictor Category
 
-Split by category (defaults to the string before the first dot, can be overridden when reading the data).
+The Predictor Categories identify the source of the predictors. By default we split by the first dot, so this distinguishes between between e.g. *Customer*, *Account*, *IH* and parameterized (*Param.*) predictors.
+
+You can override this behavior when the data is read.
 
 The numbers here can differ from the totals above, these ones are leading.
+
 
 ::: {.callout-tip title="Guidance"}
 -   Total number of predictors per model 200 - 700 to stay within service limits
