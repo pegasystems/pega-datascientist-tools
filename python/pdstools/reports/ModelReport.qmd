@@ -49,6 +49,8 @@ from pdstools.utils import report_utils
 ```{python}
 # | tags: [parameters]
 
+# Insert the paths to your data files here to run the notebook from your IDE. 
+# Edit the _quarto.yml to enable/disable specific sections of the quarto output.
 # Parameters will be overriden by quarto when a parameters yaml is provided
 
 title = "ADM Model Details"

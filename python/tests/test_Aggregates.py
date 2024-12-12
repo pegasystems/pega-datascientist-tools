@@ -53,3 +53,8 @@ def test_aggregate_overall_summary(agg):
     assert overall_summary.shape[1] == 20
     assert overall_summary["Number of Valid Channels"].item() == 3
     assert overall_summary["Total Number of Treatments"].item() == 0
+
+def test_summary_by_configuration(agg):
+    configuration_summary = agg.summary_by_configuration().collect()
+    assert "AGB" in configuration_summary.columns
+    

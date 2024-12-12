@@ -38,7 +38,7 @@ def test_ExportTables(sample: ADMDatamart):
     spreadsheet = ExcelFile(excel)
     assert list(spreadsheet.sheet_names) == [
         "modeldata_last_snapshot",
-        "predictor_last_snapshot",
+        "predictors_overview",
         "predictor_binning",
     ]
     # TODO we could go further and check the size of the sheets
@@ -54,7 +54,7 @@ def test_ExportTables_NoBinning(sample: ADMDatamart):
     spreadsheet = ExcelFile(excel)
     assert list(spreadsheet.sheet_names) == [
         "modeldata_last_snapshot",
-        "predictor_last_snapshot",
+        "predictors_overview",
     ]
     # TODO we could go further and check the size of the sheets
     # spreadsheet = read_excel(excel, sheet_name=None)

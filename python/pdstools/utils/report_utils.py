@@ -1,3 +1,4 @@
+import re
 import traceback
 from typing import Dict, List, Literal, Optional, Union
 from IPython.display import display, Markdown
@@ -230,12 +231,19 @@ def table_standard_formatting(
                 )
 
     # Highlight columns with non-standard values
-    # TODO consider stripping spaces and discarding case etc so email matches E-Mail
+    def simplify_name(x: str) -> str:
+        if x is None: 
+            return x
+        return re.sub("\\W", "", x, flags=re.IGNORECASE).upper()
+
     for col_name in highlight_lists.keys():
         if col_name in source_table.collect_schema().names():
+            simplified_names = [simplify_name(x) for x in highlight_lists[col_name]]
             values = source_table[col_name].to_list()
             non_standard_rows = [
-                i for i, v in enumerate(values) if v not in highlight_lists[col_name]
+                i
+                for i, v in enumerate(values)
+                if simplify_name(v) not in simplified_names
             ]
             gt = apply_style(gt, "yellow", non_standard_rows)
 
