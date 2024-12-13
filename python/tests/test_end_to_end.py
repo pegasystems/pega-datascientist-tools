@@ -38,13 +38,13 @@ class Shape:
 
 
 def test_end_to_end(sample: ADMDatamart):
-    assert sample.model_data.shape == (1047, 27)
+    assert sample.model_data.shape == (1047, 28)
 
     assert sample.predictor_data.shape == (70735, 39)
 
-    assert sample.combined_data.shape == (4576, 65)
+    assert sample.combined_data.shape == (4576, 66)
 
-    assert sample.aggregates.last().shape == (68, 27)
+    assert sample.aggregates.last().shape == (68, 28)
     assert sample.aggregates.last(table="predictor_data").shape == (4576, 39)
     assert sample.model_data.collect_schema()["SnapshotTime"] == pl.Datetime
 

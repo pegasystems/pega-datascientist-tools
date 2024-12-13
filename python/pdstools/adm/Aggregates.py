@@ -460,8 +460,7 @@ class Aggregates:
             .agg(
                 pl.col("SnapshotTime").min().cast(pl.Date).alias("DateRange Min"),
                 pl.col("SnapshotTime").max().cast(pl.Date).alias("DateRange Max"),
-                pl.col("Positives").sum(),
-                pl.col("ResponseCount").sum(),
+                pl.sum(["Positives", "ResponseCount"]),
                 (cdh_utils.weighted_performance_polars() * 100).alias("Performance"),
                 pl.col("Configuration").cast(pl.Utf8),
                 pl.col("Configuration")
@@ -469,6 +468,12 @@ class Aggregates:
                 .str.to_uppercase()
                 .is_in([x.upper() for x in self.cdh_guidelines.standard_configurations])
                 .alias("isNBADModelConfiguration"),
+                (pl.col("ModelTechnique") == "GradientBoost")
+                .any(ignore_nulls=False)
+                .alias("usesAGB"),
+                (pl.col("ModelTechnique") == "GradientBoost")
+                .all(ignore_nulls=False)
+                .alias("usesAGBOnly"),
                 actionIdentifierExpr.drop_nulls()
                 .n_unique()
                 .alias("Total Number of Actions"),
@@ -561,7 +566,70 @@ class Aggregates:
             )
         )
 
-    def predictor_last_snapshot(self) -> Optional[pl.DataFrame]:
+    def summary_by_configuration(self) -> pl.DataFrame:
+        """
+        Generates a summary of the ADM model configurations.
+
+        Returns
+        -------
+        pl.DataFrame
+            A Polars DataFrame containing the configuration summary.
+        """
+
+        action_dim_agg = [pl.col("Name").n_unique().alias("Actions")]
+        if "Treatment" in self.datamart.context_keys:
+            action_dim_agg += [
+                pl.col("Treatment").n_unique().alias("Unique Treatments")
+            ]
+        else:
+            action_dim_agg += [pl.lit(0).alias("Unique Treatments")]
+
+        if "Issue" in self.datamart.context_keys:
+            action_dim_agg += [
+                pl.col("Issue").cast(pl.String).unique().alias("Used for (Issues)")
+            ]
+
+        group_by_cols = ["Configuration"] + [
+            c for c in ["Channel", "Direction"] if c in self.datamart.context_keys
+        ]
+        configuration_summary = (
+            self.last(table="model_data")
+            .group_by(group_by_cols)
+            .agg(
+                [
+                    pl.when((pl.col("ModelTechnique") == "GradientBoost").any())
+                    .then(pl.lit("Yes"))
+                    .when(pl.col("ModelTechnique").is_null().any())
+                    .then(pl.lit("Unknown"))
+                    .otherwise(pl.lit("No"))
+                    .alias("AGB")
+                ]
+                + [
+                    pl.col("ModelID").n_unique(),
+                ]
+                + action_dim_agg
+                + [pl.sum(["ResponseCount", "Positives"])],
+            )
+            .with_columns(
+                [
+                    # pl.col("Configuration")
+                    # .is_in(standardNBADNames.keys())
+                    # .alias("Standard in NBAD Framework"),
+                    (pl.col("ModelID") / pl.col("Actions"))
+                    .round(2)
+                    .alias("ModelsPerAction"),
+                ]
+            )
+            .sort(group_by_cols)
+        )
+        if "Issue" in self.datamart.context_keys:
+            configuration_summary = configuration_summary.with_columns(
+                pl.col("Used for (Issues)").list.unique().list.sort().list.join(", ")
+            )
+
+        return configuration_summary
+
+    def predictors_overview(self) -> Optional[pl.DataFrame]:
         """
         Generate a summary of the last snapshot of predictor data.
 
@@ -580,7 +648,7 @@ class Aggregates:
 
             predictor_summary = (
                 self.last(table="predictor_data")
-                .filter(pl.col("PredictorName") != "Classifier")
+                .filter(pl.col("PredictorName") != "Classifier") # TODO not name, there is a type
                 .join(
                     self.last(table="model_data")
                     .select(["ModelID"] + model_identifiers)
@@ -624,7 +692,7 @@ class Aggregates:
             )
 
             return predictor_summary
-        except ValueError:
+        except ValueError:  # really? swallowing?
             return None
 
     def overall_summary(
@@ -730,6 +798,8 @@ class Aggregates:
                 # TODO there was something about OmniAdaptiveModel here - but I don't recall what was the issue
                 pl.col("usesNBAD").any(),
                 pl.col("usesNBADOnly").all(),
+                pl.col("usesAGB").any(),
+                pl.col("usesAGBOnly").all(),
                 # pl.lit(usesNBAD).alias("usesNBAD"),
                 # ((pl.len() > 0) & pl.lit(usesNBAD and usesNBADOnly)).alias(
                 #     "usesNBADOnly"

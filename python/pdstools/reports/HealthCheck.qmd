@@ -73,22 +73,6 @@ def fig_set_xaxis_modelperformance(fig, label="Model Performance"):
         .update_xaxes(title=label, showticklabels=True, visible=True)
     )
     return fig
-
-
-# def highlight_non_standard_channels(v):
-#     if v not in set(standardNBADNames.values()):
-#         color = "orange"
-#     else:
-#         color = ""
-#     return "background-color: %s" % color
-
-# def highlight_non_standard_configurations(v):
-#     if v not in set(standardNBADNames.keys()):
-#         color = "orange"
-#     else:
-#         color = ""
-#     return "background-color: %s" % color
-
 ```
 
 ```{python}
@@ -100,7 +84,9 @@ def fig_set_xaxis_modelperformance(fig, label="Model Performance"):
 title = "ADM Model Overview"
 subtitle = "Sample data"
 
-# Insert the paths to your data files here to run the notebook from your IDE
+# Insert the paths to your data files here to run the notebook from your IDE. 
+# Edit the _quarto.yml to enable/disable specific sections of the quarto output.
+# Parameters will be overriden by quarto when a parameters yaml is provided
 
 model_file_path = None
 prediction_file_path = None
@@ -229,7 +215,7 @@ except Exception as e:
 The [Plotly](https://plotly.com/python/) charts have [user controls for panning, zooming etc](https://plotly.com/chart-studio-help/zoom-pan-hover-controls/) but note that these interactive plots do not render well in portals like Sharepoint or Box. It is preferable to view them from a browser.
 :::
 
-# Overview of Channels
+# Overview of the Channels
 
 In a typical NBAD setup, treatments for a channels are modelled by a channel specific model configuration as well as a cross-channel *OmniAdaptiveModel* configuration. This cross-channel configuration is typically only used as a fall-back, and, additionally, for action-level insights.
 
@@ -241,13 +227,18 @@ The "OmniChannel" percentage is an indicator of the overlap of actions between c
 df_channel_overview = (
     datamart.aggregates.summary_by_channel()
     .with_columns(
-        NBAD=pl.when(pl.col("usesNBAD"))
-        .then(
-            pl.when(pl.col("usesNBADOnly"))
-            .then(pl.lit("Yes"))
-            .otherwise(pl.lit("With additional configurations"))
-        )
-        .otherwise(pl.lit("No"))
+        NBAD=pl.when(pl.col("usesNBADOnly"))
+        .then(pl.lit("Yes"))
+        .when(pl.col("usesNBAD"))
+        .then(pl.lit("With additional configurations"))
+        .otherwise(pl.lit("No")),
+        AGB=pl.when(pl.col("usesAGB").is_null())
+        .then(pl.lit("?"))
+        .when(pl.col("usesAGBOnly"))
+        .then(pl.lit("Yes"))
+        .when(pl.col("usesAGB"))
+        .then(pl.lit("Partially"))
+        .otherwise(pl.lit("No")),
     )
     .drop(
         [
@@ -272,7 +263,7 @@ formatted_channel_overview = (
             "Treatments": ["Total Number of Treatments", "Used Treatments"],
             "Issues": "Issues",
             "OmniChannel": "OmniChannel Actions",
-            "CTR" : "CTR",
+            "CTR": "CTR",
         },
         highlight_lists={
             "Channel": cdh_guidelines.standard_channels,
@@ -289,7 +280,7 @@ formatted_channel_overview = (
     )
     .tab_spanner(
         label=html("<b>ADM Models</b>"),
-        columns=["Positives", "ResponseCount", "Performance", "Configuration"],
+        columns=["Positives", "ResponseCount", "Performance", "Configuration", "AGB"],
     )
     .tab_spanner(
         label=html("<b>NBAD Setup</b>"),
@@ -322,6 +313,8 @@ display(
             "isValid",
             "usesNBAD",
             "usesNBADOnly",
+            "usesAGB",
+            "usesAGBOnly",
         ]
     )
     .tab_style(
@@ -339,9 +332,12 @@ display(
             "Performance",
             "Configuration",
             "CTR",
+            "AGB",
             "isValid",
             "usesNBAD",
             "usesNBADOnly",
+            "usesAGB",
+            "usesAGBOnly",
         ]
     ).tab_style(
         style=style.text(decorate="line-through"),
@@ -464,6 +460,10 @@ if prediction_file_path:
                 "usesImpactAnalyzer",
                 "isValid",
             ]
+        )
+        .tab_style(
+            style=style.text(decorate="line-through"),
+            locations=loc.body(rows=pl.col("isValid").not_()),
         )
     )
 
@@ -782,7 +782,7 @@ except Exception as e:
     report_utils.quarto_plot_exception("Success Rates over Time", e)
 ```
 
-# Overview of Adaptive Models
+# Overview of the Adaptive Models
 
 ```{python}
 n_unique_models = len(last_data.select("ModelID").unique())  # TODO or uniqueN ?
@@ -797,47 +797,11 @@ There are a total of **{n_unique_models}** Adaptive Models in the latest snapsho
 In the standard configuration there is one Adaptive model per treatment/action for a configuration.
 
 ```{python}
-action_dim_agg = [pl.col("Name").n_unique().alias("Actions")]
-if report_utils.polars_col_exists(last_data, "Treatment"):
-    action_dim_agg += [pl.col("Treatment").n_unique().alias("Unique Treatments")]
-else:
-    action_dim_agg += [pl.lit(0).alias("Unique Treatments")]
-
-# TODO work this into a get_model_overview function in the ADMDatamart
-# note there already is a perhaps useful model_summary in there which returns
-# some but not all the info we need here
-# datamart.model_summary(context_keys=["Configuration","Channel","Direction"]).collect()
-
-model_overview = (
-    last_data.group_by(
-        ["Configuration"]
-        + report_utils.polars_subset_to_existing_cols(
-            datamart_all_columns, ["Channel", "Direction"]
-        )
-    )
-    .agg(
-        [
-            pl.col("ModelID").n_unique(),
-        ]
-        + action_dim_agg
-        + [pl.sum("ResponseCount"), pl.sum("Positives")]
-    )
-    .with_columns(
-        [
-            # pl.col("Configuration")
-            # .is_in(standardNBADNames.keys())
-            # .alias("Standard in NBAD Framework"),
-            (pl.col("ModelID") / pl.col("Actions"))
-            .round(2)
-            .alias("ModelsPerAction"),
-        ]
-    )
-    .sort(["Configuration", "Channel", "Direction"])
-)
+model_overview = datamart.aggregates.summary_by_configuration()
 
 display(
     report_utils.table_standard_formatting(
-        model_overview,
+        model_overview.collect(),
         title="Model Overview",
         cdh_guidelines=cdh_guidelines,
         highlight_limits={
@@ -860,6 +824,7 @@ display(
         ModelID="Number of Models",
         Actions="Unique Actions",
         ModelsPerAction="Average number of Models per Action",
+        ResponseCount="Total Responses",
     )
 )
 ```
@@ -872,11 +837,9 @@ If there are any model configurations that have fewer than {configuration_respon
 )
 
 configuration_overview = (
-    datamart.model_data
-    # first, take max per model ID
-    .group_by("Configuration").agg(
-        pl.max("ResponseCount").alias("Responses"), pl.max("Positives")
-    )
+    datamart.aggregates.last(table="model_data")
+    .group_by("Configuration")
+    .agg(pl.sum("ResponseCount").alias("Responses"), pl.sum("Positives"))
 ).collect()
 
 all_configurations = configuration_overview.select(["Configuration"]).unique()
@@ -1069,60 +1032,15 @@ if datamart.predictor_data is None:
     )
 ```
 
-This analysis looks at the predictors that are driving the models.
-
-The predictors are categorized (by color) by their “source”.
-
-This is something that can be configured when reading the data. By default it simply takes the first part before the dot in the predictor name, so this typically distinguishes between e.g. *Customer*, *Account*, *IH* and parameterized (*Param.*) predictors.
-
-You can customize this (when reading in the data) to add patterns to identify for example external scores.
-
-## Number of Predictors per model configuration
-
-This shows the total number of predictors per model configuration (this includes both active and inactive predictors).
-
-Note that the total number of predictors in the model data does not always equate the data from the more detailed view split by category below.
-
-```{python}
-if datamart.predictor_data is not None:
-    context_aggregations = []
-    if report_utils.polars_col_exists(datamart.combined_data, "Channel"):
-        context_aggregations += [pl.col("Channel").unique().alias("Used in (Channels)")]
-    if report_utils.polars_col_exists(datamart.combined_data, "Issue"):
-        context_aggregations += [pl.col("Issue").unique().alias("Used for (Issues)")]
-
-    predictors_per_configuration = (
-        datamart.combined_data.filter(pl.col("EntryType") != "Classifier")
-        .group_by("Configuration")
-        .agg(
-            [pl.col("PredictorName").unique().count().alias("Predictor Count")]
-            + context_aggregations
-        )
-        .sort("Configuration")
-        .collect()
-    )
-
-    gt = report_utils.table_standard_formatting(
-        predictors_per_configuration, "Number of Predictors per Configuration",
-        cdh_guidelines=cdh_guidelines,
-    ).tab_style(
-        style=style.text(weight="bold"),
-        locations=loc.body(columns="Predictor Count"),
-    )
-    gt = report_utils.table_style_predictor_count(gt, ["Predictor Count"], cdh_guidelines)
-
-    display(gt)
-
-else:
-    report_utils.quarto_callout_no_predictor_data_warning()
-
-```
 
 ## Number of Predictors per Predictor Category
 
-Split by category (defaults to the string before the first dot, can be overridden when reading the data).
+The Predictor Categories identify the source of the predictors. By default we split by the first dot, so this distinguishes between between e.g. *Customer*, *Account*, *IH* and parameterized (*Param.*) predictors.
+
+You can override this behavior when the data is read.
 
 The numbers here can differ from the totals above, these ones are leading.
+
 
 ::: {.callout-tip title="Guidance"}
 -   Total number of predictors per model 200 - 700 to stay within service limits
@@ -1470,8 +1388,11 @@ if datamart.predictor_data is not None:
     }
 
     try:
+        # TODO see about this warning that we're getting
+        # The default of observed=False is deprecated...
+
         fig = px.treemap(
-            missing.to_pandas(),
+            missing, 
             path=path,
             color="Percentage without responses",
             template="pega",

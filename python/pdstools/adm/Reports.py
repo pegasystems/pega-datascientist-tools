@@ -565,8 +565,8 @@ class Reports(LazyNamespace):
         }
 
         if self.datamart.predictor_data is not None:
-            tabs["predictor_last_snapshot"] = (
-                self.datamart.aggregates.predictor_last_snapshot()
+            tabs["predictors_overview"] = (
+                self.datamart.aggregates.predictors_overview()
             )
 
         if predictor_binning and self.datamart.predictor_data is not None:

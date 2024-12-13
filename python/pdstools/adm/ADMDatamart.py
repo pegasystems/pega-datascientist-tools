@@ -120,7 +120,9 @@ class ADMDatamart:
         self.aggregates = Aggregates(datamart=self)
         self.agb = AGB(datamart=self)
         self.generate = Reports(datamart=self)
-        self.cdh_guidelines = CDHGuidelines()
+        self.cdh_guidelines = (
+            CDHGuidelines()
+        )  # not sure if this should be part of the ADM DM
 
         self.model_data = self._validate_model_data(
             model_df, query=query, extract_pyname_keys=extract_pyname_keys
@@ -310,6 +312,11 @@ class ADMDatamart:
         if "Treatment" in schema.names():
             self.context_keys.append("Treatment")
 
+        # Model technique (NaiveBayes or GradientBoost) added in '24 (US-648869 and related)
+        if "ModelTechnique" not in schema.names():
+            df = df.with_columns(
+                ModelTechnique=pl.lit(None),
+            )
         self.context_keys = [k for k in self.context_keys if k in schema.names()]
 
         df = df.with_columns(
@@ -398,7 +405,6 @@ class ADMDatamart:
         categorization_expr: pl.Expr = (
             categorization() if callable(categorization) else categorization
         )
-
 
         if df is not None:
             return df.with_columns(PredictorCategory=categorization_expr)
