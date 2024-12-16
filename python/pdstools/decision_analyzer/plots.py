@@ -13,8 +13,8 @@ class Plot:
     def __init__(self, decision_data):
         self._decision_data = decision_data
 
-    def threshold_deciles(self, thresholding_name, return_df=False):
-        df = self._decision_data.whatever_preprocessing
+    def threshold_deciles(self, thresholding_on, thresholding_name, return_df=False):
+        df = self._decision_data.getThresholdingData(thresholding_on)
         if return_df:
             return df
 

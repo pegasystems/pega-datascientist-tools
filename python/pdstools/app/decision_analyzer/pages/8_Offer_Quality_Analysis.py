@@ -1,13 +1,13 @@
 import streamlit as st
 
-from plots import getTrendChart, offer_quality_piecharts
+from pdstools.decision_analyzer.plots import getTrendChart, offer_quality_piecharts
 from da_streamlit_utils import (
     get_current_scope_index,
     get_current_stage_index,
-)
-from utils import (
-    NBADScope_Mapping,
     ensure_data,
+)
+from pdstools.decision_analyzer.utils import (
+    NBADScope_Mapping,
     filtered_action_counts,
 )
 
