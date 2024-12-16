@@ -5,7 +5,7 @@ from pdstools.utils import cdh_utils
 
 # Some day will move into a proper IH class
 
-class ih_generator:
+class interaction_history:
     interactions_period_days = 21
     accept_rate = 0.2
     accept_avg_duration_minutes = 10
@@ -17,8 +17,8 @@ class ih_generator:
         now = datetime.datetime.now()
 
 
-        def _interpolate(min, max, i, n):
-            return min + (max - min) * i / (n - 1)
+        # def _interpolate(min, max, i, n):
+        #     return min + (max - min) * i / (n - 1)
 
 
         def to_prpc_time_str(timestamp):
@@ -28,6 +28,11 @@ class ih_generator:
         ih_fake_impressions = pl.DataFrame(
             {
                 "InteractionID": [str(int(1e9 + i)) for i in range(n)],
+                "pyChannel": random.choices(["Web", "Email"], k=n),
+                "pyIssue": "Acquisition",
+                "pyGroup": "Phones",
+                "pyName": "AppleIPhone1564GB",
+                "ExperimentGroup": ["Conversion-Test", "Conversion-Control"] * int(n / 2),
                 "TimeStamp": [
                     (now - datetime.timedelta(days=i * self.interactions_period_days / n))
                     for i in range(n)
@@ -38,12 +43,6 @@ class ih_generator:
                 "ConvertDurationDays": [
                     random.uniform(0, 2 * self.convert_avg_duration_days) for i in range(n)
                 ],
-                "pyChannel": random.choices(["Web"], k=n), # random.choices(["Web", "Email"], k=n),
-                "pyIssue": "Acquisition",
-                "pyGroup": "Phones",
-                "pyName": "AppleIPhone1564GB",
-                "ExperimentGroup": ["Conversion-Test", "Conversion-Control"] * int(n / 2),
-                "pyOutcome": None,
             }
         ).with_columns(
             pyOutcome=pl.when(pl.col.pyChannel == "Web")
