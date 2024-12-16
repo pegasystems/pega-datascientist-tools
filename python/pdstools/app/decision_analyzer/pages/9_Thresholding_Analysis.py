@@ -2,8 +2,7 @@ import plotly.express as px
 import polars as pl
 import streamlit as st
 
-from plots import distribution, threshold_deciles
-from utils import ensure_data
+from da_streamlit_utils import ensure_data
 
 # TODO Interactive Thresholding isn't working properly yet. Also show the total numbers.
 # TODO Instead of priority/propensity side to side have a drop-down to select which property to show
@@ -80,7 +79,9 @@ threshold_deciles_data = st.session_state.decision_data.getThresholdingData(
 # st.dataframe(plotData)
 
 st.plotly_chart(
-    threshold_deciles(threshold_deciles_data, thresholding_mapping[thresholding_on]),
+    st.session_state.decision_data.plot.threshold_deciles(
+        thresholding_on, thresholding_mapping[thresholding_on]
+    ),
     use_container_width=True,
 )
 
@@ -98,13 +99,11 @@ xxx = st.session_state.decision_data.getDistributionData(
     ),  # Hmm, probalby not the right way
     # additional_filters=((pl.col(thresholding_on).list.eval(pl.element() > current_threshold)).list.any()),
 )
-# st.write(xxx.head().collect())
 st.write(
-    distribution(
+    st.session_state.decision_data.plot.distribution(
         xxx,
         scope="pyIssue",
         breakdown="pyGroup",
-        title="Effect of Thresholding",
         horizontal=True,
     )
 )

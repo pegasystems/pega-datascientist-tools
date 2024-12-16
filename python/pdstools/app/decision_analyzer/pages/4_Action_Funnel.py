@@ -36,7 +36,6 @@ ensure_data()
 st.session_state["sidebar"] = st.sidebar
 if "local_filters" in st.session_state:
     del st.session_state["local_filters"]
-
 with st.session_state["sidebar"]:
     scope_options = st.session_state.decision_data.getPossibleScopeValues()
     stage_options = st.session_state.decision_data.getPossibleStageValues()
