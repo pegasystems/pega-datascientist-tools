@@ -81,7 +81,7 @@ class DecisionAnalyzer:
             "pyIssue",
             "pyGroup",
             "pyName",
-            # "pyTreatment", # should be in there dependent on what's in the data
+            "pyTreatment",  # should be in there dependent on what's in the data
             "pyChannel",
             "pyDirection",
             "pxComponentName",

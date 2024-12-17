@@ -13,8 +13,8 @@ class Plot:
     def __init__(self, decision_data):
         self._decision_data = decision_data
 
-    def threshold_deciles(self, thresholding_name, return_df=False):
-        df = self._decision_data.whatever_preprocessing
+    def threshold_deciles(self, thresholding_on, thresholding_name, return_df=False):
+        df = self._decision_data.getThresholdingData(thresholding_on)
         if return_df:
             return df
 
@@ -590,12 +590,17 @@ def offer_quality_piecharts(
         "only_irrelevant_actions",
         "has_no_offers",
     ]
-    df = (
+    all_frames = (
         df.group_by("pxEngagementStage")
         .agg(pl.sum(value_finder_names))
         .collect()
         .partition_by("pxEngagementStage", as_dict=True)
     )
+    # TODO Temporary solution to fit the pie charts into the screen, pick only first 5 stages
+    df = {}
+    NBADStages_FilterView = NBADStages_FilterView[:5]
+    for stage in NBADStages_FilterView[:5]:
+        df[(stage,)] = all_frames[(stage,)]
     if return_df:
         return df
 
@@ -608,7 +613,7 @@ def offer_quality_piecharts(
     )
 
     for i, stage in enumerate(NBADStages_FilterView):
-        plotdf = df[stage].drop("pxEngagementStage")
+        plotdf = df[(stage,)].drop("pxEngagementStage")
         fig.add_trace(
             go.Pie(
                 values=list(plotdf.to_numpy())[0],
