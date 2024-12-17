@@ -5,6 +5,9 @@ from pdstools.utils import cdh_utils
 
 # Some day will move into a proper IH class
 
+# ih.plots.gauge(conversion/engagement) etc
+# constructor define objective (conversion and engagement) labels (positives/negatives)
+
 class interaction_history:
     interactions_period_days = 21
     accept_rate = 0.2
@@ -12,6 +15,9 @@ class interaction_history:
     convert_over_accept_rate_test = 0.5
     convert_over_accept_rate_control = 0.3
     convert_avg_duration_days = 2
+
+    def __init__(self, outcome_definitions):
+        pass
 
     def generate(self, n):
         now = datetime.datetime.now()
