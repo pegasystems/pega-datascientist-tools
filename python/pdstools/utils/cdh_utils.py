@@ -259,6 +259,9 @@ def parse_pega_date_time_formats(
                 "%d-%b-%y", strict=False, ambiguous="null"
             ),
             pl.col(timestamp_col).str.to_datetime(
+                "%d%b%Y:%H:%M:%S", strict=False, ambiguous="null"
+            ),
+            pl.col(timestamp_col).str.to_datetime(
                 timestamp_fmt or "%Y", strict=False, ambiguous="null"
             ),
         )
@@ -562,7 +565,7 @@ def _capitalize(fields: Union[str, Iterable[str]]) -> List[str]:
         "Offline",
         "Update",
         "Strategy",
-        "ModelTechnique"
+        "ModelTechnique",
     ]
     if not isinstance(fields, list):
         fields = [fields]
