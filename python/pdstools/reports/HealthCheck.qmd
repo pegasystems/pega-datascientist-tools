@@ -1032,7 +1032,6 @@ if datamart.predictor_data is None:
     )
 ```
 
-
 ## Number of Predictors per Predictor Category
 
 The Predictor Categories identify the source of the predictors. By default we split by the first dot, so this distinguishes between between e.g. *Customer*, *Account*, *IH* and parameterized (*Param.*) predictors.
@@ -1040,7 +1039,6 @@ The Predictor Categories identify the source of the predictors. By default we sp
 You can override this behavior when the data is read.
 
 The numbers here can differ from the totals above, these ones are leading.
-
 
 ::: {.callout-tip title="Guidance"}
 -   Total number of predictors per model 200 - 700 to stay within service limits
