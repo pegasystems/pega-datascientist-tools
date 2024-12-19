@@ -1,6 +1,8 @@
 import datetime
+from functools import partial
 import io
 import logging
+from operator import is_not
 import re
 import tempfile
 import warnings
@@ -476,7 +478,9 @@ def auc_to_gini(auc: float) -> float:
     return 2 * safe_range_auc(auc) - 1
 
 
-def _capitalize(fields: Union[str, Iterable[str]], extra:Optional[List[str]]=[]) -> List[str]:
+def _capitalize(
+    fields: Union[str, Iterable[str]], extra_endwords: Optional[Iterable[str]] = None
+) -> List[str]:
     """Applies automatic capitalization, aligned with the R couterpart.
 
     Parameters
@@ -566,7 +570,7 @@ def _capitalize(fields: Union[str, Iterable[str]], extra:Optional[List[str]]=[])
         "Strategy",
         "ModelTechnique",
     ]
-    
+
     if not isinstance(fields, list):
         fields = [fields]
     fields = [re.sub("^p(x|y|z)", "", field.lower()) for field in fields]
@@ -579,9 +583,9 @@ def _capitalize(fields: Union[str, Iterable[str]], extra:Optional[List[str]]=[])
     return fields
 
 
-def _polars_capitalize(df: F, extra:Optional[List[str]]=[]) -> F:
+def _polars_capitalize(df: F, extra_endwords: Optional[Iterable[str]] = None) -> F:
     cols = df.collect_schema().names()
-    renamed_cols = _capitalize(cols, extra)
+    renamed_cols = _capitalize(cols, extra_endwords)
 
     def deduplicate(columns: List[str]):
         seen: Dict[str, int] = {}
@@ -1151,3 +1155,15 @@ def create_working_and_temp_dir(
         else tempfile.mkdtemp(prefix="tmp_", dir=working_dir)
     )
     return working_dir, Path(temp_dir_name)
+
+
+# Safe flattening of nested lists, removing None elements, and not splitting strings
+def safe_flatten_list(alist: List) -> List:
+    alist = list(filter(partial(is_not, None), alist))
+    alist = [
+        item
+        for sublist in [[item] if type(item) is not list else item for item in alist]
+        for item in sublist
+    ]
+    alist = list(filter(partial(is_not, None), alist))
+    return alist
