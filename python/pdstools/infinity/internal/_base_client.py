@@ -71,7 +71,7 @@ class BaseClient(Generic[_HttpxClientT]):
         auth: Union[httpx.Auth, PegaOAuth],
         verify: bool = False,
         pega_version: Union[str, None] = None,
-        timeout: float = 20,
+        timeout: float = 90,
     ):
         self._base_url = self._enforce_trailing_slash(httpx.URL(base_url))
         self.auth = auth
@@ -178,7 +178,7 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         auth: Union[httpx.Auth, PegaOAuth],
         verify: bool = False,
         pega_version: Union[str, None] = None,
-        timeout: float = 20,
+        timeout: float = 90,
     ):
         super().__init__(
             base_url=base_url, auth=auth, verify=verify, pega_version=pega_version
