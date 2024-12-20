@@ -1,6 +1,8 @@
 import datetime
+from functools import partial
 import io
 import logging
+from operator import is_not
 import re
 import tempfile
 import warnings
@@ -216,8 +218,7 @@ def _extract_keys(
                 .alias(c)
                 for c in overlap
             ]
-        )
-        .drop([f"{c}_decoded" for c in overlap])
+        ).drop([f"{c}_decoded" for c in overlap])
     )
 
 
@@ -477,7 +478,9 @@ def auc_to_gini(auc: float) -> float:
     return 2 * safe_range_auc(auc) - 1
 
 
-def _capitalize(fields: Union[str, Iterable[str]]) -> List[str]:
+def _capitalize(
+    fields: Union[str, Iterable[str]], extra_endwords: Optional[Iterable[str]] = None
+) -> List[str]:
     """Applies automatic capitalization, aligned with the R couterpart.
 
     Parameters
@@ -567,6 +570,7 @@ def _capitalize(fields: Union[str, Iterable[str]]) -> List[str]:
         "Strategy",
         "ModelTechnique",
     ]
+
     if not isinstance(fields, list):
         fields = [fields]
     fields = [re.sub("^p(x|y|z)", "", field.lower()) for field in fields]
@@ -579,9 +583,9 @@ def _capitalize(fields: Union[str, Iterable[str]]) -> List[str]:
     return fields
 
 
-def _polars_capitalize(df: F) -> F:
+def _polars_capitalize(df: F, extra_endwords: Optional[Iterable[str]] = None) -> F:
     cols = df.collect_schema().names()
-    renamed_cols = _capitalize(cols)
+    renamed_cols = _capitalize(cols, extra_endwords)
 
     def deduplicate(columns: List[str]):
         seen: Dict[str, int] = {}
@@ -809,7 +813,9 @@ def lift(
             # TODO not sure how polars (mis)behaves when there are no positives at all
             # I would hope for a NaN but base python doesn't do that. Polars perhaps.
             # Stijn: It does have proper None value support, may work like you say
-            bin_pos * (total_pos + total_neg) / ((bin_pos + bin_neg) * total_pos)
+            bin_pos
+            * (total_pos + total_neg)
+            / ((bin_pos + bin_neg) * total_pos)
         ).alias("Lift")
 
     return lift_impl(pos_col, neg_col, pos_col.sum(), neg_col.sum())
@@ -1149,3 +1155,17 @@ def create_working_and_temp_dir(
         else tempfile.mkdtemp(prefix="tmp_", dir=working_dir)
     )
     return working_dir, Path(temp_dir_name)
+
+
+# Safe flattening of nested lists, removing None elements, and not splitting strings
+def safe_flatten_list(alist: List) -> List:
+    if alist is None:
+        return None
+    alist = list(filter(partial(is_not, None), alist))
+    alist = [
+        item
+        for sublist in [[item] if type(item) is not list else item for item in alist]
+        for item in sublist
+    ]
+    alist = list(filter(partial(is_not, None), alist))
+    return alist if len(alist) > 0 else None
