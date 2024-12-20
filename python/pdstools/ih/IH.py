@@ -1,27 +1,45 @@
 import datetime
+import os
 import random
-from typing import Optional
+from typing import Dict, List, Optional, Union
 import polars as pl
+
 
 from .Aggregates import Aggregates
 from .Plots import Plots
-from ..utils.cdh_utils import to_prpc_date_time, _polars_capitalize
+from ..utils.cdh_utils import to_prpc_date_time, _polars_capitalize, _apply_query
+from ..utils.types import QUERY
 from ..pega_io.File import read_ds_export
 
 
 class IH:
     data: pl.LazyFrame
+    positive_outcome_labels: Dict[str, List[str]]
 
     def __init__(self, data: pl.LazyFrame):
         self.data = _polars_capitalize(data)
 
         self.aggregates = Aggregates(ih=self)
         self.plots = Plots(ih=self)
+        self.positive_outcome_labels = {
+            "Engagement": ["Accepted", "Accept", "Clicked", "Click"],
+            "Conversion": ["Conversion"],
+        }
+        self.negative_outcome_labels = {
+            "Engagement": [
+                "Impression",
+                "Impressed",
+                "Pending",
+                "NoResponse",
+            ],
+            "Conversion": ["Impression", "Pending"],
+        }
 
     @classmethod
     def from_ds_export(
         cls,
-        ih_filename: Optional[str] = None,
+        ih_filename: Union[os.PathLike, str],
+        query: Optional[QUERY] = None,
     ):
         """Import from a Pega Dataset Export"""
 
@@ -29,6 +47,9 @@ class IH:
             # TODO this should come from some polars func in utils
             pl.col("pxOutcomeTime").str.strptime(pl.Datetime, "%Y%m%dT%H%M%S%.3f %Z")
         )
+        if query is not None:
+            data = _apply_query(data, query=query)
+
         return IH(data)
 
     @classmethod

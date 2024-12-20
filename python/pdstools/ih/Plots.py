@@ -16,31 +16,28 @@ class Plots(LazyNamespace):
         super().__init__()
         self.ih = ih
 
-    def experiment_gauges(
+    def overall_gauges(
         self,
+        metric: str,
         experiment_field: str,
         by: Optional[str] = "Channel",
-        positive_labels: Optional[List[str]] = None,
-        negative_labels: Optional[List[str]] = None,
         reference_values: Optional[Dict[str, float]] = None,
-        title: Optional[str] = "Experiment Overview",
+        title: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
-        # TODO currently only supporting a single by
-
-        plot_data = self.ih.aggregates.summary_by_experiment(
-            experiment_field=experiment_field,
-            by=by,
-            positive_labels=positive_labels,
-            negative_labels=negative_labels,
+        plot_data = self.ih.aggregates.summary_success_rates(
+            by=[experiment_field, by],
         )
 
         if return_df:
             return plot_data
 
+        if title is None:
+            title = f"{metric} Overall Rates"
+
         plot_data = plot_data.collect()
 
-        cols = plot_data[by].unique().shape[0]
+        cols = plot_data[by].unique().shape[0]  # TODO can be None
         rows = plot_data[experiment_field].unique().shape[0]
 
         fig = make_subplots(
@@ -68,13 +65,13 @@ class Plots(LazyNamespace):
                 },
             }
             if ref_value:
-                if row["CTR"] < ref_value:
+                if row[f"SuccessRate_{metric}"] < ref_value:
                     gauge = {
                         "axis": {"tickformat": ",.2%"},
                         "bar": {
                             "color": (
                                 "#EC5300"
-                                if row["CTR"] < (0.75 * ref_value)
+                                if row[f"SuccessRate_{metric}"] < (0.75 * ref_value)
                                 else "#EC9B00"
                             )
                         },
@@ -88,7 +85,7 @@ class Plots(LazyNamespace):
             trace1 = go.Indicator(
                 mode="gauge+number+delta",
                 number={"valueformat": ",.2%"},
-                value=row["CTR"],
+                value=row[f"SuccessRate_{metric}"],
                 delta={"reference": ref_value, "valueformat": ",.2%"},
                 title={"text": f"{row[by]}: {row[experiment_field]}"},
                 gauge=gauge,
@@ -99,44 +96,80 @@ class Plots(LazyNamespace):
 
         return fig
 
-    def tree_map(
+    def conversion_overall_gauges(
         self,
         experiment_field: str,
+        by: Optional[str] = "Channel",
+        reference_values: Optional[Dict[str, float]] = None,
+        title: Optional[str] = None,
+        return_df: Optional[bool] = False,
+    ):
+        return self.overall_gauges(
+            metric="Conversion",
+            experiment_field=experiment_field,
+            by=by,
+            reference_values=reference_values,
+            title=title,
+            return_df=return_df,
+        )
+
+    def egagement_overall_gauges(
+        self,
+        experiment_field: str,
+        by: Optional[str] = "Channel",
+        reference_values: Optional[Dict[str, float]] = None,
+        title: Optional[str] = None,
+        return_df: Optional[bool] = False,
+    ):
+        return self.overall_gauges(
+            metric="Engagement",
+            experiment_field=experiment_field,
+            by=by,
+            reference_values=reference_values,
+            title=title,
+            return_df=return_df,
+        )
+
+    def success_rates_tree_map(
+        self,
+        metric: str,
         by: Optional[List[str]] = None,
-        positive_labels: Optional[List[str]] = None,
-        negative_labels: Optional[List[str]] = None,
-        title: Optional[str] = "Detailed Click Through Rates",
+        title: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
         if by is None:
             by = [
                 f
-                for f in ["Channel", "Issue", "Group", "Name"]
+                for f in ["Direction", "Channel", "Issue", "Group", "Name"]
                 if f in self.ih.data.collect_schema().names()
             ]
 
-        plot_data = self.ih.aggregates.summary_by_experiment(
-            experiment_field=experiment_field,
+        plot_data = self.ih.aggregates.summary_success_rates(
             by=by,
-            positive_labels=positive_labels,
-            negative_labels=negative_labels,
         )
 
         if return_df:
             return plot_data
 
-        plot_data = plot_data.collect()
+        if title is None:
+            title = f"{metric} Rates for All Actions"
+
+        plot_data = plot_data.collect().with_columns(
+            CTR_DisplayValue=pl.col(f"SuccessRate_{metric}").round(3),
+        )
 
         fig = px.treemap(
-            plot_data.with_columns(
-                CTR_DisplayValue=pl.col("CTR").round(3),
-            ),
-            path=[px.Constant("ALL")] + [experiment_field] + by,
+            plot_data,
+            path=[px.Constant("ALL")] + by,
             values="CTR_DisplayValue",
             color="CTR_DisplayValue",
             color_continuous_scale=px.colors.sequential.RdBu,
             title=title,
-            hover_data=["StdErr", "Positives", "Negatives"],
+            hover_data=[
+                f"StdErr_{metric}",
+                f"Positives_{metric}",
+                f"Negatives_{metric}",
+            ],
             height=640,
             template="pega",
         )
@@ -146,33 +179,58 @@ class Plots(LazyNamespace):
 
         return fig
 
-    def trend_bar(
+    def conversion_success_rates_tree_map(
         self,
+        by: Optional[List[str]] = None,
+        title: Optional[str] = None,
+        return_df: Optional[bool] = False,
+    ):
+        return self.success_rates_tree_map(
+            metric="Conversion",
+            by=by,
+            title=title,
+            return_df=return_df,
+        )
+
+    def engagement_success_rates_tree_map(
+        self,
+        by: Optional[List[str]] = None,
+        title: Optional[str] = None,
+        return_df: Optional[bool] = False,
+    ):
+        return self.success_rates_tree_map(
+            metric="Engagement",
+            by=by,
+            title=title,
+            return_df=return_df,
+        )
+
+    def success_rates_trend_bar(
+        self,
+        metric: str,
         experiment_field: str,
         every: str = "1d",
         by: Optional[str] = None,
-        positive_labels: Optional[List[str]] = None,
-        negative_labels: Optional[List[str]] = None,
-        title: Optional[str] = "Click Through Trend",
+        title: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
 
-        plot_data = self.ih.aggregates.summary_by_experiment(
-            experiment_field=experiment_field,
+        plot_data = self.ih.aggregates.summary_success_rates(
             every=every,
-            by=by,
-            positive_labels=positive_labels,
-            negative_labels=negative_labels,
+            by=[experiment_field] + [by],
         )
         if return_df:
             return plot_data
 
+        if title is None:
+            title = f"{metric} Rates over Time"
+
         fig = px.bar(
             plot_data.collect(),
             x="OutcomeTime",
-            y="CTR",
+            y=f"SuccessRate_{metric}",
             color=experiment_field,
-            error_y="StdErr",
+            error_y=f"StdErr_{metric}",
             facet_row=by,
             barmode="group",
             custom_data=[experiment_field],
@@ -182,22 +240,51 @@ class Plots(LazyNamespace):
         fig.update_yaxes(tickformat=",.3%").update_layout(xaxis_title=None)
         return fig
 
-    def trend_line(
+    def conversion_success_rates_trend_bar(
         self,
-        experiment_field: Optional[str] = None,
-        every: Optional[str] = "1d",
+        experiment_field: str,
+        every: str = "1d",
         by: Optional[str] = None,
-        positive_labels: Optional[List[str]] = None,
-        negative_labels: Optional[List[str]] = None,
-        title: Optional[str] = "Click Through Trend",
+        title: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
-        plot_data = self.ih.aggregates.summary_by_experiment(
+        return self.success_rates_trend_bar(
+            metric="Conversion",
             experiment_field=experiment_field,
             every=every,
             by=by,
-            positive_labels=positive_labels,
-            negative_labels=negative_labels,
+            title=title,
+            return_df=return_df,
+        )
+
+    def engagement_success_rates_trend_bar(
+        self,
+        experiment_field: str,
+        every: str = "1d",
+        by: Optional[str] = None,
+        title: Optional[str] = None,
+        return_df: Optional[bool] = False,
+    ):
+        return self.success_rates_trend_bar(
+            metric="Engagement",
+            experiment_field=experiment_field,
+            every=every,
+            by=by,
+            title=title,
+            return_df=return_df,
+        )
+
+    def success_rates_trend_line(
+        self,
+        metric: str,
+        every: Optional[str] = "1d",
+        by: Optional[str] = None,
+        title: Optional[str] = None,
+        return_df: Optional[bool] = False,
+    ):
+        plot_data = self.ih.aggregates.summary_success_rates(
+            every=every,
+            by=by,
         )
         if return_df:
             return plot_data
@@ -205,41 +292,43 @@ class Plots(LazyNamespace):
         fig = px.line(
             plot_data.collect(),
             x="OutcomeTime",
-            y="CTR",
-            color=experiment_field,
+            y=f"SuccessRate_{metric}",
+            color=by,
             facet_row=by,
-            custom_data=[experiment_field] if experiment_field is not None else None,
+            # custom_data=[experiment_field] if experiment_field is not None else None,
             template="pega",
             title=title,
         )
 
-        add_confidence_interval = (experiment_field is None) # doesn't work for multiple lines
-        if add_confidence_interval:
-            conf_data = (
-                plot_data.select(
-                    x=pl.col("OutcomeTime"),
-                    y_upper=pl.col("CTR") + pl.col("StdErr"),
-                    y_lower=pl.col("CTR") - pl.col("StdErr"),
-                )
-                .collect()
-                .to_dict(as_series=False)
-            )
-
-            # Add continuous interval, see https://plotly.com/python/continuous-error-bars/
-            x = conf_data["x"]
-            y_upper = conf_data["y_upper"]
-            y_lower = conf_data["y_lower"]
-            fig.add_trace(
-                go.Scatter(
-                    x=x + x[::-1],  # x, then x reversed
-                    y=y_upper + y_lower[::-1],  # upper, then lower reversed
-                    fill="toself",
-                    fillcolor="rgba(0,100,80,0.2)",
-                    line=dict(color="rgba(255,255,255,0)"),
-                    hoverinfo="skip",
-                    showlegend=False,
-                )
-            )
-
         fig.update_yaxes(tickformat=",.3%").update_layout(xaxis_title=None)
         return fig
+
+    def conversion_success_rates_trend_line(
+        self,
+        every: Optional[str] = "1d",
+        by: Optional[str] = None,
+        title: Optional[str] = None,
+        return_df: Optional[bool] = False,
+    ):
+        return self.success_rates_trend_line(
+            metric="Conversion",
+            every=every,
+            by=by,
+            title=title,
+            return_df=return_df,
+        )
+
+    def engagement_success_rates_trend_line(
+        self,
+        every: Optional[str] = "1d",
+        by: Optional[str] = None,
+        title: Optional[str] = None,
+        return_df: Optional[bool] = False,
+    ):
+        return self.success_rates_trend_line(
+            metric="Engagement",
+            every=every,
+            by=by,
+            title=title,
+            return_df=return_df,
+        )

@@ -1159,6 +1159,8 @@ def create_working_and_temp_dir(
 
 # Safe flattening of nested lists, removing None elements, and not splitting strings
 def safe_flatten_list(alist: List) -> List:
+    if alist is None:
+        return None
     alist = list(filter(partial(is_not, None), alist))
     alist = [
         item
@@ -1166,4 +1168,4 @@ def safe_flatten_list(alist: List) -> List:
         for item in sublist
     ]
     alist = list(filter(partial(is_not, None), alist))
-    return alist
+    return alist if len(alist) > 0 else None

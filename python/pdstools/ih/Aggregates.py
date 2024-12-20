@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List, Optional, Union
 import polars as pl
 
 from ..utils.namespaces import LazyNamespace
@@ -9,21 +9,19 @@ if TYPE_CHECKING:
 
 
 class Aggregates(LazyNamespace):
+
     def __init__(self, ih: "IH_Class"):
         super().__init__()
         self.ih = ih
 
-    def summary_by_experiment(
+    def summary_success_rates(
         self,
-        experiment_field: Optional[str] = None,
+        by: Optional[Union[str, List[str]]] = None,
         every: Optional[str] = None,
-        by: Optional[List[str]] = None,
-        positive_labels: Optional[List[str]] = None,
-        negative_labels: Optional[List[str]] = None,
     ) -> pl.LazyFrame:
-        """Groups the IH data summarizing into success rate (CTR) and standard error (StdErr).
+        """Groups the IH data summarizing into success rates (SuccessRate) and standard error (StdErr).
 
-        It groups by the "experiment field" (TODO in the future this can be optional or multiple). When
+        It optionally groups by one or more dimensions (e.g. Experiment, Channel, Issue etc). When
         given, the 'every' argument is used to divide the timerange into buckets. It uses the same string
         language as Polars.
 
@@ -34,34 +32,17 @@ class Aggregates(LazyNamespace):
 
         Parameters
         ----------
-        experiment_field : Optional[str], optional
-            Optional field that contains the experiments
+        by : Optional[Union[str, List[str]]], optional
+            Grouping keys, by default None
         every : Optional[str], optional
             Every interval start and period length, by default None
-        by : Optional[List[str]], optional
-            Extra grouping keys, by default None
-        positive_labels : Optional[List[str]], optional
-            Outcome label(s) for the positive responses, by default None
-        negative_labels : Optional[List[str]], optional
-            Outcome label(s) for the negative responses, by default None
 
         Returns
         -------
         pl.LazyFrame
             A polars frame with the grouping keys and columns for the total number of Positives, Negatives,
-            number of Interactions, success rate (CTR) and standard error (StdErr).
+            number of Interactions, success rate (SuccessRate) and standard error (StdErr).
         """
-
-        if positive_labels is None:
-            positive_labels = ["Accepted", "Accept", "Clicked", "Click"]
-
-        if negative_labels is None:
-            negative_labels = [
-                "Impression",
-                "Impressed",
-                "Pending",
-                "NoResponse",
-            ]
 
         if every is not None:
             source = self.ih.data.with_columns(pl.col.OutcomeTime.dt.truncate(every))
@@ -69,50 +50,90 @@ class Aggregates(LazyNamespace):
             source = self.ih.data
 
         group_by_clause = safe_flatten_list(
-            [experiment_field] + [by] + (["OutcomeTime"] if every is not None else [])
+            [by] + (["OutcomeTime"] if every is not None else [])
         )
-        if len(group_by_clause) == 0:
-            group_by_clause = None
+
+        # TODO filter out nulls for the by arguments
+        # source.filter(
+        #     pl.col.ExperimentGroup.is_not_null() & (pl.col.ExperimentGroup != "")
+        # )
 
         summary = (
-            source.filter(
-                pl.col.ExperimentGroup.is_not_null() & (pl.col.ExperimentGroup != "")
-            )
-            .group_by(
+            source.group_by(
                 (group_by_clause + ["InteractionID"])
                 if group_by_clause is not None
                 else ["InteractionID"]
             )
             .agg(
                 # Take only one outcome per interaction. TODO should perhaps be the last one.
-                InteractionOutcome=pl.when(pl.col.Outcome.is_in(positive_labels).any())
-                .then(pl.lit(True))
-                .when(pl.col.Outcome.is_in(negative_labels).any())
-                .then(pl.lit(False)),
+                [
+                    pl.when(
+                        pl.col.Outcome.is_in(
+                            self.ih.positive_outcome_labels[metric]
+                        ).any()
+                    )
+                    .then(pl.lit(True))
+                    .when(
+                        pl.col.Outcome.is_in(
+                            self.ih.negative_outcome_labels[metric]
+                        ).any()
+                    )
+                    .then(pl.lit(False))
+                    .alias(f"Interaction_Outcome_{metric}")
+                    for metric in self.ih.positive_outcome_labels.keys()
+                ],
                 Outcomes=pl.col.Outcome.unique().sort(),  # for debugging
             )
             .group_by(group_by_clause)
             .agg(
-                Positives=pl.col.InteractionOutcome.filter(
-                    pl.col.InteractionOutcome
-                ).len(),
-                Negatives=pl.col.InteractionOutcome.filter(
-                    pl.col.InteractionOutcome.not_()
-                ).len(),
+                [
+                    pl.col(f"Interaction_Outcome_{metric}")
+                    .filter(pl.col(f"Interaction_Outcome_{metric}"))
+                    .len()
+                    .alias(f"Positives_{metric}")
+                    for metric in self.ih.positive_outcome_labels.keys()
+                ]
+                + [
+                    pl.col(f"Interaction_Outcome_{metric}")
+                    .filter(pl.col(f"Interaction_Outcome_{metric}").not_())
+                    .len()
+                    .alias(f"Negatives_{metric}")
+                    for metric in self.ih.positive_outcome_labels.keys()
+                ],
                 Interactions=pl.len(),
                 Outcomes=pl.col.Outcomes.list.explode()
                 .unique()
                 .sort()
                 .drop_nulls(),  # for debugging
             )
-            .with_columns(CTR=pl.col.Positives / (pl.col.Positives + pl.col.Negatives))
             .with_columns(
-                StdErr=(
+                [
                     (
-                        (pl.col.CTR * (1 - pl.col.CTR))
-                        / (pl.col.Positives + pl.col.Negatives)
-                    ).sqrt()
-                )
+                        pl.col(f"Positives_{metric}")
+                        / (
+                            pl.col(f"Positives_{metric}")
+                            + pl.col(f"Negatives_{metric}")
+                        )
+                    ).alias(f"SuccessRate_{metric}")
+                    for metric in self.ih.positive_outcome_labels.keys()
+                ]
+            )
+            .with_columns(
+                [
+                    (
+                        (
+                            pl.col(f"SuccessRate_{metric}")
+                            * (1 - pl.col(f"SuccessRate_{metric}"))
+                        )
+                        / (
+                            pl.col(f"Positives_{metric}")
+                            + pl.col(f"Negatives_{metric}")
+                        )
+                    )
+                    .sqrt()
+                    .alias(f"StdErr_{metric}")
+                    for metric in self.ih.positive_outcome_labels.keys()
+                ]
             )
         )
 
