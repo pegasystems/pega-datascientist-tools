@@ -1,10 +1,13 @@
-from typing import TYPE_CHECKING, Dict, List, Optional
+from datetime import timedelta
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 import polars as pl
 import plotly as plotly
 import plotly.express as px
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 
+from ..utils.types import QUERY
+from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
 
 if TYPE_CHECKING:
@@ -18,15 +21,16 @@ class Plots(LazyNamespace):
 
     def overall_gauges(
         self,
-        metric: str,
-        experiment_field: str,
+        condition: Union[str, pl.Expr],
+        metric: Optional[str] = "Engagement",
         by: Optional[str] = "Channel",
         reference_values: Optional[Dict[str, float]] = None,
         title: Optional[str] = None,
+        query: Optional[QUERY] = None,
         return_df: Optional[bool] = False,
     ):
         plot_data = self.ih.aggregates.summary_success_rates(
-            by=[experiment_field, by],
+            by=[condition, by], query=query
         )
 
         if return_df:
@@ -38,7 +42,9 @@ class Plots(LazyNamespace):
         plot_data = plot_data.collect()
 
         cols = plot_data[by].unique().shape[0]  # TODO can be None
-        rows = plot_data[experiment_field].unique().shape[0]
+        rows = (
+            plot_data[condition].unique().shape[0]
+        )  # TODO generalize to support pl expression
 
         fig = make_subplots(
             rows=rows,
@@ -87,7 +93,7 @@ class Plots(LazyNamespace):
                 number={"valueformat": ",.2%"},
                 value=row[f"SuccessRate_{metric}"],
                 delta={"reference": ref_value, "valueformat": ",.2%"},
-                title={"text": f"{row[by]}: {row[experiment_field]}"},
+                title={"text": f"{row[by]}: {row[condition]}"},
                 gauge=gauge,
             )
             r, c = divmod(index, cols)
@@ -96,45 +102,31 @@ class Plots(LazyNamespace):
 
         return fig
 
-    def conversion_overall_gauges(
+    def outcomes_tree_map(
         self,
-        experiment_field: str,
-        by: Optional[str] = "Channel",
-        reference_values: Optional[Dict[str, float]] = None,
-        title: Optional[str] = None,
+        by: Optional[List[str]] = None,
+        query: Optional[QUERY] = None,
         return_df: Optional[bool] = False,
     ):
-        return self.overall_gauges(
-            metric="Conversion",
-            experiment_field=experiment_field,
-            by=by,
-            reference_values=reference_values,
-            title=title,
-            return_df=return_df,
-        )
+        if by is None:
+            by = [
+                f
+                for f in ["Outcome", "Direction", "Channel", "Issue", "Group", "Name"]
+                if f in self.ih.data.collect_schema().names()
+            ]
 
-    def egagement_overall_gauges(
-        self,
-        experiment_field: str,
-        by: Optional[str] = "Channel",
-        reference_values: Optional[Dict[str, float]] = None,
-        title: Optional[str] = None,
-        return_df: Optional[bool] = False,
-    ):
-        return self.overall_gauges(
-            metric="Engagement",
-            experiment_field=experiment_field,
-            by=by,
-            reference_values=reference_values,
-            title=title,
-            return_df=return_df,
-        )
+        plot_data = self.ih.aggregates.summary_outcomes(by=by, query=query)
+
+        if return_df:
+            return plot_data
+        pass
 
     def success_rates_tree_map(
         self,
-        metric: str,
+        metric: Optional[str] = "Engagement",
         by: Optional[List[str]] = None,
         title: Optional[str] = None,
+        query: Optional[QUERY] = None,
         return_df: Optional[bool] = False,
     ):
         if by is None:
@@ -144,9 +136,7 @@ class Plots(LazyNamespace):
                 if f in self.ih.data.collect_schema().names()
             ]
 
-        plot_data = self.ih.aggregates.summary_success_rates(
-            by=by,
-        )
+        plot_data = self.ih.aggregates.summary_success_rates(by=by, query=query)
 
         if return_df:
             return plot_data
@@ -179,46 +169,23 @@ class Plots(LazyNamespace):
 
         return fig
 
-    def conversion_success_rates_tree_map(
-        self,
-        by: Optional[List[str]] = None,
-        title: Optional[str] = None,
-        return_df: Optional[bool] = False,
-    ):
-        return self.success_rates_tree_map(
-            metric="Conversion",
-            by=by,
-            title=title,
-            return_df=return_df,
-        )
-
-    def engagement_success_rates_tree_map(
-        self,
-        by: Optional[List[str]] = None,
-        title: Optional[str] = None,
-        return_df: Optional[bool] = False,
-    ):
-        return self.success_rates_tree_map(
-            metric="Engagement",
-            by=by,
-            title=title,
-            return_df=return_df,
-        )
-
     def success_rates_trend_bar(
         self,
-        metric: str,
-        experiment_field: str,
-        every: str = "1d",
+        condition: Union[str, pl.Expr],
+        metric: Optional[str] = "Engagement",
+        every: Union[str, timedelta] = "1d",
         by: Optional[str] = None,
         title: Optional[str] = None,
+        query: Optional[QUERY] = None,
         return_df: Optional[bool] = False,
     ):
 
         plot_data = self.ih.aggregates.summary_success_rates(
             every=every,
-            by=[experiment_field] + [by],
+            by=[condition] + [by],  # TODO generalize to support pl expression
+            query=query,
         )
+
         if return_df:
             return plot_data
 
@@ -229,63 +196,30 @@ class Plots(LazyNamespace):
             plot_data.collect(),
             x="OutcomeTime",
             y=f"SuccessRate_{metric}",
-            color=experiment_field,
+            color=condition,
             error_y=f"StdErr_{metric}",
             facet_row=by,
             barmode="group",
-            custom_data=[experiment_field],
+            custom_data=[condition],
             template="pega",
             title=title,
         )
         fig.update_yaxes(tickformat=",.3%").update_layout(xaxis_title=None)
         return fig
 
-    def conversion_success_rates_trend_bar(
-        self,
-        experiment_field: str,
-        every: str = "1d",
-        by: Optional[str] = None,
-        title: Optional[str] = None,
-        return_df: Optional[bool] = False,
-    ):
-        return self.success_rates_trend_bar(
-            metric="Conversion",
-            experiment_field=experiment_field,
-            every=every,
-            by=by,
-            title=title,
-            return_df=return_df,
-        )
-
-    def engagement_success_rates_trend_bar(
-        self,
-        experiment_field: str,
-        every: str = "1d",
-        by: Optional[str] = None,
-        title: Optional[str] = None,
-        return_df: Optional[bool] = False,
-    ):
-        return self.success_rates_trend_bar(
-            metric="Engagement",
-            experiment_field=experiment_field,
-            every=every,
-            by=by,
-            title=title,
-            return_df=return_df,
-        )
-
     def success_rates_trend_line(
         self,
-        metric: str,
-        every: Optional[str] = "1d",
+        metric: Optional[str] = "Engagement",
+        every: Union[str, timedelta] = "1d",
         by: Optional[str] = None,
         title: Optional[str] = None,
+        query: Optional[QUERY] = None,
         return_df: Optional[bool] = False,
     ):
         plot_data = self.ih.aggregates.summary_success_rates(
-            every=every,
-            by=by,
+            every=every, by=by, query=query
         )
+
         if return_df:
             return plot_data
 
@@ -302,33 +236,3 @@ class Plots(LazyNamespace):
 
         fig.update_yaxes(tickformat=",.3%").update_layout(xaxis_title=None)
         return fig
-
-    def conversion_success_rates_trend_line(
-        self,
-        every: Optional[str] = "1d",
-        by: Optional[str] = None,
-        title: Optional[str] = None,
-        return_df: Optional[bool] = False,
-    ):
-        return self.success_rates_trend_line(
-            metric="Conversion",
-            every=every,
-            by=by,
-            title=title,
-            return_df=return_df,
-        )
-
-    def engagement_success_rates_trend_line(
-        self,
-        every: Optional[str] = "1d",
-        by: Optional[str] = None,
-        title: Optional[str] = None,
-        return_df: Optional[bool] = False,
-    ):
-        return self.success_rates_trend_line(
-            metric="Engagement",
-            every=every,
-            by=by,
-            title=title,
-            return_df=return_df,
-        )

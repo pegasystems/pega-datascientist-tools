@@ -1,8 +1,10 @@
+from datetime import timedelta
 from typing import TYPE_CHECKING, List, Optional, Union
 import polars as pl
 
 from ..utils.namespaces import LazyNamespace
-from ..utils.cdh_utils import safe_flatten_list
+from ..utils import cdh_utils
+from ..utils.types import QUERY
 
 if TYPE_CHECKING:
     from .IH import IH as IH_Class
@@ -17,7 +19,8 @@ class Aggregates(LazyNamespace):
     def summary_success_rates(
         self,
         by: Optional[Union[str, List[str]]] = None,
-        every: Optional[str] = None,
+        every: Optional[Union[str, timedelta]] = None,
+        query: Optional[QUERY] = None,
     ) -> pl.LazyFrame:
         """Groups the IH data summarizing into success rates (SuccessRate) and standard error (StdErr).
 
@@ -49,17 +52,13 @@ class Aggregates(LazyNamespace):
         else:
             source = self.ih.data
 
-        group_by_clause = safe_flatten_list(
+        group_by_clause = cdh_utils.safe_flatten_list(
             [by] + (["OutcomeTime"] if every is not None else [])
         )
 
-        # TODO filter out nulls for the by arguments
-        # source.filter(
-        #     pl.col.ExperimentGroup.is_not_null() & (pl.col.ExperimentGroup != "")
-        # )
-
         summary = (
-            source.group_by(
+            cdh_utils._apply_query(source, query)
+            .group_by(
                 (group_by_clause + ["InteractionID"])
                 if group_by_clause is not None
                 else ["InteractionID"]
@@ -142,4 +141,27 @@ class Aggregates(LazyNamespace):
         else:
             summary = summary.sort(group_by_clause)
 
+        return summary
+
+    def summary_outcomes(
+        self,
+        by: Optional[Union[str, List[str]]] = None,
+        every: Optional[Union[str, timedelta]] = None,
+        query: Optional[QUERY] = None,
+    ):
+
+        if every is not None:
+            source = self.ih.data.with_columns(pl.col.OutcomeTime.dt.truncate(every))
+        else:
+            source = self.ih.data
+
+        group_by_clause = cdh_utils.safe_flatten_list(
+            ["Outcome"] + [by] + (["OutcomeTime"] if every is not None else [])
+        )
+
+        summary = (
+            cdh_utils._apply_query(source, query)
+            .group_by(group_by_clause)
+            .agg(Count=pl.len())
+        )
         return summary
