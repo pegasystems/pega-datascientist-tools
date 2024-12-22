@@ -102,24 +102,46 @@ class Plots(LazyNamespace):
 
         return fig
 
-    def outcomes_tree_map(
+    def response_count_tree_map(
         self,
         by: Optional[List[str]] = None,
+        title: Optional[str] = None,
         query: Optional[QUERY] = None,
         return_df: Optional[bool] = False,
     ):
+
         if by is None:
             by = [
                 f
-                for f in ["Outcome", "Direction", "Channel", "Issue", "Group", "Name"]
+                for f in ["Direction", "Channel", "Issue", "Group", "Name"]
                 if f in self.ih.data.collect_schema().names()
             ]
+        elif isinstance(by, str):
+            by = [by]
 
-        plot_data = self.ih.aggregates.summary_outcomes(by=by, query=query)
-
+        plot_data = self.ih.aggregates.summary_outcomes(
+            by=by,
+            query=query,
+        )
         if return_df:
             return plot_data
-        pass
+
+        fig = px.treemap(
+            plot_data.collect(),
+            path=[px.Constant("ALL")] + ["Outcome"] + by,
+            values="Count",
+            color="Count",
+            branchvalues="total",
+            # color_continuous_scale=px.colors.sequential.RdBu_r,
+            title=title,
+            height=640,
+            template="pega",
+        )
+        fig.update_coloraxes(showscale=False)
+        fig.update_traces(textinfo="label+value+percent parent")
+        fig.update_layout(margin=dict(t=50, l=25, r=25, b=25))
+
+        return fig
 
     def success_rates_tree_map(
         self,
@@ -169,6 +191,29 @@ class Plots(LazyNamespace):
 
         return fig
 
+    def action_distribution(
+        self,
+        # TODO change - one is the by, when multiple join together
+        # other is the facet dimension/condition
+        by: Optional[str] = "Name",
+        title: Optional[str] = "Action Distribution",
+        query: Optional[QUERY] = None,
+        return_df: Optional[bool] = False,
+    ):
+        plot_data = self.ih.aggregates.summary_outcomes(by=by, query=query)
+
+        if return_df:
+            return plot_data
+
+        fig = px.bar(
+            plot_data.collect(),
+            x="Count",
+            y="Name",
+            template="pega",
+            title=title,
+        )
+        return fig
+
     def success_rates_trend_bar(
         self,
         condition: Union[str, pl.Expr],
@@ -207,7 +252,7 @@ class Plots(LazyNamespace):
         fig.update_yaxes(tickformat=",.3%").update_layout(xaxis_title=None)
         return fig
 
-    def success_rates_trend_line(
+    def success_rates_trend(
         self,
         metric: Optional[str] = "Engagement",
         every: Union[str, timedelta] = "1d",
@@ -235,4 +280,73 @@ class Plots(LazyNamespace):
         )
 
         fig.update_yaxes(tickformat=",.3%").update_layout(xaxis_title=None)
+        return fig
+
+    def response_counts(
+        self,
+        every: Union[str, timedelta] = "1d",
+        by: Optional[str] = None,
+        title: Optional[str] = "Responses",
+        query: Optional[QUERY] = None,
+        return_df: Optional[bool] = False,
+    ):
+        plot_data = self.ih.aggregates.ih.aggregates.summary_outcomes(
+            every=every, by=by, query=query
+        ).collect()
+
+        if return_df:
+            return plot_data.lazy()
+
+        fig = px.bar(
+            plot_data,
+            x="OutcomeTime",
+            y="Count",
+            color="Outcome",
+            template="pega",
+            title=title,
+            facet_row=by,
+        )
+        fig.update_layout(xaxis_title=None)
+
+        return fig
+
+    def model_performance_trend(
+        self,
+        metric: Optional[str] = "Engagement",
+        every: Union[str, timedelta] = "1d",
+        by: Optional[str] = None,
+        title: Optional[str] = "Model Performance over Time",
+        query: Optional[QUERY] = None,
+        return_df: Optional[bool] = False,
+    ):
+
+        group_by_clause = cdh_utils.safe_flatten_list([by] + ["OutcomeTime"])
+        plot_data = (
+            self.ih.aggregates._summary_interactions(every=every, by=by, query=query)
+            .filter(
+                pl.col.Propensity.is_not_null()
+                & pl.col(f"Interaction_Outcome_{metric}").is_not_null()
+            )
+            .group_by(group_by_clause)
+            .agg(
+                pl.map_groups(
+                    exprs=[f"Interaction_Outcome_{metric}", "Propensity"],
+                    function=lambda data: cdh_utils.auc_from_probs(data[0], data[1]),
+                    return_dtype=pl.Float64,
+                ).alias("Performance")
+            )
+            .sort(["OutcomeTime"])
+        )
+
+        if return_df:
+            return plot_data
+
+        fig = px.line(
+            plot_data.collect(),
+            y="Performance",
+            x="OutcomeTime",
+            color=by,
+            template="pega",
+            title=title,
+        )
         return fig

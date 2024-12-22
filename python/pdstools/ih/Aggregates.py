@@ -179,5 +179,6 @@ class Aggregates(LazyNamespace):
             cdh_utils._apply_query(source, query)
             .group_by(group_by_clause)
             .agg(Count=pl.len())
-        )
+        ).sort(cdh_utils.safe_flatten_list(["Count"]+group_by_clause))
+
         return summary
