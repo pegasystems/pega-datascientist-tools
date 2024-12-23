@@ -105,7 +105,14 @@ def read_ds_export(
 
         except ImportError:
             warnings.warn(
-                "Unable to import `requests`, so not able to check for remote files. If you're trying to read in a file from the internet (or, for instance, using the built-in cdh_sample method), try installing the 'requests' package (`uv pip install requests`)"
+                "Unable to import `requests`, so not able to check for remote files. If you're trying to read in a file from the internet (or, for instance, using the built-in cdh_sample method), try installing the 'requests' package (`uv pip install requests`)",
+                ImportWarning,
+            )
+
+        except (urllib.error.URLError, requests.exceptions.SSLError):
+            warnings.warn(
+                "There was an error making a HTTP request call. This is likely due to your certificates not being installed correctly. Please follow these instructions: https://stackoverflow.com/a/70495761",
+                RuntimeWarning,
             )
 
         except Exception as e:
