@@ -7,7 +7,7 @@ import polars as pl
 
 from .Aggregates import Aggregates
 from .Plots import Plots
-from ..utils.cdh_utils import to_prpc_date_time, _polars_capitalize, _apply_query
+from ..utils.cdh_utils import _polars_capitalize, _apply_query
 from ..utils.types import QUERY
 from ..pega_io.File import read_ds_export
 
@@ -20,7 +20,7 @@ class IH:
         self.data = _polars_capitalize(data)
 
         self.aggregates = Aggregates(ih=self)
-        self.plots = Plots(ih=self)
+        self.plot = Plots(ih=self)
         self.positive_outcome_labels = {
             "Engagement": ["Accepted", "Accept", "Clicked", "Click"],
             "Conversion": ["Conversion"],
