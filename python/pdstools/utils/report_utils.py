@@ -1,13 +1,79 @@
 import re
 import traceback
-from typing import Dict, List, Literal, Optional, Union
+import shutil
+import subprocess
+import logging
+from pathlib import Path
+from typing import Dict, List, Literal, Optional, Union, Tuple
 from IPython.display import display, Markdown
 from great_tables import GT, style, loc
 from ..adm.CDH_Guidelines import CDHGuidelines
 from ..utils.show_versions import show_versions
-from ..adm.Reports import Reports
+from ..utils.types import QUERY
 import polars as pl
 import datetime
+import json
+
+logger = logging.getLogger(__name__)
+
+
+def _get_cmd_output(args: List[str]) -> List[str]:
+    """Get command output in an OS-agnostic way."""
+    try:
+        result = subprocess.run(
+            args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True
+        )
+        return result.stdout.split("\n")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed to run command {' '.join(args)}: {e}")
+        raise FileNotFoundError(
+            f"Command failed. Make sure {args[0]} is installed and in the system PATH."
+        )
+
+
+def _get_version_only(versionstr: str) -> str:
+    """Extract version number from version string."""
+    return re.sub("[^.0-9]", "", versionstr)
+
+
+def get_quarto_with_version(verbose: bool = True) -> Tuple[Path, str]:
+    """Get Quarto executable path and version."""
+    try:
+        executable = Path(shutil.which("quarto"))
+        if not executable:
+            raise FileNotFoundError(
+                "Quarto executable not found. Please ensure Quarto is installed and in the system PATH."
+            )
+
+        version_string = _get_version_only(_get_cmd_output(["quarto", "--version"])[0])
+        message = f"quarto version: {version_string}"
+        logger.info(message)
+        if verbose:
+            print(message)
+        return executable, version_string
+    except Exception as e:
+        logger.error(f"Error getting quarto version: {e}")
+        raise
+
+
+def get_pandoc_with_version(verbose: bool = True) -> Tuple[Path, str]:
+    """Get Pandoc executable path and version."""
+    try:
+        executable = Path(shutil.which("pandoc"))
+        if not executable:
+            raise FileNotFoundError(
+                "Pandoc executable not found. Please ensure Pandoc is installed and in the system PATH."
+            )
+
+        version_string = _get_version_only(_get_cmd_output(["pandoc", "--version"])[0])
+        message = f"pandoc version: {version_string}"
+        logger.info(message)
+        if verbose:
+            print(message)
+        return executable, version_string
+    except Exception as e:
+        logger.error(f"Error getting pandoc version: {e}")
+        raise
 
 
 def quarto_print(text):
@@ -66,7 +132,7 @@ def polars_subset_to_existing_cols(all_columns, cols):
 
 
 def rag_background_styler(
-    rag: Optional[Literal["Red", "Amber", "Yellow", "Green"]] = None
+    rag: Optional[Literal["Red", "Amber", "Yellow", "Green"]] = None,
 ):
     match rag[0].upper() if len(rag) > 0 else None:
         case "R":
@@ -82,7 +148,7 @@ def rag_background_styler(
 
 
 def rag_background_styler_dense(
-    rag: Optional[Literal["Red", "Amber", "Yellow", "Green"]] = None
+    rag: Optional[Literal["Red", "Amber", "Yellow", "Green"]] = None,
 ):
     match rag[0].upper() if len(rag) > 0 else None:
         case "R":
@@ -98,7 +164,7 @@ def rag_background_styler_dense(
 
 
 def rag_textcolor_styler(
-    rag: Optional[Literal["Red", "Amber", "Yellow", "Green"]] = None
+    rag: Optional[Literal["Red", "Amber", "Yellow", "Green"]] = None,
 ):
     match rag[0].upper() if len(rag) > 0 else None:
         case "R":
@@ -177,7 +243,6 @@ def table_standard_formatting(
                 and (best_practice_min is None or v >= best_practice_min)
                 and (best_practice_max is None or v <= best_practice_max)
             ]
-            # TODO consider that bad / warning rows are exclusive
 
             gt = apply_style(gt, "green", good_rows)
             gt = apply_style(gt, "amber", warning_rows)
@@ -232,7 +297,7 @@ def table_standard_formatting(
 
     # Highlight columns with non-standard values
     def simplify_name(x: str) -> str:
-        if x is None: 
+        if x is None:
             return x
         return re.sub("\\W", "", x, flags=re.IGNORECASE).upper()
 
@@ -346,8 +411,8 @@ def sample_values(dm, all_dm_cols, fld, n=6):
 
 
 def show_credits(quarto_source: str):
-    _, quarto_version = Reports.get_quarto_with_version(verbose=False)
-    _, pandoc_version = Reports.get_pandoc_with_version(verbose=False)
+    _, quarto_version = get_quarto_with_version(verbose=False)
+    _, pandoc_version = get_pandoc_with_version(verbose=False)
 
     timestamp_str = datetime.datetime.now().strftime("%d %b %Y %H:%M:%S")
 
@@ -357,10 +422,10 @@ def show_credits(quarto_source: str):
     Document created at: {timestamp_str}
 
     This notebook: {quarto_source}
-    
+
     Quarto runtime: {quarto_version}
     Pandoc: {pandoc_version}
-    
+
     Additional details from 'pdstools.show_versions()':
 
     """
@@ -371,3 +436,24 @@ def show_credits(quarto_source: str):
     quarto_print(
         "For more information please see the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools)."
     )
+
+
+def _serialize_query(query: Optional[QUERY]) -> Optional[Dict]:
+    if query is None:
+        return None
+
+    if isinstance(query, pl.Expr):
+        query = [query]
+
+    if isinstance(query, (list, tuple)):
+        serialized_exprs = {}
+        for i, expr in enumerate(query):
+            if not isinstance(expr, pl.Expr):
+                raise ValueError("All items in query list must be Expressions")
+            serialized_exprs[str(i)] = json.loads(expr.meta.serialize(format="json"))
+        return {"type": "expr_list", "expressions": serialized_exprs}
+
+    elif isinstance(query, dict):
+        return {"type": "dict", "data": query}
+
+    raise ValueError(f"Unsupported query type: {type(query)}")
