@@ -261,33 +261,32 @@ def table_standard_formatting(
             gt = apply_rag_styling(gt, col_name=col_name, metric=metric)
 
         # Value formatting
-        match metric:
-            case "Model Performance":
-                gt = gt.fmt_number(
-                    decimals=2,
-                    columns=cols,
-                )
-            case "Engagement Lift":
-                gt = gt.fmt_percent(
-                    decimals=0,
-                    columns=cols,
-                )
-            case "OmniChannel":
-                gt = gt.fmt_percent(
-                    decimals=0,
-                    columns=cols,
-                )
-            case "CTR":
-                gt = gt.fmt_percent(
-                    decimals=3,
-                    columns=cols,
-                )
-            case _:
-                gt = gt.fmt_number(
-                    decimals=0,
-                    compact=True,
-                    columns=cols,
-                )
+        if metric == "Model Performance":
+            gt = gt.fmt_number(
+                decimals=2,
+                columns=cols,
+            )
+        elif metric == "Engagement Lift":
+            gt = gt.fmt_percent(
+                decimals=0,
+                columns=cols,
+            )
+        elif metric == "OmniChannel":
+            gt = gt.fmt_percent(
+                decimals=0,
+                columns=cols,
+            )
+        elif metric == "CTR":
+            gt = gt.fmt_percent(
+                decimals=3,
+                columns=cols,
+            )
+        else:
+            gt = gt.fmt_number(
+                decimals=0,
+                compact=True,
+                columns=cols,
+            )
 
     # Highlight columns with non-standard values
     def simplify_name(x: str) -> str:
