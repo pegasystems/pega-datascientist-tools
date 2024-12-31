@@ -4,7 +4,7 @@ import shutil
 import subprocess
 import logging
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, Union, Tuple
+from typing import Dict, List, Optional, Union, Tuple
 from IPython.display import display, Markdown
 from great_tables import GT, style, loc
 from ..adm.CDH_Guidelines import CDHGuidelines
@@ -131,52 +131,46 @@ def polars_subset_to_existing_cols(all_columns, cols):
     return [col for col in cols if col in all_columns]
 
 
-def rag_background_styler(
-    rag: Optional[Literal["Red", "Amber", "Yellow", "Green"]] = None,
-):
-    match rag[0].upper() if len(rag) > 0 else None:
-        case "R":
+def rag_background_styler(rag: Optional[str] = None):
+    if rag is not None and len(rag) > 0:
+        rag_upper = rag[0].upper()
+        if rag_upper == "R":
             return style.fill(color="orangered")
-        case "A":
+        elif rag_upper == "A":
             return style.fill(color="orange")
-        case "Y":
+        elif rag_upper == "Y":
             return style.fill(color="yellow")
-        case "G":
+        elif rag_upper == "G":
             return None  # no green background to keep it light
-        case _:
-            raise ValueError(f"Not a supported RAG value: {rag}")
+    raise ValueError(f"Not a supported RAG value: {rag}")
 
 
-def rag_background_styler_dense(
-    rag: Optional[Literal["Red", "Amber", "Yellow", "Green"]] = None,
-):
-    match rag[0].upper() if len(rag) > 0 else None:
-        case "R":
+def rag_background_styler_dense(rag: Optional[str] = None):
+    if rag is not None and len(rag) > 0:
+        rag_upper = rag[0].upper()
+        if rag_upper == "R":
             return style.fill(color="orangered")
-        case "A":
+        elif rag_upper == "A":
             return style.fill(color="orange")
-        case "Y":
+        elif rag_upper == "Y":
             return style.fill(color="yellow")
-        case "G":
+        elif rag_upper == "G":
             return style.fill(color="green")
-        case _:
-            raise ValueError(f"Not a supported RAG value: {rag}")
+    raise ValueError(f"Not a supported RAG value: {rag}")
 
 
-def rag_textcolor_styler(
-    rag: Optional[Literal["Red", "Amber", "Yellow", "Green"]] = None,
-):
-    match rag[0].upper() if len(rag) > 0 else None:
-        case "R":
+def rag_textcolor_styler(rag: Optional[str] = None):
+    if rag is not None and len(rag) > 0:
+        rag_upper = rag[0].upper()
+        if rag_upper == "R":
             return style.text(color="orangered")
-        case "A":
+        elif rag_upper == "A":
             return style.text(color="orange")
-        case "Y":
+        elif rag_upper == "Y":
             return style.text(color="yellow")
-        case "G":
+        elif rag_upper == "G":
             return style.text(color="green")
-        case _:
-            raise ValueError(f"Not a supported RAG value: {rag}")
+    raise ValueError(f"Not a supported RAG value: {rag}")
 
 
 def table_standard_formatting(
