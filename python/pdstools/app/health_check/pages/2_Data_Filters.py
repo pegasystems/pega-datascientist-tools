@@ -18,9 +18,14 @@ if "dm" in st.session_state:
         "Upload Filters You Downloaded Earlier", type=["json"]
     )
     if uploaded_file:
+        import io
+
         imported_filters = json.load(uploaded_file)
         for key, val in imported_filters.items():
-            expr_list.append(pl.Expr.from_json(json.dumps(val)))
+            # Convert the JSON string to a StringIO object and specify the format as 'json'
+            json_str = json.dumps(val)
+            str_io = io.StringIO(json_str)
+            expr_list.append(pl.Expr.deserialize(str_io, format="json"))
 
     st.session_state["filters"] = filter_dataframe(
         st.session_state["dm"].model_data, queries=expr_list
@@ -33,10 +38,11 @@ if "dm" in st.session_state:
         filtered_modelid_count, filtered_row_count = model_and_row_counts(
             _apply_query(st.session_state["dm"].model_data, st.session_state["filters"])
         )
-        deserialize_exprs = {}
+        serialized_exprs = {}
         for i, expr in enumerate(st.session_state["filters"]):
-            deserialize_exprs[i] = json.loads(expr.meta.write_json())
-        data = json.dumps(deserialize_exprs)
+            serialized = expr.meta.serialize(format="json")
+            serialized_exprs[i] = json.loads(serialized)
+        data = json.dumps(serialized_exprs)
         st.download_button(
             label="Download Filters",
             data=data,
