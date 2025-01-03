@@ -22,11 +22,13 @@ class Plots(LazyNamespace):
     def overall_gauges(
         self,
         condition: Union[str, pl.Expr],
+        *,
         metric: Optional[str] = "Engagement",
         by: Optional[str] = "Channel",
         reference_values: Optional[Dict[str, float]] = None,
         title: Optional[str] = None,
         query: Optional[QUERY] = None,
+        # facet: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
         plot_data = self.ih.aggregates.summary_success_rates(
@@ -44,7 +46,7 @@ class Plots(LazyNamespace):
         cols = plot_data[by].unique().shape[0]  # TODO can be None
         rows = (
             plot_data[condition].unique().shape[0]
-        )  # TODO generalize to support pl expression
+        )  # TODO generalize to support pl expression, see ADM plots, eg facet in bubble chart
 
         fig = make_subplots(
             rows=rows,
@@ -104,9 +106,11 @@ class Plots(LazyNamespace):
 
     def response_count_tree_map(
         self,
+        *,
         by: Optional[List[str]] = None,
         title: Optional[str] = None,
         query: Optional[QUERY] = None,
+        facet: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
 
@@ -143,12 +147,14 @@ class Plots(LazyNamespace):
 
         return fig
 
-    def success_rates_tree_map(
+    def success_rate_tree_map(
         self,
+        *,
         metric: Optional[str] = "Engagement",
         by: Optional[List[str]] = None,
         title: Optional[str] = None,
         query: Optional[QUERY] = None,
+        facet: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
         if by is None:
@@ -193,11 +199,13 @@ class Plots(LazyNamespace):
 
     def action_distribution(
         self,
+        *,
         # TODO change - one is the by, when multiple join together
         # other is the facet dimension/condition
         by: Optional[str] = "Name",
         title: Optional[str] = "Action Distribution",
         query: Optional[QUERY] = None,
+        facet: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
         plot_data = self.ih.aggregates.summary_outcomes(by=by, query=query)
@@ -214,55 +222,58 @@ class Plots(LazyNamespace):
         )
         return fig
 
-    def success_rates_trend_bar(
+    # def success_rates_trend_bar(
+    #     self,
+    #     condition: Union[str, pl.Expr],
+    #     *,
+    #     metric: Optional[str] = "Engagement",
+    #     every: Union[str, timedelta] = "1d",
+    #     by: Optional[str] = None,
+    #     title: Optional[str] = None,
+    #     query: Optional[QUERY] = None,
+    #     facet: Optional[str] = None,
+    #     return_df: Optional[bool] = False,
+    # ):
+
+    #     plot_data = self.ih.aggregates.summary_success_rates(
+    #         every=every,
+    #         by=[condition] + [by],  # TODO generalize to support pl expression
+    #         query=query,
+    #     )
+
+    #     if return_df:
+    #         return plot_data
+
+    #     if title is None:
+    #         title = f"{metric} Rates over Time"
+
+    #     fig = px.bar(
+    #         plot_data.collect(),
+    #         x="OutcomeTime",
+    #         y=f"SuccessRate_{metric}",
+    #         color=condition,
+    #         error_y=f"StdErr_{metric}",
+    #         facet_row=by,
+    #         barmode="group",
+    #         custom_data=[condition],
+    #         template="pega",
+    #         title=title,
+    #     )
+    #     fig.update_yaxes(tickformat=",.3%").update_layout(xaxis_title=None)
+    #     return fig
+
+    def success_rate(
         self,
-        condition: Union[str, pl.Expr],
+        *,
         metric: Optional[str] = "Engagement",
         every: Union[str, timedelta] = "1d",
-        by: Optional[str] = None,
         title: Optional[str] = None,
         query: Optional[QUERY] = None,
-        return_df: Optional[bool] = False,
-    ):
-
-        plot_data = self.ih.aggregates.summary_success_rates(
-            every=every,
-            by=[condition] + [by],  # TODO generalize to support pl expression
-            query=query,
-        )
-
-        if return_df:
-            return plot_data
-
-        if title is None:
-            title = f"{metric} Rates over Time"
-
-        fig = px.bar(
-            plot_data.collect(),
-            x="OutcomeTime",
-            y=f"SuccessRate_{metric}",
-            color=condition,
-            error_y=f"StdErr_{metric}",
-            facet_row=by,
-            barmode="group",
-            custom_data=[condition],
-            template="pega",
-            title=title,
-        )
-        fig.update_yaxes(tickformat=",.3%").update_layout(xaxis_title=None)
-        return fig
-
-    def success_rates_trend(
-        self,
-        metric: Optional[str] = "Engagement",
-        every: Union[str, timedelta] = "1d",
-        by: Optional[str] = None,
-        title: Optional[str] = None,
-        query: Optional[QUERY] = None,
+        facet: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
         plot_data = self.ih.aggregates.summary_success_rates(
-            every=every, by=by, query=query
+            every=every, by=facet, query=query
         )
 
         if return_df:
@@ -272,8 +283,8 @@ class Plots(LazyNamespace):
             plot_data.collect(),
             x="OutcomeTime",
             y=f"SuccessRate_{metric}",
-            color=by,
-            facet_row=by,
+            color=facet,
+            facet_row=facet,
             # custom_data=[experiment_field] if experiment_field is not None else None,
             template="pega",
             title=title,
@@ -282,16 +293,17 @@ class Plots(LazyNamespace):
         fig.update_yaxes(tickformat=",.3%").update_layout(xaxis_title=None)
         return fig
 
-    def response_counts(
+    def response_count(
         self,
+        *,
         every: Union[str, timedelta] = "1d",
-        by: Optional[str] = None,
         title: Optional[str] = "Responses",
         query: Optional[QUERY] = None,
+        facet: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
         plot_data = self.ih.aggregates.ih.aggregates.summary_outcomes(
-            every=every, by=by, query=query
+            every=every, by=facet, query=query
         ).collect()
 
         if return_df:
@@ -304,7 +316,7 @@ class Plots(LazyNamespace):
             color="Outcome",
             template="pega",
             title=title,
-            facet_row=by,
+            facet_row=facet,
         )
         fig.update_layout(xaxis_title=None)
 
@@ -312,11 +324,13 @@ class Plots(LazyNamespace):
 
     def model_performance_trend(
         self,
+        *,
         metric: Optional[str] = "Engagement",
         every: Union[str, timedelta] = "1d",
         by: Optional[str] = None,
         title: Optional[str] = "Model Performance over Time",
         query: Optional[QUERY] = None,
+        facet: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
 
@@ -336,7 +350,7 @@ class Plots(LazyNamespace):
                 ).alias("Performance")
             )
             .sort(["OutcomeTime"])
-        )
+        ).with_columns(pl.col("Performance") * 100)
 
         if return_df:
             return plot_data
@@ -349,4 +363,7 @@ class Plots(LazyNamespace):
             template="pega",
             title=title,
         )
+
+        fig.update_layout(yaxis=dict(range=[50, 100]), xaxis_title=None)
+
         return fig
