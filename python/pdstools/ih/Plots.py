@@ -279,6 +279,9 @@ class Plots(LazyNamespace):
         if return_df:
             return plot_data
 
+        if title is None:
+            title = f"Success Rates Trend of {metric}"
+
         fig = px.line(
             plot_data.collect(),
             x="OutcomeTime",
@@ -290,7 +293,7 @@ class Plots(LazyNamespace):
             title=title,
         )
 
-        fig.update_yaxes(tickformat=",.3%").update_layout(xaxis_title=None)
+        fig.update_yaxes(tickformat=",.3%", title=None).update_layout(xaxis_title=None)
         return fig
 
     def response_count(
@@ -364,6 +367,6 @@ class Plots(LazyNamespace):
             title=title,
         )
 
-        fig.update_layout(yaxis=dict(range=[50, 100]), xaxis_title=None)
+        fig.update_layout(yaxis=dict(range=[50, None]), xaxis_title=None)
 
         return fig
