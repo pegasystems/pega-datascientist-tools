@@ -209,14 +209,14 @@ def filter_dataframe(
 
     """
     to_filter_columns = st.multiselect(
-        "Filter dataframe on", df.columns, key="multiselect"
+        "Filter dataframe on", df.collect_schema().names(), key="multiselect"
     )
     for column in to_filter_columns:
         left, right = st.columns((1, 20))
         left.write("## ↳")
-
+        col_dtype = df.collect_schema()[column]
         # Treat columns with < 20 unique values as categorical
-        if (df.schema[column] == pl.Categorical) or (df.schema[column] == pl.Utf8):
+        if (col_dtype == pl.Categorical) or (col_dtype == pl.Utf8):
             if f"categories_{column}" not in st.session_state.keys():
                 st.session_state[f"categories_{column}"] = (
                     df.select(pl.col(column).unique()).collect().to_series().to_list()
@@ -245,7 +245,7 @@ def filter_dataframe(
                 if user_text_input:
                     queries.append(pl.col(column).str.contains(user_text_input))
 
-        elif df.schema[column] in pl.NUMERIC_DTYPES:
+        elif col_dtype in pl.NUMERIC_DTYPES:
             min_col, max_col = right.columns((1, 1))
             _min = float(df.select(pl.min(column)).collect().item())
             _max = float(df.select(pl.max(column)).collect().item())
@@ -272,7 +272,7 @@ def filter_dataframe(
                 user_num_input = [user_min, user_max]
             if user_num_input[0] != _min or user_num_input[1] != _max:
                 queries.append(pl.col(column).is_between(*user_num_input))
-        elif df.schema[column] in pl.TEMPORAL_DTYPES:
+        elif col_dtype in pl.TEMPORAL_DTYPES:
             user_date_input = right.date_input(
                 f"Values for {column}",
                 value=(

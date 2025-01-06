@@ -137,7 +137,7 @@ def add_bottom_left_text_to_bubble_plot(
                 else:
                     print(fig.data, i)
         return fig
-    num_models = df.select(pl.first().count()).collect().item()
+    num_models = df.select(pl.first().len()).collect().item()
     bottomleft = get_nonperforming_models(df)
     newtext = f"{num_models} models: {bottomleft} ({round(bottomleft/num_models*100, 2)}%) at (50,0)"
     fig.layout.title.text += f"<br><sup>{newtext}</sup>"
@@ -486,7 +486,7 @@ class Plots(LazyNamespace):
             )
         ).sort("BinIndex")
 
-        if df.select(pl.first().count()).collect().item() == 0:
+        if df.select(pl.first().len()).collect().item() == 0:
             raise ValueError(f"There is no data for the provided modelid {model_id}")
 
         if return_df:
@@ -578,7 +578,7 @@ class Plots(LazyNamespace):
             )
         ).sort("BinIndex")
 
-        if df.select(pl.first().count()).collect().item() == 0:
+        if df.select(pl.first().len()).collect().item() == 0:
             raise ValueError(
                 f"There is no data for the provided modelid {model_id} and predictor {predictor_name}"
             )
@@ -1194,7 +1194,7 @@ class Plots(LazyNamespace):
             return plot_df
 
         fig = px.bar(
-            plot_df.collect(), #.to_pandas(use_pyarrow_extension_array=False),
+            plot_df.collect(),  # .to_pandas(use_pyarrow_extension_array=False),
             x="Lift",
             y="BinSymbolAbbreviated",
             color="Direction",
@@ -1260,8 +1260,7 @@ class Plots(LazyNamespace):
                 fig.show()
         return figs
 
-
-    # TODO I took the propensity distrib plot out of the HC as 
+    # TODO I took the propensity distrib plot out of the HC as
     # it wasn't very clear, also didn't look great visually.
 
     @requires(
