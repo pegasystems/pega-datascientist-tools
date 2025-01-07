@@ -421,8 +421,7 @@ class Reports(LazyNamespace):
         self,
         name: Union[Path, str] = Path("Tables.xlsx"),
         predictor_binning: bool = False,
-        query: Optional[QUERY] = None,
-    ) -> Optional[Path]:
+    ) -> tuple[Optional[Path], list[str]]:
         """
         Export aggregated data to an Excel file.
         This method exports the last snapshots of model_data, predictor summary,
@@ -441,11 +440,15 @@ class Reports(LazyNamespace):
 
         Returns
         -------
-        Union[Path, None]
-            The path to the created Excel file if the export was successful,
-            None if no data was available to export.
+        tuple[Union[Path, None], list[str]]
+            A tuple containing:
+            - The path to the created Excel file if the export was successful, None if no data was available
+            - A list of warning messages (empty if no warnings)
         """
         from xlsxwriter import Workbook
+
+        EXCEL_ROW_LIMIT = 1048576
+        warning_messages = []
 
         name = Path(name)
         tabs = {
@@ -465,7 +468,7 @@ class Reports(LazyNamespace):
 
         if not tabs:  # pragma: no cover
             print("No data available to export.")
-            return None
+            return None, warning_messages
 
         with Workbook(
             name, options={"nan_inf_to_errors": True, "remove_timezone": True}
@@ -476,7 +479,20 @@ class Reports(LazyNamespace):
                     .list.eval(pl.element().cast(pl.Utf8))
                     .list.join(", ")
                 )
-                data.collect().write_excel(workbook=wb, worksheet=tab)
+                data = data.collect()
+
+                if data.shape[0] > EXCEL_ROW_LIMIT:
+                    warning_msg = (
+                        f"The data for sheet '{tab}' exceeds Excel's row limit "
+                        f"({data.shape[0]:,} rows > {EXCEL_ROW_LIMIT:,} rows). "
+                        "This sheet will not be written to the Excel file. "
+                        "Please filter your data before generating the Excel report."
+                    )
+                    warning_messages.append(warning_msg)
+                    print(warning_msg)
+                    continue
+                else:
+                    data.write_excel(workbook=wb, worksheet=tab)
 
         print(f"Data exported to {name}")
-        return name
+        return name, warning_messages
