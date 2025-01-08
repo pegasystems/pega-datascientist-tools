@@ -3,7 +3,7 @@ import os
 import random
 from typing import Dict, List, Optional, Union
 import polars as pl
-
+import polars.selectors as cs
 
 from .Aggregates import Aggregates
 from .Plots import Plots
@@ -86,6 +86,7 @@ class IH:
         IH
             The properly initialized IH object
         """
+        n_actions = 10
         click_rate = 0.2
         accept_rate = 0.15
         click_avg_duration_minutes = 2
@@ -93,8 +94,23 @@ class IH:
         convert_over_accept_click_rate_test = 0.5
         convert_over_accept_click_rate_control = 0.3
         convert_avg_duration_days = 2
+        inbound_base_propensity = 0.02
+        outbound_base_propensity = 0.01
 
         now = datetime.datetime.now()
+
+        def thompson_sampler(propensity, responses=10000):
+            # Using the same approach as we're doing in NBAD at the moment
+            a = responses * propensity
+            b = responses * (1 - propensity)
+
+            sampled = random.betavariate(a, b)
+
+            # print(
+            #     f"{a} {b} {propensity} {sampled} {abs((sampled-propensity)/propensity)}"
+            # )
+
+            return sampled
 
         # TODO maybe this should be changed in PDS tools - w/o __TimeStamp__ flag
         # def to_prpc_time_str(__TimeStamp__):
@@ -103,7 +119,6 @@ class IH:
         ih_fake_impressions = pl.DataFrame(
             {
                 "pxInteractionID": [str(int(1e9 + i)) for i in range(n)],
-                "pyDirection": "",  # will be set later from channel
                 "pyChannel": random.choices(["Web", "Email"], k=n),
                 "pyIssue": random.choices(
                     ["Acquisition", "Retention", "Risk", "Service"], k=n
@@ -117,29 +132,42 @@ class IH:
                         "Insurance",
                         "Savings",
                     ],
+                    weights=[1, 1, 2, 2, 3, 3],
                     k=n,
                 ),
-                "pyName": [
-                    random.randint(1, 10) for _ in range(n)
-                ],  # nr 1-10 will be appended to group
+                "pyName": random.choices(
+                    range(1, 1 + n_actions),
+                    weights=reversed(range(1, 1 + n_actions)),
+                    k=n,
+                ),  # nr will be appended to group name to form action name
                 "pyTreatment": [
                     random.randint(1, 2) for _ in range(n)
                 ],  # nr will be appended to group/channel
                 # https://stackoverflow.com/questions/40351791/how-to-hash-strings-into-a-float-in-01
-                "__PropensityInbound__": [random.betavariate(1, 10) for _ in range(n)],
-                "__PropensityOutbound__": [random.betavariate(1, 20) for _ in range(n)],
-                "ExperimentGroup": ["Conversion-Test", "Conversion-Control"]
-                * int(n / 2),
+                "ExperimentGroup": [
+                    "Conversion-Test",
+                    "Conversion-Test",
+                    "Conversion-Control",
+                    "Conversion-Control",
+                ]
+                * int(n / 4),
+                "pyModelTechnique": [
+                    "NaiveBayes",
+                    "GradientBoost",
+                    "NaiveBayes",
+                    "GradientBoost",
+                ]
+                * int(n / 4),
                 "pxOutcomeTime": [
                     (now - datetime.timedelta(days=i * days / n)) for i in range(n)
                 ],
-                "__ClickDurationMinutes__": [
+                "Temp.ClickDurationMinutes": [
                     random.uniform(0, 2 * click_avg_duration_minutes) for i in range(n)
                 ],
-                "__AcceptDurationMinutes__": [
+                "Temp.AcceptDurationMinutes": [
                     random.uniform(0, 2 * accept_avg_duration_minutes) for i in range(n)
                 ],
-                "__ConvertDurationDays__": [
+                "Temp.ConvertDurationDays": [
                     random.uniform(0, 2 * convert_avg_duration_days) for i in range(n)
                 ],
             }
@@ -158,20 +186,54 @@ class IH:
             pyOutcome=pl.when(pl.col.pyChannel == "Web")
             .then(pl.lit("Impression"))
             .otherwise(pl.lit("Pending")),
-            pyPropensity=pl.when(pl.col("pyChannel") == "Web")
-            .then(pl.col("__PropensityInbound__")
-            * pl.col("pyName").hash()
-            / pl.datatypes.UInt64.max())
-            .otherwise(pl.col("__PropensityOutbound__")
-            * pl.col("pyName").hash()
-            / pl.datatypes.UInt64.max()),
         )
+
+        action_basepropensities = (
+            ih_fake_impressions.group_by(["pyName"])
+            .agg(Count=pl.len())
+            .sort("Count", descending=True)
+            .with_row_index("Index")
+            .with_columns(
+                (1.0 / (5 + pl.col("Index"))).alias("Temp.Zipf"),
+            )
+        )
+
+        ih_fake_impressions = (
+            ih_fake_impressions.join(
+                action_basepropensities.select(["pyName", "Temp.Zipf"]), on=["pyName"]
+            )
+            .with_columns(
+                pl.col("Temp.Zipf")
+                .mean()
+                .over(["pyChannel", "pyDirection"])
+                .alias("Temp.ZipfMean")
+            )
+            .with_columns(
+                BasePropensity=pl.when(pl.col("pyDirection") == "Inbound")
+                .then(
+                    pl.col("Temp.Zipf")
+                    * inbound_base_propensity
+                    / pl.col("Temp.ZipfMean")
+                )
+                .otherwise(
+                    pl.col("Temp.Zipf")
+                    * outbound_base_propensity
+                    / pl.col("Temp.ZipfMean")
+                )
+            )
+            .with_columns(
+                pyPropensity=pl.col("BasePropensity").map_elements(
+                    thompson_sampler, pl.Float64
+                )
+            )
+        )
+
         ih_fake_clicks = (
             ih_fake_impressions.filter(pl.col.pyDirection == "Inbound")
             .sample(fraction=click_rate)
             .with_columns(
-                pl.col.pxOutcomeTime
-                + pl.duration(minutes=pl.col("__ClickDurationMinutes__")),
+                pxOutcomeTime=pl.col.pxOutcomeTime
+                + pl.duration(minutes=pl.col("Temp.ClickDurationMinutes")),
                 pyOutcome=pl.lit("Clicked"),
             )
         )
@@ -179,47 +241,22 @@ class IH:
             ih_fake_impressions.filter(pl.col.pyDirection == "Outbound")
             .sample(fraction=accept_rate)
             .with_columns(
-                pl.col.pxOutcomeTime
-                + pl.duration(minutes=pl.col("__AcceptDurationMinutes__")),
+                pxOutcomeTime=pl.col.pxOutcomeTime
+                + pl.duration(minutes=pl.col("Temp.AcceptDurationMinutes")),
                 pyOutcome=pl.lit("Accepted"),
             )
         )
-        ih_fake_converts_over_clicks_test = (
-            ih_fake_clicks.filter(pl.col.ExperimentGroup == "Conversion-Test")
-            .sample(fraction=convert_over_accept_click_rate_test)
-            .with_columns(
-                pl.col.pxOutcomeTime
-                + pl.duration(days=pl.col("__ConvertDurationDays__")),
-                pyOutcome=pl.lit("Conversion"),
+
+        def create_fake_converts(df, group, fraction):
+            return (
+                df.filter(pl.col("ExperimentGroup") == group)
+                .sample(fraction=fraction)
+                .with_columns(
+                    pxOutcomeTime=pl.col("pxOutcomeTime")
+                    + pl.duration(days=pl.col("Temp.ConvertDurationDays")),
+                    pyOutcome=pl.lit("Conversion"),
+                )
             )
-        )
-        ih_fake_converts_over_accepts_test = (
-            ih_fake_accepts.filter(pl.col.ExperimentGroup == "Conversion-Test")
-            .sample(fraction=convert_over_accept_click_rate_test)
-            .with_columns(
-                pl.col.pxOutcomeTime
-                + pl.duration(days=pl.col("__ConvertDurationDays__")),
-                pyOutcome=pl.lit("Conversion"),
-            )
-        )
-        ih_fake_converts_over_clicks_control = (
-            ih_fake_clicks.filter(pl.col.ExperimentGroup == "Conversion-Control")
-            .sample(fraction=convert_over_accept_click_rate_control)
-            .with_columns(
-                pl.col.pxOutcomeTime
-                + pl.duration(days=pl.col("__ConvertDurationDays__")),
-                pyOutcome=pl.lit("Conversion"),
-            )
-        )
-        ih_fake_converts_over_accepts_control = (
-            ih_fake_accepts.filter(pl.col.ExperimentGroup == "Conversion-Control")
-            .sample(fraction=convert_over_accept_click_rate_control)
-            .with_columns(
-                pl.col.pxOutcomeTime
-                + pl.duration(days=pl.col("__ConvertDurationDays__")),
-                pyOutcome=pl.lit("Conversion"),
-            )
-        )
 
         ih_data = (
             pl.concat(
@@ -227,22 +264,30 @@ class IH:
                     ih_fake_impressions,
                     ih_fake_clicks,
                     ih_fake_accepts,
-                    ih_fake_converts_over_clicks_test,
-                    ih_fake_converts_over_clicks_control,
-                    ih_fake_converts_over_accepts_test,
-                    ih_fake_converts_over_accepts_control,
+                    create_fake_converts(
+                        ih_fake_clicks,
+                        "Conversion-Test",
+                        convert_over_accept_click_rate_test,
+                    ),
+                    create_fake_converts(
+                        ih_fake_accepts,
+                        "Conversion-Test",
+                        convert_over_accept_click_rate_test,
+                    ),
+                    create_fake_converts(
+                        ih_fake_clicks,
+                        "Conversion-Control",
+                        convert_over_accept_click_rate_control,
+                    ),
+                    create_fake_converts(
+                        ih_fake_accepts,
+                        "Conversion-Control",
+                        convert_over_accept_click_rate_control,
+                    ),
                 ]
             )
             .filter(pl.col("pxOutcomeTime") <= pl.lit(now))
-            .drop(
-                [
-                    "__PropensityInbound__",
-                    "__PropensityOutbound__",
-                    "__ClickDurationMinutes__",
-                    "__AcceptDurationMinutes__",
-                    "__ConvertDurationDays__",
-                ]
-            )
+            .drop(cs.starts_with("Temp."))
             .sort("pxInteractionID", "pxOutcomeTime")
         )
 
