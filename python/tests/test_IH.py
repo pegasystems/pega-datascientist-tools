@@ -13,11 +13,11 @@ from plotly.graph_objs import Figure
 
 def test_mockdata():
     ih = IH.from_mock_data()
-    assert ih.data.collect().shape[0] > 100000 # interactions
-    assert ih.data.collect().shape[1] == 11 # nr of IH properties in the sample data
+    assert ih.data.collect().height > 100000 # interactions
+    assert ih.data.collect().width == 13 # nr of IH properties in the sample data
 
     summary = ih.aggregates._summary_interactions().collect()
-    assert summary.shape[0] == 100000
+    assert summary.height == 100000
 
 def test_plots():
     ih = IH.from_mock_data()
@@ -28,3 +28,4 @@ def test_plots():
     assert isinstance(ih.plot.success_rate(), Figure)
     assert isinstance(ih.plot.response_count(), Figure)
     assert isinstance(ih.plot.model_performance_trend(), Figure)
+    assert isinstance(ih.plot.model_performance_trend(by="ModelTechnique"), Figure)

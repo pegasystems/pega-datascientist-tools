@@ -13,7 +13,6 @@ from ..utils.namespaces import LazyNamespace
 if TYPE_CHECKING:
     from .IH import IH as IH_Class
 
-
 class Plots(LazyNamespace):
     def __init__(self, ih: "IH_Class"):
         super().__init__()
@@ -102,6 +101,8 @@ class Plots(LazyNamespace):
             fig.add_trace(trace1, row=(r + 1), col=(c + 1))
             index = index + 1
 
+        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+
         return fig
 
     def response_count_tree_map(
@@ -110,7 +111,7 @@ class Plots(LazyNamespace):
         by: Optional[List[str]] = None,
         title: Optional[str] = None,
         query: Optional[QUERY] = None,
-        facet: Optional[str] = None,
+        # facet: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
 
@@ -144,6 +145,7 @@ class Plots(LazyNamespace):
         fig.update_coloraxes(showscale=False)
         fig.update_traces(textinfo="label+value+percent parent")
         fig.update_layout(margin=dict(t=50, l=25, r=25, b=25))
+        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
 
         return fig
 
@@ -154,7 +156,7 @@ class Plots(LazyNamespace):
         by: Optional[List[str]] = None,
         title: Optional[str] = None,
         query: Optional[QUERY] = None,
-        facet: Optional[str] = None,
+        # facet: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
         if by is None:
@@ -194,6 +196,7 @@ class Plots(LazyNamespace):
         fig.update_coloraxes(showscale=False)
         fig.update_traces(textinfo="label+value")
         fig.update_layout(margin=dict(t=50, l=25, r=25, b=25))
+        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
 
         return fig
 
@@ -208,7 +211,8 @@ class Plots(LazyNamespace):
         facet: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
-        plot_data = self.ih.aggregates.summary_outcomes(by=by, query=query)
+        group_by_clause = cdh_utils.safe_flatten_list([by, facet])
+        plot_data = self.ih.aggregates.summary_outcomes(by=group_by_clause, query=query)
 
         if return_df:
             return plot_data
@@ -216,10 +220,14 @@ class Plots(LazyNamespace):
         fig = px.bar(
             plot_data.collect(),
             x="Count",
-            y="Name",
+            y=by,
+            facet_col=facet,
             template="pega",
             title=title,
         )
+
+        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+
         return fig
 
     # def success_rates_trend_bar(
@@ -294,6 +302,8 @@ class Plots(LazyNamespace):
         )
 
         fig.update_yaxes(tickformat=",.3%", title=None).update_layout(xaxis_title=None)
+        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+
         return fig
 
     def response_count(
@@ -322,6 +332,7 @@ class Plots(LazyNamespace):
             facet_row=facet,
         )
         fig.update_layout(xaxis_title=None)
+        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
 
         return fig
 
@@ -337,14 +348,15 @@ class Plots(LazyNamespace):
         return_df: Optional[bool] = False,
     ):
 
-        group_by_clause = cdh_utils.safe_flatten_list([by] + ["OutcomeTime"])
         plot_data = (
-            self.ih.aggregates._summary_interactions(every=every, by=by, query=query)
+            self.ih.aggregates._summary_interactions(
+                every=every, by=cdh_utils.safe_flatten_list([by, facet]), query=query
+            )
             .filter(
                 pl.col.Propensity.is_not_null()
                 & pl.col(f"Interaction_Outcome_{metric}").is_not_null()
             )
-            .group_by(group_by_clause)
+            .group_by(cdh_utils.safe_flatten_list([by, facet, "OutcomeTime"]))
             .agg(
                 pl.map_groups(
                     exprs=[f"Interaction_Outcome_{metric}", "Propensity"],
@@ -363,10 +375,12 @@ class Plots(LazyNamespace):
             y="Performance",
             x="OutcomeTime",
             color=by,
+            facet_row=facet,
             template="pega",
             title=title,
         )
 
         fig.update_layout(yaxis=dict(range=[50, None]), xaxis_title=None)
+        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
 
         return fig
