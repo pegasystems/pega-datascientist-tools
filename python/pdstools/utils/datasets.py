@@ -33,7 +33,7 @@ def cdh_sample(query: Optional[QUERY] = None) -> ADMDatamart:
             )
         except Exception as e:
             raise RuntimeError(
-                f"Error importing CDH Sample. Warnings: {[str(i) for i in w] if len(w)>0 else "None"}, exceptions: {e}"
+                f"Error importing CDH Sample. Warnings: {[str(i) for i in w] if len(w)>0 else 'None'}, exceptions: {e}"
             )
 
 
@@ -45,7 +45,7 @@ def sample_trees():
             )
         except Exception as e:
             raise RuntimeError(
-                f"Error importing the Sample Trees dataset. Warnings: {[str(i) for i in w] if len(w)>0 else "None"}, exceptions: {e}"
+                f"Error importing the Sample Trees dataset. Warnings: {[str(i) for i in w] if len(w)>0 else 'None'}, exceptions: {e}"
             )
 
 
@@ -74,5 +74,5 @@ def sample_value_finder(threshold: Optional[float] = None) -> ValueFinder:
             )
         except Exception as e:
             raise RuntimeError(
-                f"Error importing the Value Finder dataset. Warnings: {[str(i) for i in w] if len(w)>0 else "None"}, exceptions: {e}"
+                f"Error importing the Value Finder dataset. Warnings: {[str(i) for i in w] if len(w)>0 else 'None'}, exceptions: {e}"
             )
