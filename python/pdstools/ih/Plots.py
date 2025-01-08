@@ -13,6 +13,7 @@ from ..utils.namespaces import LazyNamespace
 if TYPE_CHECKING:
     from .IH import IH as IH_Class
 
+
 class Plots(LazyNamespace):
     def __init__(self, ih: "IH_Class"):
         super().__init__()
@@ -174,8 +175,12 @@ class Plots(LazyNamespace):
         if title is None:
             title = f"{metric} Rates for All Actions"
 
-        plot_data = plot_data.collect().with_columns(
-            CTR_DisplayValue=pl.col(f"SuccessRate_{metric}").round(3),
+        plot_data = (
+            plot_data.collect()
+            .with_columns(
+                CTR_DisplayValue=pl.col(f"SuccessRate_{metric}").round(3),
+            )
+            .filter(pl.col(f"SuccessRate_{metric}") > 0)
         )
 
         fig = px.treemap(
