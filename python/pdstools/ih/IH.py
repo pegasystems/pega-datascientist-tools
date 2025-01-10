@@ -86,6 +86,8 @@ class IH:
         IH
             The properly initialized IH object
         """
+        n = int(n)
+
         n_actions = 10
         click_avg_duration_minutes = 2
         accept_avg_duration_minutes = 30
