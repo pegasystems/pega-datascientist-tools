@@ -96,7 +96,9 @@ class IH:
         convert_avg_duration_days = 2
         inbound_base_propensity = 0.02
         outbound_base_propensity = 0.01
-        inbound_modelnoise_NaiveBayes = 0.2  # relative amount of extra noise added to models
+        inbound_modelnoise_NaiveBayes = (
+            0.2  # relative amount of extra noise added to models
+        )
         inbound_modelnoise_GradientBoost = 0.0
         outbound_modelnoise_NaiveBayes = 0.3
         outbound_modelnoise_GradientBoost = 0.1
@@ -233,21 +235,40 @@ class IH:
 
         # Add artificial noise to the models to manipulate some scenarios
         ih_fake_impressions = ih_fake_impressions.with_columns(
-            pl.when((pl.col.pyModelTechnique == "NaiveBayes") & (pl.col.pyDirection == "Inbound"))
+            pl.when(
+                (pl.col.pyModelTechnique == "NaiveBayes")
+                & (pl.col.pyDirection == "Inbound")
+            )
             .then(pl.col("Temp.ChannelBasePropensity") * inbound_modelnoise_NaiveBayes)
-            .when((pl.col.pyModelTechnique == "GradientBoost") & (pl.col.pyDirection == "Inbound"))
-            .then(pl.col("Temp.ChannelBasePropensity") * inbound_modelnoise_GradientBoost)
-            .when((pl.col.pyModelTechnique == "NaiveBayes") & (pl.col.pyDirection == "Outbound"))
+            .when(
+                (pl.col.pyModelTechnique == "GradientBoost")
+                & (pl.col.pyDirection == "Inbound")
+            )
+            .then(
+                pl.col("Temp.ChannelBasePropensity") * inbound_modelnoise_GradientBoost
+            )
+            .when(
+                (pl.col.pyModelTechnique == "NaiveBayes")
+                & (pl.col.pyDirection == "Outbound")
+            )
             .then(pl.col("Temp.ChannelBasePropensity") * outbound_modelnoise_NaiveBayes)
-            .when((pl.col.pyModelTechnique == "GradientBoost") & (pl.col.pyDirection == "Outbound"))
-            .then(pl.col("Temp.ChannelBasePropensity") * outbound_modelnoise_GradientBoost)
+            .when(
+                (pl.col.pyModelTechnique == "GradientBoost")
+                & (pl.col.pyDirection == "Outbound")
+            )
+            .then(
+                pl.col("Temp.ChannelBasePropensity") * outbound_modelnoise_GradientBoost
+            )
             .otherwise(pl.lit(0.0))
             .alias("Temp.ExtraModelNoise")
         )
 
         ih_fake_clicks = (
             ih_fake_impressions.filter(pl.col.pyDirection == "Inbound")
-            .filter(pl.col("Temp.RandomUniform") < (pl.col("pyPropensity") + pl.col("Temp.ExtraModelNoise")))
+            .filter(
+                pl.col("Temp.RandomUniform")
+                < (pl.col("pyPropensity") + pl.col("Temp.ExtraModelNoise"))
+            )
             .with_columns(
                 pxOutcomeTime=pl.col.pxOutcomeTime
                 + pl.duration(minutes=pl.col("Temp.ClickDurationMinutes")),
@@ -256,7 +277,10 @@ class IH:
         )
         ih_fake_accepts = (
             ih_fake_impressions.filter(pl.col.pyDirection == "Outbound")
-            .filter(pl.col("Temp.RandomUniform") < (pl.col("pyPropensity") + pl.col("Temp.ExtraModelNoise")))
+            .filter(
+                pl.col("Temp.RandomUniform")
+                < (pl.col("pyPropensity") + pl.col("Temp.ExtraModelNoise"))
+            )
             .with_columns(
                 pxOutcomeTime=pl.col.pxOutcomeTime
                 + pl.duration(minutes=pl.col("Temp.AcceptDurationMinutes")),
