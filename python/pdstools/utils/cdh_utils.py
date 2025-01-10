@@ -1168,4 +1168,10 @@ def safe_flatten_list(alist: List) -> List:
         for item in sublist
     ]
     alist = list(filter(partial(is_not, None), alist))
-    return alist if len(alist) > 0 else None
+    seen = set()
+    unique_alist = []
+    for item in alist:
+        if item not in seen:
+            unique_alist.append(item)
+            seen.add(item)
+    return unique_alist if len(unique_alist) > 0 else None

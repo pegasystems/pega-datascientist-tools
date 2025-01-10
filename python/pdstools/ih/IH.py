@@ -87,8 +87,6 @@ class IH:
             The properly initialized IH object
         """
         n_actions = 10
-        click_rate = 0.2
-        accept_rate = 0.15
         click_avg_duration_minutes = 2
         accept_avg_duration_minutes = 30
         convert_over_accept_click_rate_test = 0.5
@@ -96,6 +94,10 @@ class IH:
         convert_avg_duration_days = 2
         inbound_base_propensity = 0.02
         outbound_base_propensity = 0.01
+        inbound_modelnoise_NaiveBayes = 0.2  # relative amount of extra noise added to models
+        inbound_modelnoise_GradientBoost = 0.0
+        outbound_modelnoise_NaiveBayes = 0.3
+        outbound_modelnoise_GradientBoost = 0.1
 
         now = datetime.datetime.now()
 
@@ -119,7 +121,9 @@ class IH:
         ih_fake_impressions = pl.DataFrame(
             {
                 "pxInteractionID": [str(int(1e9 + i)) for i in range(n)],
-                "pyChannel": random.choices(["Web", "Email"], k=n),
+                "pyChannel": random.choices(
+                    ["Web", "Email"], k=n
+                ),  # Direction will be derived from this later
                 "pyIssue": random.choices(
                     ["Acquisition", "Retention", "Risk", "Service"], k=n
                 ),
@@ -170,6 +174,7 @@ class IH:
                 "Temp.ConvertDurationDays": [
                     random.uniform(0, 2 * convert_avg_duration_days) for i in range(n)
                 ],
+                "Temp.RandomUniform": [random.uniform(0, 1) for i in range(n)],
             }
         ).with_columns(
             pyDirection=pl.when(pl.col("pyChannel") == "Web")
@@ -206,20 +211,16 @@ class IH:
                 pl.col("Temp.Zipf")
                 .mean()
                 .over(["pyChannel", "pyDirection"])
-                .alias("Temp.ZipfMean")
+                .alias("Temp.ZipfMean"),
+                pl.when(pl.col("pyDirection") == "Inbound")
+                .then(pl.lit(inbound_base_propensity))
+                .otherwise(pl.lit(outbound_base_propensity))
+                .alias("Temp.ChannelBasePropensity"),
             )
             .with_columns(
-                BasePropensity=pl.when(pl.col("pyDirection") == "Inbound")
-                .then(
-                    pl.col("Temp.Zipf")
-                    * inbound_base_propensity
-                    / pl.col("Temp.ZipfMean")
-                )
-                .otherwise(
-                    pl.col("Temp.Zipf")
-                    * outbound_base_propensity
-                    / pl.col("Temp.ZipfMean")
-                )
+                BasePropensity=pl.col("Temp.Zipf")
+                * pl.col("Temp.ChannelBasePropensity")
+                / pl.col("Temp.ZipfMean")
             )
             .with_columns(
                 pyPropensity=pl.col("BasePropensity").map_elements(
@@ -228,9 +229,23 @@ class IH:
             )
         )
 
+        # Add artificial noise to the models to manipulate some scenarios
+        ih_fake_impressions = ih_fake_impressions.with_columns(
+            pl.when((pl.col.pyModelTechnique == "NaiveBayes") & (pl.col.pyDirection == "Inbound"))
+            .then(pl.col("Temp.ChannelBasePropensity") * inbound_modelnoise_NaiveBayes)
+            .when((pl.col.pyModelTechnique == "GradientBoost") & (pl.col.pyDirection == "Inbound"))
+            .then(pl.col("Temp.ChannelBasePropensity") * inbound_modelnoise_GradientBoost)
+            .when((pl.col.pyModelTechnique == "NaiveBayes") & (pl.col.pyDirection == "Outbound"))
+            .then(pl.col("Temp.ChannelBasePropensity") * outbound_modelnoise_NaiveBayes)
+            .when((pl.col.pyModelTechnique == "GradientBoost") & (pl.col.pyDirection == "Outbound"))
+            .then(pl.col("Temp.ChannelBasePropensity") * outbound_modelnoise_GradientBoost)
+            .otherwise(pl.lit(0.0))
+            .alias("Temp.ExtraModelNoise")
+        )
+
         ih_fake_clicks = (
             ih_fake_impressions.filter(pl.col.pyDirection == "Inbound")
-            .sample(fraction=click_rate)
+            .filter(pl.col("Temp.RandomUniform") < (pl.col("pyPropensity") + pl.col("Temp.ExtraModelNoise")))
             .with_columns(
                 pxOutcomeTime=pl.col.pxOutcomeTime
                 + pl.duration(minutes=pl.col("Temp.ClickDurationMinutes")),
@@ -239,7 +254,7 @@ class IH:
         )
         ih_fake_accepts = (
             ih_fake_impressions.filter(pl.col.pyDirection == "Outbound")
-            .sample(fraction=accept_rate)
+            .filter(pl.col("Temp.RandomUniform") < (pl.col("pyPropensity") + pl.col("Temp.ExtraModelNoise")))
             .with_columns(
                 pxOutcomeTime=pl.col.pxOutcomeTime
                 + pl.duration(minutes=pl.col("Temp.AcceptDurationMinutes")),

@@ -208,16 +208,16 @@ class Plots(LazyNamespace):
     def action_distribution(
         self,
         *,
-        # TODO change - one is the by, when multiple join together
-        # other is the facet dimension/condition
         by: Optional[str] = "Name",
         title: Optional[str] = "Action Distribution",
         query: Optional[QUERY] = None,
+        color: Optional[str] = None,
         facet: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
-        group_by_clause = cdh_utils.safe_flatten_list([by, facet])
-        plot_data = self.ih.aggregates.summary_outcomes(by=group_by_clause, query=query)
+        plot_data = self.ih.aggregates.summary_outcomes(
+            by=[by, color, facet], query=query
+        )
 
         if return_df:
             return plot_data
@@ -226,11 +226,15 @@ class Plots(LazyNamespace):
             plot_data.collect(),
             x="Count",
             y=by,
+            color=color,
             facet_col=facet,
             template="pega",
             title=title,
         )
 
+        fig.update_layout(barmode="stack")
+        fig.update_yaxes(categoryorder="total ascending")
+        fig.update_layout(yaxis=dict(title=""))
         fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
 
         return fig
