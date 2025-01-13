@@ -37,14 +37,13 @@ if not (pandoc_available and quarto_available):
     if not quarto_available:
         missing_deps.append("Quarto (https://quarto.org/docs/get-started/)")
 
-    st.warning(
-        f"""
-    ⚠️ The following required tools are not available on your system:
-    - {'\n    - '.join(missing_deps)}
-
-    The app will not function without these tools. Please install them before proceeding.
-    """
+    missing_deps_list = "\n    - ".join(missing_deps)
+    message = (
+        f"⚠️ The following required tools are not available on your system:\n"
+        f"    - {missing_deps_list}\n"
+        "The app will not function without these tools. Please install them before proceeding."
     )
+    st.warning(message)
 
 
 current_version = pdstools.__version__
