@@ -11,6 +11,7 @@ from ..adm.ADMDatamart import ADMDatamart
 from ..utils import datasets
 from ..utils.types import ANY_FRAME
 from . import cdh_utils
+from pdstools.app.decision_analyzer.da_streamlit_utils import get_current_index
 
 
 @st.cache_resource
@@ -24,7 +25,6 @@ def cached_datamart(**kwargs):
         try:
             datamart = ADMDatamart.from_ds_export(**kwargs)
             if datamart is not None:
-                st.success("Datamart successfully loaded. You can proceed now.")
                 return datamart
             else:
                 st.warning("Unable to load datamart.")
@@ -35,26 +35,44 @@ def cached_datamart(**kwargs):
 
 
 def import_datamart(extract_pyname_keys: bool):
-    st.session_state["params"] = {}
+    options = [
+        "Direct file path",
+        "Direct file upload",
+        "CDH Sample",
+        "Download from S3",
+    ]
+
     st.write("### Data import")
     codespaces = os.getcwd() == "/workspaces/pega-datascientist-tools"
-    source = st.selectbox(
+
+    st.session_state["params"] = {}
+
+    def update_data_source():
+        st.session_state["data_source"] = st.session_state["_data_source"]
+        if "dm" in st.session_state:
+            del st.session_state["dm"]
+
+    index = get_current_index(options, "data_source")
+    st.selectbox(
         "Select data source",
-        options=[
-            "Direct file path",
-            "Direct file upload",
-            "CDH Sample",
-            "Download from S3",
-        ],
+        options=options,
+        index=index,
+        key="_data_source",
+        on_change=update_data_source,
     )
-    if source == "CDH Sample":
+    if "data_source" not in st.session_state:
+        st.session_state["data_source"] = options[0]
+    if st.session_state["data_source"] == "CDH Sample":
         st.session_state["dm"] = cached_sample()
-    elif source == "Download from S3":
+    elif st.session_state["data_source"] == "Download from S3":
         raise NotImplementedError("Want to do this soon.")
-    elif source == "Direct file upload":
-        return from_uploaded_file(extract_pyname_keys, codespaces)
-    elif source == "Direct file path":
-        return from_file_path(extract_pyname_keys, codespaces)
+    elif st.session_state["data_source"] == "Direct file upload":
+        from_uploaded_file(extract_pyname_keys, codespaces)
+    elif st.session_state["data_source"] == "Direct file path":
+        from_file_path(extract_pyname_keys, codespaces)
+
+    if "dm" in st.session_state:
+        st.success("Import Successful!")
 
 
 def from_uploaded_file(extract_pyname_keys, codespaces):
@@ -349,37 +367,6 @@ def configure_predictor_categorization():
 @st.cache_data
 def convert_df(df):
     return df.write_csv().encode("utf-8")
-
-
-# def newPredictorCategorizationFunc():
-
-#     def conditions():
-#         from polars.internals.expr.string import ExprStringNameSpace
-#         funcs = {
-#             "Starts with": ExprStringNameSpace.starts_with,
-#             "Ends with": ExprStringNameSpace.ends_with,
-#             "Contains": ExprStringNameSpace.contains,
-#             "Regex": ExprStringNameSpace.extract,
-#         }
-#         x = pl.col("PredictorName")
-#         func = st.selectbox('When', self.funcs.keys())
-#         # func = funcs['Starts with']
-#         st.write(func(self.x, "test"))
-
-#     class Condition:
-#         def __new__(self):
-
-
-#     conditions()
-
-
-#     st.write("COMON")
-
-#     """
-#     [{'func':'starts_with', 'value':'IH', 'then_func':'lit', 'then_value':'IHPredictor'},
-#     {'func':'contains','value':'customer', 'then_func', 'head', 'then_value':[2]},
-#     {'func':'regex', 'value':'IH^', 'then_func':'regex', 'then_value':'IH^.^'}]
-#     """
 
 
 @st.cache_data

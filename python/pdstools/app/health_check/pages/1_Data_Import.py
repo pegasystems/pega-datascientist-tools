@@ -20,8 +20,10 @@ with st.expander("Configure advanced options", expanded=True):
         tells us to try to extract these keys into separate columns.""",
     )
 
-
 streamlit_utils.import_datamart(extract_pyname_keys=extract_pyname_keys)
-for key in st.session_state.keys():
-    if key not in ["dm", "params", "logger", "log_buffer"]:
+
+# Keep only essential session state keys
+essential_keys = ["dm", "params", "logger", "log_buffer", "data_source"]
+for key in list(st.session_state.keys()):
+    if key not in essential_keys and not key.startswith("_"):
         del st.session_state[key]

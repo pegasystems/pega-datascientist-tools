@@ -7,7 +7,7 @@ st.warning(
 # import streamlit as st
 
 # from da_streamlit_utils import (
-#     get_current_scope_index,
+#     get_current_index,
 #     st_value_distribution,
 #     ensure_data,
 # )
@@ -43,7 +43,7 @@ st.warning(
 #         use_container_width=True,
 #     )
 
-#     scope_index = get_current_scope_index(scope_options)
+#     scope_index = get_current_index(scope_options, "scope")
 #     st.selectbox(
 #         "Granularity:",
 #         options=scope_options,

@@ -2,7 +2,7 @@ import streamlit as st
 
 
 from da_streamlit_utils import (
-    get_current_scope_index,
+    get_current_index,
     get_data_filters,
     show_filtered_counts,
     ensure_data,
@@ -54,7 +54,7 @@ with st.session_state["sidebar"]:
         value=st.session_state.win_rank if "win_rank" in st.session_state else 1,
         key="win_rank",
     )
-    scope_index = get_current_scope_index(scope_options)
+    scope_index = get_current_index(scope_options, "scope")
     st.selectbox(
         "Select Scope",
         options=scope_options,
@@ -96,8 +96,8 @@ with st.session_state["sidebar"]:
 
 if st.session_state.local_filters != []:
     groupby_cols = [st.session_state.scope] + (
-        [scope_options[get_current_scope_index(scope_options) + 1]]
-        if (get_current_scope_index(scope_options) + 1) < len(scope_options)
+        [scope_options[get_current_index(scope_options, "scope") + 1]]
+        if (get_current_index(scope_options, "scope") + 1) < len(scope_options)
         else []
     )
 
@@ -144,8 +144,9 @@ if st.session_state.local_filters != []:
                 winning_from,
                 st.session_state.scope,
                 (
-                    scope_options[get_current_scope_index(scope_options) + 1]
-                    if (get_current_scope_index(scope_options) + 1) < len(scope_options)
+                    scope_options[get_current_index(scope_options, "scope") + 1]
+                    if (get_current_index(scope_options, "scope") + 1)
+                    < len(scope_options)
                     else None
                 ),
                 "Decisions",
@@ -167,8 +168,9 @@ if st.session_state.local_filters != []:
                 losing_to,
                 st.session_state.scope,
                 (
-                    scope_options[get_current_scope_index(scope_options) + 1]
-                    if (get_current_scope_index(scope_options) + 1) < len(scope_options)
+                    scope_options[get_current_index(scope_options, "scope") + 1]
+                    if (get_current_index(scope_options, "scope") + 1)
+                    < len(scope_options)
                     else None
                 ),
                 "Decisions",

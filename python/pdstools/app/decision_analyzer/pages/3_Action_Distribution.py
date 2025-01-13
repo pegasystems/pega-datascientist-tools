@@ -2,8 +2,7 @@ import streamlit as st
 
 from pdstools.decision_analyzer.utils import NBADScope_Mapping
 from da_streamlit_utils import (
-    get_current_scope_index,
-    get_current_stage_index,
+    get_current_index,
     ensure_data,
 )
 
@@ -37,7 +36,7 @@ with st.session_state["sidebar"]:
     scope_options = st.session_state.decision_data.getPossibleScopeValues()
     stage_options = st.session_state.decision_data.getPossibleStageValues()
 
-    stage_index = get_current_stage_index(stage_options)
+    stage_index = get_current_index(stage_options, "stage")
     st.selectbox(
         "Select Stage",
         options=stage_options,
@@ -80,7 +79,7 @@ with st.container(border=True):
         use_container_width=True,
     )
 
-    scope_index = get_current_scope_index(scope_options)
+    scope_index = get_current_index(scope_options, "scope")
     st.selectbox(
         "Granularity:",
         options=scope_options,
