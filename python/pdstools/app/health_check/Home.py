@@ -28,13 +28,21 @@ To be up to date with changes in the app, make sure to regularly run a `pip inst
 """
 
 pandoc_available = shutil.which("pandoc") is not None
+quarto_available = shutil.which("quarto") is not None
 
-if not pandoc_available:
+if not (pandoc_available and quarto_available):
+    missing_deps = []
+    if not pandoc_available:
+        missing_deps.append("Pandoc (https://pandoc.org/installing.html)")
+    if not quarto_available:
+        missing_deps.append("Quarto (https://quarto.org/docs/get-started/)")
+
     st.warning(
-        """
-    ⚠️ Pandoc is not available on your system. Some features of this app may not work correctly.
+        f"""
+    ⚠️ The following required tools are not available on your system:
+    - {'\n    - '.join(missing_deps)}
 
-    Please install Pandoc from https://pandoc.org/installing.html to ensure full functionality.
+    The app will not function without these tools. Please install them before proceeding.
     """
     )
 
