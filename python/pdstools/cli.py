@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.9"
 # dependencies = [
-#     "pdstools[app]>=4.0",
+#     "pdstools[app]>=4.0.3",
 # ]
 # ///
 
