@@ -1,18 +1,18 @@
+import datetime
+import json
+import logging
 import re
-import traceback
 import shutil
 import subprocess
-import logging
+import traceback
 from pathlib import Path
-from typing import Dict, List, Optional, Union, Tuple
-from IPython.display import display, Markdown
-from great_tables import GT, style, loc
+from typing import Dict, List, Optional, Tuple, Union
+
+import polars as pl
+
 from ..adm.CDH_Guidelines import CDHGuidelines
 from ..utils.show_versions import show_versions
 from ..utils.types import QUERY
-import polars as pl
-import datetime
-import json
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +77,8 @@ def get_pandoc_with_version(verbose: bool = True) -> Tuple[Path, str]:
 
 
 def quarto_print(text):
+    from IPython.display import Markdown, display
+
     display(Markdown(text))
 
 
@@ -132,6 +134,8 @@ def polars_subset_to_existing_cols(all_columns, cols):
 
 
 def rag_background_styler(rag: Optional[str] = None):
+    from great_tables import style
+
     if rag is not None and len(rag) > 0:
         rag_upper = rag[0].upper()
         if rag_upper == "R":
@@ -146,6 +150,8 @@ def rag_background_styler(rag: Optional[str] = None):
 
 
 def rag_background_styler_dense(rag: Optional[str] = None):
+    from great_tables import style
+
     if rag is not None and len(rag) > 0:
         rag_upper = rag[0].upper()
         if rag_upper == "R":
@@ -160,6 +166,8 @@ def rag_background_styler_dense(rag: Optional[str] = None):
 
 
 def rag_textcolor_styler(rag: Optional[str] = None):
+    from great_tables import style
+
     if rag is not None and len(rag) > 0:
         rag_upper = rag[0].upper()
         if rag_upper == "R":
@@ -185,6 +193,8 @@ def table_standard_formatting(
     highlight_configurations: List[str] = [],
     rag_styler: callable = rag_background_styler,
 ):
+    from great_tables import GT, loc
+
     def apply_style(gt, rag, rows):
         style = rag_styler(rag)
         if style is not None:
@@ -316,8 +326,12 @@ def table_standard_formatting(
 
 
 def table_style_predictor_count(
-    gt: GT, flds, cdh_guidelines=CDHGuidelines(), rag_styler=rag_textcolor_styler
+    gt, flds, cdh_guidelines=CDHGuidelines(), rag_styler=rag_textcolor_styler
 ):
+    from great_tables import GT, loc
+
+    if not isinstance(gt, GT):
+        raise ValueError("gt argument should be a Great Table")
     for col in flds:
         gt = gt.tab_style(
             style=rag_styler("amber"),

@@ -130,7 +130,7 @@ def add_bottom_left_text_to_bubble_plot(
             num_models = subset.select(pl.first().count()).collect().item()
             if num_models > 0:
                 bottomleft = get_nonperforming_models(subset)
-                newtext = f"{num_models} models: {bottomleft} ({round(bottomleft/num_models*100, 2)}%) at (50,0)"
+                newtext = f"{num_models} models: {bottomleft} ({round(bottomleft / num_models * 100, 2)}%) at (50,0)"
                 fig.layout.annotations[i].text += f"<br><sup>{newtext}</sup>"
                 if len(fig.data) > i:
                     fig.data[i].marker.size *= bubble_size
@@ -139,7 +139,7 @@ def add_bottom_left_text_to_bubble_plot(
         return fig
     num_models = df.select(pl.first().len()).collect().item()
     bottomleft = get_nonperforming_models(df)
-    newtext = f"{num_models} models: {bottomleft} ({round(bottomleft/num_models*100, 2)}%) at (50,0)"
+    newtext = f"{num_models} models: {bottomleft} ({round(bottomleft / num_models * 100, 2)}%) at (50,0)"
     fig.layout.title.text += f"<br><sup>{newtext}</sup>"
     fig.data[0].marker.size *= bubble_size
     return fig
