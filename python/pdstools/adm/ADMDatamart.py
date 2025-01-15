@@ -127,13 +127,8 @@ class ADMDatamart:
         self.model_data = self._validate_model_data(
             model_df, query=query, extract_pyname_keys=extract_pyname_keys
         )
-        predictor_df = self._validate_predictor_data(predictor_df)
 
-        if predictor_df is not None and self.model_data is not None:
-            model_ids = self.model_data.select("ModelID").unique()
-            self.predictor_data = predictor_df.join(model_ids, on="ModelID", how="semi")
-        else:
-            self.predictor_data = None
+        self.predictor_data = self._validate_predictor_data(predictor_df)
 
         self.combined_data = self.aggregates._combine_data(
             self.model_data, self.predictor_data
