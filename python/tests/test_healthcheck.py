@@ -32,7 +32,7 @@ def test_GenerateHealthCheck(sample: ADMDatamart):
 
 
 def test_ExportTables(sample: ADMDatamart):
-    excel = sample.generate.excel_report(predictor_binning=True)
+    excel, warning_messages = sample.generate.excel_report(predictor_binning=True)
     assert excel == pathlib.Path("./Tables.xlsx")
     assert excel.exists()
     spreadsheet = ExcelFile(excel)
@@ -48,7 +48,7 @@ def test_ExportTables(sample: ADMDatamart):
 
 
 def test_ExportTables_NoBinning(sample: ADMDatamart):
-    excel = sample.generate.excel_report(predictor_binning=False)
+    excel, warining_messages = sample.generate.excel_report(predictor_binning=False)
     assert excel == pathlib.Path("./Tables.xlsx")
     assert pathlib.Path(excel).exists()
     spreadsheet = ExcelFile(excel)
@@ -73,7 +73,7 @@ def test_GenerateHealthCheck_ModelDataOnly(
 
 
 def test_ExportTables_ModelDataOnly(sample_without_predictor_binning: ADMDatamart):
-    excel = sample_without_predictor_binning.generate.excel_report(
+    excel, warning_messages = sample_without_predictor_binning.generate.excel_report(
         name="ModelTables.xlsx", predictor_binning=True
     )
     assert excel == pathlib.Path("ModelTables.xlsx")

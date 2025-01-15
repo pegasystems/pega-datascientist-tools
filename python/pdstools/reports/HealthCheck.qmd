@@ -1480,7 +1480,7 @@ maturity_criteria = [
     pl.col("Name")
     .filter(
         (pl.col("Performance") > 0.5)
-        & (pl.col("Performance") < cdh_guidelines.min("Model Performance"))
+        & (pl.col("Performance") < (cdh_guidelines.min("Model Performance") / 100))
         & (
             pl.col("Positives") >= cdh_guidelines.best_practice_min("Positive Responses")
         )
@@ -1492,7 +1492,7 @@ maturity_criteria = [
 
     pl.col("Name")
     .filter(
-        (pl.col("Performance") >= cdh_guidelines.min("Model Performance"))
+        (pl.col("Performance") >= (cdh_guidelines.min("Model Performance") / 100))
         & (
             pl.col("Positives")
             >= cdh_guidelines.best_practice_min("Positive Responses")

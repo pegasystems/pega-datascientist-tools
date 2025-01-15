@@ -645,50 +645,29 @@ class Aggregates:
         """
         try:
             model_identifiers = ["Configuration"] + self.datamart.context_keys
-
             predictor_summary = (
-                self.last(table="predictor_data")
-                .filter(pl.col("PredictorName") != "Classifier") # TODO not name, there is a type
-                .join(
-                    self.last(table="model_data")
-                    .select(["ModelID"] + model_identifiers)
-                    .unique(),
-                    on="ModelID",
-                    how="left",
-                )
+                self.last(table="combined_data")
+                .filter(pl.col("EntryType") != "Classifier")
                 .group_by(model_identifiers + ["ModelID", "PredictorName"])
                 .agg(
                     pl.first("Type"),
                     pl.first("Performance"),
-                    pl.count("BinIndex").alias("Bins"),
+                    pl.first("EntryType"),
+                    pl.count("BinIndex").alias("Bin Count"),
+                    pl.first("Positives"),
                     pl.col("BinResponseCount")
                     .filter(pl.col("BinType") == "MISSING")
                     .sum()
-                    .alias("Missing"),
-                    pl.col("BinResponseCount")
-                    .filter(pl.col("BinType") == "RESIDUAL")
-                    .sum()
-                    .alias("Residual"),
-                    pl.first("Positives"),
+                    .alias("Missing Bin Responses"),
                     pl.first("ResponseCount"),
-                )
-                .group_by(model_identifiers + ["PredictorName"])
-                .agg(
-                    pl.first("Type"),
-                    cdh_utils.weighted_average_polars("Performance", "ResponseCount"),
-                    cdh_utils.weighted_average_polars("Bins", "ResponseCount"),
-                    ((pl.sum("Missing") / pl.sum("ResponseCount")) * 100).alias(
-                        "Missing %"
-                    ),
-                    ((pl.sum("Residual") / pl.sum("ResponseCount")) * 100).alias(
-                        "Residual %"
-                    ),
-                    pl.sum("Positives"),
-                    pl.sum("ResponseCount").alias("Responses"),
                 )
                 .fill_null(0)
                 .fill_nan(0)
-                .with_columns(pl.col("Bins").cast(pl.Int16))
+                .with_columns(
+                    pl.col("Bin Count").cast(pl.Int16),
+                    pl.col("Positives").cast(pl.Int64),
+                    pl.col("ResponseCount").cast(pl.Int64),
+                )
             )
 
             return predictor_summary
