@@ -1,6 +1,6 @@
 """Pega Data Scientist Tools Python library"""
 
-__version__ = "4.1.0"
+__version__ = "4.1.1"
 
 from pathlib import Path
 
