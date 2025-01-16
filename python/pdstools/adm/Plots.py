@@ -323,7 +323,7 @@ class Plots(LazyNamespace):
         )
 
         grouping_columns = list(set(by.meta.root_names()))
-        df = df.with_columns(by)
+        df = df.with_columns(by).set_sorted("SnapshotTime")
         if facet:
             grouping_columns = [by_col, facet]
         else:
@@ -367,7 +367,7 @@ class Plots(LazyNamespace):
 
         title = "over all models" if facet is None else f"per {facet}"
         fig = px.line(
-            final_df.to_pandas(use_pyarrow_extension_array=False),
+            final_df,
             x="SnapshotTime",
             y=metric,
             color=by_col,
