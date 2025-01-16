@@ -31,7 +31,7 @@ keywords = [
     "tools",
 ]
 requires-python = ">=3.9"
-dependencies = ['polars==1.16', 'typing_extensions']
+dependencies = ['polars>=1.19', 'typing_extensions']
 
 [tool.setuptools.dynamic]
 version = {attr="pdstools.__version__"}
