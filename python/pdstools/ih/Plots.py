@@ -1,17 +1,23 @@
+import logging
 from datetime import timedelta
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
-import polars as pl
-import plotly as plotly
-import plotly.express as px
-import plotly.graph_objs as go
-from plotly.subplots import make_subplots
 
-from ..utils.types import QUERY
+import polars as pl
+
 from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
+from ..utils.types import QUERY
 
+logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from .IH import IH as IH_Class
+try:
+    import plotly as plotly
+    import plotly.express as px
+
+
+except ImportError as e:  # pragma: no cover
+    logger.debug(f"Failed to import optional dependencies: {e}")
 
 
 class Plots(LazyNamespace):
@@ -31,6 +37,10 @@ class Plots(LazyNamespace):
         # facet: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
+        import plotly as plotly
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
+
         plot_data = self.ih.aggregates.summary_success_rates(
             by=[condition, by], query=query
         )
@@ -115,6 +125,8 @@ class Plots(LazyNamespace):
         # facet: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
+        import plotly as plotly
+        import plotly.express as px
 
         if by is None:
             by = [
@@ -160,6 +172,9 @@ class Plots(LazyNamespace):
         # facet: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
+        import plotly as plotly
+        import plotly.express as px
+
         if by is None:
             by = [
                 f
@@ -289,6 +304,9 @@ class Plots(LazyNamespace):
         facet: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
+        import plotly as plotly
+        import plotly.express as px
+
         plot_data = self.ih.aggregates.summary_success_rates(
             every=every, by=facet, query=query
         )
@@ -324,6 +342,9 @@ class Plots(LazyNamespace):
         facet: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
+        import plotly as plotly
+        import plotly.express as px
+
         plot_data = self.ih.aggregates.ih.aggregates.summary_outcomes(
             every=every, by=facet, query=query
         ).collect()
@@ -356,6 +377,8 @@ class Plots(LazyNamespace):
         facet: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
+        import plotly as plotly
+        import plotly.express as px
 
         plot_data = (
             self.ih.aggregates._summary_interactions(
