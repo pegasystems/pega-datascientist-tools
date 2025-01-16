@@ -175,7 +175,6 @@ if st.session_state["dm"].predictor_data is not None:
                             model_ids=st.session_state["selected_models"],
                             name="",
                             output_dir=working_dir,
-                            query=st.session_state.get("filters", None),
                             only_active_predictors=st.session_state[
                                 "only_active_predictors"
                             ],
