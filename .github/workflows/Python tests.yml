@@ -13,7 +13,6 @@ on:
       - python/**
       - reports/*.qmd
       - .github/workflows/**
-
 jobs:
   Tests:
     runs-on: ${{matrix.os}}
@@ -82,6 +81,7 @@ jobs:
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5.1.2
+        env:
+          CODECOV_TOKEN: ${{ secrets.codecov_token }}
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
