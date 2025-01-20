@@ -46,7 +46,7 @@ api = ['httpx', 'pydantic', 'anyio']
 healthcheck = ['pdstools[adm]', 'great_tables>=0.13', 'quarto', 'papermill', 'xlsxwriter>=3.0', 'pydot']
 app = ['pdstools[healthcheck]', 'streamlit>=1.23', 'st-pages']
 onnx = [
-    'scikit-learn==1.5.1',
+    "scikit-learn>=1.6",
     'skl2onnx==1.17.0',
     'onnx==1.16.1',
     'pdstools[api]',
