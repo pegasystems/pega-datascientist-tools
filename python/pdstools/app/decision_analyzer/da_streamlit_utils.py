@@ -47,25 +47,13 @@ polars_lazyframe_hashing = {
 }
 
 
-def get_current_index(options, session_state_key, default=0):
-    if (session_state_key in st.session_state.keys()) and (
-        st.session_state[session_state_key] in options
-    ):
-        return options.index(st.session_state[session_state_key])
-    else:
-        return default
-
-
-def get_current_stage_index(options):
-    """Picks up the last stage from session state if it is set and it is applicable to
-    current visual. Otherwise, picks the first option in the list"""
-    return get_current_index(options, "stage")
-
-
-def get_current_scope_index(options):
-    """Picks up the last scope from session state if it is set and it is applicable to
-    current visual. Otherwise, picks the first option in the list"""
-    return get_current_index(options, "scope")
+def get_current_index(options, key, default=0):
+    """Get index from session state if key exists and value is in options, else return default"""
+    return (
+        options.index(st.session_state[key])
+        if key in st.session_state and st.session_state[key] in options
+        else default
+    )
 
 
 def show_filtered_counts(statsBefore, statsAfter):

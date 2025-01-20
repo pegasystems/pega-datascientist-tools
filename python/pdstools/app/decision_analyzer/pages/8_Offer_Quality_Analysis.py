@@ -2,8 +2,7 @@ import streamlit as st
 
 from pdstools.decision_analyzer.plots import getTrendChart, offer_quality_piecharts
 from da_streamlit_utils import (
-    get_current_scope_index,
-    get_current_stage_index,
+    get_current_index,
     ensure_data,
 )
 from pdstools.decision_analyzer.utils import (
@@ -68,7 +67,7 @@ with st.session_state["sidebar"]:
         format="%.4f",
     )
 
-    scope_index = get_current_scope_index(scope_options)
+    scope_index = get_current_index(scope_options, "scope")
     st.selectbox(
         "Scope",
         options=scope_options,
@@ -76,7 +75,7 @@ with st.session_state["sidebar"]:
         index=scope_index,
         key="scope",
     )
-    stage_index = get_current_stage_index(stage_options)
+    stage_index = get_current_index(stage_options, "stage")
     st.selectbox(
         "Select Stage",
         options=stage_options,

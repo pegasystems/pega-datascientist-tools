@@ -1,14 +1,23 @@
-from typing import TYPE_CHECKING, Dict, List, Optional
+import logging
+from datetime import timedelta
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
+
 import polars as pl
-import plotly as plotly
-import plotly.express as px
-import plotly.graph_objs as go
-from plotly.subplots import make_subplots
 
+from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
+from ..utils.types import QUERY
 
+logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from .IH import IH as IH_Class
+try:
+    import plotly as plotly
+    import plotly.express as px
+
+
+except ImportError as e:  # pragma: no cover
+    logger.debug(f"Failed to import optional dependencies: {e}")
 
 
 class Plots(LazyNamespace):
@@ -18,15 +27,22 @@ class Plots(LazyNamespace):
 
     def overall_gauges(
         self,
-        metric: str,
-        experiment_field: str,
+        condition: Union[str, pl.Expr],
+        *,
+        metric: Optional[str] = "Engagement",
         by: Optional[str] = "Channel",
         reference_values: Optional[Dict[str, float]] = None,
         title: Optional[str] = None,
+        query: Optional[QUERY] = None,
+        # facet: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
+        import plotly as plotly
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
+
         plot_data = self.ih.aggregates.summary_success_rates(
-            by=[experiment_field, by],
+            by=[condition, by], query=query
         )
 
         if return_df:
@@ -38,7 +54,9 @@ class Plots(LazyNamespace):
         plot_data = plot_data.collect()
 
         cols = plot_data[by].unique().shape[0]  # TODO can be None
-        rows = plot_data[experiment_field].unique().shape[0]
+        rows = (
+            plot_data[condition].unique().shape[0]
+        )  # TODO generalize to support pl expression, see ADM plots, eg facet in bubble chart
 
         fig = make_subplots(
             rows=rows,
@@ -87,56 +105,76 @@ class Plots(LazyNamespace):
                 number={"valueformat": ",.2%"},
                 value=row[f"SuccessRate_{metric}"],
                 delta={"reference": ref_value, "valueformat": ",.2%"},
-                title={"text": f"{row[by]}: {row[experiment_field]}"},
+                title={"text": f"{row[by]}: {row[condition]}"},
                 gauge=gauge,
             )
             r, c = divmod(index, cols)
             fig.add_trace(trace1, row=(r + 1), col=(c + 1))
             index = index + 1
 
+        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+
         return fig
 
-    def conversion_overall_gauges(
+    def response_count_tree_map(
         self,
-        experiment_field: str,
-        by: Optional[str] = "Channel",
-        reference_values: Optional[Dict[str, float]] = None,
-        title: Optional[str] = None,
-        return_df: Optional[bool] = False,
-    ):
-        return self.overall_gauges(
-            metric="Conversion",
-            experiment_field=experiment_field,
-            by=by,
-            reference_values=reference_values,
-            title=title,
-            return_df=return_df,
-        )
-
-    def egagement_overall_gauges(
-        self,
-        experiment_field: str,
-        by: Optional[str] = "Channel",
-        reference_values: Optional[Dict[str, float]] = None,
-        title: Optional[str] = None,
-        return_df: Optional[bool] = False,
-    ):
-        return self.overall_gauges(
-            metric="Engagement",
-            experiment_field=experiment_field,
-            by=by,
-            reference_values=reference_values,
-            title=title,
-            return_df=return_df,
-        )
-
-    def success_rates_tree_map(
-        self,
-        metric: str,
+        *,
         by: Optional[List[str]] = None,
         title: Optional[str] = None,
+        query: Optional[QUERY] = None,
+        # facet: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
+        import plotly as plotly
+        import plotly.express as px
+
+        if by is None:
+            by = [
+                f
+                for f in ["Direction", "Channel", "Issue", "Group", "Name"]
+                if f in self.ih.data.collect_schema().names()
+            ]
+        elif isinstance(by, str):
+            by = [by]
+
+        plot_data = self.ih.aggregates.summary_outcomes(
+            by=by,
+            query=query,
+        )
+        if return_df:
+            return plot_data
+
+        fig = px.treemap(
+            plot_data.collect(),
+            path=[px.Constant("ALL")] + ["Outcome"] + by,
+            values="Count",
+            color="Count",
+            branchvalues="total",
+            # color_continuous_scale=px.colors.sequential.RdBu_r,
+            title=title,
+            height=640,
+            template="pega",
+        )
+        fig.update_coloraxes(showscale=False)
+        fig.update_traces(textinfo="label+value+percent parent")
+        fig.update_layout(margin=dict(t=50, l=25, r=25, b=25))
+        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+
+        return fig
+
+    def success_rate_tree_map(
+        self,
+        *,
+        metric: Optional[str] = "Engagement",
+        by: Optional[List[str]] = None,
+        title: Optional[str] = None,
+        query: Optional[QUERY] = None,
+        # facet: Optional[str] = None,
+        return_df: Optional[bool] = False,
+    ):
+        import plotly as plotly
+        import plotly.express as px
+
         if by is None:
             by = [
                 f
@@ -144,9 +182,7 @@ class Plots(LazyNamespace):
                 if f in self.ih.data.collect_schema().names()
             ]
 
-        plot_data = self.ih.aggregates.summary_success_rates(
-            by=by,
-        )
+        plot_data = self.ih.aggregates.summary_success_rates(by=by, query=query)
 
         if return_df:
             return plot_data
@@ -154,8 +190,12 @@ class Plots(LazyNamespace):
         if title is None:
             title = f"{metric} Rates for All Actions"
 
-        plot_data = plot_data.collect().with_columns(
-            CTR_DisplayValue=pl.col(f"SuccessRate_{metric}").round(3),
+        plot_data = (
+            plot_data.collect()
+            .with_columns(
+                CTR_DisplayValue=pl.col(f"SuccessRate_{metric}").round(3),
+            )
+            .filter(pl.col(f"SuccessRate_{metric}") > 0)
         )
 
         fig = px.treemap(
@@ -176,159 +216,203 @@ class Plots(LazyNamespace):
         fig.update_coloraxes(showscale=False)
         fig.update_traces(textinfo="label+value")
         fig.update_layout(margin=dict(t=50, l=25, r=25, b=25))
+        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
 
         return fig
 
-    def conversion_success_rates_tree_map(
+    def action_distribution(
         self,
-        by: Optional[List[str]] = None,
-        title: Optional[str] = None,
+        *,
+        by: Optional[str] = "Name",
+        title: Optional[str] = "Action Distribution",
+        query: Optional[QUERY] = None,
+        color: Optional[str] = None,
+        facet: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
-        return self.success_rates_tree_map(
-            metric="Conversion",
-            by=by,
-            title=title,
-            return_df=return_df,
+        plot_data = self.ih.aggregates.summary_outcomes(
+            by=[by, color, facet], query=query
         )
 
-    def engagement_success_rates_tree_map(
-        self,
-        by: Optional[List[str]] = None,
-        title: Optional[str] = None,
-        return_df: Optional[bool] = False,
-    ):
-        return self.success_rates_tree_map(
-            metric="Engagement",
-            by=by,
+        if return_df:
+            return plot_data
+
+        fig = px.bar(
+            plot_data.collect(),
+            x="Count",
+            y=by,
+            color=color,
+            facet_col=facet,
+            template="pega",
             title=title,
-            return_df=return_df,
         )
 
-    def success_rates_trend_bar(
+        fig.update_layout(barmode="stack")
+        fig.update_yaxes(categoryorder="total ascending")
+        fig.update_layout(yaxis=dict(title=""))
+        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+
+        return fig
+
+    # def success_rates_trend_bar(
+    #     self,
+    #     condition: Union[str, pl.Expr],
+    #     *,
+    #     metric: Optional[str] = "Engagement",
+    #     every: Union[str, timedelta] = "1d",
+    #     by: Optional[str] = None,
+    #     title: Optional[str] = None,
+    #     query: Optional[QUERY] = None,
+    #     facet: Optional[str] = None,
+    #     return_df: Optional[bool] = False,
+    # ):
+
+    #     plot_data = self.ih.aggregates.summary_success_rates(
+    #         every=every,
+    #         by=[condition] + [by],  # TODO generalize to support pl expression
+    #         query=query,
+    #     )
+
+    #     if return_df:
+    #         return plot_data
+
+    #     if title is None:
+    #         title = f"{metric} Rates over Time"
+
+    #     fig = px.bar(
+    #         plot_data.collect(),
+    #         x="OutcomeTime",
+    #         y=f"SuccessRate_{metric}",
+    #         color=condition,
+    #         error_y=f"StdErr_{metric}",
+    #         facet_row=by,
+    #         barmode="group",
+    #         custom_data=[condition],
+    #         template="pega",
+    #         title=title,
+    #     )
+    #     fig.update_yaxes(tickformat=",.3%").update_layout(xaxis_title=None)
+    #     return fig
+
+    def success_rate(
         self,
-        metric: str,
-        experiment_field: str,
-        every: str = "1d",
-        by: Optional[str] = None,
+        *,
+        metric: Optional[str] = "Engagement",
+        every: Union[str, timedelta] = "1d",
         title: Optional[str] = None,
+        query: Optional[QUERY] = None,
+        facet: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
+        import plotly as plotly
+        import plotly.express as px
 
         plot_data = self.ih.aggregates.summary_success_rates(
-            every=every,
-            by=[experiment_field] + [by],
+            every=every, by=facet, query=query
         )
+
         if return_df:
             return plot_data
 
         if title is None:
-            title = f"{metric} Rates over Time"
-
-        fig = px.bar(
-            plot_data.collect(),
-            x="OutcomeTime",
-            y=f"SuccessRate_{metric}",
-            color=experiment_field,
-            error_y=f"StdErr_{metric}",
-            facet_row=by,
-            barmode="group",
-            custom_data=[experiment_field],
-            template="pega",
-            title=title,
-        )
-        fig.update_yaxes(tickformat=",.3%").update_layout(xaxis_title=None)
-        return fig
-
-    def conversion_success_rates_trend_bar(
-        self,
-        experiment_field: str,
-        every: str = "1d",
-        by: Optional[str] = None,
-        title: Optional[str] = None,
-        return_df: Optional[bool] = False,
-    ):
-        return self.success_rates_trend_bar(
-            metric="Conversion",
-            experiment_field=experiment_field,
-            every=every,
-            by=by,
-            title=title,
-            return_df=return_df,
-        )
-
-    def engagement_success_rates_trend_bar(
-        self,
-        experiment_field: str,
-        every: str = "1d",
-        by: Optional[str] = None,
-        title: Optional[str] = None,
-        return_df: Optional[bool] = False,
-    ):
-        return self.success_rates_trend_bar(
-            metric="Engagement",
-            experiment_field=experiment_field,
-            every=every,
-            by=by,
-            title=title,
-            return_df=return_df,
-        )
-
-    def success_rates_trend_line(
-        self,
-        metric: str,
-        every: Optional[str] = "1d",
-        by: Optional[str] = None,
-        title: Optional[str] = None,
-        return_df: Optional[bool] = False,
-    ):
-        plot_data = self.ih.aggregates.summary_success_rates(
-            every=every,
-            by=by,
-        )
-        if return_df:
-            return plot_data
+            title = f"Success Rates Trend of {metric}"
 
         fig = px.line(
             plot_data.collect(),
             x="OutcomeTime",
             y=f"SuccessRate_{metric}",
-            color=by,
-            facet_row=by,
+            color=facet,
+            facet_row=facet,
             # custom_data=[experiment_field] if experiment_field is not None else None,
             template="pega",
             title=title,
         )
 
-        fig.update_yaxes(tickformat=",.3%").update_layout(xaxis_title=None)
+        fig.update_yaxes(tickformat=",.3%", title=None).update_layout(xaxis_title=None)
+        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+
         return fig
 
-    def conversion_success_rates_trend_line(
+    def response_count(
         self,
-        every: Optional[str] = "1d",
-        by: Optional[str] = None,
-        title: Optional[str] = None,
+        *,
+        every: Union[str, timedelta] = "1d",
+        title: Optional[str] = "Responses",
+        query: Optional[QUERY] = None,
+        facet: Optional[str] = None,
         return_df: Optional[bool] = False,
     ):
-        return self.success_rates_trend_line(
-            metric="Conversion",
-            every=every,
-            by=by,
+        import plotly as plotly
+        import plotly.express as px
+
+        plot_data = self.ih.aggregates.ih.aggregates.summary_outcomes(
+            every=every, by=facet, query=query
+        ).collect()
+
+        if return_df:
+            return plot_data.lazy()
+
+        fig = px.bar(
+            plot_data,
+            x="OutcomeTime",
+            y="Count",
+            color="Outcome",
+            template="pega",
             title=title,
-            return_df=return_df,
+            facet_row=facet,
+        )
+        fig.update_layout(xaxis_title=None)
+        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+
+        return fig
+
+    def model_performance_trend(
+        self,
+        *,
+        metric: Optional[str] = "Engagement",
+        every: Union[str, timedelta] = "1d",
+        by: Optional[str] = None,
+        title: Optional[str] = "Model Performance over Time",
+        query: Optional[QUERY] = None,
+        facet: Optional[str] = None,
+        return_df: Optional[bool] = False,
+    ):
+        import plotly as plotly
+        import plotly.express as px
+
+        plot_data = (
+            self.ih.aggregates._summary_interactions(
+                every=every, by=cdh_utils.safe_flatten_list([by, facet]), query=query
+            )
+            .filter(
+                pl.col.Propensity.is_not_null()
+                & pl.col(f"Interaction_Outcome_{metric}").is_not_null()
+            )
+            .group_by(cdh_utils.safe_flatten_list([by, facet, "OutcomeTime"]))
+            .agg(
+                pl.map_groups(
+                    exprs=[f"Interaction_Outcome_{metric}", "Propensity"],
+                    function=lambda data: cdh_utils.auc_from_probs(data[0], data[1]),
+                    return_dtype=pl.Float64,
+                ).alias("Performance")
+            )
+            .sort(["OutcomeTime"])
+        ).with_columns(pl.col("Performance") * 100)
+
+        if return_df:
+            return plot_data
+
+        fig = px.line(
+            plot_data.collect(),
+            y="Performance",
+            x="OutcomeTime",
+            color=by,
+            facet_row=facet,
+            template="pega",
+            title=title,
         )
 
-    def engagement_success_rates_trend_line(
-        self,
-        every: Optional[str] = "1d",
-        by: Optional[str] = None,
-        title: Optional[str] = None,
-        return_df: Optional[bool] = False,
-    ):
-        return self.success_rates_trend_line(
-            metric="Engagement",
-            every=every,
-            by=by,
-            title=title,
-            return_df=return_df,
-        )
+        fig.update_layout(yaxis=dict(range=[50, None]), xaxis_title=None)
+        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+
+        return fig

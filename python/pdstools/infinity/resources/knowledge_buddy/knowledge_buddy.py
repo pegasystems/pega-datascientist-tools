@@ -37,7 +37,7 @@ class SearchResultValue(BaseModel):
 
 class SearchResult(BaseModel):
     name: str
-    value: Union[Json[SearchResultValue], SearchResultValue]
+    value: Union[Json[SearchResultValue], SearchResultValue, str]
 
 
 class BuddyResponse(BaseModel):

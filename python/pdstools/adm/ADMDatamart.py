@@ -128,13 +128,11 @@ class ADMDatamart:
             model_df, query=query, extract_pyname_keys=extract_pyname_keys
         )
 
-        # TODO shouldnt we subset the predictor data to the model IDs also in the model data - if that is present
         self.predictor_data = self._validate_predictor_data(predictor_df)
 
         self.combined_data = self.aggregates._combine_data(
             self.model_data, self.predictor_data
         )
-
         self.bin_aggregator = BinAggregator(dm=self)  # attach after model_data
 
     @classmethod

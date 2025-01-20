@@ -1,8 +1,10 @@
+from datetime import timedelta
 from typing import TYPE_CHECKING, List, Optional, Union
 import polars as pl
 
 from ..utils.namespaces import LazyNamespace
-from ..utils.cdh_utils import safe_flatten_list
+from ..utils import cdh_utils
+from ..utils.types import QUERY
 
 if TYPE_CHECKING:
     from .IH import IH as IH_Class
@@ -14,10 +16,57 @@ class Aggregates(LazyNamespace):
         super().__init__()
         self.ih = ih
 
+    def _summary_interactions(
+        self,
+        by: Optional[Union[str, List[str]]] = None,
+        every: Optional[Union[str, timedelta]] = None,
+        query: Optional[QUERY] = None,
+    ) -> pl.LazyFrame:
+        if every is not None:
+            source = self.ih.data.with_columns(pl.col.OutcomeTime.dt.truncate(every))
+        else:
+            source = self.ih.data
+
+        group_by_clause = cdh_utils.safe_flatten_list(
+            [by] + (["OutcomeTime"] if every is not None else [])
+        )
+
+        interactions = (
+            cdh_utils._apply_query(source, query)
+            .group_by(
+                (group_by_clause + ["InteractionID"])
+                if group_by_clause is not None
+                else ["InteractionID"]
+            )
+            .agg(
+                # Take only one outcome per interaction. TODO should perhaps be the last one.
+                [
+                    pl.when(
+                        pl.col.Outcome.is_in(
+                            self.ih.positive_outcome_labels[metric]
+                        ).any()
+                    )
+                    .then(pl.lit(True))
+                    .when(
+                        pl.col.Outcome.is_in(
+                            self.ih.negative_outcome_labels[metric]
+                        ).any()
+                    )
+                    .then(pl.lit(False))
+                    .alias(f"Interaction_Outcome_{metric}")
+                    for metric in self.ih.positive_outcome_labels.keys()
+                ],
+                Propensity=pl.col.Propensity.last(),
+                Outcomes=pl.col.Outcome.unique().sort(),  # for debugging
+            )
+        )
+        return interactions
+    
     def summary_success_rates(
         self,
         by: Optional[Union[str, List[str]]] = None,
-        every: Optional[str] = None,
+        every: Optional[Union[str, timedelta]] = None,
+        query: Optional[QUERY] = None,
     ) -> pl.LazyFrame:
         """Groups the IH data summarizing into success rates (SuccessRate) and standard error (StdErr).
 
@@ -44,46 +93,12 @@ class Aggregates(LazyNamespace):
             number of Interactions, success rate (SuccessRate) and standard error (StdErr).
         """
 
-        if every is not None:
-            source = self.ih.data.with_columns(pl.col.OutcomeTime.dt.truncate(every))
-        else:
-            source = self.ih.data
-
-        group_by_clause = safe_flatten_list(
+        group_by_clause = cdh_utils.safe_flatten_list(
             [by] + (["OutcomeTime"] if every is not None else [])
         )
 
-        # TODO filter out nulls for the by arguments
-        # source.filter(
-        #     pl.col.ExperimentGroup.is_not_null() & (pl.col.ExperimentGroup != "")
-        # )
-
         summary = (
-            source.group_by(
-                (group_by_clause + ["InteractionID"])
-                if group_by_clause is not None
-                else ["InteractionID"]
-            )
-            .agg(
-                # Take only one outcome per interaction. TODO should perhaps be the last one.
-                [
-                    pl.when(
-                        pl.col.Outcome.is_in(
-                            self.ih.positive_outcome_labels[metric]
-                        ).any()
-                    )
-                    .then(pl.lit(True))
-                    .when(
-                        pl.col.Outcome.is_in(
-                            self.ih.negative_outcome_labels[metric]
-                        ).any()
-                    )
-                    .then(pl.lit(False))
-                    .alias(f"Interaction_Outcome_{metric}")
-                    for metric in self.ih.positive_outcome_labels.keys()
-                ],
-                Outcomes=pl.col.Outcome.unique().sort(),  # for debugging
-            )
+            self._summary_interactions(by, every, query)
             .group_by(group_by_clause)
             .agg(
                 [
@@ -141,5 +156,29 @@ class Aggregates(LazyNamespace):
             summary = summary.drop("literal")  # created by empty group_by
         else:
             summary = summary.sort(group_by_clause)
+
+        return summary
+
+    def summary_outcomes(
+        self,
+        by: Optional[Union[str, List[str]]] = None,
+        every: Optional[Union[str, timedelta]] = None,
+        query: Optional[QUERY] = None,
+    ):
+
+        if every is not None:
+            source = self.ih.data.with_columns(pl.col.OutcomeTime.dt.truncate(every))
+        else:
+            source = self.ih.data
+
+        group_by_clause = cdh_utils.safe_flatten_list(
+            ["Outcome"] + [by] + (["OutcomeTime"] if every is not None else [])
+        )
+
+        summary = (
+            cdh_utils._apply_query(source, query)
+            .group_by(group_by_clause)
+            .agg(Count=pl.len())
+        ).sort(cdh_utils.safe_flatten_list(["Count"]+group_by_clause))
 
         return summary

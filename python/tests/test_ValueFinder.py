@@ -70,8 +70,8 @@ def test_query(vf: ValueFinder):
         query=pl.col("Stage") != "Arbitration",
     )
     assert (
-        _vf.df.select(pl.first().count()).collect().item()
-        != vf.df.select(pl.first().count()).collect().item()
+        _vf.df.select(pl.first().len()).collect().item()
+        != vf.df.select(pl.first().len()).collect().item()
     )
 
 

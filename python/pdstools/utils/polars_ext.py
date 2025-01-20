@@ -29,7 +29,7 @@ class Sample:
         )
 
     def height(self):
-        return self._ldf.select(pl.first().count()).collect().item()
+        return self._ldf.select(pl.first().len()).collect().item()
 
     def shape(self):
         return (self.height(), len(self._ldf.columns))

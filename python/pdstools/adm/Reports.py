@@ -1,20 +1,18 @@
 __all__ = ["Reports"]
 import logging
 import os
-import re
 import shutil
 import subprocess
-import sys
 from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 
 import polars as pl
 
 from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
 from ..utils.types import QUERY
-from ..prediction import Prediction
+from ..utils.report_utils import _serialize_query, get_quarto_with_version
 
 if TYPE_CHECKING:
     from .ADMDatamart import ADMDatamart
@@ -257,7 +255,7 @@ class Reports(LazyNamespace):
                 and (self.datamart.predictor_data is not None)
             ):
                 model_file_path, predictor_file_path = self.datamart.save_data(temp_dir)
-
+            serialized_query = _serialize_query(query)
             self.run_quarto(
                 qmd_file=qmd_file,
                 output_filename=output_filename,
@@ -267,7 +265,7 @@ class Reports(LazyNamespace):
                     "model_file_path": str(model_file_path),
                     "predictor_file_path": str(predictor_file_path),
                     "prediction_file_path": str(prediction_file_path),
-                    "query": query,
+                    "query": serialized_query,
                     "title": title,
                     "subtitle": subtitle,
                 },
@@ -331,17 +329,6 @@ class Reports(LazyNamespace):
 
         shutil.copy(__reports__ / qmd_file, temp_dir)
 
-    # Never used?
-    # def _verify_cached_files(self, temp_dir: Path) -> None:
-    #     """Verify that cached data files exist."""
-    #     modeldata_files = list(temp_dir.glob("cached_modelData*"))
-    #     predictordata_files = list(temp_dir.glob("cached_predictorData*"))
-
-    #     if not modeldata_files:
-    #         raise FileNotFoundError("No cached model data found.")
-    #     if not predictordata_files:
-    #         logger.warning("No cached predictor data found.")
-
     @staticmethod
     def _write_params_files(
         temp_dir: Path,
@@ -353,7 +340,6 @@ class Reports(LazyNamespace):
         import yaml
 
         # Parameters to python code
-
         with open(temp_dir / "params.yml", "w") as f:
             yaml.dump(
                 params,
@@ -361,7 +347,6 @@ class Reports(LazyNamespace):
             )
 
         # Project/rendering options to quarto
-
         with open(temp_dir / "_quarto.yml", "w") as f:
             yaml.dump(
                 {
@@ -370,103 +355,6 @@ class Reports(LazyNamespace):
                 },
                 f,
             )
-
-    @staticmethod
-    def _find_executable(exec_name: str) -> Path:
-        """Find the executable on the system."""
-
-        # First find in path
-        exec_in_path = shutil.which(exec_name)  # pragma: no cover
-        if exec_in_path:  # pragma: no cover
-            return Path(exec_in_path)
-
-        # If not in path try find explicitly. TODO not sure this is wise
-        # maybe we should not try be smart and assume quarto/pandoc are
-        # properly installed.
-
-        if sys.platform == "win32":  # pragma: no cover
-            possible_paths = [
-                Path(
-                    os.environ.get("USERPROFILE", ""),
-                    "AppData",
-                    "Local",
-                    "Programs",
-                    f"{exec_name}",  # assume windows is still case insensitive (NTFS changes this...)
-                    "bin",
-                    f"{exec_name}.cmd",
-                ),
-                Path(
-                    os.environ.get("PROGRAMFILES", ""),
-                    f"{exec_name}",
-                    "bin",
-                    f"{exec_name}.cmd",
-                ),
-            ]
-        else:  # pragma: no cover
-            possible_paths = [
-                Path(f"/usr/local/bin/{exec_name}"),
-                Path(f"/opt/{exec_name}/bin/{exec_name}"),
-                Path(os.environ.get("HOME", ""), ".local", "bin", exec_name),
-            ]
-
-        for path in possible_paths:
-            if path.exists():
-                return path
-
-        raise FileNotFoundError(
-            "Quarto executable not found. Please ensure Quarto is installed and in the system PATH."
-        )  # pragma: no cover
-
-    # TODO not conviced about below. This isn't necessarily the same path resolution
-    # as the os does. What's wrong with just assuming quarto is in the path so we can
-    # just test for version w code like
-    # def get_cmd_output(args):
-    # result = (
-    #     subprocess.run(args, stdout=subprocess.PIPE).stdout.decode("utf-8").split("\n")
-    # )
-    # return result
-    # get_version_only(get_cmd_output(["quarto", "--version"])[0])
-
-    @staticmethod
-    def _get_executable_with_version(
-        exec_name: str, verbose: bool = False
-    ) -> Tuple[Path, str]:
-        def get_version_only(versionstr):
-            return re.sub("[^.0-9]", "", versionstr)
-
-        try:
-            executable = Reports._find_executable(exec_name=exec_name)
-        except FileNotFoundError as e:  # pragma: no cover
-            logger.error(e)
-            raise
-
-        # Check version
-        try:
-            version_result = subprocess.run(
-                [str(executable), "--version"],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            version_string = get_version_only(
-                version_result.stdout.split("\n")[0].strip()
-            )
-            message = f"{exec_name} version: {version_string}"
-            logger.info(message)
-            if verbose:
-                print(message)
-        except subprocess.CalledProcessError as e:  # pragma: no cover
-            logger.warning(f"Failed to check {exec_name} version: {e}")
-
-        return (executable, version_string)
-
-    @staticmethod
-    def get_quarto_with_version(verbose: bool = True) -> Tuple[Path, str]:
-        return Reports._get_executable_with_version("quarto", verbose=verbose)
-
-    @staticmethod
-    def get_pandoc_with_version(verbose: bool = True) -> Tuple[Path, str]:
-        return Reports._get_executable_with_version("pandoc", verbose=verbose)
 
     @staticmethod
     def run_quarto(
@@ -488,7 +376,7 @@ class Reports(LazyNamespace):
             analysis=analysis,
         )
 
-        quarto_exec, _ = Reports.get_quarto_with_version(verbose)
+        quarto_exec, _ = get_quarto_with_version(verbose)
 
         command = [
             str(quarto_exec),
@@ -533,8 +421,7 @@ class Reports(LazyNamespace):
         self,
         name: Union[Path, str] = Path("Tables.xlsx"),
         predictor_binning: bool = False,
-        query: Optional[QUERY] = None,
-    ) -> Optional[Path]:
+    ) -> tuple[Optional[Path], list[str]]:
         """
         Export aggregated data to an Excel file.
         This method exports the last snapshots of model_data, predictor summary,
@@ -553,11 +440,15 @@ class Reports(LazyNamespace):
 
         Returns
         -------
-        Union[Path, None]
-            The path to the created Excel file if the export was successful,
-            None if no data was available to export.
+        tuple[Union[Path, None], list[str]]
+            A tuple containing:
+            - The path to the created Excel file if the export was successful, None if no data was available
+            - A list of warning messages (empty if no warnings)
         """
         from xlsxwriter import Workbook
+
+        EXCEL_ROW_LIMIT = 1048576
+        warning_messages = []
 
         name = Path(name)
         tabs = {
@@ -565,9 +456,7 @@ class Reports(LazyNamespace):
         }
 
         if self.datamart.predictor_data is not None:
-            tabs["predictors_overview"] = (
-                self.datamart.aggregates.predictors_overview()
-            )
+            tabs["predictors_overview"] = self.datamart.aggregates.predictors_overview()
 
         if predictor_binning and self.datamart.predictor_data is not None:
             tabs["predictor_binning"] = self.datamart.aggregates.last(
@@ -579,7 +468,7 @@ class Reports(LazyNamespace):
 
         if not tabs:  # pragma: no cover
             print("No data available to export.")
-            return None
+            return None, warning_messages
 
         with Workbook(
             name, options={"nan_inf_to_errors": True, "remove_timezone": True}
@@ -590,7 +479,20 @@ class Reports(LazyNamespace):
                     .list.eval(pl.element().cast(pl.Utf8))
                     .list.join(", ")
                 )
-                data.collect().write_excel(workbook=wb, worksheet=tab)
+                data = data.collect()
+
+                if data.shape[0] > EXCEL_ROW_LIMIT:
+                    warning_msg = (
+                        f"The data for sheet '{tab}' exceeds Excel's row limit "
+                        f"({data.shape[0]:,} rows > {EXCEL_ROW_LIMIT:,} rows). "
+                        "This sheet will not be written to the Excel file. "
+                        "Please filter your data before generating the Excel report."
+                    )
+                    warning_messages.append(warning_msg)
+                    print(warning_msg)
+                    continue
+                else:
+                    data.write_excel(workbook=wb, worksheet=tab)
 
         print(f"Data exported to {name}")
-        return name
+        return name, warning_messages

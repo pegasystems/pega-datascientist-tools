@@ -48,6 +48,8 @@ import polars as pl
 
 import numpy as np
 import math
+import json
+import io
 
 cdh_guidelines = CDHGuidelines()
 
@@ -73,6 +75,22 @@ def fig_set_xaxis_modelperformance(fig, label="Model Performance"):
         .update_xaxes(title=label, showticklabels=True, visible=True)
     )
     return fig
+def _deserialize_query(serialized_query):
+    if serialized_query is None:
+        return None
+
+    if serialized_query["type"] == "expr_list":
+        expr_list = []
+        for _, val in serialized_query["expressions"].items():
+            json_str = json.dumps(val)
+            str_io = io.StringIO(json_str)
+            expr_list.append(pl.Expr.deserialize(str_io, format="json"))
+        return expr_list
+
+    elif serialized_query["type"] == "dict":
+        return serialized_query["data"]
+
+    raise ValueError(f"Unknown query type: {serialized_query['type']}")
 ```
 
 ```{python}
@@ -84,7 +102,7 @@ def fig_set_xaxis_modelperformance(fig, label="Model Performance"):
 title = "ADM Model Overview"
 subtitle = "Sample data"
 
-# Insert the paths to your data files here to run the notebook from your IDE. 
+# Insert the paths to your data files here to run the notebook from your IDE.
 # Edit the _quarto.yml to enable/disable specific sections of the quarto output.
 # Parameters will be overriden by quarto when a parameters yaml is provided
 
@@ -116,6 +134,7 @@ if query and query == "None":
     query = None
 
 
+query = _deserialize_query(query)
 responsecount_analysis_query = (
     pl.col("ResponseCount") > responsecount_analysis_threshold
 )
@@ -1390,7 +1409,7 @@ if datamart.predictor_data is not None:
         # The default of observed=False is deprecated...
 
         fig = px.treemap(
-            missing, 
+            missing,
             path=path,
             color="Percentage without responses",
             template="pega",
@@ -1461,7 +1480,7 @@ maturity_criteria = [
     pl.col("Name")
     .filter(
         (pl.col("Performance") > 0.5)
-        & (pl.col("Performance") < cdh_guidelines.min("Model Performance"))
+        & (pl.col("Performance") < (cdh_guidelines.min("Model Performance") / 100))
         & (
             pl.col("Positives") >= cdh_guidelines.best_practice_min("Positive Responses")
         )
@@ -1473,7 +1492,7 @@ maturity_criteria = [
 
     pl.col("Name")
     .filter(
-        (pl.col("Performance") >= cdh_guidelines.min("Model Performance"))
+        (pl.col("Performance") >= (cdh_guidelines.min("Model Performance") / 100))
         & (
             pl.col("Positives")
             >= cdh_guidelines.best_practice_min("Positive Responses")
