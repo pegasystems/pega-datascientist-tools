@@ -31,7 +31,10 @@ keywords = [
     "tools",
 ]
 requires-python = ">=3.9"
-dependencies = ['polars==1.16', 'typing_extensions']
+dependencies = [
+    "polars>=0.20",
+    'typing_extensions',
+]
 
 [tool.setuptools.dynamic]
 version = {attr="pdstools.__version__"}
@@ -42,7 +45,14 @@ pega_io = ['aioboto3', 'polars_hash']
 api = ['httpx', 'pydantic', 'anyio']
 healthcheck = ['pdstools[adm]', 'great_tables>=0.13', 'quarto', 'papermill', 'xlsxwriter>=3.0', 'pydot']
 app = ['pdstools[healthcheck]', 'streamlit>=1.23', 'st-pages']
-onnx = ['scikit-learn==1.5.1', 'skl2onnx==1.17.0', 'onnx==1.16.1', 'onnxruntime==1.18.1', 'pdstools[api]']
+onnx = [
+    'scikit-learn==1.5.1',
+    'skl2onnx==1.17.0',
+    'onnx==1.16.1',
+    'pdstools[api]',
+    "onnxruntime==1.18.1 ; python_full_version < '3.10'",
+    "onnxruntime==1.20.1 ; python_full_version >= '3.10'",
+]
 all = ['pdstools[app, pega_io, onnx]']
 dev = ['pre-commit']
 docs = ['sphinx','furo','sphinx-autoapi','nbsphinx','sphinx-copybutton','myst-parser', 'sphinx-argparse']
