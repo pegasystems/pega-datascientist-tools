@@ -43,7 +43,7 @@ if not (pandoc_available and quarto_available):
         f"    - {missing_deps_list}\n"
         "The app will not function without these tools. Please install them before proceeding."
     )
-    st.warning(message)
+    st.error(message)
 
 
 current_version = pdstools.__version__
