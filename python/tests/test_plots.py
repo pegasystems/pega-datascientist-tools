@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 
 import plotly.express as px
@@ -19,6 +20,28 @@ def sample():
     )
 
 
+@pytest.fixture
+def sample2():
+    data = pl.DataFrame(
+        {
+            "SnapshotTime": [
+                datetime(2024, 1, 1),
+                datetime(2024, 1, 1),
+                datetime(2024, 1, 2),
+                datetime(2024, 1, 2),
+                datetime(2024, 1, 3),
+                datetime(2024, 1, 3),
+            ],
+            "ModelID": [1, 2, 1, 2, 1, 2],
+            "Performance": [0.75, 0.80, 0.78, 0.82, 0.77, 0.85],
+            "ResponseCount": [100, 150, 120, 160, 110, 170],
+            "Positives": [100, 150, 120, 160, 110, 170],
+            "Group": ["A", "B", "A", "B", "A", "B"],
+        }
+    ).lazy()
+    return ADMDatamart(model_df=data)
+
+
 def test_bubble_chart(sample: ADMDatamart):
     df = sample.plot.bubble_chart(return_df=True)
 
@@ -31,12 +54,38 @@ def test_bubble_chart(sample: ADMDatamart):
     assert plot is not None
 
 
-def test_over_time(sample: ADMDatamart):
-    df = sample.plot.over_time(return_df=True).collect()
-    assert df.shape == (70, 3)
-    assert round(df.sort("ModelID").row(0)[2], 2) == 55.46
-    plot = sample.plot.over_time()
-    assert plot is not None
+def test_over_time(sample2: ADMDatamart):
+    fig = sample2.plot.over_time(metric="Performance", by="ModelID")
+    assert fig is not None
+
+    fig = sample2.plot.over_time(metric="ResponseCount", by="ModelID")
+    assert fig is not None
+
+    performance_changes = (
+        sample2.plot.over_time(metric="Performance", show_changes=True, return_df=True)
+        .collect()
+        .get_column("Performance_weighted_average_change")
+        .to_list()
+    )
+    assert performance_changes == [0.0, 3.0, -1.0, 0.0, 2.0, 3.0]
+
+    responses_over_time = (
+        sample2.plot.over_time(metric="ResponseCount", by="ModelID", return_df=True)
+        .collect()
+        .get_column("ResponseCount")
+        .to_list()
+    )
+    assert responses_over_time == [100.0, 120.0, 110.0, 150.0, 160.0, 170.0]
+
+    fig_faceted = sample2.plot.over_time(
+        metric="Performance", by="ModelID", facet="Group"
+    )
+    assert fig_faceted is not None
+
+    with pytest.raises(
+        ValueError, match="The given query resulted in no more remaining data."
+    ):
+        sample2.plot.over_time(query=pl.col("ModelID") == "3")
 
 
 def test_proposition_success_rates(sample: ADMDatamart):
