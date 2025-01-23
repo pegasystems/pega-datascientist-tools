@@ -1619,7 +1619,7 @@ try:
     response_counts = datamart.plot.over_time(
         "ResponseCount",
         by="Channel",
-        cumulative=True,
+        show_changes=True,
         facet="Configuration",
     )
 
