@@ -62,7 +62,7 @@ def test_over_time(sample2: ADMDatamart):
     assert fig is not None
 
     performance_changes = (
-        sample2.plot.over_time(metric="Performance", show_changes=True, return_df=True)
+        sample2.plot.over_time(metric="Performance", cumulative=False, return_df=True)
         .collect()
         .get_column("Performance_weighted_average_change")
         .to_list()
