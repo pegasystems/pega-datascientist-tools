@@ -265,7 +265,7 @@ class Plots(LazyNamespace):
         by: Union[pl.Expr, str] = "ModelID",
         *,
         every: Union[str, timedelta] = "1d",
-        show_changes: bool = False,
+        cumulative: bool = True,
         query: Optional[QUERY] = None,
         facet: Optional[str] = None,
         return_df: bool = False,
@@ -280,8 +280,8 @@ class Plots(LazyNamespace):
             The column to group by, by default "ModelID"
         every : Union[str, timedelta], optional
             By what time period to group, by default "1d"
-        show_changes : bool, optional
-            Whether to show period-over-period changes instead of raw values, by default False
+        cumulative : bool, optional
+            Whether to show cumulative values or period-over-period changes, by default True
         query : Optional[QUERY], optional
             The query to apply to the data, by default None
         facet : Optional[str], optional
@@ -350,7 +350,7 @@ class Plots(LazyNamespace):
                 .sort(grouping_columns + ["SnapshotTime"])
             )
 
-        if show_changes:
+        if not cumulative:
             df = (
                 df.with_columns(
                     PeriodChange=pl.col(metric).diff().over(grouping_columns)
