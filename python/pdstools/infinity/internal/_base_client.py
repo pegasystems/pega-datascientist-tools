@@ -112,6 +112,29 @@ class BaseClient(Generic[_HttpxClientT]):
             return "Undefined"
 
     @classmethod
+    def from_client_id_and_secret(
+        cls,
+        base_url: str,
+        client_id: str,
+        client_secret: str,
+        verify: bool = False,
+        pega_version: Optional[str] = None,
+        timeout: float = 90,
+    ):
+        return cls(
+            base_url=base_url,
+            auth=PegaOAuth(
+                base_url,
+                client_id=client_id,
+                client_secret=client_secret,
+                verify=verify,
+            ),
+            verify=verify,
+            pega_version=pega_version,
+            timeout=timeout,
+        )
+
+    @classmethod
     def from_client_credentials(
         cls,
         file_path: str,
@@ -122,14 +145,10 @@ class BaseClient(Generic[_HttpxClientT]):
         creds = _read_client_credential_file(file_path)
         base_url = creds["Access token endpoint"].rsplit("/prweb")[0]
 
-        return cls(
+        return cls.from_client_id_and_secret(
             base_url=base_url,
-            auth=PegaOAuth(
-                base_url,
-                creds["Client ID"],
-                client_secret=creds["Client Secret"],
-                verify=verify,
-            ),
+            client_id=creds["Client ID"],
+            client_secret=creds["Client Secret"],
             verify=verify,
             pega_version=pega_version,
             timeout=timeout,
