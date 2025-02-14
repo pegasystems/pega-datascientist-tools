@@ -38,7 +38,7 @@ def apply_filter(
     """
 
     def _apply(item, df):
-        col_diff = set(item.meta.root_names()) - set(df.columns)
+        col_diff = set(item.meta.root_names()) - set(df.collect_schema().names())
         if len(col_diff) == 0:
             df = df.filter(item)
         else:
@@ -96,7 +96,7 @@ def filtered_action_counts(
     ]
     # TODO below is a pattern (to check required columns) we probably need all over the place - but maybe at the level of the streamlit pages
     for col in required_cols:
-        if col not in df.columns:
+        if col not in df.collect_schema().names():
             raise ValueError(f"Column '{col}' not found in the dataframe.")
 
     propensity_classifying_expr = [
