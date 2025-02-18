@@ -109,9 +109,9 @@ class BaseClient(Generic[_HttpxClientT]):
             return "24.2"
         else:
             warnings.warn(
-                "Could not infer Pega version automatically. ",
-                "For full compatibility, please supply the pega_version argument",
-                "to the Infinity class.",
+                """Could not infer Pega version automatically.
+For full compatibility, please supply the pega_version argument to the Infinity class.
+""",
             )
             return None
 
