@@ -9,6 +9,7 @@ from typing import (
     Dict,
     Generic,
     List,
+    Literal,
     Optional,
     TypeVar,
     Union,
@@ -69,12 +70,14 @@ class BaseClient(Generic[_HttpxClientT]):
         *,
         base_url: Union[str, httpx.URL],
         auth: Union[httpx.Auth, PegaOAuth],
+        application_name: Optional[str] = None,
         verify: bool = False,
         pega_version: Union[str, None] = None,
         timeout: float = 90,
     ):
         self._base_url = self._enforce_trailing_slash(httpx.URL(base_url))
         self.auth = auth
+        self.application_name = application_name
         self.verify = verify
         self.pega_version = pega_version
         self.timeout = timeout
@@ -117,6 +120,7 @@ class BaseClient(Generic[_HttpxClientT]):
         base_url: str,
         client_id: str,
         client_secret: str,
+        application_name: Optional[str] = None,
         verify: bool = False,
         pega_version: Optional[str] = None,
         timeout: float = 90,
@@ -130,6 +134,7 @@ class BaseClient(Generic[_HttpxClientT]):
                 verify=verify,
             ),
             verify=verify,
+            application_name=application_name,
             pega_version=pega_version,
             timeout=timeout,
         )
@@ -139,8 +144,9 @@ class BaseClient(Generic[_HttpxClientT]):
         cls,
         file_path: str,
         verify: bool = False,
+        application_name: Optional[str] = None,
         pega_version: Union[str, None] = None,
-        timeout: float = 20,
+        timeout: float = 90,
     ):
         creds = _read_client_credential_file(file_path)
         base_url = creds["Access token endpoint"].rsplit("/prweb")[0]
@@ -149,6 +155,7 @@ class BaseClient(Generic[_HttpxClientT]):
             base_url=base_url,
             client_id=creds["Client ID"],
             client_secret=creds["Client Secret"],
+            application_name=application_name,
             verify=verify,
             pega_version=pega_version,
             timeout=timeout,
@@ -162,8 +169,9 @@ class BaseClient(Generic[_HttpxClientT]):
         password: Optional[str] = None,
         *,
         verify: bool = True,
+        application_name: Optional[str] = None,
         pega_version: Union[str, None] = None,
-        timeout: int = 20,
+        timeout: int = 90,
     ):
         base_url = base_url or os.environ.get("PEGA_BASE_URL")
         user_name = user_name or os.environ.get("PEGA_USERNAME")
@@ -183,6 +191,7 @@ class BaseClient(Generic[_HttpxClientT]):
             base_url=base_url,
             auth=auth,
             verify=verify,
+            application_name=application_name,
             pega_version=pega_version,
             timeout=timeout,
         )
@@ -195,12 +204,16 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         self,
         base_url: Union[str, httpx.URL],
         auth: Union[httpx.Auth, PegaOAuth],
+        application_name: Optional[str] = None,
         verify: bool = False,
         pega_version: Union[str, None] = None,
         timeout: float = 90,
     ):
         super().__init__(
-            base_url=base_url, auth=auth, verify=verify, pega_version=pega_version
+            base_url=base_url,
+            auth=auth,
+            verify=verify,
+            pega_version=pega_version,
         )
         self._client = httpx.Client(
             base_url=self._base_url,
@@ -208,16 +221,21 @@ class SyncAPIClient(BaseClient[httpx.Client]):
             verify=verify,
             timeout=timeout,
         )
+        self.application_name = application_name
 
-    def _infer_version(self):
+    def _infer_version(self, on_error: Literal["error", "warn", "ignore"] = "error"):
         try:
             response = self.get("/prweb/api/PredictionStudio/v3/predictions/repository")
         except APIConnectionError as e:
-            print(
-                "Could not validate connection to the Infinity system. "
-                "Please check if the system is up."
-            )
-            raise e
+            if on_error == "warn":
+                print(
+                    "Could not validate connection to the Infinity system. "
+                    "Please check if the system is up."
+                )
+            elif on_error == "error":
+                raise e
+            else:
+                return None
         return self._get_version(response)
 
     def _request(

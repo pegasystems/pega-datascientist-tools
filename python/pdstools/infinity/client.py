@@ -36,15 +36,17 @@ class Infinity(SyncAPIClient):
 
         super().__init__(*args, **kwargs)
 
-        self.version = kwargs.get("pega_version") or self._infer_version()
+        self.version = kwargs.get("pega_version") or self._infer_version(
+            on_error="ignore"
+        )
 
         from . import resources
 
         self.knowledge_buddy = resources.KnowledgeBuddy(client=self)
-
-        self.prediction_studio = resources.prediction_studio.get(self.version)(
-            client=self
-        )
+        if self.version:
+            self.prediction_studio = resources.prediction_studio.get(self.version)(
+                client=self
+            )
 
 
 class AsyncInfinity(AsyncAPIClient):  # pragma: no cover
