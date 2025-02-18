@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+import warnings
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -107,7 +108,7 @@ class BaseClient(Generic[_HttpxClientT]):
         elif "repository_type" in repo:
             return "24.2"
         else:
-            print(
+            warnings.warn(
                 "Could not infer Pega version automatically. ",
                 "For full compatibility, please supply the pega_version argument",
                 "to the Infinity class.",
