@@ -53,7 +53,7 @@ def test_base_client(httpx_mock: HTTPXMock, monkeypatch):
     assert client.pega_version is None
     assert client._get_version({"repository_name": "Repo"}) == "24.1"
     assert client._get_version({"repository_type": "AWS"}) == "24.2"
-    assert client._get_version({"Pega Version": "Undefined"}) == "Undefined"
+    assert client._get_version({"Pega Version": "Undefined"}) is None
 
     with pytest.raises(ValueError):
         _base_client.BaseClient.from_basic_auth()
