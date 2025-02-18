@@ -112,7 +112,7 @@ class BaseClient(Generic[_HttpxClientT]):
                 "For full compatibility, please supply the pega_version argument",
                 "to the Infinity class.",
             )
-            return "Undefined"
+            return None
 
     @classmethod
     def from_client_id_and_secret(
