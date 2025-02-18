@@ -214,7 +214,6 @@ class SyncAPIClient(BaseClient[httpx.Client]):
             auth=auth,
             verify=verify,
             pega_version=pega_version,
-            application_name=application_name,
         )
         self._client = httpx.Client(
             base_url=self._base_url,
@@ -222,6 +221,7 @@ class SyncAPIClient(BaseClient[httpx.Client]):
             verify=verify,
             timeout=timeout,
         )
+        self.application_name = application_name
 
     def _infer_version(self, on_error: Literal["error", "warn", "ignore"] = "error"):
         try:
