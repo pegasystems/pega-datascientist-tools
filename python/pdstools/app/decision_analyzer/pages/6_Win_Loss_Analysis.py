@@ -179,18 +179,21 @@ if st.session_state.local_filters != []:
             use_container_width=True,
         )
 
-    if win_count > 0:
-        "## What are the Prioritization Factors that make these actions win?"
+    "## What are the Prioritization Factors that make these actions win?"
 
-        """
-        We simply count the number of times the selected offer(s) are in the top-1 when dropping one of the prioritization factors from the priortization formula.
+    """
+    We simply count the number of times the selected offer(s) are in the top-1 when dropping one of the prioritization factors from the priortization formula.
 
-        So if it wins 600 times right now, but when leaving out value it only wins 200 times, that means value pushes the selected offer(s) up. The difference of +400 is shown in the bar chart below.
+    So if it wins 600 times right now, but when leaving out value it only wins 200 times, that means value pushes the selected offer(s) up. The difference of +400 is shown in the bar chart below.
 
-        """
+    """
+    if win_count == 0:
+        st.warning("The selected comparison Group never wins in the arbitration")
+    else:
         st.plotly_chart(
             st.session_state.decision_data.plot.sensitivity(
                 limit_xaxis_range=False,
+                reference_group=st.session_state["local_filters"],
             ),
             use_container_width=True,
         )

@@ -25,7 +25,7 @@ with col1:
     was recorded over **{overview["Duration"].days} days** from **{overview["StartDate"]}** where **{overview["Decisions"]} decisions**
     (**{round(overview["Decisions"]/overview["Duration"].days)}** decisions per day) were made for
     in total **{overview["Customers"]} different customers**. For each decision there was an
-    average of **{overview["avgOffersAtEligibility"]}** actions available in total and
+    average of **{overview["avgAvailable"]}** actions available in total and
     an average of  **{overview["avgOffersAtArbitration"]}** before arbitration.
 
     """
@@ -47,10 +47,10 @@ with col1:
     "## :violet[Personalization]"
 
     f"""
-    The personalization index is **{round(st.session_state.decision_data.get_offer_variability_stats("Final")["gini"],3)}**.
+    The personalization index is **{round(st.session_state.decision_data.get_offer_variability_stats("Output")["gini"],3)}**.
     """
     st.plotly_chart(
-        st.session_state.decision_data.plot.action_variation("Final").update_layout(
+        st.session_state.decision_data.plot.action_variation("Output").update_layout(
             width=300, height=300
         ),
         use_container_width=True,
