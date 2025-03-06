@@ -25,7 +25,7 @@ class PegaException(Exception):
 
     def __str__(self):  # pragma: no cover
         if not self.override_message:
-            return f"Request to {self.base_url+self.endpoint} with parameters {self.params} failed with error code {self.response.status_code}: {self.response.json().get('errorDetails')[0].get('localizedValue')}"
+            return f"Request to {self.base_url + self.endpoint} with parameters {self.params} failed with error code {self.response.status_code}: {self.response.json().get('errorDetails')[0].get('localizedValue')}"
         return self.override_message
 
 
@@ -127,7 +127,7 @@ def handle_pega_exception(
     details = content.get("errorDetails", None)
 
     if not details:
-        raise ValueError("Cannot parse error message: no error details given.")
+        raise ValueError(f"Cannot parse error message: {str(content)}")
 
     if len(details) > 1:
         raise MultipleErrors(details)
