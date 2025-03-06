@@ -138,11 +138,9 @@ class Plot:
         return fig
 
     def propensity_vs_optionality(self, stage="Arbitration", return_df=False):
-
         plotData = self._decision_data.get_optionality_data.filter(
-                pl.col(self._decision_data.level) == stage
-            )
-            .collect()
+            pl.col(self._decision_data.level) == stage
+        ).collect()
         if return_df:
             return pl.from_pandas(plotData)
 
@@ -506,7 +504,7 @@ class Plot:
                     self._decision_data.NBADStages_Mapping
                 )  # Replacing with "remaining" view labels
                 .cast(pl.Enum(list(self._decision_data.NBADStages_Mapping.values())))
-            .collect(),
+            ).collect(),
             x=self._decision_data.level,
             y="nOffers",
             color=self._decision_data.level,
