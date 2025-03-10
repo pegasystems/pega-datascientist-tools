@@ -218,7 +218,8 @@ def _extract_keys(
                 .alias(c)
                 for c in overlap
             ]
-        ).drop([f"{c}_decoded" for c in overlap])
+        )
+        .drop([f"{c}_decoded" for c in overlap])
     )
 
 
@@ -717,7 +718,8 @@ def weighted_performance_polars() -> pl.Expr:
     return weighted_average_polars("Performance", "ResponseCount").fill_nan(0.5)
 
 
-def overlap_lists_polars(col: pl.Series, row_validity: pl.Series) -> List[float]:
+# TODO drop row_validity argument! And why not return Series right away?
+def overlap_lists_polars(col: pl.Series, row_validity: pl.Series = None) -> List[float]:
     """Calculate the overlap of each of the elements (must be a list) with all the others"""
     nrows = col.len()
     average_overlap = []
@@ -725,13 +727,14 @@ def overlap_lists_polars(col: pl.Series, row_validity: pl.Series) -> List[float]
         set_i = set(col[i].to_list())
         overlap_w_other_channels = []
         for j in range(nrows):
-            if not row_validity[i] or not row_validity[j]:
-                continue
+            if row_validity is not None:
+                if not row_validity[i] or not row_validity[j]:
+                    continue
             if i != j:
                 set_j = set(col[j].to_list())
                 intersection = set_i & set_j
                 overlap_w_other_channels += [len(intersection)]
-        if len(overlap_w_other_channels) > 0:
+        if len(overlap_w_other_channels) > 0 and len(set_i) > 0:
             average_overlap += [
                 sum(overlap_w_other_channels)
                 / len(overlap_w_other_channels)
@@ -813,9 +816,7 @@ def lift(
             # TODO not sure how polars (mis)behaves when there are no positives at all
             # I would hope for a NaN but base python doesn't do that. Polars perhaps.
             # Stijn: It does have proper None value support, may work like you say
-            bin_pos
-            * (total_pos + total_neg)
-            / ((bin_pos + bin_neg) * total_pos)
+            bin_pos * (total_pos + total_neg) / ((bin_pos + bin_neg) * total_pos)
         ).alias("Lift")
 
     return lift_impl(pos_col, neg_col, pos_col.sum(), neg_col.sum())
