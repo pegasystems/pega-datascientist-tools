@@ -42,19 +42,62 @@ def test_aggregate_predictor_counts(agg):
 
 def test_aggregate_summary_by_channel(agg):
     summary_by_channel = agg.summary_by_channel().collect()
-    assert summary_by_channel.shape[0] == 3
-    assert summary_by_channel.shape[1] == 23
-    assert summary_by_channel["Total Number of Actions"].to_list() == [24, 27, 19]
+    assert summary_by_channel.height == 3
+    assert summary_by_channel.width == 22
+    assert summary_by_channel["ChannelDirection"].to_list() == [
+        "Email/Outbound",
+        "SMS/Outbound",
+        "Web/Inbound",
+    ]
+    assert summary_by_channel["ChannelDirectionGroup"].to_list() == [
+        "E-mail/Outbound",
+        "SMS/Outbound",
+        "Web/Inbound",
+    ]
+    assert summary_by_channel["Actions"].to_list() == [24, 27, 19]
+    assert summary_by_channel["Positives"].to_list() == [1181, 6367, 4638]
+    assert summary_by_channel["Responses"].to_list() == [48603, 74054, 47177]
+    assert summary_by_channel["Used Actions"].to_list() == [24, 27, 19]
+    assert summary_by_channel["Treatments"].to_list() == [0] * 3
+    assert summary_by_channel["Used Treatments"].to_list() == [0] * 3
+    assert summary_by_channel["Duration"].to_list() == [18000] * 3
+
+
+def test_aggregate_summary_by_channel_and_time(agg):
+    summary_by_channel = agg.summary_by_channel(by_period="4h").collect()
+    assert summary_by_channel.height == 6
+    assert summary_by_channel.width == 23
+    assert summary_by_channel["Responses"].to_list() == [
+        27322,
+        13062,
+        45786,
+        19557,
+        28230,
+        10890,
+    ]
 
 
 def test_aggregate_overall_summary(agg):
     overall_summary = agg.overall_summary().collect()
-    assert overall_summary.shape[0] == 1
-    assert overall_summary.shape[1] == 20
+    assert overall_summary.height == 1
+    assert overall_summary.width == 18
     assert overall_summary["Number of Valid Channels"].item() == 3
-    assert overall_summary["Total Number of Treatments"].item() == 0
+    assert overall_summary["Actions"].item() == 35
+    assert overall_summary["Treatments"].item() == 0
+    assert round(overall_summary["OmniChannel"].item(), 5) == 0.65331
+
+
+def test_aggregate_overall_summary_by_time(agg):
+    overall_summary = agg.overall_summary(by_period="1h").collect()
+    print(overall_summary.select("Perdiod", "Responses", "Duration"))
+    assert overall_summary.height == 4
+    assert overall_summary.width == 19
+    assert overall_summary["Number of Valid Channels"].item() == 3
+    assert overall_summary["Actions"].item() == 35
+    assert overall_summary["Treatments"].item() == 0
+    assert round(overall_summary["OmniChannel"].item(), 5) == 0.65331
+
 
 def test_summary_by_configuration(agg):
     configuration_summary = agg.summary_by_configuration().collect()
     assert "AGB" in configuration_summary.columns
-    

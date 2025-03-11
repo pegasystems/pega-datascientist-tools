@@ -2,6 +2,7 @@ __all__ = ["Aggregates"]
 from typing import TYPE_CHECKING, Dict, List, Literal, Optional
 
 import polars as pl
+import polars.selectors as cs
 
 from ..utils import cdh_utils
 from ..utils.types import QUERY
@@ -341,10 +342,7 @@ class Aggregates:
 
         if by_period:
             model_data = model_data.with_columns(
-                pl.col("SnapshotTime")
-                .dt.truncate(by_period)
-                .cast(pl.Date)
-                .alias("Period")
+                pl.col("SnapshotTime").dt.truncate(by_period).alias("Period")
             )
             grouping += ["Period"]
 
@@ -422,16 +420,16 @@ class Aggregates:
             .agg(
                 pl.col("SnapshotTime").min().cast(pl.Date).alias("DateRange Min"),
                 pl.col("SnapshotTime").max().cast(pl.Date).alias("DateRange Max"),
-                Configuration=pl.col("Configuration").cast(pl.Utf8).unique().sort(),
+                pl.col("Configuration").cast(pl.Utf8).unique().sort(),
+                (pl.col("SnapshotTime").max() - pl.col("SnapshotTime").min())
+                .dt.total_seconds()
+                .alias("Duration"),
             )
             .with_columns(
-                (
-                    pl.col("DateRange Max").max()
-                    - pl.col("DateRange Min").min()
-                    + pl.duration(days=1)
-                )
-                .dt.total_seconds()
-                .alias("Duration Seconds"),
+                pl.when(pl.col("Duration") == 0)
+                .then(pl.duration(days=1).dt.total_seconds())
+                .otherwise(pl.col("Duration"))
+                .alias("Duration"),
                 pl.col("Configuration").list.join(", "),
             )
         )
@@ -461,23 +459,24 @@ class Aggregates:
     def _summarize_action_analytics(
         self, grouping: Optional[List[str]], model_data: pl.LazyFrame
     ) -> pl.LazyFrame:
-        treatment_summary = (
-            model_data.group_by(
-                ([] if grouping is None else grouping) + ["Name", "Treatment"]
+        if "Treatment" in self.datamart.context_keys:
+            treatment_summary = (
+                model_data.group_by(
+                    ([] if grouping is None else grouping) + ["Name", "Treatment"]
+                )
+                .agg(
+                    (
+                        pl.col("ResponseCount").max() > pl.col("ResponseCount").min()
+                    ).alias("is_used"),
+                )
+                .filter(pl.col("Treatment") != "")
+                .filter(pl.col("Treatment").is_not_null())
+                .group_by(grouping)
+                .agg(
+                    pl.len().alias("Treatments"),
+                    pl.sum("is_used").alias("Used Treatments"),
+                )
             )
-            .agg(
-                (pl.col("ResponseCount").max() > pl.col("ResponseCount").min()).alias(
-                    "is_used"
-                ),
-            )
-            .filter(pl.col("Treatment") != "")
-            .filter(pl.col("Treatment").is_not_null())
-            .group_by(grouping)
-            .agg(
-                pl.len().alias("Treatments"),
-                pl.sum("is_used").alias("Used Treatments"),
-            )
-        )
 
         action_summary = (
             model_data.group_by(
@@ -563,13 +562,23 @@ class Aggregates:
         summary_by_channel = self._adm_model_summary(
             by_period=by_period, by_channel=True
         ).drop(["AllActions"])
+
         omni_channel_summary = self._omni_channel_summary(by_period=by_period)
 
-        return summary_by_channel.join(
-            omni_channel_summary,
-            on=([] if by_period is None else ["Period"]) + ["Channel", "Direction"],
-            join_nulls=True,
-            how="left",
+        return (
+            summary_by_channel.join(
+                omni_channel_summary,
+                on=([] if by_period is None else ["Period"]) + ["Channel", "Direction"],
+                join_nulls=True,
+                how="left",
+            )
+            .with_columns(
+                cs.categorical().cast(pl.Utf8),
+                pl.format("{}/{}", pl.col("Channel"), pl.col("Direction")).alias(
+                    "ChannelDirection"
+                ),
+            )
+            .sort(["Channel", "Direction"] + ([] if by_period is None else ["Period"]))
         )
 
     def summary_by_configuration(self) -> pl.DataFrame:
@@ -704,7 +713,7 @@ class Aggregates:
             self._omni_channel_summary(by_period=by_period)
             .group_by(None if by_period is None else "Period")
             .agg(
-                pl.col("OmniChannel Actions").mean(),
+                pl.col("OmniChannel").mean(),
             )
         ).drop(["literal"] if by_period is None else [])
 
@@ -727,11 +736,20 @@ class Aggregates:
             return pl.concat(
                 [overall_summary, best_worst_channel_summary, omni_channel_summary],
                 how="horizontal",
+            ).with_columns(
+                cs.categorical().cast(pl.Utf8),
             )
         else:
-            return overall_summary.join(
-                best_worst_channel_summary, on="Period", join_nulls=True, how="left"
-            ).join(omni_channel_summary, on="Period", join_nulls=True, how="left")
+            return (
+                overall_summary.join(
+                    best_worst_channel_summary, on="Period", join_nulls=True, how="left"
+                )
+                .join(omni_channel_summary, on="Period", join_nulls=True, how="left")
+                .with_columns(
+                    cs.categorical().cast(pl.Utf8),
+                )
+                .sort("Period")
+            )
 
     def _omni_channel_summary(
         self,
@@ -747,7 +765,7 @@ class Aggregates:
         Returns
         -------
         pl.LazyFrame
-            Dataframe with a "OmniChannel Actions" column with the overlap of actions of this channel with all channels.
+            Dataframe with a "OmniChannel" column with the overlap of actions of this channel with all channels.
         """
 
         valid_channel_summary = (
@@ -759,6 +777,12 @@ class Aggregates:
             )
         )
 
+        # No valid channels
+        if valid_channel_summary.head(1).collect().height == 0:
+            return valid_channel_summary.with_columns(
+                pl.Series([]).alias("OmniChannel")
+            ).drop(["AllActions"])
+
         if by_period is None:
             omni_channel = valid_channel_summary.with_columns(
                 pl.Series(
@@ -767,7 +791,7 @@ class Aggregates:
                             "AllActions"
                         ],
                     )
-                ).alias("OmniChannel Actions"),
+                ).alias("OmniChannel"),
             )
         else:
             periods = set(
@@ -785,7 +809,7 @@ class Aggregates:
                                 .select(["AllActions"])
                                 .collect()["AllActions"],
                             )
-                        ).alias("OmniChannel Actions"),
+                        ).alias("OmniChannel"),
                     )
                     for p in periods
                 ]
