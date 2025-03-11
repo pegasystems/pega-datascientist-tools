@@ -545,6 +545,7 @@ class Aggregates:
     def summary_by_channel(
         self,
         by_period: Optional[str] = None,
+        custom_channels: Optional[Dict[str, str]] = None,
     ) -> pl.LazyFrame:
         """Summarize ADM models per channel
 
@@ -560,7 +561,7 @@ class Aggregates:
         """
 
         summary_by_channel = self._adm_model_summary(
-            by_period=by_period, by_channel=True
+            by_period=by_period, by_channel=True, custom_channels=custom_channels
         ).drop(["AllActions"])
 
         omni_channel_summary = self._omni_channel_summary(by_period=by_period)

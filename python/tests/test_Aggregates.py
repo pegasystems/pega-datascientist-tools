@@ -12,7 +12,7 @@ basePath = pathlib.Path(__file__).parent.parent.parent
 
 
 @pytest.fixture
-def agg():
+def dm_aggregates():
     """Fixture to serve as class to call functions from."""
     return Aggregates(
         ADMDatamart.from_ds_export(
@@ -23,25 +23,22 @@ def agg():
     )
 
 
-def test_aggregates_init(agg):
-    assert agg
+def test_aggregates_init(dm_aggregates):
+    assert dm_aggregates
 
 
-def test_aggregate_model_summary(agg):
-    assert agg.model_summary().collect().shape[0] == 68
-    assert agg.model_summary().collect().shape[1] == 20
+def test_aggregate_model_summary(dm_aggregates):
+    assert dm_aggregates.model_summary().collect().shape[0] == 68
+    assert dm_aggregates.model_summary().collect().shape[1] == 20
 
 
-def test_aggregate_predictor_counts(agg):
-    assert agg.predictor_counts().collect().shape[0] == 78
-    assert agg.predictor_counts().collect().shape[1] == 5
+def test_aggregate_predictor_counts(dm_aggregates):
+    assert dm_aggregates.predictor_counts().collect().shape[0] == 78
+    assert dm_aggregates.predictor_counts().collect().shape[1] == 5
 
 
-# TODO expand testing, more variations etc, extra configs as arguments to the aggregator
-
-
-def test_aggregate_summary_by_channel(agg):
-    summary_by_channel = agg.summary_by_channel().collect()
+def test_aggregate_summary_by_channel(dm_aggregates):
+    summary_by_channel = dm_aggregates.summary_by_channel().collect()
     assert summary_by_channel.height == 3
     assert summary_by_channel.width == 22
     assert summary_by_channel["ChannelDirection"].to_list() == [
@@ -63,8 +60,8 @@ def test_aggregate_summary_by_channel(agg):
     assert summary_by_channel["Duration"].to_list() == [18000] * 3
 
 
-def test_aggregate_summary_by_channel_and_time(agg):
-    summary_by_channel = agg.summary_by_channel(by_period="4h").collect()
+def test_aggregate_summary_by_channel_and_time(dm_aggregates):
+    summary_by_channel = dm_aggregates.summary_by_channel(by_period="4h").collect()
     assert summary_by_channel.height == 6
     assert summary_by_channel.width == 23
     assert summary_by_channel["Responses"].to_list() == [
@@ -77,8 +74,34 @@ def test_aggregate_summary_by_channel_and_time(agg):
     ]
 
 
-def test_aggregate_overall_summary(agg):
-    overall_summary = agg.overall_summary().collect()
+def test_custom_channel_mapping(dm_aggregates):
+    import polars as pl
+
+    dm_aggregates.datamart.model_data = dm_aggregates.datamart.model_data.with_columns(
+        Channel=pl.when(pl.col.Channel == "SMS")
+        .then(pl.lit("MyChannel"))
+        .otherwise(pl.col.Channel)
+    )
+
+    summary_by_channel = dm_aggregates.summary_by_channel(
+        custom_channels={"MyChannel": "Web"}
+    ).collect()
+    assert summary_by_channel.height == 3
+    assert summary_by_channel.width == 22
+    assert summary_by_channel["ChannelDirection"].to_list() == [
+        "Email/Outbound",
+        "Web/Inbound",
+        "MyChannel/Outbound",
+    ]
+    assert summary_by_channel["ChannelDirectionGroup"].to_list() == [
+        "E-mail/Outbound",
+        "Web/Inbound",
+        "Web/Outbound",
+    ]
+
+
+def test_aggregate_overall_summary(dm_aggregates):
+    overall_summary = dm_aggregates.overall_summary().collect()
     assert overall_summary.height == 1
     assert overall_summary.width == 18
     assert overall_summary["Number of Valid Channels"].item() == 3
@@ -87,8 +110,8 @@ def test_aggregate_overall_summary(agg):
     assert round(overall_summary["OmniChannel"].item(), 5) == 0.65331
 
 
-def test_aggregate_overall_summary_by_time(agg):
-    overall_summary = agg.overall_summary(by_period="1h").collect()
+def test_aggregate_overall_summary_by_time(dm_aggregates):
+    overall_summary = dm_aggregates.overall_summary(by_period="1h").collect()
     assert overall_summary.height == 6
     assert overall_summary.width == 19
     assert overall_summary["Number of Valid Channels"].to_list() == [2, 2, 2, 1, 2, 1]
@@ -96,6 +119,6 @@ def test_aggregate_overall_summary_by_time(agg):
     assert overall_summary["Treatments"].to_list() == [0] * 6
 
 
-def test_summary_by_configuration(agg):
-    configuration_summary = agg.summary_by_configuration().collect()
+def test_summary_by_configuration(dm_aggregates):
+    configuration_summary = dm_aggregates.summary_by_configuration().collect()
     assert "AGB" in configuration_summary.columns

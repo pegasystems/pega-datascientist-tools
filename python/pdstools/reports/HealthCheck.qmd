@@ -45,6 +45,7 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 import plotly.graph_objs as go
 import polars as pl
+import polars.selectors as cs
 
 import numpy as np
 import math
@@ -647,12 +648,17 @@ if "Issue" in datamart_all_columns and "Group" in datamart_all_columns:
 ## Success Rates
 
 ```{python}
-unused_channels = df_channel_overview.filter(pl.col.isValid.not_()).select(["Channel", "Direction"])
-if unused_channels.shape[0] > 0:
+unused_channels = df_channel_overview.filter(pl.col.isValid.not_()).select(["Channel", "Direction"]).with_columns(
+    cs.string().cast(pl.Categorical)
+)
+
+if unused_channels.height > 0:
     reset_datamart(
         ADMDatamart(
             model_df=datamart.model_data.join(
-                unused_channels.lazy(), on=["Channel", "Direction"], how="anti"
+                unused_channels.lazy(),
+                on=["Channel", "Direction"],
+                how="anti"
             ),
             predictor_df=datamart.predictor_data,
         )
