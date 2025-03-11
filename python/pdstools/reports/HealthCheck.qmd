@@ -280,6 +280,7 @@ formatted_channel_overview = (
             "Treatments": ["Treatments", "Used Treatments"],
             "Issues": "Issues",
             "OmniChannel": "OmniChannel",
+            "CTR": "CTR",
         },
         highlight_lists={
             "Channel": cdh_guidelines.standard_channels,
@@ -336,7 +337,7 @@ display(
         style=style.text(decorate="line-through"),
         locations=loc.body(rows=pl.col("isValid").not_()),
     )
-    .cols_move_to_start(columns=["Channel", "Direction"])
+    .cols_move_to_start(columns=["Channel", "Direction", "CTR"])
 )
 
 display(
@@ -1785,7 +1786,7 @@ df = (
     datamart
     .model_data
     .with_columns(
-        (pl.col("Performance")*100).cut(breaks=[p for p in range(50, 100, 3)]).alias("PerformanceBinned"),
+        (pl.col("Performance")*100).cut(breaks=[p for p in range(50, 100, 3)],left_closed=True).alias("PerformanceBinned"),
         pl.format(
             "{}/{}",
             pl.when(pl.col("Channel").is_not_null() & (pl.col("Channel") != ""))
