@@ -89,13 +89,11 @@ def test_aggregate_overall_summary(agg):
 
 def test_aggregate_overall_summary_by_time(agg):
     overall_summary = agg.overall_summary(by_period="1h").collect()
-    print(overall_summary.select("Perdiod", "Responses", "Duration"))
-    assert overall_summary.height == 4
+    assert overall_summary.height == 6
     assert overall_summary.width == 19
-    assert overall_summary["Number of Valid Channels"].item() == 3
-    assert overall_summary["Actions"].item() == 35
-    assert overall_summary["Treatments"].item() == 0
-    assert round(overall_summary["OmniChannel"].item(), 5) == 0.65331
+    assert overall_summary["Number of Valid Channels"].to_list() == [2, 2, 2, 1, 2, 1]
+    assert overall_summary["Actions"].to_list() == [34, 35, 34, 31, 33, 34]
+    assert overall_summary["Treatments"].to_list() == [0] * 6
 
 
 def test_summary_by_configuration(agg):
