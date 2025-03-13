@@ -83,19 +83,28 @@ class Plot:
 
         if hide_priority:
             plotData = plotData.filter(pl.col("Factor") != "Priority")
+        plotData = plotData.collect()
+        range_color = [0, max(0, max(plotData["Influence"]))]
         fig = px.bar(
-            data_frame=plotData.collect(),
+            data_frame=plotData,
             y="Factor",
             x="Influence",
             text="Relative",
             color="Influence",
-            color_continuous_scale="Reds",
-            range_color=[0, n],
+            color_continuous_scale="RdYlGn",
+            range_color=range_color,
             orientation="h",
             template="pega",
         )
 
-        layout_args = {"showlegend": False}
+        layout_args = {
+            "showlegend": False,
+            "yaxis": dict(
+                showticklabels=True,
+                automargin=True,
+                ticklabelposition="outside",
+            ),
+        }
         if limit_xaxis_range:
             layout_args["xaxis_range"] = [0, n]
 
@@ -417,12 +426,12 @@ class Plot:
         if return_df:
             return df
         prio_factors = [
-            "FinalPropensity",
+            "Propensity",
             "Value",
-            "ContextWeight",
-            "Weight",
+            "Context Weight",
+            "Levers",
         ]  # TODO lets not repeat all over the place, also allow for alias (w/o py etc)
-        row_count = df.select("FinalPropensity").collect().height
+        row_count = df.select("Propensity").collect().height
         sample_size = sample_size if row_count > sample_size else row_count
         segmented_df = (
             (

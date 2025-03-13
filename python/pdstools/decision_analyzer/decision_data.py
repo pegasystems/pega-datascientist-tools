@@ -198,7 +198,7 @@ class DecisionAnalyzer:
         a "remaining" view is easily derived.
         """
         num_samples = 1  # TODO: when > 1 this breaks the .explode() I'm doing in some places(thresholding analysis e.g.), need to solve
-        stats_cols = ["pxDecisionTime", "Value", "FinalPropensity", "Priority"]
+        stats_cols = ["pxDecisionTime", "Value", "Propensity", "Priority"]
         exprs = [
             pl.col("pxInteractionID")
             .where(pl.col("pxRank") <= i)
@@ -208,7 +208,7 @@ class DecisionAnalyzer:
         ] + [
             pl.min(stats_cols).name.suffix("_min"),
             pl.max(stats_cols).name.suffix("_max"),
-            pl.col("FinalPropensity", "Priority").sample(
+            pl.col("Propensity", "Priority").sample(
                 n=num_samples, with_replacement=True, shuffle=True
             ),
             pl.count().alias("Decisions"),
@@ -241,12 +241,12 @@ class DecisionAnalyzer:
                     pl.max("pxDecisionTime_max"),
                     pl.min("Value_min"),
                     pl.max("Value_max"),
-                    # pl.col("FinalPropensity").sample(
+                    # pl.col("Propensity").sample(
                     #     n=num_samples, with_replacement=True, shuffle=True
                     # ),  # a list sample values - for distribution plots
-                    pl.first("FinalPropensity"),
-                    pl.min("FinalPropensity_min"),
-                    pl.max("FinalPropensity_max"),
+                    pl.first("Propensity"),
+                    pl.min("Propensity_min"),
+                    pl.max("Propensity_max"),
                     # pl.col("Priority")
                     # .sample(n=num_samples, with_replacement=True, shuffle=True)
                     # .alias("Priority"),
@@ -320,7 +320,9 @@ class DecisionAnalyzer:
             )
 
         if self.extract_type == "explainability_extract":
-            df = df.with_columns(pl.lit("Arbitration").alias(self.level))
+            df = df.with_columns(
+                pl.lit("Arbitration").alias(self.level), pl.lit(1).alias("StageOrder")
+            )
 
         preproc_df = (
             df.with_columns(
@@ -424,24 +426,20 @@ class DecisionAnalyzer:
             .filter(pl.col("Priority").is_not_null())
             .with_columns(
                 prio_PVCL=(
-                    pl.col("FinalPropensity")
+                    pl.col("Propensity")
                     * pl.col("Value")
-                    * pl.col("ContextWeight")
-                    * pl.col("Weight")
+                    * pl.col("Context Weight")
+                    * pl.col("Levers")
                 ),
-                prio_VCL=(pl.col("Value") * pl.col("ContextWeight") * pl.col("Weight")),
+                prio_VCL=(
+                    pl.col("Value") * pl.col("Context Weight") * pl.col("Levers")
+                ),
                 prio_PCL=(
-                    pl.col("FinalPropensity")
-                    * pl.col("ContextWeight")
-                    * pl.col("Weight")
+                    pl.col("Propensity") * pl.col("Context Weight") * pl.col("Levers")
                 ),
-                prio_PVL=(
-                    pl.col("FinalPropensity") * pl.col("Value") * pl.col("Weight")
-                ),
+                prio_PVL=(pl.col("Propensity") * pl.col("Value") * pl.col("Levers")),
                 prio_PVC=(
-                    pl.col("FinalPropensity")
-                    * pl.col("Value")
-                    * pl.col("ContextWeight")
+                    pl.col("Propensity") * pl.col("Value") * pl.col("Context Weight")
                 ),
             )
             .with_columns(*rank_exprs)
@@ -485,8 +483,8 @@ class DecisionAnalyzer:
         """
         expr = [
             pl.len().alias("nOffers"),
-            pl.col("FinalPropensity")
-            .filter(pl.col("FinalPropensity") < 0.5)
+            pl.col("Propensity")
+            .filter(pl.col("Propensity") < 0.5)
             .max()
             .alias("bestPropensity"),
         ]
@@ -511,8 +509,8 @@ class DecisionAnalyzer:
         """
         expr = [
             pl.len().alias("nOffers"),
-            pl.col("FinalPropensity")
-            .where(pl.col("FinalPropensity") < 0.5)
+            pl.col("Propensity")
+            .where(pl.col("Propensity") < 0.5)
             .max()
             .alias("bestPropensity"),
         ]

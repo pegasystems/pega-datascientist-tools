@@ -137,13 +137,13 @@ DecisionAnalyzer: Dict[str, TableConfig] = {
         "required": True,
     },
     "ContextWeight": {
-        "label": "ContextWeight",
+        "label": "Context Weight",
         "default": True,
         "type": pl.Float64,
         "required": True,
     },
     "Weight": {
-        "label": "Weight",
+        "label": "Levers",
         "default": True,
         "type": pl.Float64,
         "required": True,
@@ -156,7 +156,7 @@ DecisionAnalyzer: Dict[str, TableConfig] = {
         "required": True,
     },
     "FinalPropensity": {
-        "label": "FinalPropensity",
+        "label": "Propensity",
         "default": False,
         "type": pl.Float64,
         "required": True,
@@ -253,13 +253,13 @@ ExplainabilityExtract: Dict[str, TableConfig] = {
     },
     "Value": {"label": "Value", "default": True, "type": pl.Float64, "required": True},
     "ContextWeight": {
-        "label": "ContextWeight",
+        "label": "Context Weight",
         "default": True,
         "type": pl.Float64,
         "required": True,
     },
     "Weight": {
-        "label": "Weight",
+        "label": "Levers",
         "default": True,
         "type": pl.Float64,
         "required": True,
@@ -277,7 +277,7 @@ ExplainabilityExtract: Dict[str, TableConfig] = {
         "required": False,
     },
     "FinalPropensity": {
-        "label": "FinalPropensity",
+        "label": "Propensity",
         "default": True,
         "type": pl.Float64,
         "required": True,
