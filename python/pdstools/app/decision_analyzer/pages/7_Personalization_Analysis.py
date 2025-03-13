@@ -69,7 +69,7 @@ changes in the number of available actions
 
 optionality_data_with_trend_per_stage = (
     st.session_state.decision_data.get_optionality_data_with_trend.group_by(
-        ["day", "pxEngagementStage"]
+        ["day", "StageGroup"]
     )
     .agg(nOffers=pl.col("nOffers").max())
     .sort("day")

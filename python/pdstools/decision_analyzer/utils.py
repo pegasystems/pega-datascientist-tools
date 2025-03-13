@@ -9,7 +9,7 @@ from .table_definition import (
     DecisionAnalyzer,
     ExplainabilityExtract,
     TableConfig,
-    audit_tag_mapping,
+    # audit_tag_mapping,
 )
 
 # As long as this is run once, anywhere, it's enabled globally.
@@ -91,7 +91,8 @@ def filtered_action_counts(
     required_cols = groupby_cols + [
         "pyName",
         "FinalPropensity",  # TODO generalize this stuff
-        "pxEngagementStage",
+        "Stage",
+        "StageGroup",
         "Priority",
     ]
     # TODO below is a pattern (to check required columns) we probably need all over the place - but maybe at the level of the streamlit pages
@@ -101,10 +102,7 @@ def filtered_action_counts(
 
     propensity_classifying_expr = [
         pl.col("pyName")
-        .where(
-            (pl.col("FinalPropensity") == 0.5)
-            & (pl.col("pxEngagementStage") != "Final")
-        )
+        .where((pl.col("FinalPropensity") == 0.5) & (pl.col("StageGroup") != "Output"))
         .count()
         .alias("new_models"),
         pl.col("pyName")
@@ -215,6 +213,7 @@ def find_lever_value(
     high=100,
     precision=0.01,
     ranking_stages=["Arbitration"],
+    level="StageGroup",
 ):
     """Binary search algorithm to find lever given a desired win percentage"""
 
@@ -230,7 +229,7 @@ def find_lever_value(
         )
         action_win_percentage = (
             ranked_df.filter(pl.col("rank_PVCL") <= win_rank)
-            .filter(pl.col("pxEngagementStage").is_in(ranking_stages))
+            .filter(pl.col(level).is_in(ranking_stages))
             .group_by("rank_PVCL")
             .agg(
                 action_rank1=pl.col("pxInteractionID")
@@ -322,17 +321,19 @@ def process(
     name_dict = {}
     for col, properties in table_definition.items():
         name_dict[col] = properties["label"]
-    if table == "decision_analyzer":
-        # Create pxEngagementStage
-        remapping_dict = {
-            str(value): key
-            for key, values in audit_tag_mapping.items()
-            for value in values
-        }
-        df = df.with_columns(
-            pxEngagementStage=pl.col("pxAuditTag").cast(pl.Utf8).replace(remapping_dict)
-        )
-    return df.rename(name_dict)
+    # if table == "decision_analyzer":
+    # # Create pxEngagementStage
+    # remapping_dict = {
+    #     str(value): key
+    #     for key, values in audit_tag_mapping.items()
+    #     for value in values
+    # }
+    # df = df.with_columns(
+    #     pxEngagementStage=pl.col("Stage_pyName")
+    #     .cast(pl.Utf8)
+    #     .replace(remapping_dict)
+    # )
+    return df.rename(name_dict).select(list(name_dict.values()))
 
 
 def get_table_definition(table: str):

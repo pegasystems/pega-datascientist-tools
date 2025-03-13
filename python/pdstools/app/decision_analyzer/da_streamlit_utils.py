@@ -295,7 +295,7 @@ def handle_sample_data(is_ec2):
     if is_ec2:
         path = Path("/s3-files/anonymized/anonymized")
     else:
-        path = Path(get_da_data_path(), "sample_data/cdh_sample/data")
+        path = Path(get_da_data_path(), "sample_data/rb_sample/data")
     return read_data(path)
 
 

@@ -89,8 +89,7 @@ with st.session_state["sidebar"]:
 # TODO: see about moving this into a class
 action_counts = filtered_action_counts(
     df=st.session_state.decision_data.sample,
-    groupby_cols=["pxEngagementStage", "pxInteractionID", "day"]
-    + [st.session_state.scope],
+    groupby_cols=["StageGroup", "pxInteractionID", "day"] + [st.session_state.scope],
     priorityTH=priorityTH,
     propensityTH=propensityTH,
 )

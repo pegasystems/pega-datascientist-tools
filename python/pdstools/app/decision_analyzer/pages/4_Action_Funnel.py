@@ -1,11 +1,10 @@
 import streamlit as st
 
 from da_streamlit_utils import (
-    get_current_scope_index,
+    get_current_index,
     get_data_filters,
     show_filtered_counts,
     ensure_data,
-    ensure_getFilterComponentData,
 )
 from pdstools.decision_analyzer.utils import (
     NBADScope_Mapping,
@@ -94,7 +93,7 @@ with st.container(border=True):
         ),
         use_container_width=True,
     )
-    scope_index = get_current_scope_index(scope_options)
+    scope_index = get_current_index(scope_options, "scope")
     st.selectbox(
         "Granularity:",
         options=scope_options,
@@ -109,16 +108,17 @@ action got dropped in which stage and by what component.
 
 """
 
-if not ensure_getFilterComponentData():
-    st.warning("'pxComponentName' column is needed for the component analysis")
-    st.stop()
+st.warning("TO BE ADDED")
+# if not ensure_getFilterComponentData():
+#     st.warning("'pxComponentName' column is needed for the component analysis")
+#     st.stop()
 
-st.plotly_chart(
-    st.session_state.decision_data.plot.filtering_components(
-        stages=stage_options,
-        top_n=st.session_state.top_k,
-        AvailableNBADStages=st.session_state.decision_data.AvailableNBADStages,
-        additional_filters=st.session_state["local_filters"],
-    ),
-    use_container_width=True,
-)
+# st.plotly_chart(
+#     st.session_state.decision_data.plot.filtering_components(
+#         stages=stage_options,
+#         top_n=st.session_state.top_k,
+#         AvailableNBADStages=st.session_state.decision_data.AvailableNBADStages,
+#         additional_filters=st.session_state["local_filters"],
+#     ),
+#     use_container_width=True,
+# )
