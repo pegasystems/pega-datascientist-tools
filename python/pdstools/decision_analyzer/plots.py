@@ -138,9 +138,13 @@ class Plot:
         return fig
 
     def propensity_vs_optionality(self, stage="Arbitration", return_df=False):
-        plotData = self._decision_data.get_optionality_data.filter(
-            pl.col("pxEngagementStage") == stage
-        ).collect()
+        plotData = (
+            self._decision_data.get_optionality_data.filter(
+                pl.col("pxEngagementStage") == stage
+            )
+            .collect()
+            .to_pandas(use_pyarrow_extension_array=True)
+        )
         if return_df:
             return pl.from_pandas(plotData)
 
@@ -263,7 +267,8 @@ class Plot:
                     .cast(pl.Enum(list(NBADStages_Mapping.values())))
                 )
                 .sort(["pxEngagementStage", "count", scope])
-                .collect(),
+                .collect()
+                .to_pandas(use_pyarrow_extension_array=True),
                 y="count",
                 x="pxEngagementStage",
                 color=scope,
@@ -381,7 +386,7 @@ class Plot:
     ):
         # TODO have a nice hover showing both the individual colored totals as the total bar
         fig = px.histogram(
-            df.collect(),
+            df.collect().to_pandas(),
             x=metric if horizontal else scope,
             y=scope if horizontal else metric,
             color=breakdown,
@@ -503,7 +508,9 @@ class Plot:
                     self._decision_data.NBADStages_Mapping
                 )  # Replacing with "remaining" view labels
                 .cast(pl.Enum(list(self._decision_data.NBADStages_Mapping.values())))
-            ).collect(),
+            )
+            .collect()
+            .to_pandas(use_pyarrow_extension_array=True),
             x="pxEngagementStage",
             y="nOffers",
             color="pxEngagementStage",
@@ -542,7 +549,7 @@ class Plot:
                         NBADStages_Mapping
                     )  # Replacing with "remaining" view labels
                     .cast(pl.Enum(list(NBADStages_Mapping.values())))
-                ),
+                ).to_pandas(),
                 x="day",
                 y="nOffers",
                 color="pxEngagementStage",
@@ -557,7 +564,7 @@ class Plot:
                         NBADStages_Mapping
                     )  # Replacing with "remaining" view labels
                     .cast(pl.Enum(list(NBADStages_Mapping.values())))
-                ),
+                ).to_pandas(),
                 x="day",
                 y="nOffers",
                 color="pxEngagementStage",
