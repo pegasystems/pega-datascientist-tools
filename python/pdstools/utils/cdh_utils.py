@@ -713,9 +713,12 @@ def weighted_average_polars(
     ).sum()
 
 
-def weighted_performance_polars() -> pl.Expr:
+def weighted_performance_polars(
+    vals: Union[str, pl.Expr] = "Performance",
+    weights: Union[str, pl.Expr] = "ResponseCount",
+) -> pl.Expr:
     """Polars function to return a weighted performance"""
-    return weighted_average_polars("Performance", "ResponseCount").fill_nan(0.5)
+    return weighted_average_polars(vals, weights).fill_nan(0.5)
 
 
 # TODO drop row_validity argument! And why not return Series right away?
