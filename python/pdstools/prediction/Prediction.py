@@ -80,21 +80,19 @@ class PredictionPlots(LazyNamespace):
         )
 
         if bar_mode:
-            plt = (
-                px.bar(
-                    plot_df.filter(pl.col("isMultiChannelPrediction").not_())
-                    .filter(pl.col("Channel") != "Unknown")
-                    .sort(["Period"])
-                    .collect(),
-                    x="Period",
-                    y=metric,
-                    barmode="group",
-                    facet_row=facet_row,
-                    facet_col=facet_col,
-                    color="Prediction",
-                    title=f"{title}<br>{date_range}",
-                    template="pega",
-                )
+            plt = px.bar(
+                plot_df.filter(pl.col("isMultiChannelPrediction").not_())
+                .filter(pl.col("Channel") != "Unknown")
+                .sort(["Period"])
+                .collect(),
+                x="Period",
+                y=metric,
+                barmode="group",
+                facet_row=facet_row,
+                facet_col=facet_col,
+                color="Prediction",
+                title=f"{title}<br>{date_range}",
+                template="pega",
             )
         else:
             plt = px.line(
@@ -192,7 +190,7 @@ class PredictionPlots(LazyNamespace):
             period=period,
             query=query,
             return_df=return_df,
-            metric="ResponseCount",
+            metric="Responses",
             title="Prediction Responses",
             facet_col="Prediction" if facetting else None,
             bar_mode=True,
@@ -200,6 +198,7 @@ class PredictionPlots(LazyNamespace):
         if not return_df:
             result.update_layout(yaxis_title="Responses")
         return result
+
 
 class Prediction:
     """Monitor Pega Prediction Studio Predictions"""
@@ -319,39 +318,45 @@ class Prediction:
         )
 
     @staticmethod
-    def from_mock_data(days = 70):
+    def from_mock_data(days=70):
         n_conditions = 4  # can't change this
         n_predictions = 3  # tied to the data below
         now = datetime.datetime.now()
+
         def _interpolate(min, max, i, n):
-            return min + (max-min)*i/(n-1)
-            
+            return min + (max - min) * i / (n - 1)
+
         mock_prediction_data = (
             pl.LazyFrame(
                 {
                     "pySnapShotTime": sorted(
                         [
-                            cdh_utils.to_prpc_date_time(now - datetime.timedelta(days=i))[
-                                0:15
-                            ]  # Polars doesn't like time zones like GMT+0200
+                            cdh_utils.to_prpc_date_time(
+                                now - datetime.timedelta(days=i)
+                            )[0:15]  # Polars doesn't like time zones like GMT+0200
                             for i in range(days)
                         ]
                         * n_conditions
                         * n_predictions
                     ),
                     "pyModelId": (
-                        ["DATA-DECISION-REQUEST-CUSTOMER!PredictOutboundEmailPropensity"]
+                        [
+                            "DATA-DECISION-REQUEST-CUSTOMER!PredictOutboundEmailPropensity"
+                        ]
                         * n_conditions
                         + ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTMOBILEPROPENSITY"]
                         * n_conditions
-                        + ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTWEBPROPENSITY"] * n_conditions
+                        + ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTWEBPROPENSITY"]
+                        * n_conditions
                     )
                     * days,
                     "pyModelType": "PREDICTION",
                     "pySnapshotType": ["Daily", "Daily", "Daily", None]
                     * n_predictions
                     * days,
-                    "pyDataUsage": ["Control", "Test", "NBA", ""] * n_predictions * days, # Control=Random, Test=Model
+                    "pyDataUsage": ["Control", "Test", "NBA", ""]
+                    * n_predictions
+                    * days,  # Control=Random, Test=Model
                     # "pyPositives": (
                     #     [100, 160, 120, None] + [200, 420, 250, None] + [350, 700, 380, None]
                     # )
@@ -359,15 +364,34 @@ class Prediction:
                     "pyPositives": list(
                         itertools.chain.from_iterable(
                             [
-                                [_interpolate(100, 100, p, days), _interpolate(160, 200, p, days), _interpolate(120, 120, p, days), None] 
-                                + [_interpolate(120, 120, p, days), _interpolate(250, 300, p, days), _interpolate(150, 150, p, days), None] 
-                                + [_interpolate(1400, 1400, p, days), _interpolate(2800, 4000, p, days), _interpolate(1520, 1520, p, days), None]
+                                [
+                                    _interpolate(100, 100, p, days),
+                                    _interpolate(160, 200, p, days),
+                                    _interpolate(120, 120, p, days),
+                                    None,
+                                ]
+                                + [
+                                    _interpolate(120, 120, p, days),
+                                    _interpolate(250, 300, p, days),
+                                    _interpolate(150, 150, p, days),
+                                    None,
+                                ]
+                                + [
+                                    _interpolate(1400, 1400, p, days),
+                                    _interpolate(2800, 4000, p, days),
+                                    _interpolate(1520, 1520, p, days),
+                                    None,
+                                ]
                                 for p in range(0, days)
                             ]
                         )
                     ),
-
-                    "pyNegatives": ([10000]* n_conditions + [6000]* n_conditions + [40000]* n_conditions)  *days,
+                    "pyNegatives": (
+                        [10000] * n_conditions
+                        + [6000] * n_conditions
+                        + [40000] * n_conditions
+                    )
+                    * days,
                     "pyValue": list(
                         itertools.chain.from_iterable(
                             [
@@ -484,7 +508,7 @@ class Prediction:
                 cdh_utils.weighted_performance_polars().alias("Performance"),
                 pl.col("Positives").sum(),
                 pl.col("Negatives").sum(),
-                pl.col("ResponseCount").sum(),
+                pl.col("ResponseCount").sum().alias("Responses"),
                 pl.col("Positives_Test").sum(),
                 pl.col("Positives_Control").sum(),
                 pl.col("Positives_NBA").sum(),
@@ -588,12 +612,14 @@ class Prediction:
                 pl.concat_str(["Channel", "Direction"], separator="/")
                 .n_unique()
                 .alias("Number of Valid Channels"),
-                cdh_utils.weighted_average_polars("Lift", "ResponseCount").alias(
+                cdh_utils.weighted_average_polars("Lift", "Responses").alias(
                     "Overall Lift"
                 ),
-                cdh_utils.weighted_performance_polars().alias("Performance"),
+                cdh_utils.weighted_performance_polars("Performance", "Responses").alias(
+                    "Performance"
+                ),
                 pl.col("Positives").sum(),
-                pl.col("ResponseCount").sum(),
+                pl.col("Responses").sum(),
                 pl.col("Channel")
                 .filter((pl.col("Lift") == pl.col("Lift").min()) & (pl.col("Lift") < 0))
                 .first()
@@ -604,15 +630,15 @@ class Prediction:
                 .alias("Minimum Negative Lift"),
                 pl.col("usesImpactAnalyzer"),
                 cdh_utils.weighted_average_polars(
-                    "ControlPercentage", "ResponseCount"
+                    "ControlPercentage", "Responses"
                 ).alias("ControlPercentage"),
-                cdh_utils.weighted_average_polars(
-                    "TestPercentage", "ResponseCount"
-                ).alias("TestPercentage"),
+                cdh_utils.weighted_average_polars("TestPercentage", "Responses").alias(
+                    "TestPercentage"
+                ),
             )
             .drop(["literal"] if by_period is None else [])  # created by null group
             .with_columns(
-                CTR=(pl.col("Positives")) / (pl.col("ResponseCount")),
+                CTR=(pl.col("Positives")) / (pl.col("Responses")),
                 usesImpactAnalyzer=pl.col("usesImpactAnalyzer").list.any(),
             )
             .sort(["Period"] if by_period is not None else [])
