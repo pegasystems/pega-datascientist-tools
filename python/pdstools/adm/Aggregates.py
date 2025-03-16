@@ -562,12 +562,29 @@ class Aggregates:
 
         summary_by_channel = self._adm_model_summary(
             by_period=by_period, by_channel=True, custom_channels=custom_channels
-        ).drop(["AllActions"])
+        )
 
-        omni_channel_summary = self._omni_channel_summary(by_period=by_period)
+        omni_channel_summary = (
+            summary_by_channel.group_by(None if by_period is None else "Period")
+            .agg(
+                pl.col("Channel"),
+                pl.col("Direction"),
+                pl.when(pl.col("isValid").any())
+                .then(
+                    pl.col("AllActions")
+                    .filter(pl.col("isValid"))
+                    .map_batches(cdh_utils.overlap_lists_polars)
+                )
+                .otherwise(pl.lit(0.0))
+                .alias("OmniChannel"),
+            )
+            .drop(["literal"] if by_period is None else [])
+            .explode(["Channel", "Direction", "OmniChannel"])
+        )
 
         return (
-            summary_by_channel.join(
+            summary_by_channel.drop(["AllActions"])
+            .join(
                 omni_channel_summary,
                 on=([] if by_period is None else ["Period"]) + ["Channel", "Direction"],
                 join_nulls=True,
@@ -710,32 +727,38 @@ class Aggregates:
             by_channel=False,
         ).drop(["Configuration", "AllActions", "CTR", "isValid"])
 
-        omni_channel_summary = (
-            self._omni_channel_summary(by_period=by_period)
-            .group_by(None if by_period is None else "Period")
-            .agg(
-                pl.col("OmniChannel").mean(),
-            )
-        ).drop(["literal"] if by_period is None else [])
-
         best_worst_channel_summary = (
             self._adm_model_summary(by_period=by_period, by_channel=True)
-            .filter(pl.col("isValid"))
             .group_by(None if by_period is None else "Period")
             .agg(
-                pl.len().alias("Number of Valid Channels"),
-                pl.col("Performance").min().alias("Minimum Channel Performance"),
+                pl.col("isValid").sum().alias("Number of Valid Channels"),
+                pl.col("Performance")
+                .filter(pl.col("isValid"))
+                .min()
+                .alias("Minimum Channel Performance"),
                 pl.col("ChannelDirectionGroup")
-                .top_k_by("Performance", 1, reverse=True)
+                .filter(pl.col("isValid"))
+                .top_k_by(
+                    pl.col("Performance").filter(pl.col("isValid")), 1, reverse=True
+                )
                 .first()
                 .alias("Channel with Minimum Performance"),
+                pl.when(pl.col("isValid").any())
+                .then(
+                    pl.col("AllActions")
+                    .filter(pl.col("isValid"))
+                    .map_batches(cdh_utils.overlap_lists_polars)
+                    .mean()
+                )
+                .otherwise(pl.lit(0.0))
+                .alias("OmniChannel"),
             )
             .drop(["literal"] if by_period is None else [])
         )
 
         if by_period is None:
             return pl.concat(
-                [overall_summary, best_worst_channel_summary, omni_channel_summary],
+                [overall_summary, best_worst_channel_summary],
                 how="horizontal",
             ).with_columns(
                 cs.categorical().cast(pl.Utf8),
@@ -745,75 +768,8 @@ class Aggregates:
                 overall_summary.join(
                     best_worst_channel_summary, on="Period", join_nulls=True, how="left"
                 )
-                .join(omni_channel_summary, on="Period", join_nulls=True, how="left")
                 .with_columns(
                     cs.categorical().cast(pl.Utf8),
                 )
                 .sort("Period")
             )
-
-    def _omni_channel_summary(
-        self,
-        by_period: Optional[str] = None,
-    ) -> pl.LazyFrame:
-        """Helper method to summarize the overlap of actions across channels.
-
-        Parameters
-        ----------
-        by_period : str, optional
-            Optional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. If provided, creates a new Period column with the truncated date/time. Defaults to None.
-
-        Returns
-        -------
-        pl.LazyFrame
-            Dataframe with a "OmniChannel" column with the overlap of actions of this channel with all channels.
-        """
-
-        valid_channel_summary = (
-            self._adm_model_summary(by_period=by_period, by_channel=True)
-            .filter(pl.col("isValid"))
-            .select(
-                ["Channel", "Direction", "AllActions"]
-                + ([] if by_period is None else ["Period"])
-            )
-        )
-
-        # No valid channels
-        if valid_channel_summary.head(1).collect().height == 0:
-            return valid_channel_summary.with_columns(
-                pl.Series([]).alias("OmniChannel")
-            ).drop(["AllActions"])
-
-        if by_period is None:
-            omni_channel = valid_channel_summary.with_columns(
-                pl.Series(
-                    cdh_utils.overlap_lists_polars(
-                        valid_channel_summary.select(["AllActions"]).collect()[
-                            "AllActions"
-                        ],
-                    )
-                ).alias("OmniChannel"),
-            )
-        else:
-            periods = set(
-                valid_channel_summary.select("Period")
-                .collect()
-                .to_dict(as_series=False)["Period"]
-            )
-
-            omni_channel = pl.concat(
-                [
-                    valid_channel_summary.filter(pl.col("Period") == p).with_columns(
-                        pl.Series(
-                            cdh_utils.overlap_lists_polars(
-                                valid_channel_summary.filter(pl.col("Period") == p)
-                                .select(["AllActions"])
-                                .collect()["AllActions"],
-                            )
-                        ).alias("OmniChannel"),
-                    )
-                    for p in periods
-                ]
-            ).sort(["Period", "Channel", "Direction"])
-
-        return omni_channel.drop(["AllActions"])

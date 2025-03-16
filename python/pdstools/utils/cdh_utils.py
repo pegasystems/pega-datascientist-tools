@@ -721,18 +721,14 @@ def weighted_performance_polars(
     return weighted_average_polars(vals, weights).fill_nan(0.5)
 
 
-# TODO drop row_validity argument! And why not return Series right away?
-def overlap_lists_polars(col: pl.Series, row_validity: pl.Series = None) -> List[float]:
-    """Calculate the overlap of each of the elements (must be a list) with all the others"""
+def overlap_lists_polars(col: pl.Series) -> pl.Series:
+    """Calculate the overlap of each of the elements (must be a list) with all the elements"""
     nrows = col.len()
     average_overlap = []
     for i in range(nrows):
         set_i = set(col[i].to_list())
         overlap_w_other_channels = []
         for j in range(nrows):
-            if row_validity is not None:
-                if not row_validity[i] or not row_validity[j]:
-                    continue
             if i != j:
                 set_j = set(col[j].to_list())
                 intersection = set_i & set_j
@@ -744,8 +740,8 @@ def overlap_lists_polars(col: pl.Series, row_validity: pl.Series = None) -> List
                 / len(set_i)
             ]
         else:
-            average_overlap += [float("nan")]
-    return average_overlap
+            average_overlap += [0.0]
+    return pl.Series(average_overlap)
 
 
 def z_ratio(

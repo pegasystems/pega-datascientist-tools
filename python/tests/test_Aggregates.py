@@ -58,6 +58,11 @@ def test_aggregate_summary_by_channel(dm_aggregates):
     assert summary_by_channel["Treatments"].to_list() == [0] * 3
     assert summary_by_channel["Used Treatments"].to_list() == [0] * 3
     assert summary_by_channel["Duration"].to_list() == [18000] * 3
+    assert [round(x, 6) for x in summary_by_channel["OmniChannel"].to_list()] == [
+        0.604167,
+        0.592593,
+        0.763158,
+    ]
 
 
 def test_aggregate_summary_by_channel_and_time(dm_aggregates):
@@ -71,6 +76,14 @@ def test_aggregate_summary_by_channel_and_time(dm_aggregates):
         19557,
         28230,
         10890,
+    ]
+    assert [round(x, 6) for x in summary_by_channel["OmniChannel"].to_list()] == [
+        0.604167,
+        0.604167,
+        0.592593,
+        0.592593,
+        0.763158,
+        0.763158,
     ]
 
 
@@ -117,6 +130,14 @@ def test_aggregate_overall_summary_by_time(dm_aggregates):
     assert overall_summary["Number of Valid Channels"].to_list() == [2, 2, 2, 1, 2, 1]
     assert overall_summary["Actions"].to_list() == [34, 35, 34, 31, 33, 34]
     assert overall_summary["Treatments"].to_list() == [0] * 6
+    assert [round(x, 6) for x in overall_summary["OmniChannel"].to_list()] == [
+        0.728745,
+        0.694444,
+        0.728745,
+        0.0,
+        0.668889,
+        0.0,
+    ]
 
 
 def test_summary_by_configuration(dm_aggregates):
