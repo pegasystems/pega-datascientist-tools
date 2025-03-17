@@ -7,6 +7,7 @@ import pathlib
 import pytest
 from pdstools import ADMDatamart
 from pdstools.adm.Aggregates import Aggregates
+import polars as pl
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 
@@ -23,21 +24,21 @@ def dm_aggregates():
     )
 
 
-def test_aggregates_init(dm_aggregates):
+def test_init(dm_aggregates):
     assert dm_aggregates
 
 
-def test_aggregate_model_summary(dm_aggregates):
+def test_model_summary(dm_aggregates):
     assert dm_aggregates.model_summary().collect().shape[0] == 68
     assert dm_aggregates.model_summary().collect().shape[1] == 20
 
 
-def test_aggregate_predictor_counts(dm_aggregates):
+def test_predictor_counts(dm_aggregates):
     assert dm_aggregates.predictor_counts().collect().shape[0] == 78
     assert dm_aggregates.predictor_counts().collect().shape[1] == 5
 
 
-def test_aggregate_summary_by_channel(dm_aggregates):
+def test_summary_by_channel(dm_aggregates):
     summary_by_channel = dm_aggregates.summary_by_channel().collect()
     assert summary_by_channel.height == 3
     assert summary_by_channel.width == 22
@@ -62,6 +63,30 @@ def test_aggregate_summary_by_channel(dm_aggregates):
         0.604167,
         0.592593,
         0.763158,
+    ]
+    assert summary_by_channel["isValid"].to_list() == [True, True, True]
+
+    # Force one channel to be invalid
+    dm_aggregates.datamart.model_data = dm_aggregates.datamart.model_data.with_columns(
+        Positives=pl.when(pl.col.Channel == "SMS")
+        .then(pl.lit(0))
+        .otherwise("Positives")
+    )
+    summary_by_channel = dm_aggregates.summary_by_channel().collect()
+    assert summary_by_channel["isValid"].to_list() == [True, False, True]
+
+    # Force only one channel to be valid
+    dm_aggregates.datamart.model_data = dm_aggregates.datamart.model_data.with_columns(
+        Positives=pl.when(pl.col.Channel != "Web")
+        .then(pl.lit(0))
+        .otherwise("Positives")
+    )
+    summary_by_channel = dm_aggregates.summary_by_channel().collect()
+    assert summary_by_channel["isValid"].to_list() == [False, False, True]
+    assert summary_by_channel["OmniChannel"].to_list() == [
+        None,
+        None,
+        0,
     ]
 
 
@@ -88,8 +113,6 @@ def test_aggregate_summary_by_channel_and_time(dm_aggregates):
 
 
 def test_custom_channel_mapping(dm_aggregates):
-    import polars as pl
-
     dm_aggregates.datamart.model_data = dm_aggregates.datamart.model_data.with_columns(
         Channel=pl.when(pl.col.Channel == "SMS")
         .then(pl.lit("MyChannel"))
@@ -120,7 +143,24 @@ def test_aggregate_overall_summary(dm_aggregates):
     assert overall_summary["Number of Valid Channels"].item() == 3
     assert overall_summary["Actions"].item() == 35
     assert overall_summary["Treatments"].item() == 0
+
+    # 3 valid channels
+    # print(overall_summary)
+
     assert round(overall_summary["OmniChannel"].item(), 5) == 0.65331
+
+    # Force only one channel to be valid
+    dm_aggregates.datamart.model_data = dm_aggregates.datamart.model_data.with_columns(
+        Positives=pl.when(pl.col.Channel != "SMS")
+        .then(pl.lit(0))
+        .otherwise("Positives")
+    )
+
+    overall_summary = dm_aggregates.overall_summary().collect()
+
+    # print(overall_summary)
+
+    assert overall_summary["Number of Valid Channels"].item() == 1
 
 
 def test_aggregate_overall_summary_by_time(dm_aggregates):

@@ -741,7 +741,11 @@ def overlap_lists_polars(col: pl.Series) -> pl.Series:
             ]
         else:
             average_overlap += [0.0]
-    return pl.Series(average_overlap)
+
+    # print(average_overlap)
+    # print(pl.Series(average_overlap))
+
+    return pl.Series(average_overlap)  # ,dtype=pl.List(inner=pl.Float64))
 
 
 def z_ratio(

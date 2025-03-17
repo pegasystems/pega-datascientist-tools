@@ -395,11 +395,13 @@ class Aggregates:
                 self._summarize_model_analytics(grouping, model_data),
                 on=("literal" if grouping is None else grouping),
                 join_nulls=True,
+                how="left",
             )
             .join(
                 self._summarize_action_analytics(grouping, model_data),
                 on=("literal" if grouping is None else grouping),
                 join_nulls=True,
+                how="left",
             )
             .join(
                 self._summarize_model_usage(
@@ -407,6 +409,7 @@ class Aggregates:
                 ),
                 on=("literal" if grouping is None else grouping),
                 join_nulls=True,
+                how="left",
             )
             .drop(["literal"] if grouping is None else [])
             .sort([] if grouping is None else grouping)
@@ -564,23 +567,24 @@ class Aggregates:
             by_period=by_period, by_channel=True, custom_channels=custom_channels
         )
 
-        omni_channel_summary = (
-            summary_by_channel.group_by(None if by_period is None else "Period")
-            .agg(
-                pl.col("Channel"),
-                pl.col("Direction"),
-                pl.when(pl.col("isValid").any())
-                .then(
-                    pl.col("AllActions")
-                    .filter(pl.col("isValid"))
-                    .map_batches(cdh_utils.overlap_lists_polars)
-                )
-                .otherwise(pl.lit(0.0))
-                .alias("OmniChannel"),
+        omni_channel_summary = summary_by_channel.group_by(
+            None if by_period is None else "Period"
+        ).agg(
+            pl.col("Channel").filter(pl.col("isValid")),
+            pl.col("Direction").filter(pl.col("isValid")),
+            pl.when(pl.col("isValid").any())
+            .then(
+                pl.col("AllActions")
+                .filter(pl.col("isValid"))
+                .map_batches(cdh_utils.overlap_lists_polars)
             )
-            .drop(["literal"] if by_period is None else [])
-            .explode(["Channel", "Direction", "OmniChannel"])
+            .otherwise(pl.lit(0.0))
+            .alias("OmniChannel"),
         )
+
+        omni_channel_summary = omni_channel_summary.drop(
+            ["literal"] if by_period is None else []
+        ).explode(["Channel", "Direction", "OmniChannel"])
 
         return (
             summary_by_channel.drop(["AllActions"])
@@ -743,16 +747,12 @@ class Aggregates:
                 )
                 .first()
                 .alias("Channel with Minimum Performance"),
-                pl.when(pl.col("isValid").any())
-                .then(
-                    pl.col("AllActions")
-                    .filter(pl.col("isValid"))
-                    .map_batches(cdh_utils.overlap_lists_polars)
-                    .mean()
-                )
-                .otherwise(pl.lit(0.0))
+                pl.col("AllActions")
+                .filter(pl.col("isValid"))
+                .map_batches(cdh_utils.overlap_lists_polars, returns_scalar=False)
                 .alias("OmniChannel"),
             )
+            .with_columns(pl.col("OmniChannel").list.mean())
             .drop(["literal"] if by_period is None else [])
         )
 

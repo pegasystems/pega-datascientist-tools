@@ -433,7 +433,7 @@ if prediction_file_path:
                     "Positives_NBA",
                 ],
                 "Responses": [
-                    "ResponseCount",
+                    "Responses",
                     "Negatives",
                     "Negatives_Test",
                     "Negatives_Control",
@@ -450,7 +450,7 @@ if prediction_file_path:
             columns=["TestPercentage", "ControlPercentage"],
         )
         .cols_label(
-            ResponseCount="Total Responses",
+            Responses="Total Responses",
             Positives="Total Positives",
             Negatives="Total Negatives",
             Positives_Test="Positives Test Group",
@@ -844,7 +844,7 @@ display(
         ModelID="Number of Models",
         Actions="Unique Actions",
         ModelsPerAction="Average number of Models per Action",
-        ResponseCount="Total Responses",
+        ResponseCount="Responses",
     )
 )
 ```
