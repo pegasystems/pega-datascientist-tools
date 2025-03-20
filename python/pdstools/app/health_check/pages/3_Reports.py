@@ -3,13 +3,12 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-import polars as pl
 import streamlit as st
 
-from pdstools import ADMDatamart
-from pdstools.utils.cdh_utils import _apply_query
-from pdstools.utils.show_versions import show_versions
 from pdstools.utils.streamlit_utils import model_selection_df
+from pdstools.utils.show_versions import show_versions
+from pdstools.utils.cdh_utils import _apply_query
+from pdstools import ADMDatamart
 
 if "dm" not in st.session_state:
     st.warning("Please configure your files in the `data import` tab.")
@@ -154,12 +153,9 @@ if st.session_state["dm"].predictor_data is not None:
                 help="The ADM service automatically determines which predictors are used by the models, based on the individual predictive performance and the correlation between predictors. For example, the predictors with a low predictive performance do not become active. When predictors are highly correlated, only the best-performing predictor is used.",
                 value=True,
             )
-
-            st.session_state["selected_models"] = (
-                edited_df.filter(pl.col("Generate Report"))
-                .get_column("ModelID")
-                .to_list()
-            )
+            st.session_state["selected_models"] = edited_df.loc[
+                edited_df["Generate Report"]
+            ]["ModelID"].to_list()
             st.write(f"{len(st.session_state['selected_models'])} models are selected")
             if len(st.session_state["selected_models"]) > 0:
                 if st.button("Create Model Report(s) for selected model(s)"):
