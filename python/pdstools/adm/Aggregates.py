@@ -567,20 +567,21 @@ class Aggregates:
             by_period=by_period, by_channel=True, custom_channels=custom_channels
         )
 
-        omni_channel_summary = summary_by_channel.group_by(
-            None if by_period is None else "Period"
-        ).agg(
-            pl.col("Channel").filter(pl.col("isValid")),
-            pl.col("Direction").filter(pl.col("isValid")),
-            pl.when(pl.col("isValid").any())
-            .then(
-                pl.col("AllActions")
-                .filter(pl.col("isValid"))
-                .map_batches(cdh_utils.overlap_lists_polars)
+        omni_channel_summary = (
+            (
+                summary_by_channel.filter(pl.col("isValid"))
+                .group_by(None if by_period is None else "Period")
+                .agg(
+                    pl.col("Channel"),
+                    pl.col("Direction"),
+                    pl.col("AllActions")
+                    .map_batches(cdh_utils.overlap_lists_polars)
+                    .alias("OmniChannel"),
+                )
             )
-            .otherwise(pl.lit(0.0))
-            .alias("OmniChannel"),
-        )
+            .collect()
+            .lazy()
+        )  # collect/lazy just to help zoom in into issues earlier
 
         omni_channel_summary = omni_channel_summary.drop(
             ["literal"] if by_period is None else []
@@ -733,22 +734,16 @@ class Aggregates:
 
         best_worst_channel_summary = (
             self._adm_model_summary(by_period=by_period, by_channel=True)
+            .filter(pl.col("isValid"))
             .group_by(None if by_period is None else "Period")
             .agg(
-                pl.col("isValid").sum().alias("Number of Valid Channels"),
-                pl.col("Performance")
-                .filter(pl.col("isValid"))
-                .min()
-                .alias("Minimum Channel Performance"),
+                pl.len().alias("Number of Valid Channels"),
+                pl.col("Performance").min().alias("Minimum Channel Performance"),
                 pl.col("ChannelDirectionGroup")
-                .filter(pl.col("isValid"))
-                .top_k_by(
-                    pl.col("Performance").filter(pl.col("isValid")), 1, reverse=True
-                )
+                .top_k_by("Performance", 1, reverse=True)
                 .first()
                 .alias("Channel with Minimum Performance"),
                 pl.col("AllActions")
-                .filter(pl.col("isValid"))
                 .map_batches(cdh_utils.overlap_lists_polars, returns_scalar=False)
                 .alias("OmniChannel"),
             )

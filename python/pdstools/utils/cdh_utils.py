@@ -618,7 +618,7 @@ def _polars_capitalize(df: F, extra_endwords: Optional[Iterable[str]] = None) ->
 
 
 def from_prpc_date_time(
-    x: str, return_string: bool = False
+    x: str, return_string: bool = False, use_timezones: bool = True
 ) -> Union[datetime.datetime, str]:
     """Convert from a Pega date-time string.
 
@@ -660,7 +660,7 @@ def from_prpc_date_time(
 
     dt = datetime.datetime.strptime(date_no_frac, "%Y%m%dT%H%M%S")
 
-    if len(timezonesplits) > 1:
+    if use_timezones and len(timezonesplits) > 1:
         dt = dt.replace(tzinfo=pytz.timezone(timezonesplits[1]))
 
     if "." in x:
@@ -741,9 +741,6 @@ def overlap_lists_polars(col: pl.Series) -> pl.Series:
             ]
         else:
             average_overlap += [0.0]
-
-    # print(average_overlap)
-    # print(pl.Series(average_overlap))
 
     return pl.Series(average_overlap)  # ,dtype=pl.List(inner=pl.Float64))
 

@@ -237,25 +237,30 @@ class Prediction:
         self.plot = PredictionPlots(prediction=self)
 
         predictions_raw_data_prepped = (
-            df.filter(pl.col.pyModelType == "PREDICTION")
-            .with_columns(
-                #                 SnapshotTime=cdh_utils.parsePegaDateTimeFormats(
-                #     "SnapshotTime"
-                # ).dt.date(),
-                SnapshotTime=pl.col("pySnapShotTime")
-                .map_elements(
-                    lambda x: cdh_utils.from_prpc_date_time(x), return_dtype=pl.Datetime
+            (
+                df.filter(pl.col.pyModelType == "PREDICTION")
+                .with_columns(
+                    # why not directly in polars from "%Y%m%d"
+                    # clipping first to 85 chars
+                    SnapshotTime=pl.col("pySnapShotTime")
+                    .str.slice(0, 8)
+                    .str.strptime(pl.Date, "%Y%m%d"),
+                    Performance=pl.col("pyValue").cast(pl.Float32),
                 )
-                .cast(pl.Date),
-                Performance=pl.col("pyValue").cast(pl.Float32),
+                # .with_columns(
+                #     SnapshotTime=pl.col("SnapshotTime").dt.replace_time_zone(None)
+                # )
+                .rename(
+                    {
+                        "pyPositives": "Positives",
+                        "pyNegatives": "Negatives",
+                        "pyCount": "ResponseCount",
+                    }
+                )
             )
-            .rename(
-                {
-                    "pyPositives": "Positives",
-                    "pyNegatives": "Negatives",
-                    "pyCount": "ResponseCount",
-                }
-            )
+            # collect/lazy hopefully helps to zoom in into issues
+            .collect()
+            .lazy()
         )
 
         # Below looks like a pivot.. but we want to make sure Control, Test and NBA
