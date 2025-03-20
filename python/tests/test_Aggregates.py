@@ -117,6 +117,7 @@ def test_custom_channel_mapping(dm_aggregates):
         Channel=pl.when(pl.col.Channel == "SMS")
         .then(pl.lit("MyChannel"))
         .otherwise(pl.col.Channel)
+        .cast(pl.Categorical)
     )
 
     summary_by_channel = dm_aggregates.summary_by_channel(
@@ -126,13 +127,13 @@ def test_custom_channel_mapping(dm_aggregates):
     assert summary_by_channel.width == 22
     assert summary_by_channel["ChannelDirection"].to_list() == [
         "Email/Outbound",
-        "Web/Inbound",
         "MyChannel/Outbound",
+        "Web/Inbound",
     ]
     assert summary_by_channel["ChannelDirectionGroup"].to_list() == [
         "E-mail/Outbound",
-        "Web/Inbound",
         "Web/Outbound",
+        "Web/Inbound",
     ]
 
 
