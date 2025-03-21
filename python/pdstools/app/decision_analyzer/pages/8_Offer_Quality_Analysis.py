@@ -38,7 +38,7 @@ with st.session_state["sidebar"]:
     default_propensity_th = [
         round(x, 4)
         for x in st.session_state.decision_data.getThresholdingData(
-            "FinalPropensity", [0, 5, 100]
+            "Propensity", [0, 5, 100]
         )["Threshold"].to_list()
     ]
     default_priority_th = [
@@ -89,8 +89,7 @@ with st.session_state["sidebar"]:
 # TODO: see about moving this into a class
 action_counts = filtered_action_counts(
     df=st.session_state.decision_data.sample,
-    groupby_cols=["pxEngagementStage", "pxInteractionID", "day"]
-    + [st.session_state.scope],
+    groupby_cols=["StageGroup", "pxInteractionID", "day"] + [st.session_state.scope],
     priorityTH=priorityTH,
     propensityTH=propensityTH,
 )

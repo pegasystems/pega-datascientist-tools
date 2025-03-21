@@ -83,7 +83,7 @@ rank_1_df = (
     .sort("Win Count", descending=True)
 )
 # TODO lets put into utils, this list is in many places
-parameters = ["FinalPropensity", "Value", "ContextWeight", "Weight"]
+parameters = ["Propensity", "Value", "ContextWeight", "Weight"]
 
 segmented_df = (
     # TODO refactor this to work with the DecisionData class

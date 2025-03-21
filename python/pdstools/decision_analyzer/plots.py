@@ -83,19 +83,28 @@ class Plot:
 
         if hide_priority:
             plotData = plotData.filter(pl.col("Factor") != "Priority")
+        plotData = plotData.collect()
+        range_color = [0, max(0, max(plotData["Influence"]))]
         fig = px.bar(
-            data_frame=plotData.collect(),
+            data_frame=plotData,
             y="Factor",
             x="Influence",
             text="Relative",
             color="Influence",
-            color_continuous_scale="Reds",
-            range_color=[0, n],
+            color_continuous_scale="RdYlGn",
+            range_color=range_color,
             orientation="h",
             template="pega",
         )
 
-        layout_args = {"showlegend": False}
+        layout_args = {
+            "showlegend": False,
+            "yaxis": dict(
+                showticklabels=True,
+                automargin=True,
+                ticklabelposition="outside",
+            ),
+        }
         if limit_xaxis_range:
             layout_args["xaxis_range"] = [0, n]
 
@@ -138,13 +147,9 @@ class Plot:
         return fig
 
     def propensity_vs_optionality(self, stage="Arbitration", return_df=False):
-        plotData = (
-            self._decision_data.get_optionality_data.filter(
-                pl.col("pxEngagementStage") == stage
-            )
-            .collect()
-            .to_pandas(use_pyarrow_extension_array=True)
-        )
+        plotData = self._decision_data.get_optionality_data.filter(
+            pl.col(self._decision_data.level) == stage
+        ).collect()
         if return_df:
             return pl.from_pandas(plotData)
 
@@ -260,21 +265,20 @@ class Plot:
                 df.with_columns(
                     # TODO perhaps the re-mapping of stage names can be done in plotly as well
                     # instead of changing the data like we do here
-                    pl.col("pxEngagementStage")
-                    .replace(
-                        NBADStages_Mapping
-                    )  # Replacing with "remaining" view labels
+                    pl.col(self._decision_data.level)
+                    .cast(pl.Utf8)
+                    .replace(NBADStages_Mapping)
+                    # Replacing with "remaining" view labels
                     .cast(pl.Enum(list(NBADStages_Mapping.values())))
                 )
-                .sort(["pxEngagementStage", "count", scope])
-                .collect()
-                .to_pandas(use_pyarrow_extension_array=True),
+                .sort([self._decision_data.level, "count", scope])
+                .collect(),
                 y="count",
-                x="pxEngagementStage",
+                x=self._decision_data.level,
                 color=scope,
                 # title=f"Distribution of {scope}s over the stages",
                 hover_data=["count"],
-                labels={"pxEngagementStage": "Stage"},
+                labels={self._decision_data.level: "Stage"},
                 template="pega",
             )
             .update_xaxes(
@@ -303,7 +307,7 @@ class Plot:
         top_n_actions_dict = {}
         for stage in [x for x in stages if x != "Final"]:
             top_n_actions_dict[stage] = (
-                df.filter(pl.col("pxEngagementStage") == stage)
+                df.filter(pl.col(self._decision_data.level) == stage)
                 .get_column("pxComponentName")
                 .to_list()
             )
@@ -317,10 +321,10 @@ class Plot:
             color="Filtered Decisions",
             color_continuous_scale="reds",
             orientation="h",
-            facet_col="pxEngagementStage",
+            facet_col=self._decision_data.level,
             facet_col_wrap=2,
             template="pega",
-            category_orders={"pxEngagementStage": AvailableNBADStages},
+            category_orders={self._decision_data.level: AvailableNBADStages},
         )
 
         # TODO generalize this
@@ -422,12 +426,12 @@ class Plot:
         if return_df:
             return df
         prio_factors = [
-            "FinalPropensity",
+            "Propensity",
             "Value",
-            "ContextWeight",
-            "Weight",
+            "Context Weight",
+            "Levers",
         ]  # TODO lets not repeat all over the place, also allow for alias (w/o py etc)
-        row_count = df.select("FinalPropensity").collect().height
+        row_count = df.select("Propensity").collect().height
         sample_size = sample_size if row_count > sample_size else row_count
         segmented_df = (
             (
@@ -488,7 +492,7 @@ class Plot:
         ranks = (
             # TODO: generalize ["Arbitration", "Final"], consider using generic aggregation func
             apply_filter(df, reference)
-            .filter(pl.col("pxEngagementStage").is_in(["Arbitration", "Final"]))
+            .filter(pl.col(self._decision_data.level).is_in(["Arbitration", "Final"]))
             .select("pxRank")
             .collect()
         )
@@ -503,17 +507,16 @@ class Plot:
             df.with_columns(
                 # TODO perhaps the re-mapping of stage names can be done in plotly as well
                 # instead of changing the data like we do here
-                pl.col("pxEngagementStage")
+                pl.col(self._decision_data.level)
+                .cast(pl.Utf8)
                 .replace(
                     self._decision_data.NBADStages_Mapping
                 )  # Replacing with "remaining" view labels
                 .cast(pl.Enum(list(self._decision_data.NBADStages_Mapping.values())))
-            )
-            .collect()
-            .to_pandas(use_pyarrow_extension_array=True),
-            x="pxEngagementStage",
+            ).collect(),
+            x=self._decision_data.level,
             y="nOffers",
-            color="pxEngagementStage",
+            color=self._decision_data.level,
             template="pega",
         )
         fig.update_layout(
@@ -544,7 +547,8 @@ class Plot:
             # Create a scatter plot instead of a line plot
             fig = px.scatter(
                 collected_df.with_columns(
-                    pl.col("pxEngagementStage")
+                    pl.col(self._decision_data.level)
+                    .cast(pl.Utf8)
                     .replace(
                         NBADStages_Mapping
                     )  # Replacing with "remaining" view labels
@@ -552,14 +556,14 @@ class Plot:
                 ).to_pandas(),
                 x="day",
                 y="nOffers",
-                color="pxEngagementStage",
+                color=self._decision_data.level,
                 template="pega",
             )
         else:
             # Create the line plot as usual
             fig = px.line(
                 collected_df.with_columns(
-                    pl.col("pxEngagementStage")
+                    pl.col(self._decision_data.level)
                     .replace(
                         NBADStages_Mapping
                     )  # Replacing with "remaining" view labels
@@ -567,7 +571,7 @@ class Plot:
                 ).to_pandas(),
                 x="day",
                 y="nOffers",
-                color="pxEngagementStage",
+                color=self._decision_data.level,
                 template="pega",
             )
 
@@ -584,6 +588,7 @@ def offer_quality_piecharts(
     NBADStages_FilterView,
     NBADStages_Mapping,
     return_df=False,
+    level="StageGroup",
 ):
     value_finder_names = [
         "atleast_one_relevant_action",
@@ -591,10 +596,10 @@ def offer_quality_piecharts(
         "has_no_offers",
     ]
     all_frames = (
-        df.group_by("pxEngagementStage")
+        df.group_by(level)
         .agg(pl.sum(value_finder_names))
         .collect()
-        .partition_by("pxEngagementStage", as_dict=True)
+        .partition_by(level, as_dict=True)
     )
     # TODO Temporary solution to fit the pie charts into the screen, pick only first 5 stages
     df = {}
@@ -613,7 +618,7 @@ def offer_quality_piecharts(
     )
 
     for i, stage in enumerate(NBADStages_FilterView):
-        plotdf = df[(stage,)].drop("pxEngagementStage")
+        plotdf = df[(stage,)].drop(level)
         fig.add_trace(
             go.Pie(
                 values=list(plotdf.to_numpy())[0],
@@ -642,14 +647,16 @@ def offer_quality_piecharts(
     return fig
 
 
-def getTrendChart(df: pl.LazyFrame, stage: str = "Final", return_df=False):
+def getTrendChart(
+    df: pl.LazyFrame, stage: str = "Output", return_df=False, level="StageGroup"
+):
     value_finder_names = [
         "atleast_one_relevant_action",
         "only_irrelevant_actions",
         "has_no_offers",
     ]
     df = (
-        df.filter(pl.col("pxEngagementStage") == stage)
+        df.filter(pl.col(level) == stage)
         .group_by("day")
         .agg(pl.sum(value_finder_names))
         .collect()
