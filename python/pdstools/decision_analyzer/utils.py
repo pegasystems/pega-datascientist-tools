@@ -90,7 +90,7 @@ def filtered_action_counts(
 
     required_cols = groupby_cols + [
         "pyName",
-        "FinalPropensity",  # TODO generalize this stuff
+        "Propensity",  # TODO generalize this stuff
         "Stage",
         "StageGroup",
         "Priority",
@@ -102,24 +102,21 @@ def filtered_action_counts(
 
     propensity_classifying_expr = [
         pl.col("pyName")
-        .where((pl.col("FinalPropensity") == 0.5) & (pl.col("StageGroup") != "Output"))
+        .where((pl.col("Propensity") == 0.5) & (pl.col("StageGroup") != "Output"))
         .count()
         .alias("new_models"),
         pl.col("pyName")
-        .where(
-            (pl.col("FinalPropensity") < propensityTH)
-            & (pl.col("FinalPropensity") != 0.5)
-        )
+        .where((pl.col("Propensity") < propensityTH) & (pl.col("Propensity") != 0.5))
         .count()
         .alias("poor_propensity_offers"),
         pl.col("pyName")
-        .where((pl.col("Priority") < priorityTH) & (pl.col("FinalPropensity") != 0.5))
+        .where((pl.col("Priority") < priorityTH) & (pl.col("Propensity") != 0.5))
         .count()
         .alias("poor_priority_offers"),
         pl.col("pyName")
         .where(
-            (pl.col("FinalPropensity") >= propensityTH)
-            & (pl.col("FinalPropensity") != 0.5)
+            (pl.col("Propensity") >= propensityTH)
+            & (pl.col("Propensity") != 0.5)
             & (pl.col("Priority") >= priorityTH)
         )
         .count()

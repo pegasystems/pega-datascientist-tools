@@ -28,7 +28,7 @@ ensure_data()
 st.session_state["sidebar"] = st.sidebar
 thresholding_mapping = {
     # TODO generalize, move to one of the utils
-    "FinalPropensity": "Propensity",
+    "Propensity": "Propensity",
 }
 
 with st.session_state["sidebar"]:
@@ -54,8 +54,8 @@ with col1:
             # Note this is not overly expensive as we have sampled the values into the pre-agg views
             st.session_state.decision_data.getPreaggregatedFilterView
             # TODO this breaks when the list is size > 1, figure out how to solve elegantly
-            .select(pl.col("FinalPropensity").explode(), pl.col("Decisions")).collect(),
-            x="FinalPropensity",
+            .select(pl.col("Propensity").explode(), pl.col("Decisions")).collect(),
+            x="Propensity",
             y="Decisions",
         ),
         use_container_width=True,
