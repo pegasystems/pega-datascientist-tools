@@ -265,7 +265,7 @@ class Plots(LazyNamespace):
         by: Union[pl.Expr, str] = "ModelID",
         *,
         every: Union[str, timedelta] = "1d",
-        cumulative: bool = False,
+        cumulative: bool = True,
         query: Optional[QUERY] = None,
         facet: Optional[str] = None,
         return_df: bool = False,
@@ -281,7 +281,7 @@ class Plots(LazyNamespace):
         every : Union[str, timedelta], optional
             By what time period to group, by default "1d"
         cumulative : bool, optional
-            Whether to take the cumulative value or the absolute one, by default False
+            Whether to show cumulative values or period-over-period changes, by default True
         query : Optional[QUERY], optional
             The query to apply to the data, by default None
         facet : Optional[str], optional
@@ -299,6 +299,10 @@ class Plots(LazyNamespace):
             "Performance_weighted_average": ":.2",  # is not a percentage!
             "Positives": ":.d",
             "ResponseCount": ":.d",
+            "SuccessRate_weighted_average_change": ":.4%",
+            "Performance_weighted_average_change": ":.2",
+            "Positives_change": ":.d",
+            "ResponseCount_change": ":.d",
         }
 
         if metric == "Performance":
@@ -315,9 +319,7 @@ class Plots(LazyNamespace):
             columns_to_select.add(facet)
 
         df = (
-            cdh_utils._apply_query(
-                self.datamart.model_data.sort(by="SnapshotTime"), query
-            )
+            cdh_utils._apply_query(self.datamart.model_data, query)
             .sort("SnapshotTime")
             .select(list(columns_to_select))
         )
@@ -328,11 +330,10 @@ class Plots(LazyNamespace):
             grouping_columns = [by_col, facet]
         else:
             grouping_columns = [by_col]
-        if metric in ["Performance", "SuccessRate"]:  # we need to weigh these
+
+        if metric in ["Performance", "SuccessRate"]:
             df = (
-                df.group_by_dynamic(
-                    "SnapshotTime", every=every, group_by=grouping_columns
-                )
+                df.group_by(grouping_columns + ["SnapshotTime"])
                 .agg(
                     (
                         metric_scaling
@@ -342,38 +343,44 @@ class Plots(LazyNamespace):
                 .sort("SnapshotTime", by_col)
             )
             metric += "_weighted_average"
-        elif cumulative:
+        else:
             df = (
                 df.group_by(grouping_columns + ["SnapshotTime"])
                 .agg(pl.sum(metric))
                 .sort(grouping_columns + ["SnapshotTime"])
             )
-        else:
+
+        if not cumulative:
             df = (
-                df.with_columns(
-                    Delta=pl.col(metric).cast(pl.Int64).diff().over(grouping_columns)
-                )
+                df.with_columns(delta=pl.col(metric).diff().over(grouping_columns))
                 .group_by_dynamic(
                     "SnapshotTime", every=every, group_by=grouping_columns
                 )
-                .agg(Increase=pl.sum("Delta"))
+                .agg(pl.sum("delta").alias(f"{metric}_change"))
             )
+            plot_metric = f"{metric}_change"
+        else:
+            plot_metric = metric
 
         if return_df:
             return df
+
         final_df = df.collect()
-        unique_facet_values = final_df.select(facet).unique().shape[0]
-        facet_col_wrap = max(2, int(unique_facet_values**0.5))
+
+        facet_col_wrap = None
+        if facet:
+            unique_facet_values = final_df.select(facet).unique().shape[0]
+            facet_col_wrap = max(2, int(unique_facet_values**0.5))
 
         title = "over all models" if facet is None else f"per {facet}"
         fig = px.line(
             final_df,
             x="SnapshotTime",
-            y=metric,
+            y=plot_metric,
             color=by_col,
             hover_data={
                 by_col: ":.d",
-                metric: metric_formatting[metric],
+                plot_metric: metric_formatting[plot_metric],
             },
             markers=True,
             title=f"{metric} over time, per {by_col} {title}",
@@ -381,9 +388,11 @@ class Plots(LazyNamespace):
             facet_col_wrap=facet_col_wrap,
             template="pega",
         )
-        if metric in ["SuccessRate"]:
+
+        if metric.startswith("SuccessRate"):
             fig.update_yaxes(tickformat=".2%")
             fig.update_layout(yaxis={"rangemode": "tozero"})
+
         return fig
 
     @requires({"ModelID", "Name"})
