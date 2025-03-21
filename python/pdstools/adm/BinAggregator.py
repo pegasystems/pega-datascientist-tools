@@ -744,7 +744,7 @@ class BinAggregator(LazyNamespace):
         )
 
         fig = px.line(
-            boundaries_data,
+            boundaries_data.to_pandas(),
             x="boundary",
             y="binning",
             markers="both",
@@ -852,7 +852,7 @@ class BinAggregator(LazyNamespace):
         )
 
         fig = px.bar(
-            data_frame=pm_plot_binning_table,
+            data_frame=pm_plot_binning_table.to_pandas(),
             x="Lift",
             y="BinSymbolAbbreviated",
             color="Direction",

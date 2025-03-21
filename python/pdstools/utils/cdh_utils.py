@@ -218,7 +218,8 @@ def _extract_keys(
                 .alias(c)
                 for c in overlap
             ]
-        ).drop([f"{c}_decoded" for c in overlap])
+        )
+        .drop([f"{c}_decoded" for c in overlap])
     )
 
 
@@ -617,7 +618,7 @@ def _polars_capitalize(df: F, extra_endwords: Optional[Iterable[str]] = None) ->
 
 
 def from_prpc_date_time(
-    x: str, return_string: bool = False
+    x: str, return_string: bool = False, use_timezones: bool = True
 ) -> Union[datetime.datetime, str]:
     """Convert from a Pega date-time string.
 
@@ -659,7 +660,7 @@ def from_prpc_date_time(
 
     dt = datetime.datetime.strptime(date_no_frac, "%Y%m%dT%H%M%S")
 
-    if len(timezonesplits) > 1:
+    if use_timezones and len(timezonesplits) > 1:
         dt = dt.replace(tzinfo=pytz.timezone(timezonesplits[1]))
 
     if "." in x:
@@ -712,34 +713,36 @@ def weighted_average_polars(
     ).sum()
 
 
-def weighted_performance_polars() -> pl.Expr:
+def weighted_performance_polars(
+    vals: Union[str, pl.Expr] = "Performance",
+    weights: Union[str, pl.Expr] = "ResponseCount",
+) -> pl.Expr:
     """Polars function to return a weighted performance"""
-    return weighted_average_polars("Performance", "ResponseCount").fill_nan(0.5)
+    return weighted_average_polars(vals, weights).fill_nan(0.5)
 
 
-def overlap_lists_polars(col: pl.Series, row_validity: pl.Series) -> List[float]:
-    """Calculate the overlap of each of the elements (must be a list) with all the others"""
+def overlap_lists_polars(col: pl.Series) -> pl.Series:
+    """Calculate the overlap of each of the elements (must be a list) with all the elements"""
     nrows = col.len()
     average_overlap = []
     for i in range(nrows):
         set_i = set(col[i].to_list())
         overlap_w_other_channels = []
         for j in range(nrows):
-            if not row_validity[i] or not row_validity[j]:
-                continue
             if i != j:
                 set_j = set(col[j].to_list())
                 intersection = set_i & set_j
                 overlap_w_other_channels += [len(intersection)]
-        if len(overlap_w_other_channels) > 0:
+        if len(overlap_w_other_channels) > 0 and len(set_i) > 0:
             average_overlap += [
                 sum(overlap_w_other_channels)
                 / len(overlap_w_other_channels)
                 / len(set_i)
             ]
         else:
-            average_overlap += [float("nan")]
-    return average_overlap
+            average_overlap += [0.0]
+
+    return pl.Series(average_overlap)  # ,dtype=pl.List(inner=pl.Float64))
 
 
 def z_ratio(
@@ -813,9 +816,7 @@ def lift(
             # TODO not sure how polars (mis)behaves when there are no positives at all
             # I would hope for a NaN but base python doesn't do that. Polars perhaps.
             # Stijn: It does have proper None value support, may work like you say
-            bin_pos
-            * (total_pos + total_neg)
-            / ((bin_pos + bin_neg) * total_pos)
+            bin_pos * (total_pos + total_neg) / ((bin_pos + bin_neg) * total_pos)
         ).alias("Lift")
 
     return lift_impl(pos_col, neg_col, pos_col.sum(), neg_col.sum())

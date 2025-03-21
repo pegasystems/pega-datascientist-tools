@@ -81,7 +81,7 @@ class Plots(LazyNamespace):
             return df
 
         fig = px.funnel(
-            df.with_columns(pl.col(pl.Categorical).cast(pl.Utf8)).collect(),
+            df.with_columns(pl.col(pl.Categorical).cast(pl.Utf8)).collect().to_pandas(),
             y="Count",
             x="Stage",
             color=by,
@@ -343,27 +343,24 @@ class Plots(LazyNamespace):
             for th in thresholds
         ]
 
-        col_name_map = {
-            "RelevantActions": "At least one relevant action",
-            "IrrelevantActions": "Only irrelevant actions",
-            "NoActions": "Without actions",
-        }
-        plot_df = pl.concat(df).rename(col_name_map)
+        plot_df = (
+            pl.concat(df)
+            .to_pandas()
+            .set_index("Threshold")
+            .rename(
+                columns={
+                    "RelevantActions": "At least one relevant action",
+                    "IrrelevantActions": "Only irrelevant actions",
+                    "NoActions": "Without actions",
+                }
+            )
+        )
         fig = (
             px.area(
                 plot_df,
-                x="Threshold",
-                y=list(col_name_map.values()),
                 facet_col="Stage",
-                category_orders={
-                    "Stage": [
-                        "Eligibility",
-                        "Applicability",
-                        "Suitability",
-                        "Arbitration",
-                    ]
-                },
-                labels={"value": "Number of people", "index": "Threshold"},
+                category_orders={"Stage": self.vf.nbad_stages},
+                labels={"value": "Number of people"},
                 title="Distribution of offers per stage",
                 template="pega",
             )
