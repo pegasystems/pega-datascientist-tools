@@ -73,7 +73,7 @@ def test_summary_by_channel_cols(test):
         "Performance",
         "Positives",
         "Negatives",
-        "ResponseCount",
+        "Responses",
         "Positives_Test",
         "Positives_Control",
         "Positives_NBA",
@@ -89,7 +89,7 @@ def test_summary_by_channel_cols(test):
         "CTR_NBA",
         "ChannelDirectionGroup",
         "isValid",
-        "Lift"
+        "Lift",
     ]
 
 
@@ -157,7 +157,13 @@ def test_summary_by_channel_channeldirectiongroup(test):
 
     assert summary["isMultiChannelPrediction"].to_list() == [False, True, False, False]
     assert summary["isStandardNBADPrediction"].to_list() == [False, True, True, True]
-    assert summary["ChannelDirectionGroup"].to_list() == ["Other", "Other", "Mobile/Inbound", "Web/Inbound"]
+    assert summary["ChannelDirectionGroup"].to_list() == [
+        "Other",
+        "Other",
+        "Mobile/Inbound",
+        "Web/Inbound",
+    ]
+
 
 def test_overall_summary_cols(test):
     summary = test.overall_summary().collect()
@@ -166,7 +172,7 @@ def test_overall_summary_cols(test):
         "Overall Lift",
         "Performance",
         "Positives",
-        "ResponseCount",
+        "Responses",
         "Channel with Minimum Negative Lift",
         "Minimum Negative Lift",
         "usesImpactAnalyzer",
@@ -192,7 +198,7 @@ def test_overall_summary_positives(test):
 
 
 def test_overall_summary_responsecount(test):
-    assert test.overall_summary().collect()["ResponseCount"].item() == 34000
+    assert test.overall_summary().collect()["Responses"].item() == 34000
 
 
 def test_overall_summary_channel_min_lift(test):
@@ -234,6 +240,7 @@ def test_overall_summary_ia(test):
     )
     assert test.overall_summary().collect()["usesImpactAnalyzer"].to_list() == [True]
 
+
 def test_plots():
     prediction = Prediction.from_mock_data()
 
@@ -246,4 +253,3 @@ def test_plots():
     assert isinstance(prediction.plot.lift_trend("2d", return_df=True), pl.LazyFrame)
     assert prediction.plot.responsecount_trend("1m") is not None
     assert prediction.plot.ctr_trend("5d") is not None
-

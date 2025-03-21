@@ -45,6 +45,7 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 import plotly.graph_objs as go
 import polars as pl
+import polars.selectors as cs
 
 import numpy as np
 import math
@@ -246,17 +247,15 @@ The "OmniChannel" percentage is an indicator of the overlap of actions between c
 df_channel_overview = (
     datamart.aggregates.summary_by_channel()
     .with_columns(
-        NBAD=pl.when(pl.col("usesNBADOnly"))
-        .then(pl.lit("Yes"))
+        NBAD=pl.when(pl.col("usesNBAD").is_null())
+        .then(pl.lit("?"))
         .when(pl.col("usesNBAD"))
-        .then(pl.lit("With additional configurations"))
+        .then(pl.lit("Yes"))
         .otherwise(pl.lit("No")),
         AGB=pl.when(pl.col("usesAGB").is_null())
         .then(pl.lit("?"))
-        .when(pl.col("usesAGBOnly"))
-        .then(pl.lit("Yes"))
         .when(pl.col("usesAGB"))
-        .then(pl.lit("Partially"))
+        .then(pl.lit("Yes"))
         .otherwise(pl.lit("No")),
     )
     .drop(
@@ -277,11 +276,11 @@ formatted_channel_overview = (
         highlight_limits={
             "Positive Responses": "Positives",
             "Model Performance": "Performance",
-            "Responses": "ResponseCount",
-            "Actions": ["Total Number of Actions", "Used Actions"],
-            "Treatments": ["Total Number of Treatments", "Used Treatments"],
+            "Responses": "Responses",
+            "Actions": ["Actions", "Used Actions"],
+            "Treatments": ["Treatments", "Used Treatments"],
             "Issues": "Issues",
-            "OmniChannel": "OmniChannel Actions",
+            "OmniChannel": "OmniChannel",
             "CTR": "CTR",
         },
         highlight_lists={
@@ -292,26 +291,26 @@ formatted_channel_overview = (
     )
     .cols_label(
         CTR="Base Rate",
-        ResponseCount="Total Responses",
+        Responses="Total Responses",
         Positives="Total Positives",
         Configuration="Supported by Configurations",
         Performance="Average Performance",
     )
     .tab_spanner(
         label=html("<b>ADM Models</b>"),
-        columns=["Positives", "ResponseCount", "Performance", "Configuration", "AGB"],
+        columns=["Positives", "Responses", "Performance", "Configuration", "AGB"],
     )
     .tab_spanner(
         label=html("<b>NBAD Setup</b>"),
         columns=[
-            "Total Number of Actions",
-            "Total Number of Treatments",
+            "Actions",
+            "Treatments",
             "Used Actions",
             "Used Treatments",
             "Issues",
             "Groups",
             "NBAD",
-            "OmniChannel Actions",
+            "OmniChannel",
         ],
     )
 )
@@ -321,19 +320,18 @@ formatted_channel_overview = (
 display(
     formatted_channel_overview.cols_hide(
         [
-            "Total Number of Actions",
-            "Total Number of Treatments",
+            "Actions",
+            "Treatments",
             "Used Actions",
             "Used Treatments",
             "Issues",
             "Groups",
             "NBAD",
-            "OmniChannel Actions",
+            "OmniChannel",
             "isValid",
             "usesNBAD",
-            "usesNBADOnly",
             "usesAGB",
-            "usesAGBOnly",
+            "Duration",
         ]
     )
     .tab_style(
@@ -347,16 +345,14 @@ display(
     formatted_channel_overview.cols_hide(
         [
             "Positives",
-            "ResponseCount",
+            "Responses",
             "Performance",
             "Configuration",
-            "CTR",
             "AGB",
             "isValid",
             "usesNBAD",
-            "usesNBADOnly",
             "usesAGB",
-            "usesAGBOnly",
+            "Duration",
         ]
     ).tab_style(
         style=style.text(decorate="line-through"),
@@ -437,7 +433,7 @@ if prediction_file_path:
                     "Positives_NBA",
                 ],
                 "Responses": [
-                    "ResponseCount",
+                    "Responses",
                     "Negatives",
                     "Negatives_Test",
                     "Negatives_Control",
@@ -454,7 +450,7 @@ if prediction_file_path:
             columns=["TestPercentage", "ControlPercentage"],
         )
         .cols_label(
-            ResponseCount="Total Responses",
+            Responses="Total Responses",
             Positives="Total Positives",
             Negatives="Total Negatives",
             Positives_Test="Positives Test Group",
@@ -652,12 +648,17 @@ if "Issue" in datamart_all_columns and "Group" in datamart_all_columns:
 ## Success Rates
 
 ```{python}
-unused_channels = df_channel_overview.filter(pl.col.isValid.not_()).select(["Channel", "Direction"])
-if unused_channels.shape[0] > 0:
+unused_channels = df_channel_overview.filter(pl.col.isValid.not_()).select(["Channel", "Direction"]).with_columns(
+    cs.string().cast(pl.Categorical)
+)
+
+if unused_channels.height > 0:
     reset_datamart(
         ADMDatamart(
             model_df=datamart.model_data.join(
-                unused_channels.lazy(), on=["Channel", "Direction"], how="anti"
+                unused_channels.lazy(),
+                on=["Channel", "Direction"],
+                how="anti"
             ),
             predictor_df=datamart.predictor_data,
         )
@@ -843,7 +844,7 @@ display(
         ModelID="Number of Models",
         Actions="Unique Actions",
         ModelsPerAction="Average number of Models per Action",
-        ResponseCount="Total Responses",
+        ResponseCount="Responses",
     )
 )
 ```
@@ -1791,7 +1792,7 @@ df = (
     datamart
     .model_data
     .with_columns(
-        (pl.col("Performance")*100).cut(breaks=[p for p in range(50, 100, 3)]).alias("PerformanceBinned"),
+        (pl.col("Performance")*100).cut(breaks=[p for p in range(50, 100, 3)],left_closed=True).alias("PerformanceBinned"),
         pl.format(
             "{}/{}",
             pl.when(pl.col("Channel").is_not_null() & (pl.col("Channel") != ""))
