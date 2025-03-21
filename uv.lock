@@ -2201,7 +2201,7 @@ wheels = [
 
 [[package]]
 name = "plotly"
-version = "6.0.0"
+version = "6.0.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "narwhals" },
