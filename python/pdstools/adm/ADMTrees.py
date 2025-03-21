@@ -364,7 +364,7 @@ class ADMTreesModel:
                 if int(key) == index - 129 and index == 129 and sign == "<":
                     splitvalues.append("Missing")
                     break
-                elif eval(f"{int(key)}{sign}{index-129}"):
+                elif eval(f"{int(key)}{sign}{index - 129}"):
                     splitvalues.append(value)
                 else:
                     pass
@@ -622,11 +622,13 @@ class ADMTreesModel:
         total_split_list: List = functools.reduce(operator.iconcat, splitlist, [])
         total_gains_list: List = functools.reduce(operator.iconcat, gainslist, [])
         gainsPerSplit = pl.DataFrame(
-            list(zip(total_split_list, total_gains_list)), schema=["split", "gains"]
+            list(zip(total_split_list, total_gains_list)),
+            schema=["split", "gains"],
+            orient="row",
         )
         gainsPerSplit = gainsPerSplit.with_columns(
             predictor=pl.col("split").map_elements(
-                lambda x: self.parse_split_values(x)[0]
+                lambda x: self.parse_split_values(x)[0], return_dtype=pl.Utf8
             )
         )
         return splitsPerTree, gainsPerTree, gainsPerSplit
@@ -645,10 +647,14 @@ class ADMTreesModel:
                     pl.col("gains").implode(),
                     pl.col("gains").mean().alias("mean"),
                     pl.first("split")
-                    .map_elements(lambda x: self.parse_split_values(x)[1])
+                    .map_elements(
+                        lambda x: self.parse_split_values(x)[1], return_dtype=pl.Utf8
+                    )
                     .alias("sign"),
                     pl.first("split")
-                    .map_elements(lambda x: self.parse_split_values(x)[2])
+                    .map_elements(
+                        lambda x: self.parse_split_values(x)[2], return_dtype=pl.Object
+                    )
                     .alias("values"),
                 ]
             )
@@ -922,7 +928,7 @@ class ADMTreesModel:
                     else:
                         totallen = len(self.all_values_per_split[variable])
                         labelname = (
-                            f"{list(values)[0:2]+['...']} ({len(values)}/{totallen})"
+                            f"{list(values)[0:2] + ['...']} ({len(values)}/{totallen})"
                         )
                     label += f"\nSplit: {variable} in {labelname}\nGain: {node['gain']}"
 
@@ -1050,34 +1056,42 @@ class ADMTreesModel:
             import plotly.graph_objects as go
         except ImportError:  # pragma: no cover
             raise MissingDependenciesException(["plotly"], "AGB")
+
+        # Sort by treeID and add row index for plotting order
         scores = (
             self.get_all_visited_nodes(x)
             .sort("treeID")
-            .to_pandas(use_pyarrow_extension_array=True)
+            .with_row_index("row_idx")
+            .with_columns(
+                [
+                    pl.col("score").cum_sum().alias("scoresum"),
+                    (pl.col("score").cum_sum() / (pl.col("row_idx") + 1)).alias("mean"),
+                    (1 / (1 + (-pl.col("score").cum_sum()).exp())).alias("propensity"),
+                ]
+            )
         )
-        scores["mean"] = scores["score"].expanding().mean()
-        scores["scoresum"] = scores["score"].expanding().sum()
-        scores["propensity"] = scores["scoresum"].apply(lambda x: 1 / (1 + exp(-x)))
+
         fig = px.scatter(
             scores,
+            x="row_idx",
             y="score",
             template="none",
             title="Score contribution per tree, for single prediction",
-            labels={"index": "Tree", "score": "Score"},
+            labels={"row_idx": "Tree", "score": "Score"},
         )
         fig["data"][0]["showlegend"] = True
         fig["data"][0]["name"] = "Individual scores"
         fig.add_trace(
-            go.Scatter(x=scores.index, y=scores["mean"], name="Cumulative mean")
+            go.Scatter(x=scores["row_idx"], y=scores["mean"], name="Cumulative mean")
         )
         fig.add_trace(
-            go.Scatter(x=scores.index, y=scores["propensity"], name="Propensity")
+            go.Scatter(x=scores["row_idx"], y=scores["propensity"], name="Propensity")
         )
         fig.add_trace(
             go.Scatter(
-                x=[scores.index[-1]],
-                y=[scores["propensity"].iloc[-1]],
-                text=[scores["propensity"].iloc[-1]],
+                x=[scores["row_idx"][-1]],
+                y=[scores["propensity"][-1]],
+                text=[scores["propensity"][-1]],
                 mode="markers+text",
                 textposition="top right",
                 name="Final propensity",
@@ -1133,10 +1147,11 @@ class ADMTreesModel:
             to_plot = self.compute_categorization_over_time(predictor_categorization)[0]
         else:
             to_plot = self.splits_per_variable_type[0]
-        df = pl.DataFrame(to_plot).to_pandas(use_pyarrow_extension_array=True)
+        # sort column names
+        df = pl.DataFrame(to_plot).select(sorted(pl.col("*")))
 
         fig = px.area(
-            df.reindex(sorted(df.columns), axis=1),
+            df,
             title="Variable types per tree",
             labels={"index": "Tree number", "value": "Number of splits"},
             template="none",
@@ -1233,54 +1248,3 @@ class MultiTrees:  # pragma: no cover
             )
 
         return pl.concat(outdf, how="diagonal")
-
-    def plot_splits_per_variable_type(self, predictor_categorization=None, **kwargs):
-        try:
-            import plotly.express as px
-        except ImportError:
-            raise MissingDependenciesException(["plotly"], "AGB")
-        df = self.compute_over_time(predictor_categorization).to_pandas(
-            use_pyarrow_extension_array=True
-        )
-        fig = px.area(
-            df.reindex(sorted(df.columns), axis=1),
-            animation_frame="SnapshotTime",
-            title="Variable types per tree",
-            labels={"index": "Tree number", "value": "Number of splits"},
-            template="none",
-            **kwargs,
-        )
-        fig.layout["updatemenus"] += (
-            dict(
-                type="buttons",
-                direction="left",
-                active=0,
-                buttons=list(
-                    [
-                        dict(
-                            args=[
-                                {"groupnorm": None},
-                                {"yaxis": {"title": "Number of splits"}},
-                            ],
-                            label="Absolute",
-                            method="update",
-                        ),
-                        dict(
-                            args=[
-                                {"groupnorm": "percent"},
-                                {"yaxis": {"title": "Percentage of splits"}},
-                            ],
-                            label="Relative",
-                            method="update",
-                        ),
-                    ]
-                ),
-                pad={"r": 10, "t": 10},
-                showactive=True,
-                x=0.01,
-                xanchor="left",
-                y=1.3,
-                yanchor="top",
-            ),
-        )
-        return fig
