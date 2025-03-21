@@ -352,13 +352,11 @@ class Plots(LazyNamespace):
 
         if not cumulative:
             df = (
-                df.with_columns(
-                    PeriodChange=pl.col(metric).diff().over(grouping_columns)
-                )
+                df.with_columns(delta=pl.col(metric).diff().over(grouping_columns))
                 .group_by_dynamic(
                     "SnapshotTime", every=every, group_by=grouping_columns
                 )
-                .agg(pl.sum("PeriodChange").alias(f"{metric}_change"))
+                .agg(pl.sum("delta").alias(f"{metric}_change"))
             )
             plot_metric = f"{metric}_change"
         else:
