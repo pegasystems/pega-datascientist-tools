@@ -186,38 +186,122 @@ def test_weighted_average_polars():
 
 
 def test_overlap_lists_polars_simple():
-    input = pl.DataFrame(
-        {"Actions": [["a", "b"], ["a", "c", "d"]], "Valid": [True, True]}
-    )
+    input = pl.DataFrame({"Actions": [["a", "b"], ["a", "c", "d"]]})
 
-    assert cdh_utils.overlap_lists_polars(input["Actions"], input["Valid"]) == [
-        0.5,
-        1.0 / 3,
+    assert cdh_utils.overlap_lists_polars(input["Actions"]).to_list() == [
+        1 / 2,
+        1 / 3,
     ]
 
 
 def test_overlap_lists_polars_more():
     input = pl.DataFrame(
         {
-            "Actions": [["a", "b"], ["b"], ["a", "b"], ["a", "c", "d"]],
-            "Valid": [True, True, False, True],
-            "Valid2": [True, True, True, True],
+            "Actions": [["a", "b"], ["b"], ["a"], ["a", "c", "d"]],
         }
     )
 
-    results = cdh_utils.overlap_lists_polars(input["Actions"], input["Valid"])
-    expected_results = [0.5, 0.5, float("nan"), 1.0 / 6]
-    for i in range(len(expected_results)):
-        assert (results[i] == expected_results[i]) or (
-            np.isnan(results[i]) and np.isnan(expected_results[i])
-        )
+    assert cdh_utils.overlap_lists_polars(input["Actions"]).to_list() == [
+        3 / 6,
+        1 / 3,
+        2 / 3,
+        2 / 9,
+    ]
 
-    results = cdh_utils.overlap_lists_polars(input["Actions"], input["Valid2"])
-    expected_results = [2.0 / 3, 2.0 / 3, 2.0 / 3, 2.0 / 9]
-    for i in range(len(expected_results)):
-        assert (results[i] == expected_results[i]) or (
-            np.isnan(results[i]) and np.isnan(expected_results[i])
+
+def test_overlap_lists_polars_overall_summary():
+    df = pl.DataFrame(
+        {
+            "Channel": ["Web", "Mail", "SMS"],
+            "isValid": [True, True, True],
+            "Actions": [
+                ["a", "b", "c"],
+                ["a", "b"],
+                ["a", "b", "c", "d"],
+            ],
+        }
+    )
+
+    assert cdh_utils.overlap_lists_polars(df["Actions"]).to_list() == [
+        5 / 6,
+        1,
+        5 / 8,
+    ]
+
+    # this is how the overall summary could be constructed
+    summary_df = (
+        df.group_by(None)
+        .agg(
+            # pl.col("Channel"),
+            pl.when(pl.col("isValid").any())
+            .then(
+                pl.col("Actions")
+                .filter(pl.col("isValid"))
+                .map_batches(cdh_utils.overlap_lists_polars)
+                .mean()
+            )
+            .otherwise(pl.lit(0.0))
+            .alias("Overlap")
         )
+        .drop("literal")
+        # .explode(["Channel", "Overlap"])
+    )
+
+    # print(summary_df)
+
+    # average overlap
+    assert round(summary_df.item(), 6) == 0.819444
+
+
+def test_overlap_lists_polars_overall_period_summaries():
+    df = pl.DataFrame(
+        {
+            "Channel": ["Web", "Mail", "Web", "Mail"],
+            "Period": ["Jan", "Jan", "Feb", "Feb"],
+            "isValid": [True, True, True, True],
+            # "isValid": [True, False, False, True],
+            # "isValid": [False, False, False, False],
+            "Performance": [55, 60, 65, 57],
+            "Actions": [
+                ["a", "b", "c"],
+                ["a", "b"],
+                ["a", "b", "c", "d"],
+                ["a", "b", "c", "d"],
+            ],
+        }
+    )
+
+    # overlap of actions regardless channel/period
+    assert cdh_utils.overlap_lists_polars(df["Actions"]).to_list() == [
+        8 / 9,
+        6 / 6,
+        9 / 12,
+        9 / 12,
+    ]
+
+    summary_df = (
+        df.group_by("Period")
+        .agg(
+            pl.when(pl.col("isValid").any())
+            .then(
+                pl.col("Actions")
+                .filter(pl.col("isValid"))
+                .map_batches(cdh_utils.overlap_lists_polars)
+                .mean()
+            )
+            .otherwise(pl.lit(0.0))
+            .alias("Overlap")
+        )
+        .sort("Period")
+    )
+
+    # print(summary_df)
+
+    # average overlap of actions with other channels in a period
+    assert [round(x, 7) for x in summary_df.to_dict()["Overlap"].to_list()] == [
+        1,
+        0.8333333,
+    ]
 
 
 def test_weighted_performance_polars():

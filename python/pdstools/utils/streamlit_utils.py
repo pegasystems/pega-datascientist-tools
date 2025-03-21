@@ -203,6 +203,7 @@ def model_selection_df(df: pl.LazyFrame, context_keys: list):
         .sort("Name")
         .select(pl.lit(False).alias("Generate Report"), pl.all())
         .collect()
+        .to_pandas()
     )
 
     return df
@@ -353,7 +354,7 @@ def configure_predictor_categorization():
     )
     color = "PredictorCategory"
     fig = px.bar(
-        df.sort(color),
+        df.sort(color).to_pandas(),
         x="Contribution",
         color=color,
         orientation="h",
