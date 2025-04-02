@@ -16,7 +16,7 @@ def test_metrics(guidance):
     assert len(guidance.standard_configurations) > 0
     assert len(guidance.standard_channels) > 0
     assert guidance.standard_directions == ["Inbound", "Outbound"]
-    assert guidance.min("Actions") == 10
+    assert guidance.min("Actions") == 50
     assert guidance.max("Responses") is None
     assert guidance.best_practice_min("Issues") == 5
     assert guidance.best_practice_max("Does not exist") is None

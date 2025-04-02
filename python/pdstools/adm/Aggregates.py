@@ -166,6 +166,7 @@ class Aggregates:
         return q.select(by_name, *column_order)
 
     # TODO: how is this used, where? Overlap with other summary function?
+    # should it also have Performance?
 
     def model_summary(
         self, by: str = "Name", query: Optional[QUERY] = None
@@ -577,6 +578,7 @@ class Aggregates:
                     pl.col("AllActions")
                     .map_batches(cdh_utils.overlap_lists_polars)
                     .alias("OmniChannel"),
+                    # TODO think about adding "New Actions"
                 )
             )
             .collect()
@@ -746,6 +748,7 @@ class Aggregates:
                 pl.col("AllActions")
                 .map_batches(cdh_utils.overlap_lists_polars, returns_scalar=False)
                 .alias("OmniChannel"),
+                # TODO think about adding "New Actions"
             )
             .with_columns(pl.col("OmniChannel").list.mean())
             .drop(["literal"] if by_period is None else [])
