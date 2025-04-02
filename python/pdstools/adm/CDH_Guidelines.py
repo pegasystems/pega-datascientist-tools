@@ -4,27 +4,34 @@ from typing import List, Optional
 
 import polars as pl
 
+# Pega Cloud limits:
+# https://docs.pega.com/bundle/customer-decision-hub-241/page/customer-decision-hub/cdh-portal/cloud-service-health-limits.html
+
+# Current Excel sheet with KPI limits (internal use)
+# boundaries and descriptions should be in sync with that one
+# https://pegasystems.sharepoint.com/:x:/s/SP-1-1CustomerEngagement/EZRI5aEOxMlMiieFQL6HysEBheX1S96zmy-t4HROK3tG7w?e=NaLYUD
+
 _data = {
     "Issues": [1, 5, 25, None],
     "Groups per Issue": [1, 5, 25, None],
     "Treatments": [2, 2500, 5000, 5000],
     "Treatments per Channel": [2, 1000, 2500, 2500],
     "Treatments per Channel per Action": [1, 1, 5, None],
-    "Actions": [10, 1000, 2500, 2500],
+    "Actions": [50, 100, 2000, 2500],
     "Actions per Group": [1, 100, 250, None],
     "Channels": [1, 2, None, None],
     "Configurations per Channel": [1, 1, 2, None],
     "Predictors": [50, 200, 700, 2000],
     "Active Predictors per Model": [2, 5, 100, None],
-
     # below are not part of the standard cloud limits but used in the reports
-    
     "Model Performance": [52, 55, 80, 90],
     "Responses": [1.0, 200, None, None],
     "Positive Responses": [1.0, 200, None, None],
     "Engagement Lift": [0.0, 1.0, None, None],
     "CTR": [0.0, 0.000001, 0.999999, 1.0],
     "OmniChannel": [0.0, 0.5, 1.0, 1.0],
+    "Action Optionality": [5.0, 7.0, None, None],
+    "Inbound No Action Ratio": [None, 0.0, 0.15, 0.25],
 }
 
 _pega_cloud_limits = pl.DataFrame(data=_data).transpose(include_header=True)
@@ -167,7 +174,8 @@ class CDHGuidelines:
         all_predictions = _NBAD_Prediction_data + [
             prediction
             for prediction in custom_predictions
-            if prediction[0].upper() not in {x[0].upper() for x in _NBAD_Prediction_data}
+            if prediction[0].upper()
+            not in {x[0].upper() for x in _NBAD_Prediction_data}
         ]
 
         df = (

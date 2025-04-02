@@ -225,13 +225,21 @@ class Prediction:
         # )
     )
 
-    def __init__(self, df: pl.LazyFrame):
+    def __init__(
+        self,
+        df: pl.LazyFrame,
+        *,
+        query: Optional[QUERY] = None,
+    ):
         """Initialize the Prediction class
 
         Parameters
         ----------
         df : pl.LazyFrame
             The read in data as a Polars LazyFrame
+        query : QUERY, optional
+            An optional query to apply to the input data.
+            For details, see :meth:`pdstools.utils.cdh_utils._apply_query`.
         """
         self.cdh_guidelines = CDHGuidelines()
         self.plot = PredictionPlots(prediction=self)
@@ -240,16 +248,12 @@ class Prediction:
             (
                 df.filter(pl.col.pyModelType == "PREDICTION")
                 .with_columns(
-                    # why not directly in polars from "%Y%m%d"
-                    # clipping first to 85 chars
+                    # Unlike ADM we only support one pattern currently
                     SnapshotTime=pl.col("pySnapShotTime")
                     .str.slice(0, 8)
                     .str.strptime(pl.Date, "%Y%m%d"),
                     Performance=pl.col("pyValue").cast(pl.Float32),
                 )
-                # .with_columns(
-                #     SnapshotTime=pl.col("SnapshotTime").dt.replace_time_zone(None)
-                # )
                 .rename(
                     {
                         "pyPositives": "Positives",
@@ -321,6 +325,8 @@ class Prediction:
             )
             .sort(["pyModelId", "SnapshotTime"])
         )
+
+        self.predictions = cdh_utils._apply_query(self.predictions, query)
 
     @staticmethod
     def from_mock_data(days=70):
