@@ -686,7 +686,7 @@ class Aggregates:
         try:
             model_identifiers = ["Configuration"] + self.datamart.context_keys
             predictor_summary = (
-                self.last(table="combined_data")
+                self.last(table="predictor_data")
                 .filter(pl.col("EntryType") != "Classifier")
                 .group_by(model_identifiers + ["ModelID", "PredictorName"])
                 .agg(
@@ -699,7 +699,7 @@ class Aggregates:
                     .filter(pl.col("BinType") == "MISSING")
                     .sum()
                     .alias("Missing Bin Responses"),
-                    pl.first("ResponseCount"),
+                    pl.sum("BinResponseCount").alias("PredictorResponseCount"),
                 )
                 .fill_null(0)
                 .fill_nan(0)
