@@ -669,48 +669,68 @@ class Aggregates:
 
         return configuration_summary
 
-    def predictors_overview(self) -> Optional[pl.DataFrame]:
+    def predictors_overview(
+        self,
+        model_id: Optional[str] = None,
+        additional_aggregations: Optional[list] = None,
+    ) -> Optional[pl.DataFrame]:
         """
         Generate a summary of the last snapshot of predictor data.
-
-        This method creates a summary of predictor data by joining the last snapshots
-        of predictor_data and model_data, then performing various aggregations and
-        calculations. It excludes the "Classifier" predictor from the analysis.
-
         Returns
         -------
         pl.DataFrame or None
             A Polars DataFrame containing the predictor summary if successful,
-            None if the required data is not available.
+            None if the required data is not available or encountered to an error.
         """
         try:
-            model_identifiers = ["Configuration"] + self.datamart.context_keys
-            predictor_summary = (
-                self.last(table="combined_data")
-                .filter(pl.col("EntryType") != "Classifier")
-                .group_by(model_identifiers + ["ModelID", "PredictorName"])
-                .agg(
-                    pl.first("Type"),
-                    pl.first("Performance"),
-                    pl.first("EntryType"),
-                    pl.count("BinIndex").alias("Bin Count"),
-                    pl.first("Positives"),
+            data = self.last(table="predictor_data")
+
+            if model_id is not None:
+                data = data.filter(pl.col("ModelID") == model_id)
+                group_cols = ["PredictorName"]
+            else:
+                group_cols = ["ModelID", "PredictorName"]
+
+            default_aggs = [
+                pl.last("ResponseCount").cast(pl.Int64).alias("Responses"),
+                pl.last("Positives").cast(pl.Int64),
+                pl.last("EntryType"),
+                (pl.last("EntryType") == "Active").alias("isActive"),
+                pl.last("GroupIndex").cast(pl.Int16),
+                pl.last("Type"),
+                pl.last("Performance").cast(pl.Float32).alias("Univariate Performance"),
+                pl.max("BinIndex").cast(pl.Int16).alias("Bins"),
+                (
                     pl.col("BinResponseCount")
                     .filter(pl.col("BinType") == "MISSING")
                     .sum()
-                    .alias("Missing Bin Responses"),
-                    pl.first("ResponseCount"),
+                    * 100
+                    / pl.sum("BinResponseCount")
                 )
-                .fill_null(0)
-                .fill_nan(0)
-                .with_columns(
-                    pl.col("Bin Count").cast(pl.Int16),
-                    pl.col("Positives").cast(pl.Int64),
-                    pl.col("ResponseCount").cast(pl.Int64),
+                .cast(pl.Float64)
+                .alias("Missing %"),
+                (
+                    pl.col("BinResponseCount")
+                    .filter(pl.col("BinType") == "RESIDUAL")
+                    .sum()
+                    * 100
+                    / pl.sum("BinResponseCount")
                 )
+                .cast(pl.Float64)
+                .alias("Residual %"),
+            ]
+
+            if additional_aggregations is not None:
+                default_aggs.extend(additional_aggregations)
+
+            result = data.group_by(group_cols).agg(*default_aggs)
+            result = result.sort(
+                ["GroupIndex", "isActive", "Univariate Performance"],
+                descending=[False, True, True],
+                nulls_last=True,
             )
 
-            return predictor_summary
+            return result
         except ValueError:  # really? swallowing?
             return None
 
