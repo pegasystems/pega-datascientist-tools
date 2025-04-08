@@ -670,12 +670,12 @@ class Aggregates:
         return configuration_summary
 
     def predictors_overview(
-        self, model_id: str = None, additional_aggregations: list = []
+        self,
+        model_id: Optional[str] = None,
+        additional_aggregations: Optional[list] = None,
     ) -> Optional[pl.DataFrame]:
         """
         Generate a summary of the last snapshot of predictor data.
-
-        This method creates a summary of last predictor snapshot.
         Returns
         -------
         pl.DataFrame or None
@@ -720,7 +720,7 @@ class Aggregates:
                 .alias("Residual %"),
             ]
 
-            if additional_aggregations:
+            if additional_aggregations is not None:
                 default_aggs.extend(additional_aggregations)
 
             result = data.group_by(group_cols).agg(*default_aggs)
