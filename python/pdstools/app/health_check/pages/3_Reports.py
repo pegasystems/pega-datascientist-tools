@@ -88,7 +88,7 @@ with health_check:
                     st.session_state["dm"].predictor_data,
                     query=st.session_state.get("filters", None),
                 )
-                tablename = "ADMSnapshots.xlsx"
+                tablename = "HealthCheckExport.xlsx"
                 tables, warning_messages = filtered_datamart.generate.excel_report(
                     tablename,
                     predictor_binning=include_binning,
