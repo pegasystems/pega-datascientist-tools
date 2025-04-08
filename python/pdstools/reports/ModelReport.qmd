@@ -49,7 +49,7 @@ from pdstools.utils import report_utils
 ```{python}
 # | tags: [parameters]
 
-# Insert the paths to your data files here to run the notebook from your IDE. 
+# Insert the paths to your data files here to run the notebook from your IDE.
 # Edit the _quarto.yml to enable/disable specific sections of the quarto output.
 # Parameters will be overriden by quarto when a parameters yaml is provided
 
@@ -497,39 +497,8 @@ For Adaptive Gradient Boosting models ("AGB") the number of positives and negati
 # See https://github.com/pegasystems/pega-datascientist-tools/issues/127
 
 predictors_summary_info = (
-    datamart.aggregates.last(table="predictor_data")
-    .filter(pl.col("ModelID") == model_id)
-    .sort(["PredictorName", "BinIndex"])
-    .group_by(
-        "PredictorName",
-        maintain_order=True,
-    )
-    .agg(
-        pl.last("ResponseCount").alias("Responses"),
-        pl.last("Positives"),
-        pl.last("EntryType"),
-        (pl.last("EntryType") == "Active").alias("isActive"),
-        pl.last("GroupIndex"),
-        pl.last("Type"),
-        pl.last("Performance").alias("Univariate Performance"),
-        pl.max("BinIndex").alias("Bins"),
-        (
-            pl.col("BinResponseCount").filter(pl.col("BinType") == "MISSING").sum()
-            * 100
-            / pl.sum("BinResponseCount")
-        ).alias("Missing %"),
-        (
-            pl.col("BinResponseCount").filter(pl.col("BinType") == "RESIDUAL").sum()
-            * 100
-            / pl.sum("BinResponseCount")
-        ).alias("Residual %"),
-        pl.col("BinResponseCount").cast(pl.String).alias("Binning"),
-    )
-    .sort(
-        ["GroupIndex", "isActive", "Univariate Performance"],
-        descending=[False, True, True],
-        nulls_last=True,
-    )
+    datamart.aggregates.predictors_overview(model_id=model_id,
+    additional_aggregations=[pl.col("BinResponseCount").cast(pl.String).alias("Binning")])
     .with_columns(pl.col("isActive").any().over("GroupIndex").alias("AnyActiveInGroup"))
     .with_columns(
         pl.when(pl.col("isActive").not_() & pl.col("AnyActiveInGroup"))
