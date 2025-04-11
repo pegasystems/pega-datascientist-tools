@@ -323,6 +323,7 @@ class Aggregates:
         self,
         by_period: Optional[str],
         by_channel: bool,
+        debug: bool,
         custom_channels: Optional[Dict[str, str]] = None,
     ) -> pl.LazyFrame:
         custom_channels = custom_channels or {}
@@ -391,25 +392,28 @@ class Aggregates:
         grouping = None if len(grouping) == 0 else grouping
 
         return (
-            self._summarize_meta_info(grouping, model_data)
+            self._summarize_meta_info(grouping, model_data, debug=debug)
             .join(
-                self._summarize_model_analytics(grouping, model_data),
+                self._summarize_model_analytics(grouping, model_data, debug=debug),
                 on=("literal" if grouping is None else grouping),
-                join_nulls=True,
+                nulls_equal=True,
                 how="left",
             )
             .join(
-                self._summarize_action_analytics(grouping, model_data),
+                self._summarize_action_analytics(grouping, model_data, debug=debug),
                 on=("literal" if grouping is None else grouping),
-                join_nulls=True,
+                nulls_equal=True,
                 how="left",
             )
             .join(
                 self._summarize_model_usage(
-                    grouping, model_data, self.cdh_guidelines.standard_configurations
+                    grouping,
+                    model_data,
+                    self.cdh_guidelines.standard_configurations,
+                    debug=debug,
                 ),
                 on=("literal" if grouping is None else grouping),
-                join_nulls=True,
+                nulls_equal=True,
                 how="left",
             )
             .drop(["literal"] if grouping is None else [])
@@ -417,7 +421,7 @@ class Aggregates:
         )
 
     def _summarize_meta_info(
-        self, grouping: Optional[List[str]], model_data: pl.LazyFrame
+        self, grouping: Optional[List[str]], model_data: pl.LazyFrame, debug: bool
     ) -> pl.LazyFrame:
         return (
             model_data.group_by(grouping)
@@ -439,7 +443,7 @@ class Aggregates:
         )
 
     def _summarize_model_analytics(
-        self, grouping: Optional[List[str]], model_data: pl.LazyFrame
+        self, grouping: Optional[List[str]], model_data: pl.LazyFrame, debug: bool
     ) -> pl.LazyFrame:
         return (
             model_data.group_by(([] if grouping is None else grouping) + ["ModelID"])
@@ -456,12 +460,12 @@ class Aggregates:
             )
             .with_columns(
                 CTR=pl.col("Positives") / pl.col("Responses"),
-                isValid=(pl.col("Positives") > 200) & (pl.col("Responses") > 1000),
+                isValid=(pl.col("Positives") >= 200) & (pl.col("Responses") >= 1000),
             )
         )
 
     def _summarize_action_analytics(
-        self, grouping: Optional[List[str]], model_data: pl.LazyFrame
+        self, grouping: Optional[List[str]], model_data: pl.LazyFrame, debug: bool
     ) -> pl.LazyFrame:
         if "Treatment" in self.datamart.context_keys:
             treatment_summary = (
@@ -483,41 +487,100 @@ class Aggregates:
             )
 
         action_summary = (
-            model_data.group_by(
-                ([] if grouping is None else grouping)
-                + ["Name"]
-                + (["Issue"] if "Issue" in self.datamart.context_keys else [])
-                + (["Group"] if "Group" in self.datamart.context_keys else [])
+            (
+                model_data.group_by(
+                    ([] if grouping is None else grouping)
+                    + ["Name"]
+                    + (["Issue"] if "Issue" in self.datamart.context_keys else [])
+                    + (["Group"] if "Group" in self.datamart.context_keys else [])
+                )
+                .agg(
+                    (
+                        pl.col("ResponseCount").max() > pl.col("ResponseCount").min()
+                    ).alias("is_used"),
+                    MinSnapshotTime=pl.col("SnapshotTime").min(),
+                )
+                .group_by(grouping)
+                .agg(
+                    (
+                        pl.col("Issue").n_unique()
+                        if "Issue" in self.datamart.context_keys
+                        else pl.lit(0)
+                    ).alias("Issues"),
+                    (
+                        pl.concat_str(["Issue", "Group"], separator="/").n_unique()
+                        if "Issue" in self.datamart.context_keys
+                        and "Group" in self.datamart.context_keys
+                        else pl.lit(0)
+                    ).alias("Groups"),
+                    pl.col("Name").n_unique().alias("Actions"),
+                    pl.col("Name").filter("is_used").n_unique().alias("Used Actions"),
+                    pl.col("Name").unique().alias("AllActions"),
+                    pl.col("MinSnapshotTime").min(),
+                )
             )
-            .agg(
-                (pl.col("ResponseCount").max() > pl.col("ResponseCount").min()).alias(
-                    "is_used"
-                ),
+            .collect()
+            .lazy()
+        )
+
+        # This makes interpretation rather difficult.
+        # very_first_date = (
+        #     self.datamart.first_action_dates.select(pl.col("FirstSnapshotTime").min())
+        #     .collect()
+        #     .item()
+        # )
+
+        new_action_summary = (
+            (
+                action_summary.select(
+                    ([] if grouping is None else grouping)
+                    + ["AllActions", "MinSnapshotTime"]
+                )
+                .explode("AllActions")
+                .join_where(
+                    self.datamart.first_action_dates,
+                    pl.col("FirstSnapshotTime") >= pl.col("MinSnapshotTime"),
+                    # may result in multiple rows...
+                )
+                .group_by(grouping)
+                .agg(
+                    pl.col("AllActions").unique(),
+                    pl.col("Name")
+                    .alias("NewActionsAtOrAfter")
+                    # .filter(pl.col("FirstSnapshotTime") > very_first_date)
+                    .list.explode()
+                    .unique(),
+                )
+                .with_columns(
+                    pl.col("AllActions")
+                    .list.set_intersection(pl.col("NewActionsAtOrAfter"))
+                    .alias("NewActionsList"),
+                    pl.col("AllActions")
+                    .list.set_intersection(pl.col("NewActionsAtOrAfter"))
+                    .list.len()
+                    .alias("New Actions"),
+                )
             )
-            .group_by(grouping)
-            .agg(
-                (
-                    pl.col("Issue").n_unique()
-                    if "Issue" in self.datamart.context_keys
-                    else pl.lit(0)
-                ).alias("Issues"),
-                (
-                    pl.concat_str(["Issue", "Group"], separator="/").n_unique()
-                    if "Issue" in self.datamart.context_keys
-                    and "Group" in self.datamart.context_keys
-                    else pl.lit(0)
-                ).alias("Groups"),
-                pl.len().alias("Actions"),
-                pl.sum("is_used").alias("Used Actions"),
-                pl.col("Name").unique().alias("AllActions"),
+            .collect()
+            .lazy()
+        )
+
+        action_summary = (
+            action_summary.drop("MinSnapshotTime")
+            .join(
+                new_action_summary.drop("AllActions"),
+                on=("literal" if grouping is None else grouping),
+                how="left",
             )
+            .with_columns(pl.col("New Actions").fill_null(0))
+            .drop([] if debug else ["NewActionsList", "NewActionsAtOrAfter"])
         )
 
         if "Treatment" in self.datamart.context_keys:
             return action_summary.join(
                 treatment_summary,
                 on=("literal" if grouping is None else grouping),
-                join_nulls=True,
+                nulls_equal=True,
                 how="left",
             ).fill_null(0)
         else:
@@ -531,6 +594,7 @@ class Aggregates:
         grouping: Optional[List[str]],
         model_data: pl.LazyFrame,
         standard_configurations: List[str],
+        debug: bool,
     ) -> pl.LazyFrame:
         standard_configurations_set = set([x.upper() for x in standard_configurations])
 
@@ -550,6 +614,7 @@ class Aggregates:
         self,
         by_period: Optional[str] = None,
         custom_channels: Optional[Dict[str, str]] = None,
+        debug: bool = False,
     ) -> pl.LazyFrame:
         """Summarize ADM models per channel
 
@@ -557,15 +622,60 @@ class Aggregates:
         ----------
         by_period : str, optional
             Optional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. If provided, creates a new Period column with the truncated date/time. Defaults to None.
+        custom_channels : Dict[str, str], optional
+            Optional dictionary mapping custom channel names to standard channel groups. Defaults to None.
+        debug : bool, optional
+            If True, enables debug mode for additional logging or outputs. Defaults to False.
 
         Returns
         -------
         pl.LazyFrame
-            Dataframe with summary per channel (and optionally a period)
+            Dataframe with summary per channel (and optionally a period) with the following fields:
+
+            Channel Identification:
+            - Channel - The channel name
+            - Direction - The direction (e.g., Inbound, Outbound)
+            - ChannelDirection - Combined Channel/Direction (e.g., "Web/Inbound")
+            - ChannelDirectionGroup - Standardized channel group with direction (e.g., "Web/Inbound")
+            - Period - (Only present when by_period parameter is specified) The time period for the data
+
+            Time and Configuration Fields:
+            - DateRange Min - The minimum date in the snapshot time range
+            - DateRange Max - The maximum date in the snapshot time range
+            - Duration - The duration in seconds between the minimum and maximum snapshot times
+            - Configuration - A comma-separated list of model configuration names
+
+            Performance Metrics:
+            - Positives - The sum of positive responses across all models in the channel
+            - Responses - The sum of all responses across all models in the channel
+            - Performance - The weighted average performance across all models in the channel (50-100)
+            - CTR - Click-through rate (Positives / Responses)
+            - isValid - Boolean indicating if the channel has sufficient data (at least 200 positives and 1000 responses)
+
+            Action Statistics:
+            - Actions - The total number of unique actions in the channel
+            - Used Actions - The number of unique actions that have been used (have responses)
+            - New Actions - The number of new actions introduced in the period
+            - Issues - The number of unique issues
+            - Groups - The number of unique issue/group combinations
+
+            Treatment Statistics:
+            - Treatments - The total number of unique treatments
+            - Used Treatments - The number of unique treatments
+
+            Omnichannel Metrics:
+            - OmniChannel - The overlap of actions with other channels (measure of Omni Channel capability)
+
+            Technology Usage Indicators:
+            - usesNBAD - Boolean indicating whether any standard NBAD configurations are used
+            - usesAGB - Boolean indicating whether any Adaptive Generic Boosting (AGB) models are used
         """
 
         summary_by_channel = self._adm_model_summary(
-            by_period=by_period, by_channel=True, custom_channels=custom_channels
+            by_period=by_period,
+            by_channel=True,
+            debug=debug,
+            custom_channels=custom_channels,
         )
 
         omni_channel_summary = (
@@ -594,7 +704,7 @@ class Aggregates:
             .join(
                 omni_channel_summary,
                 on=([] if by_period is None else ["Period"]) + ["Channel", "Direction"],
-                join_nulls=True,
+                nulls_equal=True,
                 how="left",
             )
             .with_columns(
@@ -714,7 +824,14 @@ class Aggregates:
         except ValueError:  # really? swallowing?
             return None
 
-    def overall_summary(self, by_period: str = None) -> pl.LazyFrame:
+    # TODO consider adding a "last_period" argument with default True and setting by_period to "1mo" by default
+    # this would run the summary by month then only return last month of data. Maybe "30d" instead. Or just
+    # a "reporting_period" argument defaulting to "-30d" if that is possible and somewhat clashing with by_period.
+    # Make sure to align with Predictions summary
+
+    def overall_summary(
+        self, by_period: str = None, debug: bool = False
+    ) -> pl.LazyFrame:
         """Overall ADM models summary. Only valid data is included.
 
         Parameters
@@ -723,19 +840,63 @@ class Aggregates:
             Optional list with custom channel/direction name mappings. Defaults to None.
         by_period : str, optional
             Optional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. If provided, creates a new Period column with the truncated date/time. Defaults to None.
+        debug : bool, optional
+            If True, enables debug mode for additional logging or outputs. Defaults to False.
 
         Returns
         -------
         pl.LazyFrame
-            Summary across all valid ADM models as a dataframe
+            Summary across all valid ADM models as a dataframe with the following fields:
+
+            Time and Configuration Fields:
+            - Period - (Only present when by_period parameter is specified) The time period for the data
+            - DateRange Min - The minimum date in the snapshot time range
+            - DateRange Max - The maximum date in the snapshot time range
+            - Duration - The duration in seconds between the minimum and maximum snapshot times
+            - Configuration - A comma-separated list of unique configurations
+
+            Performance Metrics:
+            - Positives - The sum of positive responses across all models
+            - Responses - The sum of all responses across all models
+            - Performance - The weighted average performance across all models (50-100)
+
+            Action Statistics:
+            - Actions - The total number of unique actions
+            - Used Actions - The number of unique actions that have been used (have responses)
+            - New Actions - The number of new actions introduced in the period
+            - Issues - The number of unique issues
+            - Groups - The number of unique issue/group combinations
+
+            Treatment Statistics:
+            - Treatments - The total number of unique treatments
+            - Used Treatments - The number of unique treatments that have been used
+
+            Channel Statistics:
+            - Number of Valid Channels - The count of valid channels (channels with sufficient data)
+            - Minimum Channel Performance - The performance of the channel with lowest performance
+            - Channel with Minimum Performance - The channel/direction group with the lowest performance
+            - OmniChannel - The average overlap of actions across channels (measure of Omni Channel capability)
+
+            Technology Usage Indicators:
+            - usesNBAD - Boolean indicating whether standard NBAD configurations are used
+            - usesAGB - Boolean indicating whether any Adaptive Gradient Boosting (AGB) models are used
+
+            Note: A channel is considered "valid" if it has at least 200 positives and 1000 responses
         """
-        overall_summary = self._adm_model_summary(
-            by_period=by_period,
-            by_channel=False,
-        ).drop(["Configuration", "AllActions", "CTR", "isValid"])
+
+        overall_summary = (
+            self._adm_model_summary(
+                by_period=by_period,
+                by_channel=False,
+                debug=debug,
+            )
+            .drop(["Configuration", "AllActions", "CTR", "isValid"])
+            .collect()
+            .lazy()
+        )
 
         best_worst_channel_summary = (
-            self._adm_model_summary(by_period=by_period, by_channel=True)
+            self._adm_model_summary(by_period=by_period, by_channel=True, debug=debug)
             .filter(pl.col("isValid"))
             .group_by(None if by_period is None else "Period")
             .agg(
@@ -747,11 +908,14 @@ class Aggregates:
                 .alias("Channel with Minimum Performance"),
                 pl.col("AllActions")
                 .map_batches(cdh_utils.overlap_lists_polars, returns_scalar=False)
+                .mean()
                 .alias("OmniChannel"),
                 # TODO think about adding "New Actions"
             )
-            .with_columns(pl.col("OmniChannel").list.mean())
+            # .with_columns(pl.col("OmniChannel").mean())
             .drop(["literal"] if by_period is None else [])
+            .collect()
+            .lazy()
         )
 
         if by_period is None:
@@ -760,14 +924,19 @@ class Aggregates:
                 how="horizontal",
             ).with_columns(
                 cs.categorical().cast(pl.Utf8),
+                pl.col("Number of Valid Channels").fill_null(0),
             )
         else:
             return (
                 overall_summary.join(
-                    best_worst_channel_summary, on="Period", join_nulls=True, how="left"
+                    best_worst_channel_summary,
+                    on="Period",
+                    nulls_equal=True,
+                    how="left",
                 )
                 .with_columns(
                     cs.categorical().cast(pl.Utf8),
+                    pl.col("Number of Valid Channels").fill_null(0),
                 )
                 .sort("Period")
             )

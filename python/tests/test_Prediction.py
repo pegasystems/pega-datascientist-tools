@@ -178,7 +178,6 @@ def test_overall_summary_cols(test):
         "usesImpactAnalyzer",
         "ControlPercentage",
         "TestPercentage",
-        "CTR",
     ]
     assert len(summary) == 1
 
@@ -210,10 +209,6 @@ def test_overall_summary_channel_min_lift(test):
 
 def test_overall_summary_min_lift(test):
     assert test.overall_summary().collect()["Minimum Negative Lift"].item() is None
-
-
-def test_overall_summary_ctr(test):
-    assert round(test.overall_summary().collect()["CTR"].item(), 5) == 0.11765
 
 
 def test_overall_summary_controlpct(test):

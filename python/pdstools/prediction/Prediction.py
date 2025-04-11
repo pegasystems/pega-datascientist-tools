@@ -649,7 +649,7 @@ class Prediction:
             )
             .drop(["literal"] if by_period is None else [])  # created by null group
             .with_columns(
-                CTR=(pl.col("Positives")) / (pl.col("Responses")),
+                # CTR=(pl.col("Positives")) / (pl.col("Responses")),
                 usesImpactAnalyzer=pl.col("usesImpactAnalyzer").list.any(),
             )
             .sort(["Period"] if by_period is not None else [])

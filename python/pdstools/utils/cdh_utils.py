@@ -722,7 +722,7 @@ def weighted_performance_polars(
 
 
 def overlap_lists_polars(col: pl.Series) -> pl.Series:
-    """Calculate the overlap of each of the elements (must be a list) with all the elements"""
+    """Calculate the overlap of each of the elements (must be a list) with all the other elements"""
     nrows = col.len()
     average_overlap = []
     for i in range(nrows):
