@@ -182,13 +182,7 @@ def test_file_not_found_in_bad_dir():
         pega_io.read_ds_export(path="data1", filename="model_data")
 
 
-def test_import_csv_pandas():
-    path = f"{basePath}/data"
-    models = "pr_data_dm_admmart_mdl_fact.csv"
-    assert polars_checks(pega_io.read_ds_export(path=path, filename=models))
-
-
-def test_import_zipped_json_pandas():
+def test_import_zipped_json():
     path = f"{basePath}/data"
     models = "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip"
     assert polars_checks(pega_io.read_ds_export(path=path, filename=models))

@@ -395,13 +395,13 @@ class Aggregates:
             .join(
                 self._summarize_model_analytics(grouping, model_data),
                 on=("literal" if grouping is None else grouping),
-                join_nulls=True,
+                nulls_equal=True,
                 how="left",
             )
             .join(
                 self._summarize_action_analytics(grouping, model_data),
                 on=("literal" if grouping is None else grouping),
-                join_nulls=True,
+                nulls_equal=True,
                 how="left",
             )
             .join(
@@ -409,7 +409,7 @@ class Aggregates:
                     grouping, model_data, self.cdh_guidelines.standard_configurations
                 ),
                 on=("literal" if grouping is None else grouping),
-                join_nulls=True,
+                nulls_equal=True,
                 how="left",
             )
             .drop(["literal"] if grouping is None else [])
@@ -517,7 +517,7 @@ class Aggregates:
             return action_summary.join(
                 treatment_summary,
                 on=("literal" if grouping is None else grouping),
-                join_nulls=True,
+                nulls_equal=True,
                 how="left",
             ).fill_null(0)
         else:
@@ -594,7 +594,7 @@ class Aggregates:
             .join(
                 omni_channel_summary,
                 on=([] if by_period is None else ["Period"]) + ["Channel", "Direction"],
-                join_nulls=True,
+                nulls_equal=True,
                 how="left",
             )
             .with_columns(
@@ -784,7 +784,10 @@ class Aggregates:
         else:
             return (
                 overall_summary.join(
-                    best_worst_channel_summary, on="Period", join_nulls=True, how="left"
+                    best_worst_channel_summary,
+                    on="Period",
+                    nulls_equal=True,
+                    how="left",
                 )
                 .with_columns(
                     cs.categorical().cast(pl.Utf8),
