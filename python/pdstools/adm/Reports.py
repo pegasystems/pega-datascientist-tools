@@ -448,20 +448,57 @@ class Reports(LazyNamespace):
         from xlsxwriter import Workbook
 
         EXCEL_ROW_LIMIT = 1048576
+        # Standard ZIP format limit is 4gb but 3gb would already crash most laptops
+        ZIP_SIZE_LIMIT_MB = 3000
         warning_messages = []
 
         name = Path(name)
         tabs = {
-            "modeldata_last_snapshot": self.datamart.aggregates.last(table="model_data")
+            "modeldata_last_snapshot": self.datamart.aggregates.last(
+                table="model_data"
+            ).with_columns(
+                pl.col("ResponseCount").cast(pl.Int64),
+                pl.col("Positives").cast(pl.Int64),
+                pl.col("Negatives").cast(pl.Int64),
+            )
         }
 
         if self.datamart.predictor_data is not None:
             tabs["predictors_overview"] = self.datamart.aggregates.predictors_overview()
 
         if predictor_binning and self.datamart.predictor_data is not None:
-            tabs["predictor_binning"] = self.datamart.aggregates.last(
-                table="combined_data"
-            ).filter(pl.col("PredictorName") != "Classifier")
+            columns = [
+                pl.col("ModelID").cast(pl.Utf8),
+                pl.col("PredictorName").cast(pl.Utf8),
+                pl.col("GroupIndex").cast(pl.Int16),
+                pl.col("Performance").cast(pl.Float32),
+                pl.col("FeatureImportance").cast(pl.Float32),
+                pl.col("ResponseCount").cast(pl.Int64),
+                pl.col("Positives").cast(pl.Int64),
+                pl.col("BinIndex").cast(pl.Int16),
+                pl.col("TotalBins").cast(pl.Int16),
+                pl.col("BinType").cast(pl.Utf8),
+                pl.col("EntryType").cast(pl.Utf8),
+                pl.col("BinSymbol").cast(pl.Utf8),
+                pl.col("BinPositives").cast(pl.Int64),
+                pl.col("BinResponseCount").cast(pl.Int64),
+                pl.col("PredictorCategory").cast(pl.Utf8),
+            ]
+            subset_columns = [
+                col
+                for col in columns
+                if col.meta.output_name()
+                in self.datamart.predictor_data.collect_schema().names()
+            ]
+            tabs["predictor_binning"] = (
+                self.datamart.aggregates.last(table="predictor_data")
+                .filter(pl.col("PredictorName") != "Classifier")
+                .select(subset_columns)
+            ).sort(
+                ["GroupIndex", "EntryType", "Performance"],
+                descending=[False, True, True],
+                nulls_last=True,
+            )
 
         # Remove None values (tables that are not available)
         tabs = {k: v for k, v in tabs.items() if v is not None}
@@ -470,29 +507,53 @@ class Reports(LazyNamespace):
             print("No data available to export.")
             return None, warning_messages
 
-        with Workbook(
-            name, options={"nan_inf_to_errors": True, "remove_timezone": True}
-        ) as wb:
-            for tab, data in tabs.items():
-                data = data.with_columns(
-                    pl.col(pl.List(pl.Categorical), pl.List(pl.Utf8))
-                    .list.eval(pl.element().cast(pl.Utf8))
-                    .list.join(", ")
-                )
-                data = data.collect()
+        try:
+            with Workbook(
+                name, options={"nan_inf_to_errors": True, "remove_timezone": True}
+            ) as wb:
+                # Enable ZIP64 extensions to handle large files
+                wb.use_zip64()
 
-                if data.shape[0] > EXCEL_ROW_LIMIT:
-                    warning_msg = (
-                        f"The data for sheet '{tab}' exceeds Excel's row limit "
-                        f"({data.shape[0]:,} rows > {EXCEL_ROW_LIMIT:,} rows). "
-                        "This sheet will not be written to the Excel file. "
-                        "Please filter your data before generating the Excel report."
+                for tab, data in tabs.items():
+                    data = data.with_columns(
+                        pl.col(pl.List(pl.Categorical), pl.List(pl.Utf8))
+                        .list.eval(pl.element().cast(pl.Utf8))
+                        .list.join(", ")
                     )
-                    warning_messages.append(warning_msg)
-                    print(warning_msg)
-                    continue
-                else:
-                    data.write_excel(workbook=wb, worksheet=tab)
+                    data = data.collect()
+
+                    # Check data size (with a multiplication factor for Excel XML overhead)
+                    estimated_size_mb = data.estimated_size(unit="mb") * 2.5
+                    if estimated_size_mb > ZIP_SIZE_LIMIT_MB:
+                        warning_msg = (
+                            f"The data for sheet '{tab}' is too large (estimated {estimated_size_mb:.1f} MB). "
+                            f"This exceeds the recommended size limit for Excel files ({ZIP_SIZE_LIMIT_MB} MB). "
+                            "This sheet will not be written to the Excel file. "
+                            "Consider exporting this data to CSV format instead."
+                        )
+                        warning_messages.append(warning_msg)
+                        print(warning_msg)
+                        continue
+
+                    if data.shape[0] > EXCEL_ROW_LIMIT:
+                        warning_msg = (
+                            f"The data for sheet '{tab}' exceeds Excel's row limit "
+                            f"({data.shape[0]:,} rows > {EXCEL_ROW_LIMIT:,} rows). "
+                            "This sheet will not be written to the Excel file. "
+                            "Please filter your data before generating the Excel report."
+                        )
+                        warning_messages.append(warning_msg)
+                        print(warning_msg)
+                        continue
+                    else:
+                        data.write_excel(workbook=wb, worksheet=tab)
+        except Exception as e:
+            warning_msg = (
+                f"Error creating Excel file: {str(e)}. Try exporting to CSV instead."
+            )
+            warning_messages.append(warning_msg)
+            print(warning_msg)
+            return None, warning_messages
 
         print(f"Data exported to {name}")
         return name, warning_messages
