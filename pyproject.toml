@@ -32,9 +32,6 @@ keywords = [
 ]
 requires-python = ">=3.9"
 dependencies = [
-    "ipywidgets>=8.1.5",
-    "jupyter-dash>=0.4.2",
-    "plotly>=5.24.1",
     "polars>=0.20",
     'typing_extensions',
 ]
@@ -60,7 +57,7 @@ all = ['pdstools[app, pega_io, onnx]']
 dev = ['pre-commit']
 docs = ['sphinx','furo','sphinx-autoapi','nbsphinx','sphinx-copybutton','myst-parser', 'sphinx-argparse']
 tests = ['testbook', 'pytest', 'pytest-cov', 'pytest-httpx', 'pytest-mock', 'moto', 'openpyxl', 'pdstools[all]', 'coverage']
-explanations = ['duckdb', 'pandas', 'pyarrow']
+explanations = ['duckdb', 'pandas', 'pyarrow', "ipywidgets", "plotly",]
 
 [project.urls]
 "Homepage" = "https://github.com/pegasystems/pega-datascientist-tools"

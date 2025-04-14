@@ -4,15 +4,15 @@ SET enable_progress_bar = {ENABLE_PROGRESS_BAR};
 
 WITH
     quantiles AS (
-        SELECT
-            *
-            , NTILE(10) OVER (PARTITION BY predictor_name ORDER BY numeric_value ASC) AS decile
-            FROM {TABLE_N} as {LEFT_PREFIX}
-            WHERE {WHERE_CONDITION} AND numeric_value IS NOT NULL
+       SELECT
+        *
+        ,NTILE(10) OVER (PARTITION BY (predictor_name, context_keys) ORDER BY numeric_value ASC) AS decile
+        FROM {TABLE_NAME} AS {LEFT_PREFIX}
+        WHERE {WHERE_CONDITION} AND numeric_value IS NOT NULL
     ),
     grouped_data AS (
         SELECT
-            '{MODEL_LEVEL_ID}' AS context_keys
+            {LEFT_PREFIX}.context_keys
             , {LEFT_PREFIX}.predictor_name
             , {LEFT_PREFIX}.predictor_type
             , {LEFT_PREFIX}.decile
@@ -24,14 +24,15 @@ WITH
             , MIN({LEFT_PREFIX}.numeric_value) AS minimum
             , MAX({LEFT_PREFIX}.numeric_value) AS maximum
         FROM quantiles AS {LEFT_PREFIX}
-        GROUP BY {LEFT_PREFIX}.predictor_name, {LEFT_PREFIX}.predictor_type, {LEFT_PREFIX}.decile
+        GROUP BY {LEFT_PREFIX}.predictor_name, {LEFT_PREFIX}.predictor_type, {LEFT_PREFIX}.decile, {LEFT_PREFIX}.context_keys
     ),
     intervals AS (
         SELECT
-            {LEFT_PREFIX}.predictor_name
+            {LEFT_PREFIX}.context_keys
+            , {LEFT_PREFIX}.predictor_name
             , {LEFT_PREFIX}.decile
-            , LAG(maximum) OVER (PARTITION BY {LEFT_PREFIX}.predictor_name ORDER BY {LEFT_PREFIX}.decile) AS min_interval
-            , LEAD(minimum) OVER (PARTITION BY {LEFT_PREFIX}.predictor_name ORDER BY {LEFT_PREFIX}.decile) AS max_interval
+            , LAG(maximum) OVER (PARTITION BY ({LEFT_PREFIX}.predictor_name, {LEFT_PREFIX}.context_keys) ORDER BY {LEFT_PREFIX}.decile) AS min_interval
+            , LEAD(minimum) OVER (PARTITION BY ({LEFT_PREFIX}.predictor_name, {LEFT_PREFIX}.context_keys) ORDER BY {LEFT_PREFIX}.decile) AS max_interval
         FROM grouped_data as {LEFT_PREFIX}
     ),
     result AS (
@@ -52,13 +53,14 @@ WITH
             , {LEFT_PREFIX}.contribution_0
             , {LEFT_PREFIX}.contribution_100
             , {LEFT_PREFIX}.frequency
+            
         FROM grouped_data AS {LEFT_PREFIX}
         JOIN intervals AS {RIGHT_PREFIX}
-        ON {LEFT_PREFIX}.predictor_name={RIGHT_PREFIX}.predictor_name AND {LEFT_PREFIX}.decile={RIGHT_PREFIX}.decile
+        ON {LEFT_PREFIX}.predictor_name={RIGHT_PREFIX}.predictor_name AND {LEFT_PREFIX}.decile={RIGHT_PREFIX}.decile AND {LEFT_PREFIX}.context_keys = {RIGHT_PREFIX}.context_keys
     ),
     result_missing AS (
         SELECT
-            '{MODEL_LEVEL_ID}' AS 'context_keys'
+            {LEFT_PREFIX}.context_keys
             , {LEFT_PREFIX}.predictor_name
             , {LEFT_PREFIX}.predictor_type
             , 'MISSING' AS bin_contents
@@ -68,14 +70,14 @@ WITH
             , MIN({LEFT_PREFIX}.shap_coeff) AS contribution_0
             , MAX({LEFT_PREFIX}.shap_coeff) AS contribution_100
             , COUNT(*) AS frequency
-        FROM {TABLE_N} AS {LEFT_PREFIX} WHERE {WHERE_CONDITION} AND {LEFT_PREFIX}.numeric_value IS NULL
-        GROUP BY {LEFT_PREFIX}.predictor_name, {LEFT_PREFIX}.predictor_type
+        FROM {TABLE_NAME} AS {LEFT_PREFIX} WHERE {WHERE_CONDITION} AND {LEFT_PREFIX}.numeric_value IS NULL
+        GROUP BY {LEFT_PREFIX}.predictor_name, {LEFT_PREFIX}.predictor_type, {LEFT_PREFIX}.context_keys
     )
 SELECT
     *
 FROM result
 UNION
-SELECT
-    *
+SELECT DISTINCT
+    * 
 FROM result_missing
 

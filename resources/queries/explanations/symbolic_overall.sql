@@ -13,7 +13,7 @@ WITH sym_grp AS (
       , MIN({LEFT_PREFIX}.shap_coeff) AS contribution_0
       , MAX({LEFT_PREFIX}.shap_coeff) AS contribution_100
       , COUNT(*) AS frequency
-  FROM {TABLE_N} AS {LEFT_PREFIX} 
+  FROM {TABLE_NAME} AS {LEFT_PREFIX} 
   WHERE {WHERE_CONDITION}
   GROUP BY {LEFT_PREFIX}.predictor_name, {LEFT_PREFIX}.predictor_type, {LEFT_PREFIX}.symbolic_value
 )
