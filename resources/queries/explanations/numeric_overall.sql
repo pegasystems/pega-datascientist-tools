@@ -12,7 +12,7 @@ WITH
     ),
     grouped_data AS (
         SELECT
-            '{MODEL_LEVEL_ID}' AS context_keys
+            'whole_model' AS 'partition'
             , {LEFT_PREFIX}.predictor_name
             , {LEFT_PREFIX}.predictor_type
             , {LEFT_PREFIX}.decile
@@ -36,7 +36,7 @@ WITH
     ),
     result AS (
         SELECT
-            {LEFT_PREFIX}.context_keys
+            {LEFT_PREFIX}.partition
             , {LEFT_PREFIX}.predictor_name
             , {LEFT_PREFIX}.predictor_type
             , CASE 
@@ -58,7 +58,7 @@ WITH
     ),
     result_missing AS (
         SELECT
-            '{MODEL_LEVEL_ID}' AS 'context_keys'
+            'whole_model' AS 'partition'
             , {LEFT_PREFIX}.predictor_name
             , {LEFT_PREFIX}.predictor_type
             , 'MISSING' AS bin_contents

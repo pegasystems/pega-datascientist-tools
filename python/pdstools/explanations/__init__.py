@@ -1,3 +1,3 @@
-from .GradientBoostGlobalExplanations import GradientBoostGlobalExplanations, PredictorContributionExplorer
+from .GradientBoostGlobalExplanations import GradientBoostGlobalExplanations
 
-__all__ = ["GradientBoostGlobalExplanations", "PredictorContributionExplorer"]
+__all__ = ["GradientBoostGlobalExplanations"]

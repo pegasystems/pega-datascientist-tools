@@ -6,13 +6,13 @@ WITH
     quantiles AS (
        SELECT
         *
-        ,NTILE(10) OVER (PARTITION BY (predictor_name, context_keys) ORDER BY numeric_value ASC) AS decile
+        ,NTILE(10) OVER (PARTITION BY (predictor_name, {LEFT_PREFIX}.partition) ORDER BY numeric_value ASC) AS decile
         FROM {TABLE_NAME} AS {LEFT_PREFIX}
         WHERE {WHERE_CONDITION} AND numeric_value IS NOT NULL
     ),
     grouped_data AS (
         SELECT
-            {LEFT_PREFIX}.context_keys
+            {LEFT_PREFIX}.partition
             , {LEFT_PREFIX}.predictor_name
             , {LEFT_PREFIX}.predictor_type
             , {LEFT_PREFIX}.decile
@@ -24,20 +24,20 @@ WITH
             , MIN({LEFT_PREFIX}.numeric_value) AS minimum
             , MAX({LEFT_PREFIX}.numeric_value) AS maximum
         FROM quantiles AS {LEFT_PREFIX}
-        GROUP BY {LEFT_PREFIX}.predictor_name, {LEFT_PREFIX}.predictor_type, {LEFT_PREFIX}.decile, {LEFT_PREFIX}.context_keys
+        GROUP BY {LEFT_PREFIX}.predictor_name, {LEFT_PREFIX}.predictor_type, {LEFT_PREFIX}.decile, {LEFT_PREFIX}.partition
     ),
     intervals AS (
         SELECT
-            {LEFT_PREFIX}.context_keys
+            {LEFT_PREFIX}.partition
             , {LEFT_PREFIX}.predictor_name
             , {LEFT_PREFIX}.decile
-            , LAG(maximum) OVER (PARTITION BY ({LEFT_PREFIX}.predictor_name, {LEFT_PREFIX}.context_keys) ORDER BY {LEFT_PREFIX}.decile) AS min_interval
-            , LEAD(minimum) OVER (PARTITION BY ({LEFT_PREFIX}.predictor_name, {LEFT_PREFIX}.context_keys) ORDER BY {LEFT_PREFIX}.decile) AS max_interval
+            , LAG(maximum) OVER (PARTITION BY ({LEFT_PREFIX}.predictor_name, {LEFT_PREFIX}.partition) ORDER BY {LEFT_PREFIX}.decile) AS min_interval
+            , LEAD(minimum) OVER (PARTITION BY ({LEFT_PREFIX}.predictor_name, {LEFT_PREFIX}.partition) ORDER BY {LEFT_PREFIX}.decile) AS max_interval
         FROM grouped_data as {LEFT_PREFIX}
     ),
     result AS (
         SELECT
-            {LEFT_PREFIX}.context_keys
+            {LEFT_PREFIX}.partition
             , {LEFT_PREFIX}.predictor_name
             , {LEFT_PREFIX}.predictor_type
             , CASE 
@@ -56,11 +56,11 @@ WITH
             
         FROM grouped_data AS {LEFT_PREFIX}
         JOIN intervals AS {RIGHT_PREFIX}
-        ON {LEFT_PREFIX}.predictor_name={RIGHT_PREFIX}.predictor_name AND {LEFT_PREFIX}.decile={RIGHT_PREFIX}.decile AND {LEFT_PREFIX}.context_keys = {RIGHT_PREFIX}.context_keys
+        ON {LEFT_PREFIX}.predictor_name={RIGHT_PREFIX}.predictor_name AND {LEFT_PREFIX}.decile={RIGHT_PREFIX}.decile AND {LEFT_PREFIX}.partition = {RIGHT_PREFIX}.partition
     ),
     result_missing AS (
         SELECT
-            {LEFT_PREFIX}.context_keys
+            {LEFT_PREFIX}.partition
             , {LEFT_PREFIX}.predictor_name
             , {LEFT_PREFIX}.predictor_type
             , 'MISSING' AS bin_contents
@@ -71,7 +71,7 @@ WITH
             , MAX({LEFT_PREFIX}.shap_coeff) AS contribution_100
             , COUNT(*) AS frequency
         FROM {TABLE_NAME} AS {LEFT_PREFIX} WHERE {WHERE_CONDITION} AND {LEFT_PREFIX}.numeric_value IS NULL
-        GROUP BY {LEFT_PREFIX}.predictor_name, {LEFT_PREFIX}.predictor_type, {LEFT_PREFIX}.context_keys
+        GROUP BY {LEFT_PREFIX}.predictor_name, {LEFT_PREFIX}.predictor_type, {LEFT_PREFIX}.partition
     )
 SELECT
     *

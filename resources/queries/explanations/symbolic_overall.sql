@@ -4,7 +4,7 @@ SET enable_progress_bar = {ENABLE_PROGRESS_BAR};
 
 WITH sym_grp AS (
   SELECT 
-      '{MODEL_LEVEL_ID}' AS context_keys
+      'whole_model' AS 'partition'
       , {LEFT_PREFIX}.predictor_name
       , {LEFT_PREFIX}.predictor_type
       , IFNULL(NULLIF({LEFT_PREFIX}.symbolic_value, ''), 'MISSING') AS bin_contents
@@ -18,15 +18,15 @@ WITH sym_grp AS (
   GROUP BY {LEFT_PREFIX}.predictor_name, {LEFT_PREFIX}.predictor_type, {LEFT_PREFIX}.symbolic_value
 )
 SELECT
-  context_keys
+  {LEFT_PREFIX}.partition
 , predictor_name
 , predictor_type
 , bin_contents
-, ROW_NUMBER() OVER(PARTITION BY context_keys, predictor_name ORDER BY frequency DESC) AS bin_order
+, ROW_NUMBER() OVER(PARTITION BY {LEFT_PREFIX}.partition, predictor_name ORDER BY frequency DESC) AS bin_order
 , contribution_abs
 , contribution
 , contribution_0
 , contribution_100
 , frequency
-FROM sym_grp
+FROM sym_grp AS {LEFT_PREFIX}
 

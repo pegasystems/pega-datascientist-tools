@@ -57,7 +57,7 @@ all = ['pdstools[app, pega_io, onnx]']
 dev = ['pre-commit']
 docs = ['sphinx','furo','sphinx-autoapi','nbsphinx','sphinx-copybutton','myst-parser', 'sphinx-argparse']
 tests = ['testbook', 'pytest', 'pytest-cov', 'pytest-httpx', 'pytest-mock', 'moto', 'openpyxl', 'pdstools[all]', 'coverage']
-explanations = ['duckdb', "ipywidgets", "plotly",]
+explanations = ['duckdb', "ipywidgets", "plotly", "jupyter", 'pyarrow']
 
 [project.urls]
 "Homepage" = "https://github.com/pegasystems/pega-datascientist-tools"

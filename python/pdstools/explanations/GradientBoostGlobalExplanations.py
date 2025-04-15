@@ -2,7 +2,9 @@ __all__ = ["GradientBoostGlobalExplanations"]
 
 import json
 import pathlib
+import logging
 import shutil
+import os
 from datetime import datetime, timedelta
 from enum import Enum
 from glob import glob
@@ -13,12 +15,14 @@ import plotly.graph_objects as go
 import polars as pl
 from IPython.display import display
 
+logger = logging.getLogger(__name__)
 
-class PREDICTOR_TYPE(Enum):
+
+class _PREDICTOR_TYPE(Enum):
     NUMERIC: str = "NUMERIC"
     SYMBOLIC: str = "SYMBOLIC"
 
-class TABLE_NAME(Enum):
+class _TABLE_NAME(Enum):
     NUMERIC = 'numeric'
     SYMBOLIC = 'symbolic'
     NUMERIC_OVERALL = 'numeric_overall'
@@ -26,84 +30,141 @@ class TABLE_NAME(Enum):
     CREATE = "create"
 
 class GradientBoostGlobalExplanations:
+    """
+    Process and explore explanation data for Adaptive Gradient Boost models.
+
+    Class is initialied with data location, which should point to the location of the model's explanation parquet files downloaded from the explanations file repository.
+    These parquet files can then be processed to create aggregates to explain the contribution of different predictors on a global level.
+
+    Parameters
+    ----------
+    data_folder: str
+        The path of the folder containing the model explanation parquet files for processing.
+    model_name : str, optional
+        The name of the model rule. Will be used to identify files in the data folder and to validate that the correct files are being processed.
+    end_date : datetime, optional, default = datetime.today()
+        Defines the end date of the duration over which aggregates will be collected.
+    start_date : datetime, optional, default = end_date - timedelta(7)
+        Defines the start date of the duration over which aggregaates wille be collected.
+    batch_limit : int, optional, default = 10
+        The number of context key partitions to aggregate per batch.
+    memory_limit: int, optional, default 2
+        The maximum memory duckdb is allowed to allocate in GB.
+    thread_count: int, optional, default 4
+        The number of threads to be used by duckdb
+    output_folder: str, optional, default = .tmp/out
+        The folder location where the data aggregates will be written.
+    overwrite: bool, optional, default = FALSE
+        Flag if files in output folder should be overwritten. If FALSE then the output folder must be empty before aggregates can be processed.
+    progress_bar: str, optional, default = FALSE
+        Flag to toggle the progress bar for duck db queries    
+    """
+
     SEP = ", "
     LEFT_PREFIX = "l"
     RIGHT_PREFIX = "r"
+    QUERIES_FOLDER = "resources/queries/explanations"
 
 
     def __init__(
         self,
+        data_folder: str,
         model_name: str = "",
-        nb_days: int = 7,
-        start_date: datetime = datetime.today(),
-        files_location: str = None,
+        end_date: datetime = datetime.today(),
+        start_date: datetime = None,
+        output_folder: str = ".tmp/out",
+        overwrite: bool = False,
+        progress_bar: bool = False,
         batch_limit: int = 10,
         memory_limit: int = 2,
         thread_count: int = 4,
-        model_level_identifier: str = "model",
-        queries_folder: str = "resources/queries/explanations",
-        output_folder: str = "out",
-        output_file: str = "output.parquet",
-        progress_bar: bool = False,
-        redo: PREDICTOR_TYPE = None,
+
     ):
         self.conn = duckdb.connect(database=":memory:")
-        self.nb_days = nb_days
         self.model_name = model_name
-        self.start_date = start_date
 
-        self.files_location = files_location
+        self.end_date = end_date
+        if start_date is None:
+            self.start_date = self.end_date - timedelta(days=7)
+        else:
+            self.start_date = start_date
+
+        self.data_folder = data_folder
 
         self.batch_limit = batch_limit
         self.memory_limit = memory_limit
         self.thread_count = thread_count
 
-        self.model_level_identifier = model_level_identifier
-
         basePath = pathlib.Path().resolve().parent.parent
-
-        self.queries_folder = f"{basePath}/{queries_folder}"
+        self.queries_folder = f"{basePath}/{self.QUERIES_FOLDER}"
         self.output_folder = output_folder
-        self.output_file = output_file
         self.progress_bar = progress_bar
-        self.redo = redo
 
         self.selected_files = self._populate_selected_files()
 
         self.contexts = None
 
-        if redo is None:
-            # remove output folder if exists
-            output_path = pathlib.Path(self.output_folder)
-            if output_path.exists() and output_path.is_dir():
-                shutil.rmtree(output_path)
-            output_path.mkdir(parents=True, exist_ok=True)
+        output_path = pathlib.Path(self.output_folder)
+        if output_path.exists() and output_path.is_dir() and overwrite:
+            shutil.rmtree(output_path)
+        output_path.mkdir(parents=True, exist_ok=overwrite)
 
-            # remove output file if exists
-            output_file_path = pathlib.Path(self.output_file)
-            if output_file_path.exists():
-                output_file_path.unlink()
-        else:
-            to_delete = pathlib.Path(self.output_folder).glob(f"{redo}_*.parquet")
-            for file_n in to_delete:
-                file_n.unlink()
+    def process(self):
+        """Process explanation parquet files and save calculated aggregates.
 
+        This method reads the explanation data from the provided location and creates
+        aggregates for multiple contexts which are used to create global explanation plots.
+        
+        The different context aggregates are as follows:
+        i) Overall Numeric Predictor Contributions
+            The average contribution towards predicted model propensity for each numeric predictor value decile.
+        ii) Overal Symbolic Predictor Contributions
+            The average contribution towards predicted model propensity for each symoblic predictor value.
+        iii) Context Specific Numeric Predictor Contributions
+            The average contribution towards predicted model propensity for each numeric predictor value decile, grouped by context key partition.
+        iv) Overal Symbolic Predictor Contributions
+            The average contribution towards predicted model propensity for each symoblic predictor value, grouped by context key partition.
+        
+        Each of the aggregates are written to parquet files to a temporary output dirtectory unless specified otherwise.        
+        """
+
+        self._get_selected_files()
+        if len(self.selected_files) == 0:
+            logger.warning("No files found to aggregate!")
+            return
+
+        try:
+            self._run_agg(_PREDICTOR_TYPE.NUMERIC)
+        except Exception as e:
+            logger.error(f"Failed to aggregate numeric data, err={e}")
+            self.conn.close()
+            exit(1)
+
+        try:
+            self._run_agg(_PREDICTOR_TYPE.SYMBOLIC)
+        except Exception as e:
+            logger.error(f"Failed to aggregate symbolic data, err={e}")
+            self.conn.close()
+            exit(1)
+
+        self.conn.close()
+
+    def explore(self):
+        """Explore the global explanation aggregate data in an interactive widget.      
+        """
+        explorer = _PredictorContributionExplorer(self.output_folder)
+        explorer.display()
+        
     def _populate_selected_files(self):
-        def get_last_n_days(n):
-            last_n_days = [
-                (self.start_date - timedelta(days=i)).strftime("%Y%m%d")
-                for i in range(n)
-            ]
-            return last_n_days
-
+        last_n_days = [(self.start_date+timedelta(days=x)).strftime("%Y%m%d") for x in range((self.end_date-self.start_date).days + 1)]
         files_ = []
-        for day in get_last_n_days(self.nb_days):
-            file_pattern = f"{self.files_location}/{self.model_name}*{day}*.parquet"
+        for day in last_n_days:
+            file_pattern = f"{self.data_folder}/{self.model_name}*{day}*.parquet"
             file_paths = glob(file_pattern)
             for file_path in file_paths:
                 if pathlib.Path(file_path).exists():
                     files_.append(file_path)
-        print(f"Selected files:= {files_}")
+        logger.info(f"Selected files:= {files_}")
         return files_
 
     def _get_selected_files(self):
@@ -128,34 +189,34 @@ class GradientBoostGlobalExplanations:
 
         return q
 
-    def _get_table_name(self, predictor_type) -> TABLE_NAME:
+    def _get_table_name(self, predictor_type) -> _TABLE_NAME:
         return (
-            TABLE_NAME.NUMERIC
-            if predictor_type == PREDICTOR_TYPE.NUMERIC
-            else TABLE_NAME.SYMBOLIC
+            _TABLE_NAME.NUMERIC
+            if predictor_type == _PREDICTOR_TYPE.NUMERIC
+            else _TABLE_NAME.SYMBOLIC
         )
 
-    def _read_overall_sql_file(self, predictor_type: PREDICTOR_TYPE):
+    def _read_overall_sql_file(self, predictor_type: _PREDICTOR_TYPE):
         sql_file = (
-            TABLE_NAME.NUMERIC_OVERALL
-            if predictor_type == PREDICTOR_TYPE.NUMERIC
-            else TABLE_NAME.SYMBOLIC_OVERALL
+            _TABLE_NAME.NUMERIC_OVERALL
+            if predictor_type == _PREDICTOR_TYPE.NUMERIC
+            else _TABLE_NAME.SYMBOLIC_OVERALL
         )
         with open(f"{self.queries_folder}/{sql_file.value}.sql", "r") as fr:
             return fr.read()
 
-    def _read_batch_sql_file(self, predictor_type: PREDICTOR_TYPE):
+    def _read_batch_sql_file(self, predictor_type: _PREDICTOR_TYPE):
         sql_file = (    
-            TABLE_NAME.NUMERIC
-            if predictor_type == PREDICTOR_TYPE.NUMERIC
-            else TABLE_NAME.SYMBOLIC
+            _TABLE_NAME.NUMERIC
+            if predictor_type == _PREDICTOR_TYPE.NUMERIC
+            else _TABLE_NAME.SYMBOLIC
         )
         with open(f"{self.queries_folder}/{sql_file.value}.sql", "r") as fr:
             return fr.read()
 
-    def _get_create_table_sql_formatted(self, tbl_name:TABLE_NAME, predictor_type: PREDICTOR_TYPE):
+    def _get_create_table_sql_formatted(self, tbl_name:_TABLE_NAME, predictor_type: _PREDICTOR_TYPE):
         with open(
-            f"{self.queries_folder}/{TABLE_NAME.CREATE.value}.sql", "r"
+            f"{self.queries_folder}/{_TABLE_NAME.CREATE.value}.sql", "r"
         ) as fr:
             sql = fr.read()
 
@@ -171,23 +232,7 @@ class GradientBoostGlobalExplanations:
 
         return self._clean_query(f_sql)
 
-    def _get_overall_sql_formatted(self, sql, tbl_name: TABLE_NAME, where_condition):
-        f_sql = f"{
-            sql.format(
-                THREAD_COUNT=self.thread_count,
-                MEMORY_LIMIT=self.memory_limit,
-                LEFT_PREFIX=self.LEFT_PREFIX,
-                RIGHT_PREFIX=self.RIGHT_PREFIX,
-                ENABLE_PROGRESS_BAR='true' if self.progress_bar else 'false',
-                TABLE_NAME=tbl_name.value,
-                MODEL_LEVEL_ID=self.model_level_identifier,
-                WHERE_CONDITION=where_condition,
-            )
-        }"
-
-        return self._clean_query(f_sql)
-
-    def _get_batch_sql_formatted(self, sql, tbl_name: TABLE_NAME, where_condition="TRUE"):
+    def _get_overall_sql_formatted(self, sql, tbl_name: _TABLE_NAME, where_condition):
         f_sql = f"{
             sql.format(
                 THREAD_COUNT=self.thread_count,
@@ -202,13 +247,28 @@ class GradientBoostGlobalExplanations:
 
         return self._clean_query(f_sql)
 
-    def _create_in_mem_table(self, predictor_type: PREDICTOR_TYPE, table_name: TABLE_NAME=None):
+    def _get_batch_sql_formatted(self, sql, tbl_name: _TABLE_NAME, where_condition="TRUE"):
+        f_sql = f"{
+            sql.format(
+                THREAD_COUNT=self.thread_count,
+                MEMORY_LIMIT=self.memory_limit,
+                LEFT_PREFIX=self.LEFT_PREFIX,
+                RIGHT_PREFIX=self.RIGHT_PREFIX,
+                ENABLE_PROGRESS_BAR='true' if self.progress_bar else 'false',
+                TABLE_NAME=tbl_name.value,
+                WHERE_CONDITION=where_condition,
+            )
+        }"
+
+        return self._clean_query(f_sql)
+
+    def _create_in_mem_table(self, predictor_type: _PREDICTOR_TYPE):
         table_name = self._get_table_name(predictor_type)
         query = self._get_create_table_sql_formatted(table_name, predictor_type)
 
         self.conn.execute(query)
 
-    def _delete_in_mem_table(self, predictor_type: PREDICTOR_TYPE):
+    def _delete_in_mem_table(self, predictor_type: _PREDICTOR_TYPE):
         table_name = self._get_table_name(predictor_type)
 
         query = f"""
@@ -217,20 +277,22 @@ class GradientBoostGlobalExplanations:
 
         self.conn.execute(query)
 
-    def _get_contexts(self, predictor_type: PREDICTOR_TYPE):
+    def _get_contexts(self, predictor_type: _PREDICTOR_TYPE):
         table_name = self._get_table_name(predictor_type)
 
         if self.contexts is None:
             q = f"""
-                SELECT {table_name.value}.context_keys
+                SELECT {table_name.value}.partition
                 FROM {table_name.value}
-                GROUP BY {table_name.value}.context_keys;
+                GROUP BY {table_name.value}.partition;
             """
-            self.contexts = self.conn.execute(q).pl()["context_keys"].to_list()
+            self.contexts = self.conn.execute(q).pl()["partition"].to_list()
 
         return self.contexts
+    
+    
 
-    def agg_in_batches(self, predictor_type: PREDICTOR_TYPE):
+    def _parquet_in_batches(self, predictor_type: _PREDICTOR_TYPE):
         try:
             table_name = self._get_table_name(predictor_type)
 
@@ -250,7 +312,7 @@ class GradientBoostGlobalExplanations:
                     curr_group : min(curr_group + self.batch_limit, total_groups)
                 ]
                 where_condition = self._clean_query(f"""
-                    {self.LEFT_PREFIX}.context_keys IN ({self.SEP.join([f"'{row}'" for row in batch])})
+                    {self.LEFT_PREFIX}.partition IN ({self.SEP.join([f"'{row}'" for row in batch])})
                 """)
 
                 query = self._get_batch_sql_formatted(sql, table_name, where_condition)
@@ -261,45 +323,35 @@ class GradientBoostGlobalExplanations:
                 batch_counter += 1
                 curr_group += self.batch_limit
                 if batch_counter % 10 == 0:
-                    self._write_to_parquet(
-                        pl.concat(df_list),
-                        f"{predictor_type.value}_BATCH_{batch_counter}.parquet",
-                    )
+                    yield {'batch_count': batch_counter, 'dataframe': pl.concat(df_list)}
                     df_list = []
-                    print(
+                    logger.info(
                         f"Processed {predictor_type} batch {batch_counter}, group: {curr_group}, len: {len(batch)}"
                     )
 
             if len(df_list) > 0:
-                self._write_to_parquet(
-                    pl.concat(df_list),
-                    f"{predictor_type.value}_BATCH_{batch_counter}.parquet",
-                )
+                yield {'batch_count': batch_counter, 'dataframe': pl.concat(df_list)}
                 df_list = []
-                print(
+                logger.info(
                     f"Processed {predictor_type} batch {batch_counter}, group: {curr_group}, len: {len(batch)}"
                 )
 
         except Exception as e:
-            print(f"Failed batch for predictor type={predictor_type}, err={e}")
+            logger.error(f"Failed batch for predictor type={predictor_type}, err={e}")
             return
+        
+    def _agg_in_batches(self, predictor_type: _PREDICTOR_TYPE):
+        for batch in self._parquet_in_batches(predictor_type):
+            self._write_to_parquet(
+                batch['dataframe'], 
+                f"{predictor_type.value}_BATCH_{batch['batch_count']}.parquet",
+                )
 
-    def agg_overall(self, predictor_type: PREDICTOR_TYPE, where_condition="TRUE"):
-        try:
-            sql = self._read_overall_sql_file(predictor_type)
+    def _agg_overall(self, predictor_type: _PREDICTOR_TYPE, where_condition="TRUE"):
+        df = self._parquet_overall(predictor_type, where_condition)
+        self._write_to_parquet(df, f"{predictor_type.value}_OVERALL.parquet")
 
-            table_name = self._get_table_name(predictor_type)
-            query = self._get_overall_sql_formatted(sql, table_name, where_condition)
-
-            df = self.conn.execute(query).pl()
-
-            self._write_to_parquet(df, f"{predictor_type.value}_OVERALL.parquet")
-
-        except Exception as e:
-            print(f"Failed overall for predictor type={predictor_type}, err={e}")
-            return
-
-    def parquet_overall(self, predictor_type, where_condition="TRUE"):
+    def _parquet_overall(self, predictor_type: _PREDICTOR_TYPE, where_condition="TRUE"):
         try:
             sql = self._read_overall_sql_file(predictor_type)
 
@@ -309,91 +361,21 @@ class GradientBoostGlobalExplanations:
             return self.conn.execute(query).pl()
 
         except Exception as e:
-            print(f"Failed for predictor type={predictor_type}, err={e}")
+            logger.error(f"Failed for predictor type={predictor_type}, err={e}")
             return
 
-    def run_agg(self, predictor_type: PREDICTOR_TYPE):
+    def _run_agg(self, predictor_type: _PREDICTOR_TYPE):
         try:
             self._create_in_mem_table(predictor_type)
 
-            self.agg_in_batches(predictor_type)
+            self._agg_in_batches(predictor_type)
 
-            self.agg_overall(predictor_type)
-
-            self._delete_in_mem_table(predictor_type)
-        except Exception as e:
-            print(f"Failed for predictor type={predictor_type}, err={e}")
-            return
-
-    def run(self, predictor_type, where_condition):
-        try:
-            self._create_in_mem_table(predictor_type)
-
-            df = self.parquet_overall(predictor_type, where_condition)
+            self._agg_overall(predictor_type)
 
             self._delete_in_mem_table(predictor_type)
-
-            return df
         except Exception as e:
-            print(f"Failed for predictor type={predictor_type}, err={e}")
+            logger.error(f"Failed for predictor type={predictor_type}, err={e}")
             return
-
-    def process(self):
-        self._get_selected_files()
-        if len(self.selected_files) == 0:
-            print("No files found to aggregate!")
-            return
-
-        try:
-            if self.redo is None or self.redo == PREDICTOR_TYPE.NUMERIC:
-                self.run_agg(PREDICTOR_TYPE.NUMERIC)
-        except Exception as e:
-            print(f"Failed to aggregate numeric data, err={e}")
-            self.conn.close()
-            exit(1)
-
-        try:
-            if self.redo is None or self.redo == PREDICTOR_TYPE.SYMBOLIC:
-                self.run_agg(PREDICTOR_TYPE.SYMBOLIC)
-        except Exception as e:
-            print(f"Failed to aggregate symbolic data, err={e}")
-            self.conn.close()
-            exit(1)
-
-        self.conn.close()
-
-    def process_subset(
-        self, context_keys: dict = dict(), predictor_names: list = list()
-    ):
-        self._get_selected_files()
-        if len(self.selected_files) == 0:
-            print("No files found to aggregate!")
-            return
-
-        where_condition: str = self._build_where(context_keys, predictor_names)
-
-        dfs_numeric = []
-        try:
-            if self.redo is None or self.redo == PREDICTOR_TYPE.NUMERIC:
-                dfs_numeric.append(self.run(PREDICTOR_TYPE.NUMERIC, where_condition))
-        except Exception as e:
-            print(f"Failed to aggregate numeric data, err={e}")
-            self.conn.close()
-            exit(1)
-
-        dfs_symbolic = []
-
-        try:
-            if self.redo is None or self.redo == PREDICTOR_TYPE.SYMBOLIC:
-                dfs_symbolic.append(self.run(PREDICTOR_TYPE.SYMBOLIC, where_condition))
-        except Exception as e:
-            print(f"Failed to aggregate symbolic data, err={e}")
-            self.conn.close()
-            exit(1)
-
-        self.conn.close()
-
-        return {"numeric": pl.concat(dfs_numeric), "symbolic": pl.concat(dfs_symbolic)}
 
     def _build_where(self, context_keys: dict = None, predictor_names: list = None):
         if context_keys is None:
@@ -416,9 +398,9 @@ class GradientBoostGlobalExplanations:
         return self._clean_query(where_condition)
 
 
-class DataFilter:
+class _DataFilter:
     to_select = [
-        "context_keys",
+        "partition",
         "contribution",
         "contribution_abs",
         "frequency",
@@ -428,7 +410,7 @@ class DataFilter:
         "bin_order",
     ]
     allowed_contexts = []
-    data_updates = []
+    _data_updates = []
 
     def __init__(self, data_location):
         self.df_contextual = pl.concat(
@@ -467,14 +449,14 @@ class DataFilter:
         self.context_df = pl.from_dicts(
             [
                 json.loads(ck)["partition"]
-                for ck in self.df_contextual["context_keys"].unique().to_list()
+                for ck in self.df_contextual["partition"].unique().to_list()
             ]
         )
         self.context_keys = self.context_df.columns
 
-        self.init_widgets()
+        self._init_widgets()
 
-    def init_widgets(self):
+    def _init_widgets(self):
         self.context_filters = []
         for context_key in self.context_keys:
             options = self.context_df[context_key].unique().to_list()
@@ -485,7 +467,7 @@ class DataFilter:
                 ensure_option=False,
                 disabled=False,
             )
-            context_filter.observe(self.results, names="value")
+            context_filter.observe(self._results, names="value")
             self.context_filters.append(context_filter)
 
         self.filter_results = widgets.Text(
@@ -495,7 +477,7 @@ class DataFilter:
         context_filter_container = widgets.VBox(self.context_filters)
         self.widget = widgets.HBox([context_filter_container, self.filter_results])
 
-    def get_filtered_options(self):
+    def _get_filtered_options(self):
         filtered_result = self.context_df
         for f in [item for item in self.context_filters if item.value != ""]:
             filtered_result = filtered_result.filter(pl.col(f.description) == f.value)
@@ -515,40 +497,40 @@ class DataFilter:
             filter_string = None
         return filter_string
 
-    def update_filter_results(self, filter_string):
+    def _update_filter_results(self, filter_string):
         if filter_string is None:
             self.filter_results.value = "Whole Model"
         else:
             self.filter_results.value = filter_string
 
-    def results(self, value):
-        filter_string = self.get_filtered_options()
-        self.update_filter_results(filter_string)
-        for data_update in self.data_updates:
-            data_update(self)
+    def _results(self, value):
+        filter_string = self._get_filtered_options()
+        self._update_filter_results(filter_string)
+        for _data_update in self._data_updates:
+            _data_update(self)
 
-    def add_to_data_update(self, update):
-        self.data_updates.append(update)
+    def _add_to__data_update(self, update):
+        self._data_updates.append(update)
 
     def display(self):
         return display(self.widget)
 
-    def get_data(self):
+    def _get_data(self):
         filter_string = self.filter_results.value
         if filter_string == "Whole Model":
             return self.df_overall, filter_string
         else:
             return self.df_contextual.filter(
-                pl.col("context_keys").str.contains(filter_string, literal=True)
+                pl.col("partition").str.contains(filter_string, literal=True)
             ), filter_string
 
-    def get_data_aggregate(self):
+    def _get_data_aggregate(self):
         filter_string = self.filter_results.value
         if filter_string == "Whole Model":
             df = self.df_overall
         else:
             df = self.df_contextual.filter(
-                pl.col("context_keys").str.contains(filter_string, literal=True)
+                pl.col("partition").str.contains(filter_string, literal=True)
             )
         return df.group_by(["predictor_name", "predictor_type"]).agg(
             (
@@ -566,7 +548,7 @@ class DataFilter:
         ), filter_string
 
 
-class OverAllPredictorContributions:
+class _OverAllPredictorContributions:
     _predictor_options = ["BOTH", "SYMBOLIC", "NUMERIC"]
 
     _predictor_option_drop_down_w = widgets.Dropdown(
@@ -609,13 +591,13 @@ class OverAllPredictorContributions:
     def __init__(self, data, title_context):
         self.title_context = title_context
         self.data = data
-        self.init_widgets()
+        self._init_widgets()
 
-    def update_data(self, data):
+    def _update_data(self, data):
         self.data = data
-        self.init_widgets()
+        self._init_widgets()
 
-    def update_dataframe(self):
+    def _update_dataframe(self):
         if self._predictor_option_drop_down_w.value == "BOTH":
             df_filtered = self.data
         else:
@@ -624,7 +606,7 @@ class OverAllPredictorContributions:
             )
         return df_filtered
 
-    def update_figure(self, df):
+    def _update_figure(self, df):
         if self._weighted_mean_w.value:
             column = "contribution_weighted"
         else:
@@ -648,39 +630,39 @@ class OverAllPredictorContributions:
 
             self._title_w.value = f"<h3>Context: {self.title_context}<h3>"
 
-            self._fig_w.data[0].x = df[column]
-            self._fig_w.data[0].y = df["predictor_name"]
+            self._fig_w.data[0].x = df[column].to_list()
+            self._fig_w.data[0].y = df["predictor_name"].to_list()
             self._fig_w.data[0].marker = {
-                "color": df[column],
+                "color": df[column].to_list(),
                 "colorscale": "RdBu",
                 "cmid": 0.0,
             }
 
-    def data_update(self, data_filter: DataFilter):
-        new_data, self.title_context = data_filter.get_data_aggregate()
-        self.update_data(new_data)
+    def _data_update(self, data_filter: _DataFilter):
+        new_data, self.title_context = data_filter._get_data_aggregate()
+        self._update_data(new_data)
 
-    def response(self, change):
-        resulting_df = self.update_dataframe()
-        self.update_figure(resulting_df)
+    def _response(self, change):
+        resulting_df = self._update_dataframe()
+        self._update_figure(resulting_df)
 
-    def init_widgets(self):
-        self._predictor_option_drop_down_w.observe(self.response, names="value")
-        self._weighted_mean_w.observe(self.response, names="value")
-        self._absolute_mean_w.observe(self.response, names="value")
-        self._limit_w.observe(self.response, names="value")
+    def _init_widgets(self):
+        self._predictor_option_drop_down_w.observe(self._response, names="value")
+        self._weighted_mean_w.observe(self._response, names="value")
+        self._absolute_mean_w.observe(self._response, names="value")
+        self._limit_w.observe(self._response, names="value")
 
         selectors = widgets.HBox([self._predictor_option_drop_down_w, self._limit_w])
         check_boxes = widgets.HBox([self._weighted_mean_w, self._absolute_mean_w])
         self.widget = widgets.VBox([self._title_w, selectors, check_boxes, self._fig_w])
 
-        self.response("init")
+        self._response("init")
 
     def display(self):
         display(self.widget)
 
 
-class OverAllPredictorContributionsByValue:
+class _OverAllPredictorContributionsByValue:
     _sort_options = ["contribution", "frequency", "contibution weighted by freq"]
 
     _sort_by_w = widgets.Dropdown(
@@ -730,22 +712,22 @@ class OverAllPredictorContributionsByValue:
             "predictor_name",
             "bin_contents",
             "bin_order",
-            "context_keys",
+            "partition",
         ]
-        self.init_data(data)
+        self._init_data(data)
 
-    def init_data(self, data):
+    def _init_data(self, data):
         self.data = data
         self._predictor_names = data["predictor_name"].unique().to_list()
-        self.init_widgets()
+        self._init_widgets()
 
-    def update_data(self, data):
+    def _update_data(self, data):
         self.data = data
         self._predictor_names = data["predictor_name"].unique().to_list()
-        self.update_widgets()
+        self._update_widgets()
 
-    def update_dataframe(self, predictor_is_symbolic):
-        if predictor_is_symbolic:
+    def _update_dataframe(self, predictor__is_symbolic):
+        if predictor__is_symbolic:
             if self._sort_by_w.value == "frequency":
                 sorted_df = self.data.filter(
                     pl.col("predictor_name") == self._predictor_w.value
@@ -811,7 +793,7 @@ class OverAllPredictorContributionsByValue:
                 pl.col("predictor_name") == self._predictor_w.value
             ).sort(pl.col("bin_order"), descending=False)
 
-    def is_symbolic(self):
+    def _is_symbolic(self):
         predictor_type = (
             self.data.filter(pl.col("predictor_name") == self._predictor_w.value)
             .select("predictor_type")
@@ -819,15 +801,15 @@ class OverAllPredictorContributionsByValue:
             .item()
         )
 
-        is_symbolic = predictor_type == "SYMBOLIC"
-        self._sort_by_w.disabled = not is_symbolic
-        self._show_remaining_w.disabled = not is_symbolic
-        self._show_missing_w.disabled = not is_symbolic
-        self._limit_w.disabled = not is_symbolic
+        _is_symbolic = predictor_type == "SYMBOLIC"
+        self._sort_by_w.disabled = not _is_symbolic
+        self._show_remaining_w.disabled = not _is_symbolic
+        self._show_missing_w.disabled = not _is_symbolic
+        self._limit_w.disabled = not _is_symbolic
 
-        return is_symbolic
+        return _is_symbolic
 
-    def update_figure(self, df):
+    def _update_figure(self, df):
         with self._fig_w.batch_update():
             self._fig_w.add_trace(go.Bar(orientation="h"))
             self._fig_w.update_layout(
@@ -839,38 +821,38 @@ class OverAllPredictorContributionsByValue:
 
             self._title_w.value = f"<h3>Context: {self.title_context}</h3>"
 
-            self._fig_w.data[0].x = df["contribution"]
-            self._fig_w.data[0].y = df["bin_contents"]
+            self._fig_w.data[0].x = df["contribution"].to_list()
+            self._fig_w.data[0].y = df["bin_contents"].to_list()
             self._fig_w.data[0].marker = {
-                "color": df["contribution"],
+                "color": df["contribution"].to_list(),
                 "colorscale": "RdBu",
                 "cmid": 0.0,
             }
 
-    def response(self, change):
-        predictor_is_symbolic = self.is_symbolic()
-        resulting_df = self.update_dataframe(predictor_is_symbolic)
-        self.update_figure(resulting_df)
+    def _response(self, change):
+        predictor__is_symbolic = self._is_symbolic()
+        resulting_df = self._update_dataframe(predictor__is_symbolic)
+        self._update_figure(resulting_df)
 
-    def data_update(self, data_filter: DataFilter):
-        new_data, self.title_context = data_filter.get_data()
-        self.update_data(new_data)
+    def _data_update(self, data_filter: _DataFilter):
+        new_data, self.title_context = data_filter._get_data()
+        self._update_data(new_data)
 
-    def update_widgets(self):
-        self._predictor_w.observe(self.response, names="value")
+    def _update_widgets(self):
+        self._predictor_w.observe(self._response, names="value")
         self._predictor_w.options = self._predictor_names
-        self._sort_by_w.observe(self.response, names="value")
-        self._limit_w.observe(self.response, names="value")
-        self._show_remaining_w.observe(self.response, names="value")
-        self._show_missing_w.observe(self.response, names="value")
+        self._sort_by_w.observe(self._response, names="value")
+        self._limit_w.observe(self._response, names="value")
+        self._show_remaining_w.observe(self._response, names="value")
+        self._show_missing_w.observe(self._response, names="value")
 
         selectors = widgets.HBox([self._predictor_w, self._sort_by_w, self._limit_w])
         check_boxes = widgets.HBox([self._show_remaining_w, self._show_missing_w])
         self.widget = widgets.VBox([self._title_w, selectors, check_boxes, self._fig_w])
 
-        self.response("init")
+        self._response("init")
 
-    def init_widgets(self):
+    def _init_widgets(self):
         self._predictor_w = widgets.Combobox(
             placeholder="Select Predictor",
             options=self._predictor_names,
@@ -879,37 +861,46 @@ class OverAllPredictorContributionsByValue:
             disabled=False,
             value=self._predictor_names[0],
         )
-        self.update_widgets()
+        self._update_widgets()
 
     def display(self):
         display(self.widget)
 
 
-class PredictorContributionExplorer:
-    filter_head = widgets.HTML(
+class _PredictorContributionExplorer:
+    _filter_head = widgets.HTML(
         value="<h2>Context Filter</h2>",
     )
 
-    graph_head = widgets.HTML(
+    _graph_head = widgets.HTML(
         value="<h2>Contribution Graphs</h2>",
     )
 
-    def __init__(self):
-        self.data_filter = DataFilter("out")
-        self.over_all_widget = OverAllPredictorContributions(
-            *self.data_filter.get_data_aggregate()
+    def __init__(self, data_folder=".tmp/out"):
+        data_path = pathlib.Path(data_folder)
+        if data_path.exists() and data_path.is_dir():
+            with os.scandir(data_path) as it:
+                if not any(it):
+                    raise FileNotFoundError(f'No files found at {data_path}')
+        else:
+            raise FileNotFoundError(f'No folder found at {data_path}')
+
+
+        self.data_filter = _DataFilter(data_folder)
+        self.over_all_widget = _OverAllPredictorContributions(
+            *self.data_filter._get_data_aggregate()
         )
-        self.by_value_widget = OverAllPredictorContributionsByValue(
-            *self.data_filter.get_data()
+        self.by_value_widget = _OverAllPredictorContributionsByValue(
+            *self.data_filter._get_data()
         )
-        self.data_filter.add_to_data_update(self.over_all_widget.data_update)
-        self.data_filter.add_to_data_update(self.by_value_widget.data_update)
+        self.data_filter._add_to__data_update(self.over_all_widget._data_update)
+        self.data_filter._add_to__data_update(self.by_value_widget._data_update)
 
         self.tabs = widgets.Tab()
         self.tabs.children = [self.over_all_widget.widget, self.by_value_widget.widget]
         self.tabs.titles = ["Overall Contribution", "Contribution by Value"]
         self.widget = widgets.VBox(
-            [self.filter_head, self.data_filter.widget, self.graph_head, self.tabs]
+            [self._filter_head, self.data_filter.widget, self._graph_head, self.tabs]
         )
 
     def display(self):
