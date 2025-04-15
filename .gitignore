@@ -35,4 +35,4 @@ python/*.ipynb_checkpoints/*
 r/tests/testthat/d/tmp2
 **/cache
 .venv
-examples/adm/.tmp/out/
+examples/explanations/.tmp/out/

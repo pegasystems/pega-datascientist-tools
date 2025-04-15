@@ -22,12 +22,14 @@ class _PREDICTOR_TYPE(Enum):
     NUMERIC: str = "NUMERIC"
     SYMBOLIC: str = "SYMBOLIC"
 
+
 class _TABLE_NAME(Enum):
-    NUMERIC = 'numeric'
-    SYMBOLIC = 'symbolic'
-    NUMERIC_OVERALL = 'numeric_overall'
-    SYMBOLIC_OVERALL = 'symbolic_overall'
+    NUMERIC = "numeric"
+    SYMBOLIC = "symbolic"
+    NUMERIC_OVERALL = "numeric_overall"
+    SYMBOLIC_OVERALL = "symbolic_overall"
     CREATE = "create"
+
 
 class GradientBoostGlobalExplanations:
     """
@@ -57,14 +59,13 @@ class GradientBoostGlobalExplanations:
     overwrite: bool, optional, default = FALSE
         Flag if files in output folder should be overwritten. If FALSE then the output folder must be empty before aggregates can be processed.
     progress_bar: str, optional, default = FALSE
-        Flag to toggle the progress bar for duck db queries    
+        Flag to toggle the progress bar for duck db queries
     """
 
     SEP = ", "
     LEFT_PREFIX = "l"
     RIGHT_PREFIX = "r"
     QUERIES_FOLDER = "resources/queries/explanations"
-
 
     def __init__(
         self,
@@ -78,7 +79,6 @@ class GradientBoostGlobalExplanations:
         batch_limit: int = 10,
         memory_limit: int = 2,
         thread_count: int = 4,
-
     ):
         self.conn = duckdb.connect(database=":memory:")
         self.model_name = model_name
@@ -114,7 +114,7 @@ class GradientBoostGlobalExplanations:
 
         This method reads the explanation data from the provided location and creates
         aggregates for multiple contexts which are used to create global explanation plots.
-        
+
         The different context aggregates are as follows:
         i) Overall Numeric Predictor Contributions
             The average contribution towards predicted model propensity for each numeric predictor value decile.
@@ -124,8 +124,8 @@ class GradientBoostGlobalExplanations:
             The average contribution towards predicted model propensity for each numeric predictor value decile, grouped by context key partition.
         iv) Overal Symbolic Predictor Contributions
             The average contribution towards predicted model propensity for each symoblic predictor value, grouped by context key partition.
-        
-        Each of the aggregates are written to parquet files to a temporary output dirtectory unless specified otherwise.        
+
+        Each of the aggregates are written to parquet files to a temporary output dirtectory unless specified otherwise.
         """
 
         self._get_selected_files()
@@ -150,13 +150,15 @@ class GradientBoostGlobalExplanations:
         self.conn.close()
 
     def explore(self):
-        """Explore the global explanation aggregate data in an interactive widget.      
-        """
+        """Explore the global explanation aggregate data in an interactive widget."""
         explorer = _PredictorContributionExplorer(self.output_folder)
         explorer.display()
-        
+
     def _populate_selected_files(self):
-        last_n_days = [(self.start_date+timedelta(days=x)).strftime("%Y%m%d") for x in range((self.end_date-self.start_date).days + 1)]
+        last_n_days = [
+            (self.start_date + timedelta(days=x)).strftime("%Y%m%d")
+            for x in range((self.end_date - self.start_date).days + 1)
+        ]
         files_ = []
         for day in last_n_days:
             file_pattern = f"{self.data_folder}/{self.model_name}*{day}*.parquet"
@@ -175,10 +177,7 @@ class GradientBoostGlobalExplanations:
         return q
 
     def _write_to_parquet(self, df: pl.DataFrame, file_name: str):
-        df.write_parquet(
-            f'{self.output_folder}/{file_name}',
-            statistics=False
-        )
+        df.write_parquet(f"{self.output_folder}/{file_name}", statistics=False)
 
     @staticmethod
     def _clean_query(query):
@@ -206,7 +205,7 @@ class GradientBoostGlobalExplanations:
             return fr.read()
 
     def _read_batch_sql_file(self, predictor_type: _PREDICTOR_TYPE):
-        sql_file = (    
+        sql_file = (
             _TABLE_NAME.NUMERIC
             if predictor_type == _PREDICTOR_TYPE.NUMERIC
             else _TABLE_NAME.SYMBOLIC
@@ -214,10 +213,10 @@ class GradientBoostGlobalExplanations:
         with open(f"{self.queries_folder}/{sql_file.value}.sql", "r") as fr:
             return fr.read()
 
-    def _get_create_table_sql_formatted(self, tbl_name:_TABLE_NAME, predictor_type: _PREDICTOR_TYPE):
-        with open(
-            f"{self.queries_folder}/{_TABLE_NAME.CREATE.value}.sql", "r"
-        ) as fr:
+    def _get_create_table_sql_formatted(
+        self, tbl_name: _TABLE_NAME, predictor_type: _PREDICTOR_TYPE
+    ):
+        with open(f"{self.queries_folder}/{_TABLE_NAME.CREATE.value}.sql", "r") as fr:
             sql = fr.read()
 
         f_sql = f"{
@@ -247,7 +246,9 @@ class GradientBoostGlobalExplanations:
 
         return self._clean_query(f_sql)
 
-    def _get_batch_sql_formatted(self, sql, tbl_name: _TABLE_NAME, where_condition="TRUE"):
+    def _get_batch_sql_formatted(
+        self, sql, tbl_name: _TABLE_NAME, where_condition="TRUE"
+    ):
         f_sql = f"{
             sql.format(
                 THREAD_COUNT=self.thread_count,
@@ -289,8 +290,6 @@ class GradientBoostGlobalExplanations:
             self.contexts = self.conn.execute(q).pl()["partition"].to_list()
 
         return self.contexts
-    
-    
 
     def _parquet_in_batches(self, predictor_type: _PREDICTOR_TYPE):
         try:
@@ -323,14 +322,17 @@ class GradientBoostGlobalExplanations:
                 batch_counter += 1
                 curr_group += self.batch_limit
                 if batch_counter % 10 == 0:
-                    yield {'batch_count': batch_counter, 'dataframe': pl.concat(df_list)}
+                    yield {
+                        "batch_count": batch_counter,
+                        "dataframe": pl.concat(df_list),
+                    }
                     df_list = []
                     logger.info(
                         f"Processed {predictor_type} batch {batch_counter}, group: {curr_group}, len: {len(batch)}"
                     )
 
             if len(df_list) > 0:
-                yield {'batch_count': batch_counter, 'dataframe': pl.concat(df_list)}
+                yield {"batch_count": batch_counter, "dataframe": pl.concat(df_list)}
                 df_list = []
                 logger.info(
                     f"Processed {predictor_type} batch {batch_counter}, group: {curr_group}, len: {len(batch)}"
@@ -339,13 +341,13 @@ class GradientBoostGlobalExplanations:
         except Exception as e:
             logger.error(f"Failed batch for predictor type={predictor_type}, err={e}")
             return
-        
+
     def _agg_in_batches(self, predictor_type: _PREDICTOR_TYPE):
         for batch in self._parquet_in_batches(predictor_type):
             self._write_to_parquet(
-                batch['dataframe'], 
+                batch["dataframe"],
                 f"{predictor_type.value}_BATCH_{batch['batch_count']}.parquet",
-                )
+            )
 
     def _agg_overall(self, predictor_type: _PREDICTOR_TYPE, where_condition="TRUE"):
         df = self._parquet_overall(predictor_type, where_condition)
@@ -471,7 +473,7 @@ class _DataFilter:
             self.context_filters.append(context_filter)
 
         self.filter_results = widgets.Text(
-            description="Filtering For", disabled=True, value="Whole Model"
+            description="Filtering For", disabled=True, value="whole_model"
         )
 
         context_filter_container = widgets.VBox(self.context_filters)
@@ -499,7 +501,7 @@ class _DataFilter:
 
     def _update_filter_results(self, filter_string):
         if filter_string is None:
-            self.filter_results.value = "Whole Model"
+            self.filter_results.value = "whole_model"
         else:
             self.filter_results.value = filter_string
 
@@ -517,7 +519,7 @@ class _DataFilter:
 
     def _get_data(self):
         filter_string = self.filter_results.value
-        if filter_string == "Whole Model":
+        if filter_string == "whole_model":
             return self.df_overall, filter_string
         else:
             return self.df_contextual.filter(
@@ -526,12 +528,13 @@ class _DataFilter:
 
     def _get_data_aggregate(self):
         filter_string = self.filter_results.value
-        if filter_string == "Whole Model":
+        if filter_string == "whole_model":
             df = self.df_overall
         else:
             df = self.df_contextual.filter(
                 pl.col("partition").str.contains(filter_string, literal=True)
             )
+
         return df.group_by(["predictor_name", "predictor_type"]).agg(
             (
                 pl.col("frequency")
@@ -540,7 +543,11 @@ class _DataFilter:
             )
             .mean()
             .alias("|contribution_weighted|"),
-            (pl.col("frequency") * pl.col("contribution") / pl.col("frequency").sum())
+            (
+                pl.col("frequency") 
+                * pl.col("contribution") 
+                / pl.col("frequency").sum()
+            )
             .mean()
             .alias("contribution_weighted"),
             pl.col("contribution_abs").mean().alias("|contribution|"),
@@ -615,6 +622,7 @@ class _OverAllPredictorContributions:
         if self._absolute_mean_w.value:
             column = "|" + column + "|"
 
+        print(column)
         df = df.sort([pl.col(column).abs(), "predictor_name"], descending=True).limit(
             self._limit_w.value
         )
@@ -881,10 +889,9 @@ class _PredictorContributionExplorer:
         if data_path.exists() and data_path.is_dir():
             with os.scandir(data_path) as it:
                 if not any(it):
-                    raise FileNotFoundError(f'No files found at {data_path}')
+                    raise FileNotFoundError(f"No files found at {data_path}")
         else:
-            raise FileNotFoundError(f'No folder found at {data_path}')
-
+            raise FileNotFoundError(f"No folder found at {data_path}")
 
         self.data_filter = _DataFilter(data_folder)
         self.over_all_widget = _OverAllPredictorContributions(
