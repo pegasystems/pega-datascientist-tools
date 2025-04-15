@@ -146,7 +146,7 @@ def add_bottom_left_text_to_bubble_plot(
 
 
 def distribution_graph(df: pl.LazyFrame, title: str):
-    plot_df = df.collect().to_pandas(use_pyarrow_extension_array=True)
+    plot_df = df.collect()
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     fig.add_trace(
         go.Bar(x=plot_df["BinSymbol"], y=plot_df["BinResponseCount"], name="Responses")
@@ -240,7 +240,7 @@ class Plots(LazyNamespace):
 
         title = "over all models"
         fig = px.scatter(
-            df.collect().to_pandas(use_pyarrow_extension_array=False),
+            df.collect(),
             x="Performance",
             y="SuccessRate",
             color="Performance",
@@ -435,7 +435,7 @@ class Plots(LazyNamespace):
 
         title = "over all models" if facet is None else f"per {facet}"
         fig = px.histogram(
-            df.collect().to_pandas(use_pyarrow_extension_array=True),
+            df.collect(),
             x=metric,
             y=by,
             color=by,
@@ -727,14 +727,10 @@ class Plots(LazyNamespace):
         title_suffix = "over all models" if facet is None else f"per {facet}"
         title_prefix = metric
 
-        df = df.collect().to_pandas(use_pyarrow_extension_array=True)
         y = "PredictorName"
-        if len(order) > 0:
-            df[y] = df[y].astype("category")
-            df[y] = df[y].cat.set_categories(order.to_list())
 
         fig = px.box(
-            df.sort_values([y]),
+            df.sort(y).collect(),
             x=metric,
             y=y,
             color="Legend",
@@ -954,7 +950,7 @@ class Plots(LazyNamespace):
         *,
         top_predictors: int = 20,
         top_groups: Optional[int] = None,
-        by: Union[QUERY, str] = "Name",
+        by: str = "Name",
         active_only: bool = False,
         query: Optional[QUERY] = None,
         return_df: bool = False,
@@ -971,10 +967,11 @@ class Plots(LazyNamespace):
             return df
 
         title = "over all models"
-        plot_df = df.collect().to_pandas(use_pyarrow_extension_array=True)
-        plot_df.set_index(plot_df.columns[0], inplace=True)
+        df = df.collect().transpose(
+            include_header=True, header_name=by, column_names=by
+        )
         fig = px.imshow(
-            plot_df.T,
+            df.select(pl.all().exclude(by)),
             text_auto=".3f",
             aspect="auto",
             color_continuous_scale=self.datamart.cdh_guidelines.colorscales.get(
@@ -982,6 +979,7 @@ class Plots(LazyNamespace):
             ),
             title=f"Top predictors {title}",
             range_color=[0.5, 1],
+            y=df[by],
         )
 
         fig.update_yaxes(dtick=1, automargin=True)
@@ -1026,9 +1024,9 @@ class Plots(LazyNamespace):
 
         title = "Positives vs Number of Models"
         fig = px.line(
-            models_by_positives.filter(pl.col("ModelCount") > 0)
-            .with_columns(pl.col(by).fill_null("NA"))
-            .to_pandas(use_pyarrow_extension_array=True),
+            models_by_positives.filter(pl.col("ModelCount") > 0).with_columns(
+                pl.col(by).fill_null("NA")
+            ),
             x="PositivesBin",
             y="cumModels",
             color=by,
@@ -1111,7 +1109,7 @@ class Plots(LazyNamespace):
         }
 
         fig = px.treemap(
-            df.collect().to_pandas(use_pyarrow_extension_array=True),
+            df.collect(),
             path=context_keys,
             color=label_map.get(metric),
             values="Model Count",
@@ -1136,7 +1134,7 @@ class Plots(LazyNamespace):
             return df
 
         return px.box(
-            df.collect().to_pandas(use_pyarrow_extension_array=True),
+            df.collect(),
             x="PredictorCount",
             y="Type",
             facet_col=facet,
@@ -1203,7 +1201,7 @@ class Plots(LazyNamespace):
             return plot_df
 
         fig = px.bar(
-            plot_df.collect(),  # .to_pandas(use_pyarrow_extension_array=False),
+            plot_df.collect(),
             x="Lift",
             y="BinSymbolAbbreviated",
             color="Direction",
@@ -1336,7 +1334,7 @@ class Plots(LazyNamespace):
         if return_df:
             return df.lazy()
         fig = px.bar(
-            out.to_pandas(use_pyarrow_extension_array=True),
+            out,
             x=f"{to_plot}_range",
             y="Responses",
             color="Channel",
