@@ -571,6 +571,7 @@ class Aggregates:
                 new_action_summary.drop("AllActions"),
                 on=("literal" if grouping is None else grouping),
                 how="left",
+                nulls_equal=True,
             )
             .with_columns(pl.col("New Actions").fill_null(0))
             .drop([] if debug else ["NewActionsList", "NewActionsAtOrAfter"])
@@ -588,6 +589,7 @@ class Aggregates:
                 pl.lit(0).alias("Treatments"),
                 pl.lit(0).alias("Used Treatments"),
             ).fill_null(0)
+
 
     def _summarize_model_usage(
         self,

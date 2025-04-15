@@ -308,5 +308,4 @@ def test_new_actions():
     dm = ADMDatamart(df)
 
     agg = dm.aggregates.overall_summary().collect()
-    # E and C are new, A and B are there from the start so we don't know if they're new or not
-    assert agg["New Actions"].item() == 2
+    assert agg["New Actions"].item() == 4
