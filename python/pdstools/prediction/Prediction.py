@@ -440,11 +440,13 @@ class Prediction:
         )
 
     # TODO generalize the group_by
+    # TODO implement start/end date if given, define the reporting period.
 
     def summary_by_channel(
         self,
         custom_predictions: Optional[List[List]] = None,
         by_period: str = None,
+        start_date=None, end_date=None
     ) -> pl.LazyFrame:
         """Summarize prediction per channel
 
@@ -454,11 +456,41 @@ class Prediction:
             Optional list with custom prediction name to channel mappings. Defaults to None.
         by_period : str, optional
             Optional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. If provided, creates a new Period column with the truncated date/time. Defaults to None.
+        start_date : Optional[datetime], optional
+            Optional start date for the period to report on. Either use by_period or both start_date and end_date. Not implemented yet.
+        end_date : Optional[datetime], optional
+            Optional end date for the period to report on. Either use by_period or both start_date and end_date. Not implemented yet.
 
         Returns
         -------
         pl.LazyFrame
-            Dataframe with prediction summary (validity, numbers in test, control etc.)
+            Dataframe with prediction summary with the following columns:
+            - Prediction: The prediction name
+            - Channel: The channel name
+            - Direction: The direction (e.g., Inbound, Outbound)
+            - isStandardNBADPrediction: Boolean indicating if this is a standard NBAD prediction
+            - isMultiChannelPrediction: Boolean indicating if this is a multi-channel prediction
+            - Period: (if by_period is specified) The time period for the summary
+            - Performance: Weighted performance metric
+            - Positives: Sum of positive responses
+            - Negatives: Sum of negative responses
+            - Responses: Sum of all responses
+            - Positives_Test: Sum of positive responses in test group
+            - Positives_Control: Sum of positive responses in control group
+            - Positives_NBA: Sum of positive responses in NBA group
+            - Negatives_Test: Sum of negative responses in test group
+            - Negatives_Control: Sum of negative responses in control group
+            - Negatives_NBA: Sum of negative responses in NBA group
+            - usesImpactAnalyzer: Boolean indicating if Impact Analyzer is used
+            - ControlPercentage: Percentage of responses in control group
+            - TestPercentage: Percentage of responses in test group
+            - CTR: Click-through rate (Positives / (Positives + Negatives))
+            - CTR_Test: Click-through rate for test group
+            - CTR_Control: Click-through rate for control group
+            - CTR_NBA: Click-through rate for NBA group
+            - ChannelDirectionGroup: Combined Channel/Direction identifier
+            - isValid: Boolean indicating if the prediction data is valid
+            - Lift: Lift value ((CTR_Test - CTR_Control) / CTR_Control)
         """
         if not custom_predictions:
             custom_predictions = []
@@ -577,11 +609,13 @@ class Prediction:
 
     # TODO rethink use of multi-channel. If the only valid predictions are multi-channel predictions
     # then use those. If there are valid non-multi-channel predictions then only use those.
+    # TODO implement start/end date if given, define the reporting period.
 
     def overall_summary(
         self,
         custom_predictions: Optional[List[List]] = None,
         by_period: str = None,
+        start_date=None, end_date=None
     ) -> pl.LazyFrame:
         """Overall prediction summary. Only valid prediction data is included.
 
@@ -591,11 +625,28 @@ class Prediction:
             Optional list with custom prediction name to channel mappings. Defaults to None.
         by_period : str, optional
             Optional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. If provided, creates a new Period column with the truncated date/time. Defaults to None.
+        start_date : Optional[datetime], optional
+            Optional start date for the period to report on. Either use by_period or both start_date and end_date. Not implemented yet.
+        end_date : Optional[datetime], optional
+            Optional end date for the period to report on. Either use by_period or both start_date and end_date. Not implemented yet.
 
         Returns
         -------
         pl.LazyFrame
-            Summary across all valid predictions as a dataframe
+            Summary across all valid predictions as a dataframe with the following columns:
+            - Period: (if by_period is specified) The time period for the summary
+            - Number of Valid Channels: Count of unique valid channel/direction combinations
+            - Overall Lift: Weighted average lift across all valid channels
+            - Performance: Weighted average performance across all valid channels
+            - Positives Inbound: Sum of positive responses across all valid inbound channels
+            - Positives Outbound: Sum of positive responses across all valid outbound channels
+            - Responses Inbound: Sum of all responses across all valid inbound channels
+            - Responses Outbound: Sum of all responses across all valid outbound channels
+            - Channel with Minimum Negative Lift: Channel with the lowest negative lift value
+            - Minimum Negative Lift: The lowest negative lift value found
+            - usesImpactAnalyzer: Boolean indicating if any channel uses Impact Analyzer
+            - ControlPercentage: Weighted average percentage of control group responses
+            - TestPercentage: Weighted average percentage of test group responses
         """
 
         channel_summary = self.summary_by_channel(
@@ -629,8 +680,10 @@ class Prediction:
                 cdh_utils.weighted_performance_polars("Performance", "Responses").alias(
                     "Performance"
                 ),
-                pl.col("Positives").sum(),
-                pl.col("Responses").sum(),
+                pl.col("Positives").filter(Direction = 'Inbound').sum().alias('Positives Inbound'),
+                pl.col("Positives").filter(Direction = 'Outbound').sum().alias('Positives Outbound'),
+                pl.col("Responses").filter(Direction = 'Inbound').sum().alias('Responses Inbound'),
+                pl.col("Responses").filter(Direction = 'Outbound').sum().alias('Responses Outbound'),
                 pl.col("Channel")
                 .filter((pl.col("Lift") == pl.col("Lift").min()) & (pl.col("Lift") < 0))
                 .first()
