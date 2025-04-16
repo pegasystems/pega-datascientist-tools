@@ -448,20 +448,43 @@ class Aggregates:
         return (
             model_data.group_by(([] if grouping is None else grouping) + ["ModelID"])
             .agg(
+                (
+                    pl.col("Positives").filter(Direction="Inbound").max()
+                    - pl.col("Positives").filter(Direction="Inbound").min()
+                ).alias("Positives Inbound"),
+                (
+                    pl.col("Positives").filter(Direction="Outbound").max()
+                    - pl.col("Positives").filter(Direction="Outbound").min()
+                ).alias("Positives Outbound"),
+                (
+                    pl.col("ResponseCount").filter(Direction="Inbound").max()
+                    - pl.col("ResponseCount").filter(Direction="Inbound").min()
+                ).alias("Responses Inbound"),
+                (
+                    pl.col("ResponseCount").filter(Direction="Outbound").max()
+                    - pl.col("ResponseCount").filter(Direction="Outbound").min()
+                ).alias("Responses Outbound"),
                 pl.col("Positives").max() - pl.col("Positives").min(),
                 pl.col("ResponseCount").max() - pl.col("ResponseCount").min(),
                 pl.col("Performance").mean(),
             )
             .group_by(grouping)
             .agg(
-                pl.sum("Positives"),
-                pl.sum("ResponseCount").alias("Responses"),
+                pl.sum(
+                    "Positives",
+                    "ResponseCount",
+                    "Positives Inbound",
+                    "Positives Outbound",
+                    "Responses Inbound",
+                    "Responses Outbound",
+                ),
                 (cdh_utils.weighted_performance_polars() * 100).alias("Performance"),
             )
             .with_columns(
-                CTR=pl.col("Positives") / pl.col("Responses"),
-                isValid=(pl.col("Positives") >= 200) & (pl.col("Responses") >= 1000),
+                isValid=(pl.col("Positives") >= 200)
+                & (pl.col("ResponseCount") >= 1000),
             )
+            .drop([] if debug else ["ResponseCount", "Positives"])
         )
 
     def _summarize_action_analytics(
@@ -523,7 +546,7 @@ class Aggregates:
             .lazy()
         )
 
-        # This makes interpretation rather difficult.
+        # Dropping the actions that are there from the very beginning would make interpretation rather difficult.
         # very_first_date = (
         #     self.datamart.first_action_dates.select(pl.col("FirstSnapshotTime").min())
         #     .collect()
@@ -545,11 +568,9 @@ class Aggregates:
                 .group_by(grouping)
                 .agg(
                     pl.col("AllActions").unique(),
-                    pl.col("Name")
-                    .alias("NewActionsAtOrAfter")
+                    pl.col("Name").alias("NewActionsAtOrAfter")
                     # .filter(pl.col("FirstSnapshotTime") > very_first_date)
-                    .list.explode()
-                    .unique(),
+                    .list.explode().unique(),
                 )
                 .with_columns(
                     pl.col("AllActions")
@@ -589,7 +610,6 @@ class Aggregates:
                 pl.lit(0).alias("Treatments"),
                 pl.lit(0).alias("Used Treatments"),
             ).fill_null(0)
-
 
     def _summarize_model_usage(
         self,
@@ -651,7 +671,7 @@ class Aggregates:
             - Positives - The sum of positive responses across all models in the channel
             - Responses - The sum of all responses across all models in the channel
             - Performance - The weighted average performance across all models in the channel (50-100)
-            - CTR - Click-through rate (Positives / Responses)
+            - CTR - Click-through rate (Positives / Responses) in the channel
             - isValid - Boolean indicating if the channel has sufficient data (at least 200 positives and 1000 responses)
 
             Action Statistics:
@@ -678,7 +698,11 @@ class Aggregates:
             by_channel=True,
             debug=debug,
             custom_channels=custom_channels,
-        )
+        ).with_columns(
+            Positives = pl.col("Positives Inbound") + pl.col("Positives Outbound"),
+            Responses = pl.col("Responses Inbound") + pl.col("Responses Outbound"),
+            CTR = (pl.col("Positives Inbound") + pl.col("Positives Outbound")) / (pl.col("Responses Inbound") + pl.col("Responses Outbound"))
+        ).drop("Positives Inbound", "Positives Outbound", "Responses Inbound", "Responses Outbound")
 
         omni_channel_summary = (
             (
@@ -846,13 +870,11 @@ class Aggregates:
         except ValueError:  # really? swallowing?
             return None
 
-    # TODO consider adding a "last_period" argument with default True and setting by_period to "1mo" by default
-    # this would run the summary by month then only return last month of data. Maybe "30d" instead. Or just
-    # a "reporting_period" argument defaulting to "-30d" if that is possible and somewhat clashing with by_period.
-    # Make sure to align with Predictions summary
+    # TODO start/end date if given, define the reporting period.
+    # TODO Responses should be separate for Inbound and Outbound.
 
     def overall_summary(
-        self, by_period: str = None, debug: bool = False
+        self, by_period: str = None, start_date=None, end_date=None, debug: bool = False
     ) -> pl.LazyFrame:
         """Overall ADM models summary. Only valid data is included.
 
@@ -878,8 +900,10 @@ class Aggregates:
             - Configuration - A comma-separated list of unique configurations
 
             Performance Metrics:
-            - Positives - The sum of positive responses across all models
-            - Responses - The sum of all responses across all models
+            - Positives Inbound - The sum of positive responses across all models in the inbound channels
+            - Positives Outbound - The sum of positive responses across all models in the outbound channels
+            - Responses Inbound - The sum of all responses across all models in the inbound channels
+            - Responses Outbound - The sum of all responses across all models in the outbound channels
             - Performance - The weighted average performance across all models (50-100)
 
             Action Statistics:
@@ -912,7 +936,9 @@ class Aggregates:
                 by_channel=False,
                 debug=debug,
             )
-            .drop(["Configuration", "AllActions", "CTR", "isValid"])
+            .drop(
+                "Configuration", "AllActions", "isValid"
+            )
             .collect()
             .lazy()
         )

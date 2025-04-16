@@ -165,28 +165,25 @@ def test_aggregate_overall_summary(dm_aggregates):
     overall_summary = dm_aggregates.overall_summary().collect()
 
     assert overall_summary.height == 1
-    assert overall_summary.width == 19
-    # assert overall_summary["Number of Valid Channels"].item() == 3
-    # assert overall_summary["Actions"].item() == 35
-    # assert overall_summary["Treatments"].item() == 0
+    assert overall_summary.width == 21
+    assert overall_summary["Number of Valid Channels"].item() == 3
+    assert overall_summary["Actions"].item() == 35
+    assert overall_summary["Treatments"].item() == 0
 
-    # # 3 valid channels
-    # # print(overall_summary)
+    assert round(overall_summary["OmniChannel"].item(), 5) == 0.65331
 
-    # assert round(overall_summary["OmniChannel"].item(), 5) == 0.65331
+    # Force only one channel to be valid
+    dm_aggregates.datamart.model_data = dm_aggregates.datamart.model_data.with_columns(
+        Positives=pl.when(pl.col.Channel != "SMS")
+        .then(pl.lit(0))
+        .otherwise("Positives")
+    )
 
-    # # Force only one channel to be valid
-    # dm_aggregates.datamart.model_data = dm_aggregates.datamart.model_data.with_columns(
-    #     Positives=pl.when(pl.col.Channel != "SMS")
-    #     .then(pl.lit(0))
-    #     .otherwise("Positives")
-    # )
+    overall_summary = dm_aggregates.overall_summary().collect()
 
-    # overall_summary = dm_aggregates.overall_summary().collect()
+    # print(overall_summary)
 
-    # # print(overall_summary)
-
-    # assert overall_summary["Number of Valid Channels"].item() == 1
+    assert overall_summary["Number of Valid Channels"].item() == 1
 
 
 def test_overall_summary_2():
@@ -270,7 +267,7 @@ def test_omnichannel():
 def test_aggregate_overall_summary_by_time(dm_aggregates):
     overall_summary = dm_aggregates.overall_summary(by_period="1h").collect()
     assert overall_summary.height == 6
-    assert overall_summary.width == 20
+    assert overall_summary.width == 22
     assert overall_summary["Number of Valid Channels"].to_list() == [2, 2, 2, 1, 2, 1]
     assert overall_summary["Actions"].to_list() == [34, 35, 34, 31, 33, 34]
     assert overall_summary["Treatments"].to_list() == [0] * 6
@@ -309,3 +306,9 @@ def test_new_actions():
 
     agg = dm.aggregates.overall_summary().collect()
     assert agg["New Actions"].item() == 4
+
+    agg = dm.aggregates.overall_summary(by_period="1w").collect()
+    assert agg["New Actions"].to_list() == [2,1,1]
+
+    agg = dm.aggregates.summary_by_channel().collect()
+    assert agg["New Actions"].to_list() == [2,2]
