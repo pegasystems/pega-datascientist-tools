@@ -114,26 +114,28 @@ def test_summary_by_channel(dm_aggregates):
     ]
 
 
-def test_aggregate_summary_by_channel_and_time(dm_aggregates):
-    summary_by_channel = dm_aggregates.summary_by_channel(by_period="4h").collect()
-    assert summary_by_channel.height == 6
-    assert summary_by_channel.width == 24
-    assert summary_by_channel["Responses"].to_list() == [
-        27322,
-        13062,
-        45786,
-        19557,
-        28230,
-        10890,
-    ]
-    assert [round(x, 6) for x in summary_by_channel["OmniChannel"].to_list()] == [
-        0.604167,
-        0.604167,
-        0.592593,
-        0.592593,
-        0.763158,
-        0.763158,
-    ]
+# TODO by_perdiod no longer supported
+# add tests for explicit start, end end window arguments
+# def test_aggregate_summary_by_channel_and_time(dm_aggregates):
+#     summary_by_channel = dm_aggregates.summary_by_channel(by_period="4h").collect()
+#     assert summary_by_channel.height == 6
+#     assert summary_by_channel.width == 24
+#     assert summary_by_channel["Responses"].to_list() == [
+#         27322,
+#         13062,
+#         45786,
+#         19557,
+#         28230,
+#         10890,
+#     ]
+#     assert [round(x, 6) for x in summary_by_channel["OmniChannel"].to_list()] == [
+#         0.604167,
+#         0.604167,
+#         0.592593,
+#         0.592593,
+#         0.763158,
+#         0.763158,
+#     ]
 
 
 def test_custom_channel_mapping(dm_aggregates):
@@ -263,22 +265,23 @@ def test_omnichannel():
     summ = dm.aggregates.summary_by_channel().collect()
     assert summ["OmniChannel"].to_list() == [None, 0.0]
 
-
-def test_aggregate_overall_summary_by_time(dm_aggregates):
-    overall_summary = dm_aggregates.overall_summary(by_period="1h").collect()
-    assert overall_summary.height == 6
-    assert overall_summary.width == 22
-    assert overall_summary["Number of Valid Channels"].to_list() == [2, 2, 2, 1, 2, 1]
-    assert overall_summary["Actions"].to_list() == [34, 35, 34, 31, 33, 34]
-    assert overall_summary["Treatments"].to_list() == [0] * 6
-    assert [round(x, 6) for x in overall_summary["OmniChannel"].to_list()] == [
-        0.728745,
-        0.694444,
-        0.728745,
-        0.0,
-        0.668889,
-        0.0,
-    ]
+# TODO by_perdiod no longer supported
+# add tests for explicit start, end end window arguments
+# def test_aggregate_overall_summary_by_time(dm_aggregates):
+#     overall_summary = dm_aggregates.overall_summary(by_period="1h").collect()
+#     assert overall_summary.height == 6
+#     assert overall_summary.width == 22
+#     assert overall_summary["Number of Valid Channels"].to_list() == [2, 2, 2, 1, 2, 1]
+#     assert overall_summary["Actions"].to_list() == [34, 35, 34, 31, 33, 34]
+#     assert overall_summary["Treatments"].to_list() == [0] * 6
+#     assert [round(x, 6) for x in overall_summary["OmniChannel"].to_list()] == [
+#         0.728745,
+#         0.694444,
+#         0.728745,
+#         0.0,
+#         0.668889,
+#         0.0,
+#     ]
 
 
 def test_summary_by_configuration(dm_aggregates):
@@ -307,8 +310,11 @@ def test_new_actions():
     agg = dm.aggregates.overall_summary().collect()
     assert agg["New Actions"].item() == 4
 
-    agg = dm.aggregates.overall_summary(by_period="1w").collect()
-    assert agg["New Actions"].to_list() == [2,1,1]
+    # TODO by_perdiod no longer supported
+    # add tests for explicit start, end end window arguments
+    # 
+    # agg = dm.aggregates.overall_summary(by_period="1w").collect()
+    # assert agg["New Actions"].to_list() == [2,1,1]
 
     agg = dm.aggregates.summary_by_channel().collect()
     assert agg["New Actions"].to_list() == [2,2]

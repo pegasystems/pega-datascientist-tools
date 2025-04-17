@@ -218,8 +218,7 @@ def _extract_keys(
                 .alias(c)
                 for c in overlap
             ]
-        )
-        .drop([f"{c}_decoded" for c in overlap])
+        ).drop([f"{c}_decoded" for c in overlap])
     )
 
 
@@ -816,7 +815,9 @@ def lift(
             # TODO not sure how polars (mis)behaves when there are no positives at all
             # I would hope for a NaN but base python doesn't do that. Polars perhaps.
             # Stijn: It does have proper None value support, may work like you say
-            bin_pos * (total_pos + total_neg) / ((bin_pos + bin_neg) * total_pos)
+            bin_pos
+            * (total_pos + total_neg)
+            / ((bin_pos + bin_neg) * total_pos)
         ).alias("Lift")
 
     return lift_impl(pos_col, neg_col, pos_col.sum(), neg_col.sum())
@@ -1176,3 +1177,35 @@ def safe_flatten_list(alist: List) -> List:
             unique_alist.append(item)
             seen.add(item)
     return unique_alist if len(unique_alist) > 0 else None
+
+
+def get_start_end_date_args(
+    data: Union[pl.Series, pl.LazyFrame, pl.DataFrame],
+    start_date: Optional[datetime.datetime] = None,
+    end_date: Optional[datetime.datetime] = None,
+    window_days: Optional[int] = None,
+    datetime_field = 'SnapshotTime'
+):
+    if isinstance(data, pl.DataFrame):
+        data_min_date = data.select(pl.col(datetime_field).min()).item()
+        data_max_date = data.select(pl.col(datetime_field).max()).item()
+    elif isinstance(data, pl.LazyFrame):
+        data_min_date = data.select(pl.col(datetime_field).min()).collect().item()
+        data_max_date = data.select(pl.col(datetime_field).max()).collect().item()
+    else:   # pl.Series
+        data_min_date = data.min()
+        data_max_date = data.max()
+
+    if start_date and end_date and window_days:
+        raise TypeError("Only max two of 'start_date', 'end_date' or 'window_days' can be set")
+    if not end_date:
+        if window_days is None or start_date is None:
+            end_date = data_max_date
+        else:
+            end_date = start_date + datetime.timedelta(days=window_days)
+    if not start_date:
+        if window_days is None:
+            start_date = data_min_date
+        else:
+            start_date = end_date - datetime.timedelta(days=window_days)
+    return start_date, end_date
