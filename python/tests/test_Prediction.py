@@ -171,14 +171,15 @@ def test_overall_summary_cols(test):
         "Number of Valid Channels",
         "Overall Lift",
         "Performance",
-        "Positives",
-        "Responses",
+        "Positives Inbound",
+        "Positives Outbound",
+        "Responses Inbound",
+        "Responses Outbound",
         "Channel with Minimum Negative Lift",
         "Minimum Negative Lift",
         "usesImpactAnalyzer",
         "ControlPercentage",
         "TestPercentage",
-        "CTR",
     ]
     assert len(summary) == 1
 
@@ -194,12 +195,14 @@ def test_overall_summary_overall_lift(test):
 
 
 def test_overall_summary_positives(test):
-    assert test.overall_summary().collect()["Positives"].item() == 4000
+    assert test.overall_summary().collect()["Positives Inbound"].item() == 3000
+    assert test.overall_summary().collect()["Positives Outbound"].item() == 0 # some channels unknown/multi-channel
 
 
 def test_overall_summary_responsecount(test):
-    assert test.overall_summary().collect()["Responses"].item() == 34000
-
+    print (test.summary_by_channel().select(['Channel','Direction','Responses']).collect())
+    assert test.overall_summary().collect()["Responses Inbound"].item() == 27000
+    assert test.overall_summary().collect()["Responses Outbound"].item() == 0 
 
 def test_overall_summary_channel_min_lift(test):
     assert (
@@ -210,10 +213,6 @@ def test_overall_summary_channel_min_lift(test):
 
 def test_overall_summary_min_lift(test):
     assert test.overall_summary().collect()["Minimum Negative Lift"].item() is None
-
-
-def test_overall_summary_ctr(test):
-    assert round(test.overall_summary().collect()["CTR"].item(), 5) == 0.11765
 
 
 def test_overall_summary_controlpct(test):

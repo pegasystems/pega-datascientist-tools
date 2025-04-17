@@ -264,6 +264,11 @@ df_channel_overview = (
             "ChannelDirection",
             "DateRange Min",
             "DateRange Max",
+            # Great KPI but this table currently is over
+            # the whole period, so there's no added info
+            # in New Actions. Would be different if we report
+            # on say the last month.
+            "New Actions",
         ]
     )
     .collect()

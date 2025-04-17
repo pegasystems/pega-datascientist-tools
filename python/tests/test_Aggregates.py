@@ -24,6 +24,30 @@ def dm_aggregates():
     )
 
 
+# Consider moving into ADMDatamart class as a "from_scratch" method
+def modeldata_from_scratch(**overrides):
+    defaults = pl.DataFrame(
+        {
+            "Positives": 0,
+            "ResponseCount": 0,
+            "SnapshotTime": "1-Jan-25",
+            "Configuration": "Web_Click_Through_Rate",
+            "ModelID": "ModelA",
+            "Performance": 0.5,
+            "Name": "A",
+            "Channel": "Web",
+            "Direction": "Inbound",
+        }
+    )
+    df = defaults
+    for col in overrides.keys():
+        df = df.with_columns(pl.lit(overrides.get(col)).alias(col))
+    if len(overrides.keys()):
+        df = df.explode(overrides.keys())
+
+    return df.lazy()
+
+
 def test_init(dm_aggregates):
     assert dm_aggregates
 
@@ -41,7 +65,7 @@ def test_predictor_counts(dm_aggregates):
 def test_summary_by_channel(dm_aggregates):
     summary_by_channel = dm_aggregates.summary_by_channel().collect()
     assert summary_by_channel.height == 3
-    assert summary_by_channel.width == 22
+    assert summary_by_channel.width == 23
     assert summary_by_channel["ChannelDirection"].to_list() == [
         "Email/Outbound",
         "SMS/Outbound",
@@ -93,7 +117,7 @@ def test_summary_by_channel(dm_aggregates):
 def test_aggregate_summary_by_channel_and_time(dm_aggregates):
     summary_by_channel = dm_aggregates.summary_by_channel(by_period="4h").collect()
     assert summary_by_channel.height == 6
-    assert summary_by_channel.width == 23
+    assert summary_by_channel.width == 24
     assert summary_by_channel["Responses"].to_list() == [
         27322,
         13062,
@@ -124,7 +148,7 @@ def test_custom_channel_mapping(dm_aggregates):
         custom_channels={"MyChannel": "Web"}
     ).collect()
     assert summary_by_channel.height == 3
-    assert summary_by_channel.width == 22
+    assert summary_by_channel.width == 23
     assert summary_by_channel["ChannelDirection"].to_list() == [
         "Email/Outbound",
         "MyChannel/Outbound",
@@ -139,14 +163,12 @@ def test_custom_channel_mapping(dm_aggregates):
 
 def test_aggregate_overall_summary(dm_aggregates):
     overall_summary = dm_aggregates.overall_summary().collect()
+
     assert overall_summary.height == 1
-    assert overall_summary.width == 18
+    assert overall_summary.width == 21
     assert overall_summary["Number of Valid Channels"].item() == 3
     assert overall_summary["Actions"].item() == 35
     assert overall_summary["Treatments"].item() == 0
-
-    # 3 valid channels
-    # print(overall_summary)
 
     assert round(overall_summary["OmniChannel"].item(), 5) == 0.65331
 
@@ -164,10 +186,88 @@ def test_aggregate_overall_summary(dm_aggregates):
     assert overall_summary["Number of Valid Channels"].item() == 1
 
 
+def test_overall_summary_2():
+    dm = ADMDatamart(modeldata_from_scratch())
+    summ = dm.aggregates.overall_summary().collect()
+    assert summ.height == 1
+    assert summ["Number of Valid Channels"].item() == 0
+
+    dm = ADMDatamart(
+        modeldata_from_scratch(Positives=[0, 100, 200], ResponseCount=[0, 500, 1000])
+    )
+    summ = dm.aggregates.overall_summary().collect()
+    assert summ["Number of Valid Channels"].item() == 1
+
+
+def test_uses_NBAD():
+    dm = ADMDatamart(modeldata_from_scratch(Configuration=["MyConfig"]))
+    summ = dm.aggregates.overall_summary().collect()
+    assert not summ["usesNBAD"].item()
+
+    dm = ADMDatamart(
+        modeldata_from_scratch(Configuration=["MyConfig", "Web_Click_Through_Rate"])
+    )
+    summ = dm.aggregates.overall_summary().collect()
+    assert summ["usesNBAD"].item()
+
+
+def test_model_technique():
+    dm = ADMDatamart(modeldata_from_scratch())
+    summ = dm.aggregates.overall_summary().collect()
+    assert summ["usesAGB"].item() is None
+
+    dm = ADMDatamart(modeldata_from_scratch(ModelTechnique=["NaiveBayes"]))
+    summ = dm.aggregates.overall_summary().collect()
+    assert not summ["usesAGB"].item()
+
+    dm = ADMDatamart(
+        modeldata_from_scratch(
+            ModelTechnique=["NaiveBayes", "GradientBoost", "RandomForest"]
+        )
+    )
+    summ = dm.aggregates.overall_summary().collect()
+    assert summ["usesAGB"].item()
+
+
+def test_omnichannel():
+    dm = ADMDatamart(
+        modeldata_from_scratch(
+            Name=["A", "B", "A", "B"],
+            Channel=["Mobile", "Mobile", "Web", "Web"],
+            Positives=[0, 200, 0, 200],
+            ResponseCount=[0, 1000, 0, 1000],
+        )
+    )
+    summ = dm.aggregates.summary_by_channel().collect()
+    assert summ["OmniChannel"].to_list() == [1.0, 1.0]
+
+    dm = ADMDatamart(
+        modeldata_from_scratch(
+            Name=["A", "A", "A", "B"],
+            Channel=["Mobile", "Mobile", "Web", "Web"],
+            Positives=[0, 200, 0, 200],
+            ResponseCount=[0, 1000, 0, 1000],
+        )
+    )
+    summ = dm.aggregates.summary_by_channel().collect()
+    assert summ["OmniChannel"].to_list() == [1.0, 0.5]
+
+    dm = ADMDatamart(
+        modeldata_from_scratch(
+            Name=["A", "A", "A", "B"],
+            Channel=["Mobile", "Mobile", "Web", "Web"],
+            Positives=[0, 0, 0, 200],
+            ResponseCount=[0, 1000, 0, 1000],
+        )
+    )
+    summ = dm.aggregates.summary_by_channel().collect()
+    assert summ["OmniChannel"].to_list() == [None, 0.0]
+
+
 def test_aggregate_overall_summary_by_time(dm_aggregates):
     overall_summary = dm_aggregates.overall_summary(by_period="1h").collect()
     assert overall_summary.height == 6
-    assert overall_summary.width == 19
+    assert overall_summary.width == 22
     assert overall_summary["Number of Valid Channels"].to_list() == [2, 2, 2, 1, 2, 1]
     assert overall_summary["Actions"].to_list() == [34, 35, 34, 31, 33, 34]
     assert overall_summary["Treatments"].to_list() == [0] * 6
@@ -184,3 +284,31 @@ def test_aggregate_overall_summary_by_time(dm_aggregates):
 def test_summary_by_configuration(dm_aggregates):
     configuration_summary = dm_aggregates.summary_by_configuration().collect()
     assert "AGB" in configuration_summary.columns
+
+def test_new_actions():
+    df = modeldata_from_scratch(
+        Name=["A", "A", "B", "B", "E", "E", "C", "C"],
+        SnapshotTime= ["1-Jan-25","2-Jan-25","1-Jan-25","2-Jan-25","1-Feb-25","2-Feb-25","15-Feb-25","16-Feb-25"],
+        Channel=[
+            "Mobile",
+            "Mobile",
+            "Mobile",
+            "Mobile",
+            "Web",
+            "Web",
+            "Web",
+            "Web",
+        ],
+        Positives=[0, 200, 200, 200, 0, 200, 0, 200],
+        ResponseCount=[0, 1000, 1000, 1000, 0, 1000, 0, 1000],
+    )
+    dm = ADMDatamart(df)
+
+    agg = dm.aggregates.overall_summary().collect()
+    assert agg["New Actions"].item() == 4
+
+    agg = dm.aggregates.overall_summary(by_period="1w").collect()
+    assert agg["New Actions"].to_list() == [2,1,1]
+
+    agg = dm.aggregates.summary_by_channel().collect()
+    assert agg["New Actions"].to_list() == [2,2]
