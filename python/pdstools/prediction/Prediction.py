@@ -446,7 +446,6 @@ class Prediction:
         self,
         custom_predictions: Optional[List[List]] = None,
         by_period: str = None,
-        start_date=None, end_date=None
     ) -> pl.LazyFrame:
         """Summarize prediction per channel
 
@@ -456,6 +455,7 @@ class Prediction:
             Optional list with custom prediction name to channel mappings. Defaults to None.
         by_period : str, optional
             Optional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. If provided, creates a new Period column with the truncated date/time. Defaults to None.
+            NOTE: this argument is going to be deprecated in favor of explicit start/end dates in the near future.
         start_date : Optional[datetime], optional
             Optional start date for the period to report on. Either use by_period or both start_date and end_date. Not implemented yet.
         end_date : Optional[datetime], optional
@@ -615,7 +615,6 @@ class Prediction:
         self,
         custom_predictions: Optional[List[List]] = None,
         by_period: str = None,
-        start_date=None, end_date=None
     ) -> pl.LazyFrame:
         """Overall prediction summary. Only valid prediction data is included.
 
@@ -625,10 +624,7 @@ class Prediction:
             Optional list with custom prediction name to channel mappings. Defaults to None.
         by_period : str, optional
             Optional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. If provided, creates a new Period column with the truncated date/time. Defaults to None.
-        start_date : Optional[datetime], optional
-            Optional start date for the period to report on. Either use by_period or both start_date and end_date. Not implemented yet.
-        end_date : Optional[datetime], optional
-            Optional end date for the period to report on. Either use by_period or both start_date and end_date. Not implemented yet.
+            NOTE: this argument is going to be deprecated in favor of explicit start/end dates in the near future.
 
         Returns
         -------

@@ -637,7 +637,6 @@ class Aggregates:
     def summary_by_channel(
         self,
         by_period: Optional[str] = None,
-        start_date=None, end_date=None,
         custom_channels: Optional[Dict[str, str]] = None,
         debug: bool = False,
     ) -> pl.LazyFrame:
@@ -647,10 +646,7 @@ class Aggregates:
         ----------
         by_period : str, optional
             Optional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. If provided, creates a new Period column with the truncated date/time. Defaults to None.
-        start_date : Optional[datetime], optional
-            Optional start date for the period to report on. Either use by_period or both start_date and end_date. Not implemented yet.
-        end_date : Optional[datetime], optional
-            Optional end date for the period to report on. Either use by_period or both start_date and end_date. Not implemented yet.
+            NOTE: this argument is going to be deprecated in favor of explicit start/end dates in the near future.
         custom_channels : Dict[str, str], optional
             Optional dictionary mapping custom channel names to standard channel groups. Defaults to None.
         debug : bool, optional
@@ -880,7 +876,7 @@ class Aggregates:
     # TODO implement start/end date if given, define the reporting period.
 
     def overall_summary(
-        self, by_period: str = None, start_date=None, end_date=None, debug: bool = False
+        self, by_period: str = None, debug: bool = False
     ) -> pl.LazyFrame:
         """Overall ADM models summary. Only valid data is included.
 
@@ -890,10 +886,7 @@ class Aggregates:
             Optional list with custom channel/direction name mappings. Defaults to None.
         by_period : str, optional
             Optional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. If provided, creates a new Period column with the truncated date/time. Defaults to None.
-        start_date : Optional[datetime], optional
-            Optional start date for the period to report on. Either use by_period or both start_date and end_date. Not implemented yet.
-        end_date : Optional[datetime], optional
-            Optional end date for the period to report on. Either use by_period or both start_date and end_date. Not implemented yet.
+            NOTE: this argument is going to be deprecated in favor of explicit start/end dates in the near future.
         debug : bool, optional
             If True, enables debug mode for additional logging or outputs. Defaults to False.
 
