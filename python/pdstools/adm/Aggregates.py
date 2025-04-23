@@ -1,6 +1,6 @@
 __all__ = ["Aggregates"]
 import datetime
-from typing import TYPE_CHECKING, Dict, List, Literal, Optional
+from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Union
 
 import polars as pl
 import polars.selectors as cs
@@ -460,6 +460,8 @@ class Aggregates:
                     pl.col("ResponseCount").filter(Direction="Outbound").max()
                     - pl.col("ResponseCount").filter(Direction="Outbound").min()
                 ).alias("Responses Outbound"),
+                pl.col("Positives").max().alias("TotalPositives"),
+                pl.col("ResponseCount").max().alias("TotalResponseCount"),
                 pl.col("Positives").max() - pl.col("Positives").min(),
                 pl.col("ResponseCount").max() - pl.col("ResponseCount").min(),
                 pl.col("Performance").mean(),
@@ -469,6 +471,8 @@ class Aggregates:
                 pl.sum(
                     "Positives",
                     "ResponseCount",
+                    "TotalPositives",
+                    "TotalResponseCount",
                     "Positives Inbound",
                     "Positives Outbound",
                     "Responses Inbound",
@@ -477,8 +481,9 @@ class Aggregates:
                 (cdh_utils.weighted_performance_polars() * 100).alias("Performance"),
             )
             .with_columns(
-                isValid=(pl.col("Positives") >= 200)
-                & (pl.col("ResponseCount") >= 1000),
+                # applies to totals not delta
+                isValid=(pl.col("TotalPositives") >= 200)
+                & (pl.col("TotalResponseCount") >= 1000),
             )
             .drop([] if debug else ["ResponseCount", "Positives"])
         )
@@ -632,7 +637,7 @@ class Aggregates:
         self,
         start_date: Optional[datetime.datetime] = None,
         end_date: Optional[datetime.datetime] = None,
-        window_days: Optional[int] = None,
+        window: Optional[Union[int, datetime.timedelta]] = None,
         custom_channels: Optional[Dict[str, str]] = None,
         debug: bool = False,
     ) -> pl.LazyFrame:
@@ -644,8 +649,8 @@ class Aggregates:
             Start date of the summary period. If None (default) uses the end date minus the window, or if both absent, the earliest date in the data
         end_date : datetime.datetime, optional
             End date of the summary period. If None (default) uses the start date plus the window, or if both absent, the latest date in the data
-        window_days : int, optional
-            Number of days to use for the summary period. If None (default) uses the whole period. Can't be given if start and end date are also given.
+        window : int or datetime.timedelta, optional
+            Number of days to use for the summary period or an explicit timedelta. If None (default) uses the whole period. Can't be given if start and end date are also given.
         custom_channels : Dict[str, str], optional
             Optional dictionary mapping custom channel names to standard channel groups. Defaults to None.
         debug : bool, optional
@@ -695,7 +700,7 @@ class Aggregates:
         """
 
         start_date, end_date = cdh_utils.get_start_end_date_args(
-            self.datamart.model_data, start_date, end_date, window_days
+            self.datamart.model_data, start_date, end_date, window
         )
 
         summary_by_channel = (
@@ -750,6 +755,7 @@ class Aggregates:
                     "ChannelDirection"
                 ),
             )
+            .drop([] if debug else ["TotalPositives", "TotalResponseCount"])
             .sort(["Channel", "Direction"])
         )
 
@@ -885,7 +891,7 @@ class Aggregates:
         self,
         start_date: Optional[datetime.datetime] = None,
         end_date: Optional[datetime.datetime] = None,
-        window_days: Optional[int] = None,
+        window: Optional[Union[int, datetime.timedelta]] = None,
         debug: bool = False,
     ) -> pl.LazyFrame:
         """Overall ADM models summary. Only valid data is included.
@@ -896,8 +902,8 @@ class Aggregates:
             Start date of the summary period. If None (default) uses the end date minus the window, or if both absent, the earliest date in the data
         end_date : datetime.datetime, optional
             End date of the summary period. If None (default) uses the start date plus the window, or if both absent, the latest date in the data
-        window_days : int, optional
-            Number of days to use for the summary period. If None (default) uses the whole period. Can't be given if start and end date are also given.
+        window : int or datetime.timedelta, optional
+            Number of days to use for the summary period or an explicit timedelta. If None (default) uses the whole period. Can't be given if start and end date are also given.
         debug : bool, optional
             If True, enables debug mode for additional logging or outputs. Defaults to False.
 
@@ -944,7 +950,7 @@ class Aggregates:
         """
 
         start_date, end_date = cdh_utils.get_start_end_date_args(
-            self.datamart.model_data, start_date, end_date, window_days
+            self.datamart.model_data, start_date, end_date, window
         )
 
         overall_summary = (
@@ -989,4 +995,4 @@ class Aggregates:
         ).with_columns(
             cs.categorical().cast(pl.Utf8),
             pl.col("Number of Valid Channels").fill_null(0),
-        )
+        ).drop([] if debug else ["TotalPositives", "TotalResponseCount"])

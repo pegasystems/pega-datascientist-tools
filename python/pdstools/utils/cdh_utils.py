@@ -1183,7 +1183,7 @@ def get_start_end_date_args(
     data: Union[pl.Series, pl.LazyFrame, pl.DataFrame],
     start_date: Optional[datetime.datetime] = None,
     end_date: Optional[datetime.datetime] = None,
-    window_days: Optional[int] = None,
+    window: Optional[Union[int, datetime.timedelta]] = None,
     datetime_field = 'SnapshotTime'
 ):
     if isinstance(data, pl.DataFrame):
@@ -1196,16 +1196,24 @@ def get_start_end_date_args(
         data_min_date = data.min()
         data_max_date = data.max()
 
-    if start_date and end_date and window_days:
-        raise TypeError("Only max two of 'start_date', 'end_date' or 'window_days' can be set")
+    if window:
+        if not isinstance(window, datetime.timedelta):
+            window = datetime.timedelta(days=window)
+
+    if start_date and end_date and window:
+        raise ValueError("Only max two of 'start_date', 'end_date' or 'window_days' can be set")
     if not end_date:
-        if window_days is None or start_date is None:
+        if window is None or start_date is None:
             end_date = data_max_date
         else:
-            end_date = start_date + datetime.timedelta(days=window_days)
+            end_date = start_date + window - datetime.timedelta(days=1)
     if not start_date:
-        if window_days is None:
+        if window is None:
             start_date = data_min_date
         else:
-            start_date = end_date - datetime.timedelta(days=window_days)
+            start_date = end_date - window + datetime.timedelta(days=1)
+
+    if start_date > end_date:
+        raise ValueError(f"The start date {start_date} should be before the end date {end_date}")
+
     return start_date, end_date

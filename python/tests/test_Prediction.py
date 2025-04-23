@@ -11,7 +11,7 @@ from pdstools.utils import cdh_utils
 
 mock_prediction_data = pl.DataFrame(
     {
-        "pySnapShotTime": cdh_utils.to_prpc_date_time(datetime.datetime.now())[
+        "pySnapShotTime": cdh_utils.to_prpc_date_time(datetime.datetime(2040, 4, 1))[
             0:15
         ],  # Polars doesn't like time zones like GMT+0200
         "pyModelId": ["DATA-DECISION-REQUEST-CUSTOMER!MYCUSTOMPREDICTION"] * 4
@@ -30,24 +30,23 @@ mock_prediction_data = pl.DataFrame(
 
 
 @pytest.fixture
-def test():
+def preds_singleday():
     """Fixture to serve as class to call functions from."""
     return Prediction(mock_prediction_data)
 
 
 @pytest.fixture
-def test2(test):
-    today = datetime.datetime.now()
+def preds_fewdays():
     return Prediction(
         pl.concat(
             [
                 mock_prediction_data.with_columns(
-                    pySnapShotTime=pl.lit(cdh_utils.to_prpc_date_time(today)[0:15])
+                    pySnapShotTime=pl.lit(cdh_utils.to_prpc_date_time(datetime.datetime(2040, 5, 1))[0:15])
                 ),
                 mock_prediction_data.with_columns(
                     pySnapShotTime=pl.lit(
                         cdh_utils.to_prpc_date_time(
-                            today + datetime.timedelta(days=-1)
+                            datetime.datetime(2040, 5, 16)
                         )[0:15]
                     )
                 ),
@@ -57,19 +56,21 @@ def test2(test):
     )
 
 
-def test_available(test):
-    assert test.is_available
-    assert test.is_valid
+def test_available(preds_singleday):
+    assert preds_singleday.is_available
+    assert preds_singleday.is_valid
 
 
-def test_summary_by_channel_cols(test):
-    summary = test.summary_by_channel().collect()
+def test_summary_by_channel_cols(preds_singleday):
+    summary = preds_singleday.summary_by_channel().collect()
     assert summary.columns == [
         "Prediction",
         "Channel",
         "Direction",
         "isStandardNBADPrediction",
         "isMultiChannelPrediction",
+        'DateRange Min',
+        'DateRange Max',
         "Performance",
         "Positives",
         "Negatives",
@@ -93,21 +94,21 @@ def test_summary_by_channel_cols(test):
     ]
 
 
-def test_summary_by_channel_channels(test):
-    summary = test.summary_by_channel().collect()
+def test_summary_by_channel_channels(preds_singleday):
+    summary = preds_singleday.summary_by_channel().collect()
     assert summary.select(pl.len()).item() == 4
 
 
-def test_summary_by_channel_validity(test):
-    summary = test.summary_by_channel().collect()
+def test_summary_by_channel_validity(preds_singleday):
+    summary = preds_singleday.summary_by_channel().collect()
     assert summary["isValid"].to_list() == [True, True, True, True]
 
 
-def test_summary_by_channel_ia(test):
-    summary = test.summary_by_channel().collect()
+def test_summary_by_channel_ia(preds_singleday):
+    summary = preds_singleday.summary_by_channel().collect()
     assert summary["usesImpactAnalyzer"].to_list() == [True, True, True, True]
 
-    test = Prediction(
+    preds_singleday = Prediction(
         mock_prediction_data.filter(
             (pl.col("pyDataUsage") != "NBA")
             | (
@@ -117,7 +118,7 @@ def test_summary_by_channel_ia(test):
         )
     )
     # only Web still has the NBA indicator
-    assert test.summary_by_channel().collect()["usesImpactAnalyzer"].to_list() == [
+    assert preds_singleday.summary_by_channel().collect()["usesImpactAnalyzer"].to_list() == [
         False,
         False,
         False,
@@ -125,13 +126,13 @@ def test_summary_by_channel_ia(test):
     ]
 
 
-def test_summary_by_channel_lift(test):
-    summary = test.summary_by_channel().collect()
+def test_summary_by_channel_lift(preds_singleday):
+    summary = preds_singleday.summary_by_channel().collect()
     assert [round(x, 5) for x in summary["Lift"].to_list()] == [0.83333, 0.88235] * 2
 
 
-def test_summary_by_channel_controlpct(test):
-    summary = test.summary_by_channel().collect()
+def test_summary_by_channel_controlpct(preds_singleday):
+    summary = preds_singleday.summary_by_channel().collect()
     assert [round(x, 5) for x in summary["ControlPercentage"].to_list()] == [
         15.71429,
         16.0,
@@ -142,18 +143,18 @@ def test_summary_by_channel_controlpct(test):
     ] * 2
 
 
-def test_summary_by_channel_trend(test):
-    summary = test.summary_by_channel(by_period="1d").collect()
-    assert summary.select(pl.len()).item() == 4
+def test_summary_by_channel_range(preds_fewdays):
+    summary = preds_fewdays.summary_by_channel().collect()
+    assert summary['DateRange Min'].to_list() == [datetime.date(2040,5,1)]*4
+    assert summary['Positives'].to_list() == [2000,4000,2000,4000]
+
+    summary = preds_fewdays.summary_by_channel(start_date=datetime.date(2040, 5, 15)).collect()
+    assert summary['DateRange Min'].to_list() == [datetime.date(2040,5,16)]*4
+    assert summary['Positives'].to_list() == [1000,2000,1000,2000]
 
 
-def test_summary_by_channel_trend2(test2):
-    summary = test2.summary_by_channel(by_period="1d").collect()
-    assert summary.select(pl.len()).item() == 8
-
-
-def test_summary_by_channel_channeldirectiongroup(test):
-    summary = test.summary_by_channel().collect()
+def test_summary_by_channel_channeldirectiongroup(preds_singleday):
+    summary = preds_singleday.summary_by_channel().collect()
 
     assert summary["isMultiChannelPrediction"].to_list() == [False, True, False, False]
     assert summary["isStandardNBADPrediction"].to_list() == [False, True, True, True]
@@ -165,9 +166,11 @@ def test_summary_by_channel_channeldirectiongroup(test):
     ]
 
 
-def test_overall_summary_cols(test):
-    summary = test.overall_summary().collect()
+def test_overall_summary_cols(preds_singleday):
+    summary = preds_singleday.overall_summary().collect()
     assert summary.columns == [
+        'DateRange Min',
+        'DateRange Max',
         "Number of Valid Channels",
         "Overall Lift",
         "Performance",
@@ -184,51 +187,51 @@ def test_overall_summary_cols(test):
     assert len(summary) == 1
 
 
-def test_overall_summary_n_valid_channels(test):
-    assert test.overall_summary().collect()["Number of Valid Channels"].item() == 3
+def test_overall_summary_n_valid_channels(preds_singleday):
+    assert preds_singleday.overall_summary().collect()["Number of Valid Channels"].item() == 3
 
 
-def test_overall_summary_overall_lift(test):
+def test_overall_summary_overall_lift(preds_singleday):
     # print(test.overall_summary().collect())
     # print(test.summary_by_channel().collect())
-    assert round(test.overall_summary().collect()["Overall Lift"].item(), 5) == 0.86217
+    assert round(preds_singleday.overall_summary().collect()["Overall Lift"].item(), 5) == 0.86217
 
 
-def test_overall_summary_positives(test):
-    assert test.overall_summary().collect()["Positives Inbound"].item() == 3000
-    assert test.overall_summary().collect()["Positives Outbound"].item() == 0 # some channels unknown/multi-channel
+def test_overall_summary_positives(preds_singleday):
+    assert preds_singleday.overall_summary().collect()["Positives Inbound"].item() == 3000
+    assert preds_singleday.overall_summary().collect()["Positives Outbound"].item() == 0 # some channels unknown/multi-channel
 
 
-def test_overall_summary_responsecount(test):
-    print (test.summary_by_channel().select(['Channel','Direction','Responses']).collect())
-    assert test.overall_summary().collect()["Responses Inbound"].item() == 27000
-    assert test.overall_summary().collect()["Responses Outbound"].item() == 0 
+def test_overall_summary_responsecount(preds_singleday):
+    print (preds_singleday.summary_by_channel().select(['Channel','Direction','Responses']).collect())
+    assert preds_singleday.overall_summary().collect()["Responses Inbound"].item() == 27000
+    assert preds_singleday.overall_summary().collect()["Responses Outbound"].item() == 0 
 
-def test_overall_summary_channel_min_lift(test):
+def test_overall_summary_channel_min_lift(preds_singleday):
     assert (
-        test.overall_summary().collect()["Channel with Minimum Negative Lift"].item()
+        preds_singleday.overall_summary().collect()["Channel with Minimum Negative Lift"].item()
         is None
     )
 
 
-def test_overall_summary_min_lift(test):
-    assert test.overall_summary().collect()["Minimum Negative Lift"].item() is None
+def test_overall_summary_min_lift(preds_singleday):
+    assert preds_singleday.overall_summary().collect()["Minimum Negative Lift"].item() is None
 
 
-def test_overall_summary_controlpct(test):
+def test_overall_summary_controlpct(preds_singleday):
     assert (
-        round(test.overall_summary().collect()["ControlPercentage"].item(), 5)
+        round(preds_singleday.overall_summary().collect()["ControlPercentage"].item(), 5)
         == 15.88235
     )
     assert (
-        round(test.overall_summary().collect()["TestPercentage"].item(), 5) == 34.11765
+        round(preds_singleday.overall_summary().collect()["TestPercentage"].item(), 5) == 34.11765
     )
 
 
-def test_overall_summary_ia(test):
-    assert test.overall_summary().collect().select(pl.col("usesImpactAnalyzer")).item()
+def test_overall_summary_ia(preds_singleday):
+    assert preds_singleday.overall_summary().collect().select(pl.col("usesImpactAnalyzer")).item()
 
-    test = Prediction(
+    preds_singleday = Prediction(
         mock_prediction_data.filter(
             (pl.col("pyDataUsage") != "NBA")
             | (
@@ -237,7 +240,7 @@ def test_overall_summary_ia(test):
             )
         )
     )
-    assert test.overall_summary().collect()["usesImpactAnalyzer"].to_list() == [True]
+    assert preds_singleday.overall_summary().collect()["usesImpactAnalyzer"].to_list() == [True]
 
 
 def test_plots():

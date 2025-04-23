@@ -8,6 +8,7 @@ import pytest
 from pdstools import ADMDatamart
 from pdstools.adm.Aggregates import Aggregates
 import polars as pl
+from datetime import datetime, timedelta, date
 
 basePath = pathlib.Path(__file__).parent.parent.parent
 
@@ -44,8 +45,52 @@ def modeldata_from_scratch(**overrides):
         df = df.with_columns(pl.lit(overrides.get(col)).alias(col))
     if len(overrides.keys()):
         df = df.explode(overrides.keys())
+    df = df.with_columns(ModelID=pl.format("ModelID_{}", "Name"))
 
     return df.lazy()
+
+
+@pytest.fixture
+def dm_minimal():
+    events = [
+        ("1-Jan-33", "A", 100, 1000, "Mobile", "Inbound"),
+        ("1-jan-33", "B", 100, 1000, "Web", "Inbound"),
+        ("1-Jan-33", "C", 100, 1000, "Web", "Inbound"),
+        ("15-Jan-33", "A", 150, 10500, "Mobile", "Inbound"),
+        ("15-Jan-33", "B", 100, 1000, "Web", "Inbound"),
+        ("15-Jan-33", "C", 160, 12000, "Web", "Inbound"),
+        ("1-Feb-33", "B", 150, 1000, "Mobile", "Inbound"),
+        ("1-Feb-33", "C", 160, 12000, "Web", "Inbound"),
+        ("1-Feb-33", "E", 100, 1000, "Web", "Inbound"),
+        ("28-Feb-33", "B", 151, 1100, "Mobile", "Inbound"),
+        ("28-Feb-33", "C", 300, 15000, "Web", "Inbound"),
+        ("28-Feb-33", "E", 100, 1000, "Web", "Inbound"),
+        ("1-Mar-33", "C", 200, 1000, "Mobile", "Inbound"),
+        ("1-Mar-33", "F", 100, 1000, "Web", "Inbound"),
+        ("1-Mar-33", "G", 100, 1000, "Web", "Inbound"),
+        ("31-Mar-33", "C", 400, 2000, "Mobile", "Inbound"),
+        ("31-Mar-33", "F", 100, 1000, "Web", "Inbound"),
+        ("31-Mar-33", "G", 300, 4000, "Web", "Inbound"),
+    ]
+
+    data = pl.DataFrame(
+        modeldata_from_scratch().collect().to_dicts()[0]
+        | {
+            v: [e[i] for e in events]
+            for i, v in enumerate(
+                [
+                    "SnapshotTime",
+                    "Name",
+                    "Positives",
+                    "ResponseCount",
+                    "Channel",
+                    "Direction",
+                ]
+            )
+        }
+    ).with_columns(ModelID=pl.format("ModelID_{}", "Name"))
+
+    return ADMDatamart(model_df=data.lazy())
 
 
 def test_init(dm_aggregates):
@@ -113,30 +158,17 @@ def test_summary_by_channel(dm_aggregates):
         0,
     ]
 
-
-# TODO by_perdiod no longer supported
-# add tests for explicit start, end end window arguments
-# def test_aggregate_summary_by_channel_and_time(dm_aggregates):
-#     summary_by_channel = dm_aggregates.summary_by_channel(by_period="4h").collect()
-#     assert summary_by_channel.height == 6
-#     assert summary_by_channel.width == 24
-#     assert summary_by_channel["Responses"].to_list() == [
-#         27322,
-#         13062,
-#         45786,
-#         19557,
-#         28230,
-#         10890,
-#     ]
-#     assert [round(x, 6) for x in summary_by_channel["OmniChannel"].to_list()] == [
-#         0.604167,
-#         0.604167,
-#         0.592593,
-#         0.592593,
-#         0.763158,
-#         0.763158,
-#     ]
-
+def test_summary_by_channel_timeslices(dm_minimal):
+    s1 = dm_minimal.aggregates.summary_by_channel(start_date=datetime(2033, 1, 1), end_date=datetime(2033, 1, 31)).collect()
+    assert s1["Actions"].to_list() == [1,2]
+    assert s1["New Actions"].to_list() == [1,2]
+    assert s1["Used Actions"].to_list() == [1,1]
+    assert s1["isValid"].to_list() == [False,True]
+    s2 = dm_minimal.aggregates.summary_by_channel(start_date=datetime(2033, 2, 1), end_date=datetime(2033, 2, 28)).collect()
+    assert s2["Actions"].to_list() == [1,2]
+    assert s2["New Actions"].to_list() == [0,1]
+    assert s2["Used Actions"].to_list() == [1,1]
+    assert s2["isValid"].to_list() == [False,True]
 
 def test_custom_channel_mapping(dm_aggregates):
     dm_aggregates.datamart.model_data = dm_aggregates.datamart.model_data.with_columns(
@@ -265,33 +297,60 @@ def test_omnichannel():
     summ = dm.aggregates.summary_by_channel().collect()
     assert summ["OmniChannel"].to_list() == [None, 0.0]
 
-# TODO by_perdiod no longer supported
-# add tests for explicit start, end end window arguments
-# def test_aggregate_overall_summary_by_time(dm_aggregates):
-#     overall_summary = dm_aggregates.overall_summary(by_period="1h").collect()
-#     assert overall_summary.height == 6
-#     assert overall_summary.width == 22
-#     assert overall_summary["Number of Valid Channels"].to_list() == [2, 2, 2, 1, 2, 1]
-#     assert overall_summary["Actions"].to_list() == [34, 35, 34, 31, 33, 34]
-#     assert overall_summary["Treatments"].to_list() == [0] * 6
-#     assert [round(x, 6) for x in overall_summary["OmniChannel"].to_list()] == [
-#         0.728745,
-#         0.694444,
-#         0.728745,
-#         0.0,
-#         0.668889,
-#         0.0,
-#     ]
+
+def test_overall_summary_timeslices(dm_minimal):
+    s1 = dm_minimal.aggregates.overall_summary(
+        start_date=datetime(2033, 1, 1), window=timedelta(weeks=4)
+    ).collect()
+    assert s1["Actions"].item() == 3  # A, B, C
+    assert s1["New Actions"].item() == 3
+    assert s1["Used Actions"].item() == 2  # B not used
+    s2 = dm_minimal.aggregates.overall_summary(
+        start_date=datetime(2033, 2, 1), window=timedelta(weeks=4), debug=True
+    ).collect()
+    assert s2["Actions"].item() == 3
+    assert s2["New Actions"].item() == 1  # E is new
+    assert s2["Used Actions"].item() == 2  # B and C are used, E is not used
+    s3 = dm_minimal.aggregates.overall_summary(
+        start_date=datetime(2033, 2, 1)
+    ).collect()
+    assert s3["Actions"].item() == 5
+    assert s3["New Actions"].item() == 3  # E, F, G are new
+    assert s3["Used Actions"].item() == 3  # C, B, G
+    s4 = dm_minimal.aggregates.overall_summary(window=31).collect()
+    assert s4["Actions"].item() == 3  # C, F, G
+    assert s4["New Actions"].item() == 2  # F, G
+    assert s4["Used Actions"].item() == 2  # C, G
+    assert s4["DateRange Min"].item() == date(2033, 3, 1)
+    with pytest.raises(ValueError):
+        # Can't use all 3 arguments
+        dm_minimal.aggregates.overall_summary(start_date=datetime(2031, 1, 1), end_date=datetime(2033, 1, 1), window=31).collect()
+    with pytest.raises(ValueError):
+        # No data left
+        dm_minimal.aggregates.overall_summary(start_date=datetime(2031, 1, 1), window=31).collect()
+    with pytest.raises(ValueError):
+        # No data left
+        dm_minimal.aggregates.overall_summary(start_date=datetime(2031, 1, 1), end_date=datetime(2001, 1, 1)).collect()
 
 
 def test_summary_by_configuration(dm_aggregates):
     configuration_summary = dm_aggregates.summary_by_configuration().collect()
     assert "AGB" in configuration_summary.columns
 
+
 def test_new_actions():
     df = modeldata_from_scratch(
         Name=["A", "A", "B", "B", "E", "E", "C", "C"],
-        SnapshotTime= ["1-Jan-25","2-Jan-25","1-Jan-25","2-Jan-25","1-Feb-25","2-Feb-25","15-Feb-25","16-Feb-25"],
+        SnapshotTime=[
+            "1-Jan-25",
+            "2-Jan-25",
+            "1-Jan-25",
+            "2-Jan-25",
+            "1-Feb-25",
+            "2-Feb-25",
+            "15-Feb-25",
+            "16-Feb-25",
+        ],
         Channel=[
             "Mobile",
             "Mobile",
@@ -309,12 +368,5 @@ def test_new_actions():
 
     agg = dm.aggregates.overall_summary().collect()
     assert agg["New Actions"].item() == 4
-
-    # TODO by_perdiod no longer supported
-    # add tests for explicit start, end end window arguments
-    # 
-    # agg = dm.aggregates.overall_summary(by_period="1w").collect()
-    # assert agg["New Actions"].to_list() == [2,1,1]
-
     agg = dm.aggregates.summary_by_channel().collect()
-    assert agg["New Actions"].to_list() == [2,2]
+    assert agg["New Actions"].to_list() == [2, 2]
