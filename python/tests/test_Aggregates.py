@@ -219,6 +219,26 @@ def test_aggregate_overall_summary(dm_aggregates):
 
     assert overall_summary["Number of Valid Channels"].item() == 1
 
+def test_aggregate_summary_by_channel_and_time(dm_aggregates):
+    summary_by_channel = dm_aggregates.summary_by_channel(by_period="4h").collect()
+    assert summary_by_channel.height == 6
+    assert summary_by_channel.width == 23
+    assert summary_by_channel["Responses"].to_list() == [
+        27322,
+        13062,
+        45786,
+        19557,
+        28230,
+        10890,
+    ]
+    assert [round(x, 6) for x in summary_by_channel["OmniChannel"].to_list()] == [
+        0.604167,
+        0.604167,
+        0.592593,
+        0.592593,
+        0.763158,
+        0.763158,
+    ]
 
 def test_overall_summary_2():
     dm = ADMDatamart(modeldata_from_scratch())
@@ -298,6 +318,25 @@ def test_omnichannel():
     assert summ["OmniChannel"].to_list() == [None, 0.0]
 
 
+def test_aggregate_overall_summary_by_time(dm_aggregates):
+    overall_summary = dm_aggregates.overall_summary(by_period="1h").collect()
+    assert overall_summary.height == 6
+    assert overall_summary.width == 21
+
+    # print(dm_aggregates.summary_by_channel(by_period="1h",debug=True).collect().select("Channel","Direction","Period","Positives","TotalPositives","isValid").to_pandas())
+
+    assert overall_summary["Number of Valid Channels"].to_list() == [2, 3, 3, 3, 3, 3]
+    assert overall_summary["Actions"].to_list() == [34, 35, 34, 31, 33, 34]
+    assert overall_summary["Treatments"].to_list() == [0] * 6
+    assert [round(x, 6) for x in overall_summary["OmniChannel"].to_list()] == [
+        0.728745,
+        0.635802,
+        0.660903,
+        0.559028,
+        0.646232,
+        0.662062,
+    ]
+
 def test_overall_summary_timeslices(dm_minimal):
     s1 = dm_minimal.aggregates.overall_summary(
         start_date=datetime(2033, 1, 1), window=timedelta(weeks=4)
@@ -368,5 +407,9 @@ def test_new_actions():
 
     agg = dm.aggregates.overall_summary().collect()
     assert agg["New Actions"].item() == 4
+
+    agg = dm.aggregates.overall_summary(by_period="1w").collect()
+    assert agg["New Actions"].to_list() == [2,1,1]
+
     agg = dm.aggregates.summary_by_channel().collect()
     assert agg["New Actions"].to_list() == [2, 2]

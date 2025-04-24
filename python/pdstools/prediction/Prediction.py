@@ -441,6 +441,7 @@ class Prediction:
     def summary_by_channel(
         self,
         custom_predictions: Optional[List[List]] = None,
+        *,
         start_date: Optional[datetime.datetime] = None,
         end_date: Optional[datetime.datetime] = None,
         window: Optional[Union[int, datetime.timedelta]] = None,
@@ -464,15 +465,24 @@ class Prediction:
         Returns
         -------
         pl.LazyFrame
-            Dataframe with prediction summary with the following columns:
+            Summary across all Predictions as a dataframe with the following fields:
+            
+            Time and Configuration Fields:
             - DateRange Min - The minimum date in the summary time range
             - DateRange Max - The maximum date in the summary time range
+            - Duration - The duration in seconds between the minimum and maximum snapshot times
             - Prediction: The prediction name
             - Channel: The channel name
             - Direction: The direction (e.g., Inbound, Outbound)
+            - ChannelDirectionGroup: Combined Channel/Direction identifier
+            - isValid: Boolean indicating if the prediction data is valid
             - isStandardNBADPrediction: Boolean indicating if this is a standard NBAD prediction
             - isMultiChannelPrediction: Boolean indicating if this is a multi-channel prediction
-            - Performance: Weighted performance metric
+            - ControlPercentage: Percentage of responses in control group
+            - TestPercentage: Percentage of responses in test group
+
+            Performance Metrics:
+            - Performance: Weighted model performance (AUC)
             - Positives: Sum of positive responses
             - Negatives: Sum of negative responses
             - Responses: Sum of all responses
@@ -482,16 +492,14 @@ class Prediction:
             - Negatives_Test: Sum of negative responses in test group
             - Negatives_Control: Sum of negative responses in control group
             - Negatives_NBA: Sum of negative responses in NBA group
-            - usesImpactAnalyzer: Boolean indicating if Impact Analyzer is used
-            - ControlPercentage: Percentage of responses in control group
-            - TestPercentage: Percentage of responses in test group
             - CTR: Click-through rate (Positives / (Positives + Negatives))
             - CTR_Test: Click-through rate for test group
             - CTR_Control: Click-through rate for control group
             - CTR_NBA: Click-through rate for NBA group
-            - ChannelDirectionGroup: Combined Channel/Direction identifier
-            - isValid: Boolean indicating if the prediction data is valid
             - Lift: Lift value ((CTR_Test - CTR_Control) / CTR_Control)
+
+            Technology Usage Indicators:
+            - usesImpactAnalyzer: Boolean indicating if Impact Analyzer is used
         """
         if not custom_predictions:
             custom_predictions = []
@@ -551,6 +559,9 @@ class Prediction:
             .agg(
                 pl.col("SnapshotTime").min().cast(pl.Date).alias("DateRange Min"),
                 pl.col("SnapshotTime").max().cast(pl.Date).alias("DateRange Max"),
+                (pl.col("SnapshotTime").max() - pl.col("SnapshotTime").min())
+                .dt.total_seconds()
+                .alias("Duration"),
                 cdh_utils.weighted_performance_polars().alias("Performance"),
                 pl.col("Positives").sum(),
                 pl.col("Negatives").sum(),
@@ -615,6 +626,7 @@ class Prediction:
     def overall_summary(
         self,
         custom_predictions: Optional[List[List]] = None,
+        *,
         start_date: Optional[datetime.datetime] = None,
         end_date: Optional[datetime.datetime] = None,
         window: Optional[Union[int, datetime.timedelta]] = None,
@@ -635,21 +647,30 @@ class Prediction:
         Returns
         -------
         pl.LazyFrame
-            Summary across all valid predictions as a dataframe with the following columns:
+            Summary across all Predictions as a dataframe with the following fields:
+
+            Time and Configuration Fields:
             - DateRange Min - The minimum date in the summary time range
             - DateRange Max - The maximum date in the summary time range
-            - Number of Valid Channels: Count of unique valid channel/direction combinations
-            - Overall Lift: Weighted average lift across all valid channels
+            - Duration - The duration in seconds between the minimum and maximum snapshot times
+            - ControlPercentage: Weighted average percentage of control group responses
+            - TestPercentage: Weighted average percentage of test group responses
+
+            Performance Metrics:
             - Performance: Weighted average performance across all valid channels
             - Positives Inbound: Sum of positive responses across all valid inbound channels
             - Positives Outbound: Sum of positive responses across all valid outbound channels
             - Responses Inbound: Sum of all responses across all valid inbound channels
             - Responses Outbound: Sum of all responses across all valid outbound channels
+            - Overall Lift: Weighted average lift across all valid channels
             - Channel with Minimum Negative Lift: Channel with the lowest negative lift value
             - Minimum Negative Lift: The lowest negative lift value found
+
+            Channel Statistics:
+            - Number of Valid Channels: Count of unique valid channel/direction combinations
+            
+            Technology Usage Indicators:
             - usesImpactAnalyzer: Boolean indicating if any channel uses Impact Analyzer
-            - ControlPercentage: Weighted average percentage of control group responses
-            - TestPercentage: Weighted average percentage of test group responses
         """
 
         # start_date, end_date = cdh_utils.get_start_end_date_args(
@@ -684,6 +705,7 @@ class Prediction:
             .agg(
                 pl.col("DateRange Min").min(),
                 pl.col("DateRange Max").max(),
+                pl.col("Duration").max(),
                 pl.concat_str(["Channel", "Direction"], separator="/")
                 .n_unique()
                 .alias("Number of Valid Channels"),

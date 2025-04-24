@@ -71,6 +71,7 @@ def test_summary_by_channel_cols(preds_singleday):
         "isMultiChannelPrediction",
         'DateRange Min',
         'DateRange Max',
+        'Duration',
         "Performance",
         "Positives",
         "Negatives",
@@ -171,6 +172,7 @@ def test_overall_summary_cols(preds_singleday):
     assert summary.columns == [
         'DateRange Min',
         'DateRange Max',
+        'Duration',
         "Number of Valid Channels",
         "Overall Lift",
         "Performance",
