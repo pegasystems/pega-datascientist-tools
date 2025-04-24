@@ -1,7 +1,7 @@
 import pathlib
 
 import pytest
-from pandas import ExcelFile
+from openpyxl import load_workbook
 from pdstools import ADMDatamart, datasets, read_ds_export
 
 basePath = pathlib.Path(__file__).parent.parent.parent
@@ -35,8 +35,8 @@ def test_ExportTables(sample: ADMDatamart):
     excel, warning_messages = sample.generate.excel_report(predictor_binning=True)
     assert excel == pathlib.Path("./Tables.xlsx")
     assert excel.exists()
-    spreadsheet = ExcelFile(excel)
-    assert list(spreadsheet.sheet_names) == [
+    spreadsheet = load_workbook(excel)
+    assert spreadsheet.sheetnames == [
         "modeldata_last_snapshot",
         "predictors_overview",
         "predictor_binning",
@@ -51,8 +51,8 @@ def test_ExportTables_NoBinning(sample: ADMDatamart):
     excel, warining_messages = sample.generate.excel_report(predictor_binning=False)
     assert excel == pathlib.Path("./Tables.xlsx")
     assert pathlib.Path(excel).exists()
-    spreadsheet = ExcelFile(excel)
-    assert list(spreadsheet.sheet_names) == [
+    spreadsheet = load_workbook(excel)
+    assert spreadsheet.sheetnames == [
         "modeldata_last_snapshot",
         "predictors_overview",
     ]
@@ -78,8 +78,8 @@ def test_ExportTables_ModelDataOnly(sample_without_predictor_binning: ADMDatamar
     )
     assert excel == pathlib.Path("ModelTables.xlsx")
     assert pathlib.Path(excel).exists()
-    spreadsheet = ExcelFile(excel)
-    assert list(spreadsheet.sheet_names) == [
+    spreadsheet = load_workbook(excel)
+    assert spreadsheet.sheetnames == [
         "modeldata_last_snapshot",
     ]
     # TODO we could go further and check the size of the sheets

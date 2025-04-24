@@ -155,7 +155,7 @@ class Plot:
             .collect()
         )
         if return_df:
-            return pl.from_pandas(plotData)
+            return plotData
 
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(
@@ -455,7 +455,7 @@ class Plot:
     ):
         # TODO have a nice hover showing both the individual colored totals as the total bar
         fig = px.histogram(
-            df.collect().to_pandas(),
+            df.collect(),
             x=metric if horizontal else scope,
             y=scope if horizontal else metric,
             color=breakdown,
@@ -618,7 +618,7 @@ class Plot:
                         NBADStages_Mapping
                     )  # Replacing with "remaining" view labels
                     .cast(pl.Enum(list(NBADStages_Mapping.values())))
-                ).to_pandas(),
+                ),
                 x="day",
                 y="nOffers",
                 color=self._decision_data.level,
@@ -633,7 +633,7 @@ class Plot:
                     #     NBADStages_Mapping
                     # )  # Replacing with "remaining" view labels
                     .cast(pl.Enum(list(NBADStages_Mapping.values())))
-                ).to_pandas(),
+                ),
                 x="day",
                 y="nOffers",
                 color=self._decision_data.level,

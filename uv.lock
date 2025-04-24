@@ -1927,7 +1927,7 @@ wheels = [
 
 [[package]]
 name = "pdstools"
-version = "4.1.6"
+version = "4.1.8"
 source = { editable = "." }
 dependencies = [
     { name = "polars" },
@@ -1936,7 +1936,7 @@ dependencies = [
 
 [package.optional-dependencies]
 adm = [
-    { name = "plotly" },
+    { name = "plotly", extra = ["express"] },
     { name = "requests" },
 ]
 all = [
@@ -1948,7 +1948,7 @@ all = [
     { name = "onnxruntime", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "onnxruntime", version = "1.20.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "papermill" },
-    { name = "plotly" },
+    { name = "plotly", extra = ["express"] },
     { name = "polars-hash" },
     { name = "pydantic" },
     { name = "pydot" },
@@ -1968,7 +1968,7 @@ api = [
 app = [
     { name = "great-tables" },
     { name = "papermill" },
-    { name = "plotly" },
+    { name = "plotly", extra = ["express"] },
     { name = "pydot" },
     { name = "quarto" },
     { name = "requests" },
@@ -1991,7 +1991,7 @@ docs = [
 healthcheck = [
     { name = "great-tables" },
     { name = "papermill" },
-    { name = "plotly" },
+    { name = "plotly", extra = ["express"] },
     { name = "pydot" },
     { name = "quarto" },
     { name = "requests" },
@@ -2023,7 +2023,7 @@ tests = [
     { name = "onnxruntime", version = "1.20.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "openpyxl" },
     { name = "papermill" },
-    { name = "plotly" },
+    { name = "plotly", extra = ["express"] },
     { name = "polars-hash" },
     { name = "pydantic" },
     { name = "pydot" },
@@ -2062,7 +2062,7 @@ requires-dist = [
     { name = "pdstools", extras = ["api"], marker = "extra == 'onnx'" },
     { name = "pdstools", extras = ["app", "onnx", "pega-io"], marker = "extra == 'all'" },
     { name = "pdstools", extras = ["healthcheck"], marker = "extra == 'app'" },
-    { name = "plotly", marker = "extra == 'adm'" },
+    { name = "plotly", extras = ["express"], marker = "extra == 'adm'", specifier = ">=6.0" },
     { name = "polars", specifier = ">=0.20" },
     { name = "polars-hash", marker = "extra == 'pega-io'" },
     { name = "pre-commit", marker = "extra == 'dev'" },
@@ -2197,6 +2197,11 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c7/cc/e41b5f697ae403f0b50e47b7af2e36642a193085f553bf7cc1169362873a/plotly-6.0.1.tar.gz", hash = "sha256:dd8400229872b6e3c964b099be699f8d00c489a974f2cfccfad5e8240873366b", size = 8094643 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/02/65/ad2bc85f7377f5cfba5d4466d5474423a3fb7f6a97fd807c06f92dd3e721/plotly-6.0.1-py3-none-any.whl", hash = "sha256:4714db20fea57a435692c548a4eb4fae454f7daddf15f8d8ba7e1045681d7768", size = 14805757 },
+]
+
+[package.optional-dependencies]
+express = [
+    { name = "numpy" },
 ]
 
 [[package]]

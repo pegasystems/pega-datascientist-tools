@@ -99,6 +99,7 @@ class ADMDatamart:
     generate: Reports
     cdh_guidelines: CDHGuidelines
     bin_aggregator: BinAggregator
+    first_action_dates: Optional[pl.LazyFrame]
 
     def __init__(
         self,
@@ -124,16 +125,38 @@ class ADMDatamart:
             CDHGuidelines()
         )  # not sure if this should be part of the ADM DM
 
-        self.model_data = self._validate_model_data(
-            model_df, query=query, extract_pyname_keys=extract_pyname_keys
+        model_data_validated = self._validate_model_data(
+            model_df, extract_pyname_keys=extract_pyname_keys
         )
 
+        # First occurence of actions (before filtering!) kept here so we can derive the "New Actions"
+        self.first_action_dates = self._get_first_action_dates(model_data_validated)
+
+        self.model_data = cdh_utils._apply_query(model_data_validated, query)
+
+        # TODO @stijn how do we ensure the model IDs intersect, also if there is a query argument?
         self.predictor_data = self._validate_predictor_data(predictor_df)
 
         self.combined_data = self.aggregates._combine_data(
             self.model_data, self.predictor_data
         )
-        self.bin_aggregator = BinAggregator(dm=self)  # attach after model_data
+        self.bin_aggregator = BinAggregator(dm=self) 
+
+    def _get_first_action_dates(self, df: Optional[pl.LazyFrame]) -> pl.LazyFrame:
+        if df is None:
+            return df
+        # very_first_date = df.select(pl.col("SnapshotTime").min()).collect().item()
+        return (
+            df.group_by("Name")
+            .agg(FirstSnapshotTime=pl.col("SnapshotTime").min())
+            # .with_columns(
+            #     pl.when(pl.col("FirstSnapshotTime") > very_first_date).then("FirstSnapshotTime") 
+            # )
+            .sort("Name")
+            # .filter(
+            #     pl.col("FirstSnapshotTime") > very_first_date
+            # )
+        )
 
     @classmethod
     def from_ds_export(
@@ -294,7 +317,6 @@ class ADMDatamart:
     def _validate_model_data(
         self,
         df: Optional[pl.LazyFrame],
-        query: Optional[QUERY] = None,
         extract_pyname_keys: bool = True,
     ) -> Optional[pl.LazyFrame]:
         """Internal method to validate model data"""
@@ -322,12 +344,14 @@ class ADMDatamart:
                 pl.lit(0)
             ),
         )
+        # TODO it could be just a date, in that case we can just cast
+        # Also, rather than not datetime, we probably want is categorical/string
         if not isinstance(schema["SnapshotTime"], pl.Datetime):
             df = df.with_columns(SnapshotTime=cdh_utils.parse_pega_date_time_formats())
 
         df = cdh_utils._apply_schema_types(df, Schema.ADMModelSnapshot)
 
-        return cdh_utils._apply_query(df, query)
+        return df
 
     def _validate_predictor_data(
         self, df: Optional[pl.LazyFrame]

@@ -40,7 +40,10 @@ dependencies = [
 version = {attr="pdstools.__version__"}
 
 [project.optional-dependencies]
-adm = ['plotly', 'requests']
+adm = [
+    "plotly[express]>=6.0",
+    'requests',
+]
 pega_io = ['aioboto3', 'polars_hash']
 api = ['httpx', 'pydantic', 'anyio']
 healthcheck = ['pdstools[adm]', 'great_tables>=0.13', 'quarto', 'papermill', 'xlsxwriter>=3.0', 'pydot']
