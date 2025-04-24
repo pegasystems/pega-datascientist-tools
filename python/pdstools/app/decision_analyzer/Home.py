@@ -54,6 +54,10 @@ st.cache_data.clear()
 st.session_state["filters"] = []
 
 # st.write(st.session_state.to_dict().keys())  # just for debugging
+level = st.selectbox(
+    "Select Stage Granularity",
+    ("StageGroup", "Stage"),
+)
 
 file_upload_options = get_options()
 source = st.selectbox(
@@ -61,7 +65,6 @@ source = st.selectbox(
     options=file_upload_options,
     index=0,
 )
-
 if source == "Sample Data":
     raw_data = handle_sample_data(os.getcwd() == "/app")
 elif source == "File Upload":
@@ -70,7 +73,7 @@ elif source == "Direct File Path":
     raw_data = handle_direct_file_path()
 if raw_data is not None:
     with st.spinner("Reading Data"):
-        st.session_state.decision_data = DecisionAnalyzer(raw_data)
+        st.session_state.decision_data = DecisionAnalyzer(raw_data, level=level)
         del raw_data
 
         if "decision_data" in st.session_state:
