@@ -2,6 +2,8 @@ import datetime
 import os
 import random
 from typing import Dict, List, Optional, Union
+from collections import defaultdict
+import math
 import polars as pl
 import polars.selectors as cs
 
@@ -333,3 +335,279 @@ class IH:
         )
 
         return IH(ih_data.lazy())
+    
+    def get_sequences(
+        self,
+        positive_outcome_label: str,
+        level: str,
+        outcome_column: str,
+        customerid_column: str,
+    ) -> tuple[
+        list[tuple[str, ...]],
+        list[defaultdict[tuple[str], int]],
+        list[defaultdict[tuple[str, ...], int]],
+    ]:
+        """
+        Generates customer sequences, outcome labels, counts
+        needed for PMI (Pointwise Mutual Information) calculations.
+
+        This function processes customer interaction data to produce:
+        1. Action sequences per customer.
+        2. Corresponding binary outcome sequences (1 for positive outcome, 0 otherwise).
+        3. Counts of bigrams and ≥3-grams that end with a positive outcome.
+        4. Counts of all possible bigrams within that corpus.
+
+        Parameters
+        ----------
+        positive_outcome_label : str
+            The outcome label that marks the final event in a sequence.
+        pyName_column : str
+            Column name that contains the action (offer / treatment).
+        outcome_column : str
+            Column name that contains the outcome label.
+        customerid_column : str
+            Column name that identifies a unique customer / subject.
+
+        Returns
+        -------
+        customer_sequences: list[tuple[str, ...]]
+            Sequences of actions per customer.
+        customer_outcomes: list[tuple[int, ...]]
+            Binary outcomes (0 or 1) for each customer action sequence.
+        count_actions: list[defaultdict[tuple[str], int]]
+            Actions frequency counts.
+            Index 0 = count of first element in all bigrams
+            Index 1 = count of second element in all bigrams
+        count_sequences: list[defaultdict[tuple[str, …], int]] 
+            Sequence frequency counts.
+            Index 0 = bigrams (all)
+            Index 1 = ≥3-grams that end with positive outcome
+            Index 2 = bigrams that end with positive outcome
+        """
+        cols = [customerid_column, level, outcome_column]
+
+        df = (
+            self.data
+            .select(cols)
+            .sort([customerid_column])
+            .collect()
+        )
+
+        count_actions = [defaultdict(int), defaultdict(int)]
+        count_sequences = [defaultdict(int), defaultdict(int), defaultdict(int)]
+        customer_sequences = []
+        customer_outcomes = []
+
+        # Iterate over customers
+        for user_id, user_df in df.group_by(customerid_column):
+            user_actions = user_df[level].to_list()
+            outcome_actions = user_df[outcome_column].to_list()
+
+            outcome_actions = [1 if action == positive_outcome_label else 0 for action in outcome_actions]
+
+            if len(user_actions) < 2:
+                continue
+
+            if 1 not in outcome_actions:
+                continue
+                
+            customer_sequences.append(tuple(user_actions))
+            customer_outcomes.append(tuple(outcome_actions))
+
+        def ngrams_and_bigrams(sequences, outcomes):
+            ngrams = []
+            bigrams = []
+            bigrams_all = []
+
+            for seq, out in zip(sequences, outcomes):
+                for n in range(2, len(seq) + 1):
+                    for i in range(len(seq) - n + 1):
+                        ngram = seq[i:i + n]
+                        ngram_outcomes = out[i:i + n]
+
+                        if ngram_outcomes[-1] == 1:  # Ends in positive_outcome_label
+                            if len(ngram) == 2:
+                                bigrams_all.append(ngram)
+                                bigrams.append(ngram)
+                            else:
+                                ngrams.append(ngram)
+                                for j in range(len(ngram) - 1):
+                                    bigrams_all.append(ngram[j : j + 2])
+
+            return ngrams, bigrams, bigrams_all
+
+        ngrams, bigrams, bigrams_all = ngrams_and_bigrams(customer_sequences, customer_outcomes)
+
+        # Frequency tables
+        for seq in ngrams:
+            count_sequences[1][seq] += 1
+
+        for bigram in bigrams_all:
+            count_sequences[0][bigram] += 1
+            count_actions[0][(bigram[0],)] += 1
+            count_actions[1][(bigram[1],)] += 1
+
+        for bigram in bigrams:
+            count_sequences[2][bigram] += 1
+
+        return customer_sequences, customer_outcomes, count_actions, count_sequences
+
+    @staticmethod
+    def calculate_pmi(
+        count_actions: list[defaultdict[tuple[str], int]],
+        count_sequences: list[defaultdict[tuple[str, ...], int]],
+    ) -> tuple[
+        dict[tuple[str, str], float],
+        dict[tuple[str, ...], float]
+    ]:
+        """
+        Compute PMI values for bigrams and average PMI for n-grams (n ≥ 2) in customer action sequences.
+
+        Bigrams values are calculated by PMI.
+        N-gram values are computed by averaging the PMI of their constituent bigrams.
+        Higher values indicate more informative or surprising paths.
+
+        Parameters
+        -------
+        count_actions: list[defaultdict[tuple[str], int]] 
+            Actions frequency counts. 
+            Index 0 = count of first element in all bigrams
+            Index 1 = count of second element in all bigrams
+        count_sequences: list[defaultdict[tuple[str, …], int]]  
+            Sequence frequency counts.
+            Index 0 = bigrams (all)
+            Index 1 = ≥3-grams that end with positive outcome
+            Index 2 = bigrams that end with positive outcome
+
+        Returns
+        -------
+        ngrams_pmi: dict[tuple[str, ...], float | dict[str, float | dict[tuple[str, str], float]]]
+            Dictionary containing PMI information for bigrams and n-grams.
+            For bigrams, the value is a float representing the PMI value.
+            For higher-order n-grams, the value is a dictionary with:
+                - 'average_pmi: The average PMI value.
+                - 'links': A dictionary mapping each constituent bigram to its PMI value.
+        """
+        # corpus size (number of action tokens)
+        corpus = (
+            sum(len(k) * v for k, v in count_sequences[1].items())
+            + sum(len(k) * v for k, v in count_sequences[2].items())
+        )
+
+        bigrams_pmi = {}
+
+        # bigram PMI
+        for bigram, bigram_count in count_sequences[0].items():
+            first_count = count_actions[0][(bigram[0],)]
+            second_count = count_actions[1][(bigram[1],)]
+
+            pmi = math.log2((bigram_count / corpus) / ((first_count / corpus) * (second_count / corpus)))
+
+            bigrams_pmi[bigram] = pmi
+
+        # n‑gram PMI
+        customer_bigrams = {key: bigrams_pmi[key] for key in count_sequences[2] if key in bigrams_pmi}
+
+        ngrams_pmi = dict(customer_bigrams)
+
+        for seq in count_sequences[1].keys():
+            links = [seq[i:i+2] for i in range(len(seq) - 1)]
+            values = []
+            link_info = {}
+
+            for link in links:
+                if link in bigrams_pmi:
+                    value = bigrams_pmi[link]
+                    values.append(value)
+                    link_info[link] = value
+
+            average = sum(values) / len(values) if values else 0
+
+            ngrams_pmi[seq] = {
+                "average_pmi": average,
+                "links": link_info
+            }
+
+        return ngrams_pmi
+    
+    @staticmethod
+    def pmi_overview(
+        ngrams_pmi: Dict[str, Dict[str, Dict[str, float] | float]],
+        count_sequences: list[defaultdict[tuple[str, ...], int]],
+        customer_sequences: list[tuple[str, ...]],
+        customer_outcomes: list[tuple[int, ...]],
+    ) -> pl.DataFrame:
+        """
+        Generate a Polars DataFrame summarizing PMI values for n-grams across customer sequences.
+
+        Parameters
+        ----------
+        ngrams_pmi: dict[tuple[str, ...], float | dict[str, float | dict[tuple[str, str], float]]]
+            Dictionary containing PMI information for bigrams and n-grams.
+            For bigrams, the value is a float representing the PMI value.
+            For higher-order n-grams, the value is a dictionary with:
+                - 'average_pmi: The average PMI value.
+                - 'links': A dictionary mapping each constituent bigram to its PMI value.
+
+        count_sequences : list[defaultdict[tuple[str, ...], int]]
+            Sequence frequency counts.
+            Index 1 = ≥3-grams ending in positive outcome.
+            Index 2 = bigrams ending in positive outcome.
+
+        customer_sequences : list[tuple[str, ...]]
+            Sequences of actions per customer.
+
+        customer_outcomes : list[tuple[int, ...]]
+            Binary outcomes (0 or 1) for each customer action sequence.
+
+        Returns
+        -------
+        pl.DataFrame
+            DataFrame containing:
+            - 'Sequence': the action sequence
+            - 'Length': number of actions
+            - 'Avg PMI': average PMI value
+            - 'Frequency': number of times the sequence appears
+            - 'Unique freq': number of unique customers who had this sequence ending in a positive outcome
+            - 'Score': Avg PMI x log(Frequency), sorted descending
+        """
+        data: list[dict[str, object]] = []
+        freq_all = count_sequences[1] | count_sequences[2]
+
+        def is_subtuple_with_outcome(small, large, outcome):
+            for i in range(len(large) - len(small) + 1):
+                if large[i:i+len(small)] == small:
+                    if outcome[i + len(small) - 1] == 1:
+                        return True
+            return False
+
+        for seq, pmi_val in ngrams_pmi.items():
+            if len(seq) > 2:
+                pmi_val = pmi_val["average_pmi"]
+
+            count = freq_all.get(seq, 0)
+
+            if count <= 1:
+                continue
+
+            unique_freq = sum(
+                is_subtuple_with_outcome(seq, cust_seq, outcome)
+                for cust_seq, outcome in zip(customer_sequences, customer_outcomes)
+            )
+
+            data.append(
+                {
+                    "Sequence":  seq,
+                    "Length":    len(seq),
+                    "Avg PMI":   pmi_val,
+                    "Frequency": count,
+                    "Unique freq": unique_freq,
+                    "Score":     pmi_val * math.log(count),
+                }
+            )
+
+        return (
+            pl.DataFrame(data)
+            .sort("Score", descending=True)
+            .with_columns(pl.col("Score").round(3), pl.col("Avg PMI").round(3))
+        )
