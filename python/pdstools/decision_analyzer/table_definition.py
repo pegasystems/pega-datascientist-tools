@@ -10,13 +10,13 @@ class TableConfig(TypedDict):
 
 
 DecisionAnalyzer: Dict[str, TableConfig] = {
-    "pySubjectID": {
+    "Primary_pySubjectID": {  # Primary_pySubjectID
         "label": "pySubjectID",
         "default": False,
         "type": pl.Categorical,
         "required": True,
     },  # should be optional
-    "pySubjectType": {
+    "Primary_pySubjectType": {  # Primary_pySubjectType
         "label": "pySubjectType",
         "default": False,
         "type": pl.Categorical,

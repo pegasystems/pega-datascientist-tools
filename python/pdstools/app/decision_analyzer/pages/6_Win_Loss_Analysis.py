@@ -207,7 +207,7 @@ if st.session_state.local_filters != []:
 
     fig, warning_message = st.session_state.decision_data.plot.prio_factor_boxplots(
         reference=st.session_state["local_filters"],
-        sample_size=10000,
+        sample_size=20000,
     )
     if warning_message:
         st.warning(warning_message)
