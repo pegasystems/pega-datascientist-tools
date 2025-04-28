@@ -366,6 +366,8 @@ class Plots(LazyNamespace):
                 pl.col(metric).diff().over(grouping_columns).alias(plot_metric)
             )
 
+        if return_df:
+            return agg_df
         final_df = agg_df.collect()
 
         facet_col_wrap = None
@@ -394,7 +396,7 @@ class Plots(LazyNamespace):
             fig.update_yaxes(tickformat=".2%")
             fig.update_layout(yaxis={"rangemode": "tozero"})
 
-        return final_df if return_df else fig
+        return fig
 
     @requires({"ModelID", "Name"})
     def proposition_success_rates(
