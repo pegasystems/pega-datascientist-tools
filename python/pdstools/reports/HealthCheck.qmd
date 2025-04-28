@@ -361,6 +361,7 @@ display(
             "usesNBAD",
             "usesAGB",
             "Duration",
+            "CTR",
         ]
     ).tab_style(
         style=style.text(decorate="line-through"),
@@ -416,7 +417,7 @@ Predictions monitor performance in a different way than ADM models do. The measu
 
 Lift in Predictions is the lift in *engagement* (clicks, accepts) and is defined as:
 
-$$Lift = \frac{CTR_{test} - CTR_{control}}{CTR_{control}}$$
+$Lift = \frac{CTR_{test} - CTR_{control}}{CTR_{control}}$
 
 with "test" the model group and "control" random test group. A lift of 0% means the model group is doing no better than the random group. A lift of 100% means the models are giving two times the number of positive responses. Lift can be negative, up to -100%, which would mean the model group never results in any positive response. By default the size of the random group is 1-2% and is configured in Prediction Studio and Impact Analyzer (when using NBAD).
 
@@ -424,7 +425,20 @@ with "test" the model group and "control" random test group. A lift of 0% means 
 if prediction_file_path:
     predictions = Prediction(read_ds_export(prediction_file_path))
 
+    secs_per_day = 60 * 60 * 24
     predictions_overview = predictions.summary_by_channel().collect()
+    
+    predictions_overview = predictions_overview.with_columns(
+        # [
+        #     # positives and response count per day
+        #     (pl.col(col) / (pl.col("Duration") / secs_per_day)).cast(pl.Int64)
+        #     for col in ["Positives", "Responses"]
+        # ]).with_columns(
+        pl.format(
+            "{}d", (pl.col("Duration") / secs_per_day).round().cast(pl.Int64)
+        ).alias("Duration")
+    )
+
     gt = (
         report_utils.table_standard_formatting(
             predictions_overview,
@@ -457,23 +471,23 @@ if prediction_file_path:
             scale_values=False,
             columns=["TestPercentage", "ControlPercentage"],
         )
-        .cols_label(
-            Responses="Total Responses",
-            Positives="Total Positives",
-            Negatives="Total Negatives",
-            Positives_Test="Positives Test Group",
-            Negatives_Test="Negatives Test Group",
-            Positives_Control="Positives Control Group",
-            Negatives_Control="Negatives Control Group",
-            Positives_NBA="Positives NBA Group",
-            Negatives_NBA="Negatives NBA Group",
-            Performance="Overall Performance",
-            ControlPercentage="Control Group Size",
-            TestPercentage="Test Group Size",
-            CTR="Overall CTR",
-            CTR_Test="CTR Test Group",
-            CTR_Control="CTR Control Group",
-            CTR_NBA="CTR NBA Group",
+        .cols_label(cases={
+            "Responses": "Responses (Total)",
+            "Positives": "Positives (Total)",
+            "Positives_Test": "Positives Test Group",
+            "Negatives_Test": "Negatives Test Group",
+            "Positives_Control": "Positives Control Group",
+            "Negatives_Control": "Negatives Control Group",
+            "Positives_NBA": "Positives NBA Group",
+            "Negatives_NBA": "Negatives NBA Group",
+            "Performance": "Overall Performance",
+            "ControlPercentage": "Control Group Size",
+            "TestPercentage": "Test Group Size",
+            "CTR": "Overall CTR",
+            "CTR_Test": "CTR Test Group",
+            "CTR_Control": "CTR Control Group",
+            "CTR_NBA": "CTR NBA Group",
+            "DateRange Min" : "Date"}
         )
         .cols_hide(
             [
@@ -482,6 +496,8 @@ if prediction_file_path:
                 "isMultiChannelPrediction",
                 "usesImpactAnalyzer",
                 "isValid",
+                "DateRange Max",
+                "Negatives"
             ]
         )
         .tab_style(
@@ -655,6 +671,8 @@ if "Issue" in datamart_all_columns and "Group" in datamart_all_columns:
 
 ## Actions Trends
 
+In a good implementation, you expect new actions to be introduced regularly. This trend chart shows the number of new actions per week. It also shows the number of "used" actions, where used means they have been used in Pega decisions. The total number of actions reflects all the actions in the system that are modeled by ADM models. This is typically a much larger number, as we currently have no way to pull in the "active"/"inactive" status of actions into this ADM-based analysis.
+
 ```{python}
 
 action_trend_data = datamart.aggregates.overall_summary(by_period="1w").collect()
@@ -665,7 +683,7 @@ plot_data = action_trend_data.unpivot(
     value_name="Weekly Count",
 )
 
-px.line(
+fig = px.line(
     plot_data,
     x="DateRange Min",
     y="Weekly Count",
@@ -673,7 +691,7 @@ px.line(
     template="pega",
     title="Number of Actions Used and New (weekly)"
 )
-
+fig.update_xaxes(title="Week")
 ```
 
 ## Success Rates

@@ -251,7 +251,7 @@ class Prediction:
                     SnapshotTime=pl.col("pySnapShotTime")
                     .str.slice(0, 8)
                     .str.strptime(pl.Date, "%Y%m%d"),
-                    Performance=pl.col("pyValue").cast(pl.Float32) * 100.0,
+                    Performance=pl.col("pyValue").cast(pl.Float32),
                 )
                 .rename(
                     {
@@ -406,9 +406,9 @@ class Prediction:
                     "pyValue": list(
                         itertools.chain.from_iterable(
                             [
-                                [_interpolate(0.6, 0.65, p, days)] * n_conditions
-                                + [_interpolate(0.7, 0.73, p, days)] * n_conditions
-                                + [_interpolate(0.66, 0.68, p, days)] * n_conditions
+                                [_interpolate(60.0, 65.0, p, days)] * n_conditions
+                                + [_interpolate(70.0, 73.0, p, days)] * n_conditions
+                                + [_interpolate(66.0, 68.0, p, days)] * n_conditions
                                 for p in range(0, days)
                             ]
                         )
