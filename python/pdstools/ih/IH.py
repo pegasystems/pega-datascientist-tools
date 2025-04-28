@@ -344,6 +344,7 @@ class IH:
         customerid_column: str,
     ) -> tuple[
         list[tuple[str, ...]],
+        list[tuple[int, ...]],
         list[defaultdict[tuple[str], int]],
         list[defaultdict[tuple[str, ...], int]],
     ]:
@@ -361,7 +362,7 @@ class IH:
         ----------
         positive_outcome_label : str
             The outcome label that marks the final event in a sequence.
-        pyName_column : str
+        level : str
             Column name that contains the action (offer / treatment).
         outcome_column : str
             Column name that contains the outcome label.
@@ -461,7 +462,8 @@ class IH:
         dict[tuple[str, ...], float]
     ]:
         """
-        Compute PMI values for bigrams and average PMI for n-grams (n ≥ 2) in customer action sequences.
+        Computes PMI scores for n-grams (n ≥ 2) in customer action sequences. 
+        Returns an unsorted dictionary mapping sequences to their PMI values, providing insights into significant action associations.
 
         Bigrams values are calculated by PMI.
         N-gram values are computed by averaging the PMI of their constituent bigrams.
@@ -532,13 +534,13 @@ class IH:
     
     @staticmethod
     def pmi_overview(
-        ngrams_pmi: Dict[str, Dict[str, Dict[str, float] | float]],
+        ngrams_pmi: Dict[str, Dict[str, Union[Dict[str, float], float]]],
         count_sequences: list[defaultdict[tuple[str, ...], int]],
         customer_sequences: list[tuple[str, ...]],
         customer_outcomes: list[tuple[int, ...]],
     ) -> pl.DataFrame:
         """
-        Generate a Polars DataFrame summarizing PMI values for n-grams across customer sequences.
+        Analyzes customer sequences to identify patterns linked to positive outcomes. Returns a sorted Polars DataFrame of significant n-grams
 
         Parameters
         ----------
