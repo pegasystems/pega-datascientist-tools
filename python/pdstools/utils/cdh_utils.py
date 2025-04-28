@@ -36,7 +36,7 @@ if TYPE_CHECKING:  # pragma: no cover
         Figure = Union[Any]
 
 
-def _apply_query(df: F, query: Optional[QUERY] = None) -> F:
+def _apply_query(df: F, query: Optional[QUERY] = None, allow_empty: bool = False) -> F:
     if query is None:
         return df
 
@@ -71,8 +71,9 @@ def _apply_query(df: F, query: Optional[QUERY] = None) -> F:
     if col_diff:
         raise ValueError(f"Columns not found: {col_diff}")
     filtered_df = df.filter(query)
-    if filtered_df.lazy().select(pl.first().len()).collect().item() == 0:
-        raise ValueError("The given query resulted in no more remaining data.")
+    if not allow_empty:
+        if filtered_df.lazy().select(pl.first().len()).collect().item() == 0:
+            raise ValueError("The given query resulted in no more remaining data.")
     return filtered_df
 
 
@@ -1196,6 +1197,8 @@ def get_start_end_date_args(
         data_min_date = data.min()
         data_max_date = data.max()
 
+    # print(f"**ENTER** Start={start_date}, End={end_date}, Window={window}, Data Min={data_min_date}, Data Max={data_max_date}")
+
     if window:
         if not isinstance(window, datetime.timedelta):
             window = datetime.timedelta(days=window)
@@ -1213,7 +1216,9 @@ def get_start_end_date_args(
         else:
             start_date = end_date - window + datetime.timedelta(days=1)
 
-    if start_date > end_date:
+    # print(f"**EXIT** Start={start_date}, End={end_date}, Window={window}")
+
+    if start_date and end_date and start_date > end_date:
         raise ValueError(f"The start date {start_date} should be before the end date {end_date}")
 
     return start_date, end_date

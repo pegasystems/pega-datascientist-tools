@@ -1018,7 +1018,7 @@ class Aggregates:
             .lazy()
         )
 
-        print(best_worst_channel_summary.collect())
+        # print(best_worst_channel_summary.collect())
 
         if by_period is None:
             return (

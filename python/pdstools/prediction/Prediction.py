@@ -251,7 +251,7 @@ class Prediction:
                     SnapshotTime=pl.col("pySnapShotTime")
                     .str.slice(0, 8)
                     .str.strptime(pl.Date, "%Y%m%d"),
-                    Performance=pl.col("pyValue").cast(pl.Float32)*100.0,
+                    Performance=pl.col("pyValue").cast(pl.Float32) * 100.0,
                 )
                 .rename(
                     {
@@ -446,6 +446,7 @@ class Prediction:
         end_date: Optional[datetime.datetime] = None,
         window: Optional[Union[int, datetime.timedelta]] = None,
         by_period: Optional[str] = None,
+        debug: bool = False,
     ) -> pl.LazyFrame:
         """Summarize prediction per channel
 
@@ -461,12 +462,14 @@ class Prediction:
             Number of days to use for the summary period or an explicit timedelta. If None (default) uses the whole period. Can't be given if start and end date are also given.
         by_period : str, optional
             Optional additional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. Defaults to None.
-        
+        debug : bool, optional
+            If True, enables debug mode for additional logging or outputs. Defaults to False.
+
         Returns
         -------
         pl.LazyFrame
             Summary across all Predictions as a dataframe with the following fields:
-            
+
             Time and Configuration Fields:
             - DateRange Min - The minimum date in the summary time range
             - DateRange Max - The maximum date in the summary time range
@@ -509,10 +512,15 @@ class Prediction:
         )
 
         query = pl.col("SnapshotTime").is_between(start_date, end_date)
-        prediction_data = cdh_utils._apply_query(self.predictions, query=query)
+        prediction_data = cdh_utils._apply_query(self.predictions, query=query, allow_empty=True)
 
-        if by_period:
-            period_expr = [pl.col("SnapshotTime").dt.truncate(by_period)]
+        if by_period is not None:
+            period_expr = [
+                pl.col("SnapshotTime")
+                .dt.truncate(by_period)
+                .cast(pl.Date)
+                .alias("Period")
+            ]
         else:
             period_expr = []
 
@@ -546,6 +554,7 @@ class Prediction:
                     .otherwise(pl.col("isMultiChannelPrediction"))
                     .alias("isMultiChannelPrediction"),
                 ]
+                + period_expr
             )
             .group_by(
                 [
@@ -554,7 +563,8 @@ class Prediction:
                     "Direction",
                     "isStandardNBADPrediction",
                     "isMultiChannelPrediction",
-                ] + period_expr
+                ]
+                + (["Period"] if by_period is not None else [])
             )
             .agg(
                 pl.col("SnapshotTime").min().cast(pl.Date).alias("DateRange Min"),
@@ -618,7 +628,8 @@ class Prediction:
                 Lift=(pl.col("CTR_Test") - pl.col("CTR_Control"))
                 / pl.col("CTR_Control"),
             )
-            .sort(["Prediction"] + ([] if by_period is None else ["DateRange Min"]))
+            .drop([] if debug else ([] + ([] if by_period is None else ["Period"])))
+            .sort("Prediction", "DateRange Min")
         )
 
     # TODO rethink use of multi-channel. If the only valid predictions are multi-channel predictions
@@ -630,6 +641,8 @@ class Prediction:
         start_date: Optional[datetime.datetime] = None,
         end_date: Optional[datetime.datetime] = None,
         window: Optional[Union[int, datetime.timedelta]] = None,
+        by_period: Optional[str] = None,
+        debug: bool = False,
     ) -> pl.LazyFrame:
         """Overall prediction summary. Only valid prediction data is included.
 
@@ -643,6 +656,10 @@ class Prediction:
             End date of the summary period. If None (default) uses the start date plus the window, or if both absent, the latest date in the data
         window : int or datetime.timedelta, optional
             Number of days to use for the summary period or an explicit timedelta. If None (default) uses the whole period. Can't be given if start and end date are also given.
+        by_period : str, optional
+            Optional additional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. Defaults to None.
+        debug : bool, optional
+            If True, enables debug mode for additional logging or outputs. Defaults to False.
 
         Returns
         -------
@@ -663,12 +680,12 @@ class Prediction:
             - Responses Inbound: Sum of all responses across all valid inbound channels
             - Responses Outbound: Sum of all responses across all valid outbound channels
             - Overall Lift: Weighted average lift across all valid channels
-            - Channel with Minimum Negative Lift: Channel with the lowest negative lift value
             - Minimum Negative Lift: The lowest negative lift value found
 
             Channel Statistics:
             - Number of Valid Channels: Count of unique valid channel/direction combinations
-            
+            - Channel with Minimum Negative Lift: Channel with the lowest negative lift value
+
             Technology Usage Indicators:
             - usesImpactAnalyzer: Boolean indicating if any channel uses Impact Analyzer
         """
@@ -682,6 +699,8 @@ class Prediction:
             start_date=start_date,
             end_date=end_date,
             window=window,
+            by_period=by_period,
+            debug=True,  # should give us Period
         )
 
         if (
@@ -700,8 +719,7 @@ class Prediction:
 
         return (
             channel_summary.filter(validity_filter_expr)
-            # Hmm I think group_by(None) is just a select
-            .group_by(None)
+            .group_by(["Period"] if by_period is not None else None)
             .agg(
                 pl.col("DateRange Min").min(),
                 pl.col("DateRange Max").max(),
@@ -747,9 +765,11 @@ class Prediction:
                     "TestPercentage"
                 ),
             )
-            .drop(["literal"])  # created by null group
+            .drop(["literal"] if by_period is None else [])  # created by null group
             .with_columns(
                 # CTR=(pl.col("Positives")) / (pl.col("Responses")),
                 usesImpactAnalyzer=pl.col("usesImpactAnalyzer").list.any(),
             )
+            .drop([] if debug else ([] + ([] if by_period is None else ["Period"])))
+            .sort("DateRange Min")
         )

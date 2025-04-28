@@ -51,6 +51,7 @@ import numpy as np
 import math
 import json
 import io
+import datetime
 
 cdh_guidelines = CDHGuidelines()
 
@@ -243,9 +244,11 @@ If a channel has two model configurations with a naming pattern like “Adm_1234
 
 The "OmniChannel" percentage is an indicator of the overlap of actions between channels. The general recommendation is to have cross-channel actions and channel-specific treatments. This metric counts the overlap between the actions in one channel and all the other channels. It takes the average overlap with the other channels. At 100% the actions are truly cross-channel and at 0% the actions are specific to this one channel.
 
+In the view below, we look at the last 30 days of data (or shorter if the data is for less than 30 days).
+
 ```{python}
 df_channel_overview = (
-    datamart.aggregates.summary_by_channel()
+    datamart.aggregates.summary_by_channel(window=datetime.timedelta(days=30))
     .with_columns(
         NBAD=pl.when(pl.col("usesNBAD").is_null())
         .then(pl.lit("?"))
@@ -268,7 +271,7 @@ df_channel_overview = (
             # the whole period, so there's no added info
             # in New Actions. Would be different if we report
             # on say the last month.
-            "New Actions",
+            # "New Actions",
         ]
     )
     .collect()
@@ -296,8 +299,6 @@ formatted_channel_overview = (
     )
     .cols_label(
         CTR="Base Rate",
-        Responses="Total Responses",
-        Positives="Total Positives",
         Configuration="Supported by Configurations",
         Performance="Average Performance",
     )
@@ -310,6 +311,7 @@ formatted_channel_overview = (
         columns=[
             "Actions",
             "Treatments",
+            "New Actions",
             "Used Actions",
             "Used Treatments",
             "Issues",
@@ -327,6 +329,7 @@ display(
         [
             "Actions",
             "Treatments",
+            "New Actions",
             "Used Actions",
             "Used Treatments",
             "Issues",
@@ -648,6 +651,29 @@ if "Issue" in datamart_all_columns and "Group" in datamart_all_columns:
     # .tab_style(style=style.fill(color="red"), locations=loc.stub(rows=pl.col("Issue")=="Sales"))
 
     display(gt)
+```
+
+## Actions Trends
+
+```{python}
+
+action_trend_data = datamart.aggregates.overall_summary(by_period="1w").collect()
+plot_data = action_trend_data.unpivot(
+    on=["Actions", "New Actions", "Used Actions"],
+    index="DateRange Min",
+    variable_name="Actions",
+    value_name="Weekly Count",
+)
+
+px.line(
+    plot_data,
+    x="DateRange Min",
+    y="Weekly Count",
+    color="Actions",
+    template="pega",
+    title="Number of Actions Used and New (weekly)"
+)
+
 ```
 
 ## Success Rates

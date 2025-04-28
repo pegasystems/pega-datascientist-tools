@@ -104,6 +104,16 @@ def test_summary_by_channel_validity(preds_singleday):
     summary = preds_singleday.summary_by_channel().collect()
     assert summary["isValid"].to_list() == [True, True, True, True]
 
+def test_summary_by_channel_trend(preds_singleday):
+    summary = preds_singleday.summary_by_channel(by_period="1d").collect()
+    assert summary.select(pl.len()).item() == 4
+
+
+def test_summary_by_channel_trend2(preds_fewdays):
+    summary = preds_fewdays.summary_by_channel(by_period="1d").collect()
+    assert summary.select(pl.len()).item() == 8
+
+
 
 def test_summary_by_channel_ia(preds_singleday):
     summary = preds_singleday.summary_by_channel().collect()
@@ -215,6 +225,9 @@ def test_overall_summary_channel_min_lift(preds_singleday):
         is None
     )
 
+def test_overall_summary_by_period(preds_fewdays):
+    summ = preds_fewdays.overall_summary(by_period="1d").collect()
+    assert summ.height == 2
 
 def test_overall_summary_min_lift(preds_singleday):
     assert preds_singleday.overall_summary().collect()["Minimum Negative Lift"].item() is None
