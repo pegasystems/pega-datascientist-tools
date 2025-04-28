@@ -64,10 +64,10 @@ def test_over_time(sample2: ADMDatamart):
     performance_changes = (
         sample2.plot.over_time(metric="Performance", cumulative=False, return_df=True)
         .collect()
-        .get_column("Performance_weighted_average_change")
+        .get_column("Performance_change")
         .to_list()
     )
-    assert performance_changes == [0.0, 3.0, -1.0, 0.0, 2.0, 3.0]
+    assert performance_changes == [None, 3.0, -1.0, None, 2.0, 3.0]
 
     responses_over_time = (
         sample2.plot.over_time(metric="ResponseCount", by="ModelID", return_df=True)

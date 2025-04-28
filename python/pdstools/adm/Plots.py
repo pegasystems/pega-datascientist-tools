@@ -289,34 +289,26 @@ class Plots(LazyNamespace):
         return_df : bool, optional
             Whether to return a dataframe instead of a plot, by default False
         """
-        if not isinstance(by, pl.Expr):
-            by = pl.col(by)
-
-        by_col = by.meta.output_name()
-
+        percentage_metrics = ["Performance", "SuccessRate"]
         metric_formatting = {
-            "SuccessRate_weighted_average": ":.4%",
-            "Performance_weighted_average": ":.2",  # is not a percentage!
+            "SuccessRate": ":.4%",
+            "Performance": ":.2",
             "Positives": ":.d",
             "ResponseCount": ":.d",
-            "SuccessRate_weighted_average_change": ":.4%",
-            "Performance_weighted_average_change": ":.2",
-            "Positives_change": ":.d",
-            "ResponseCount_change": ":.d",
         }
-
-        if metric == "Performance":
-            metric_scaling: pl.Expr = pl.lit(100.0)
-        else:
-            metric_scaling: pl.Expr = pl.lit(1.0)
+        if not isinstance(by, pl.Expr):
+            by = pl.col(by)
+        by_col = by.meta.output_name()
 
         if self.datamart.model_data is None:
             raise ValueError("Visualisation requires model_data")
 
         columns_to_select: Set[str] = {"SnapshotTime", metric, "ResponseCount"}
         columns_to_select.update(by.meta.root_names())
-        if facet:
-            columns_to_select.add(facet)
+        columns_to_select.add(facet)
+
+        is_percentage = metric in percentage_metrics
+        metric_scaling = pl.lit(100.0) if metric == "Performance" else pl.lit(1.0)
 
         df = (
             cdh_utils._apply_query(self.datamart.model_data, query)
@@ -324,48 +316,59 @@ class Plots(LazyNamespace):
             .select(list(columns_to_select))
         )
 
-        grouping_columns = list(set(by.meta.root_names()))
-        df = df.with_columns(by).set_sorted("SnapshotTime")
+        grouping_columns = [by_col]
         if facet:
-            grouping_columns = [by_col, facet]
-        else:
-            grouping_columns = [by_col]
+            grouping_columns.append(facet)
+        df = df.with_columns(by).set_sorted("SnapshotTime")
 
-        if metric in ["Performance", "SuccessRate"]:
-            df = (
-                df.group_by(grouping_columns + ["SnapshotTime"])
-                .agg(
-                    (
-                        metric_scaling
-                        * cdh_utils.weighted_average_polars(metric, "ResponseCount")
-                    ).name.suffix("_weighted_average")
-                )
-                .sort("SnapshotTime", by_col)
-            )
-            metric += "_weighted_average"
-        else:
-            df = (
-                df.group_by(grouping_columns + ["SnapshotTime"])
-                .agg(pl.sum(metric))
-                .sort(grouping_columns + ["SnapshotTime"])
-            )
+        agg_expr = [
+            (
+                metric_scaling
+                * cdh_utils.weighted_average_polars(metric, "ResponseCount")
+                if is_percentage
+                else pl.sum(metric)
+            ).alias(metric)
+        ]
+        if is_percentage:
+            agg_expr.append(pl.sum("ResponseCount"))
 
+        df = (
+            df.group_by(grouping_columns + ["SnapshotTime"])
+            .agg(agg_expr)
+            .sort("SnapshotTime", by_col)
+        )
+
+        agg_df = df.group_by_dynamic(
+            "SnapshotTime", every=every, group_by=grouping_columns
+        ).agg(
+            (
+                cdh_utils.weighted_average_polars(metric, "ResponseCount")
+                if is_percentage and "ResponseCount" in df.collect_schema().names()
+                else pl.sum(metric)
+            ).alias(metric)
+        )
+
+        unique_intervals = (
+            agg_df.select(pl.col("SnapshotTime").unique()).collect().height
+        )
+
+        if not cumulative and unique_intervals <= 1:
+            logger.warning(
+                f"Only one {every} interval of data found. Cannot calculate interval-to-interval differences. "
+                "Automatically switching to cumulative mode to show values instead."
+            )
+            cumulative = True
+
+        plot_metric = metric
         if not cumulative:
-            df = (
-                df.with_columns(delta=pl.col(metric).diff().over(grouping_columns))
-                .group_by_dynamic(
-                    "SnapshotTime", every=every, group_by=grouping_columns
-                )
-                .agg(pl.sum("delta").alias(f"{metric}_change"))
-            )
             plot_metric = f"{metric}_change"
-        else:
-            plot_metric = metric
+            agg_df = agg_df.with_columns(
+                pl.col(metric).diff().over(grouping_columns).alias(plot_metric)
+            )
 
         if return_df:
-            return df
-
-        final_df = df.collect()
+            return agg_df
+        final_df = agg_df.collect()
 
         facet_col_wrap = None
         if facet:
@@ -380,7 +383,7 @@ class Plots(LazyNamespace):
             color=by_col,
             hover_data={
                 by_col: ":.d",
-                plot_metric: metric_formatting[plot_metric],
+                plot_metric: metric_formatting[metric.split("_")[0]],
             },
             markers=True,
             title=f"{metric} over time, per {by_col} {title}",
@@ -389,7 +392,7 @@ class Plots(LazyNamespace):
             template="pega",
         )
 
-        if metric.startswith("SuccessRate"):
+        if metric == "SuccessRate":
             fig.update_yaxes(tickformat=".2%")
             fig.update_layout(yaxis={"rangemode": "tozero"})
 
