@@ -1,5 +1,6 @@
 __all__ = ["Aggregates"]
-from typing import TYPE_CHECKING, Dict, List, Literal, Optional
+import datetime
+from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Union
 
 import polars as pl
 import polars.selectors as cs
@@ -321,9 +322,11 @@ class Aggregates:
 
     def _adm_model_summary(
         self,
+        *,
+        query: Optional[QUERY] = None,
         by_period: Optional[str],
-        by_channel: bool,
-        debug: bool,
+        by_channel: bool = False,
+        debug: bool = False,
         custom_channels: Optional[Dict[str, str]] = None,
     ) -> pl.LazyFrame:
         custom_channels = custom_channels or {}
@@ -339,7 +342,7 @@ class Aggregates:
         if self.datamart.model_data is None:
             raise ValueError("Model summaries needs model data")
 
-        model_data = self.datamart.model_data
+        model_data = cdh_utils._apply_query(self.datamart.model_data, query=query)
         grouping = []
 
         if by_period:
@@ -464,6 +467,8 @@ class Aggregates:
                     pl.col("ResponseCount").filter(Direction="Outbound").max()
                     - pl.col("ResponseCount").filter(Direction="Outbound").min()
                 ).alias("Responses Outbound"),
+                pl.col("Positives").max().alias("TotalPositives"),
+                pl.col("ResponseCount").max().alias("TotalResponseCount"),
                 pl.col("Positives").max() - pl.col("Positives").min(),
                 pl.col("ResponseCount").max() - pl.col("ResponseCount").min(),
                 pl.col("Performance").mean(),
@@ -473,6 +478,8 @@ class Aggregates:
                 pl.sum(
                     "Positives",
                     "ResponseCount",
+                    "TotalPositives",
+                    "TotalResponseCount",
                     "Positives Inbound",
                     "Positives Outbound",
                     "Responses Inbound",
@@ -481,8 +488,9 @@ class Aggregates:
                 (cdh_utils.weighted_performance_polars() * 100).alias("Performance"),
             )
             .with_columns(
-                isValid=(pl.col("Positives") >= 200)
-                & (pl.col("ResponseCount") >= 1000),
+                # applies to totals not delta
+                isValid=(pl.col("TotalPositives") >= 200)
+                & (pl.col("TotalResponseCount") >= 1000),
             )
             .drop([] if debug else ["ResponseCount", "Positives"])
         )
@@ -632,10 +640,12 @@ class Aggregates:
             .alias("usesAGB"),
         )
 
-    # TODO implement start/end date if given, define the reporting period.
-
     def summary_by_channel(
         self,
+        *,
+        start_date: Optional[datetime.datetime] = None,
+        end_date: Optional[datetime.datetime] = None,
+        window: Optional[Union[int, datetime.timedelta]] = None,
         by_period: Optional[str] = None,
         custom_channels: Optional[Dict[str, str]] = None,
         debug: bool = False,
@@ -644,9 +654,14 @@ class Aggregates:
 
         Parameters
         ----------
+        start_date : datetime.datetime, optional
+            Start date of the summary period. If None (default) uses the end date minus the window, or if both absent, the earliest date in the data
+        end_date : datetime.datetime, optional
+            End date of the summary period. If None (default) uses the start date plus the window, or if both absent, the latest date in the data
+        window : int or datetime.timedelta, optional
+            Number of days to use for the summary period or an explicit timedelta. If None (default) uses the whole period. Can't be given if start and end date are also given.
         by_period : str, optional
-            Optional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. If provided, creates a new Period column with the truncated date/time. Defaults to None.
-            NOTE: this argument is going to be deprecated in favor of explicit start/end dates in the near future.
+            Optional additional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. Defaults to None.
         custom_channels : Dict[str, str], optional
             Optional dictionary mapping custom channel names to standard channel groups. Defaults to None.
         debug : bool, optional
@@ -662,11 +677,10 @@ class Aggregates:
             - Direction - The direction (e.g., Inbound, Outbound)
             - ChannelDirection - Combined Channel/Direction (e.g., "Web/Inbound")
             - ChannelDirectionGroup - Standardized channel group with direction (e.g., "Web/Inbound")
-            - Period - (Only present when by_period parameter is specified) The time period for the data
 
             Time and Configuration Fields:
-            - DateRange Min - The minimum date in the snapshot time range
-            - DateRange Max - The maximum date in the snapshot time range
+            - DateRange Min - The minimum date in the summary time range
+            - DateRange Max - The maximum date in the summary time range
             - Duration - The duration in seconds between the minimum and maximum snapshot times
             - Configuration - A comma-separated list of model configuration names
 
@@ -696,37 +710,48 @@ class Aggregates:
             - usesAGB - Boolean indicating whether any Adaptive Generic Boosting (AGB) models are used
         """
 
-        summary_by_channel = self._adm_model_summary(
-            by_period=by_period,
-            by_channel=True,
-            debug=debug,
-            custom_channels=custom_channels,
-        ).with_columns(
-            Positives = pl.col("Positives Inbound") + pl.col("Positives Outbound"),
-            Responses = pl.col("Responses Inbound") + pl.col("Responses Outbound"),
-            CTR = (pl.col("Positives Inbound") + pl.col("Positives Outbound")) / (pl.col("Responses Inbound") + pl.col("Responses Outbound"))
-        ).drop("Positives Inbound", "Positives Outbound", "Responses Inbound", "Responses Outbound")
+        start_date, end_date = cdh_utils.get_start_end_date_args(
+            self.datamart.model_data, start_date, end_date, window
+        )
+
+        summary_by_channel = (
+            self._adm_model_summary(
+                query=pl.col("SnapshotTime").is_between(start_date, end_date),
+                by_period=by_period,
+                by_channel=True,
+                debug=debug,
+                custom_channels=custom_channels,
+            )
+            .with_columns(
+                Positives=pl.col("Positives Inbound") + pl.col("Positives Outbound"),
+                Responses=pl.col("Responses Inbound") + pl.col("Responses Outbound"),
+                CTR=(pl.col("Positives Inbound") + pl.col("Positives Outbound"))
+                / (pl.col("Responses Inbound") + pl.col("Responses Outbound")),
+            )
+            .drop(
+                "Positives Inbound",
+                "Positives Outbound",
+                "Responses Inbound",
+                "Responses Outbound",
+            )
+        )
 
         omni_channel_summary = (
-            (
-                summary_by_channel.filter(pl.col("isValid"))
-                .group_by(None if by_period is None else "Period")
-                .agg(
-                    pl.col("Channel"),
-                    pl.col("Direction"),
-                    pl.col("AllActions")
-                    .map_batches(cdh_utils.overlap_lists_polars)
-                    .alias("OmniChannel"),
-                    # TODO think about adding "New Actions"
-                )
+            summary_by_channel.filter(pl.col("isValid"))
+            .group_by(None if by_period is None else "Period")
+            .agg(
+                pl.col("Channel"),
+                pl.col("Direction"),
+                pl.col("AllActions")
+                .map_batches(cdh_utils.overlap_lists_polars)
+                .alias("OmniChannel"),
             )
+            # collect/lazy seems to resolve some polars issues
             .collect()
             .lazy()
-        )  # collect/lazy just to help zoom in into issues earlier
-
-        omni_channel_summary = omni_channel_summary.drop(
-            ["literal"] if by_period is None else []
-        ).explode(["Channel", "Direction", "OmniChannel"])
+            .drop(["literal"] if by_period is None else [])
+            .explode(["Channel", "Direction", "OmniChannel"])
+        )
 
         return (
             summary_by_channel.drop(["AllActions"])
@@ -742,7 +767,15 @@ class Aggregates:
                     "ChannelDirection"
                 ),
             )
-            .sort(["Channel", "Direction"] + ([] if by_period is None else ["Period"]))
+            .drop(
+                []
+                if debug
+                else (
+                    ["TotalPositives", "TotalResponseCount"]
+                    + ([] if by_period is None else ["Period"])
+                )
+            )
+            .sort("Channel", "Direction", "DateRange Min")
         )
 
     def summary_by_configuration(self) -> pl.DataFrame:
@@ -873,20 +906,27 @@ class Aggregates:
         except ValueError:  # really? swallowing?
             return None
 
-    # TODO implement start/end date if given, define the reporting period.
-
     def overall_summary(
-        self, by_period: str = None, debug: bool = False
+        self,
+        *,
+        start_date: Optional[datetime.datetime] = None,
+        end_date: Optional[datetime.datetime] = None,
+        window: Optional[Union[int, datetime.timedelta]] = None,
+        by_period: Optional[str] = None,
+        debug: bool = False,
     ) -> pl.LazyFrame:
         """Overall ADM models summary. Only valid data is included.
 
         Parameters
         ----------
-        custom_channels : Dict[str, str], optional
-            Optional list with custom channel/direction name mappings. Defaults to None.
+        start_date : datetime.datetime, optional
+            Start date of the summary period. If None (default) uses the end date minus the window, or if both absent, the earliest date in the data
+        end_date : datetime.datetime, optional
+            End date of the summary period. If None (default) uses the start date plus the window, or if both absent, the latest date in the data
+        window : int or datetime.timedelta, optional
+            Number of days to use for the summary period or an explicit timedelta. If None (default) uses the whole period. Can't be given if start and end date are also given.
         by_period : str, optional
-            Optional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. If provided, creates a new Period column with the truncated date/time. Defaults to None.
-            NOTE: this argument is going to be deprecated in favor of explicit start/end dates in the near future.
+            Optional additional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. Defaults to None.
         debug : bool, optional
             If True, enables debug mode for additional logging or outputs. Defaults to False.
 
@@ -896,11 +936,10 @@ class Aggregates:
             Summary across all valid ADM models as a dataframe with the following fields:
 
             Time and Configuration Fields:
-            - Period - (Only present when by_period parameter is specified) The time period for the data
             - DateRange Min - The minimum date in the snapshot time range
             - DateRange Max - The maximum date in the snapshot time range
             - Duration - The duration in seconds between the minimum and maximum snapshot times
-            - Configuration - A comma-separated list of unique configurations
+            - Configuration - A comma-separated list of unique model configurations
 
             Performance Metrics:
             - Positives Inbound - The sum of positive responses across all models in the inbound channels
@@ -933,21 +972,33 @@ class Aggregates:
             Note: A channel is considered "valid" if it has at least 200 positives and 1000 responses
         """
 
+        start_date, end_date = cdh_utils.get_start_end_date_args(
+            self.datamart.model_data, start_date, end_date, window
+        )
+
         overall_summary = (
             self._adm_model_summary(
+                query=pl.col("SnapshotTime").is_between(start_date, end_date),
                 by_period=by_period,
                 by_channel=False,
                 debug=debug,
             )
             .drop(
-                "Configuration", "AllActions", "isValid"
+                "Configuration",
+                "AllActions",
+                "isValid",
             )
             .collect()
             .lazy()
         )
 
         best_worst_channel_summary = (
-            self._adm_model_summary(by_period=by_period, by_channel=True, debug=debug)
+            self._adm_model_summary(
+                query=pl.col("SnapshotTime").is_between(start_date, end_date),
+                by_period=by_period,
+                by_channel=True,
+                debug=True, # this gives us Period
+            )
             .filter(pl.col("isValid"))
             .group_by(None if by_period is None else "Period")
             .agg(
@@ -961,22 +1012,27 @@ class Aggregates:
                 .map_batches(cdh_utils.overlap_lists_polars, returns_scalar=False)
                 .mean()
                 .alias("OmniChannel"),
-                # TODO think about adding "New Actions"
             )
-            # .with_columns(pl.col("OmniChannel").mean())
             .drop(["literal"] if by_period is None else [])
             .collect()
             .lazy()
         )
 
+        # print(best_worst_channel_summary.collect())
+
         if by_period is None:
-            return pl.concat(
-                [overall_summary, best_worst_channel_summary],
-                how="horizontal",
-            ).with_columns(
-                cs.categorical().cast(pl.Utf8),
-                pl.col("Number of Valid Channels").fill_null(0),
+            return (
+                pl.concat(
+                    [overall_summary, best_worst_channel_summary],
+                    how="horizontal",
+                )
+                .with_columns(
+                    cs.categorical().cast(pl.Utf8),
+                    pl.col("Number of Valid Channels").fill_null(0),
+                )
+                .drop([] if debug else ["TotalPositives", "TotalResponseCount"])
             )
+
         else:
             return (
                 overall_summary.join(
@@ -989,5 +1045,8 @@ class Aggregates:
                     cs.categorical().cast(pl.Utf8),
                     pl.col("Number of Valid Channels").fill_null(0),
                 )
-                .sort("Period")
+                .sort("DateRange Min")
+                .drop(
+                    [] if debug else ["TotalPositives", "TotalResponseCount", "Period"]
+                )
             )

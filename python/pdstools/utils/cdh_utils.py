@@ -36,7 +36,7 @@ if TYPE_CHECKING:  # pragma: no cover
         Figure = Union[Any]
 
 
-def _apply_query(df: F, query: Optional[QUERY] = None) -> F:
+def _apply_query(df: F, query: Optional[QUERY] = None, allow_empty: bool = False) -> F:
     if query is None:
         return df
 
@@ -71,8 +71,9 @@ def _apply_query(df: F, query: Optional[QUERY] = None) -> F:
     if col_diff:
         raise ValueError(f"Columns not found: {col_diff}")
     filtered_df = df.filter(query)
-    if filtered_df.lazy().select(pl.first().len()).collect().item() == 0:
-        raise ValueError("The given query resulted in no more remaining data.")
+    if not allow_empty:
+        if filtered_df.lazy().select(pl.first().len()).collect().item() == 0:
+            raise ValueError("The given query resulted in no more remaining data.")
     return filtered_df
 
 
@@ -218,8 +219,7 @@ def _extract_keys(
                 .alias(c)
                 for c in overlap
             ]
-        )
-        .drop([f"{c}_decoded" for c in overlap])
+        ).drop([f"{c}_decoded" for c in overlap])
     )
 
 
@@ -816,7 +816,9 @@ def lift(
             # TODO not sure how polars (mis)behaves when there are no positives at all
             # I would hope for a NaN but base python doesn't do that. Polars perhaps.
             # Stijn: It does have proper None value support, may work like you say
-            bin_pos * (total_pos + total_neg) / ((bin_pos + bin_neg) * total_pos)
+            bin_pos
+            * (total_pos + total_neg)
+            / ((bin_pos + bin_neg) * total_pos)
         ).alias("Lift")
 
     return lift_impl(pos_col, neg_col, pos_col.sum(), neg_col.sum())
@@ -1176,3 +1178,47 @@ def safe_flatten_list(alist: List) -> List:
             unique_alist.append(item)
             seen.add(item)
     return unique_alist if len(unique_alist) > 0 else None
+
+
+def get_start_end_date_args(
+    data: Union[pl.Series, pl.LazyFrame, pl.DataFrame],
+    start_date: Optional[datetime.datetime] = None,
+    end_date: Optional[datetime.datetime] = None,
+    window: Optional[Union[int, datetime.timedelta]] = None,
+    datetime_field = 'SnapshotTime'
+):
+    if isinstance(data, pl.DataFrame):
+        data_min_date = data.select(pl.col(datetime_field).min()).item()
+        data_max_date = data.select(pl.col(datetime_field).max()).item()
+    elif isinstance(data, pl.LazyFrame):
+        data_min_date = data.select(pl.col(datetime_field).min()).collect().item()
+        data_max_date = data.select(pl.col(datetime_field).max()).collect().item()
+    else:   # pl.Series
+        data_min_date = data.min()
+        data_max_date = data.max()
+
+    # print(f"**ENTER** Start={start_date}, End={end_date}, Window={window}, Data Min={data_min_date}, Data Max={data_max_date}")
+
+    if window:
+        if not isinstance(window, datetime.timedelta):
+            window = datetime.timedelta(days=window)
+
+    if start_date and end_date and window:
+        raise ValueError("Only max two of 'start_date', 'end_date' or 'window_days' can be set")
+    if not end_date:
+        if window is None or start_date is None:
+            end_date = data_max_date
+        else:
+            end_date = start_date + window - datetime.timedelta(days=1)
+    if not start_date:
+        if window is None:
+            start_date = data_min_date
+        else:
+            start_date = end_date - window + datetime.timedelta(days=1)
+
+    # print(f"**EXIT** Start={start_date}, End={end_date}, Window={window}")
+
+    if start_date and end_date and start_date > end_date:
+        raise ValueError(f"The start date {start_date} should be before the end date {end_date}")
+
+    return start_date, end_date
