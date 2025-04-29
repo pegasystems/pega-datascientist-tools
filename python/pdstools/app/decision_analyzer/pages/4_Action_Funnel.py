@@ -1,11 +1,14 @@
-import streamlit as st
+import io
 
+import polars as pl
+import streamlit as st
 from da_streamlit_utils import (
+    ensure_data,
     get_current_index,
     get_data_filters,
     show_filtered_counts,
-    ensure_data,
 )
+
 from pdstools.decision_analyzer.utils import (
     NBADScope_Mapping,
     get_first_level_stats,
@@ -27,8 +30,6 @@ decision funnel, but also by what component.
 
 This helps answering questions like: Where do my “cards offers” get dropped? Wat gets filtered in which stage?
 
-The **Granularity** defines the breakdown of the chart. You can for example look at
-Groups, Issues, individual Actions or, if available, Treatments.
 """
 
 ensure_data()
@@ -52,8 +53,6 @@ with st.session_state["sidebar"]:
 
     "### Optional additional filtering"
 
-    # st.write(st.session_state["local_filters"])
-
     # TODO always save state and when returning fill in the shown options in the dropdown
     # TODO also lets sort the columns from the df in some reasonable way - context keys first etc
     # TODO probably need to take over this "filter_dataframe" which also shows the
@@ -66,7 +65,6 @@ with st.session_state["sidebar"]:
         queries=[],
         filter_type="local",
     )
-    # st.write(st.session_state["local_filters"])
 
     if st.session_state["local_filters"] != []:
         statsBeforeExtraFilter = get_first_level_stats(
@@ -80,8 +78,20 @@ with st.session_state["sidebar"]:
     else:
         st.success("No extra data filters applied")
 
+    # st.session_state.decision_data.level = st.multiselect(
+    #     "Stage Granularity",
+    #     ["StageGroup", "Stage"],
+    #     default="StageGroup"
+    # )
+
 
 with st.container(border=True):
+    st.write("""
+    The Funnel illustrates how many actions arrived to each Stage.
+
+    The **Granularity** defines the breakdown of the chart. You can for example look at
+    Groups, Issues, individual Actions or, if available, Treatments.
+    """)
     if "scope" not in st.session_state:
         st.session_state.scope = scope_options[0]
 
@@ -108,17 +118,39 @@ action got dropped in which stage and by what component.
 
 """
 
-st.warning("TO BE ADDED")
-# if not ensure_getFilterComponentData():
-#     st.warning("'pxComponentName' column is needed for the component analysis")
-#     st.stop()
+data = st.session_state.decision_data.decision_data.filter(
+    pl.col("pxComponentType") != "Result"
+)
+if st.session_state["local_filters"] != []:
+    data.filter(st.session_state["local_filters"])
+data = (
+    data.group_by(["StageOrder", "StageGroup", "Stage", "pxComponentName"])
+    .agg(pl.len().alias("filter count"))
+    .with_columns(
+        (
+            pl.format(
+                "{}%",
+                ((pl.col("filter count") / pl.sum("filter count")) * 100).round(1),
+            )
+        ).alias("percent of all filters")
+    )
+    .collect()
+    .sort("filter count", descending=True)
+)
+st.dataframe(data)
 
-# st.plotly_chart(
-#     st.session_state.decision_data.plot.filtering_components(
-#         stages=stage_options,
-#         top_n=st.session_state.top_k,
-#         AvailableNBADStages=st.session_state.decision_data.AvailableNBADStages,
-#         additional_filters=st.session_state["local_filters"],
-#     ),
-#     use_container_width=True,
-# )
+
+@st.cache_data
+def convert_polars_df(df):
+    buffer = io.StringIO()
+    df.write_csv(buffer)
+    buffer.seek(0)
+    return buffer.getvalue().encode("utf-8")
+
+
+csv = convert_polars_df(data)
+st.download_button(
+    label="Click to Download",
+    file_name="file.csv",
+    data=csv,
+)

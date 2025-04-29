@@ -1,7 +1,10 @@
 import polars as pl
 import streamlit as st
-
-from da_streamlit_utils import get_current_index, ensure_data
+from da_streamlit_utils import (
+    get_current_index,
+    get_data_filters,
+    ensure_data,
+)
 
 # TODO cosmetics nicer color scheme for the stages - do consistently in all plots then
 # TODO for optionality plot allow to overlay propensity but also maybe add priority?
@@ -21,13 +24,23 @@ The propensity pre-arbitration is not available in the actual Decision Analyser 
 in the Arbitration stage for the actions prioritized by AI.
 """
 ensure_data()
-optionality_data = st.session_state.decision_data.get_optionality_data
-if st.session_state.decision_data.extract_type == "decision_analyzer":
-    st.plotly_chart(
-        st.session_state.decision_data.plot.optionality_per_stage(),
-        use_container_width=True,
+if "local_optionality" not in st.session_state:
+    st.session_state["local_optionality"] = st.session_state.decision_data.sample
+st.session_state["sidebar"] = st.sidebar
+with st.session_state["sidebar"]:
+    st.session_state["local_filters"] = get_data_filters(
+        st.session_state.decision_data.sample,
+        columns=["pyChannel", "pyDirection", "pyIssue", "pyGroup"],
+        queries=[],
+        filter_type="local",
     )
-
+    if st.button("Apply Filters"):
+        # Only filter and update the DataFrame when the button is clicked
+        st.session_state["local_optionality"] = (
+            st.session_state.decision_data.sample.filter(
+                st.session_state["local_filters"]
+            )
+        )
 "### Optionality"
 
 with st.container(border=True):
@@ -42,7 +55,8 @@ with st.container(border=True):
 
     st.plotly_chart(
         st.session_state.decision_data.plot.propensity_vs_optionality(
-            stage=st.session_state.optionality_stage
+            stage=st.session_state.optionality_stage,
+            df=st.session_state["local_optionality"],
         ),
         use_container_width=True,
     )
@@ -59,6 +73,17 @@ with st.container(border=True):
         key="optionality_stage",
     )
 
+"## Optionality Funnel"
+"Distribution of Available action by Stage"
+if st.session_state.decision_data.extract_type == "decision_analyzer":
+    st.plotly_chart(
+        st.session_state.decision_data.plot.optionality_funnel(
+            df=st.session_state["local_optionality"]
+        ),
+        use_container_width=True,
+    )
+
+
 "## Optionality Trend chart"
 
 """
@@ -68,9 +93,10 @@ changes in the number of available actions
 
 
 optionality_data_with_trend_per_stage = (
-    st.session_state.decision_data.get_optionality_data_with_trend.group_by(
-        ["day", "StageGroup"]
+    st.session_state.decision_data.get_optionality_data_with_trend(
+        df=st.session_state["local_optionality"]
     )
+    .group_by(["day", "StageGroup"])
     .agg(nOffers=pl.col("nOffers").max())
     .sort("day")
 )

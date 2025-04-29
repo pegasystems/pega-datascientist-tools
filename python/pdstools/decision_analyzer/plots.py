@@ -146,10 +146,14 @@ class Plot:
 
         return fig
 
-    def propensity_vs_optionality(self, stage="Arbitration", return_df=False):
-        plotData = self._decision_data.get_optionality_data.filter(
-            pl.col(self._decision_data.level) == stage
-        ).collect()
+    def propensity_vs_optionality(self, stage="Arbitration", df=None, return_df=False):
+        if df is None:
+            df = self._decision_data.sample
+        plotData = (
+            self._decision_data.get_optionality_data(df)
+            .filter(pl.col(self._decision_data.level) == stage)
+            .collect()
+        )
         if return_df:
             return plotData
 
@@ -177,6 +181,67 @@ class Plot:
         fig.update_yaxes(title_text="Propensity", secondary_y=True)
         fig.layout.yaxis2.tickformat = ",.2%"
         fig.layout.yaxis2.showgrid = False
+        return fig
+
+    def optionality_funnel(self, df):
+        plot_data = self._decision_data.get_optionality_funnel(df=df).collect()
+        total_interactions = (
+            plot_data.filter(pl.col("StageGroup") == plot_data.row(0)[0])
+            .select(pl.sum("Interactions"))
+            .row(0)[0]
+        )
+        fig = go.Figure()
+
+        colors = [
+            "#d73027",  # 0 actions - dark red (very bad)
+            "#fc8d59",  # 1 action - orange
+            "#fee090",  # 2 actions - light orange/yellow
+            "#ffffbf",  # 3 actions - yellow
+            "#e0f3b5",  # 4 actions - light yellow-green
+            "#91cf60",  # 5 actions - light green
+            "#4dac26",  # 6 actions - medium green
+            "#1a9850",  # 7+ actions - dark green (very good)
+        ]
+        for i, action_count in enumerate(["0", "1", "2", "3", "4", "5", "6", "7+"]):
+            df_filtered = plot_data.filter(pl.col("available_actions") == action_count)
+            df_with_percent = df_filtered.with_columns(
+                ((pl.col("Interactions") / total_interactions) * 100).alias(
+                    "percentage"
+                )
+            )
+
+            fig.add_trace(
+                go.Scatter(
+                    x=df_with_percent["StageGroup"],
+                    y=df_with_percent["percentage"],
+                    mode="lines",
+                    stackgroup="one",
+                    name=f"{action_count} {'Action' if action_count == '1' else 'Actions'}",
+                    line=dict(width=0.5, color=colors[i]),
+                    hovertemplate="%{customdata} interactions (%{y:.1f}%)<br>with %{meta}<extra></extra>",
+                    customdata=df_with_percent["Interactions"],
+                    meta=[
+                        f"{action_count} {'action' if action_count == '1' else 'actions'}"
+                        for _ in range(len(df_with_percent))
+                    ],
+                )
+            )
+
+        fig.update_layout(
+            xaxis_title="Funnel Stage",
+            yaxis_title="Percentage of Interactions",
+            legend_title="Available Actions",
+            hovermode="x unified",
+            legend=dict(traceorder="reversed"),
+            plot_bgcolor="white",
+            width=900,
+            height=600,
+            yaxis=dict(
+                tickformat=",.0f",
+                ticksuffix="%",
+                range=[0, 100],
+            ),
+        )
         return fig
 
     def action_variation(self, stage="Final", return_df=False):
@@ -273,11 +338,11 @@ class Plot:
                 )
                 .sort([self._decision_data.level, "count", scope])
                 .collect(),
-                y="count",
+                y="average_actions",
                 x=self._decision_data.level,
                 color=scope,
                 # title=f"Distribution of {scope}s over the stages",
-                hover_data=["count"],
+                hover_data=["count", "average_actions"],
                 labels={self._decision_data.level: "Stage"},
                 template="pega",
             )
@@ -500,7 +565,7 @@ class Plot:
         return fig.update_layout(height=300, xaxis_title="Rank")
 
     def optionality_per_stage(self, return_df=False):
-        df = self._decision_data.get_optionality_data
+        df = self._decision_data.get_optionality_data(self.sample)
         if return_df:
             return df
         fig = px.box(
@@ -564,9 +629,9 @@ class Plot:
             fig = px.line(
                 collected_df.with_columns(
                     pl.col(self._decision_data.level)
-                    .replace(
-                        NBADStages_Mapping
-                    )  # Replacing with "remaining" view labels
+                    # .replace(
+                    #     NBADStages_Mapping
+                    # )  # Replacing with "remaining" view labels
                     .cast(pl.Enum(list(NBADStages_Mapping.values())))
                 ),
                 x="day",

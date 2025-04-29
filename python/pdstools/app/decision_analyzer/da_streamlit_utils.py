@@ -13,17 +13,19 @@ from pdstools.decision_analyzer.data_read_utils import (
 )
 
 
-# from ...decision_analyzer.plots import (
-#     propensity_vs_optionality,
-#     optionality_per_stage,
-#     offer_quality_piecharts,
-#     action_variation,
-#     optionality_trend,
-#     prio_factor_boxplots,
-#     rank_boxplot,
-#     value_distribution,
-#     trend_chart,
-# )
+from pdstools.decision_analyzer.plots import (
+    #     propensity_vs_optionality,
+    #     optionality_per_stage,
+    #     offer_quality_piecharts,
+    #     action_variation,
+    #     optionality_trend,
+    #     prio_factor_boxplots,
+    #     rank_boxplot,
+    value_distribution,
+    #     trend_chart,
+)
+
+
 def ensure_data():
     if "decision_data" not in st.session_state:
         st.warning("Please upload your data in the Home page")
@@ -370,9 +372,9 @@ def handle_direct_file_path():
 #     return rank_boxplot(df, reference)
 
 
-# @st.cache_data(hash_funcs=polars_lazyframe_hashing)
-# def st_value_distribution(value_data: pl.LazyFrame, scope: str):
-#     return value_distribution(value_data, scope)
+@st.cache_data(hash_funcs=polars_lazyframe_hashing)
+def st_value_distribution(value_data: pl.LazyFrame, scope: str):
+    return value_distribution(value_data, scope)
 
 
 # def st_trend_chart(df: pl.LazyFrame, scope: str) -> Optional[go.Figure]:

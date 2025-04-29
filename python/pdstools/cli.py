@@ -51,7 +51,7 @@ def run(args, unknown):
     print("Running app.")
     print(unknown)
     if args.app == "decision_analyzer":
-        with resources.path("pdstools.app.decision_analyzer", "home.py") as filepath:
+        with resources.path("pdstools.app.decision_analyzer", "Home.py") as filepath:
             filename = str(filepath)
         sys.argv = [
             "streamlit",

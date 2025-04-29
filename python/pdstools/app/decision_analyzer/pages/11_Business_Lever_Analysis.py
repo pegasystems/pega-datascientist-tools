@@ -29,7 +29,7 @@ ensure_data()
 if "list_of_all_actions" not in st.session_state:
     st.session_state["list_of_all_actions"] = (
         st.session_state.decision_data.sample.filter(
-            pl.col("pxEngagementStage").is_in(["Arbitration", "Final"])
+            pl.col("StageGroup") == "Arbitration"
         )
         .select("pyName")
         .unique()
@@ -68,14 +68,14 @@ ranked_df = st.session_state.decision_data.reRank(
         (
             pl.when(pl.col("pyName") == st.session_state.action)
             .then(pl.lit(lever))
-            .otherwise(pl.col("Weight"))
-        ).alias("Weight")
+            .otherwise(pl.col("Levers"))
+        ).alias("Levers")
     ]
 )
 rank_1_df = (
     (
         ranked_df.filter(pl.col("rank_PVCL") == 1)
-        .filter(pl.col("pxEngagementStage").is_in(["Arbitration", "Final"]))
+        .filter(pl.col("StageGroup") == "Arbitration")
         .collect()
     )
     .group_by("pyName")
@@ -83,17 +83,15 @@ rank_1_df = (
     .sort("Win Count", descending=True)
 )
 # TODO lets put into utils, this list is in many places
-parameters = ["Propensity", "Value", "ContextWeight", "Weight"]
+parameters = ["Propensity", "Value", "Context Weight", "Levers"]
 
 segmented_df = (
     # TODO refactor this to work with the DecisionData class
-    st.session_state.decision_data.sample.filter(
-        pl.col("pxEngagementStage").is_in(["Arbitration", "Final"])
-    )
+    st.session_state.decision_data.sample.filter(pl.col("StageGroup") == "Arbitration")
     .with_columns(
-        Weight=pl.when(pl.col("pyName") == st.session_state.action)
+        Levers=pl.when(pl.col("pyName") == st.session_state.action)
         .then(pl.lit(lever))
-        .otherwise(pl.col("Weight"))
+        .otherwise(pl.col("Levers"))
     )
     .with_columns(
         segment=pl.when(pl.col("pyName") == st.session_state.action)
@@ -179,8 +177,8 @@ else:
             (
                 pl.when(pl.col("pyName") == st.session_state.action)
                 .then(pl.lit(lever))
-                .otherwise(pl.col("Weight"))
-            ).alias("Weight")
+                .otherwise(pl.col("Levers"))
+            ).alias("Levers")
         ]
     )
 
