@@ -384,6 +384,7 @@ class IH:
             Index 0 = bigrams (all)
             Index 1 = ≥3-grams that end with positive outcome
             Index 2 = bigrams that end with positive outcome
+            Index 3 = unique ngrams per customer
         """
         cols = [customerid_column, level, outcome_column]
 
@@ -395,7 +396,7 @@ class IH:
         )
 
         count_actions = [defaultdict(int), defaultdict(int)]
-        count_sequences = [defaultdict(int), defaultdict(int), defaultdict(int)]
+        count_sequences = [defaultdict(int), defaultdict(int), defaultdict(int), defaultdict(int)]
         customer_sequences = []
         customer_outcomes = []
 
@@ -421,6 +422,9 @@ class IH:
             bigrams_all = []
 
             for seq, out in zip(sequences, outcomes):
+
+                ngrams_seen = set()
+
                 for n in range(2, len(seq) + 1):
                     for i in range(len(seq) - n + 1):
                         ngram = seq[i:i + n]
@@ -434,6 +438,10 @@ class IH:
                                 ngrams.append(ngram)
                                 for j in range(len(ngram) - 1):
                                     bigrams_all.append(ngram[j : j + 2])
+                        
+                            if ngram not in ngrams_seen:
+                                count_sequences[3][ngram] += 1
+                                ngrams_seen.add(ngram)
 
             return ngrams, bigrams, bigrams_all
 
@@ -480,6 +488,7 @@ class IH:
             Index 0 = bigrams (all)
             Index 1 = ≥3-grams that end with positive outcome
             Index 2 = bigrams that end with positive outcome
+            Index 3 = unique ngrams per customer
 
         Returns
         -------
@@ -576,13 +585,6 @@ class IH:
         data: list[dict[str, object]] = []
         freq_all = count_sequences[1] | count_sequences[2]
 
-        def is_subtuple_with_outcome(small, large, outcome):
-            for i in range(len(large) - len(small) + 1):
-                if large[i:i+len(small)] == small:
-                    if outcome[i + len(small) - 1] == 1:
-                        return True
-            return False
-
         for seq, pmi_val in ngrams_pmi.items():
             if len(seq) > 2:
                 pmi_val = pmi_val["average_pmi"]
@@ -592,18 +594,13 @@ class IH:
             if count <= 1:
                 continue
 
-            unique_freq = sum(
-                is_subtuple_with_outcome(seq, cust_seq, outcome)
-                for cust_seq, outcome in zip(customer_sequences, customer_outcomes)
-            )
-
             data.append(
                 {
                     "Sequence":  seq,
                     "Length":    len(seq),
                     "Avg PMI":   pmi_val,
                     "Frequency": count,
-                    "Unique freq": unique_freq,
+                    "Unique freq": count_sequences[3][seq],
                     "Score":     pmi_val * math.log(count),
                 }
             )
