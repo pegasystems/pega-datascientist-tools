@@ -75,7 +75,7 @@ def test_over_time(sample2: ADMDatamart):
         .get_column("ResponseCount")
         .to_list()
     )
-    assert responses_over_time == [100.0, 120.0, 110.0, 150.0, 160.0, 170.0]
+    assert responses_over_time == [100.0, 150.0, 120.0, 160.0, 110.0, 170.0]
 
     fig_faceted = sample2.plot.over_time(
         metric="Performance", by="ModelID", facet="Group"
