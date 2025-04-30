@@ -279,7 +279,8 @@ class Plots(LazyNamespace):
         by : Union[pl.Expr, str], optional
             The column to group by, by default "ModelID"
         every : Union[str, timedelta], optional
-            By what time period to group, by default "1d"
+            By what time period to group, by default "1d", see https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html
+            for periods.
         cumulative : bool, optional
             Whether to show cumulative values or period-over-period changes, by default True
         query : Optional[QUERY], optional

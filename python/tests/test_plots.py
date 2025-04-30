@@ -67,7 +67,7 @@ def test_over_time(sample2: ADMDatamart):
         .get_column("Performance_change")
         .to_list()
     )
-    assert performance_changes == [None, 3.0, -1.0, None, 2.0, 3.0]
+    assert performance_changes == [None, None, 3.0, 2.0, -1.0, 3.0]
 
     responses_over_time = (
         sample2.plot.over_time(metric="ResponseCount", by="ModelID", return_df=True)
