@@ -305,10 +305,11 @@ class Plots(LazyNamespace):
 
         columns_to_select: Set[str] = {"SnapshotTime", metric, "ResponseCount"}
         columns_to_select.update(by.meta.root_names())
-        columns_to_select.add(facet)
+        if facet:
+            columns_to_select.add(facet)
 
         is_percentage = metric in percentage_metrics
-        metric_scaling = pl.lit(100.0) if metric == "Performance" else pl.lit(1.0)
+        metric_scaling = pl.lit(100.0 if metric == "Performance" else 1.0)
 
         df = (
             cdh_utils._apply_query(self.datamart.model_data, query)
@@ -333,24 +334,13 @@ class Plots(LazyNamespace):
             agg_expr.append(pl.sum("ResponseCount"))
 
         df = (
-            df.group_by(grouping_columns + ["SnapshotTime"])
+            df.with_columns(pl.col("SnapshotTime").dt.truncate(every=every))
+            .group_by(grouping_columns + ["SnapshotTime"])
             .agg(agg_expr)
             .sort("SnapshotTime", by_col)
         )
 
-        agg_df = df.group_by_dynamic(
-            "SnapshotTime", every=every, group_by=grouping_columns
-        ).agg(
-            (
-                cdh_utils.weighted_average_polars(metric, "ResponseCount")
-                if is_percentage and "ResponseCount" in df.collect_schema().names()
-                else pl.sum(metric)
-            ).alias(metric)
-        )
-
-        unique_intervals = (
-            agg_df.select(pl.col("SnapshotTime").unique()).collect().height
-        )
+        unique_intervals = df.select(pl.col("SnapshotTime").unique()).collect().height
 
         if not cumulative and unique_intervals <= 1:
             logger.warning(
@@ -362,17 +352,17 @@ class Plots(LazyNamespace):
         plot_metric = metric
         if not cumulative:
             plot_metric = f"{metric}_change"
-            agg_df = agg_df.with_columns(
+            df = df.with_columns(
                 pl.col(metric).diff().over(grouping_columns).alias(plot_metric)
             )
 
         if return_df:
-            return agg_df
-        final_df = agg_df.collect()
+            return df
+        final_df = df.collect()
 
         facet_col_wrap = None
         if facet:
-            unique_facet_values = final_df.select(facet).unique().shape[0]
+            unique_facet_values = final_df.select(facet).unique().height
             facet_col_wrap = max(2, int(unique_facet_values**0.5))
 
         title = "over all models" if facet is None else f"per {facet}"
