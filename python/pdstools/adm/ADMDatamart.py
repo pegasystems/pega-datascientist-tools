@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Callable, Iterable, List, Literal, Optional, Tuple, Union
 
 import polars as pl
+import polars.selectors as cs
 
 from .. import pega_io
 from ..pega_io.File import read_dataflow_output, read_ds_export
@@ -140,17 +141,16 @@ class ADMDatamart:
         self.combined_data = self.aggregates._combine_data(
             self.model_data, self.predictor_data
         )
-        self.bin_aggregator = BinAggregator(dm=self) 
+        self.bin_aggregator = BinAggregator(dm=self)
 
     def _get_first_action_dates(self, df: Optional[pl.LazyFrame]) -> pl.LazyFrame:
         if df is None:
             return df
         # very_first_date = df.select(pl.col("SnapshotTime").min()).collect().item()
         return (
-            df.group_by("Name")
-            .agg(FirstSnapshotTime=pl.col("SnapshotTime").min())
+            df.group_by("Name").agg(FirstSnapshotTime=pl.col("SnapshotTime").min())
             # .with_columns(
-            #     pl.when(pl.col("FirstSnapshotTime") > very_first_date).then("FirstSnapshotTime") 
+            #     pl.when(pl.col("FirstSnapshotTime") > very_first_date).then("FirstSnapshotTime")
             # )
             .sort("Name")
             # .filter(
@@ -557,4 +557,184 @@ class ADMDatamart:
             self.predictor_data.select(
                 pl.col("PredictorCategory").unique().sort()
             ).collect()["PredictorCategory"]
+        )
+
+    # min and max score (sum of log odds) per model, plus some extra summary statistics per model
+    @classmethod
+    def _minMaxScoresPerModel(cls, bin_data: pl.LazyFrame) -> pl.LazyFrame:
+        minMaxScoresPerPredictor = (
+            bin_data.filter(pl.col("EntryType") != "Inactive")
+            .sort("BinIndex")
+            .group_by(["ModelID", "PredictorName", "EntryType"], maintain_order=True)
+            .agg(
+                totalPos=pl.col("BinPositives").sum(),
+                totalNeg=pl.col("BinNegatives").sum(),
+                logOdds=cdh_utils.log_odds_polars("BinPositives", "BinNegatives"),
+            )
+            .with_columns(
+                pl.col("logOdds").list.min().alias("logOddsMin"),
+                pl.col("logOdds").list.max().alias("logOddsMax"),
+            )
+            .drop("logOdds")
+        )
+
+        return (
+            minMaxScoresPerPredictor.group_by("ModelID")
+            .agg(
+                # pl.col("classifierBounds").filter(EntryType="Classifier").first(),
+                # pl.col("classifierPos").filter(EntryType="Classifier").first(),
+                # pl.col("classifierNeg").filter(EntryType="Classifier").first(),
+                # pl.col("classifierPerformance").filter(EntryType="Classifier").first().list.first(),
+                nActivePredictors=(pl.col("EntryType") == "Active").sum(),
+                classifierLogOffset=(
+                    1.0 + pl.col.totalPos.filter(EntryType="Classifier").first()
+                ).log()
+                - (1.0 + pl.col.totalNeg.filter(EntryType="Classifier").first()).log(),
+                sumMinLogOdds=pl.col.logOddsMin.filter(EntryType="Active").sum(),
+                sumMaxLogOdds=pl.col.logOddsMax.filter(EntryType="Active").sum(),
+            )
+            .with_columns(
+                score_min=(pl.col.classifierLogOffset + pl.col.sumMinLogOdds)
+                / (1 + pl.col.nActivePredictors),
+                score_max=(pl.col.classifierLogOffset + pl.col.sumMaxLogOdds)
+                / (1 + pl.col.nActivePredictors),
+            )
+        )
+
+    def active_ranges(
+        self, model_ids: Optional[Union[str, List[str]]] = None
+    ) -> pl.LazyFrame:
+        """Calculate the active, reachable bins in classifiers.
+
+        The classifiers exported by Pega contain (in certain product versions) more than
+        the bins that can be reached given the current state of the predictors. This method
+        first calculates the min and max score range from the predictor log odds, then maps
+        that to the interval boundaries of the classifier(s) to find the min and max index.
+
+        It returns a LazyFrame with the score min/max, the min/max index, as well as the
+        AUC as reported in the datamart data, when calculated from the full range, and when
+        calculated from the reachable bins only.
+
+        This information can be used in the Health Check documents or when verifying the
+        AUC numbers from the datamart.
+
+        Parameters
+        ----------
+        model_ids : Optional[Union[str, List[str]]], optional
+            An optional list of model id's, or just a single one, to report on. When
+            not given, the information is returned for all models.
+
+        Returns
+        -------
+        pl.LazyFrame
+            A table with all the index and AUC information for all the models
+
+        """
+        import numpy as np
+
+        def find_min_index(bounds, score):
+            # Polars has search_sorted but it seems it doesn't do
+            # the exact same thing as numpy searchsorted.
+            idx_min = np.searchsorted(bounds, score, side="right") - 1
+            return idx_min
+
+        def find_max_index(bounds, score):
+            idx_max = np.searchsorted(bounds, score, side="right")
+            return idx_max
+
+        def auc_from_active_bins(pos, neg, idx_min, idx_max):
+            return cdh_utils.auc_from_bincounts(
+                pos[idx_min:idx_max], neg[idx_min:idx_max]
+            )
+
+        if isinstance(model_ids, str):
+            query = (pl.col("ModelID") == model_ids)
+        elif isinstance(model_ids, list):
+            query = (pl.col("ModelID").is_in(model_ids))
+        else:
+            query = None
+
+        # Only take last binning snapshot per model ID. Usually there only is
+        # one but it is configurable to have multiple. Also, sometimes the snapshot
+        # time is null, due to import/export woes. This is problematic
+        # for model data but here we just test for it and assume one snapshot.
+        most_recent_binning_data = cdh_utils._apply_query(
+            self.predictor_data.filter(
+                (
+                    (pl.col("SnapshotTime").n_unique() == 1)
+                    | (pl.col("SnapshotTime") == pl.col("SnapshotTime").max())
+                ).over("ModelID")
+            ),
+            query,
+        )
+
+        classifier_info = (
+            most_recent_binning_data.filter(EntryType="Classifier")
+            .group_by("ModelID")
+            .agg(
+                AUC_Datamart=pl.col("Performance").first(),
+                Bins=pl.len(),
+                classifierBounds=pl.col("BinLowerBound").cast(pl.Float64),
+                classifierPos=pl.col("BinPositives").cast(pl.Float64),
+                classifierNeg=pl.col("BinNegatives").cast(pl.Float64),
+            )
+        )
+
+        scores = self._minMaxScoresPerModel(most_recent_binning_data)
+
+        return (
+            classifier_info.join(scores, on="ModelID", how="left")
+            .with_columns(
+                AUC_FullRange=pl.map_groups(
+                    exprs=[
+                        pl.col("classifierPos").explode(),
+                        pl.col("classifierNeg").explode(),
+                    ],
+                    function=lambda data: cdh_utils.auc_from_bincounts(
+                        data[0], data[1]
+                    ),
+                    return_dtype=pl.Float64,
+                ).over("ModelID"),
+                idx_min=pl.map_groups(
+                    exprs=[
+                        pl.col("classifierBounds"),
+                        pl.col("score_min"),
+                    ],
+                    function=lambda data: find_min_index(
+                        data[0].to_list()[0],
+                        data[1].item(),
+                    ),
+                    return_dtype=pl.Int32,
+                ).over("ModelID"),
+                idx_max=pl.map_groups(
+                    exprs=[
+                        pl.col("classifierBounds"),
+                        pl.col("score_max"),
+                    ],
+                    function=lambda data: find_max_index(
+                        data[0].to_list()[0],
+                        data[1].item(),
+                    ),
+                    return_dtype=pl.Int32,
+                ).over("ModelID"),
+            )
+            .with_columns(
+                AUC_ActiveRange=pl.map_groups(
+                    exprs=[
+                        pl.col("classifierPos"),
+                        pl.col("classifierNeg"),
+                        pl.col("idx_min"),
+                        pl.col("idx_max"),
+                    ],
+                    function=lambda data: auc_from_active_bins(
+                        data[0].to_list()[0],
+                        data[1].to_list()[0],
+                        data[2].item(),
+                        data[3].item(),
+                    ),
+                    return_dtype=pl.Float64,
+                ).over("ModelID"),
+            )
+            .sort("ModelID")
+            .select(cs.starts_with("AUC"), ~cs.starts_with("AUC"))
         )
