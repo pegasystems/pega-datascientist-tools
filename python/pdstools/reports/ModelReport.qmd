@@ -174,6 +174,7 @@ report_utils.quarto_print(
 
 ```{python}
 try:
+    # TODO: use active range inside of this plot?
     fig = datamart.plot.score_distribution(model_id=model_id)
 
     # Customize some of the default styling of the plot
@@ -210,7 +211,9 @@ try:
         .sort("BinIndex")
     )
 
-    auc_roc = round(classifier.select(pl.last("Performance")).collect().item(), 4)
+    active_range_info = datamart.active_ranges(model_id).collect().to_dicts()[0]
+
+    auc_roc = round(active_range_info['AUC_ActiveRange'], 4)
 
     report_utils.quarto_print(
         f"""
@@ -235,7 +238,7 @@ try:
                 (pl.last("Positives") / pl.last("ResponseCount")).alias(
                     "Base Propensity"
                 ),
-                pl.last("Performance") * 100,
+                (pl.lit(auc_roc) * 100).alias("Performance"),
             ),
             highlight_limits={
                 "Responses": "ResponseCount",
@@ -259,20 +262,27 @@ The Score Distribution shows the volume and average propensity in every bin of t
 
 Propensity is defined as $\frac{positives}{positives+negatives}$ per bin. The adjusted propensity that is returned is a small modification (*Laplace smoothing*) to this and calculated as $\frac{0.5+positives}{1+positives+negatives}$ so new models initially return a propensity of 0.5. This helps to address the cold start when introducing new actions.
 
-::: callout-warning
-The Python version has no notion of unreachable bins (yet), when it has we should grey out the binning rows that fall outside of the active range
-:::
+Bins outside the "active range" are greyed out. The active range is the range of values that are possible with the current binning of all the (active) predictors. Score values outside of that range may still be captured by bins in the classifier but cannot occur. The AUC calculation in Pega is not using those bins either.
 
 ```{python}
 
+active_range_filter_expr = (pl.col("Index") >= active_range_info["idx_min"]) & (
+    pl.col("Index") <= active_range_info["idx_max"]
+)
+
 try:
+
     human_friendly_scoredistribution = (
-        classifier.select(
-            pl.col("BinIndex").alias("Index"),
-            pl.col("BinSymbol").alias("Bin"),
+        classifier.rename({"BinIndex": "Index", "BinSymbol": "Bin"}).filter(active_range_filter_expr).select(
+            "Index",
+            "Bin",
             pl.col("BinResponseCount").alias("Responses"),
             pl.col("BinPositives").alias("Positives"),
-            (100 * (pl.col("BinPositives").cum_sum(reverse=True)) / pl.sum("BinPositives"))
+            (
+                100
+                * (pl.col("BinPositives").cum_sum(reverse=True))
+                / pl.sum("BinPositives")
+            )
             .round(2)
             .alias("Cum. Positives (%)"),
             (
@@ -281,6 +291,7 @@ try:
                 / pl.sum("BinResponseCount")
             )
             .round(2)
+            
             .alias("Cum. Total (%)"),
             (100 * pl.col("BinPropensity")).round(3).alias("Propensity (%)"),
             z_ratio(pl.col("BinPositives"), pl.col("BinNegatives"))
@@ -299,6 +310,11 @@ try:
 
     gt = report_utils.table_standard_formatting(
         human_friendly_scoredistribution, title="Score Distribution"
+    ).tab_style(
+        # this won't happen now - we could consider adding
+        # that info to the list
+        style=style.text(color="grey"),
+        locations=loc.body(rows=~active_range_filter_expr),
     )
 
     display(gt)
@@ -314,10 +330,9 @@ The Cumulative Gains chart shows the percentage of he overall cases in the "posi
 
 The Lift chart is derived from this and shows the ratio of the cumulative gain and the targeted volume.
 
-TODO: unfortunately the Python version has no notion of unreachable bins (yet) which can cause really strange high lift values
-
 ::: {layout-ncol="2"}
 ```{python}
+
 # TODO perhaps this should move into the pdstools plot functions "plotCumulativeGains"
 # however it is so trivial, not really sure it should be. See also the other gains charts
 # in the health check.
