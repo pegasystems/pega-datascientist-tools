@@ -579,12 +579,8 @@ class ADMDatamart:
         )
 
         return (
-            minMaxScoresPerPredictor.group_by("ModelID")
+            minMaxScoresPerPredictor.group_by("ModelID", maintain_order=True)
             .agg(
-                # pl.col("classifierBounds").filter(EntryType="Classifier").first(),
-                # pl.col("classifierPos").filter(EntryType="Classifier").first(),
-                # pl.col("classifierNeg").filter(EntryType="Classifier").first(),
-                # pl.col("classifierPerformance").filter(EntryType="Classifier").first().list.first(),
                 nActivePredictors=(pl.col("EntryType") == "Active").sum(),
                 classifierLogOffset=(
                     1.0 + pl.col.totalPos.filter(EntryType="Classifier").first()
@@ -632,15 +628,11 @@ class ADMDatamart:
         """
         import numpy as np
 
-        def find_min_index(bounds, score):
+        def find_index(bounds, score):
             # Polars has search_sorted but it seems it doesn't do
-            # the exact same thing as numpy searchsorted.
-            idx_min = np.searchsorted(bounds, score, side="right") - 1
-            return idx_min
-
-        def find_max_index(bounds, score):
-            idx_max = np.searchsorted(bounds, score, side="right")
-            return idx_max
+            # the exact same thing as numpy searchsorted. We could
+            # also use python's native bisect but that seems slower.
+            return np.searchsorted(bounds, score, side="right")
 
         def auc_from_active_bins(pos, neg, idx_min, idx_max):
             return cdh_utils.auc_from_bincounts(
@@ -670,7 +662,8 @@ class ADMDatamart:
 
         classifier_info = (
             most_recent_binning_data.filter(EntryType="Classifier")
-            .group_by("ModelID")
+            .sort("BinIndex")
+            .group_by("ModelID", maintain_order=True)
             .agg(
                 AUC_Datamart=pl.col("Performance").first(),
                 Bins=pl.len(),
@@ -695,23 +688,23 @@ class ADMDatamart:
                     ),
                     return_dtype=pl.Float64,
                 ).over("ModelID"),
-                idx_min=pl.map_groups(
+                idx_min=(pl.map_groups(
                     exprs=[
                         pl.col("classifierBounds"),
                         pl.col("score_min"),
                     ],
-                    function=lambda data: find_min_index(
+                    function=lambda data: find_index(
                         data[0].to_list()[0],
                         data[1].item(),
                     ),
                     return_dtype=pl.Int32,
-                ).over("ModelID"),
+                ) - 1).over("ModelID"),
                 idx_max=pl.map_groups(
                     exprs=[
                         pl.col("classifierBounds"),
                         pl.col("score_max"),
                     ],
-                    function=lambda data: find_max_index(
+                    function=lambda data: find_index(
                         data[0].to_list()[0],
                         data[1].item(),
                     ),
@@ -736,5 +729,7 @@ class ADMDatamart:
                 ).over("ModelID"),
             )
             .sort("ModelID")
+            .drop("classifierBounds", "classifierPos",	"classifierNeg")
             .select(cs.starts_with("AUC"), ~cs.starts_with("AUC"))
+            .select("ModelID", ~cs.starts_with("ModelID"))
         )

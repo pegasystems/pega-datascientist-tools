@@ -111,8 +111,11 @@ def test_active_range_Pega8():
     ar = dm.active_ranges().collect()
 
     assert ar["nActivePredictors"].to_list() == [19, 17, 11, 3]
-    # we're NOT okay here!!
-    assert ar["idx_min"].to_list() == [0, 0, 0, 1] # the R version is 3, 1, 1, 2
-    assert ar["idx_max"].to_list() == [11, 11, 2, 4] # the R version is 10, 10, 2, 4
+    assert ar["idx_min"].to_list() == [2, 0, 0, 1] # the R version is +1 so 3, 1, 1, 2
+    assert ar["idx_max"].to_list() == [10, 10, 2, 4] 
     assert [round(x,6) for x in ar["AUC_Datamart"].to_list()] == [0.533401, 0.562353, 0.559777, 0.628571]
-    assert [round(x,6) for x in ar["AUC_ActiveRange"].to_list()] == [0.5334013, 0.5623530, 0.5597765, 0.5476054]
+    assert [round(x,7) for x in ar["AUC_ActiveRange"].to_list()] == [0.5334013, 0.5623530, 0.5597765, 0.5476054]
+    assert [round(x,7) for x in ar["AUC_FullRange"].to_list()] == [0.5460856, 0.5652007, 0.5597765, 0.5781145]
+    assert [round(x,6) for x in ar["score_min"].to_list()] == [-0.620929, -0.600759, -0.749120, -1.425557]
+    assert [round(x,6) for x in ar["score_max"].to_list()] == [0.468903, 0.681244, 1.454179, -0.425495]
+
