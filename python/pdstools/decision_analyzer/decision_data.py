@@ -379,9 +379,10 @@ class DecisionAnalyzer:
             aggregations=pl.sum("Decisions").alias("count"),
         ).filter(pl.col("count") > 0)
         interaction_count = (
-            self.decision_data.select(pl.n_unique("pxInteractionID"))
+            apply_filter(self.decision_data, additional_filters)
+            .select("pxInteractionID")
             .collect()
-            .row(0)[0]
+            .n_unique()
         )
         funnelData = funnelData.with_columns(
             interaction_count=pl.lit(interaction_count),
