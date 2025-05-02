@@ -338,7 +338,9 @@ class DecisionAnalyzer:
 
     def getPossibleScopeValues(self):
         options = [
-            col for col in NBADScope_Mapping.keys() if col in self.decision_data.columns
+            col
+            for col in NBADScope_Mapping.keys()
+            if col in self.decision_data.collect_schema().names()
         ]
         return options
 
