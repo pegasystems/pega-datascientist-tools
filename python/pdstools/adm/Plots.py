@@ -465,6 +465,7 @@ class Plots(LazyNamespace):
         self,
         model_id: str,
         *,
+        active_range: bool = True,
         return_df: bool = False,
     ):
         df = (
@@ -485,9 +486,16 @@ class Plots(LazyNamespace):
                 )
             )
             .filter(
-                pl.col("PredictorName") == "Classifier", pl.col("ModelID") == model_id
+                PredictorName = "Classifier", ModelID = model_id
             )
         ).sort("BinIndex")
+
+        if active_range:
+            active_range_info = self.datamart.active_ranges(model_id).collect().to_dicts()[0]
+            active_range_filter_expr = (pl.col("BinIndex") >= active_range_info["idx_min"]) & (
+                pl.col("BinIndex") <= active_range_info["idx_max"]
+            )
+            df = df.filter(active_range_filter_expr)
 
         if df.select(pl.first().len()).collect().item() == 0:
             raise ValueError(f"There is no data for the provided modelid {model_id}")

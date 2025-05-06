@@ -174,7 +174,6 @@ report_utils.quarto_print(
 
 ```{python}
 try:
-    # TODO: use active range inside of this plot?
     fig = datamart.plot.score_distribution(model_id=model_id)
 
     # Customize some of the default styling of the plot
@@ -214,11 +213,9 @@ try:
     active_range_info = datamart.active_ranges(model_id).collect().to_dicts()[0]
 
     auc_roc = round(active_range_info['AUC_ActiveRange'], 4)
-
+    
     report_utils.quarto_print(
-        f"""
-    The model performance is **{auc_roc}** measured as AUC-ROC. This number is calculated from the “active” bins of the Classifier.
-    """
+        f"The model performance is **{auc_roc}** measured as AUC-ROC. This number is calculated from the 'active' bins of the Classifier. In Pega, AUC is always scaled to a number 50-100."
     )
 except Exception as e:
     report_utils.quarto_plot_exception("Model Performance", e)
@@ -262,7 +259,7 @@ The Score Distribution shows the volume and average propensity in every bin of t
 
 Propensity is defined as $\frac{positives}{positives+negatives}$ per bin. The adjusted propensity that is returned is a small modification (*Laplace smoothing*) to this and calculated as $\frac{0.5+positives}{1+positives+negatives}$ so new models initially return a propensity of 0.5. This helps to address the cold start when introducing new actions.
 
-Bins outside the "active range" are greyed out. The active range is the range of values that are possible with the current binning of all the (active) predictors. Score values outside of that range may still be captured by bins in the classifier but cannot occur. The AUC calculation in Pega is not using those bins either.
+Bins outside the "active range" are not shown here. The active range is the range of values that are possible with the current binning of all the (active) predictors. Score values outside of that range may still be captured by bins in the classifier but cannot occur. The AUC calculation in Pega is not using those out-of-range bins but they are present in the datamart exports.
 
 ```{python}
 
