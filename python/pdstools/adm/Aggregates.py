@@ -1,6 +1,6 @@
 __all__ = ["Aggregates"]
 import datetime
-from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Tuple, Union
 
 import polars as pl
 import polars.selectors as cs
@@ -83,7 +83,7 @@ class Aggregates:
         by="Name",
         top_predictors: Optional[int] = None,
         top_groups: Optional[int] = None,
-    ) -> pl.LazyFrame:
+    ) -> Tuple[pl.LazyFrame, str]:
         """Creates a pivot table of the predictor performance per 'group'
 
         Parameters
@@ -102,9 +102,10 @@ class Aggregates:
 
         Returns
         -------
-        pl.LazyFrame
-            A LazyFrame with a column for each predictor, and a row for each 'group'.
-            The values represent the weighted performance for that predictor
+        pl.LazyFrame, str
+            A tuple of the LazyFrame with a column for each predictor, and a row for each 'group'.
+            The values represent the weighted performance for that predictor, and a string with the
+            name of the column used for grouping.
         """
         df = cdh_utils._apply_query(
             self.datamart.aggregates.last(table="combined_data").filter(
@@ -164,7 +165,7 @@ class Aggregates:
         if top_groups:
             q = q.head(top_groups)
 
-        return q.select(by_name, *column_order)
+        return q.select(by_name, *column_order), by_name
 
     # TODO: how is this used, where? Overlap with other summary function?
     # should it also have Performance?

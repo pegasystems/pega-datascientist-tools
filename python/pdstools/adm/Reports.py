@@ -279,6 +279,7 @@ class Reports(LazyNamespace):
                 verbose=verbose,
             )
 
+            # TODO why not print earlier, before the quarto call?
             output_path = temp_dir / output_filename
             if verbose or not output_path.exists():
                 if model_file_path is not None:

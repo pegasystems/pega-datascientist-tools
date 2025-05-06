@@ -949,7 +949,7 @@ class Plots(LazyNamespace):
         query: Optional[QUERY] = None,
         return_df: bool = False,
     ):
-        df = self.datamart.aggregates.predictor_performance_pivot(
+        df, by_name = self.datamart.aggregates.predictor_performance_pivot(
             query=query,
             by=by,
             top_predictors=top_predictors,
@@ -957,15 +957,16 @@ class Plots(LazyNamespace):
             active_only=active_only,
         )
 
+        df = df.collect().transpose(
+            include_header=True, header_name=by_name, column_names=by_name
+        )
+
         if return_df:
             return df
 
         title = "over all models"
-        df = df.collect().transpose(
-            include_header=True, header_name=by, column_names=by
-        )
         fig = px.imshow(
-            df.select(pl.all().exclude(by)),
+            df.select(pl.all().exclude(by_name)),
             text_auto=".3f",
             aspect="auto",
             color_continuous_scale=self.datamart.cdh_guidelines.colorscales.get(
@@ -973,7 +974,7 @@ class Plots(LazyNamespace):
             ),
             title=f"Top predictors {title}",
             range_color=[0.5, 1],
-            y=df[by],
+            y=df[by_name],
         )
 
         fig.update_yaxes(dtick=1, automargin=True)
