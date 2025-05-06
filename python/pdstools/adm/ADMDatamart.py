@@ -628,11 +628,15 @@ class ADMDatamart:
         """
         import numpy as np
 
-        def find_index(bounds, score):
+        def find_binindex(bounds, score):
+            if len(bounds) == 1:
+                return 0
             # Polars has search_sorted but it seems it doesn't do
             # the exact same thing as numpy searchsorted. We could
             # also use python's native bisect but that seems slower.
-            return np.searchsorted(bounds, score, side="right")
+            return min(
+                max(1, np.searchsorted(bounds, score, side="right").item()), len(bounds)
+            )
 
         def auc_from_active_bins(pos, neg, idx_min, idx_max):
             return cdh_utils.auc_from_bincounts(
@@ -640,9 +644,9 @@ class ADMDatamart:
             )
 
         if isinstance(model_ids, str):
-            query = (pl.col("ModelID") == model_ids)
+            query = pl.col("ModelID") == model_ids
         elif isinstance(model_ids, list):
-            query = (pl.col("ModelID").is_in(model_ids))
+            query = pl.col("ModelID").is_in(model_ids)
         else:
             query = None
 
@@ -688,23 +692,26 @@ class ADMDatamart:
                     ),
                     return_dtype=pl.Float64,
                 ).over("ModelID"),
-                idx_min=(pl.map_groups(
-                    exprs=[
-                        pl.col("classifierBounds"),
-                        pl.col("score_min"),
-                    ],
-                    function=lambda data: find_index(
-                        data[0].to_list()[0],
-                        data[1].item(),
-                    ),
-                    return_dtype=pl.Int32,
-                ) - 1).over("ModelID"),
+                idx_min=(
+                    pl.map_groups(
+                        exprs=[
+                            pl.col("classifierBounds"),
+                            pl.col("score_min"),
+                        ],
+                        function=lambda data: find_binindex(
+                            data[0].to_list()[0],
+                            data[1].item(),
+                        ),
+                        return_dtype=pl.Int32,
+                    )
+                    - 1
+                ).over("ModelID"),
                 idx_max=pl.map_groups(
                     exprs=[
                         pl.col("classifierBounds"),
                         pl.col("score_max"),
                     ],
-                    function=lambda data: find_index(
+                    function=lambda data: find_binindex(
                         data[0].to_list()[0],
                         data[1].item(),
                     ),
@@ -729,7 +736,7 @@ class ADMDatamart:
                 ).over("ModelID"),
             )
             .sort("ModelID")
-            .drop("classifierBounds", "classifierPos",	"classifierNeg")
+            .drop("classifierBounds", "classifierPos", "classifierNeg")
             .select(cs.starts_with("AUC"), ~cs.starts_with("AUC"))
             .select("ModelID", ~cs.starts_with("ModelID"))
         )

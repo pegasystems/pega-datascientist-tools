@@ -267,7 +267,6 @@ def test_predictor_contribution(sample: ADMDatamart):
 def test_predictor_performance_heatmap(sample: ADMDatamart):
     df = sample.plot.predictor_performance_heatmap(return_df=True)
 
-    print(df.collect())
     assert (
         round(
             df.filter(Name = "Customer.AnnualIncome")
@@ -279,10 +278,19 @@ def test_predictor_performance_heatmap(sample: ADMDatamart):
         == 0.69054
     )
     assert df.select(pl.col("*").exclude("Name")).collect().to_numpy().max() <= 1.0
+    assert "Name" in df.collect().columns
+    assert 'ChannelAction_Template' in df.collect().columns
 
     plot = sample.plot.predictor_performance_heatmap()
     assert isinstance(plot, Figure)
 
+    df = sample.plot.predictor_performance_heatmap(by=pl.concat_str(
+                    pl.col("Issue"), pl.col("Group"), pl.col("Name"), separator="/"
+                ), return_df=True)
+    
+    assert "Name" not in df.collect().columns
+    assert "Predictor" in df.collect().columns
+    assert 'Sales/CreditCards/ChannelAction_Template' in df.collect().columns
 
 def test_models_by_positives(sample: ADMDatamart):
     df = sample.plot.models_by_positives(return_df=True)

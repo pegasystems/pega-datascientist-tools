@@ -949,7 +949,13 @@ class Plots(LazyNamespace):
         query: Optional[QUERY] = None,
         return_df: bool = False,
     ):
-        df, by_name = self.datamart.aggregates.predictor_performance_pivot(
+        if isinstance(by, str):
+            by_name = by
+        else:
+            by = by.alias("Predictor")
+            by_name = "Predictor"
+
+        df = self.datamart.aggregates.predictor_performance_pivot(
             query=query,
             by=by,
             top_predictors=top_predictors,

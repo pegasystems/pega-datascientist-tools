@@ -61,6 +61,9 @@ predictor_file_path = None
 query = None
 model_id = None
 
+model_file_path = "/Users/perdo/Library/CloudStorage/OneDrive-SharedLibraries-PegasystemsInc/AI Chapter Data Sets - Documents/Customers/OPBank/HC/PR_DATA_DM_ADMMART_MDL_FACT.parquet"
+predictor_file_path = "/Users/perdo/Library/CloudStorage/OneDrive-SharedLibraries-PegasystemsInc/AI Chapter Data Sets - Documents/Customers/OPBank/HC/PR_DATA_DM_ADMMART_PRED.parquet"
+model_id = "65fdf2e9-2f90-5913-bba7-73058ecade6a"
 only_active_predictors = True
 
 ```

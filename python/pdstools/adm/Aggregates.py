@@ -83,7 +83,7 @@ class Aggregates:
         by="Name",
         top_predictors: Optional[int] = None,
         top_groups: Optional[int] = None,
-    ) -> Tuple[pl.LazyFrame, str]:
+    ) -> pl.LazyFrame:
         """Creates a pivot table of the predictor performance per 'group'
 
         Parameters
@@ -102,10 +102,9 @@ class Aggregates:
 
         Returns
         -------
-        pl.LazyFrame, str
-            A tuple of the LazyFrame with a column for each predictor, and a row for each 'group'.
-            The values represent the weighted performance for that predictor, and a string with the
-            name of the column used for grouping.
+        pl.LazyFrame
+            A LazyFrame with a column for each predictor, and a row for each 'group'.
+            The values represent the weighted performance for that predictor
         """
         df = cdh_utils._apply_query(
             self.datamart.aggregates.last(table="combined_data").filter(
@@ -165,7 +164,7 @@ class Aggregates:
         if top_groups:
             q = q.head(top_groups)
 
-        return q.select(by_name, *column_order), by_name
+        return q.select(by_name, *column_order)
 
     # TODO: how is this used, where? Overlap with other summary function?
     # should it also have Performance?
