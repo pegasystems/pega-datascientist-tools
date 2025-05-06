@@ -266,15 +266,17 @@ def test_predictor_contribution(sample: ADMDatamart):
 
 def test_predictor_performance_heatmap(sample: ADMDatamart):
     df = sample.plot.predictor_performance_heatmap(return_df=True)
+
+    print(df.collect())
     assert (
         round(
-            df.filter(pl.col("Name") == "AutoUsed60Months")
-            .select("Customer.AnnualIncome")
+            df.filter(Name = "Customer.AnnualIncome")
+            .select("AutoUsed60Months")
             .collect()
             .item(),
-            2,
+            5,
         )
-        == 0.69
+        == 0.69054
     )
     assert df.select(pl.col("*").exclude("Name")).collect().to_numpy().max() <= 1.0
 

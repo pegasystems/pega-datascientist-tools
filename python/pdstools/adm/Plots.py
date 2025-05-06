@@ -962,7 +962,7 @@ class Plots(LazyNamespace):
         )
 
         if return_df:
-            return df
+            return df.lazy()
 
         title = "over all models"
         fig = px.imshow(
