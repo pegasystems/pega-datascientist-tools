@@ -338,7 +338,9 @@ class DecisionAnalyzer:
 
     def getPossibleScopeValues(self):
         options = [
-            col for col in NBADScope_Mapping.keys() if col in self.decision_data.columns
+            col
+            for col in NBADScope_Mapping.keys()
+            if col in self.decision_data.collect_schema().names()
         ]
         return options
 
@@ -379,9 +381,10 @@ class DecisionAnalyzer:
             aggregations=pl.sum("Decisions").alias("count"),
         ).filter(pl.col("count") > 0)
         interaction_count = (
-            self.decision_data.select(pl.n_unique("pxInteractionID"))
+            apply_filter(self.decision_data, additional_filters)
+            .select("pxInteractionID")
             .collect()
-            .row(0)[0]
+            .n_unique()
         )
         funnelData = funnelData.with_columns(
             interaction_count=pl.lit(interaction_count),
