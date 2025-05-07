@@ -491,14 +491,16 @@ class Plots(LazyNamespace):
         ).sort("BinIndex")
 
         if active_range:
-            active_range_info = self.datamart.active_ranges(model_id).collect().to_dicts()[0]
-            active_range_filter_expr = (pl.col("BinIndex") >= active_range_info["idx_min"]) & (
-                pl.col("BinIndex") <= active_range_info["idx_max"]
-            )
-            df = df.filter(active_range_filter_expr)
+            active_ranges = self.datamart.active_ranges(model_id).collect()
+            if active_ranges.height > 0:
+                active_range_info = active_ranges.to_dicts()[0]
+                active_range_filter_expr = (pl.col("BinIndex") >= active_range_info["idx_min"]) & (
+                    pl.col("BinIndex") <= active_range_info["idx_max"]
+                )
+                df = df.filter(active_range_filter_expr)
 
         if df.select(pl.first().len()).collect().item() == 0:
-            raise ValueError(f"There is no data for the provided modelid {model_id}")
+            raise ValueError(f"There is no data for the provided modelid '{model_id}'")
 
         if return_df:
             return df

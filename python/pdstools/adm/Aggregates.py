@@ -23,9 +23,11 @@ class Aggregates:
         *,
         data: Optional[pl.LazyFrame] = None,
         table: Literal["model_data", "predictor_data", "combined_data"] = "model_data",
-    ):
+    ) -> pl.LazyFrame:
         """Gets the last snapshot of the given table
 
+        This method filters the data to include only the rows from the most recent snapshot time.
+        
         Parameters
         ----------
         data : Optional[pl.LazyFrame], optional
@@ -35,8 +37,8 @@ class Aggregates:
 
         Returns
         -------
-        _type_
-            _description_
+        pl.LazyFrame
+            A LazyFrame containing only the rows from the most recent snapshot time
         """
         if data is None and not hasattr(self.datamart, table):
             raise ValueError(f"{table} not available in the datamart")
@@ -46,6 +48,9 @@ class Aggregates:
             return df
 
         return df.filter(
+            # For safety consider to .over("ModelID"), if product improves so snapshots
+            # get written not in bulk but per model? Downside is that
+            # very old model IDs that never got used anymore would still show up. 
             pl.col("SnapshotTime").fill_null(strategy="zero")
             == pl.col("SnapshotTime").fill_null(strategy="zero").max()
         )
@@ -235,6 +240,8 @@ class Aggregates:
 
         Parameters
         ----------
+        facet : str, optional
+            The column to use as a secondary grouping dimension, by default "Configuration"
         by : str, optional
             The column to group the data by, by default "Type"
         query : Optional[QUERY], optional
@@ -243,7 +250,12 @@ class Aggregates:
         Returns
         -------
         pl.LazyFrame
-            A LazyFrame, with one row per predictor and 'by' combo
+            A LazyFrame with one row per predictor and 'by' combination, containing:
+            - Name - The action name
+            - EntryType - The entry type (Active, Inactive, etc.)
+            - by - The column specified in the 'by' parameter
+            - facet - The column specified in the 'facet' parameter
+            - PredictorCount - The number of unique predictors for this combination
         """
         df = (
             cdh_utils._apply_query(
@@ -785,10 +797,32 @@ class Aggregates:
         """
         Generates a summary of the ADM model configurations.
 
+        This method provides an overview of model configurations, including information about
+        the number of models, actions, treatments, and performance metrics.
+
         Returns
         -------
         pl.DataFrame
-            A Polars DataFrame containing the configuration summary.
+            A Polars DataFrame containing the configuration summary with the following fields:
+
+            Configuration Information:
+            - Configuration - The name of the model configuration
+            - Channel - The channel name (if available in context keys)
+            - Direction - The direction (if available in context keys)
+            
+            Model Information:
+            - AGB - Indicates if Adaptive Gradient Boosting is used ("Yes", "No", or "Unknown")
+            - ModelID - The number of unique model IDs for this configuration
+            
+            Action Statistics:
+            - Actions - The number of unique actions in this configuration
+            - Unique Treatments - The number of unique treatments (if available)
+            - Used for (Issues) - A comma-separated list of issues this configuration is used for (if available)
+            
+            Performance Metrics:
+            - ResponseCount - The total number of responses for this configuration
+            - Positives - The total number of positive responses for this configuration
+            - ModelsPerAction - The ratio of models to actions (models per action)
         """
 
         action_dim_agg = [pl.col("Name").n_unique().alias("Actions")]
@@ -851,11 +885,45 @@ class Aggregates:
     ) -> Optional[pl.DataFrame]:
         """
         Generate a summary of the last snapshot of predictor data.
+
+        This method provides an overview of predictor performance and characteristics
+        from the most recent snapshot, either for all models or for a specific model.
+
+        Parameters
+        ----------
+        model_id : Optional[str], optional
+            If provided, filters the data to include only predictors for the specified model ID.
+            If None (default), includes predictors for all models.
+        additional_aggregations : Optional[list], optional
+            Additional aggregation expressions to include in the result.
+            These will be added to the default aggregations.
+
         Returns
         -------
         pl.DataFrame or None
-            A Polars DataFrame containing the predictor summary if successful,
-            None if the required data is not available or encountered to an error.
+            A Polars DataFrame containing the predictor summary with the following fields:
+            
+            Identification:
+            - ModelID - The model ID (only if model_id parameter is None)
+            - PredictorName - The name of the predictor
+            
+            Status and Type:
+            - EntryType - The entry type (Active, Inactive, etc.)
+            - isActive - Boolean indicating if the predictor is active
+            - Type - The predictor type
+            - GroupIndex - The group index of the predictor
+            
+            Performance Metrics:
+            - Responses - The number of responses for this predictor
+            - Positives - The number of positive responses for this predictor
+            - Univariate Performance - The univariate performance of the predictor (AUC)
+            
+            Binning Information:
+            - Bins - The number of bins for this predictor
+            - Missing % - The percentage of responses in the MISSING bin
+            - Residual % - The percentage of responses in the RESIDUAL bin
+            
+            Returns None if the required data is not available or an error is encountered.
         """
         try:
             data = self.last(table="predictor_data")

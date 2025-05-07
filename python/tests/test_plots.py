@@ -113,7 +113,7 @@ def test_score_distribution(sample: ADMDatamart):
     assert bin_indices == sorted(bin_indices)
 
     with pytest.raises(
-        ValueError, match="The given query resulted in no more remaining data."
+        ValueError, match="There is no data for the provided modelid 'invalid_id'"
     ):
         sample.plot.score_distribution(model_id="invalid_id")
 
