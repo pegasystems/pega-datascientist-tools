@@ -688,6 +688,7 @@ class ADMDatamart:
                 ).over("ModelID")
             ),
             query,
+            allow_empty=True,
         )
 
         classifier_info = (
