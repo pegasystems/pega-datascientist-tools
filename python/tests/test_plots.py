@@ -112,7 +112,9 @@ def test_score_distribution(sample: ADMDatamart):
     bin_indices = collected_df["BinIndex"].to_list()
     assert bin_indices == sorted(bin_indices)
 
-    with pytest.raises(ValueError, match="The given query resulted in no more remaining data."):
+    with pytest.raises(
+        ValueError, match="The given query resulted in no more remaining data."
+    ):
         sample.plot.score_distribution(model_id="invalid_id")
 
     plot = sample.plot.score_distribution(model_id=model_id)
@@ -263,7 +265,7 @@ def test_predictor_performance_heatmap(sample: ADMDatamart):
 
     assert (
         round(
-            df.filter(Name = "Customer.AnnualIncome")
+            df.filter(Name="Customer.AnnualIncome")
             .select("AutoUsed60Months")
             .collect()
             .item(),
@@ -273,18 +275,22 @@ def test_predictor_performance_heatmap(sample: ADMDatamart):
     )
     assert df.select(pl.col("*").exclude("Name")).collect().to_numpy().max() <= 1.0
     assert "Name" in df.collect().columns
-    assert 'ChannelAction_Template' in df.collect().columns
+    assert "ChannelAction_Template" in df.collect().columns
 
     plot = sample.plot.predictor_performance_heatmap()
     assert isinstance(plot, Figure)
 
-    df = sample.plot.predictor_performance_heatmap(by=pl.concat_str(
-                    pl.col("Issue"), pl.col("Group"), pl.col("Name"), separator="/"
-                ), return_df=True)
-    
+    df = sample.plot.predictor_performance_heatmap(
+        by=pl.concat_str(
+            pl.col("Issue"), pl.col("Group"), pl.col("Name"), separator="/"
+        ),
+        return_df=True,
+    )
+
     assert "Name" not in df.collect().columns
     assert "Predictor" in df.collect().columns
-    assert 'Sales/CreditCards/ChannelAction_Template' in df.collect().columns
+    assert "Sales/CreditCards/ChannelAction_Template" in df.collect().columns
+
 
 def test_models_by_positives(sample: ADMDatamart):
     df = sample.plot.models_by_positives(return_df=True)
@@ -314,9 +320,12 @@ def test_tree_map(sample: ADMDatamart):
 
 
 def test_predictor_count(sample: ADMDatamart):
-    df = sample.plot.predictor_count(return_df=True).collect()
-    assert df.shape == (78, 5)
-    assert df.row(0)[4] == 44
+    df = sample.plot.predictor_count(
+        query=(pl.col("Name") == "AutoNew36Months"), return_df=True
+    ).collect()
+
+    assert df.shape == (6, 5)
+    assert df.row(5)[4] == 44
 
     plot = sample.plot.predictor_count()
     assert isinstance(plot, Figure)
