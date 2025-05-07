@@ -99,13 +99,7 @@ def test_proposition_success_rates(sample: ADMDatamart):
 
 
 def test_score_distribution(sample: ADMDatamart):
-    model_id = (
-        sample.aggregates.last(table="combined_data")
-        .filter(pl.col("PredictorName") == "Classifier")
-        .select("ModelID")
-        .collect()
-        .row(0)[0]
-    )
+    model_id = "277a2c48-8888-5b71-911e-443d52c9b50f"
 
     df = sample.plot.score_distribution(model_id=model_id, return_df=True)
 
@@ -118,7 +112,7 @@ def test_score_distribution(sample: ADMDatamart):
     bin_indices = collected_df["BinIndex"].to_list()
     assert bin_indices == sorted(bin_indices)
 
-    with pytest.raises(ValueError, match="There is no data for the provided modelid"):
+    with pytest.raises(ValueError, match="The given query resulted in no more remaining data."):
         sample.plot.score_distribution(model_id="invalid_id")
 
     plot = sample.plot.score_distribution(model_id=model_id)
