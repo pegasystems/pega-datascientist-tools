@@ -37,7 +37,7 @@ class Reports(LazyNamespace):
         title: str = "ADM Model Report",
         subtitle: str = "",
         output_dir: Optional[PathLike] = None,
-        only_active_predictors: bool = False,
+        only_active_predictors: bool = True,
         output_type: str = "html",
         keep_temp_files: bool = False,
         verbose: bool = False,
@@ -60,7 +60,7 @@ class Reports(LazyNamespace):
             Subtitle top put in the report, empty if not given.
         output_dir : Union[str, Path, None], optional
             The directory for the output. If None, uses current working directory.
-        only_active_predictors : bool, default=False
+        only_active_predictors : bool, default=True
             Whether to only include active predictor details.
         output_type : str, default='html'
             The type of the output file (e.g., "html", "pdf").
@@ -279,6 +279,7 @@ class Reports(LazyNamespace):
                 verbose=verbose,
             )
 
+            # TODO why not print paths earlier, before the quarto call?
             output_path = temp_dir / output_filename
             if verbose or not output_path.exists():
                 if model_file_path is not None:

@@ -1,6 +1,6 @@
 __all__ = ["Aggregates"]
 import datetime
-from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Tuple, Union
 
 import polars as pl
 import polars.selectors as cs
@@ -254,6 +254,7 @@ class Aggregates:
             .group_by(pl.all().exclude("PredictorName"))
             .agg(PredictorCount=pl.n_unique("PredictorName"))
         )
+
         overall = (
             df.group_by(pl.all().exclude(["PredictorName", by, "PredictorCount"]))
             .agg(pl.sum("PredictorCount"))
@@ -265,8 +266,10 @@ class Aggregates:
 
         return (
             pl.concat([df, overall.select(schema.names()).cast(schema)])
-            .with_columns(pl.col("PredictorCount").cast(pl.Int64))
-            .sort(["Name", "EntryType", by, facet])
+            .with_columns(
+                pl.col("PredictorCount").cast(pl.Int64), cs.categorical().cast(pl.Utf8)
+            )
+            .sort(["Name", "EntryType", by, facet, "PredictorCount"])
         )
 
     @staticmethod
@@ -997,7 +1000,7 @@ class Aggregates:
                 query=pl.col("SnapshotTime").is_between(start_date, end_date),
                 by_period=by_period,
                 by_channel=True,
-                debug=True, # this gives us Period
+                debug=True,  # this gives us Period
             )
             .filter(pl.col("isValid"))
             .group_by(None if by_period is None else "Period")

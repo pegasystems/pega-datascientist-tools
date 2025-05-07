@@ -387,14 +387,25 @@ def test_log_odds():
             "ResponseCount": [5, 2215, 1930, 1094, 358],
         }
     )
-    output = input.with_columns(cdh_utils.log_odds().round(2))
 
-    log_odds_list = [1.65, -0.81, -0.23, 0.43, 0.87]
-    expected_output = input.with_columns(
-        pl.Series(name="LogOdds", values=log_odds_list)
+    output_polars_native = input.with_columns(cdh_utils.log_odds_polars().round(5))
+
+    output_polars_python = input.with_columns(
+        LogOdds=pl.map_batches(
+                exprs=["Positives", pl.col("ResponseCount") - pl.col("Positives")],
+                function=lambda data: cdh_utils.bin_log_odds(data[0], data[1]),
+                return_dtype=pl.Float64,  # pl.List(pl.Float64),
+            ).explode().round(5),
     )
 
-    assert output.equals(expected_output)
+    log_odds_expected_results = [round(x,5) for x in [1.755597, -0.712158, -0.130056, 0.528378, 0.974044]]
+
+    expected_output = input.with_columns(
+        pl.Series(name="LogOdds", values=log_odds_expected_results)
+    )
+
+    assert output_polars_native.equals(expected_output)
+    assert output_polars_python.equals(expected_output)
 
 
 def test_featureImportance():
@@ -407,10 +418,10 @@ def test_featureImportance():
         }
     )
 
-    output = input.with_columns(cdh_utils.feature_importance().round(2)).sort(
+    output = input.with_columns(cdh_utils.feature_importance().round(5)).sort(
         "BinPositives"
     )
-    importance_list = [-0.12, 0.28, -0.12, 0.28]
+    importance_list = [-0.05077, 0.17956, -0.05077, 0.17956]
     expected_output = input.sort("BinPositives").with_columns(
         pl.Series(name="FeatureImportance", values=importance_list)
     )

@@ -465,6 +465,7 @@ class Plots(LazyNamespace):
         self,
         model_id: str,
         *,
+        active_range: bool = True,
         return_df: bool = False,
     ):
         df = (
@@ -485,9 +486,16 @@ class Plots(LazyNamespace):
                 )
             )
             .filter(
-                pl.col("PredictorName") == "Classifier", pl.col("ModelID") == model_id
+                PredictorName = "Classifier", ModelID = model_id
             )
         ).sort("BinIndex")
+
+        if active_range:
+            active_range_info = self.datamart.active_ranges(model_id).collect().to_dicts()[0]
+            active_range_filter_expr = (pl.col("BinIndex") >= active_range_info["idx_min"]) & (
+                pl.col("BinIndex") <= active_range_info["idx_max"]
+            )
+            df = df.filter(active_range_filter_expr)
 
         if df.select(pl.first().len()).collect().item() == 0:
             raise ValueError(f"There is no data for the provided modelid {model_id}")
@@ -949,6 +957,12 @@ class Plots(LazyNamespace):
         query: Optional[QUERY] = None,
         return_df: bool = False,
     ):
+        if isinstance(by, str):
+            by_name = by
+        else:
+            by = by.alias("Predictor")
+            by_name = "Predictor"
+
         df = self.datamart.aggregates.predictor_performance_pivot(
             query=query,
             by=by,
@@ -957,15 +971,16 @@ class Plots(LazyNamespace):
             active_only=active_only,
         )
 
+        df = df.collect().transpose(
+            include_header=True, header_name=by_name, column_names=by_name
+        )
+
         if return_df:
-            return df
+            return df.lazy()
 
         title = "over all models"
-        df = df.collect().transpose(
-            include_header=True, header_name=by, column_names=by
-        )
         fig = px.imshow(
-            df.select(pl.all().exclude(by)),
+            df.select(pl.all().exclude(by_name)),
             text_auto=".3f",
             aspect="auto",
             color_continuous_scale=self.datamart.cdh_guidelines.colorscales.get(
@@ -973,7 +988,7 @@ class Plots(LazyNamespace):
             ),
             title=f"Top predictors {title}",
             range_color=[0.5, 1],
-            y=df[by],
+            y=df[by_name],
         )
 
         fig.update_yaxes(dtick=1, automargin=True)

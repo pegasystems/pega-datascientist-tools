@@ -7,6 +7,7 @@ import re
 import tempfile
 import warnings
 import zipfile
+import math
 from io import StringIO
 from os import PathLike
 from pathlib import Path
@@ -365,6 +366,10 @@ def auc_from_bincounts(
 
     pos = np.asarray(pos)
     neg = np.asarray(neg)
+
+    if (np.sum(pos) == 0) or (np.sum(neg) == 0):
+        return 0.5
+
     if probs is None:
         probs = pos / (pos + neg)
 
@@ -745,8 +750,11 @@ def overlap_lists_polars(col: pl.Series) -> pl.Series:
     return pl.Series(average_overlap)  # ,dtype=pl.List(inner=pl.Float64))
 
 
+# TODO all these should perhaps be consistently named _polars
+
 def z_ratio(
-    pos_col: pl.Expr = pl.col("BinPositives"), neg_col: pl.Expr = pl.col("BinNegatives")
+    pos_col: Union[str, pl.Expr] = pl.col("BinPositives"),
+    neg_col: Union[str, pl.Expr] = pl.col("BinNegatives"),
 ) -> pl.Expr:
     """Calculates the Z-Ratio for predictor bins.
 
@@ -770,6 +778,11 @@ def z_ratio(
     >>> df.group_by(['ModelID', 'PredictorName']).agg([zRatio()]).explode()
     """
 
+    if isinstance(pos_col, str):
+        pos_col = pl.col(pos_col)
+    if isinstance(neg_col, str):
+        neg_col = pl.col(neg_col)
+
     def get_fracs(pos_col=pl.col("BinPositives"), neg_col=pl.col("BinNegatives")):
         return pos_col / pos_col.sum(), neg_col / neg_col.sum()
 
@@ -790,8 +803,10 @@ def z_ratio(
     return z_ratio_impl(*get_fracs(pos_col, neg_col), pos_col.sum(), neg_col.sum())
 
 
+# TODO all these should perhaps be consistently named _polars
+
 def lift(
-    pos_col: pl.Expr = pl.col("BinPositives"), neg_col: pl.Expr = pl.col("BinNegatives")
+    pos_col: Union[str, pl.Expr] = pl.col("BinPositives"), neg_col: Union[str, pl.Expr] = pl.col("BinNegatives")
 ) -> pl.Expr:
     """Calculates the Lift for predictor bins.
 
@@ -811,6 +826,11 @@ def lift(
     >>> df.group_by(['ModelID', 'PredictorName']).agg([lift()]).explode()
     """
 
+    if isinstance(pos_col, str):
+        pos_col = pl.col(pos_col)
+    if isinstance(neg_col, str):
+        neg_col = pl.col(neg_col)
+
     def lift_impl(bin_pos, bin_neg, total_pos, total_neg):
         return (
             # TODO not sure how polars (mis)behaves when there are no positives at all
@@ -824,26 +844,41 @@ def lift(
     return lift_impl(pos_col, neg_col, pos_col.sum(), neg_col.sum())
 
 
-def log_odds(
-    positives=pl.col("Positives"),
-    negatives=pl.col("ResponseCount") - pl.col("Positives"),
+# log odds contribution of the bins, including Laplace smoothing
+def bin_log_odds(bin_pos: List[float], bin_neg: List[float]) -> List[float]:
+    sum_pos = sum(bin_pos)
+    sum_neg = sum(bin_neg)
+    nbins = len(bin_pos)  # must be > 0
+    return [
+        (math.log(pos + 1 / nbins) - math.log(sum_pos + 1))
+        - (math.log(neg + 1 / nbins) - math.log(sum_neg + 1))
+        for pos, neg in zip(bin_pos, bin_neg)
+    ]
+
+def log_odds_polars(
+    positives: Union[pl.Expr, str] = pl.col("Positives"),
+    negatives: Union[pl.Expr, str] = pl.col("ResponseCount") - pl.col("Positives"),
 ):
+    if isinstance(positives, str):
+        positives = pl.col(positives)
+    if isinstance(negatives, str):
+        negatives = pl.col(negatives)
+
     N = positives.count()
     return (
         (
-            ((positives + 1 / N).log() - (positives + 1).sum().log())
-            - ((negatives + 1 / N).log() - (negatives + 1).sum().log())
+            ((positives + 1 / N).log() - (positives.sum() + 1).log())
+            - ((negatives + 1 / N).log() - (negatives.sum() + 1).log())
         )
-        .round(2)
+        # .round(2)
         .alias("LogOdds")
     )
-
 
 # TODO: reconsider this. Feature importance now stored in datamart
 # perhaps we should not bother to calculate it ourselves.
 def feature_importance(over=["PredictorName", "ModelID"]):
     var_imp = weighted_average_polars(
-        log_odds(
+        log_odds_polars(
             pl.col("BinPositives"), pl.col("BinResponseCount") - pl.col("BinPositives")
         ),
         "BinResponseCount",
@@ -1185,7 +1220,7 @@ def get_start_end_date_args(
     start_date: Optional[datetime.datetime] = None,
     end_date: Optional[datetime.datetime] = None,
     window: Optional[Union[int, datetime.timedelta]] = None,
-    datetime_field = 'SnapshotTime'
+    datetime_field="SnapshotTime",
 ):
     if isinstance(data, pl.DataFrame):
         data_min_date = data.select(pl.col(datetime_field).min()).item()
@@ -1193,7 +1228,7 @@ def get_start_end_date_args(
     elif isinstance(data, pl.LazyFrame):
         data_min_date = data.select(pl.col(datetime_field).min()).collect().item()
         data_max_date = data.select(pl.col(datetime_field).max()).collect().item()
-    else:   # pl.Series
+    else:  # pl.Series
         data_min_date = data.min()
         data_max_date = data.max()
 
@@ -1204,7 +1239,9 @@ def get_start_end_date_args(
             window = datetime.timedelta(days=window)
 
     if start_date and end_date and window:
-        raise ValueError("Only max two of 'start_date', 'end_date' or 'window_days' can be set")
+        raise ValueError(
+            "Only max two of 'start_date', 'end_date' or 'window_days' can be set"
+        )
     if not end_date:
         if window is None or start_date is None:
             end_date = data_max_date
@@ -1219,6 +1256,8 @@ def get_start_end_date_args(
     # print(f"**EXIT** Start={start_date}, End={end_date}, Window={window}")
 
     if start_date and end_date and start_date > end_date:
-        raise ValueError(f"The start date {start_date} should be before the end date {end_date}")
+        raise ValueError(
+            f"The start date {start_date} should be before the end date {end_date}"
+        )
 
     return start_date, end_date

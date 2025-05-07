@@ -1,0 +1,3 @@
+"SnapshotTime","ModelID","Negatives","ActivePredictors","Positives","TotalPredictors","Performance","ConfigurationName","ResponseCount","Name","Group","Issue","Direction","Channel","SuccessRate","AUC"
+2018-03-16 13:42:32.265,"b4e32dca-f9e2-5070-bfb0-7280fac39509",170,21,92,40,0.544661,"SalesModel",262,"PSFAMDISCNT","Proactive","Sales","Inbound","Web",0.351145038167939,54.4661
+2018-03-16 13:49:39.916,"b4e32dca-f9e2-5070-bfb0-7280fac39509",170,21,92,40,0.544661,"SalesModel",262,"PSFAMDISCNT","Proactive","Sales","Inbound","Web",0.351145038167939,54.4661

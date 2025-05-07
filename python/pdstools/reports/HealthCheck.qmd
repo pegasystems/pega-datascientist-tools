@@ -1386,7 +1386,7 @@ if datamart.predictor_data is not None:
                 top_groups=barchart_max_bars,
                 by=pl.concat_str(
                     pl.col("Issue"), pl.col("Group"), pl.col("Name"), separator="/"
-                ),
+                ).alias("Action"),
                 query=pl.col("Configuration") == conf,
             )
             fig.update_layout(
