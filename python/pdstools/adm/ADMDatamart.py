@@ -623,7 +623,30 @@ class ADMDatamart:
         Returns
         -------
         pl.LazyFrame
-            A table with all the index and AUC information for all the models
+            A table with all the index and AUC information for all the models with the following fields:
+
+            Model Identification:
+            - ModelID - The unique identifier for the model
+
+            AUC Metrics:
+            - AUC_Datamart - The AUC value as reported in the datamart
+            - AUC_FullRange - The AUC calculated from the full range of bins in the classifier
+            - AUC_ActiveRange - The AUC calculated from only the active/reachable bins
+
+            Classifier Information:
+            - Bins - The total number of bins in the classifier
+            - nActivePredictors - The number of active predictors in the model
+
+            Log Odds Information (mostly for internal use):
+            - classifierLogOffset - The log offset of the classifier (baseline log odds)
+            - sumMinLogOdds - The sum of minimum log odds across all active predictors
+            - sumMaxLogOdds - The sum of maximum log odds across all active predictors
+            - score_min - The minimum score (normalized sum of log odds including classifier offset)
+            - score_max - The maximum score (normalized sum of log odds including classifier offset)
+
+            Active Range Information:
+            - idx_min - The minimum bin index that can be reached given the current binning of all predictors
+            - idx_max - The maximum bin index that can be reached given the current binning of all predictors
 
         """
         import numpy as np
@@ -657,6 +680,9 @@ class ADMDatamart:
         most_recent_binning_data = cdh_utils._apply_query(
             self.predictor_data.filter(
                 (
+                    # TODO consider using the "last" function of the aggregates
+                    # last("predictor_data") instead of this, but that currently
+                    # doesn't do that per Model ID. Probably should.
                     (pl.col("SnapshotTime").n_unique() == 1)
                     | (pl.col("SnapshotTime") == pl.col("SnapshotTime").max())
                 ).over("ModelID")
