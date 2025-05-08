@@ -64,7 +64,7 @@ WITH
             , {LEFT_PREFIX}.predictor_name
             , {LEFT_PREFIX}.predictor_type
             , 'MISSING' AS bin_contents
-            , 'MISSING' AS bin_order
+            , -1 AS bin_order
             , AVG(ABS({LEFT_PREFIX}.shap_coeff)) AS contribution_abs
             , AVG({LEFT_PREFIX}.shap_coeff) AS contribution
             , MIN({LEFT_PREFIX}.shap_coeff) AS contribution_0
